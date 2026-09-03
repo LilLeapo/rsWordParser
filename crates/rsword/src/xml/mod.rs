@@ -20,7 +20,7 @@ pub use dom::{Attr, AttrValue, Dom, Element, Mce, MceRole, Node, NodeId, NodeKin
 pub use interner::{Interned, Interner};
 pub use lex::Lex;
 pub use names::{LocalName, NsId, QName};
-pub use parse::XmlError;
+pub use parse::{RootInfo, XmlError, sniff_root};
 
 /// `XML-08`：迭代解析的深度上限。POI 5000 层嵌套表格必须成功。
 pub const MAX_DEPTH: u32 = 100_000;

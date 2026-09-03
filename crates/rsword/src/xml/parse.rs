@@ -70,6 +70,65 @@ impl Dom {
     }
 }
 
+/// 根元素的轻量探测结果（`PKG-08` 判定 flavor 用，不建树）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RootInfo {
+    /// 原始限定名，如 `w:document`。
+    pub qualified_name: String,
+    /// 根元素所在命名空间的 URI（由根自身的 `xmlns` 声明解析；未声明为 `None`）。
+    pub namespace_uri: Option<String>,
+}
+
+/// 只解析到根元素开标签结束：拿到根的限定名与命名空间 URI。失败条件与 [`Dom::parse`] 的序言阶段相同。
+pub fn sniff_root(bytes: &[u8]) -> Result<RootInfo, XmlError> {
+    let (src, _transcoded, start) = decode_input(bytes)?;
+    let mut p = Parser {
+        part: PartId(0),
+        src: &src,
+        b: src.as_bytes(),
+        pos: start,
+        nodes: Vec::new(),
+        interner: Interner::new(),
+        diags: Vec::new(),
+        ns_stack: Vec::new(),
+        ns_frames: Vec::new(),
+        stack: Vec::new(),
+        unbound_reported: HashSet::new(),
+        raw_attrs: Vec::new(),
+    };
+    p.skip_prolog()?;
+    let root = p.parse_start_tag(None)?;
+    let NodeKind::Element(e) = &p.nodes[root.idx()].kind else {
+        unreachable!("root is an element")
+    };
+    let qualified_name = e
+        .lex_name
+        .as_ref()
+        .map(|r| src[r.start as usize..r.end as usize].to_string())
+        .unwrap_or_default();
+    let prefix = qualified_name.split_once(':').map(|(pre, _)| pre);
+    let namespace_uri = e.attrs.iter().find_map(|a| {
+        if a.name.ns != NsId::Xmlns {
+            return None;
+        }
+        let declared = match (prefix, a.name.local) {
+            (None, LocalName::Xmlns) => true,
+            (Some(pre), local) if local != LocalName::Xmlns => local.as_str(&p.interner) == pre,
+            _ => false,
+        };
+        if !declared {
+            return None;
+        }
+        match &a.value {
+            AttrValue::Raw(r) => {
+                Some(entities::decode(&src[r.start as usize..r.end as usize]).into_owned())
+            }
+            AttrValue::Owned(v) => Some(v.clone()),
+        }
+    });
+    Ok(RootInfo { qualified_name, namespace_uri })
+}
+
 /// `XML-01`：UTF-8（可带 BOM）直接使用；UTF-16（BOM 或裸 `<\0?\0`）转码。
 /// 返回 (字节, 是否转码, 扫描起点)。
 fn decode_input(bytes: &[u8]) -> Result<(Arc<str>, bool, usize), XmlError> {
@@ -750,6 +809,28 @@ mod tests {
         assert_eq!(d.code, DiagCode::XmlBadEntity);
         assert_eq!(dom.lex_str(d.range.as_ref().unwrap()), "&bogus;");
         assert_eq!(serialize(&dom).unwrap(), src.as_bytes());
+    }
+
+    #[test]
+    fn xml_05_sniff_root_namespace() {
+        let strict = format!(
+            "<?xml version=\"1.0\"?><w:document xmlns:r=\"urn:r\" xmlns:w=\"{}\"><w:body/></w:document>",
+            "http://purl.oclc.org/ooxml/wordprocessingml/main"
+        );
+        let info = sniff_root(strict.as_bytes()).unwrap();
+        assert_eq!(info.qualified_name, "w:document");
+        assert_eq!(
+            info.namespace_uri.as_deref(),
+            Some("http://purl.oclc.org/ooxml/wordprocessingml/main")
+        );
+        let default_ns = sniff_root(b"<Types xmlns=\"urn:ct\"><Default/></Types>").unwrap();
+        assert_eq!(default_ns.namespace_uri.as_deref(), Some("urn:ct"));
+        assert_eq!(
+            sniff_root(b"<x:a xmlns=\"urn:d\"/>").unwrap().namespace_uri,
+            None,
+            "prefix not declared"
+        );
+        assert!(sniff_root(b"junk").is_err());
     }
 
     #[test]
