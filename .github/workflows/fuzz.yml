@@ -1,0 +1,27 @@
+name: fuzz
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1"
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [fuzz_xml, fuzz_zip]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: fuzz
+      - run: cargo install cargo-fuzz --locked
+      # TEST-06 / TEST-10 M0 门：每个目标 10 分钟无崩溃
+      - run: cd fuzz && cargo fuzz run ${{ matrix.target }} -- -max_total_time=600 -timeout=20 -rss_limit_mb=4096
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ matrix.target }}-artifacts
+          path: fuzz/artifacts

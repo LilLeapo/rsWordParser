@@ -20,12 +20,4 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets
       - run: cargo test --workspace
-  # M0 任务 0.13：fuzz_zip / fuzz_xml 各 10 分钟（需要 nightly + cargo-fuzz），接入后取消注释。
-  # fuzz:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: dtolnay/rust-toolchain@nightly
-  #     - run: cargo install cargo-fuzz
-  #     - run: cargo fuzz run fuzz_zip -- -max_total_time=600
-  #     - run: cargo fuzz run fuzz_xml -- -max_total_time=600
+  # fuzz 在 .github/workflows/fuzz.yml（手动 / 每周），不挂在每次 push 上。

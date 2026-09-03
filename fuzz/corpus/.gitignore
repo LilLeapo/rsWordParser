@@ -1,0 +1,5 @@
+# libFuzzer 运行时写入的最小化语料（40 位十六进制文件名），只提交有名字的种子
+fuzz_xml/[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]*
+fuzz_zip/[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]*
+!fuzz_xml/*__*
+!fuzz_zip/*.docx
