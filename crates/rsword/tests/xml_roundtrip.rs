@@ -89,8 +89,17 @@ fn xml_13_clean_roundtrip_all_corpus() {
                             failures.push(format!("{stem}:{name}: {e}"));
                         }
                         // XML-01：转码过的 part 只能与转码后的字节一致
-                        let expected: &[u8] =
-                            if dom.transcoded() { dom.src_bytes() } else { &bytes };
+                        let transcoded_expected: Vec<u8>;
+                        let expected: &[u8] = if dom.transcoded() {
+                            // 转码 part：与转码后的字节一致，且 XML 声明的 encoding 改为 UTF-8
+                            transcoded_expected = String::from_utf8(dom.src_bytes().to_vec())
+                                .unwrap()
+                                .replacen("encoding=\"UTF-16\"", "encoding=\"UTF-8\"", 1)
+                                .into_bytes();
+                            &transcoded_expected
+                        } else {
+                            &bytes
+                        };
                         match serialize(&dom) {
                             Ok(out) if out == expected => {}
                             Ok(out) => {

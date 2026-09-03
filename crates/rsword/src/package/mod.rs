@@ -338,6 +338,10 @@ impl Package {
         &self.zip
     }
 
+    pub(crate) fn zip_mut(&mut self) -> &mut ZipPackage {
+        &mut self.zip
+    }
+
     pub fn parts(&self) -> &[Part] {
         &self.parts
     }

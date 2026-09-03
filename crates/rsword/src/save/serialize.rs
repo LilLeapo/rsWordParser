@@ -54,11 +54,38 @@ pub fn serialize_with(
 ) -> Result<Vec<u8>, SerializeError> {
     let src = dom.src_bytes();
     let mut out = Vec::with_capacity(src.len() + 64);
-    out.extend_from_slice(&src[urange(&dom.prolog())]);
+    let prolog = &src[urange(&dom.prolog())];
+    if dom.transcoded() {
+        // XML-01：转码后的 part 以 UTF-8 写出，声明里的 encoding 跟着改，否则声明与字节不一致
+        out.extend_from_slice(&fix_encoding_decl(prolog));
+    } else {
+        out.extend_from_slice(prolog);
+    }
     let mut w = Writer { dom, ctx, out: &mut out, scope: WScope::default(), gen_counter: 0 };
     w.run(dom.root())?;
     out.extend_from_slice(&src[urange(&dom.epilog())]);
     Ok(out)
+}
+
+/// 把序言里 `encoding="…"` 的值改为 `UTF-8`（只在 XML 声明内查找）。
+fn fix_encoding_decl(prolog: &[u8]) -> Vec<u8> {
+    let Some(end) = memchr::memmem::find(prolog, b"?>") else { return prolog.to_vec() };
+    let decl = &prolog[..end];
+    let Some(pos) = memchr::memmem::find(decl, b"encoding") else { return prolog.to_vec() };
+    let mut i = pos + b"encoding".len();
+    while i < decl.len() && (decl[i] == b' ' || decl[i] == b'=') {
+        i += 1;
+    }
+    let Some(&q) = decl.get(i) else { return prolog.to_vec() };
+    if q != b'"' && q != b'\'' {
+        return prolog.to_vec();
+    }
+    let Some(close) = memchr::memchr(q, &decl[i + 1..]) else { return prolog.to_vec() };
+    let mut out = Vec::with_capacity(prolog.len());
+    out.extend_from_slice(&prolog[..=i]);
+    out.extend_from_slice(b"UTF-8");
+    out.extend_from_slice(&prolog[i + 1 + close..]);
+    out
 }
 
 /// 序列化一棵子树到 `out`（作用域取自其祖先）。

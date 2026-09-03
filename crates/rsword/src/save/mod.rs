@@ -5,6 +5,7 @@
 //! 直接拷压缩数据（`SAVE-06`）。无脏节点且无新增 part → 直接返回原字节（不变式 1）。
 //! M0 任务 0.11–0.12 只做序列化与 `raw_copy_file` 写回。
 
+pub mod package_writer;
 pub mod serialize;
 
 pub use serialize::{SerializeError, serialize, serialize_subtree};

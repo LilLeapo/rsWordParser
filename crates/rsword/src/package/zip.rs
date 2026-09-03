@@ -160,6 +160,21 @@ impl ZipPackage {
     }
 }
 
+impl ZipPackage {
+    /// `SAVE-06`：把条目的压缩数据原样拷进 `writer`（不解压不重压，名字 / 方法 / CRC 不变）。
+    pub fn raw_copy_into<W: std::io::Write + std::io::Seek>(
+        &mut self,
+        index: u32,
+        writer: &mut zip::ZipWriter<W>,
+    ) -> Result<()> {
+        let f = self
+            .archive
+            .by_index_raw(index as usize)
+            .map_err(|e| Error::Zip(format!("entry {index}: {e}")))?;
+        writer.raw_copy_file(f).map_err(|e| Error::Zip(format!("raw copy of entry {index}: {e}")))
+    }
+}
+
 fn limit(code: DiagCode, message: String) -> Error {
     Error::Limit { code, message }
 }
