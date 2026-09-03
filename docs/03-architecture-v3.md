@@ -707,7 +707,7 @@ serialize(node):
 
 ## 11. 测试
 
-1. **差分**：TS 脚本把 77 个测试文件的合成 docx 落盘为 `.docx` + 期望 JSON；Rust `compat_ts` 输出与之 diff。
+1. **差分**：TS 脚本把 87 个测试文件的合成 docx 落盘为 `.docx` + 期望 JSON；Rust `compat_ts` 输出与之 diff。
 2. **字节保真**：每个语料无编辑往返字节相同；编辑单节点后其他干净节点原文子串全部出现。
 3. **保存 XPath 断言**：对生成的 `document.xml` 断言 schema 顺序、字段结构、rels 一致性。
 4. **真实语料**：落盘语料目录，每个文档一个最小断言与一次往返。

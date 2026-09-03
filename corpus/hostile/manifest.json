@@ -1,0 +1,82 @@
+[
+  {
+    "name": "zip-part-too-large.docx",
+    "bytes": 2089,
+    "expectation": "PKG_PART_TOO_LARGE"
+  },
+  {
+    "name": "zip-total-too-large.docx",
+    "bytes": 2089,
+    "expectation": "PKG_TOTAL_TOO_LARGE"
+  },
+  {
+    "name": "zip-too-many-parts.docx",
+    "bytes": 1032545,
+    "expectation": "PKG_TOO_MANY_PARTS"
+  },
+  {
+    "name": "zip-unicode-path-shadow.docx",
+    "bytes": 2426,
+    "expectation": "body text is RIGHT; unedited save is byte-identical"
+  },
+  {
+    "name": "xml-deep-smarttag.docx",
+    "bytes": 2332,
+    "expectation": "parses; paragraph editable"
+  },
+  {
+    "name": "xml-deep-table.docx",
+    "bytes": 3623,
+    "expectation": "parses; depth>64 is TooDeep"
+  },
+  {
+    "name": "xml-unbalanced-main.docx",
+    "bytes": 3623,
+    "expectation": "Err(XML_MALFORMED)"
+  },
+  {
+    "name": "xml-unbalanced-header.docx",
+    "bytes": 2397,
+    "expectation": "parses; header part Opaque + diagnostic"
+  },
+  {
+    "name": "field-unclosed.docx",
+    "bytes": 2149,
+    "expectation": "FLD_UNCLOSED diagnostic; paragraph editable; unedited save byte-identical"
+  },
+  {
+    "name": "span-orphan-end.docx",
+    "bytes": 2111,
+    "expectation": "SPAN_ORPHAN_END PreExisting; save succeeds"
+  },
+  {
+    "name": "rels-missing-target.docx",
+    "bytes": 2189,
+    "expectation": "image broken; unedited save byte-identical"
+  },
+  {
+    "name": "rels-escape-root.docx",
+    "bytes": 2213,
+    "expectation": "PKG_PATH_ESCAPES_ROOT diagnostic; treated as missing"
+  },
+  {
+    "name": "dup-ids.docx",
+    "bytes": 2133,
+    "expectation": "diagnostic; save succeeds"
+  },
+  {
+    "name": "content-types-missing.docx",
+    "bytes": 2957,
+    "expectation": "PKG_NO_CONTENT_TYPES; parse continues"
+  },
+  {
+    "name": "encoding-utf16-part.docx",
+    "bytes": 4532,
+    "expectation": "XML_TRANSCODED diagnostic; styles parsed"
+  },
+  {
+    "name": "mixed-flavor.docx",
+    "bytes": 2613,
+    "expectation": "PackageFlavor::Mixed; each part keeps its own flavor"
+  }
+]
