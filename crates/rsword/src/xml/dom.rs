@@ -69,11 +69,20 @@ pub struct Mce {
     pub process_content: bool,
     /// `mc:MustUnderstand` 命中未理解命名空间。
     pub must_understand: bool,
+    /// 元素属于祖先 `mc:Ignorable` 列出且未理解的命名空间：语义遍历跳过，DOM 保留。
+    /// （`docs/03` §4.4 的结构里没有这个字段；它是遍历所需的缓存，避免每次重算作用域。）
+    pub ignorable: bool,
 }
 
 impl Default for Mce {
     fn default() -> Self {
-        Self { role: MceRole::None, active: true, process_content: false, must_understand: false }
+        Self {
+            role: MceRole::None,
+            active: true,
+            process_content: false,
+            must_understand: false,
+            ignorable: false,
+        }
     }
 }
 

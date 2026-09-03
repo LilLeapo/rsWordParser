@@ -66,7 +66,19 @@ impl Dom {
         }
         let (root, prolog, epilog) = p.run()?;
         let Parser { nodes, diags, interner, .. } = p;
-        Ok(Dom { part, src, nodes, root, prolog, epilog, transcoded, diagnostics: diags, interner })
+        let mut dom = Dom {
+            part,
+            src,
+            nodes,
+            root,
+            prolog,
+            epilog,
+            transcoded,
+            diagnostics: diags,
+            interner,
+        };
+        dom.compute_mce(crate::xml::mce::DEFAULT_UNDERSTOOD);
+        Ok(dom)
     }
 }
 

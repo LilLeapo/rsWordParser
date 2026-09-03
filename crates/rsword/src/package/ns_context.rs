@@ -9,7 +9,7 @@ use crate::package::PartFlavor;
 use crate::xml::{Dom, LocalName, NsId, QName};
 
 /// MCE 选择用的已理解命名空间集合（`PKG-09`、`XML-09`）。
-pub const UNDERSTOOD: &[NsId] = &[NsId::Wps, NsId::Wpg, NsId::Wp14, NsId::W14, NsId::W15, NsId::Cx];
+pub use crate::xml::DEFAULT_UNDERSTOOD as UNDERSTOOD;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NamespaceContext {
