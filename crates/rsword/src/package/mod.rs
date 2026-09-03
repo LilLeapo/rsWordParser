@@ -8,8 +8,14 @@
 //!
 //! [`NamespaceContext`]: docs/03 §3.4，任务 0.5
 
+pub mod content_types;
+pub mod rels;
+pub mod uri;
 pub mod zip;
 
+pub use content_types::ContentTypes;
+pub use rels::{RelTarget, RelType, Relationship, Rels, parse_rels};
+pub use uri::{PartUri, UriError, resolve};
 pub use zip::{Compression, ZipEntryRef, ZipPackage, neutralize_unicode_path};
 
 /// part 在会话内的稳定编号（zip 条目顺序）。
