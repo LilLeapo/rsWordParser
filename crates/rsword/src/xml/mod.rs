@@ -10,6 +10,7 @@
 //! 0.9 MCE（`XML-09/10`）、0.10 脏状态（`XML-12`）、0.11 序列化（`XML-13/14`）。
 
 pub mod dom;
+pub mod edit;
 pub mod entities;
 pub mod interner;
 pub mod lex;

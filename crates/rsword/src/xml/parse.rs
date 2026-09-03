@@ -12,7 +12,7 @@ use std::sync::Arc;
 use memchr::{memchr, memmem};
 
 use crate::diag::{DiagCode, Diagnostic};
-use crate::package::PartId;
+use crate::package::{PartFlavor, PartId};
 use crate::xml::dom::{Attr, AttrValue, Dom, Element, Mce, Node, NodeId, NodeKind, TextValue};
 use crate::xml::entities;
 use crate::xml::interner::{Interned, Interner};
@@ -76,9 +76,34 @@ impl Dom {
             transcoded,
             diagnostics: diags,
             interner,
+            flavor: PartFlavor::Transitional,
         };
+        dom.flavor = dom.detect_flavor().unwrap_or(PartFlavor::Transitional);
         dom.compute_mce(crate::xml::mce::DEFAULT_UNDERSTOOD);
         Ok(dom)
+    }
+}
+
+impl Dom {
+    /// 根元素命名空间的族别（`PKG-08`）：根的 QName 命名空间若有 Strict 变体，按根上声明它的 URI 判定。
+    pub fn detect_flavor(&self) -> Option<PartFlavor> {
+        let root = self.root();
+        let e = self.element(root)?;
+        if !e.name.ns.has_strict_uri() {
+            return None;
+        }
+        for a in &e.attrs {
+            if a.name.ns != NsId::Xmlns {
+                continue;
+            }
+            let uri = self.attr_str(a);
+            if let Some((ns, fl)) = NsId::from_uri(&uri)
+                && ns == e.name.ns
+            {
+                return Some(fl);
+            }
+        }
+        None
     }
 }
 

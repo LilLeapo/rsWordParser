@@ -659,8 +659,15 @@ rPr
 rPrChange
 rPrDefault
 rsid
+rsidDel
+rsidP
+rsidR
+rsidRDefault
 rsidRoot
+rsidRPr
 rsids
+rsidSect
+rsidTr
 rStyle
 rt
 rtl

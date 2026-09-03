@@ -8,7 +8,7 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use crate::diag::Diagnostic;
-use crate::package::PartId;
+use crate::package::{PartFlavor, PartId};
 use crate::xml::Dirty;
 use crate::xml::entities;
 use crate::xml::interner::Interner;
@@ -128,6 +128,8 @@ pub struct Dom {
     pub(crate) transcoded: bool,
     pub(crate) diagnostics: Vec<Diagnostic>,
     pub(crate) interner: Interner,
+    /// 生成新节点时用的命名空间族（`PKG-08`）。解析时按根元素命名空间推断，包层可覆盖。
+    pub(crate) flavor: PartFlavor,
 }
 
 impl Dom {
@@ -150,6 +152,15 @@ impl Dom {
 
     pub fn transcoded(&self) -> bool {
         self.transcoded
+    }
+
+    /// 生成新节点用的命名空间族。
+    pub fn flavor(&self) -> PartFlavor {
+        self.flavor
+    }
+
+    pub fn set_flavor(&mut self, flavor: PartFlavor) {
+        self.flavor = flavor;
     }
 
     pub fn prolog(&self) -> Range<u32> {
