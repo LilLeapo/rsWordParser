@@ -88,8 +88,12 @@ pub fn first_bad(s: &str) -> Option<BadEntity> {
         match parse_ref(&s[at..]) {
             Some((_, n)) => from = at + n,
             None => {
-                let end = s[at..].find(';').map_or(s.len(), |k| (at + k + 1).min(s.len()));
-                let end = end.min(at + 16);
+                let mut end = s[at..].find(';').map_or(s.len(), |k| (at + k + 1).min(s.len()));
+                end = end.min(at + 16);
+                // 截断点必须落在字符边界上（fuzz_xml 发现：`&` 后紧跟多字节字符时切进字符中间会 panic）
+                while !s.is_char_boundary(end) {
+                    end -= 1;
+                }
                 return Some(BadEntity { offset: at, raw: s[at..end].to_string() });
             }
         }
@@ -159,6 +163,17 @@ mod tests {
         assert_eq!(bad.raw, "&nope;");
         assert!(first_bad("&lt;&#10;").is_none());
         assert_eq!(first_bad("a & b").unwrap().raw, "& b");
+    }
+
+    #[test]
+    fn xml_06_bad_entity_snippet_respects_char_boundaries() {
+        // fuzz_xml 回归：`&` 后 16 字节内含多字节字符
+        let s = "&ééééééééééééééé";
+        let bad = first_bad(s).unwrap();
+        assert_eq!(bad.offset, 0);
+        assert!(s.is_char_boundary(bad.raw.len()));
+        assert!(first_bad("&😀😀😀😀😀😀😀😀").is_some());
+        assert_eq!(decode("&😀"), "&😀");
     }
 
     #[test]
