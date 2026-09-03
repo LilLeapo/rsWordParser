@@ -9,6 +9,12 @@
 //! M0 任务：0.6 名字表（`XML-05`）、0.7 tokenizer（`XML-01..08`）、0.8 作用域（`XML-11`）、
 //! 0.9 MCE（`XML-09/10`）、0.10 脏状态（`XML-12`）、0.11 序列化（`XML-13/14`）。
 
+pub mod interner;
+pub mod names;
+
+pub use interner::{Interned, Interner};
+pub use names::{LocalName, NsId, QName};
+
 /// `XML-08`：迭代解析的深度上限。POI 5000 层嵌套表格必须成功。
 pub const MAX_DEPTH: u32 = 100_000;
 
