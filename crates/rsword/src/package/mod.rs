@@ -8,6 +8,10 @@
 //!
 //! [`NamespaceContext`]: docs/03 §3.4，任务 0.5
 
+pub mod zip;
+
+pub use zip::{Compression, ZipEntryRef, ZipPackage, neutralize_unicode_path};
+
 /// part 在会话内的稳定编号（zip 条目顺序）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct PartId(pub u32);
