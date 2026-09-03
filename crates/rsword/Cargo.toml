@@ -1,0 +1,20 @@
+[package]
+name = "rsword"
+version = "0.0.1"
+description = "高保真 DOCX 编辑内核：无损解析、局部补丁写回（docs/03 架构 v3.2）"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+zip.workspace = true
+memchr.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

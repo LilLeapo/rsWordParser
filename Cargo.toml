@@ -1,0 +1,26 @@
+[workspace]
+resolver = "3"
+members = ["crates/rsword"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.88"
+license = "Apache-2.0"
+repository = "https://github.com/LilLeapo/rsWordParser"
+
+[workspace.dependencies]
+# L0 包层（PKG-01/11、SAVE-06）：只开 deflate；0x7075 中和在交给 zip 之前自己做
+zip = { version = "8.6", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+memchr = "2.7"
+thiserror = "2"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+# 解析器里大量 u32 偏移与 usize 索引互转，逐处 try_from 只会掩盖真正的溢出检查点
+cast_possible_truncation = "allow"
+
+[profile.release]
+debug = 1
