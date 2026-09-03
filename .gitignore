@@ -1,0 +1,9 @@
+/target
+**/*.rs.bk
+Cargo.lock.bak
+.DS_Store
+/corpus/real/**/*.docx.lock
+/tmp
+
+# export-golden 运行期的去重索引
+/corpus/synthetic/.hash/
