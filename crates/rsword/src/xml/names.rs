@@ -119,7 +119,8 @@ mod tests {
         assert_eq!(LocalName::PPr.known_str(), Some("pPr"));
         assert_eq!(LocalName::known("Default"), Some(LocalName::UDefault));
         assert_eq!(LocalName::known("default"), Some(LocalName::Default));
-        assert!(LocalName::KNOWN_COUNT > 600);
+        let known = LocalName::KNOWN_COUNT;
+        assert!(known > 600, "name table shrank to {known}");
         let mut i = Interner::new();
         let o = LocalName::intern("veryUnknownName", &mut i);
         assert!(matches!(o, LocalName::Other(_)));

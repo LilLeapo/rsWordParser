@@ -1,0 +1,176 @@
+//! 实体与字符引用（`XML-06`）。
+//!
+//! 解码只在从 `Raw` 取值时发生一次；`Owned` 值视为已解码。写回 `Owned` 时转义 `& < >`
+//! （属性值再按引号转义 `"` 或 `'`），并去除 XML 1.0 非法控制字符。
+
+use std::borrow::Cow;
+
+/// 解码失败的位置（相对输入串的字节偏移）与原因；原文保留。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BadEntity {
+    pub offset: usize,
+    pub raw: String,
+}
+
+/// 解析 `&…;`，`s[0] == '&'`。返回 (解码字符, 消耗字节数)。
+fn parse_ref(s: &str) -> Option<(char, usize)> {
+    let semi = s[1..].find(';')? + 1;
+    if semi > 12 {
+        return None;
+    }
+    let body = &s[1..semi];
+    let c = match body {
+        "lt" => '<',
+        "gt" => '>',
+        "amp" => '&',
+        "quot" => '"',
+        "apos" => '\'',
+        _ => {
+            let digits = body.strip_prefix('#')?;
+            let cp = if let Some(hex) = digits.strip_prefix(['x', 'X']) {
+                if hex.is_empty() {
+                    return None;
+                }
+                u32::from_str_radix(hex, 16).ok()?
+            } else {
+                if digits.is_empty() {
+                    return None;
+                }
+                digits.parse::<u32>().ok()?
+            };
+            // 代理区与超范围码点非法；U+0000 也非法
+            if cp == 0 {
+                return None;
+            }
+            char::from_u32(cp)?
+        }
+    };
+    Some((c, semi + 1))
+}
+
+/// 解码文本或属性值中的实体。无 `&` 时零拷贝。
+pub fn decode(s: &str) -> Cow<'_, str> {
+    let Some(first) = s.find('&') else { return Cow::Borrowed(s) };
+    let mut out = String::with_capacity(s.len());
+    out.push_str(&s[..first]);
+    let mut rest = &s[first..];
+    loop {
+        // rest 以 '&' 开头
+        match parse_ref(rest) {
+            Some((c, n)) => {
+                out.push(c);
+                rest = &rest[n..];
+            }
+            None => {
+                out.push('&');
+                rest = &rest[1..];
+            }
+        }
+        match rest.find('&') {
+            Some(i) => {
+                out.push_str(&rest[..i]);
+                rest = &rest[i..];
+            }
+            None => {
+                out.push_str(rest);
+                break;
+            }
+        }
+    }
+    Cow::Owned(out)
+}
+
+/// 只检查不解码：返回第一个非法引用（用于解析期诊断 `XML_BAD_ENTITY`）。
+pub fn first_bad(s: &str) -> Option<BadEntity> {
+    let mut from = 0;
+    while let Some(i) = s[from..].find('&') {
+        let at = from + i;
+        match parse_ref(&s[at..]) {
+            Some((_, n)) => from = at + n,
+            None => {
+                let end = s[at..].find(';').map_or(s.len(), |k| (at + k + 1).min(s.len()));
+                let end = end.min(at + 16);
+                return Some(BadEntity { offset: at, raw: s[at..end].to_string() });
+            }
+        }
+    }
+    None
+}
+
+/// XML 1.0 非法字符：C0 控制字符除 TAB/LF/CR，以及 U+FFFE/U+FFFF。
+fn is_illegal(c: char) -> bool {
+    matches!(c, '\u{0}'..='\u{8}' | '\u{B}' | '\u{C}' | '\u{E}'..='\u{1F}' | '\u{FFFE}' | '\u{FFFF}')
+}
+
+/// 文本节点转义：`& < >`。
+pub fn escape_text(s: &str, out: &mut Vec<u8>) {
+    for c in s.chars() {
+        match c {
+            '&' => out.extend_from_slice(b"&amp;"),
+            '<' => out.extend_from_slice(b"&lt;"),
+            '>' => out.extend_from_slice(b"&gt;"),
+            c if is_illegal(c) => {}
+            c => {
+                let mut buf = [0u8; 4];
+                out.extend_from_slice(c.encode_utf8(&mut buf).as_bytes());
+            }
+        }
+    }
+}
+
+/// 属性值转义：`& < >` 加上所用引号。
+pub fn escape_attr(s: &str, quote: u8, out: &mut Vec<u8>) {
+    for c in s.chars() {
+        match c {
+            '&' => out.extend_from_slice(b"&amp;"),
+            '<' => out.extend_from_slice(b"&lt;"),
+            '>' => out.extend_from_slice(b"&gt;"),
+            '"' if quote == b'"' => out.extend_from_slice(b"&quot;"),
+            '\'' if quote == b'\'' => out.extend_from_slice(b"&apos;"),
+            '\t' => out.extend_from_slice(b"&#9;"),
+            '\n' => out.extend_from_slice(b"&#10;"),
+            '\r' => out.extend_from_slice(b"&#13;"),
+            c if is_illegal(c) => {}
+            c => {
+                let mut buf = [0u8; 4];
+                out.extend_from_slice(c.encode_utf8(&mut buf).as_bytes());
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn xml_06_decode_once() {
+        assert_eq!(decode("a&amp;lt;b"), "a&lt;b");
+        assert_eq!(decode("&lt;&gt;&quot;&apos;&amp;"), "<>\"'&");
+        assert_eq!(decode("&#65;&#x42;&#x1F600;"), "AB😀");
+        assert!(matches!(decode("plain"), Cow::Borrowed(_)));
+    }
+
+    #[test]
+    fn xml_06_bad_entities_kept_verbatim() {
+        assert_eq!(decode("x &foo; y & z &#xD800; &#; &#x;"), "x &foo; y & z &#xD800; &#; &#x;");
+        let bad = first_bad("ok &amp; then &nope; end").unwrap();
+        assert_eq!(bad.offset, 14);
+        assert_eq!(bad.raw, "&nope;");
+        assert!(first_bad("&lt;&#10;").is_none());
+        assert_eq!(first_bad("a & b").unwrap().raw, "& b");
+    }
+
+    #[test]
+    fn xml_06_escape_text_and_attr() {
+        let mut out = Vec::new();
+        escape_text("a<b>&c\u{1}", &mut out);
+        assert_eq!(out, b"a&lt;b&gt;&amp;c");
+        out.clear();
+        escape_attr("say \"hi\" 'yo'", b'"', &mut out);
+        assert_eq!(out, b"say &quot;hi&quot; 'yo'");
+        out.clear();
+        escape_attr("say \"hi\" 'yo'\n", b'\'', &mut out);
+        assert_eq!(out, b"say \"hi\" &apos;yo&apos;&#10;");
+    }
+}
