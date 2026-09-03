@@ -7,3 +7,7 @@ Cargo.lock.bak
 
 # export-golden 运行期的去重索引
 /corpus/synthetic/.hash/
+
+# cargo-fuzz
+/fuzz/target
+/fuzz/artifacts

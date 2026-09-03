@@ -1,0 +1,34 @@
+[package]
+name = "rsword-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.rsword]
+path = "../crates/rsword"
+
+# 独立 workspace：cargo-fuzz 用 nightly 与 -Zsanitizer 单独构建
+[workspace]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "fuzz_xml"
+path = "fuzz_targets/fuzz_xml.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_zip"
+path = "fuzz_targets/fuzz_zip.rs"
+test = false
+doc = false
+bench = false
