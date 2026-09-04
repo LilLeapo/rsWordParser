@@ -18,10 +18,15 @@ use crate::semantic::props::{
 pub mod color;
 pub mod fonts;
 pub mod symbol;
+pub mod table;
 
 pub use color::{resolve_theme_color, rgb_hex};
 pub use fonts::ResolvedFonts;
 pub use symbol::{decode as decode_symbol, decode_pua, is_symbol_font};
+pub use table::{
+    ColumnSource, ColumnView, EffectiveCellProps, TableStyleLayer, TableStyleView, TableView,
+    TblLookFlags, ViewCell,
+};
 
 /// 有效值的来源（`RES-01`）。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,6 +40,8 @@ pub enum Provenance {
     },
     TableStyle {
         style: String,
+        /// 命中的条件格式（`None` = 整表层）。
+        cond: Option<crate::semantic::props::TblStyleOverrideType>,
     },
     DocDefaults,
     Theme,
@@ -201,9 +208,21 @@ impl<'a> Resolver<'a> {
 
     /// run 的有效属性。`para_style` / `char_style` 是 styleId；`direct` 是 run 自身的 `rPr`。
     /// 覆盖顺序：docDefaults → 段落样式链 → 字符样式链（含 linked 补缺）→ 直接；`None` 不覆盖。
-    /// 编号级别 rPr 只用于列表标记（`RES-03` 第 3 条），表格样式在 M2。
+    /// 编号级别 rPr 只用于列表标记（`RES-03` 第 3 条）。表格内的 run 用 [`Resolver::run_in_table`]。
     pub fn run(
         &self,
+        para_style: Option<&str>,
+        char_style: Option<&str>,
+        direct: &RunProps,
+    ) -> EffectiveRunProps {
+        self.run_in_table(None, para_style, char_style, direct)
+    }
+
+    /// `RES-03` 第 4 层：表格样式（整表 + 命中的条件格式，见 [`TableView::cell`] 的 `rpr`）在段落样式链
+    /// 之后、字符样式链之前生效。`table` 为 `None` 时与 [`Resolver::run`] 等价。
+    pub fn run_in_table(
+        &self,
+        table: Option<&RunProps>,
         para_style: Option<&str>,
         char_style: Option<&str>,
         direct: &RunProps,
@@ -225,6 +244,10 @@ impl<'a> Resolver<'a> {
             if let Some(r) = &s.rpr {
                 apply(&mut props, r, Provenance::ParaStyle(s.id().unwrap_or_default().to_string()));
             }
+        }
+        if let Some(t) = table {
+            // 具体是哪张表的哪一层由调用方（`TableView::cell`）知道，这里只标"来自表格样式"
+            apply(&mut props, t, Provenance::TableStyle { style: String::new(), cond: None });
         }
         let char_chain =
             char_style.map(|id| self.chain(id, StyleType::Character)).unwrap_or_default();

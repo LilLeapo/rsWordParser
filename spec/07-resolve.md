@@ -69,7 +69,8 @@ run 的 `cs` 状态 = 直接 `w:rtl` ?? 字符样式链 `rtl` ?? 段落样式链
 
 ## RES-08 表格有效属性
 
-- `tblLook`：属性形式（`firstRow lastRow firstColumn lastColumn noHBand noVBand`，`0|false` 为关）优先；否则 `w:val` 位掩码 `0x20 firstRow, 0x40 lastRow, 0x80 firstColumn, 0x100 lastColumn, 0x200 noHBand, 0x400 noVBand`；缺省 firstRow/firstColumn 开、其他关。
+- `tblLook`：属性形式（`firstRow lastRow firstColumn lastColumn noHBand noVBand`，`0|false` 为关）优先；否则 `w:val` 位掩码 `0x20 firstRow, 0x40 lastRow, 0x80 firstColumn, 0x100 lastColumn, 0x200 noHBand, 0x400 noVBand`；缺省等价于 `w:val="04A0"`（firstRow / firstColumn 开、noVBand 开，即横向条带开、纵向条带关）。
+- **重复声明**：一般属性元素取第一个（属性表通则）；`w:tcW` 取**最后一个**（Word 与 TS 的规则，生成器会留下过时的首个值）；`w:tblBorders` / `w:tcBorders` 容器重复出现时按边合并、后者胜（同 `RES-07` 对 `pBdr` 的规则）。这三条都只在视图里生效，模型保持声明值。
 - 条件格式优先级（Word）：`firstRow > lastRow > firstCol > lastCol > 条带（band1Horz/band2Horz，行号从 firstRow 之后起算）> 整表`；单元格自身声明优先于一切。
 - 表格样式链：`tblStyle` 的 basedOn 链；`tblPr/tblBorders`、`tblCellMar` 文档未声明时回退样式。
 - 单元格边距缺省：上下 0、左右 108 twips。
@@ -114,6 +115,6 @@ fixtures/resolve/<area>/<case>/
 | RES-04 | 五个 toggle fixture |
 | RES-05 | 空 EA 槽 + `themeFontLang ja` → Yu Mincho；`themeColor accent1 + tint 99` 与 Word 显示一致（允许 ±1/255 误差） |
 | RES-06 | `w:rtl` run 只读 `bCs`，`w:b` 被忽略 |
-| RES-08 | `tblLook w:val="04A0"` 解出 firstRow/firstColumn/noHBand |
+| RES-08 | `tblLook w:val="04A0"` 解出 firstRow / firstColumn / noVBand（= 横向条带开、纵向条带关），属性形式优先于位；重复 `w:tcW` 取最后一个；重复 `tblBorders` / `tcBorders` 按边合并后者胜；`trHeight` 截到 31680；全语料的列宽与格跨度与 TS 一致 |
 | RES-09 | `lvlRestart=0` 的级别不重置；`isLgl` 的 `%1.%2` 中 %1 为 decimal |
 | RES-10 | 第二节无 header 引用时继承第一节 |

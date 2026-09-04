@@ -355,6 +355,8 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `docs/03` §5.4 `Keyword` | 列了 20 个变体 + `…` | `FLD-06` 表里的全部 76 个关键字都是变体，由一张 `macro_rules!` 表同时生成 `parse` / `as_str` / `policy` | 策略表与关键字表必须是同一份数据，否则加关键字时会漏改策略；`FLD-11` 的 `has_page_number` 也要按变体判断 |
 | `FLD-02` 索引的地位 | — | `FieldIndex` 是 DOM 的**投影**（编辑后作废重建），不像 `SpanIndex` 那样是规范状态的一半 | `FieldSpan` 里每条事实都能从节点重新读出来（`docs/03` §5.4："保存真相是 `instr_nodes` 的原字节"），没有 Anchor 那种"标记之外的信息"，增量维护只会多一份可能不同步的状态 |
 | `FLD-13` 缺陷来源判定 | "解析阶段的缺陷为 `PreExistingDamage`；编辑后新出现的为 `EngineInvariantViolation`" | 第一次写某个 part 之前记下按诊断代码的缺陷计数作基线，保存前重建索引比对，多出来的按 `EngineInvariantViolation` 并经 `save::enforce` 在调试构建下报错 | 索引是重建出来的，没有"这条诊断是不是新的"的天然标识；计数比对不需要跨编辑追踪节点身份 |
+| `RES-08` 视图入口 | `resolve::table_cell` 无参数 | `Resolver::table(&Dom, &TableBlock) -> TableView` 要多传一个 `Dom` | 重复声明的取舍（`w:tcW` 取最后一个、边框容器按边合并）要看模型按属性表通则去重时留在 `raw_unmodeled` 里的元素，只有 DOM 能拿到 |
+| `RES-08` 列宽 | 一组列宽 | `ColumnView` 里绝对宽与百分比宽**分开**存 | TS 的拉伸只改绝对宽、百分比仍是拉伸前的比例；`tblGrid` 有 0 宽列时也只有百分比可用。合成一个数组就对不上 TS |
 | `MOD-08` 读取时机 | `SdtInfo` 是「最近的 `w:sdt` 祖先信息」 | 块 / 行 / 格构建时就地读全（`SdtInfo::read`），不是编辑时按需读 | 投影要能直接回答「这一块能不能编辑」；`sdtPr` 很小，读一遍比每次编辑再扫一遍便宜 |
 | `MOD-09` 表格修订的 `old` | `TablePropsChange` / `RowPropsChange` / `CellPropsChange` 的 `old: NodeId` | `old: Box<TableProps / RowProps / CellProps>`（类型化快照，同 `ParaPropsChange`）；`TableGridChange` 仍是 `NodeId`（网格没有属性表） | 3.1 之后三张表都有类型，快照读出来比留个节点再解析一次更好用；`RevisionMeta.node` 仍指向 `*PrChange` 元素，要原字节随时能取 |
 | `MOD-07` 模型字段 | `props: TableProps` 等按值 | `TableBlock.props` / `Row.props` / `Row.tbl_pr_ex` / `Cell.props` 装箱 | 三张表各几 KB，64 层嵌套时按值搬运的栈帧在 debug 构建下超过 2 MiB 测试线程栈；`Block` 枚举也跟着小了 |
@@ -684,7 +686,26 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   `*PrChange` 快照元组——debug 构建按帧分配临时值，它们一直活到递归返回。把这些读取收进两个宏生成的
   `#[inline(never)]` 辅助函数（`boxed_table_props` 一族，返回 `Box<T>`），临时值随辅助函数的帧一起消失，每层只剩
   一个指针。2,000 层的 `deep-nested-table__001` 与 5,000 层的 hostile 文档现在都在**默认栈**上跑完。
-- [ ] **3.4 `resolve` 表格视图**（`resolve/table.rs`：`tblLook`、条件格式、边框 / 边距回退、`ColumnView` 四条启发式）
+- [x] **3.4 `resolve` 表格视图**（`resolve/table.rs`）：`Resolver::table(&Dom, &TableBlock) -> TableView`。
+  `TblLookFlags` 六个开关（属性 > `w:val` 位 > 缺省 `04A0`）；`TableStyleView` 把表格样式的 basedOn 链解析成
+  整表层 + 按 `w:type` 分组的条件层（`TableStyleLayer` 含 `tblPr/trPr/tcPr/rPr/pPr` 五种属性，逐层 `merge_*`）；
+  `TableView::cell(r, c)` 按 firstRow > lastRow > firstCol > lastCol > 条带 > 整表叠加再让单元格自身声明覆盖，
+  每个字段带 `Provenance::TableStyle{style, cond}`（`Provenance` 因此多了 `cond`）；`borders()` / `cell_margins()`
+  在文档未声明时回退样式链；`row_height()` 截到 31680。
+  `ColumnView` 实现 TS 的四条列宽启发式并标来源（`Grid` / `TcW` / `Stretched` / `Reconciled` / `None`）：
+  ① `tblGrid` 声明值；② 各行 `tcW` 推出的列宽与 grid 不一致（列数不同 / 任一列差 > 2 个百分点 / fixed 布局下
+  总宽差 > 列数）时以 tcW 为准；③ 非 fixed 且 grid 总宽 < `tblW` − 列数 时按比例拉伸；④ 各行网格宽度对不上时
+  用各行累计右边界的并集（容差 20 twips，上限 96 列）重算列宽与每格跨度。视图里还做 `hMerge continue` 折叠与
+  `gridBefore/gridAfter` 占位（条件格式在补占位**之前**算，与 TS 一致）。`RES-03` 第 4 层落地为
+  `Resolver::run_in_table`（表格样式层在段落样式链之后、字符样式链之前；`run()` 是它 `table = None` 的特例）。
+  发现并处理了三条「重复声明」规则（见 §8 与 `RES-08`）：一般元素取第一个、`w:tcW` 取最后一个、边框容器按边
+  合并后者胜——后两条要 DOM，所以 `Resolver::table` 多收一个 `&Dom`。生成器顺带让枚举都 derive `Ord`
+  （条件格式表用 `BTreeMap<TblStyleOverrideType, _>` 作键）。
+  验收（`tests/resolve_table.rs`，6 个用例）：`RES-08` 验收行（`04A0` 的位、属性覆盖位、坏 `w:val` 退缺省）、
+  `table-style__001/002/003` 的条件格式（首行命中、条带从 firstRow 之后起算、显式底纹压过样式）、
+  `table-style__004/005` 的 basedOn 条件层继承、边框 / 边距回退的来源、行高截断、`RES-03` 第 4 层的位置；
+  **全语料 69 份 / 70 张表的 `colWidthsTwips`、`colWidthsPct`、每行每格的跨度与 `gridGap` 占位与 TS 逐项一致**
+  （来源分布：grid 56、tcW 4、reconciled 2、无网格 8），这是四条启发式唯一靠得住的验收。
 - [ ] **3.5 `compat_ts` 表格投影**（`bind/compat_ts/table.rs`；`COMPAT-10`；`diff-parse --scope tables`）
 - [ ] **3.6 容器级刷新与单元格内编辑**（`MOD-13`；`TEST-04` 扩到单元格；删掉整体重建退路）
 - [ ] **3.7 表格属性操作**（`SetTableProps / SetRowProps / SetCellProps`；`trPr` 位置规则）

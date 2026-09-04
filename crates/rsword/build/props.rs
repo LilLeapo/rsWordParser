@@ -479,7 +479,8 @@ fn gen_enum(out: &mut String, name: &str, decl: &EnumDecl) {
         assert!(seen.insert(var.clone()), "enum {name}: 值 `{v}` 的变体名 `{var}` 重复");
     }
     doc_attr(out, "", &decl.doc);
-    writeln!(out, "#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]").unwrap();
+    // Ord 按声明顺序：枚举值要能当 BTreeMap 的键（resolve 的条件格式表）
+    writeln!(out, "#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]").unwrap();
     writeln!(out, "pub enum {name} {{").unwrap();
     for (v, var) in &variants {
         writeln!(out, "    /// `{v}`").unwrap();
