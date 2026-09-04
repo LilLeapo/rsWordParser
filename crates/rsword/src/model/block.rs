@@ -1,0 +1,198 @@
+//! 块模型（`MOD-02`、`MOD-03`、`MOD-08`、`MOD-09`，`docs/03` §6.3）。
+
+use crate::model::facts::ParagraphFacts;
+use crate::model::inline::{Inline, RevisionMeta};
+use crate::semantic::props::{ParaProps, RunProps};
+use crate::span::FieldId;
+use crate::xml::{NodeId, QName};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Block {
+    /// 装箱：`TextBlock`（含 `ParaProps` 与 facts）比其他变体大几十倍。
+    Text(Box<TextBlock>),
+    Table(TableBlock),
+    Image(ImageBlock),
+    Protected(ProtectedBlock),
+}
+
+impl Block {
+    /// 块对应的节点（`w:p` / `w:tbl` / `w:sectPr` / 未知元素）。
+    pub fn node(&self) -> NodeId {
+        match self {
+            Block::Text(b) => b.node,
+            Block::Table(b) => b.node,
+            Block::Image(b) => b.node,
+            Block::Protected(b) => b.node,
+        }
+    }
+
+    pub fn sdt(&self) -> Option<&SdtInfo> {
+        match self {
+            Block::Text(b) => b.sdt.as_ref(),
+            Block::Table(b) => b.sdt.as_ref(),
+            Block::Image(b) => b.sdt.as_ref(),
+            Block::Protected(b) => b.sdt.as_ref(),
+        }
+    }
+
+    pub fn revisions(&self) -> &[Revision] {
+        match self {
+            Block::Text(b) => &b.revisions,
+            Block::Table(b) => &b.revisions,
+            Block::Image(b) => &b.revisions,
+            Block::Protected(b) => &b.revisions,
+        }
+    }
+
+    pub fn as_text(&self) -> Option<&TextBlock> {
+        match self {
+            Block::Text(b) => Some(b),
+            _ => None,
+        }
+    }
+}
+
+/// 可编辑段落。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TextBlock {
+    pub node: NodeId,
+    pub kind: TextKind,
+    pub style_id: Option<String>,
+    /// 声明值（`w:pPr`），段落标记 rPr 在 `props.rpr`。
+    pub props: ParaProps,
+    pub inlines: Vec<Inline>,
+    pub sdt: Option<SdtInfo>,
+    /// 块级修订：`w:ins/w:del` 包裹、段落标记 ins/del、`pPrChange`。
+    pub revisions: Vec<Revision>,
+    pub facts: ParagraphFacts,
+}
+
+impl TextBlock {
+    /// 坐标流文本（`MOD-06`）。
+    pub fn text(&self) -> String {
+        let mut s = String::new();
+        for i in &self.inlines {
+            i.append_text(&mut s);
+        }
+        s
+    }
+
+    /// 坐标流长度（UTF-16 单位）。
+    pub fn utf16_len(&self) -> u32 {
+        self.inlines.iter().map(Inline::utf16_len).sum()
+    }
+
+    pub fn para_mark_props(&self) -> Option<&RunProps> {
+        self.props.rpr.as_ref()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TextKind {
+    Paragraph,
+    Heading { level: u8 },
+    ListItem { list: ListRef },
+}
+
+/// 编号引用（`MOD-03`）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListRef {
+    pub num_id: i32,
+    pub ilvl: i32,
+    /// 来自段落样式链而非直接 `w:numPr`。
+    pub from_style: bool,
+}
+
+/// 表格（`MOD-07`）。M1 只占位：行列模型在 M2。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TableBlock {
+    pub node: NodeId,
+    pub sdt: Option<SdtInfo>,
+    pub revisions: Vec<Revision>,
+}
+
+/// 只含一张图片的段落（`MOD-05` R15）。显示模型在 M3。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImageBlock {
+    pub node: NodeId,
+    pub sdt: Option<SdtInfo>,
+    pub revisions: Vec<Revision>,
+}
+
+/// 只读块。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProtectedBlock {
+    pub node: NodeId,
+    pub kind: ProtectedKind,
+    /// 可见文本预览（最多 80 个字符），供编辑器显示占位。
+    pub preview: String,
+    pub sdt: Option<SdtInfo>,
+    pub revisions: Vec<Revision>,
+}
+
+/// 保护原因；显示载荷（`ChartDisplay` 等，`MOD-11`）在 M3 挂到对应变体。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ProtectedKind {
+    FieldBlockResult(FieldId),
+    Equation,
+    Chart,
+    SmartArt,
+    Ole,
+    Rule,
+    Invisible,
+    SectionBreak,
+    SectionProps,
+    BodyBreak { page: bool },
+    Unknown(QName),
+    TooDeep,
+    Unparseable,
+}
+
+impl ProtectedKind {
+    /// i18n key（`docs/03` §6.3："`label` 变为 i18n key"）。
+    pub fn key(&self) -> &'static str {
+        match self {
+            ProtectedKind::FieldBlockResult(_) => "protected.field_block_result",
+            ProtectedKind::Equation => "protected.equation",
+            ProtectedKind::Chart => "protected.chart",
+            ProtectedKind::SmartArt => "protected.smart_art",
+            ProtectedKind::Ole => "protected.ole",
+            ProtectedKind::Rule => "protected.rule",
+            ProtectedKind::Invisible => "protected.invisible",
+            ProtectedKind::SectionBreak => "protected.section_break",
+            ProtectedKind::SectionProps => "protected.section_props",
+            ProtectedKind::BodyBreak { .. } => "protected.body_break",
+            ProtectedKind::Unknown(_) => "protected.unknown",
+            ProtectedKind::TooDeep => "protected.too_deep",
+            ProtectedKind::Unparseable => "protected.unparseable",
+        }
+    }
+}
+
+/// 最近的 `w:sdt` 祖先（`MOD-08`）。M1 只记节点；控件类型、锁、数据绑定在 M2。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SdtInfo {
+    pub node: NodeId,
+}
+
+/// 块级 / 段落标记修订（`MOD-09`）。run 级修订在 [`crate::model::inline::RevisionCtx`]。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Revision {
+    /// 顶层 `w:ins` 包裹的块。
+    Insert(RevisionMeta),
+    /// 顶层 `w:del` 包裹的块。
+    Delete(RevisionMeta),
+    MoveFrom(RevisionMeta),
+    MoveTo(RevisionMeta),
+    /// `pPr/rPr/ins`：段落标记被插入。
+    ParaMarkInsert(RevisionMeta),
+    /// `pPr/rPr/del`：段落标记被删除（与下一段合并）。
+    ParaMarkDelete(RevisionMeta),
+    /// `pPrChange`：旧值快照。
+    ParaPropsChange {
+        meta: RevisionMeta,
+        old: Box<ParaProps>,
+    },
+    /// `numPr/numberingChange`。
+    NumberingChange(RevisionMeta),
+}
