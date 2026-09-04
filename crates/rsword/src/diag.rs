@@ -103,6 +103,10 @@ pub enum DiagCode {
     // ---- EDIT（spec/08）----
     /// `EDIT-02`：偏移落在代理对中间。
     EditSplitSurrogate,
+    /// `EDIT-02`：`para` 不是当前会话中的可编辑文本段落，或 offset 越界。
+    EditInvalidPosition,
+    /// `EDIT-05`：`MutationPlan` 引用了不存在的 part / 节点 / `Target::New`，或 `before` 不是父节点的子节点。
+    EditInvalidPlan,
     /// `EDIT-03`：拆分段落会让透明字段跨段。
     EditSplitField,
     /// `EDIT-03`：第一阶段 `track_changes` 下不支持 `MoveBlock`。
@@ -156,6 +160,8 @@ impl DiagCode {
             Self::ResStyleCycle => "RES_STYLE_CYCLE",
             Self::ResBasedOnTypeMismatch => "RES_BASED_ON_TYPE_MISMATCH",
             Self::EditSplitSurrogate => "EDIT_SPLIT_SURROGATE",
+            Self::EditInvalidPosition => "EDIT_INVALID_POSITION",
+            Self::EditInvalidPlan => "EDIT_INVALID_PLAN",
             Self::EditSplitField => "EDIT_SPLIT_FIELD",
             Self::EditUnsupportedTrackedMove => "EDIT_UNSUPPORTED_TRACKED_MOVE",
             Self::EditSdtLocked => "EDIT_SDT_LOCKED",
