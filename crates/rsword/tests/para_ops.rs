@@ -162,3 +162,98 @@ fn edit_03_merge_with_next_needs_a_following_paragraph() {
         .expect_err("下一个块是表格");
     assert_eq!(code(&err), Some(DiagCode::EditBadPosition));
 }
+
+// ---- 书签（`EDIT-03` AddBookmark / RemoveBookmark，任务 2.9）-----------------------------------
+
+/// `EDIT-06`：书签 `w:id` 取全 part 最大值 + 1；名字重复要拒。
+#[test]
+fn edit_06_add_bookmark_allocates_ids_and_refuses_duplicate_names() {
+    let mut s = session(
+        r#"<w:p><w:bookmarkStart w:id="7" w:name="old"/><w:r><w:t>abcd</w:t></w:r><w:bookmarkEnd w:id="7"/></w:p>"#,
+    );
+    let p = para(&s, 0);
+    let ctx = EditContext::default();
+    s.apply(
+        EditOp::AddBookmark {
+            name: "fresh".into(),
+            from: InlinePos::new(p, 1),
+            to: InlinePos::new(p, 3),
+        },
+        &ctx,
+    )
+    .unwrap();
+    let idx = s.spans().unwrap();
+    let bm = idx.find(RangeClass::Bookmark, "8").expect("id 取 7 + 1");
+    assert_eq!(bm.kind.bookmark_name(), Some("fresh"));
+    assert!(bm.is_paired() && !bm.is_collapsed());
+    // 名字重复
+    let err = s
+        .apply(
+            EditOp::AddBookmark {
+                name: "fresh".into(),
+                from: InlinePos::new(p, 0),
+                to: InlinePos::new(p, 1),
+            },
+            &ctx,
+        )
+        .expect_err("名字重复");
+    assert_eq!(code(&err), Some(DiagCode::EditBadPosition));
+    // 保存：标记落在正确位置，原书签不动
+    let xml = saved_xml(&mut s);
+    assert!(xml.contains(r#"<w:bookmarkStart w:id="8" w:name="fresh"/>"#), "{xml}");
+    assert!(xml.contains(r#"<w:bookmarkStart w:id="7" w:name="old"/>"#), "原书签原字节: {xml}");
+    let (s8, e8) = (
+        xml.find(r#"w:id="8" w:name="fresh""#).unwrap(),
+        xml.rfind(r#"<w:bookmarkEnd w:id="8"/>"#).unwrap(),
+    );
+    assert!(s8 < xml.find(">bc<").unwrap_or(s8 + 1), "起点在 bc 之前: {xml}");
+    assert!(s8 < e8);
+    // 重开后仍是完整的一对
+    let mut re = EditSession::open(&s.save().unwrap()).unwrap();
+    let bm = re.spans().unwrap().find(RangeClass::Bookmark, "8").expect("重开还在");
+    assert!(bm.is_paired());
+}
+
+/// 空区间的书签：两端同位置，`SPAN-02` 例外让它们同向。
+#[test]
+fn edit_03_add_collapsed_bookmark() {
+    let mut s = session(r#"<w:p><w:r><w:t>ab</w:t></w:r></w:p>"#);
+    let p = para(&s, 0);
+    s.apply(
+        EditOp::AddBookmark {
+            name: "here".into(),
+            from: InlinePos::new(p, 2),
+            to: InlinePos::new(p, 2),
+        },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let idx = s.spans().unwrap();
+    let bm = idx.find(RangeClass::Bookmark, "1").unwrap();
+    assert!(bm.is_collapsed());
+    assert_eq!(bm.start.unwrap().affinity, bm.end.unwrap().affinity);
+    let xml = saved_xml(&mut s);
+    let (a, b) = (xml.find("bookmarkStart").unwrap(), xml.find("bookmarkEnd").unwrap());
+    assert!(a < b, "起点在终点之前（不是反序的一对）: {xml}");
+}
+
+/// `RemoveBookmark`：标记删掉、索引作废，正文文字不动；没有该名字要拒。
+#[test]
+fn edit_03_remove_bookmark() {
+    let mut s = session(
+        r#"<w:p><w:bookmarkStart w:id="1" w:name="one"/><w:r><w:t>ab</w:t></w:r><w:bookmarkEnd w:id="1"/>
+           <w:bookmarkStart w:id="2" w:name="two"/><w:r><w:t>cd</w:t></w:r><w:bookmarkEnd w:id="2"/></w:p>"#,
+    );
+    let ctx = EditContext::default();
+    s.apply(EditOp::RemoveBookmark { name: "one".into() }, &ctx).unwrap();
+    let idx = s.spans().unwrap();
+    assert!(idx.find(RangeClass::Bookmark, "1").is_none());
+    assert!(idx.find(RangeClass::Bookmark, "2").is_some());
+    let err =
+        s.apply(EditOp::RemoveBookmark { name: "nope".into() }, &ctx).expect_err("没有这个书签");
+    assert_eq!(code(&err), Some(DiagCode::EditBadPosition));
+    let xml = saved_xml(&mut s);
+    assert!(!xml.contains(r#"w:name="one""#), "{xml}");
+    assert!(xml.contains(r#"w:name="two""#), "另一个不动: {xml}");
+    assert!(xml.contains("ab") && xml.contains("cd"), "正文不动: {xml}");
+}

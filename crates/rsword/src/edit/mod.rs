@@ -111,4 +111,8 @@ pub enum EditOp {
     SplitParagraph { at: InlinePos },
     /// `EDIT-03 MergeWithNext`：下一段内容接到本段末尾，下一段删除（保留**前**段的 `pPr`）。
     MergeWithNext { para: NodeId },
+    /// `EDIT-03 AddBookmark`（同段）：`w:id` 按 `EDIT-06` 取最大值 + 1；名字全文档唯一。
+    AddBookmark { name: String, from: InlinePos, to: InlinePos },
+    /// `EDIT-03 RemoveBookmark`：按名字删（标记 `Deleted`，索引里作废）。
+    RemoveBookmark { name: String },
 }

@@ -38,6 +38,8 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::SetCommentText { id, text, done } => set_comment_text(s, &id, &text, done),
         EditOp::SplitParagraph { at } => split_paragraph(s, at),
         EditOp::MergeWithNext { para } => merge_with_next(s, para),
+        EditOp::AddBookmark { name, from, to } => add_bookmark(s, &name, from, to),
+        EditOp::RemoveBookmark { name } => remove_bookmark(s, &name),
     }
 }
 
@@ -1555,4 +1557,156 @@ fn merge_with_next(s: &mut EditSession, para: NodeId) -> Result<MutationResult> 
     }
     plan.node_edits.push(NodeEdit::Delete(next));
     s.commit_plan(plan)
+}
+
+// ---- 书签（`EDIT-03` AddBookmark / RemoveBookmark，任务 2.9）-----------------------------------
+
+/// `EDIT-06`：书签 `w:id` 在 part 内取最大值 + 1。
+fn next_bookmark_id(s: &EditSession) -> u32 {
+    let dom = s.dom();
+    let mut max = 0u32;
+    for n in dom.descendants(dom.root()) {
+        if dom.node(n).dirty == Dirty::Deleted {
+            continue;
+        }
+        let is_marker =
+            dom.is(n, w(LocalName::BookmarkStart)) || dom.is(n, w(LocalName::BookmarkEnd));
+        if is_marker
+            && let Some(v) = dom.attr_value(n, w(LocalName::Id))
+            && let Ok(id) = v.trim().parse::<u32>()
+        {
+            max = max.max(id);
+        }
+    }
+    max + 1
+}
+
+fn add_bookmark(
+    s: &mut EditSession,
+    name: &str,
+    from: InlinePos,
+    to: InlinePos,
+) -> Result<MutationResult> {
+    if name.is_empty() {
+        return Err(Error::edit(DiagCode::EditBadPosition, "书签名为空"));
+    }
+    if from.para != to.para {
+        return Err(Error::edit(
+            DiagCode::EditCrossParagraph,
+            "AddBookmark 两端不在同一段落（M2 只支持同段）",
+        ));
+    }
+    if from.offset > to.offset {
+        return Err(Error::edit(DiagCode::EditBadPosition, "from 在 to 之后"));
+    }
+    let part = s.main_part();
+    // 名字全文档唯一（`EDIT-03`）
+    if s.spans_of(part)?.live().any(|sp| sp.kind.bookmark_name() == Some(name)) {
+        return Err(Error::edit(DiagCode::EditBadPosition, format!("书签名 {name:?} 已存在")));
+    }
+    // 两端落到 inline 边界
+    let mut result = MutationResult::default();
+    let tb = text_block(s, from.para)?;
+    let loc_to = locate(tb, to.offset)?;
+    split_at(s, to.para, loc_to, &mut result)?;
+    let tb = text_block(s, from.para)?;
+    let loc_from = locate(tb, from.offset)?;
+    split_at(s, from.para, loc_from, &mut result)?;
+
+    let id = next_bookmark_id(s).to_string();
+    let a = content_boundary(s, from.para, from)?;
+    let b = content_boundary(s, to.para, to)?;
+    let dom = s.dom();
+    let start_before = content_site(dom, from.para, a);
+    let end_before = content_site(dom, to.para, b);
+    let mut plan = MutationPlan::new(part);
+    plan.touch(from.para);
+    plan.node_edits.push(NodeEdit::Insert {
+        parent: Target::Node(from.para),
+        before: start_before,
+        node: NewElement::new(w(LocalName::BookmarkStart))
+            .with_attr(w(LocalName::Id), id.clone())
+            .with_attr(w(LocalName::Name), name),
+    });
+    plan.node_edits.push(NodeEdit::Insert {
+        parent: Target::Node(to.para),
+        before: end_before,
+        node: NewElement::new(w(LocalName::BookmarkEnd)).with_attr(w(LocalName::Id), id.clone()),
+    });
+    let r = s.commit_plan(plan)?;
+    let (start_marker, end_marker) = (
+        r.created[0].ok_or_else(|| unsupported("书签起点没创建"))?,
+        r.created[1].ok_or_else(|| unsupported("书签终点没创建"))?,
+    );
+    result.absorb(r);
+    let dom = s.dom();
+    let anchor = |node: NodeId, aff: Affinity| {
+        Anchor::at(
+            from.para,
+            crate::span::boundary_before(dom, from.para, node).unwrap_or(0),
+            aff,
+            node,
+        )
+    };
+    let (mut start, mut end) =
+        (anchor(start_marker, Affinity::Right), anchor(end_marker, Affinity::Left));
+    // 空书签两端同向（`SPAN-02` 例外）
+    if start.same_place(&end) {
+        start.affinity = Affinity::Right;
+        end.affinity = Affinity::Right;
+    }
+    s.push_span(
+        part,
+        RangeSpan {
+            id: SpanId(0),
+            part,
+            flow: s.document().flows.flow_of(from.para).unwrap_or(FlowId(0)),
+            kind: RangeKind::Bookmark {
+                id,
+                name: name.to_string(),
+                hidden: name.starts_with('_'),
+                cols: None,
+            },
+            origin: SpanOrigin::New,
+            implicit: false,
+            removed: false,
+            start: Some(start),
+            end: Some(end),
+        },
+    )?;
+    Ok(result)
+}
+
+fn remove_bookmark(s: &mut EditSession, name: &str) -> Result<MutationResult> {
+    let part = s.main_part();
+    let mut victims: Vec<NodeId> = Vec::new();
+    let mut spans: Vec<SpanId> = Vec::new();
+    {
+        let index = s.spans_of(part)?;
+        for sp in index.live() {
+            if sp.kind.bookmark_name() != Some(name) {
+                continue;
+            }
+            spans.push(sp.id);
+            victims.extend(sp.start.and_then(|a| a.marker));
+            victims.extend(sp.end.and_then(|a| a.marker));
+        }
+    }
+    if spans.is_empty() {
+        return Err(Error::edit(DiagCode::EditBadPosition, format!("没有名为 {name:?} 的书签")));
+    }
+    let dom = s.dom();
+    victims.retain(|&n| dom.node(n).dirty != Dirty::Deleted);
+    let mut plan = MutationPlan::new(part);
+    for n in &victims {
+        if let Some(p) = dom.ancestors(*n).find(|&a| dom.is(a, w(LocalName::P))) {
+            plan.touch(p);
+        }
+        plan.node_edits.push(NodeEdit::Delete(*n));
+    }
+    let r = s.commit_plan(plan)?;
+    for span in spans {
+        s.drop_span(part, span);
+    }
+    Ok(r)
 }
