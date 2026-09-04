@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [fuzz_xml, fuzz_zip]
+        target: [fuzz_xml, fuzz_zip, fuzz_instr]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
@@ -18,7 +18,7 @@ jobs:
         with:
           workspaces: fuzz
       - run: cargo install cargo-fuzz --locked
-      # TEST-06 / TEST-10 M0 门：每个目标 10 分钟无崩溃
+      # TEST-06 / TEST-10 的 M0（zip / xml）与 M2（instr）门：每个目标 10 分钟无崩溃
       - run: cd fuzz && cargo fuzz run ${{ matrix.target }} -- -max_total_time=600 -timeout=20 -rss_limit_mb=4096
       - uses: actions/upload-artifact@v4
         if: failure()

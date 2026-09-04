@@ -371,7 +371,17 @@ pub fn heading_level_of_chain(chain: &[&Style], style_id: Option<&str>) -> Optio
 }
 
 /// `^TOC ?([1-9])$`
-fn toc_level_of_id(id: &str) -> Option<u8> {
+/// `MOD-04` 的 `toc_style_level`：`TOC1` / `TOC 1` → 级别；图表目录 / 引文目录样式 → 1。
+///
+/// 后一类（`TableofFigures` / `TableofAuthorities`，Word 的"图表目录""引文目录"）也是目录行，
+/// TS 同样给它们 `TOC entry` + `tocLine`（语料 `field-display__010`）。
+pub(crate) fn toc_level_of_id(id: &str) -> Option<u8> {
+    let squashed: String = id.chars().filter(|c| !c.is_whitespace()).collect();
+    if squashed.eq_ignore_ascii_case("TableofFigures")
+        || squashed.eq_ignore_ascii_case("TableofAuthorities")
+    {
+        return Some(1);
+    }
     let rest = id.strip_prefix("TOC")?;
     let rest = rest.strip_prefix(' ').unwrap_or(rest);
     let mut it = rest.chars();

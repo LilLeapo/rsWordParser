@@ -187,6 +187,27 @@ impl Rels {
         self.list.iter().filter(move |r| r.kind == kind)
     }
 
+    /// `EDIT-06`：下一个可用的 `rId`（`rId{max+1}`，跳过已用的）。
+    pub fn next_id(&self) -> String {
+        let max = self
+            .list
+            .iter()
+            .filter_map(|r| r.id.strip_prefix("rId").and_then(|n| n.parse::<u32>().ok()))
+            .max()
+            .unwrap_or(0);
+        let mut n = max + 1;
+        while self.by_id.contains_key(&format!("rId{n}")) {
+            n += 1;
+        }
+        format!("rId{n}")
+    }
+
+    /// 追加一条关系（`.rels` DOM 已经写过之后同步内存视图）。
+    pub(crate) fn push(&mut self, rel: Relationship) {
+        self.by_id.insert(rel.id.clone(), self.list.len());
+        self.list.push(rel);
+    }
+
     /// 内部目标（`Internal`）的 part 路径。
     pub fn target_uri(&self, id: &str) -> Option<&PartUri> {
         match &self.by_id(id)?.target {

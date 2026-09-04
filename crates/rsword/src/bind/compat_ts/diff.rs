@@ -133,6 +133,18 @@ pub fn path_key(path: &str) -> String {
 /// M1 门的"文本段落"用例判定：只有 paragraph / heading / listItem 与允许的 passthrough，
 /// 不含字段 / 图片 / 公式 / ruby / 脚注 / 批注 / 书签 / 文本框 / `w14:textFill` / 参考文献 / 页眉页脚。
 pub fn is_text_case(e: &Value) -> bool {
+    case_in_scope(e, false)
+}
+
+/// M2 门的"字段与 Span"域：文本域再放开字段、范围标记、批注与注释引用。
+///
+/// 是文本域的**超集**——M2 之后这些特性都该是零未知差异，所以门只会更严，不会漏掉 M1 的用例。
+/// 仍然排除后续里程碑的东西：图片 / 公式 / ruby / 文本框 / 表格 / 页眉页脚 / 参考文献。
+pub fn is_span_field_case(e: &Value) -> bool {
+    case_in_scope(e, true)
+}
+
+fn case_in_scope(e: &Value, fields_ok: bool) -> bool {
     let Some(blocks) = e.get("blocks").and_then(Value::as_array) else { return false };
     let mut text_blocks = 0;
     for b in blocks {
@@ -142,39 +154,47 @@ pub fn is_text_case(e: &Value) -> bool {
                 text_blocks += 1;
                 let runs = b.get("runs").and_then(Value::as_array).cloned().unwrap_or_default();
                 for r in &runs {
-                    for k in [
-                        "image",
-                        "math",
-                        "ruby",
-                        "noteRef",
-                        "xeTerm",
-                        "refField",
-                        "instrField",
-                        "fldBeginXml",
-                        "commentIds",
-                    ] {
+                    // 后续里程碑的 run 特性
+                    for k in ["image", "math", "ruby"] {
                         if r.get(k).is_some() {
                             return false;
                         }
                     }
+                    if !fields_ok {
+                        for k in [
+                            "noteRef",
+                            "xeTerm",
+                            "refField",
+                            "instrField",
+                            "fldBeginXml",
+                            "commentIds",
+                        ] {
+                            if r.get(k).is_some() {
+                                return false;
+                            }
+                        }
+                    }
                 }
-                for k in [
-                    "textboxes",
-                    "strayRuns",
-                    "bookmarks",
-                    "hiddenBookmarks",
-                    "commentStarts",
-                    "commentEnds",
-                ] {
+                for k in ["textboxes", "strayRuns"] {
                     if b.get(k).is_some() {
                         return false;
                     }
                 }
+                if !fields_ok {
+                    for k in ["bookmarks", "hiddenBookmarks", "commentStarts", "commentEnds"] {
+                        if b.get(k).is_some() {
+                            return false;
+                        }
+                    }
+                }
                 let xml = b.get("originalXml").and_then(Value::as_str).unwrap_or("");
-                if xml.contains("<w:fldChar")
-                    || xml.contains("<w:fldSimple")
-                    || xml.contains("<w:instrText")
-                    || xml.contains("w14:textFill")
+                if xml.contains("w14:textFill") {
+                    return false;
+                }
+                if !fields_ok
+                    && (xml.contains("<w:fldChar")
+                        || xml.contains("<w:fldSimple")
+                        || xml.contains("<w:instrText"))
                 {
                     return false;
                 }
@@ -194,10 +214,8 @@ pub fn is_text_case(e: &Value) -> bool {
         }
     }
     let empty_arr = |k: &str| e.get(k).and_then(Value::as_array).is_some_and(Vec::is_empty);
+    // 批注与脚注 / 尾注在任务 2.6 落地，带它们的文档不再排除在文本域之外
     text_blocks > 0
-        && empty_arr("comments")
-        && empty_arr("footnotes")
-        && empty_arr("endnotes")
         && empty_arr("sources")
         && e.get("headerText").is_none_or(Value::is_null)
         && e.get("footerText").is_none_or(Value::is_null)

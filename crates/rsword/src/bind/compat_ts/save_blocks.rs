@@ -23,13 +23,14 @@ use serde_json::Value;
 
 use crate::bind::compat_ts::{MediaMap, blocks, parsed_doc_of};
 use crate::diag::DiagCode;
+use crate::edit::ops;
 use crate::edit::ops::ppr_of;
 use crate::edit::{
-    BlockPos, EditContext, EditOp, EditSession, NewBlock, NewInline, NewLinkTarget, NewMarker,
-    NewRevision, NewRun,
+    BlockPos, EditContext, EditOp, EditSession, NewBlock, NewComment, NewInline, NewLinkTarget,
+    NewMarker, NewRevision, NewRun,
 };
 use crate::error::{Error, Result};
-use crate::package::PartFlavor;
+use crate::package::{PartFlavor, RelType};
 use crate::save::SaveOptions;
 use crate::semantic::props::{
     Border, BorderStyle, Color, DropCap, FontHint, Fonts, FrameAnchor, FramePr, FrameWrap,
@@ -100,19 +101,158 @@ fn round(x: f64) -> i32 {
 }
 
 /// TS `SaveOptions` JSON → [`SaveOptions`]（M1 支持的两项）；其余键属后续里程碑。
-fn save_options_of(options: &Value) -> Result<SaveOptions> {
+/// `SaveOptions` 里的"权威条目列表"：批注与脚注 / 尾注。
+///
+/// TS 的语义是**整份替换**：列表里没有的条目连正文里的标记一起删掉，列表里有的按内容改或新建。
+#[derive(Debug, Clone, Default)]
+struct EntryLists {
+    comments: Option<Vec<Value>>,
+    footnotes: Option<Vec<Value>>,
+    endnotes: Option<Vec<Value>>,
+}
+
+fn save_options_of(options: &Value) -> Result<(SaveOptions, EntryLists)> {
     let mut out = SaveOptions::default();
-    let Some(map) = options.as_object() else { return Ok(out) };
+    let mut lists = EntryLists::default();
+    let Some(map) = options.as_object() else { return Ok((out, lists)) };
+    let arr = |v: &Value, k: &str| -> Result<Vec<Value>> {
+        v.as_array().cloned().ok_or_else(|| unsupported(format!("SaveOptions {k:?} 不是数组")))
+    };
     for (k, v) in map {
         match k.as_str() {
             "savedAt" => out.saved_at = v.as_str().map(str::to_string),
             "removePersonalInfo" => out.remove_personal_info = v.as_bool(),
+            "comments" => lists.comments = Some(arr(v, "comments")?),
+            "footnotes" => lists.footnotes = Some(arr(v, "footnotes")?),
+            "endnotes" => lists.endnotes = Some(arr(v, "endnotes")?),
             other => {
                 return Err(unsupported(format!("SaveOptions {other:?} 在后续里程碑（SAVE-07）")));
             }
         }
     }
-    Ok(out)
+    Ok((out, lists))
+}
+
+/// `richParas` 的一个 run → `w:rPr`（TS 的八个字段）。
+fn rich_run_props(r: &Value) -> Option<NewElement> {
+    let mut rpr = NewElement::new(w(LocalName::RPr));
+    let on = |k: &str| r.get(k).and_then(Value::as_bool).unwrap_or(false);
+    let mut any = false;
+    for (k, local) in
+        [("bold", LocalName::B), ("italic", LocalName::I), ("strike", LocalName::Strike)]
+    {
+        if on(k) {
+            rpr.push_child(NewElement::new(w(local)));
+            any = true;
+        }
+    }
+    if on("caps") {
+        rpr.push_child(NewElement::new(w(LocalName::Caps)));
+        any = true;
+    }
+    if on("underline") {
+        rpr.push_child(NewElement::new(w(LocalName::U)).with_attr(w(LocalName::Val), "single"));
+        any = true;
+    }
+    if let Some(c) = r.get("color").and_then(Value::as_str) {
+        rpr.push_child(NewElement::new(w(LocalName::Color)).with_attr(w(LocalName::Val), c));
+        any = true;
+    }
+    if let Some(sz) = r.get("sizeHalfPoints").and_then(Value::as_i64) {
+        rpr.push_child(
+            NewElement::new(w(LocalName::Sz)).with_attr(w(LocalName::Val), sz.to_string()),
+        );
+        any = true;
+    }
+    any.then_some(rpr)
+}
+
+/// `{text, richParas?}` → 条目段落。`richParas` 在就照它的 run 与格式发，否则按 `\n` 分段。
+fn entry_paras_of(entry: &Value) -> ops::EntryParas {
+    if let Some(paras) = entry.get("richParas").and_then(Value::as_array) {
+        let out: ops::EntryParas = paras
+            .iter()
+            .map(|line| {
+                line.as_array()
+                    .map(|runs| {
+                        runs.iter()
+                            .map(|r| NewRun {
+                                text: r
+                                    .get("text")
+                                    .and_then(Value::as_str)
+                                    .unwrap_or_default()
+                                    .to_string(),
+                                props: rich_run_props(r),
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default()
+            })
+            .collect();
+        if !out.is_empty() {
+            return out;
+        }
+    }
+    ops::text_entry_paras(entry.get("text").and_then(Value::as_str).unwrap_or_default(), None)
+}
+
+/// 应用权威条目列表：先删列表外的（批注连正文标记一起），再按列表改 / 建。返回操作数。
+fn apply_entry_lists(session: &mut EditSession, lists: &EntryLists) -> Result<usize> {
+    let mut ops_count = 0usize;
+    if let Some(list) = &lists.comments {
+        let keep: Vec<String> = list
+            .iter()
+            .filter_map(|c| c.get("id").and_then(Value::as_str).map(str::to_string))
+            .collect();
+        let gone: Vec<String> = session
+            .document()
+            .comments
+            .items
+            .iter()
+            .map(|c| c.id.clone())
+            .filter(|id| !keep.contains(id))
+            .collect();
+        for id in gone {
+            session.apply(EditOp::RemoveComment { id }, &EditContext::default())?;
+            ops_count += 1;
+        }
+        for c in list {
+            let Some(id) = c.get("id").and_then(Value::as_str) else { continue };
+            let paras = entry_paras_of(c);
+            let meta = NewComment {
+                author: c.get("author").and_then(Value::as_str).unwrap_or_default().to_string(),
+                initials: c.get("initials").and_then(Value::as_str).map(str::to_string),
+                date: c.get("date").and_then(Value::as_str).map(str::to_string),
+                text: String::new(), // 正文用 `paras`（`richParas` 可能带格式）
+                parent_id: c.get("parentId").and_then(Value::as_str).map(str::to_string),
+                done: c.get("done").and_then(Value::as_bool).unwrap_or(false),
+            };
+            ops::upsert_comment_entry(session, id, &meta, &paras)?;
+            ops_count += 1;
+        }
+    }
+    for (list, endnote) in [(&lists.footnotes, false), (&lists.endnotes, true)] {
+        let Some(list) = list else { continue };
+        let keep: Vec<String> = list
+            .iter()
+            .filter_map(|n| n.get("id").and_then(Value::as_str).map(str::to_string))
+            .collect();
+        let notes =
+            if endnote { &session.document().endnotes } else { &session.document().footnotes };
+        let gone: Vec<String> =
+            notes.normal().map(|n| n.id.clone()).filter(|id| !keep.contains(id)).collect();
+        for id in gone {
+            ops::remove_note_entry(session, endnote, &id)?;
+            ops_count += 1;
+        }
+        for n in list {
+            let Some(id) = n.get("id").and_then(Value::as_str) else { continue };
+            let paras = entry_paras_of(n);
+            ops::upsert_note_entry(session, endnote, id, &paras)?;
+            ops_count += 1;
+        }
+    }
+    Ok(ops_count)
 }
 
 /// 把 TS `SaveBlock[]`（`finalBlocks`）与 `SaveOptions` 应用到会话；任一块不受支持则不改任何状态。
@@ -122,7 +262,7 @@ pub fn apply_save_blocks(
     final_blocks: &Value,
     options: &Value,
 ) -> Result<SaveBlocksOutcome> {
-    let save_options = save_options_of(options)?;
+    let (save_options, lists) = save_options_of(options)?;
     let final_blocks =
         final_blocks.as_array().ok_or_else(|| unsupported("finalBlocks 不是数组"))?;
     // 保存路径按 docxIndex / 原字节匹配块，用不到图片 dataURL，给一张空的媒体表即可。
@@ -191,10 +331,18 @@ pub fn apply_save_blocks(
     let all_original_in_order = items.len() == visible.len()
         && items.iter().zip(&visible).all(|(it, &v)| matches!(it, Item::Original(d) if *d == v));
     if all_original_in_order {
-        return Ok(SaveBlocksOutcome { unchanged: true, ops: 0, save_options });
+        // 块没动，但权威条目列表可能要删 / 改条目
+        let extra = apply_entry_lists(session, &lists)?;
+        return Ok(SaveBlocksOutcome { unchanged: extra == 0, ops: extra, save_options });
     }
 
     let main = session.main_part();
+    // `EDIT-06`：generated 块里没有 `rId` 的新外链先分配关系（`.rels` 也进同一个事务）
+    let mut link_rels: HashMap<String, String> = HashMap::new();
+    for href in new_external_links(final_blocks) {
+        let rid = session.add_external_relationship(main, RelType::Hyperlink, &href)?;
+        link_rels.insert(href, rid);
+    }
     let flavor = session.flavor();
     let ops = {
         let dom = session.package_mut().dom_mut(main)?.expect("main part parsed");
@@ -205,12 +353,15 @@ pub fn apply_save_blocks(
             nodes: &nodes,
             heading_ids: &heading_ids,
             list_style: list_style.as_deref(),
+            link_rels: &link_rels,
         };
         planner.build_ops(&items, &visible)?
     };
     let n = ops.len();
     session.apply_all(ops, &EditContext::default())?;
-    Ok(SaveBlocksOutcome { unchanged: false, ops: n, save_options })
+    // 条目列表在块之后应用：删掉的批注要连"块重发出来的"标记一起清掉
+    let extra = apply_entry_lists(session, &lists)?;
+    Ok(SaveBlocksOutcome { unchanged: false, ops: n + extra, save_options })
 }
 
 struct Planner<'a> {
@@ -220,6 +371,43 @@ struct Planner<'a> {
     nodes: &'a [NodeId],
     heading_ids: &'a HashMap<u32, String>,
     list_style: Option<&'a str>,
+    /// 新外链的 `href` → 刚分配的 `rId`（`EDIT-06`）。
+    link_rels: &'a HashMap<String, String>,
+}
+
+/// generated 块里需要新建关系的外部链接：有 `href`、不是文内锚点、没带 `rId`。
+///
+/// 顺序即出现顺序，去重；`rId` 在建 `Planner` 之前分配，那时还能借用 `EditSession`。
+fn new_external_links(final_blocks: &[Value]) -> Vec<String> {
+    fn walk(v: &Value, out: &mut Vec<String>) {
+        match v {
+            Value::Object(m) => {
+                if let Some(Value::Object(l)) = m.get("link")
+                    && let Some(href) = l.get("href").and_then(Value::as_str)
+                    && !href.is_empty()
+                    && !href.starts_with('#')
+                    && l.get("rId").and_then(Value::as_str).is_none_or(str::is_empty)
+                    && !out.iter().any(|h| h == href)
+                {
+                    out.push(href.to_string());
+                }
+                for (_, x) in m {
+                    walk(x, out);
+                }
+            }
+            Value::Array(a) => {
+                for x in a {
+                    walk(x, out);
+                }
+            }
+            _ => {}
+        }
+    }
+    let mut out = Vec::new();
+    for b in final_blocks {
+        walk(b, &mut out);
+    }
+    out
 }
 
 impl Planner<'_> {
@@ -631,12 +819,10 @@ impl Planner<'_> {
                 let target = if let Some(anchor) = href.strip_prefix('#') {
                     Some(NewLinkTarget::Anchor(anchor.to_string()))
                 } else {
-                    match rid {
+                    match rid.or_else(|| self.link_rels.get(&href).cloned()) {
                         Some(r) => Some(NewLinkTarget::Rel(r)),
                         None => {
-                            return Err(unsupported(format!(
-                                "新外部超链接 {href} 需要分配关系（EDIT-06 rId，M2）"
-                            )));
+                            return Err(unsupported(format!("新外部超链接 {href} 没有可用的关系")));
                         }
                     }
                 };
@@ -719,9 +905,32 @@ impl Planner<'_> {
             out.push(NewInline::Xml(r));
             return Ok(());
         }
-        for k in ["refField", "instrField", "xeTerm", "fldBeginXml"] {
+        // `FLD-12`：字段类 run 重新发成 begin / instrText / [separate] / 结果 / end
+        if let Some(term) = s_of(run, "xeTerm") {
+            // XE 是 `Marker` 策略：没有 separate 也没有结果
+            out.push(NewInline::marker_field(format!(r#"XE "{term}""#)));
+            return Ok(());
+        }
+        if run.get("refField").is_some_and(|v| !v.is_null()) {
+            // 指令原文照发（`\r` `\h` 等开关必须逐字保留，`docs/03` §13）
+            let instr = s_of(run, "refInstr")
+                .map(str::to_string)
+                .unwrap_or_else(|| format!("REF {}", s_of(run, "refField").unwrap_or_default()));
+            let text = s_of(run, "text").unwrap_or_default();
+            let props = self.run_props(run, inside_link)?;
+            let result = if text.is_empty() {
+                Vec::new()
+            } else {
+                vec![NewInline::Run(NewRun { text: text.to_string(), props })]
+            };
+            out.push(NewInline::field(instr, result));
+            return Ok(());
+        }
+        for k in ["instrField", "fldBeginXml"] {
             if run.get(k).is_some_and(|v| !v.is_null()) {
-                return Err(unsupported(format!("run.{k}：字段生成（FLD-12）在 M2")));
+                return Err(unsupported(format!(
+                    "run.{k}：表单域 / 简单内联字段的重发要 begin run 原字节（M7）"
+                )));
             }
         }
         if run.get("rPrChange").is_some_and(|v| !v.is_null()) {

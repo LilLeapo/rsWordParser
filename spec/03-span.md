@@ -6,6 +6,8 @@
 
 - **内容序列** `content(container)`：`semantic_children(container)` 去掉属性元素（`w:pPr w:tcPr w:trPr w:tblPr w:tblGrid w:sectPr w:tblPrEx`）与所有范围标记元素后的有序列表。容器包括 `w:body w:p w:tc w:tr w:tbl w:txbxContent w:sdtContent w:hdr w:ftr w:footnote w:endnote w:comment w:ins w:del w:hyperlink w:smartTag w:customXml w:fldSimple`。
 - 边界 `k` 表示 `content[k-1]` 与 `content[k]` 之间，`0 ≤ k ≤ len`。
+- 内容序列**只含元素节点**：容器里的文本与 Opaque（注释 / PI）节点不是内容项。缩进排版产生的空白
+  文本节点若占据边界，同一份文档换个产出工具就会改变锚点坐标；而这些容器的合法内容本来只有元素。
 - **内容流**：body（`w:body` 及其后代容器）、每个 `w:txbxContent`、每个 `w:hdr`/`w:ftr`、每个脚注/尾注/批注条目各为独立流。范围**禁止**跨流。
 - **FlowId**：每个流分配 `FlowId(u32)`；`flow_of(container) -> FlowId` 由"容器 → 流根"的缓存映射给出（流根：`w:body`、`w:txbxContent`、`w:hdr`、`w:ftr`、`w:footnote`、`w:endnote`、`w:comment`）。`flow_of(&Anchor) = flow_of(anchor.container)`。同流判定**必须**比较 `FlowId`，不得靠祖先树临时推断。子树移动跨越流根时，缓存对该子树失效并重建。
 
@@ -17,6 +19,7 @@ Anchor { container: NodeId, index: u32, affinity: Left | Right, marker: Option<N
 
 - `index` 是内容序列边界，**标记自身不计入**。
 - `affinity`：`Left` 吸附左侧内容（在该边界插入的内容落在锚点之后）；`Right` 吸附右侧内容（插入落在锚点之前）。默认：起点 `Right`，终点 `Left`。效果：边界处输入落在范围外，范围内部输入扩展范围。
+- **空范围例外**：两端落在同一 `(container, index)` 时终点也取 `Right`。否则 `SPAN-05` 的 `Left < Right` 会判成"起在终后"，而且边界插入会把空范围拆反（起点右移、终点不动）。空范围整体吸附右侧内容，与"位置书签跟着后面的内容走"一致。
 - `marker` 指向物理标记元素；字段边界的 Anchor 为 `None`（`FLD`）。
 - 解析时由标记位置建立 Anchor；此后 Anchor 是事实，标记是投影（`SPAN-08`）。编辑引擎**禁止**通过移动标记节点来移动范围。
 
@@ -39,11 +42,14 @@ Anchor { container: NodeId, index: u32, affinity: Left | Right, marker: Option<N
 
 1. 遇到标记元素：计算其所在容器与内容序列边界 `k`（其前面的内容子节点数），生成 `Anchor{container, k, 默认 affinity, marker}`。
 2. 起点入 `open[kind][id]`；终点查 `open` 配对，得 `RangeSpan{start, end}`；找不到起点 → `RangeSpan{start: None, end}`，记诊断 `SPAN_ORPHAN_END`。
-3. 流结束仍未闭合的起点 → `RangeSpan{start, end: None}`，记诊断 `SPAN_UNCLOSED`。
-4. 同一 `id` 重复起点：后者视为新范围，记诊断。
+3. 未闭合的起点 → `RangeSpan{start, end: None}`，记诊断 `SPAN_UNCLOSED`。实现在**整个 part 扫完**后统一报告（不是每个流结束时）：这样后面的流里出现同 id 终点还能被识别为跨流配对（`SPAN_CROSS_FLOW`），而不是退化成一对"未闭合 + 孤儿终点"。范围集合与按流报告时相同。
+4. 同一 `id` 重复起点：后者视为新范围，记诊断 `SPAN_DUP_START`。终点就近配对（后开先闭），两个范围因此正确嵌套。
+   终点在别的流里找到同 id 起点：记 `SPAN_CROSS_FLOW`，**不配对**（范围禁止跨流），两端各按损坏处理。
 5. Comment 的 `reference` 在遍历中按 `w:id` 关联；只有 reference 的批注生成折叠范围。
 
 索引：`spans: Vec<RangeSpan>` 平铺；辅助索引 `by_container: Map<NodeId, Vec<(SpanId, End)>>`。
+每个范围另记 `origin: Parsed | New`：`Parsed` 且某端 `marker == None` 表示**文件里本来就没有这个标记**
+（只有 `commentReference` 的批注就是这样），`SPAN-08` 物化**不得**为它补写标记，否则未编辑内容会被改写。
 
 ## SPAN-05 文档序
 
@@ -68,7 +74,11 @@ Anchor { container: NodeId, index: u32, affinity: Left | Right, marker: Option<N
 | 删除容器 | 容器内 Anchor 按 `SPAN-07`；若容器是某内容序列的一项，外层容器按"删除 `[a,a+1)`"处理 |
 | 移动子树 | 子树内部 Anchor 不变（`container` 未变）；源父与目标父分别按删除与插入处理 |
 
-变换在 `MutationPlan` 中计算并与 DOM 变更同一事务提交（`EDIT-05`）。
+| 把内容项拆成两半（`split_run`） | 后半是原内容的**延续**：该边界上的 `Left` 锚点也右移，否则范围内部输入会把后半挤出范围 |
+
+变换在 `MutationPlan` 中计算并与 DOM 变更同一事务提交（`EDIT-05`）。实现从 `node_edits` 统一推导
+（内容序列只因插入 / 删除 / 移动内容项而变），编辑列表看不出来的语义（拆分的延续、批注是否折叠、
+容器内容被整体重写）由 `MutationPlan.span` 补充。
 
 ## SPAN-07 整体删除策略
 
@@ -84,18 +94,26 @@ Anchor { container: NodeId, index: u32, affinity: Left | Right, marker: Option<N
 
 仅一端落入删除区间 → 该端按 `SPAN-06` 移到删除点（范围缩短）。
 
+`MoveFrom`/`MoveTo`/CustomXml 范围在修订操作（M7）之前按"删除"处理：范围失去内容后没有意义。
+被整体删除的范围，其标记与批注的 `commentReference` run 由编辑引擎在同一事务里一并删除。
+
 ## SPAN-08 物化
 
 保存前，对每个 `RangeSpan` 的每个 Anchor：
 
 - 有 `marker` 且标记在 DOM 中仍位于 `(container, index)` 对应位置 → 不动（`Clean` 拷字节）。
 - 位置不符 → 旧标记 `Deleted`，在新位置插入 `New` 标记，属性从旧标记复制（`Raw` 值可直接引用旧字节）。
-- 无 `marker`（新建范围）→ 插入 `New` 标记；`w:id` 按 `EDIT-06` 分配。
-- 起点标记插在边界 `index` 处所有 `Left` 锚点标记之后、`Right` 锚点标记之前？——**规定**：同一边界上先输出所有终点标记，再输出所有起点标记（Word 输出习惯，避免空范围反序）。
+- 无 `marker` 且 `origin == New`（本次会话新建的范围）→ 插入 `New` 标记；`w:id` 按 `EDIT-06` 分配。
+- 无 `marker` 且 `origin == Parsed`（文件里本来就没有标记的折叠批注）→ **不插入**，保持原样。
+- 起点标记插在边界 `index` 处所有 `Left` 锚点标记之后、`Right` 锚点标记之前？——**规定**：同一边界上先输出所有终点标记，再输出所有起点标记（Word 输出习惯，避免相邻范围的标记交叉）。**例外**：同一个范围自己的两端落在同一边界（空范围）时按"起点、终点"顺序输出，否则物理上就成了反序的一对。
 
 ## SPAN-09 校验
 
-保存前校验（`SAVE-02`）对范围检查：起终点都存在；`flow_of(start) == flow_of(end)`；`compare(start, end) != Greater`；Comment 有 reference 与条目；`id` 在 part 内唯一。失败按 `origin` 处理：解析阶段就存在的缺陷为 `PreExistingDamage`（成对删除或补齐并记诊断）；编辑后新出现的为 `EngineInvariantViolation`。
+保存前校验（`SAVE-02`）对范围检查：起终点都存在；`flow_of(start) == flow_of(end)`；`compare(start, end) != Greater`（两端同位置的空范围一律算有序，affinity 只用于给同一边界上的不同范围排序）；Comment 有 reference 与条目；`id` 在 part 内唯一。失败按 `origin` 处理：解析阶段就损坏的为 `PreExistingDamage`，编辑后新出现的为 `EngineInvariantViolation`。
+
+修复的边界：**`Clean` 标记一个字节都不动**。落单标记的"成对删除"只在标记已经不在、或已经被本次会话改写过时执行；否则只记诊断、原样写回。删除一个从未被碰过的标记等于改写未编辑内容，不变式 1 / 2 优先于这条安全网。不物化的范围（跨流、反序）也只记诊断，不试图猜测修法。
+
+`origin` 的判定：解析时就损坏的，以及**调用方把容器内容整体重写时丢掉的那一端**（compat 的 `ReplaceInlines` 按自己的描述重发内容，描述里没有那个标记），都是 `PreExistingDamage`——引擎照做了被要求的事，不是它的缺陷。只有本来完好、被引擎自己的变换弄丢或弄反的范围才是 `EngineInvariantViolation`，按 `SAVE-02` 在调试构建与 CI 下让保存返回 `Err(SAVE_INVARIANT)`，发布构建只记诊断。这条自检是"变换漏了锚点"这类缺陷的唯一拦截点。
 
 ## SPAN-10 与字段的关系
 

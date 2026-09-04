@@ -1,9 +1,12 @@
-//! `SAVE-01`（不变式 1）、`SAVE-06`（未变条目原样）、`TEST-04` 单节点编辑保真。M0 门的包级部分。
+//! `SAVE-01`（不变式 1）、`SAVE-06`（未变条目原样）、`TEST-04` 单节点编辑保真（M0 L1 全量 + M1 L4 全量）。
 
 mod common;
 
 use std::io::{Cursor, Read};
 
+use rsword::bind::compat_ts;
+use rsword::edit::{EditContext, EditOp, EditSession, InlinePos};
+use rsword::model::{Inline, SegmentKind};
 use rsword::package::Package;
 use rsword::xml::{Dirty, LocalName, NodeKind, QName};
 
@@ -138,4 +141,158 @@ fn test_04_single_node_edit_roundtrips_on_every_synthetic_doc() {
         edited += 1;
     }
     assert!(edited > 400, "{edited}");
+}
+
+#[test]
+fn test_04_corpus_edit_fidelity() {
+    const INSERTED: &str = "Ж";
+
+    // 在合法 UTF-16 偏移处插入字符串；段坐标流偏移来自 EditSession 投影，因此必须精确。
+    fn insert_at_utf16(text: &str, at: u32, insert: &str) -> String {
+        let mut units = 0u32;
+        for (byte, ch) in text.char_indices() {
+            if units == at {
+                return format!("{}{}{}", &text[..byte], insert, &text[byte..]);
+            }
+            units += ch.len_utf16() as u32;
+        }
+        assert_eq!(units, at, "UTF-16 offset out of range");
+        format!("{text}{insert}")
+    }
+
+    let mut edited = 0;
+    let mut skipped_no_text_block = 0;
+    for path in common::docx_paths("synthetic") {
+        let bytes = std::fs::read(&path).unwrap();
+        let mut s = EditSession::open(&bytes)
+            .unwrap_or_else(|e| panic!("{}: EditSession::open failed: {e}", path.display()));
+
+        // M1 的 Document 只投影正文顶层的 w:p；表格单元格等段落属于 M2。对这类文档没有
+        // EditSession 可用的文本段落，跳过；其余每份都选一个非空 Text 段，全都没有时退化为
+        // 在第一个文本段落的 offset 0 处插入（会新建 run，但同样走 L4 InsertText）。
+        let Some((fallback_idx, first_block)) = s.document().text_blocks().enumerate().next()
+        else {
+            skipped_no_text_block += 1;
+            continue;
+        };
+        let (fallback_node, fallback_text) = (first_block.node, first_block.text());
+        let mut target = None;
+        'blocks: for (block_idx, block) in s.document().text_blocks().enumerate() {
+            let mut offset = 0u32;
+            for inline in &block.inlines {
+                let Inline::Run(run) = inline else {
+                    offset += inline.utf16_len();
+                    continue;
+                };
+                let mut segment_start = offset;
+                for segment in &run.segments {
+                    if segment.kind == SegmentKind::Text
+                        && segment.utf16_len > 0
+                        && run.rev.as_ref().is_none_or(|rev| rev.del.is_none())
+                    {
+                        target = Some((
+                            block_idx,
+                            InlinePos::new(block.node, segment_start),
+                            block.text(),
+                        ));
+                        break 'blocks;
+                    }
+                    segment_start += segment.utf16_len;
+                }
+                offset += inline.utf16_len();
+            }
+        }
+        let (target_idx, at, before_text) = target
+            .unwrap_or_else(|| (fallback_idx, InlinePos::new(fallback_node, 0), fallback_text));
+
+        let before_text_block_count = s.document().text_blocks().count();
+        // 空的媒体表：这个 oracle 比的是「编辑前后哪些块变了」，两侧用同一张表就够；
+        // 真正读字节的 `MediaMap::build` 要 `&mut Package`，这里只有不可变借用。
+        let media = compat_ts::MediaMap::default();
+        let before_compat_blocks =
+            compat_ts::parsed_doc_of(s.package(), s.document(), &media)["blocks"]
+                .as_array()
+                .unwrap()
+                .clone();
+        let main_name = s.package().part(s.main_part()).uri.to_string();
+
+        let result = s
+            .apply(
+                EditOp::InsertText { at, text: INSERTED.to_string(), props: None },
+                &EditContext::default(),
+            )
+            .unwrap_or_else(|e| panic!("{}: apply(InsertText) failed: {e}", path.display()));
+        assert!(!result.structure_changed, "{}", path.display());
+        let expected = insert_at_utf16(&before_text, at.offset.0, INSERTED);
+        assert_eq!(
+            s.document().text_blocks().nth(target_idx).unwrap().text(),
+            expected,
+            "{}: 编辑后投影文本不正确",
+            path.display()
+        );
+
+        let saved = s.save().unwrap_or_else(|e| panic!("{}: save failed: {e}", path.display()));
+        assert_ne!(saved, bytes, "{}: 编辑后保存不能回到原字节", path.display());
+
+        // TEST-04 / SAVE-06：除主 part 外，每个 zip 条目的 CRC、压缩大小与压缩字节都保持不变。
+        let before_entries = entries(&bytes);
+        let after_entries = entries(&saved);
+        assert_eq!(before_entries.len(), after_entries.len(), "{}", path.display());
+        for (b, a) in before_entries.iter().zip(&after_entries) {
+            assert_eq!(a.0, b.0, "{}: zip 条目顺序或名字变化", path.display());
+            if a.0 == main_name {
+                assert_ne!(a.1, b.1, "{}: 主 part CRC 应变化", path.display());
+            } else {
+                assert_eq!(a.1, b.1, "{}: {} CRC 变化", path.display(), a.0);
+                assert_eq!(a.2, b.2, "{}: {} 压缩大小变化", path.display(), a.0);
+                assert_eq!(a.3, b.3, "{}: {} 压缩字节变化", path.display(), a.0);
+            }
+        }
+
+        let reopened = EditSession::open(&saved)
+            .unwrap_or_else(|e| panic!("{}: saved bytes reopen failed: {e}", path.display()));
+        assert_eq!(
+            before_text_block_count,
+            reopened.document().text_blocks().count(),
+            "{}: 重解析后文本段落数变化",
+            path.display()
+        );
+        assert_eq!(
+            reopened.document().text_blocks().nth(target_idx).unwrap().text(),
+            expected,
+            "{}: 重解析后目标段文本不正确",
+            path.display()
+        );
+
+        // TEST-04 的补缺 oracle：compat_ts 的 blocks[] 是正文块投影（paragraph 类型含
+        // style/format/runs/bookmarks），不含 arena NodeId；重解析后应只有被插字的块发生变化。
+        let after_compat_blocks =
+            compat_ts::parsed_doc_of(reopened.package(), reopened.document(), &media)["blocks"]
+                .as_array()
+                .unwrap()
+                .clone();
+        assert_eq!(
+            before_compat_blocks.len(),
+            after_compat_blocks.len(),
+            "{}: compat_ts 块数变化",
+            path.display()
+        );
+        let changed_blocks: Vec<usize> = before_compat_blocks
+            .iter()
+            .zip(&after_compat_blocks)
+            .enumerate()
+            .filter_map(|(idx, (b, a))| (b != a).then_some(idx))
+            .collect();
+        assert_eq!(
+            changed_blocks.len(),
+            1,
+            "{}: 除目标块外 compat_ts 块投影被修改：{changed_blocks:?}",
+            path.display()
+        );
+        edited += 1;
+    }
+    assert!(
+        edited > 400,
+        "只覆盖了 {edited} 份文档（跳过 {skipped_no_text_block} 份无正文顶层 TextBlock）"
+    );
 }

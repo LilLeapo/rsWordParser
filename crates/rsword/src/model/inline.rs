@@ -214,14 +214,8 @@ pub enum LinkTarget {
     Unresolved,
 }
 
-/// 一条修订的元数据（`w:id` / `w:author` / `w:date`）。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RevisionMeta {
-    pub node: NodeId,
-    pub id: Option<String>,
-    pub author: Option<String>,
-    pub date: Option<String>,
-}
+/// 一条修订的元数据（`w:id` / `w:author` / `w:date`）。定义在 L2（范围标记用同一组属性）。
+pub use crate::span::RevisionMeta;
 
 /// run 的修订上下文（`MOD-06`）：`w:moveFrom` 同时计入 `del`，`w:moveTo` 同时计入 `ins`（TS 语义），
 /// `move_*` 保留精确信息。

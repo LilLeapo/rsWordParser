@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use crate::package::uri::PartUri;
-use crate::xml::{Dom, LocalName, NodeKind, NsId, QName};
+use crate::xml::{Dom, LocalName, NsId, QName};
 
 /// 已知图片扩展名 → MIME（`PKG-04` 判定顺序的第一步）。
 const IMAGE_EXT: &[(&str, &str)] = &[
@@ -55,9 +55,7 @@ impl ContentTypes {
                         ct.overrides.insert(key, t.into_owned());
                     }
                 }
-                _ => {
-                    debug_assert!(!matches!(dom.node(child).kind, NodeKind::Element(_)) || true);
-                }
+                _ => {}
             }
         }
         ct

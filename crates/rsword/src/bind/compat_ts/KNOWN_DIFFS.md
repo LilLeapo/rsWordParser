@@ -7,16 +7,14 @@
 | --- | --- | --- | --- | --- |
 | `numbering-defs__012` | `numbering[1].levels[0].numFmt` | TS `custom`，本引擎 `decimal` | `mc:Choice Requires="w14"` 但文档没有声明 `w14` 前缀；MCE 规定无法解析的前缀不算理解，本引擎取 `mc:Fallback`（`XML-09`）；TS 用正则直接取 Choice | 本引擎（规范行为；Word 同样走 Fallback） |
 
-| `symbol-fonts__*` | 文本段落 `runs[].text` | TS 把 Symbol / Wingdings 字体的字符解码成 Unicode（`•`），本引擎保持原字符 `U+F0B7` | 符号字体映射表在 `RES-05`（M2）；`MOD-06` 规定 `Run.text` 保持原字符、解码结果放 `Segment.display`，`compat_ts` 再折回 TS 形态 | 暂时放行，M2 接入 `compat_ts` 后删除本条 |
-
 | `extra__strict-minimal` | `internal.documentXml`、`internal.bodyInner*`、`extras.elements[*]` | TS 装载时把 Strict URI 改写为 Transitional（`normalizeOoxmlParts`），偏移随之变化 | 本引擎不归一化（Strict stays Strict） | 本引擎；整份文档在 `tests/compat.rs` 的 `KNOWN_DOCS` 放行 |
 | `balance-dbcs-spacing__*` | `blocks[*].runs[*].charSpacingTwips` | TS 在 `balanceSingleByteDoubleByteWidth` 下按双字节字符比例缩放显示值 | 显示层决定（`MOD-11` 禁止排版字段进模型） | 本引擎；渲染器接管后删除 |
 | 任意 | `blocks[*].format.charIndents*` 及由其换算的 indent* | TS `withCharIndents` 用字号换算字符单位缩进 | 需字体度量，属显示层 | 暂放行（`KNOWN_PATHS`） |
 | 任意 | `styles.*.tableDisplay*` | 表格样式显示模型 | M2 随表格实现 | 暂放行 |
 | 含字段 / `w14:textFill` 的段落 | 整段 | 字段折叠、`w14:textFill` 取色在 M2 | — | `tests/compat.rs` 的文本用例过滤排除 |
 | `inline-image-mixed__009` | `blocks[*].runs[*].rawRPr` | 源文件写的是 `<w:rPr></w:rPr>`，TS 输出 `<w:rPr/>` | TS 把 `w:rPr` 重新序列化，空元素折成自闭合；本引擎按 `COMPAT-04` 给原字节切片 | 本引擎（原字节才是真相） |
+| `field-display__015` | 框内段落 `runs[*].link` | 目标带反斜杠的 `HYPERLINK` 字段：TS 不给链接，本引擎给 | TS 的 `convertibleHyperlink` 正则是 `"([^"\\]+)"`，目标里有反斜杠就整个不认（Windows 路径 `file:///C:\Users\…`）。引号里的反斜杠是字面量、开关只在引号外有意义，所以本引擎照常折出链接，地址原样保留 | 本引擎（功能更强；TS 那条正则是保守回避） |
 | `wordart-vml__004` | `blocks[*].textboxes[*].paras[*].runs[*]` | VML 文本框里的随文图片：TS 输出空 run，本引擎给出图片 run | TS 只在**宿主**段落上预取媒体（`stripTextboxes` 之后），框里的 `a:blip` 拿不到 dataURL 就把整个 run 丢了；Word 是画得出这张图的 | 本引擎（TS 的缺陷不跟随） |
-| `vml-textbox__007` | `blocks[*].textboxes[*].paras[*].runs[*].instrField` | 框里 `DATE` 字段的 `instrField` | 字段折叠整体在 M2（顶层 `blocks[*].runs[*].instrField` 同样未实现），跟绘图无关 | 暂放行，M2 接字段后删除 |
 | `themeless-shapes-external-txbx__003` | `blocks[*].textboxes[*].paras[*]` | 外部文本框 part（`wps:txbx/@r:txbx` → `word/txbx1.xml`）的段落 | 框的内容在**另一个 part** 里；`Block` 的 `NodeId` 是相对单个 DOM 的，跨 part 的内容流要等 M5 的页眉页脚管线（`spec/15` 被阻塞表） | 暂放行，M5 接跨 part 内容流后删除 |
 | `emf-image__*`（4 份） | 任何 `dataUrl` | TS 把 EMF 渲染成 PNG（导出工具打的占位 `data:image/png;base64,EMFPNG`），本引擎输出 EMF 原字节的 dataURL 并标 `MediaKind::Metafile` | `docs/03` §3.5 冻结：EMF/WMF/EMZ/WMZ 与 TIFF 的转换是可插拔服务，不在 Rust 侧做，由 TS / 渲染端继续转 | 本引擎（有意不同）；语料里 4 份 metafile 媒体全在这些文档 |
 
@@ -32,7 +30,6 @@ TS 按固定路径读 `word/theme/theme1.xml`、`word/settings.xml` 等；本引
 
 ```known-diffs
 numbering-defs__012*     numbering.*                              # 未声明前缀的 mc:Choice Requires，本引擎走 Fallback
-symbol-fonts__*          *                                        # 符号字体解码（M2 RES-05）
 char-unit-indents__*     *                                        # *Chars 缩进换算需字体度量（TS withCharIndents）
 extra__strict-minimal*   *                                        # TS 装载时把 Strict 改写为 Transitional
 balance-dbcs-spacing__*  blocks[*].runs[*].charSpacingTwips       # TS 按双字节比例缩放显示值
@@ -41,7 +38,7 @@ balance-dbcs-spacing__*  blocks[*].runs[*].charSpacingTwips       # TS 按双字
 inline-image-mixed__009* blocks[*].runs[*].rawRPr                 # 源文件写 <w:rPr></w:rPr>，TS 重序列化成 <w:rPr/>
 emf-image__*             blocks[*].imageDataUrl                   # EMF 不在 Rust 侧渲染（docs/03 §3.5）
 emf-image__*             *image.dataUrl                           # 同上，表格 / run 内的图片
+field-display__015*      *paras[*].runs[*].link                   # 目标带反斜杠的 HYPERLINK，TS 的正则不认，本引擎照折
 wordart-vml__004*        blocks[*].textboxes[*].paras[*].runs[*]  # TS 没给框里的随文图片预取媒体，整个 run 丢了
-vml-textbox__007*        *paras[*].runs[*].instrField             # 字段折叠在 M2
 themeless-shapes-external-txbx__003* blocks[*].textboxes[*].paras[*]  # 外部文本框 part 要等 M5 的跨 part 内容流
 ```

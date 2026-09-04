@@ -25,7 +25,8 @@ pub mod utf16;
 
 pub use diff::{
     Diff, KNOWN_DIFFS_MD, KnownDiff, PathStat, Report, diff_json, filter_known, is_drawing_path,
-    is_text_case, known_diffs, parse_known_diffs, path_key, path_matches, split_known,
+    is_span_field_case, is_text_case, known_diffs, parse_known_diffs, path_key, path_matches,
+    split_known,
 };
 pub use media::{MediaMap, MediaOut};
 pub use save_blocks::{SaveBlocksOutcome, apply_save_blocks, bookmark_id_of};
@@ -57,7 +58,10 @@ pub fn parsed_doc_of(pkg: &Package, doc: &Document, media: &MediaMap) -> Value {
 
     let mut o = Map::new();
     o.insert("blocks".into(), Value::Array(blocks));
-    for k in ["comments", "footnotes", "endnotes", "sources", "inks"] {
+    o.insert("comments".into(), decl::comments_json(doc));
+    o.insert("footnotes".into(), decl::notes_json(doc, &resolver, false));
+    o.insert("endnotes".into(), decl::notes_json(doc, &resolver, true));
+    for k in ["sources", "inks"] {
         o.insert(k.into(), Value::Array(Vec::new()));
     }
     o.insert("themeFonts".into(), decl::theme_fonts_json(doc, &resolver));

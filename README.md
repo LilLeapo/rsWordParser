@@ -22,7 +22,7 @@
 1. `docs/03-architecture-v3.md` 第 0 节（冻结项）与第 13 节（六个核心类型索引）
 2. `spec/00-overview.md`（规范体系、术语、单位）
 3. `docs/04-dev-plan.md`（当前在做什么、下一步做什么）
-4. 按里程碑阅读对应 spec：M0 → `01-package`、`02-xml-dom`；M1 → `05-properties`、`06-model`、`10-compat-ts`；M2 → `03-span`、`04-field`、`13-m2-plan`；M7 → `08-edit`、`09-save`
+4. 按里程碑阅读对应 spec：M0 → `01-package`、`02-xml-dom`；M1 → `05-properties`、`06-model`、`10-compat-ts`；M2 → `03-span`、`04-field`、`13-m2-plan`；M3 → `06-model` 的表格部分；M7 → `08-edit`、`09-save`
 
 ## 构建
 
@@ -33,12 +33,17 @@ GENOFFICE_DIR=~/code/genoffice tools/export-golden/run.sh   # 重新导出语料
 
 ## 状态
 
-架构 v3.2 已冻结（2026-09-03）。**M0 与 M1 均已完成**（2026-09-04）：字节保真的读写骨架、属性表、文本段落
-模型、`resolve` 首版、`compat_ts` 文本块、编辑引擎（`EditSession` + 五个内联操作 + 事务）、`SaveBlock[]`
-兼容映射、`SAVE-01` 保存编排与保存选项、差分工具链。M1 门三条均有测试覆盖。
+架构 v3.2 已冻结（2026-09-03）。**M0、M1、M2、M4 均已完成并并入 `main`**（M0/M1 2026-09-04，
+M2 与 M4 2026-09-05）：字节保真的读写骨架、属性表、文本段落模型、`resolve` 首版、`compat_ts`
+（文本 + 字段 + 批注 + 绘图）、编辑引擎（`EditSession` + 内联 / 块 / 段落 / 范围 / 字段操作 + 事务）、
+L2 范围层（`Anchor` 变换与物化）、字段子系统（配对 / 指令 tokenizer / 策略表）、批注与注释
+（含 `SAVE-05` 新建 part）、绘图读侧全套（媒体解析、DrawingML 颜色、绘图 / 形状 / VML 显示模型、
+图片与文本框投影、嵌入对象）、`SaveBlock[]` 与保存选项的兼容映射、差分工具链与 fuzz 目标。
+M1 门三条、M2 门两条、M4 门一条都跑过（CI 里各一步）。
 
 能力矩阵、实测数字、明确未实现的清单在 **`docs/05-status.md`**；任务清单与偏差记录在
-`docs/04-dev-plan.md`；下一步是 M2（Span + 字段），任务分解在 `spec/13-m2-plan.md`。
+`docs/04-dev-plan.md`（§11 是 M2、§13 是 M4 的逐条进度）。下一个里程碑是 M3（表格），
+分支 `m3-tables`，任务分解在 `spec/14-m3-plan.md`。
 
 验收政策：TS 是参考实现而非权威，目标是**功能等价或更强**，有意差异逐条登记（`docs/04` §8）。
 

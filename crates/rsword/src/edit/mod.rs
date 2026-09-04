@@ -22,6 +22,7 @@ pub use pos::{InlinePos, Loc, Utf16Offset, inline_spans, locate};
 pub use session::EditSession;
 
 use crate::semantic::props::{ParaPropsPatch, RunProps, RunPropsPatch};
+use crate::span::FieldId;
 use crate::xml::{NewElement, NodeId};
 
 /// 修订作者（`track_changes` 开启时写入 `w:author` / `w:date`）。M1 不生成修订，字段保留供 M7。
@@ -62,6 +63,19 @@ pub enum NewBlock {
     Wrapped { wrapper: NewElement, block: Box<NewBlock> },
 }
 
+/// `EDIT-03 AddComment` 的内容。`text` 里的 `\n` 分段。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct NewComment {
+    pub author: String,
+    pub initials: Option<String>,
+    /// ISO 时间戳；`None` 时不写 `w:date`。
+    pub date: Option<String>,
+    pub text: String,
+    /// 回复哪条批注（写 `commentsExtended` 的 `w15:paraIdParent`）。
+    pub parent_id: Option<String>,
+    pub done: bool,
+}
+
 /// `docs/03` §8.2 的操作枚举（M1 子集）。
 // 属性补丁（`ParaPropsPatch`）体积大；操作是一次性传入的值，不装箱。
 #[allow(clippy::large_enum_variant)]
@@ -86,4 +100,63 @@ pub enum EditOp {
     DeleteBlock { node: NodeId },
     /// `EDIT-03 MoveBlock`：同 part `move_within_part`。
     MoveBlock { node: NodeId, to: BlockPos },
+    /// `EDIT-03 AddComment`（同段）：`comments.xml` 不存在则新建 part（`SAVE-05`），
+    /// 正文里插范围标记与 `w:commentReference` run，`w:id` 按 `EDIT-06` 取最大值 + 1。
+    AddComment { from: InlinePos, to: InlinePos, comment: NewComment },
+    /// `EDIT-03 RemoveComment`：条目、范围标记与 reference run 一起删。
+    RemoveComment { id: String },
+    /// `EDIT-03 SetCommentText`：改条目正文（保留第一个文字 run 的格式）与 `w15:done`。
+    SetCommentText { id: String, text: String, done: Option<bool> },
+    /// `EDIT-03 SplitParagraph`：`at` 之后的内容搬进新段落（`pPr` 字节克隆）。
+    /// 透明字段会因此跨段 → `Err(EDIT_SPLIT_FIELD)`。
+    SplitParagraph { at: InlinePos },
+    /// `EDIT-03 MergeWithNext`：下一段内容接到本段末尾，下一段删除（保留**前**段的 `pPr`）。
+    MergeWithNext { para: NodeId },
+    /// `EDIT-03 AddBookmark`（同段）：`w:id` 按 `EDIT-06` 取最大值 + 1；名字全文档唯一。
+    AddBookmark { name: String, from: InlinePos, to: InlinePos },
+    /// `EDIT-03 RemoveBookmark`：按名字删（标记 `Deleted`，索引里作废）。
+    RemoveBookmark { name: String },
+    /// `FLD-12 InsertField`：生成 begin / instrText / separate / 结果 / end 五组 run。
+    InsertField { at: InlinePos, field: NewField },
+    /// `FLD-07 Link`：改链接目标。HYPERLINK 字段只重写 `instrText`（开关原样保留）；
+    /// `w:hyperlink` 元素改 `r:id`（外部 URL 按 `EDIT-06` 分配关系）或 `w:anchor`。
+    SetLinkTarget { link: LinkRef, target: LinkDest },
+    /// `FLD-10`：FORMCHECKBOX 的 `w:checked` 取反。
+    ToggleCheckbox { field: FieldId },
+    /// `FLD-10`：FORMTEXT 的结果文字。
+    SetFormText { field: FieldId, text: String },
+    /// `FLD-07`：字段结果 run 的格式。
+    SetFieldResultProps { field: FieldId, patch: RunPropsPatch },
+    /// `FLD-09`：用给定的块替换块字段的 `separate..end`（生成器在 M7；`w:fldLock` 拒绝）。
+    UpdateBlockField { field: FieldId, blocks: Vec<NewBlock> },
+}
+
+/// `SetLinkTarget` 要改哪个链接。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LinkRef {
+    /// HYPERLINK 字段。
+    Field(FieldId),
+    /// `w:hyperlink` 元素。
+    Element(NodeId),
+}
+
+/// 链接目标。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LinkDest {
+    /// 外部 URL。`w:hyperlink` 会先按 `EDIT-06` 分配一条外部关系。
+    Url(String),
+    /// 文内书签（字段写 `\l "name"`，元素写 `w:anchor`）。
+    Anchor(String),
+    /// 已有的关系 id（只用于 `w:hyperlink`）。
+    Rel(String),
+}
+
+/// `FLD-12` 的新字段。`instr` 是指令原文（不含首尾空格，生成时补上）。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct NewField {
+    pub instr: String,
+    /// 结果区内容（空 = 只有 begin..end 的空结果）。
+    pub result: Vec<NewInline>,
+    /// begin 的 `w:fldChar` 上打 `w:dirty="true"`，Word 打开时重算。
+    pub mark_dirty: bool,
 }

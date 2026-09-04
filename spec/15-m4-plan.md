@@ -55,7 +55,9 @@ CI 门（`spec/11` TEST-10 的「M3–M6 对应域 diff 为 0」）：`diff-pars
 | 4.8 | 恶意输入与 M4 门：绘图树深嵌套 / 环状组 / 缺关系 / 畸形 `style` 的降级路径；`corpus/hostile` 补用例；`diff-parse` 绘图域接入 CI | TEST-09, TEST-10 | 绘图域未知差异 0；hostile 语料不 panic 不丢字节；`cargo test --workspace` 与 `--release` 全绿 |
 
 **M4 完成**（4.1–4.8，2026-09-05）：`diff-parse --scope drawing` 在 573 份用例上未知差异为 0，
-已接入 CI；`--scope all` 从 341 份 / 1,925 点降到 184 份 / 554 点，剩下的按域全部归 M2/M3/M5/M6。
+已接入 CI。分支 `m4-drawing` 从 M2 之前的 `main` 分出，**与 M2 合并后**的全域数字是 138 份 /
+295 点（合并前分支上是 184 份 / 554 点），剩下的按域全部归 M3 / M5 / M6。合并时的三处整合
+记在 `docs/04` §13 末尾。
 
 **进度**：4.1 完成（`package/media.rs` + `tests/media.rs` 语料普查；同时给 L1 补了 `Dom::semantic_descendants`）。4.2 完成（`resolve/drawingml.rs` 颜色 + `model/units.rs` 单位换算；语料 89 个颜色容器全部能定出 sRGB）。4.3 完成（`model/drawing.rs` 挂到 `Segment.display`；112 个绘图、122 项 `wp:extent` 与 TS 一致）。4.4 完成（`bind/compat_ts/{media,image}.rs`：图片块与 run 内图片的 `image*` 投影；全域未知差异 1,925 → 1,560，文档 341 → 300）。4.5 + 4.7 完成（`model/vml.rs` + 细横线与嵌入对象投影；全域 1,560 → 1,517，文档 300 → 291；`oleProgId` 归零）。**4.6a 完成**（`model/drawing.rs` 的 `ShapeDisplay` + `bind/compat_ts/textbox.rs` 分类；全域 1,517 → 704，文档 291 → 279）——`label` / `type` / `previewText` / `runs` / `decorative` / `rule*` 的绘图部分全部归零，剩下的同名差异是字段（M2）与图表（M6）。**4.6b 完成**（`bind/compat_ts/box_json.rs`：框的几何 / 填充 / 描边 / 内边距 / 组仿射 / 锚定偏移 / 框内段落；全域文档 279 → 236，41 份文档彻底对齐）。
 

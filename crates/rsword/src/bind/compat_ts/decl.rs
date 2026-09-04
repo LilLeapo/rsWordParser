@@ -867,3 +867,95 @@ pub(super) fn font_table_json(doc: &Document) -> Option<Value> {
     }
     (!out.is_empty()).then_some(Value::Array(out))
 }
+
+// ---- 批注与注释（`COMPAT-02`，TS `parseComments` / `notes.ts`）--------------------------------
+
+/// `comments[]`：`{id, author, initials, date, text, paraId, parentId, done}`。
+/// 缺失的字段不出（TS 只在有值时写）。
+pub(super) fn comments_json(doc: &Document) -> Value {
+    let mut out = Vec::new();
+    for c in &doc.comments.items {
+        let mut o = Map::new();
+        set(&mut o, "id", c.id.clone());
+        if let Some(a) = &c.author {
+            set(&mut o, "author", a.clone());
+        }
+        if let Some(i) = &c.initials {
+            set(&mut o, "initials", i.clone());
+        }
+        if let Some(d) = &c.date {
+            set(&mut o, "date", d.clone());
+        }
+        set(&mut o, "text", c.text.clone());
+        if let Some(p) = &c.para_id {
+            set(&mut o, "paraId", p.clone());
+        }
+        if let Some(p) = &c.parent_id {
+            set(&mut o, "parentId", p.clone());
+        }
+        if c.done {
+            set(&mut o, "done", true);
+        }
+        out.push(Value::Object(o));
+    }
+    Value::Array(out)
+}
+
+/// `footnotes[]` / `endnotes[]`：`{id, text, richParas?, noRefMark?}`。
+/// 结构条目（`separator` / `continuationSeparator`）不出（TS 跳过带 `w:type` 的条目）。
+pub(super) fn notes_json(doc: &Document, r: &Resolver<'_>, endnotes: bool) -> Value {
+    let notes = if endnotes { &doc.endnotes } else { &doc.footnotes };
+    let mut out = Vec::new();
+    for n in notes.normal() {
+        let mut o = Map::new();
+        set(&mut o, "id", n.id.clone());
+        set(&mut o, "text", n.text.clone());
+        if let Some(rich) = rich_paras_json(&n.rich, r) {
+            set(&mut o, "richParas", rich);
+        }
+        if n.no_ref_mark {
+            set(&mut o, "noRefMark", true);
+        }
+        out.push(Value::Object(o));
+    }
+    Value::Array(out)
+}
+
+/// `richParas`：每段一个 run 列表。任一 run 都没有格式时整体不出（TS 行为）。
+fn rich_paras_json(rich: &[Vec<crate::model::RichRun>], r: &Resolver<'_>) -> Option<Value> {
+    let mut any_format = false;
+    let mut paras = Vec::new();
+    for line in rich {
+        let mut runs = Vec::new();
+        for run in line {
+            let mut o = Map::new();
+            set(&mut o, "text", run.text.clone());
+            let p = &run.props;
+            for (k, v) in
+                [("bold", p.bold), ("italic", p.italic), ("strike", p.strike), ("caps", p.caps)]
+            {
+                if v == Some(true) {
+                    set(&mut o, k, true);
+                    any_format = true;
+                }
+            }
+            if p.underline.as_ref().is_some_and(|u| {
+                u.val.as_ref().and_then(Val::value).is_some_and(|k| *k != UnderlineKind::None)
+            }) {
+                set(&mut o, "underline", true);
+                any_format = true;
+            }
+            if let Some(c) = p.color.as_ref().and_then(|c| r.color(c)) {
+                set(&mut o, "color", rgb_hex(c));
+                any_format = true;
+            }
+            if let Some(sz) = u32_of(&p.size).filter(|&n| n != 0) {
+                set(&mut o, "sizeHalfPoints", sz);
+                any_format = true;
+            }
+            runs.push(Value::Object(o));
+        }
+        paras.push(Value::Array(runs));
+    }
+    any_format.then_some(Value::Array(paras))
+}

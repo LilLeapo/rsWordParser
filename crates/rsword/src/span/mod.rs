@@ -4,13 +4,45 @@
 //! 树表达不了：这里用附着在 DOM 上的 `Anchor`（容器 + 内容序列边界 + affinity）与平铺的
 //! `RangeSpan` 列表表示，并在编辑时维护。字段子系统见 [`field`]。
 //!
-//! 里程碑：M1 只有 [`FlowId`] 映射（任务 1.8，`SPAN-01`）与 id 类型；完整索引与 Anchor 变换在 M2。
+//! 里程碑：M2 任务 2.1 建立索引（[`SpanIndex`]，`SPAN-01`–`SPAN-05`）；Anchor 变换（`SPAN-06/07`）
+//! 与物化（`SPAN-08`）在 2.2 / 2.3；字段子系统（[`field`]，`FLD-01`–`FLD-06`）在 2.4。
 
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
+pub mod content;
 pub mod field;
+pub mod index;
+pub mod materialize;
+pub mod transform;
 
-pub use field::FieldId;
+pub use content::{
+    boundary_before, container_of, content_children, content_index_of, content_len,
+    is_content_container, is_content_item, item_containing,
+};
+pub use field::{
+    FieldForm, FieldId, FieldIndex, FieldPolicy, FieldSpan, FormData, InstrToken, Instruction,
+    Keyword,
+};
+pub use index::{
+    Affinity, Anchor, RangeClass, RangeKind, RangeSpan, SpanEnd, SpanIndex, SpanOrigin, compare,
+};
+pub use materialize::{MaterializePlan, apply_save, plan_save};
+pub use transform::{
+    ContainerMerge, ContainerSplit, SpanAction, SpanPolicy, SpanUpdate, plan_update,
+};
+
+/// 一条修订的元数据（`w:id` / `w:author` / `w:date`）。
+///
+/// 范围标记（`w:moveFromRangeStart`、`w:customXmlInsRangeStart` …）与内容修订元素
+/// （`w:ins` / `w:del` / `w:rPrChange` …）携带同一组属性，所以类型放在 L2；
+/// L3 通过 [`crate::model::RevisionMeta`] 使用同一个类型。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RevisionMeta {
+    pub node: NodeId,
+    pub id: Option<String>,
+    pub author: Option<String>,
+    pub date: Option<String>,
+}
 
 /// 范围（书签 / 批注 / 权限 / 移动 / customXml 修订）的会话内稳定 id。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]

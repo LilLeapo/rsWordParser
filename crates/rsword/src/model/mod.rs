@@ -11,7 +11,7 @@
 //! | [`facts`] | `ParagraphFacts`（`MOD-04`） |
 //! | [`classify`] | 分类规则表与 `TextKind` 判定（`MOD-05/03`） |
 //! | [`build`] | `Document` 与 `rebuild`（`MOD-01/13`） |
-//! | [`decl`] / [`theme`] | 声明模型（`MOD-10`） |
+//! | [`decl`] / [`theme`] / [`notes`] | 声明模型（`MOD-10`）：样式 / 编号 / 主题 / 设置 / 批注 / 注释 |
 
 pub mod block;
 pub mod build;
@@ -23,6 +23,7 @@ pub mod decl;
 pub mod drawing;
 pub mod facts;
 pub mod inline;
+pub mod notes;
 pub mod section;
 pub mod theme;
 pub mod units;
@@ -51,6 +52,7 @@ pub use inline::{
     AtomKind, BreakKind, Inline, InlineAtom, Link, LinkTarget, OBJECT_REPLACEMENT, RevisionCtx,
     RevisionMeta, Run, Segment, SegmentKind,
 };
+pub use notes::{Comment, Comments, Note, NoteKind, Notes, RichRun};
 pub use section::{SectionGeom, Sections};
 pub use theme::{ColorScheme, FontScheme, FontSlots, Theme, ThemeSlot};
 pub use vml::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};

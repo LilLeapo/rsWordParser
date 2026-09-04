@@ -2,17 +2,18 @@
 //! [`EditSession::apply`]（失败整体回滚）。这里的函数只读 DOM 与投影、产出 [`MutationPlan`]，
 //! 写入全部经 [`EditSession::commit_plan`]。
 
-use std::collections::HashMap;
-use std::ops::Range;
-
 use crate::diag::{DiagCode, Diagnostic};
 use crate::error::{Error, Result};
 use crate::model::block::TextBlock;
 use crate::model::inline::{Inline, Run, Segment, SegmentKind, utf16_len};
+use crate::package::RelType;
 use crate::semantic::props::{
     ParaPropsPatch, RunPropsPatch, emit_run_props, plan_apply_para_props, plan_apply_run_props,
 };
-use crate::span::is_range_marker;
+use crate::span::{
+    Affinity, Anchor, FlowId, RangeClass, RangeKind, RangeSpan, SpanId, SpanOrigin,
+    is_property_element,
+};
 use crate::xml::{
     Dirty, Dom, LocalName, NewElement, NodeEdit, NodeId, NodeKind, NsId, QName, Target,
 };
@@ -20,12 +21,12 @@ use crate::xml::{
 use super::inline::{Emitter, has_control_chars, sanitize_text, text_segments};
 use super::plan::{MutationPlan, MutationResult};
 use super::pos::{InlinePos, Loc, inline_spans, locate, utf16_to_byte};
-use super::{BlockPos, EditContext, EditOp, EditSession, NewBlock, NewInline};
+use super::{BlockPos, EditContext, EditOp, EditSession, NewBlock, NewInline, NewRun};
 
 pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<MutationResult> {
     match op {
         EditOp::InsertText { at, text, props } => insert_text(s, at, &text, props, ctx),
-        EditOp::DeleteRange { from, to } => delete_range(s, from, to),
+        EditOp::DeleteRange { from, to } => delete_range(s, from, to, ctx),
         EditOp::SetRunProps { from, to, patch } => set_run_props(s, from, to, &patch),
         EditOp::ReplaceInlines { para, inlines } => replace_inlines(s, para, &inlines),
         EditOp::SetParaProps { para, patch } => set_para_props(s, para, &patch),
@@ -33,6 +34,19 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::InsertBlock { at, block } => insert_block(s, at, block),
         EditOp::DeleteBlock { node } => delete_block(s, node),
         EditOp::MoveBlock { node, to } => move_block(s, node, to),
+        EditOp::AddComment { from, to, comment } => add_comment(s, from, to, &comment),
+        EditOp::RemoveComment { id } => remove_comment(s, &id),
+        EditOp::SetCommentText { id, text, done } => set_comment_text(s, &id, &text, done),
+        EditOp::SplitParagraph { at } => split_paragraph(s, at),
+        EditOp::MergeWithNext { para } => merge_with_next(s, para),
+        EditOp::AddBookmark { name, from, to } => add_bookmark(s, &name, from, to),
+        EditOp::RemoveBookmark { name } => remove_bookmark(s, &name),
+        EditOp::InsertField { at, field } => insert_field(s, at, &field, ctx),
+        EditOp::SetLinkTarget { link, target } => set_link_target(s, link, &target),
+        EditOp::ToggleCheckbox { field } => toggle_checkbox(s, field),
+        EditOp::SetFormText { field, text } => set_form_text(s, field, &text),
+        EditOp::SetFieldResultProps { field, patch } => set_field_result_props(s, field, &patch),
+        EditOp::UpdateBlockField { field, blocks } => update_block_field(s, field, blocks, ctx),
     }
 }
 
@@ -76,6 +90,17 @@ fn next_sibling(dom: &Dom, n: NodeId) -> Option<NodeId> {
     kids[i + 1..].iter().copied().find(|&c| dom.node(c).dirty != Dirty::Deleted)
 }
 
+/// 下一个未删除的**元素**兄弟（跳过缩排产生的空白文本节点）。
+fn next_element_sibling(dom: &Dom, n: NodeId) -> Option<NodeId> {
+    let p = dom.parent(n)?;
+    let kids = dom.children(p);
+    let i = kids.iter().position(|&c| c == n)?;
+    kids[i + 1..]
+        .iter()
+        .copied()
+        .find(|&c| dom.node(c).dirty != Dirty::Deleted && dom.element(c).is_some())
+}
+
 /// `w:t` 的唯一文本子节点；其他形态（空元素、多个子节点）返回 `None`，调用方整体替换。
 fn sole_text_child(dom: &Dom, t: NodeId) -> Option<NodeId> {
     let mut it = live_children(dom, t);
@@ -108,6 +133,11 @@ fn set_segment_text(dom: &Dom, seg_node: NodeId, text: &str, plan: &mut Mutation
 }
 
 /// 字段 / 批注 / 脚注结构段：删除范围覆盖时原地保留（M2 由 `FieldSpan` 接管）。
+/// 字段结构段（`fldChar` / 指令文本）：`is_structural` 的子集。
+fn is_field_structure(kind: &SegmentKind) -> bool {
+    matches!(kind, SegmentKind::FldChar | SegmentKind::InstrText | SegmentKind::DelInstrText)
+}
+
 fn is_structural(kind: &SegmentKind) -> bool {
     matches!(
         kind,
@@ -201,6 +231,8 @@ fn split_run(s: &EditSession, para: NodeId, run: &Run, seg: usize, byte: usize) 
     let dom = s.dom();
     let mut plan = MutationPlan::new(s.main_part());
     plan.touch(para);
+    // 后半是原 run 的延续：该边界上的 `Left` 锚点也要右移（`SPAN-06` 的补充，见 `SpanPolicy`）
+    plan.span.split_items.push(run.node);
     let parent = dom.parent(run.node).expect("run has a parent");
     let k = plan.node_edits.len();
     plan.node_edits.push(NodeEdit::Insert {
@@ -336,6 +368,38 @@ fn common_site(dom: &Dom, para: NodeId, left: NodeId, right: NodeId) -> (NodeId,
     }
 }
 
+/// 边界的哪一侧。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Side {
+    Left,
+    Right,
+}
+
+/// 边界一侧的 inline 对应的 DOM 节点。
+///
+/// 字段原子（`Inline::Field`）自己没有单一节点，取它靠着边界的那一端：左邻取 `tail`
+/// （end run / `w:fldSimple`）、右邻取 `head`（begin run）。插入点因此落在原子**之外**，
+/// 与 `SPAN-10`"端点落在字段原子内部时移到原子边界"是同一条道理。
+fn boundary_node(s: &EditSession, tb: &TextBlock, i: &Inline, side: Side) -> Result<NodeId> {
+    if let Some(n) = i.node() {
+        return Ok(n);
+    }
+    let Inline::Field { id, .. } = i else {
+        return Err(unsupported("inline 没有对应节点"));
+    };
+    let f =
+        s.document().fields.get(*id).ok_or_else(|| unsupported("字段不在索引里（投影过期）"))?;
+    let n = match side {
+        Side::Left => f.form.tail(),
+        Side::Right => f.form.head(),
+    };
+    // 跨段字段（`FLD-06` 的 `Block`）另一端在别的段落里，结果段落只读
+    if !s.dom().ancestors(n).any(|a| a == tb.node) {
+        return Err(unsupported("跨段字段的边界（Block 字段的结果段落只读）"));
+    }
+    Ok(n)
+}
+
 /// 边界插入点：`(parent, before, 继承格式的 run)`。
 fn boundary_site(
     s: &EditSession,
@@ -344,10 +408,21 @@ fn boundary_site(
 ) -> Result<(NodeId, Option<NodeId>, Option<NodeId>)> {
     let dom = s.dom();
     let para = tb.node;
-    let node_of = |i: &Inline| i.node().ok_or_else(|| unsupported("字段形态 inline（M2）"));
-    let left = (index > 0).then(|| node_of(&tb.inlines[index - 1])).transpose()?;
-    let right = (index < tb.inlines.len()).then(|| node_of(&tb.inlines[index])).transpose()?;
-    let run_node = |i: &Inline| if let Inline::Run(r) = i { Some(r.node) } else { None };
+    let left = (index > 0)
+        .then(|| boundary_node(s, tb, &tb.inlines[index - 1], Side::Left))
+        .transpose()?;
+    let right = (index < tb.inlines.len())
+        .then(|| boundary_node(s, tb, &tb.inlines[index], Side::Right))
+        .transpose()?;
+    // 继承格式的 run：先看平铺的 run，再看字段结果里的 run（紧邻字段插字沿用结果的格式）
+    let run_node = |i: &Inline| match i {
+        Inline::Run(r) => Some(r.node),
+        Inline::Field { result, .. } => result.iter().rev().find_map(|r| match r {
+            Inline::Run(r) => Some(r.node),
+            _ => None,
+        }),
+        Inline::Atom(_) => None,
+    };
     let inherit = tb.inlines[..index]
         .iter()
         .rev()
@@ -454,32 +529,12 @@ fn insert_text(
 
 // ---- DeleteRange ------------------------------------------------------------------------------
 
-/// 严格落在 `(a, b)` 内的范围标记数：标记的位置 = 其前面最后一个 inline 的终点。
-fn markers_strictly_inside(
-    dom: &Dom,
-    tb: &TextBlock,
-    spans: &[Range<u32>],
-    a: u32,
-    b: u32,
-) -> usize {
-    let end_of: HashMap<NodeId, u32> =
-        tb.inlines.iter().zip(spans).filter_map(|(i, sp)| i.node().map(|n| (n, sp.end))).collect();
-    let mut cur = 0u32;
-    let mut count = 0;
-    for n in dom.descendants(tb.node) {
-        if dom.node(n).dirty == Dirty::Deleted {
-            continue;
-        }
-        if let Some(&e) = end_of.get(&n) {
-            cur = e;
-        } else if dom.name(n).is_some_and(is_range_marker) && cur > a && cur < b {
-            count += 1;
-        }
-    }
-    count
-}
-
-fn delete_range(s: &mut EditSession, from: InlinePos, to: InlinePos) -> Result<MutationResult> {
+fn delete_range(
+    s: &mut EditSession,
+    from: InlinePos,
+    to: InlinePos,
+    ctx: &EditContext,
+) -> Result<MutationResult> {
     if from.para != to.para {
         return Err(Error::edit(
             DiagCode::EditCrossParagraph,
@@ -495,11 +550,13 @@ fn delete_range(s: &mut EditSession, from: InlinePos, to: InlinePos) -> Result<M
     locate(tb, from.offset)?;
     locate(tb, to.offset)?;
     let mut plan = MutationPlan::new(part);
+    plan.span.keep_orphan_comments = ctx.keep_orphan_comments;
     plan.touch(from.para);
     if a == b {
         return s.commit_plan(plan);
     }
     let dom = s.dom();
+    let fields = &s.document().fields;
     let spans = inline_spans(tb);
     let mut kept_structure = 0usize;
     for (inline, span) in tb.inlines.iter().zip(&spans) {
@@ -508,7 +565,13 @@ fn delete_range(s: &mut EditSession, from: InlinePos, to: InlinePos) -> Result<M
         }
         match inline {
             Inline::Atom(atom) => plan.node_edits.push(NodeEdit::Delete(atom.node)),
-            Inline::Field { .. } => return Err(unsupported("字段形态 inline（M2）")),
+            // `FLD-07`：原子形态字段被覆盖 → 整个字段（begin..end，含嵌套）一起删。
+            // 原子只占 1 个坐标单位，区间与它相交就必然把它整个盖住。
+            Inline::Field { id, .. } => {
+                for n in fields.all_nodes(*id) {
+                    plan.node_edits.push(NodeEdit::Delete(n));
+                }
+            }
             Inline::Run(run) => {
                 let fully = span.start >= a && span.end <= b;
                 let structural = run.segments.iter().any(|sg| is_structural(&sg.kind));
@@ -516,7 +579,14 @@ fn delete_range(s: &mut EditSession, from: InlinePos, to: InlinePos) -> Result<M
                     plan.node_edits.push(NodeEdit::Delete(run.node));
                     continue;
                 }
-                if structural {
+                // 属于已识别字段的结构 run 原地保留是**正确**行为：透明字段（`Link`）的结果可以
+                // 正常编辑，字段本身不该跟着消失。剩下的（畸形 / 未闭合字段的 fldChar）才是缺陷。
+                if structural
+                    && run.field.is_none()
+                    && run.segments.iter().any(|sg| {
+                        is_field_structure(&sg.kind) && fields.field_of(run.node).is_none()
+                    })
+                {
                     kept_structure += 1;
                 }
                 let mut ss = span.start;
@@ -551,15 +621,14 @@ fn delete_range(s: &mut EditSession, from: InlinePos, to: InlinePos) -> Result<M
             }
         }
     }
-    let markers = markers_strictly_inside(dom, tb, &spans, a, b);
-    if markers > 0 || kept_structure > 0 {
+    // 范围标记不再原地"漏"着：删除内容项后标记物理上就落在删除点，正好是 `SPAN-06`
+    // 把锚点算到的位置（`commit_plan` 统一变换）。剩下的只有字段结构，等 2.4 的 `FieldSpan`。
+    if kept_structure > 0 {
         plan.diagnostics.push(Diagnostic::invariant_violation(
             part,
             None,
             DiagCode::EditAnchorUnmoved,
-            format!(
-                "删除范围内有 {markers} 个范围标记、{kept_structure} 个含字段结构的 run 原地保留（Anchor 变换在 M2）"
-            ),
+            format!("删除范围内有 {kept_structure} 个未闭合 / 畸形字段的结构 run 原地保留"),
         ));
     }
     plan.offset_delta.push((from.para, from.offset, -((b - a) as i32)));
@@ -652,6 +721,8 @@ fn replace_inlines(
     require_paragraph(dom, para)?;
     let mut plan = MutationPlan::new(s.main_part());
     plan.touch(para);
+    // 内容（含范围标记）被外部描述整体重写：提交后按新标记重建这个容器的端点（`SPAN-06` rescan）
+    plan.span.rescan.push(para);
     for c in live_children(dom, para) {
         if !dom.is(c, w(LocalName::PPr)) {
             plan.node_edits.push(NodeEdit::Delete(c));
@@ -784,5 +855,1249 @@ fn move_block(s: &mut EditSession, node: NodeId, to: BlockPos) -> Result<Mutatio
     }
     plan.structure_changed = true;
     plan.node_edits.push(NodeEdit::Move { node, parent: Target::Node(parent), before });
+    s.commit_plan(plan)
+}
+
+// ---- 批注（`EDIT-03` AddComment / RemoveComment / SetCommentText，任务 2.6）--------------------
+
+/// 段落里第 `boundary` 个内容项（`None` = 边界在末尾，插入时追加）。
+fn content_site(dom: &Dom, para: NodeId, boundary: u32) -> Option<NodeId> {
+    crate::span::content_children(dom, para).get(boundary as usize).copied()
+}
+
+/// `InlinePos` → 段落内容序列的边界。位置必须已经在 inline 边界上（先 `split_at`）。
+fn content_boundary(s: &EditSession, para: NodeId, at: InlinePos) -> Result<u32> {
+    let tb = text_block(s, para)?;
+    let dom = s.dom();
+    match locate(tb, at.offset)? {
+        Loc::Boundary { index } => {
+            let len = crate::span::content_len(dom, para);
+            match tb.inlines.get(index).and_then(Inline::node) {
+                // 段落层的内容项：inline 可能在 `w:hyperlink` / `w:ins` 里，取它在段落下的那一层
+                Some(n) => {
+                    Ok(crate::span::boundary_before(dom, para, top_child(dom, para, n))
+                        .unwrap_or(len))
+                }
+                None => Ok(len),
+            }
+        }
+        _ => Err(unsupported("批注端点没落在 inline 边界上（内部错误）")),
+    }
+}
+
+/// `w:commentReference` run（带 `CommentReference` 字符样式，与 Word 一致）。
+fn comment_reference_run(id: &str) -> NewElement {
+    let rpr = NewElement::new(w(LocalName::RPr)).with_child(
+        NewElement::new(w(LocalName::RStyle)).with_attr(w(LocalName::Val), "CommentReference"),
+    );
+    NewElement::new(w(LocalName::R))
+        .with_child(rpr)
+        .with_child(NewElement::new(w(LocalName::CommentReference)).with_attr(w(LocalName::Id), id))
+}
+
+/// 条目段落：每段一串 run（`NewRun.props` 是整份 `w:rPr`）。
+pub(crate) type EntryParas = Vec<Vec<NewRun>>;
+
+/// 纯文本按 `\n` 分段，每段一个 run（可带一份共用的 `rPr`）。
+pub(crate) fn text_entry_paras(text: &str, rpr: Option<&NewElement>) -> EntryParas {
+    let lines: Vec<&str> = if text.is_empty() { vec![""] } else { text.split('\n').collect() };
+    lines
+        .into_iter()
+        .map(|line| vec![NewRun { text: line.to_string(), props: rpr.cloned() }])
+        .collect()
+}
+
+/// 一个 `w:r`：`props` 是整份 `w:rPr`，控制字符按 `MOD-06` 折回 `w:tab` / `w:br`。
+fn entry_run(r: &NewRun) -> NewElement {
+    let mut e = NewElement::new(w(LocalName::R));
+    if let Some(p) = &r.props {
+        e.push_child(p.clone());
+    }
+    for seg in text_segments(&r.text, false) {
+        e.push_child(seg);
+    }
+    e
+}
+
+/// 批注 / 注释条目的段落：首段可带一个引导 run（批注的 `w:annotationRef`、注释的
+/// `w:footnoteRef`），末段带 `w14:paraId`（`commentsExtended` 按它关联）。
+fn entry_paragraphs(
+    paras: &EntryParas,
+    para_id: Option<&str>,
+    lead: Option<NewElement>,
+) -> Vec<NewElement> {
+    let w14 = |l: LocalName| QName::new(NsId::W14, l);
+    let last = paras.len().saturating_sub(1);
+    paras
+        .iter()
+        .enumerate()
+        .map(|(i, runs)| {
+            let mut p = NewElement::new(w(LocalName::P));
+            if i == last
+                && let Some(pid) = para_id
+            {
+                p.push_attr(w14(LocalName::ParaId), pid.to_string());
+            }
+            if i == 0
+                && let Some(l) = &lead
+            {
+                p.push_child(l.clone());
+            }
+            for r in runs {
+                p.push_child(entry_run(r));
+            }
+            p
+        })
+        .collect()
+}
+
+/// 批注条目首段的引用标记 run（`CommentReference` 样式 + `w:annotationRef`）。
+fn annotation_ref_run() -> NewElement {
+    let rpr = NewElement::new(w(LocalName::RPr)).with_child(
+        NewElement::new(w(LocalName::RStyle)).with_attr(w(LocalName::Val), "CommentReference"),
+    );
+    NewElement::new(w(LocalName::R))
+        .with_child(rpr)
+        .with_child(NewElement::new(w(LocalName::AnnotationRef)))
+}
+
+/// 会话内唯一的 `w14:paraId`（8 位十六进制，避开已用的）。
+fn fresh_para_id(s: &EditSession, seed: u32) -> String {
+    let used: Vec<&str> =
+        s.document().comments.items.iter().filter_map(|c| c.para_id.as_deref()).collect();
+    let mut n = 0x1000_0000u32.wrapping_add(seed.wrapping_mul(0x9E37_79B9));
+    loop {
+        let candidate = format!("{n:08X}");
+        if !used.contains(&candidate.as_str()) {
+            return candidate;
+        }
+        n = n.wrapping_add(1);
+    }
+}
+
+fn add_comment(
+    s: &mut EditSession,
+    from: InlinePos,
+    to: InlinePos,
+    c: &super::NewComment,
+) -> Result<MutationResult> {
+    if from.para != to.para {
+        return Err(Error::edit(
+            DiagCode::EditCrossParagraph,
+            "AddComment 两端不在同一段落（M2 只支持同段）",
+        ));
+    }
+    if from.offset > to.offset {
+        return Err(Error::edit(DiagCode::EditBadPosition, "from 在 to 之后"));
+    }
+    let part = s.main_part();
+    // 位置先落到 inline 边界（拆 run 是独立阶段，失败由事务回滚）
+    let mut result = MutationResult::default();
+    let tb = text_block(s, from.para)?;
+    let loc_to = locate(tb, to.offset)?;
+    split_at(s, to.para, loc_to, &mut result)?;
+    let tb = text_block(s, from.para)?;
+    let loc_from = locate(tb, from.offset)?;
+    split_at(s, from.para, loc_from, &mut result)?;
+
+    // 批注部件与条目（`SAVE-05` + `EDIT-06`）
+    let comments_part = s.ensure_comments_part()?;
+    let id = s.document().comments.next_id().to_string();
+    let para_id = fresh_para_id(s, s.document().comments.items.len() as u32 + 1);
+    let mut entry = NewElement::new(w(LocalName::Comment)).with_attr(w(LocalName::Id), id.clone());
+    entry.push_attr(w(LocalName::Author), c.author.clone());
+    if let Some(i) = &c.initials {
+        entry.push_attr(w(LocalName::Initials), i.clone());
+    }
+    if let Some(d) = &c.date {
+        entry.push_attr(w(LocalName::Date), d.clone());
+    }
+    for p in entry_paragraphs(
+        &text_entry_paras(&c.text, None),
+        Some(&para_id),
+        Some(annotation_ref_run()),
+    ) {
+        entry.push_child(p);
+    }
+    let cdom = s.package().part(comments_part).dom().expect("comments part is parsed");
+    let croot = cdom.root();
+    let mut cplan = MutationPlan::new(comments_part);
+    cplan.node_edits.push(NodeEdit::Insert {
+        parent: Target::Node(croot),
+        before: None,
+        node: entry,
+    });
+    result.absorb(s.commit_plan(cplan)?);
+
+    // 正文：范围标记 + reference run
+    let a = content_boundary(s, from.para, from)?;
+    let b = content_boundary(s, to.para, to)?;
+    let dom = s.dom();
+    let start_before = content_site(dom, from.para, a);
+    let end_before = content_site(dom, to.para, b);
+    let marker =
+        |local: LocalName| NewElement::new(w(local)).with_attr(w(LocalName::Id), id.clone());
+    let mut plan = MutationPlan::new(part);
+    plan.touch(from.para);
+    plan.node_edits.push(NodeEdit::Insert {
+        parent: Target::Node(from.para),
+        before: start_before,
+        node: marker(LocalName::CommentRangeStart),
+    });
+    plan.node_edits.push(NodeEdit::Insert {
+        parent: Target::Node(to.para),
+        before: end_before,
+        node: marker(LocalName::CommentRangeEnd),
+    });
+    plan.node_edits.push(NodeEdit::Insert {
+        parent: Target::Node(to.para),
+        before: end_before,
+        node: comment_reference_run(&id),
+    });
+    let r = s.commit_plan(plan)?;
+    let (start_marker, end_marker, ref_run) = (
+        r.created[0].ok_or_else(|| unsupported("范围起点没创建"))?,
+        r.created[1].ok_or_else(|| unsupported("范围终点没创建"))?,
+        r.created[2].ok_or_else(|| unsupported("reference run 没创建"))?,
+    );
+    result.absorb(r);
+
+    // 登记范围：标记已经在 DOM 里，物化时正好在锚点位置上（不会重发）
+    let dom = s.dom();
+    let anchor = |node: NodeId, aff: Affinity| {
+        Anchor::at(
+            from.para,
+            crate::span::boundary_before(dom, from.para, node).unwrap_or(0),
+            aff,
+            node,
+        )
+    };
+    let span = RangeSpan {
+        id: SpanId(0),
+        part,
+        flow: s.document().flows.flow_of(from.para).unwrap_or(FlowId(0)),
+        kind: RangeKind::Comment { id: id.clone(), reference: Some(ref_run) },
+        origin: SpanOrigin::New,
+        implicit: false,
+        removed: false,
+        start: Some(anchor(start_marker, Affinity::Right)),
+        end: Some(anchor(end_marker, Affinity::Left)),
+    };
+    s.push_span(part, span)?;
+    // 回复与已解决在 `commentsExtended`
+    if c.parent_id.is_some() || c.done {
+        let parent_para = c
+            .parent_id
+            .as_deref()
+            .and_then(|pid| s.document().comments.get(pid))
+            .and_then(|p| p.para_id.clone());
+        result.absorb(set_comment_ex(s, &para_id, parent_para.as_deref(), c.done)?);
+    }
+    s.rebuild()?;
+    Ok(result)
+}
+
+/// `commentsExtended` 里的一条 `w15:commentEx`（没有就建 part / 建条目）。
+fn set_comment_ex(
+    s: &mut EditSession,
+    para_id: &str,
+    parent_para: Option<&str>,
+    done: bool,
+) -> Result<MutationResult> {
+    let part = s.ensure_comments_extended_part()?;
+    let w15 = |l: LocalName| QName::new(NsId::W15, l);
+    let dom = s.package().part(part).dom().expect("commentsExtended is parsed");
+    let root = dom.root();
+    let existing = dom.semantic_children(root).find(|&n| {
+        dom.is(n, w15(LocalName::CommentEx))
+            && dom.attr_value(n, w15(LocalName::ParaId)).as_deref() == Some(para_id)
+    });
+    let mut plan = MutationPlan::new(part);
+    if let Some(node) = existing {
+        plan.node_edits.push(NodeEdit::SetAttr {
+            node: Target::Node(node),
+            name: w15(LocalName::Done),
+            value: if done { "1".into() } else { "0".into() },
+        });
+        match parent_para {
+            Some(p) => plan.node_edits.push(NodeEdit::SetAttr {
+                node: Target::Node(node),
+                name: w15(LocalName::ParaIdParent),
+                value: p.to_string(),
+            }),
+            None => plan.node_edits.push(NodeEdit::RemoveAttr {
+                node: Target::Node(node),
+                name: w15(LocalName::ParaIdParent),
+            }),
+        }
+    } else {
+        let mut e =
+            NewElement::new(w15(LocalName::CommentEx)).with_attr(w15(LocalName::ParaId), para_id);
+        if let Some(p) = parent_para {
+            e.push_attr(w15(LocalName::ParaIdParent), p);
+        }
+        e.push_attr(w15(LocalName::Done), if done { "1" } else { "0" });
+        plan.node_edits.push(NodeEdit::Insert {
+            parent: Target::Node(root),
+            before: None,
+            node: e,
+        });
+    }
+    s.commit_plan(plan)
+}
+
+fn remove_comment(s: &mut EditSession, id: &str) -> Result<MutationResult> {
+    let part = s.main_part();
+    let entry =
+        s.document().comments.get(id).map(|c| (c.node, c.para_id.clone())).ok_or_else(|| {
+            Error::edit(DiagCode::EditBadPosition, format!("没有 id 为 {id} 的批注"))
+        })?;
+    let comments_part = s
+        .document()
+        .comments
+        .part
+        .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "批注条目在的 part 找不到"))?;
+    // 正文：范围标记与 reference run
+    let mut victims: Vec<NodeId> = Vec::new();
+    let mut spans: Vec<SpanId> = Vec::new();
+    {
+        // 索引可能还没建（这是本次会话第一次写主 part）
+        let index = s.spans_of(part)?;
+        for span in index.live() {
+            if span.class() != RangeClass::Comment || span.pair_id() != id {
+                continue;
+            }
+            spans.push(span.id);
+            victims.extend(span.start.and_then(|a| a.marker));
+            victims.extend(span.end.and_then(|a| a.marker));
+            if let RangeKind::Comment { reference: Some(r), .. } = &span.kind {
+                victims.push(*r);
+            }
+        }
+    }
+    let dom = s.dom();
+    victims.retain(|&n| dom.node(n).dirty != Dirty::Deleted);
+    if !victims.is_empty() {
+        let mut plan = MutationPlan::new(part);
+        for n in &victims {
+            if let Some(p) = dom.ancestors(*n).find(|&a| dom.is(a, w(LocalName::P))) {
+                plan.touch(p);
+            }
+            plan.node_edits.push(NodeEdit::Delete(*n));
+        }
+        s.commit_plan(plan)?;
+    }
+    for span in spans {
+        s.drop_span(part, span);
+    }
+    // 条目与 `commentsExtended` 条目
+    let mut plan = MutationPlan::new(comments_part);
+    plan.node_edits.push(NodeEdit::Delete(entry.0));
+    let mut result = s.commit_plan(plan)?;
+    if let (Some(ex_part), Some(pid)) = (s.document().comments.extended_part, entry.1) {
+        let dom = s.package().part(ex_part).dom().expect("commentsExtended is parsed");
+        let w15 = |l: LocalName| QName::new(NsId::W15, l);
+        let victim = dom.semantic_children(dom.root()).find(|&n| {
+            dom.is(n, w15(LocalName::CommentEx))
+                && dom.attr_value(n, w15(LocalName::ParaId)).as_deref() == Some(pid.as_str())
+        });
+        if let Some(node) = victim {
+            let mut plan = MutationPlan::new(ex_part);
+            plan.node_edits.push(NodeEdit::Delete(node));
+            result.absorb(s.commit_plan(plan)?);
+        }
+    }
+    s.rebuild()?;
+    Ok(result)
+}
+
+fn set_comment_text(
+    s: &mut EditSession,
+    id: &str,
+    text: &str,
+    done: Option<bool>,
+) -> Result<MutationResult> {
+    let (node, para_id, first_rpr) = {
+        let c = s.document().comments.get(id).ok_or_else(|| {
+            Error::edit(DiagCode::EditBadPosition, format!("没有 id 为 {id} 的批注"))
+        })?;
+        let dom = s.package().part(s.document().comments.part.expect("有条目就有 part")).dom();
+        // 保留第一个有字 run 的格式（加粗 / 颜色的批注改字后不变素）
+        let rpr = dom.and_then(|d| {
+            c.rich
+                .iter()
+                .flatten()
+                .next()
+                .and_then(|r| d.semantic_children(r.node).find(|&n| d.is(n, w(LocalName::RPr))))
+                .and_then(|n| NewElement::from_dom(d, n, &mut crate::xml::Interner::new()))
+        });
+        (c.node, c.para_id.clone(), rpr)
+    };
+    let comments_part =
+        s.document().comments.part.ok_or_else(|| unsupported("批注条目在的 part 找不到"))?;
+    let para_id = para_id.unwrap_or_else(|| fresh_para_id(s, 1));
+    let dom = s.package().part(comments_part).dom().expect("comments part is parsed");
+    let mut plan = MutationPlan::new(comments_part);
+    for c in dom.semantic_children(node) {
+        if dom.is(c, w(LocalName::P)) {
+            plan.node_edits.push(NodeEdit::Delete(c));
+        }
+    }
+    let paras = text_entry_paras(text, first_rpr.as_ref());
+    for p in entry_paragraphs(&paras, Some(&para_id), Some(annotation_ref_run())) {
+        plan.node_edits.push(NodeEdit::Insert {
+            parent: Target::Node(node),
+            before: None,
+            node: p,
+        });
+    }
+    let mut result = s.commit_plan(plan)?;
+    if let Some(done) = done {
+        let parent = s.document().comments.get(id).and_then(|c| c.parent_id.clone());
+        let parent_para = parent
+            .as_deref()
+            .and_then(|pid| s.document().comments.get(pid))
+            .and_then(|p| p.para_id.clone());
+        result.absorb(set_comment_ex(s, &para_id, parent_para.as_deref(), done)?);
+    }
+    s.rebuild()?;
+    Ok(result)
+}
+
+/// compat 的权威列表路径用的批注条目 upsert（`COMPAT-04` 的 `SaveOptions.comments`）。
+///
+/// 条目在就改（正文重写、属性按需改），不在就新建；**不动正文里的范围标记**——标记的位置由
+/// 块的 `commentStarts` / `commentEnds` / `commentIds` 决定。
+pub(crate) fn upsert_comment_entry(
+    s: &mut EditSession,
+    id: &str,
+    c: &super::NewComment,
+    paras: &EntryParas,
+) -> Result<MutationResult> {
+    let (author, initials, date) = (
+        (!c.author.is_empty()).then_some(c.author.as_str()),
+        c.initials.as_deref(),
+        c.date.as_deref(),
+    );
+    let (parent_id, done) = (c.parent_id.as_deref(), c.done);
+    let part = s.ensure_comments_part()?;
+    let existing = s.document().comments.get(id).map(|c| (c.node, c.para_id.clone()));
+    let mut result = MutationResult::default();
+    let para_id = match &existing {
+        Some((_, Some(pid))) => pid.clone(),
+        _ => fresh_para_id(s, id.len() as u32 + 1),
+    };
+    let body = entry_paragraphs(paras, Some(&para_id), Some(annotation_ref_run()));
+    let mut plan = MutationPlan::new(part);
+    match existing {
+        Some((node, _)) => {
+            let dom = s.package().part(part).dom().expect("comments part is parsed");
+            for c in dom.semantic_children(node) {
+                if dom.is(c, w(LocalName::P)) {
+                    plan.node_edits.push(NodeEdit::Delete(c));
+                }
+            }
+            for (name, value) in [
+                (LocalName::Author, author),
+                (LocalName::Initials, initials),
+                (LocalName::Date, date),
+            ] {
+                match value {
+                    Some(v) => plan.node_edits.push(NodeEdit::SetAttr {
+                        node: Target::Node(node),
+                        name: w(name),
+                        value: v.to_string(),
+                    }),
+                    None => plan
+                        .node_edits
+                        .push(NodeEdit::RemoveAttr { node: Target::Node(node), name: w(name) }),
+                }
+            }
+            for p in body {
+                plan.node_edits.push(NodeEdit::Insert {
+                    parent: Target::Node(node),
+                    before: None,
+                    node: p,
+                });
+            }
+        }
+        None => {
+            let dom = s.package().part(part).dom().expect("comments part is parsed");
+            let root = dom.root();
+            let mut entry = NewElement::new(w(LocalName::Comment)).with_attr(w(LocalName::Id), id);
+            if let Some(a) = author {
+                entry.push_attr(w(LocalName::Author), a);
+            }
+            if let Some(i) = initials {
+                entry.push_attr(w(LocalName::Initials), i);
+            }
+            if let Some(d) = date {
+                entry.push_attr(w(LocalName::Date), d);
+            }
+            for p in body {
+                entry.push_child(p);
+            }
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::Node(root),
+                before: None,
+                node: entry,
+            });
+        }
+    }
+    result.absorb(s.commit_plan(plan)?);
+    if parent_id.is_some() || done {
+        let parent_para = parent_id
+            .and_then(|pid| s.document().comments.get(pid))
+            .and_then(|p| p.para_id.clone());
+        result.absorb(set_comment_ex(s, &para_id, parent_para.as_deref(), done)?);
+    }
+    s.rebuild()?;
+    Ok(result)
+}
+
+/// 注释条目 upsert（`SaveOptions.footnotes` / `endnotes`）。
+///
+/// 条目在就只重写正文段落、**保留自引用标记 run**（`w:footnoteRef` 是编号，不能丢）；
+/// 不在就新建条目。结构条目（`separator` 一类）一个字节不动。
+pub(crate) fn upsert_note_entry(
+    s: &mut EditSession,
+    endnote: bool,
+    id: &str,
+    paras: &EntryParas,
+) -> Result<MutationResult> {
+    let part = s.ensure_notes_part(endnote)?;
+    let (entry_name, ref_name) = if endnote {
+        (LocalName::Endnote, LocalName::EndnoteRef)
+    } else {
+        (LocalName::Footnote, LocalName::FootnoteRef)
+    };
+    let notes = if endnote { &s.document().endnotes } else { &s.document().footnotes };
+    let existing = notes.get(id).map(|n| n.node);
+    let mut plan = MutationPlan::new(part);
+    let dom = s.package().part(part).dom().expect("notes part is parsed");
+    match existing {
+        Some(node) => {
+            // 只重发正文段落：把段落里除自引用标记 run 之外的内容换掉
+            let ref_run = dom
+                .descendants(node)
+                .find(|&n| dom.is(n, w(ref_name)))
+                .and_then(|m| dom.ancestors(m).find(|&a| dom.is(a, w(LocalName::R))));
+            let lead = ref_run
+                .and_then(|r| NewElement::from_dom(dom, r, &mut crate::xml::Interner::new()));
+            for c in dom.semantic_children(node) {
+                if dom.is(c, w(LocalName::P)) {
+                    plan.node_edits.push(NodeEdit::Delete(c));
+                }
+            }
+            for p in entry_paragraphs(paras, None, lead) {
+                plan.node_edits.push(NodeEdit::Insert {
+                    parent: Target::Node(node),
+                    before: None,
+                    node: p,
+                });
+            }
+        }
+        None => {
+            let root = dom.root();
+            let lead = NewElement::new(w(LocalName::R)).with_child(NewElement::new(w(ref_name)));
+            let mut entry = NewElement::new(w(entry_name)).with_attr(w(LocalName::Id), id);
+            for p in entry_paragraphs(paras, None, Some(lead)) {
+                entry.push_child(p);
+            }
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::Node(root),
+                before: None,
+                node: entry,
+            });
+        }
+    }
+    let r = s.commit_plan(plan)?;
+    s.rebuild()?;
+    Ok(r)
+}
+
+/// 从注释部件里删掉一条正文条目（结构条目不动）。
+pub(crate) fn remove_note_entry(
+    s: &mut EditSession,
+    endnote: bool,
+    id: &str,
+) -> Result<MutationResult> {
+    let notes = if endnote { &s.document().endnotes } else { &s.document().footnotes };
+    let Some(part) = notes.part else { return Ok(MutationResult::default()) };
+    let Some(node) = notes.get(id).map(|n| n.node) else { return Ok(MutationResult::default()) };
+    let mut plan = MutationPlan::new(part);
+    plan.node_edits.push(NodeEdit::Delete(node));
+    let r = s.commit_plan(plan)?;
+    s.rebuild()?;
+    Ok(r)
+}
+
+// ---- 段落拆分与合并（`EDIT-03`，任务 2.9）------------------------------------------------------
+
+/// 段落里横跨内容边界 `k` 的字段：拆分会让它跨段（`FLD-08` 里那就变成 `Block` 策略）。
+///
+/// 判定按段落层的内容项下标：字段的 head 与 tail 在段落下各属一个内容项（可能是同一个），
+/// 边界落在两者**之间**就是横跨。原子形态字段的内部位置在 `locate` 那一步就被拒了。
+fn field_across(s: &EditSession, para: NodeId, k: u32) -> Option<crate::span::FieldId> {
+    let dom = s.dom();
+    let fields = &s.document().fields;
+    for f in fields.fields() {
+        let (head, tail) = (f.form.head(), f.form.tail());
+        if !dom.ancestors(head).any(|a| a == para) && head != para {
+            continue;
+        }
+        let item_of = |n: NodeId| crate::span::boundary_before(dom, para, top_child(dom, para, n));
+        let (Some(h), Some(t)) = (item_of(head), item_of(tail)) else { continue };
+        if k > h && k <= t {
+            return Some(f.id);
+        }
+    }
+    None
+}
+
+/// `Block` 策略字段的结果段落只读（`FLD-07`）。
+fn refuse_block_field_result(s: &EditSession, para: NodeId) -> Result<()> {
+    if s.document().fields.block_result_paragraphs(s.dom()).contains_key(&para) {
+        return Err(unsupported("Block 字段（TOC 等）的结果段落只读"));
+    }
+    Ok(())
+}
+
+fn split_paragraph(s: &mut EditSession, at: InlinePos) -> Result<MutationResult> {
+    let part = s.main_part();
+    refuse_block_field_result(s, at.para)?;
+    let tb = text_block(s, at.para)?;
+    let loc = locate(tb, at.offset)?;
+    // 位置落在 run 内部 → 先拆 run（原子内部的位置 `locate` 已经拒了）
+    let mut result = MutationResult::default();
+    split_at(s, at.para, loc, &mut result)?;
+    let k = content_boundary(s, at.para, at)?;
+    if let Some(id) = field_across(s, at.para, k) {
+        return Err(Error::edit(
+            DiagCode::EditSplitField,
+            format!("拆分会让字段 {} 跨段（FLD-08）", id.0),
+        ));
+    }
+    let dom = s.dom();
+    let parent = dom.parent(at.para).ok_or_else(|| unsupported("段落没有父节点"))?;
+    let ppr = ppr_of(dom, at.para);
+    let after = next_sibling(dom, at.para);
+    // 阶段 1：建新段落（`pPr` 字节克隆，`XML-12` 规则 F），插在原段之后
+    let mut plan = MutationPlan::new(part);
+    plan.structure_changed = true;
+    plan.node_edits.push(NodeEdit::Insert {
+        parent: Target::Node(parent),
+        before: after,
+        node: NewElement::new(w(LocalName::P)),
+    });
+    if let Some(ppr) = ppr {
+        plan.node_edits.push(NodeEdit::InsertClone {
+            parent: Target::New(0),
+            before: None,
+            source: ppr,
+        });
+    }
+    let r = s.commit_plan(plan)?;
+    let tail = r.created[0].ok_or_else(|| unsupported("新段落没创建"))?;
+    result.absorb(r);
+
+    // 阶段 2：把边界之后的内容项与范围标记搬进新段落（`SPAN-06` 拆分规则由 `SpanPolicy` 表达）
+    let dom = s.dom();
+    let mut plan = MutationPlan::new(part);
+    plan.structure_changed = true;
+    plan.span.splits.push(crate::span::ContainerSplit { source: at.para, boundary: k, tail });
+    let mut index = 0u32;
+    for c in dom.semantic_children(at.para).collect::<Vec<_>>() {
+        let Some(name) = dom.name(c) else { continue };
+        if is_property_element(name) {
+            continue;
+        }
+        if crate::span::is_range_marker(name) {
+            // 标记跟着它右边的内容走：边界处的标记留在前段（终点）或跟去后段（起点），
+            // 物化会按锚点摆正，这里只要不把它落在错误的段里
+            if index > k {
+                plan.node_edits.push(NodeEdit::Move {
+                    node: c,
+                    parent: Target::Node(tail),
+                    before: None,
+                });
+            }
+            continue;
+        }
+        if index >= k {
+            plan.node_edits.push(NodeEdit::Move {
+                node: c,
+                parent: Target::Node(tail),
+                before: None,
+            });
+        }
+        index += 1;
+    }
+    result.absorb(s.commit_plan(plan)?);
+    result.structure_changed = true;
+    Ok(result)
+}
+
+fn merge_with_next(s: &mut EditSession, para: NodeId) -> Result<MutationResult> {
+    let part = s.main_part();
+    require_paragraph(s.dom(), para)?;
+    refuse_block_field_result(s, para)?;
+    let dom = s.dom();
+    let next = next_element_sibling(dom, para)
+        .filter(|&n| dom.is(n, w(LocalName::P)))
+        .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, "下一个块不是段落"))?;
+    refuse_block_field_result(s, next)?;
+    let offset = crate::span::content_len(dom, para);
+    let mut plan = MutationPlan::new(part);
+    plan.structure_changed = true;
+    plan.touch(para);
+    // `SPAN-06` 合并行：`next` 里的锚点整体搬到 `para`，下标加上原有内容项数
+    plan.span.merges.push(crate::span::ContainerMerge { source: next, into: para, offset });
+    // 内容项与范围标记按原顺序接到 `para` 末尾；`next` 的 `pPr` 随它一起消失
+    // （Word 语义：合并后保留**前**段属性）
+    for c in dom.semantic_children(next).collect::<Vec<_>>() {
+        let Some(name) = dom.name(c) else { continue };
+        if is_property_element(name) {
+            continue;
+        }
+        plan.node_edits.push(NodeEdit::Move { node: c, parent: Target::Node(para), before: None });
+    }
+    plan.node_edits.push(NodeEdit::Delete(next));
+    s.commit_plan(plan)
+}
+
+// ---- 书签（`EDIT-03` AddBookmark / RemoveBookmark，任务 2.9）-----------------------------------
+
+/// `EDIT-06`：书签 `w:id` 在 part 内取最大值 + 1。
+fn next_bookmark_id(s: &EditSession) -> u32 {
+    let dom = s.dom();
+    let mut max = 0u32;
+    for n in dom.descendants(dom.root()) {
+        if dom.node(n).dirty == Dirty::Deleted {
+            continue;
+        }
+        let is_marker =
+            dom.is(n, w(LocalName::BookmarkStart)) || dom.is(n, w(LocalName::BookmarkEnd));
+        if is_marker
+            && let Some(v) = dom.attr_value(n, w(LocalName::Id))
+            && let Ok(id) = v.trim().parse::<u32>()
+        {
+            max = max.max(id);
+        }
+    }
+    max + 1
+}
+
+fn add_bookmark(
+    s: &mut EditSession,
+    name: &str,
+    from: InlinePos,
+    to: InlinePos,
+) -> Result<MutationResult> {
+    if name.is_empty() {
+        return Err(Error::edit(DiagCode::EditBadPosition, "书签名为空"));
+    }
+    if from.para != to.para {
+        return Err(Error::edit(
+            DiagCode::EditCrossParagraph,
+            "AddBookmark 两端不在同一段落（M2 只支持同段）",
+        ));
+    }
+    if from.offset > to.offset {
+        return Err(Error::edit(DiagCode::EditBadPosition, "from 在 to 之后"));
+    }
+    let part = s.main_part();
+    // 名字全文档唯一（`EDIT-03`）
+    if s.spans_of(part)?.live().any(|sp| sp.kind.bookmark_name() == Some(name)) {
+        return Err(Error::edit(DiagCode::EditBadPosition, format!("书签名 {name:?} 已存在")));
+    }
+    // 两端落到 inline 边界
+    let mut result = MutationResult::default();
+    let tb = text_block(s, from.para)?;
+    let loc_to = locate(tb, to.offset)?;
+    split_at(s, to.para, loc_to, &mut result)?;
+    let tb = text_block(s, from.para)?;
+    let loc_from = locate(tb, from.offset)?;
+    split_at(s, from.para, loc_from, &mut result)?;
+
+    let id = next_bookmark_id(s).to_string();
+    let a = content_boundary(s, from.para, from)?;
+    let b = content_boundary(s, to.para, to)?;
+    let dom = s.dom();
+    let start_before = content_site(dom, from.para, a);
+    let end_before = content_site(dom, to.para, b);
+    let mut plan = MutationPlan::new(part);
+    plan.touch(from.para);
+    plan.node_edits.push(NodeEdit::Insert {
+        parent: Target::Node(from.para),
+        before: start_before,
+        node: NewElement::new(w(LocalName::BookmarkStart))
+            .with_attr(w(LocalName::Id), id.clone())
+            .with_attr(w(LocalName::Name), name),
+    });
+    plan.node_edits.push(NodeEdit::Insert {
+        parent: Target::Node(to.para),
+        before: end_before,
+        node: NewElement::new(w(LocalName::BookmarkEnd)).with_attr(w(LocalName::Id), id.clone()),
+    });
+    let r = s.commit_plan(plan)?;
+    let (start_marker, end_marker) = (
+        r.created[0].ok_or_else(|| unsupported("书签起点没创建"))?,
+        r.created[1].ok_or_else(|| unsupported("书签终点没创建"))?,
+    );
+    result.absorb(r);
+    let dom = s.dom();
+    let anchor = |node: NodeId, aff: Affinity| {
+        Anchor::at(
+            from.para,
+            crate::span::boundary_before(dom, from.para, node).unwrap_or(0),
+            aff,
+            node,
+        )
+    };
+    let (mut start, mut end) =
+        (anchor(start_marker, Affinity::Right), anchor(end_marker, Affinity::Left));
+    // 空书签两端同向（`SPAN-02` 例外）
+    if start.same_place(&end) {
+        start.affinity = Affinity::Right;
+        end.affinity = Affinity::Right;
+    }
+    s.push_span(
+        part,
+        RangeSpan {
+            id: SpanId(0),
+            part,
+            flow: s.document().flows.flow_of(from.para).unwrap_or(FlowId(0)),
+            kind: RangeKind::Bookmark {
+                id,
+                name: name.to_string(),
+                hidden: name.starts_with('_'),
+                cols: None,
+            },
+            origin: SpanOrigin::New,
+            implicit: false,
+            removed: false,
+            start: Some(start),
+            end: Some(end),
+        },
+    )?;
+    Ok(result)
+}
+
+fn remove_bookmark(s: &mut EditSession, name: &str) -> Result<MutationResult> {
+    let part = s.main_part();
+    let mut victims: Vec<NodeId> = Vec::new();
+    let mut spans: Vec<SpanId> = Vec::new();
+    {
+        let index = s.spans_of(part)?;
+        for sp in index.live() {
+            if sp.kind.bookmark_name() != Some(name) {
+                continue;
+            }
+            spans.push(sp.id);
+            victims.extend(sp.start.and_then(|a| a.marker));
+            victims.extend(sp.end.and_then(|a| a.marker));
+        }
+    }
+    if spans.is_empty() {
+        return Err(Error::edit(DiagCode::EditBadPosition, format!("没有名为 {name:?} 的书签")));
+    }
+    let dom = s.dom();
+    victims.retain(|&n| dom.node(n).dirty != Dirty::Deleted);
+    let mut plan = MutationPlan::new(part);
+    for n in &victims {
+        if let Some(p) = dom.ancestors(*n).find(|&a| dom.is(a, w(LocalName::P))) {
+            plan.touch(p);
+        }
+        plan.node_edits.push(NodeEdit::Delete(*n));
+    }
+    let r = s.commit_plan(plan)?;
+    for span in spans {
+        s.drop_span(part, span);
+    }
+    Ok(r)
+}
+
+// ---- 字段操作（`FLD-09`–`FLD-12`，任务 2.9）----------------------------------------------------
+
+fn field_of(s: &EditSession, id: crate::span::FieldId) -> Result<&crate::span::FieldSpan> {
+    s.document()
+        .fields
+        .get(id)
+        .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, format!("没有字段 {}", id.0)))
+}
+
+fn insert_field(
+    s: &mut EditSession,
+    at: InlinePos,
+    field: &super::NewField,
+    ctx: &EditContext,
+) -> Result<MutationResult> {
+    refuse_block_field_result(s, at.para)?;
+    let part = s.main_part();
+    let mut result = MutationResult::default();
+    let tb = text_block(s, at.para)?;
+    let loc = locate(tb, at.offset)?;
+    let (parent, before, inherit) = match split_at(s, at.para, loc, &mut result)? {
+        Some((left, right)) => {
+            (s.dom().parent(left).expect("run has a parent"), Some(right), Some(left))
+        }
+        None => {
+            let Loc::Boundary { index } = loc else { unreachable!("split_at handles the rest") };
+            boundary_site(s, text_block(s, at.para)?, index)?
+        }
+    };
+    let flavor = s.flavor();
+    let dom = s.dom();
+    // 继承格式：优先左侧 run 的 `rPr` 字节克隆，其次 `default_run_props`
+    let rpr = match inherit.and_then(|r| rpr_of(dom, r)) {
+        Some(node) => NewElement::from_dom(dom, node, &mut crate::xml::Interner::new()),
+        None => ctx.default_run_props.as_ref().map(|d| emit_run_props(d, flavor)),
+    };
+    let mut plan = MutationPlan::new(part);
+    plan.touch(at.para);
+    let inline = NewInline::Field {
+        instr: field.instr.clone(),
+        result: field.result.clone(),
+        separate: true,
+        dirty: field.mark_dirty,
+        props: rpr,
+    };
+    for node in emit_inlines(dom, std::slice::from_ref(&inline)) {
+        plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(parent), before, node });
+    }
+    result.absorb(s.commit_plan(plan)?);
+    // 字段索引是投影：提交后已经重建，新字段按 `FLD-06` 归策略
+    Ok(result)
+}
+
+/// `FLD-07 Link`：改链接目标。
+fn set_link_target(
+    s: &mut EditSession,
+    link: super::LinkRef,
+    target: &super::LinkDest,
+) -> Result<MutationResult> {
+    match link {
+        super::LinkRef::Field(id) => set_field_link_target(s, id, target),
+        super::LinkRef::Element(node) => set_hyperlink_target(s, node, target),
+    }
+}
+
+/// `w:hyperlink` 元素：外部 URL 先按 `EDIT-06` 分配关系，再改 `r:id`；书签改 `w:anchor`。
+/// 两个属性互斥（Word 只认一个），所以设一个就删另一个。
+fn set_hyperlink_target(
+    s: &mut EditSession,
+    node: NodeId,
+    target: &super::LinkDest,
+) -> Result<MutationResult> {
+    let part = s.main_part();
+    if !s.dom().is(node, w(LocalName::Hyperlink)) {
+        return Err(Error::edit(DiagCode::EditBadPosition, "节点不是 w:hyperlink"));
+    }
+    let rid_q = QName::new(NsId::R, LocalName::Id);
+    let anchor_q = w(LocalName::Anchor);
+    let (set, remove, value) = match target {
+        super::LinkDest::Url(url) => {
+            let rid = s.add_external_relationship(part, RelType::Hyperlink, url)?;
+            (rid_q, anchor_q, rid)
+        }
+        super::LinkDest::Rel(rid) => (rid_q, anchor_q, rid.clone()),
+        super::LinkDest::Anchor(name) => (anchor_q, rid_q, name.clone()),
+    };
+    let dom = s.dom();
+    let mut plan = MutationPlan::new(part);
+    if let Some(p) = dom.ancestors(node).find(|&a| dom.is(a, w(LocalName::P))) {
+        plan.touch(p);
+    }
+    plan.node_edits.push(NodeEdit::SetAttr { node: Target::Node(node), name: set, value });
+    if dom.attr(node, remove).is_some() {
+        plan.node_edits.push(NodeEdit::RemoveAttr { node: Target::Node(node), name: remove });
+    }
+    s.commit_plan(plan)
+}
+
+/// HYPERLINK 字段：只重写 `instrText` 的文本，第一个参数之后的开关原文保留。
+fn set_field_link_target(
+    s: &mut EditSession,
+    id: crate::span::FieldId,
+    target: &super::LinkDest,
+) -> Result<MutationResult> {
+    let part = s.main_part();
+    let f = field_of(s, id)?;
+    if *f.keyword() != crate::span::field::Keyword::Hyperlink {
+        return Err(unsupported("SetLinkTarget 只用于 HYPERLINK 字段"));
+    }
+    let crate::span::FieldForm::Complex { instr_nodes, .. } = &f.form else {
+        return Err(unsupported("SetLinkTarget 暂不支持 w:fldSimple（改 @w:instr 属性）"));
+    };
+    let instr_nodes = instr_nodes.clone();
+    let raw = f.instr.raw.clone();
+    let dom = s.dom();
+    // 保留除第一个参数之外的全部原文（开关 `\o "tip"` 等）
+    let rest = remaining_after_first_argument(&raw);
+    let head = match target {
+        super::LinkDest::Url(url) => format!("HYPERLINK \"{url}\""),
+        // 文内链接：Word 写 `HYPERLINK \l "bookmark"`
+        super::LinkDest::Anchor(name) => format!("HYPERLINK \\l \"{name}\""),
+        super::LinkDest::Rel(_) => {
+            return Err(unsupported("字段形式的链接没有关系 id（用 LinkDest::Url）"));
+        }
+    };
+    let rest = if matches!(target, super::LinkDest::Anchor(_)) {
+        // `\l` 自己就是开关，去掉原来的 `\l`
+        rest.split_whitespace().collect::<Vec<_>>().join(" ").replace("\\l ", "")
+    } else {
+        rest
+    };
+    let text = if rest.is_empty() { format!(" {head} ") } else { format!(" {head} {rest} ") };
+    let mut plan = MutationPlan::new(part);
+    if let Some(p) = dom.ancestors(instr_nodes[0]).find(|&a| dom.is(a, w(LocalName::P))) {
+        plan.touch(p);
+    }
+    // 指令拆在多个 `w:instrText` 里时（`FLD-03`）：第一个写全量，其余清空
+    let mut first = true;
+    for run in &instr_nodes {
+        for seg in dom.semantic_children(*run).collect::<Vec<_>>() {
+            if !dom.is(seg, w(LocalName::InstrText)) {
+                continue;
+            }
+            let value = if first { text.clone() } else { String::new() };
+            first = false;
+            set_segment_text(dom, seg, &value, &mut plan);
+        }
+    }
+    if first {
+        return Err(unsupported("字段没有 w:instrText 可改"));
+    }
+    s.commit_plan(plan)
+}
+
+/// 指令原文里第一个参数之后的部分（开关等），已 trim。
+fn remaining_after_first_argument(raw: &str) -> String {
+    let t = raw.trim();
+    let after_keyword = t.split_once(char::is_whitespace).map(|(_, r)| r.trim()).unwrap_or("");
+    if after_keyword.is_empty() {
+        return String::new();
+    }
+    let rest = if let Some(stripped) = after_keyword.strip_prefix('"') {
+        stripped.split_once('"').map(|(_, r)| r).unwrap_or("")
+    } else {
+        after_keyword.split_once(char::is_whitespace).map(|(_, r)| r).unwrap_or("")
+    };
+    rest.trim().to_string()
+}
+
+/// `FLD-10`：`w:ffData` 里 `w:checkBox` 的 `w:checked` 取反（不存在则按顺序插在 `w:default` 之后）。
+fn toggle_checkbox(s: &mut EditSession, id: crate::span::FieldId) -> Result<MutationResult> {
+    let part = s.main_part();
+    let f = field_of(s, id)?;
+    let dom = s.dom();
+    let data = crate::span::field::read_form_data(dom, f.ff_data)
+        .ok_or_else(|| unsupported("字段没有 w:ffData 表单定义（FLD-10）"))?;
+    let crate::span::FormData::CheckBox { node, checked, .. } = data else {
+        return Err(unsupported("这个字段不是复选框"));
+    };
+    let head = f.form.head();
+    let want = !checked;
+    let existing = dom.semantic_children(node).find(|&c| dom.is(c, w(LocalName::Checked)));
+    let mut plan = MutationPlan::new(part);
+    if let Some(p) = dom.ancestors(head).find(|&a| dom.is(a, w(LocalName::P))) {
+        plan.touch(p);
+    }
+    match existing {
+        Some(c) => plan.node_edits.push(NodeEdit::SetAttr {
+            node: Target::Node(c),
+            name: w(LocalName::Val),
+            value: if want { "1".into() } else { "0".into() },
+        }),
+        None => {
+            // 顺序：`w:size`|`w:sizeAuto`, `w:default`, `w:checked`（`FLD-10`）→ 追加在末尾即可
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::Node(node),
+                before: None,
+                node: NewElement::new(w(LocalName::Checked))
+                    .with_attr(w(LocalName::Val), if want { "1" } else { "0" }),
+            });
+        }
+    }
+    s.commit_plan(plan)
+}
+
+/// `FLD-10`：FORMTEXT 的结果文字。结果 run 只留一个，文本为 `text`（格式沿用第一个结果 run）。
+fn set_form_text(
+    s: &mut EditSession,
+    id: crate::span::FieldId,
+    text: &str,
+) -> Result<MutationResult> {
+    let part = s.main_part();
+    let f = field_of(s, id)?;
+    let results: Vec<NodeId> = f.form.result_nodes().to_vec();
+    let dom = s.dom();
+    // 只有一个结果 run 且它有唯一 `w:t` → 直接改文本（最小脏化）
+    if results.len() == 1
+        && let Some(t) = dom.semantic_children(results[0]).find(|&c| dom.is(c, w(LocalName::T)))
+    {
+        let mut plan = MutationPlan::new(part);
+        if let Some(p) = dom.ancestors(results[0]).find(|&a| dom.is(a, w(LocalName::P))) {
+            plan.touch(p);
+        }
+        set_segment_text(dom, t, text, &mut plan);
+        return s.commit_plan(plan);
+    }
+    let rpr = results
+        .first()
+        .and_then(|&r| rpr_of(dom, r))
+        .and_then(|n| NewElement::from_dom(dom, n, &mut crate::xml::Interner::new()));
+    let (parent, before) = match results.first() {
+        Some(&first) => (dom.parent(first).expect("run has a parent"), Some(first)),
+        None => {
+            // 没有结果区：插在 end run 之前
+            let end = f.form.tail();
+            (dom.parent(end).expect("run has a parent"), Some(end))
+        }
+    };
+    let mut plan = MutationPlan::new(part);
+    if let Some(p) = dom.ancestors(f.form.head()).find(|&a| dom.is(a, w(LocalName::P))) {
+        plan.touch(p);
+    }
+    plan.node_edits.push(NodeEdit::Insert {
+        parent: Target::Node(parent),
+        before,
+        node: {
+            let mut r = NewElement::new(w(LocalName::R));
+            if let Some(p) = &rpr {
+                r.push_child(p.clone());
+            }
+            for seg in text_segments(text, false) {
+                r.push_child(seg);
+            }
+            r
+        },
+    });
+    for old in &results {
+        plan.node_edits.push(NodeEdit::Delete(*old));
+    }
+    s.commit_plan(plan)
+}
+
+/// `FLD-07`：字段结果 run 的格式（原子字段不能按 `SetRunProps` 那样定位，所以单列一个操作）。
+fn set_field_result_props(
+    s: &mut EditSession,
+    id: crate::span::FieldId,
+    patch: &RunPropsPatch,
+) -> Result<MutationResult> {
+    let part = s.main_part();
+    let f = field_of(s, id)?;
+    let results: Vec<NodeId> = f.form.result_nodes().to_vec();
+    let head = f.form.head();
+    if results.is_empty() {
+        return Err(unsupported("字段没有结果区可改格式"));
+    }
+    let dom = s.dom();
+    let mut plan = MutationPlan::new(part);
+    if let Some(p) = dom.ancestors(head).find(|&a| dom.is(a, w(LocalName::P))) {
+        plan.touch(p);
+    }
+    let flavor = s.flavor();
+    for r in &results {
+        if !dom.is(*r, w(LocalName::R)) {
+            continue;
+        }
+        let rpr = rpr_of(dom, *r);
+        plan.node_edits.extend(plan_apply_run_props(dom, *r, rpr, patch, flavor));
+    }
+    s.commit_plan(plan)
+}
+
+/// `FLD-09`：块字段更新——用给定的块替换 `separate..end` 之间的全部节点。
+///
+/// 生成器（TOC 重算等）在 M7；这里是机制：调用方给内容，`w:fldLock` 的字段拒绝（`FLD_LOCKED`）。
+/// 结构 run（begin / 指令 / separate / end）与外层容器都保留。跨段字段的结果区里，
+/// 中间的整段直接删，begin / end 所在段落里只删属于结果的 run。
+fn update_block_field(
+    s: &mut EditSession,
+    id: crate::span::FieldId,
+    blocks: Vec<NewBlock>,
+    ctx: &EditContext,
+) -> Result<MutationResult> {
+    let part = s.main_part();
+    let f = field_of(s, id)?;
+    if f.lock {
+        return Err(Error::edit(DiagCode::FldLocked, "字段带 w:fldLock，拒绝更新"));
+    }
+    let crate::span::FieldForm::Complex { separate, end, result_nodes, begin, .. } = &f.form else {
+        return Err(unsupported("w:fldSimple 没有 separate..end 区间"));
+    };
+    if separate.is_none() {
+        return Err(unsupported("字段没有 separate，无法定位结果区"));
+    }
+    let (end, begin) = (*end, *begin);
+    let old: Vec<NodeId> = result_nodes.clone();
+    let dom = s.dom();
+    let para_of = |n: NodeId| {
+        std::iter::once(n).chain(dom.ancestors(n)).find(|&a| dom.is(a, w(LocalName::P)))
+    };
+    let end_para = para_of(end).ok_or_else(|| unsupported("字段 end 不在段落里"))?;
+    let begin_para = para_of(begin).ok_or_else(|| unsupported("字段 begin 不在段落里"))?;
+    let cross = end_para != begin_para;
+    let mut plan = MutationPlan::new(part);
+    plan.structure_changed = true;
+    plan.touch(begin_para);
+    plan.touch(end_para);
+    if cross {
+        // 段落级：新块插在 end 所在段落之前
+        let parent = dom.parent(end_para).ok_or_else(|| unsupported("段落没有父节点"))?;
+        for b in blocks {
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::Node(parent),
+                before: Some(end_para),
+                node: new_block_element(dom, b),
+            });
+        }
+    } else {
+        // 同段：新块的 inline 直接插在 end run 之前（段落里不能塞段落）
+        let parent = dom.parent(end).ok_or_else(|| unsupported("字段 end 没有父节点"))?;
+        for b in blocks {
+            let NewBlock::Paragraph { inlines, .. } = b else {
+                return Err(unsupported("同段块字段的新内容只能是段落（它的 inline 会内联进去）"));
+            };
+            for node in emit_inlines(dom, &inlines) {
+                plan.node_edits.push(NodeEdit::Insert {
+                    parent: Target::Node(parent),
+                    before: Some(end),
+                    node,
+                });
+            }
+        }
+    }
+    // 旧结果：中间整段删掉，begin / end 所在段落里只删结果 run
+    let mut victims: Vec<NodeId> = Vec::new();
+    for n in old {
+        let owner = para_of(n);
+        let victim = match owner {
+            Some(p) if p == end_para || p == begin_para => n,
+            Some(p) => p,
+            None => n,
+        };
+        if victim == end || victim == begin || victim == end_para || victim == begin_para {
+            continue;
+        }
+        if !victims.contains(&victim) {
+            victims.push(victim);
+        }
+    }
+    for v in victims {
+        plan.node_edits.push(NodeEdit::Delete(v));
+    }
+    if ctx.mark_updated_fields_dirty
+        && let Some(fld) = dom.semantic_children(begin).find(|&c| dom.is(c, w(LocalName::FldChar)))
+    {
+        // begin run 的 `w:fldChar` 上打 `w:dirty="true"`，Word 打开时重算
+        plan.node_edits.push(NodeEdit::SetAttr {
+            node: Target::Node(fld),
+            name: w(LocalName::Dirty),
+            value: "true".into(),
+        });
+    }
     s.commit_plan(plan)
 }

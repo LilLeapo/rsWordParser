@@ -3,34 +3,43 @@
 //! 有未知差异时退出码 1（CI 门 `TEST-10`）。
 //!
 //! ```text
-//! diff-parse [--corpus DIR] [--scope text|all|drawing] [--known FILE] [--doc PREFIX] [--show N] [--json] [--by-doc]
+//! diff-parse [--corpus DIR] [--scope text|fields|drawing|all] [--known FILE] [--doc PREFIX] [--show N] [--json] [--by-doc]
 //! ```
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use rsword::bind::compat_ts::{
-    Report, diff_json, is_drawing_path, is_text_case, known_diffs, parse_known_diffs, parsed_doc,
-    split_known,
+    Report, diff_json, is_drawing_path, is_span_field_case, is_text_case, known_diffs,
+    parse_known_diffs, parsed_doc, split_known,
 };
 use rsword::package::Package;
 use serde_json::{Value, json};
 
-/// 门的范围。`Text` 按**文档**过滤（只跑纯文本用例），`Drawing` 按**路径**过滤
-/// （所有文档照跑，只计绘图域的未知差异），`All` 全都算。
-#[derive(Clone, Copy, PartialEq, Eq)]
+/// 差分的取样范围（`TEST-10` 的里程碑门）。
+///
+/// 两种筛法：`Text` / `Fields` 按**文档**筛（整份文档在不在这个域里），`Drawing` 按**路径**筛
+/// （所有文档照跑，只计绘图域的路径）。绘图文档同时背着字段、表格、页眉页脚的差异，按文档筛
+/// 那道门永远关不上。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Scope {
+    /// M1 门：纯文本段落用例。
     Text,
-    All,
+    /// M2 门：文本域 + 字段 / 范围标记 / 批注 / 注释（文本域的超集）。
+    Fields,
+    /// M4 门：全部文档，只计绘图域的路径。
     Drawing,
+    /// 全部语料。
+    All,
 }
 
 impl Scope {
     fn as_str(self) -> &'static str {
         match self {
             Scope::Text => "text",
-            Scope::All => "all",
+            Scope::Fields => "fields",
             Scope::Drawing => "drawing",
+            Scope::All => "all",
         }
     }
 }
@@ -47,9 +56,10 @@ struct Args {
 
 fn usage() -> ! {
     eprintln!(
-        "用法: diff-parse [--corpus DIR] [--scope text|all|drawing] [--known KNOWN_DIFFS.md] [--doc PREFIX] [--show N] [--json] [--by-doc]\n\
-         缺省 corpus = <仓库根>/corpus/synthetic，scope = all，known = 编进库里的 KNOWN_DIFFS.md，show = 3\n\
-         scope text 只跑纯文本用例（M1 门）；scope drawing 跑全部文档、只计绘图域路径（M4 门）"
+        "用法: diff-parse [--corpus DIR] [--scope text|fields|drawing|all] [--known KNOWN_DIFFS.md] [--doc PREFIX] [--show N] [--json] [--by-doc]\n\
+         scope: text = M1 门（纯文本段落），fields = M2 门（再加字段 / 范围 / 批注），\n\
+                drawing = M4 门（全部文档，只计绘图域**路径**），all = 全部语料\n\
+         缺省 corpus = <仓库根>/corpus/synthetic，scope = all，known = 编进库里的 KNOWN_DIFFS.md，show = 3"
     );
     std::process::exit(2)
 }
@@ -71,8 +81,9 @@ fn parse_args() -> Args {
             "--scope" => {
                 a.scope = match it.next().as_deref() {
                     Some("text") => Scope::Text,
-                    Some("all") => Scope::All,
+                    Some("fields") => Scope::Fields,
                     Some("drawing") => Scope::Drawing,
+                    Some("all") => Scope::All,
                     _ => usage(),
                 }
             }
@@ -160,7 +171,13 @@ fn main() -> ExitCode {
                 continue;
             }
         };
-        if args.scope == Scope::Text && !is_text_case(&expected) {
+        let in_scope = match args.scope {
+            Scope::Text => is_text_case(&expected),
+            Scope::Fields => is_span_field_case(&expected),
+            // 绘图门跑全部文档，筛的是路径不是文档
+            Scope::Drawing | Scope::All => true,
+        };
+        if !in_scope {
             skipped_scope += 1;
             continue;
         }

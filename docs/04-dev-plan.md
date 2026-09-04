@@ -340,6 +340,31 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `COMPAT-07` `rawRPr` | "`rPr` 节点字节（TS 是重序列化结果）" | 同；TS 构造的语料里两者一致，尚无需登记引号 / 自闭合差异 | — |
 | `MOD-05` R08 | 只看样式链 `vanish` | 模型不变；适配器另按 TS 复现"段落标记 `rPr/vanish` + 无文字 + 无排版内容"与"无 pStyle 时看默认段落样式"两条隐藏规则（`COMPAT-03`） | 分类表保持规范；TS 半解析规则留在适配器 |
 | `SAVE-03` preserve | "`New` 或 `SelfDirty` 的 `w:t` 一律写 preserve" | 文本子节点改了而 `w:t` 只是 `DescendantDirty` 时同样重建开标签补 preserve | `set_text` 只标文本节点；不补的话新文本的首尾空格会在 Word 里丢失 |
+| `docs/03` §5.3 `RangeSpan` | `{id, part, kind, start: Anchor, end: Option<Anchor>}` | `start` 也是 `Option<Anchor>`；另有 `flow: FlowId` 与 `origin: Parsed \| New` | `SPAN-04` 第 2 条要求把孤儿终点表示成 `start: None` 的范围；`flow` 是 `SPAN-01` 强制的同流判定依据（不靠祖先树推断）；`origin` 用来区分"文件里本来没有标记"（只有 `commentReference` 的批注）与"新建范围"，前者物化时**不得**补写标记 |
+| `docs/03` §5.3 `RangeKind` | 七个变体 | 九个：补 `CustomXmlMoveFrom` / `CustomXmlMoveTo` | `SPAN-03` 的表列了这两对标记元素 |
+| `docs/03` §5.2 `Dom::compare -> Ordering` | `Dom` 的方法，返回 `Ordering` | `span::compare(dom, flows, a, b) -> Option<Ordering>`（`SpanIndex::compare` 是便利方法） | 同流判定要 `FlowMap`，而 `FlowMap` 是 L2 的；跨流与畸形容器返回 `None`（调用方按 `SPAN_CROSS_FLOW` 处理），不用 `Result` 是因为它在校验与变换里被逐范围调用，不是错误路径 |
+| `docs/03` §6.3 `RevisionMeta` | L3 类型 | 定义在 `span`（L2），`model::RevisionMeta` 重新导出 | 范围标记（`w:moveFromRangeStart`、`w:customXmlInsRangeStart`）与内容修订元素携带同一组 `w:id/author/date`，L2 不能反向依赖 L3 |
+| `SPAN-05` 步骤 2 | "比较两侧在 `C.children` 中的子序号" | 一侧是另一侧祖先时用内容项下标；两侧都在 `C` 之下分叉时比较分叉节点的**原始**子序号 | 分叉点的原始子序号与内容序列同序，但不需要枚举内容序列；只有"祖先 vs 后代"那一支必须换算成内容项下标才能和 `index` 比 |
+| `SPAN-06` 变换的入口 | 每个操作在自己的 `MutationPlan` 里算锚点变换 | 变换在 `commit_plan` 里**从 `node_edits` 统一推导**（`span::plan_update`）；操作只在 `MutationPlan.span` 里补编辑列表看不出来的语义（`keep_orphan_comments`、`rescan`、`split_items`） | 内容序列只因"插入 / 删除 / 移动内容项"变化，这三件事都写在编辑列表里；一处实现，每个操作（含 compat 路径与以后新增的操作）自动得到维护，不会漏 |
+| `SPAN-06` 插入行 | 只按 affinity 分两种 | 增加"延续插入"：`split_run` 拆出的后半在该边界上让 `Left` 锚点也右移（`SpanPolicy::split_items`） | 拆分与新内容插入在 DOM 上是同一件事（在边界插一个元素），语义不同：后半是原内容的延续，否则"在范围内部输入"会把后半挤到范围外 |
+| `SPAN-06` 移动子树 | 子树内 Anchor 不变 | 同；另外把 `FlowMap` 标脏并在提交后重建 | 新节点的 id 超出建表时的长度，跨流移动还会让缓存失效（`SPAN-01` 要求），不重建 `compare` 会返回"不可比" |
+| `SPAN-07` MoveFrom / MoveTo / CustomXml 整体删除 | "由修订操作决定" | 当作删除（`Remove`）：范围失去内容后没有意义 | 接受 / 拒绝修订是 M7；在那之前把空的移动范围留着只会写出无意义的标记 |
+| `SPAN-02` "禁止由标记推导 Anchor" | 无例外 | 一个例外：`ReplaceInlines` 整体重写的容器在提交后按新标记重建端点（`SpanIndex::rescan_container`） | compat 的 generated 块把段落内容连批注标记一起按 `commentIds` 重发，那是编辑器的意图；这时容器里标记的位置才是真相。跨容器范围落在被重写容器里的那一端置空，交给 `SPAN-09` 修复 |
+| `SPAN-09` 孤儿端点 | "成对删除并记诊断" | 只在标记已不在、或已被本次会话改写过时删；`Clean` 标记原样写回，只记诊断 | 删一个从未被碰过的标记就是改写未编辑内容；不变式 1 / 2 优先于安全网。语料 `bugfix-regressions__002` 有一个 body 级未闭合书签，删掉它会让 compat 的块数变化 |
+| `SPAN-09` 失败的 `origin` | "解析阶段就存在的缺陷为 `PreExistingDamage`；编辑后新出现的为 `EngineInvariantViolation`" | 再加一类按 `PreExistingDamage` 处理：调用方把容器内容**整体重写**时丢掉的那一端（`SpanOrigin::Damaged`）。引擎自己的变换弄丢 / 弄反的范围仍是 `EngineInvariantViolation`，并按 `SAVE-02` 在调试构建下 `Err(SAVE_INVARIANT)` | compat 的 `ReplaceInlines` 按编辑器的描述重发段落内容，描述里没有那个批注标记时范围就半开了——引擎照做了被要求的事，把它算成引擎缺陷会让这条合法路径在调试构建下保存失败；而不接 `enforce` 又会让"变换漏了锚点"这类真缺陷悄悄写出半开范围 |
+| `SPAN-05` `compare` 的空范围 | `Left < Right` | 两端同位置时 `is_ordered` 直接算有序 | affinity 的次序只用来给同一边界上的**不同**范围排序；变换让一个范围折叠后不该被判成"起在终后" |
+| `SPAN-06` rescan 的落单标记 | — | 重写容器里配不上对的标记先**认领**索引里刚失去这一端的跨容器范围，认领不到才留半开 | compat 会把批注范围的一端重发进被重写的段落，另一端在别的段落里；认领后范围复原，物理输出与 TS 一致（`comments__001.save.1` 因此仍等价） |
+| `docs/03` §5.4 `FieldForm::Simple` | `Simple { node }` | 另有 `result_nodes: Vec<NodeId>` | `FLD-02` 第 5 条要求"其子 run 归入结果"，不记下来就得在每次读取时重新遍历子树 |
+| `docs/03` §5.4 `FieldSpan` | 十一个字段 | 另有 `flow: FlowId` 与 `instr_deleted: bool` | 字段禁止跨流（`FLD-02` 第 7 条），同流判定要 `FlowId`；`instr_deleted` 是 `FLD-03` 的 `w:delInstrText` 标记（`MOD-09` 用） |
+| `docs/03` §5.4 `Keyword` | 列了 20 个变体 + `…` | `FLD-06` 表里的全部 76 个关键字都是变体，由一张 `macro_rules!` 表同时生成 `parse` / `as_str` / `policy` | 策略表与关键字表必须是同一份数据，否则加关键字时会漏改策略；`FLD-11` 的 `has_page_number` 也要按变体判断 |
+| `FLD-02` 索引的地位 | — | `FieldIndex` 是 DOM 的**投影**（编辑后作废重建），不像 `SpanIndex` 那样是规范状态的一半 | `FieldSpan` 里每条事实都能从节点重新读出来（`docs/03` §5.4："保存真相是 `instr_nodes` 的原字节"），没有 Anchor 那种"标记之外的信息"，增量维护只会多一份可能不同步的状态 |
+| `FLD-13` 缺陷来源判定 | "解析阶段的缺陷为 `PreExistingDamage`；编辑后新出现的为 `EngineInvariantViolation`" | 第一次写某个 part 之前记下按诊断代码的缺陷计数作基线，保存前重建索引比对，多出来的按 `EngineInvariantViolation` 并经 `save::enforce` 在调试构建下报错 | 索引是重建出来的，没有"这条诊断是不是新的"的天然标识；计数比对不需要跨编辑追踪节点身份 |
+| `MOD-01` `Document` | 投影里没有字段索引 | `Document.fields: FieldIndex`，`rebuild` / `refresh_paragraphs` 一并重建 | 字段是 DOM 的投影（见上一行），模型建 inlines 时要用它；跟着投影一起重建就不会不同步。代价是每次段落刷新都全 part 扫一遍，M3 的容器级刷新一起解决 |
+| `MOD-04` `toc_style_level` | styleId 匹配 `^TOC ?([1-9])$` | 另认 `TableofFigures` / `TableofAuthorities`（1 级） | Word 的图表目录 / 引文目录也是目录行，TS 同样给 `TOC entry` + `tocLine`（语料 `field-display__010`） |
+| `MOD-05` R09 | 块字段的头段、尾段与其间所有段落 → `Protected(FieldBlockResult)` | 同；但 `compat_ts` 逐段复现 TS 的判定：中间那些**自己不含 `fldChar` / `instrText`** 的段落，TS 按规则 3（目录样式 → `TOC entry`）或普通段落处理 | TS 没有跨段的字段区间概念，它逐段看 XML。模型按 `FLD-08` 保护整段区间是对的（结果段落只读），适配器只是把标签对齐；既不含字段结构又没有目录样式的中间段落 TS 会当普通段落，本引擎仍是保护块（语料里没有这种，出现了再评估） |
+| `EDIT-03 DeleteRange`（M1 债） | 覆盖字段结构段 → 整 run 保留 + `EDIT_ANCHOR_UNMOVED` | 覆盖**原子形态字段** → `begin..end`（含嵌套）整个删掉（`FLD-07`）；透明字段（`Link`）的结构 run 原地保留是正确行为，不再记诊断；诊断只留给未闭合 / 畸形字段的结构 run | 2.4 建了 `FieldSpan`，"整 run 保留"这条临时行为到期。原子只占 1 个坐标单位，区间与它相交就是整个覆盖 |
+| `COMPAT-07` 折叠 run 的格式 | 未规定 | 取第一个非空结果 run 的格式；没有结果 run（未选中的复选框、无结果的 PAGE）时不带格式键 | 语料里这些字段的 begin run 都没有 `w:rPr`，TS 输出也没有格式键；等有反例再从 begin run 取（`FLD-07` 说原子字段的 `props` 取 begin run 的 rPr，那是给"新输入继承格式"用的） |
+| `EDIT-06` 书签 `w:id` | part 内 `max+1` | compat 保存路径按 TS 的 `bookmarkIdOf`（名字的 31 进制哈希）给号 | 那条路径要复现 TS 的输出；引擎自己的 `AddBookmark`（2.9）按规范给号 |
 | `PROP-06` 第 1 步 | 新容器"按父容器的 schema 顺序插入" | 顶层容器（`w:pPr` / `w:rPr`）插为父节点第一个语义子节点之前；子表容器按父表 `order` 插入 | `w:p` / `w:r` 不是属性表，没有 order；M2 的 `trPr`（在 `tblPrEx` 之后）到时补规则 |
 
 ## 9. 待决事项（需要项目负责人拍板）
@@ -387,3 +412,261 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
 `edit_05_transaction_rolls_back_every_touched_part`）；投影刷新遇到不在正文顶层的段落改为整体重建，不再留过期投影。
 剩下两条要等对应里程碑：`DeleteRange` 对字段结构段的"原地保留"要 2.4 的 `FieldSpan` 才能真正删对；
 表格单元格的容器级刷新要 M3。等价比较忽略 `xml:space` 的事记在 §8，M7 与 TS 全面差分时复核。
+
+---
+
+## 11. M2 执行进度
+
+任务分解与 DoD 在 `spec/13-m2-plan.md`（§10 有同一张表的摘要）。分支 `m2-span-fields`（从 `main` 开），
+**2026-09-05 以 fast-forward 并入 `main`**（21 条提交），M2 门两条都跑过：`diff-parse --scope fields`
+253 份 0 未知差异、`fuzz_instr` 13,572,886 次执行无崩溃。
+
+**§12 留给 M3**（表格，分支 `m3-tables`，`spec/14-m3-plan.md`），M4 与它并行开发，进度记在 §13。
+
+- [x] **2.1 Span 索引**（`span/{content,index}.rs`）：`SPAN-01` 内容序列（`content_children` / `content_len` /
+  `content_index_of` / `item_containing`，只含元素节点，见 §8）在一处实现，索引构建、文档序比较与后续
+  的编辑期变换共用同一份定义；`SPAN-02` 的 `Anchor { container, index, affinity, marker }` 与 `Affinity`；
+  `SPAN-03` 的九种 `RangeKind`（书签含 `hidden` / `colFirst..colLast`，批注含 reference run，权限含
+  `w:ed` / `w:edGrp`，移动与 customXml 四种带 `RevisionMeta`）；`SPAN-04` 构建按 `FlowId` 逐流、按文档序
+  迭代遍历（容器帧 + 子树扫描帧，语料里有几千层嵌套，不能递归），起点入栈、终点就近配对，孤儿终点
+  （`SPAN_ORPHAN_END`）、未闭合起点（`SPAN_UNCLOSED`，part 扫完时统一报告）、重复起点（`SPAN_DUP_START`）、
+  跨流配对（`SPAN_CROSS_FLOW`，不配对）各记诊断，只有 `commentReference` 的批注生成 `marker: None` 的折叠
+  范围（物化不得补标记，靠 `SpanOrigin` 区分）；`SPAN-05` 的 `compare` 三条规则（同容器比 `index` 再比
+  affinity；一侧是另一侧祖先时用内容项下标；否则比分叉子序号）；倒排索引 `by_container` 供 2.2 的变换使用。
+  空范围两端同取 `Right`（`SPAN-02` 例外，否则 `Left < Right` 会判成"起在终后"）。`RevisionMeta` 下移到 L2。
+  测试 `tests/span.rs` 13 个：`SPAN-01` 内容序列（含缩进空白）、`SPAN-04`（跨三段书签的两端坐标与倒排、
+  空书签、只有 reference 的批注、范围批注认领 reference run、孤儿 + 未闭合、重复起点嵌套、跨流拒绝、
+  `w:ins` 里的标记归属 `w:ins`）、`SPAN-03` 权限 / 移动 / customXml 的事实、`SPAN-05` 跨段跨单元格与祖先
+  容器的文档序、`SPAN-09` hostile `span-orphan-end.docx`（`PreExistingDamage` + 保存字节相同）；另有全语料
+  扫描：573 份 / 3012 个 XML part 的 31 个标记全部恰好被一个端点认领（19 个范围：书签 7、批注 12，其中 9 个
+  空范围、1 个缺端点、3 个只有 reference），配对的范围起在终前、`index` 不越界。
+  **语料在 Span 这个域上很薄**（只有 15 份文档带标记），2.2 起的行为正确性主要靠单元测试保证。
+- [x] **2.2 `Anchor` 变换**（`span/transform.rs`、`edit/{session,plan,ops}.rs`）：索引接进 `EditSession`
+  ——`spans: HashMap<PartId, SpanIndex>`，在**第一次写某个 part 之前**建立（那时 DOM 还没被改，由标记
+  建立 Anchor 是合法的），之后只由变换维护；事务快照连索引一起记，回滚同时恢复 DOM 与索引。
+  变换从 `MutationPlan.node_edits` 统一推导（见 §8）：删除内容项按"存活项计数"重算边界（`SPAN-06`
+  删除行，对不连续删除同样成立），插入按 affinity 决定是否落在锚点之前（插入行），容器被删时锚点搬到
+  外层容器里它原来占的边界并清掉 `marker`（等 2.3 物化），移动子树内部锚点不变但 `FlowMap` 重建。
+  `SPAN-07`：书签折叠（`_Toc` / `_Ref` 不断链）、批注连标记与 reference run 一起删（`keep_orphan_comments`
+  改为折叠）、权限与移动 / customXml 范围删除；被删范围要一起删的节点由 `commit_plan` 追加到编辑列表，
+  其中 reference run 是内容项，会触发一次边界重算。`DeleteRange` 的 `EDIT_ANCHOR_UNMOVED` 只剩字段结构
+  那一半（2.4 清掉）：范围标记在内容项删掉后物理上正好落在删除点，也就是变换算出的位置，不必重写。
+  测试 `tests/span.rs` 新增 10 个 `span_06_*` / `span_07_*`：边界插入落在范围外、范围内部插入扩展范围
+  （拆分的延续语义）、直接写 `w:t` 不动锚点、删除跨越起点 → 起点落到删除点、整体删除的折叠与批注删除、
+  `keep_orphan_comments`、删段落把书签搬到 body、块插入不影响段内边界、`ReplaceInlines` 的 rescan、
+  失败回滚恢复索引；`tests/edit.rs` 的 M1 用例改成断言折叠后的锚点。
+- [x] **2.3 Span 物化与保存前校验**（`span/materialize.rs`、`edit/session.rs`）：`save_with` 的第 3 步
+  不再是空操作。`SPAN-08`：位置没变的标记一个字节不动（`boundary_before(marker) == anchor.index`
+  就算在位），位置变了的旧标记 `Deleted`、新位置插 `New` 并**照抄旧标记的全部属性**（`w:colFirst`、
+  `w:displacedByCustomXml` 一类未建模的属性因此不丢）；没有旧标记的（新建范围、容器被删后搬出来的
+  锚点）按 `RangeKind` 生成属性。插入位置按"同一边界先终点标记、后起点标记"，并且不跨过属性元素
+  （`w:pPr` 之后、`w:sectPr` 之前）；空范围两端都要重发时放同一位置、起点在前（`SPAN-08` 例外）。
+  `implicit` 的范围（文件里只有 `commentReference` 的批注）永远不写标记。`SPAN-09`：物化前检查成对、
+  同流、起在终前、`w:id` 在 part 内唯一；半开范围只在标记已不在或已被改写过时成对删除，`Clean` 标记
+  原样写回（见 §8——这条比"成对删除"重要）。提交后把新标记的 `NodeId` 回填到锚点，索引与 DOM 保持一致。
+  变换把范围折叠后统一 affinity（`normalize_collapsed`）。校验的 `EngineInvariantViolation` 接进
+  `save::enforce`：调试构建与 CI 下保存返回 `Err(SAVE_INVARIANT)`（`SAVE-02`），发布构建只记诊断；
+  调用方整体重写容器时丢的那一端标成 `SpanOrigin::Damaged` 按 `PreExistingDamage` 处理（见 §8），
+  否则 compat 的合法路径会在调试构建下保存失败。测试 `tests/span.rs` 新增 6 个：未编辑保存
+  字节相同 + 直接写 `w:t` 时标记原字节、边界插入后起点标记重发到新 run 之后（重开后索引与物理一致）、
+  删段落后折叠书签在 body 里重发且属性照抄、只有 reference 的批注不补标记、hostile 孤儿终点在编辑
+  别处后保持原字节且记 `PreExistingDamage`、`ReplaceInlines` 让跨段批注一端消失时另一端原字节保留并记
+  `PreExistingDamage`；另有 `edit/session.rs` 的单元用例往索引里注入破坏（抹掉一端），断言调试构建下
+  保存 `Err(SAVE_INVARIANT)`、发布构建 `Ok`。保存语料等价数不变（77 / 41 逐字节 / 3 有意不同）。
+- [x] **2.4 字段子系统**（`span/field/{index,instr,form}.rs`、`edit/session.rs`）：`FLD-01` 的两种形式统一成
+  `FieldSpan`；`FLD-02` 逐内容流迭代遍历（进出事件的显式栈，不递归），复杂字段用栈配对 begin /
+  separate / end，`w:fldSimple` 进出元素时开合，run 按 `separate` 是否出现归入 `instr_nodes` 或
+  `result_nodes`，弹出的字段成为新栈顶的 `nested`（父 id 回填），孤立 separate / end 与流结束时
+  未闭合的各记诊断（`FLD_STRAY_SEPARATE` / `FLD_STRAY_END` / `FLD_UNCLOSED`，未闭合的**不产出字段**，
+  begin run 当普通内容保存原字节），字段禁止跨流；`FLD-03` 指令文本按 `w:instrText` / `w:delInstrText`
+  顺序拼接不 trim（`PAGE` 拆成 `PA` + `GE` 照样识别），指令区里的嵌套字段留 `U+FFFC` 占位符；
+  `FLD-04` begin 的 `w:fldLock` / `w:dirty` 与 `w:ffData`；`FLD-05` tokenizer（`keyword` / `quoted`
+  含 `\"` `\\` 转义 / `bare` / `switch` / 通用格式 `\* \# \@ \!` / `Nested`，对任何输入都不失败）；
+  `FLD-06` 76 个关键字的策略表加两条覆盖规则（跨段一律 `Block`；FORMCHECKBOX 没有 `w:ffData/w:checkBox`
+  降为 `Unknown`——语料 `field-display__023` 就是这种）；`FLD-10` 读侧（复选框 `checked ?? default`、
+  下拉 `w:result` 选中项、文本框）；`FLD-13` 基线比对（见 §8）接进 `save_with`。`EditSession` 加
+  `fields()` / `fields_of(part)`，提交后作废重建。
+  测试：`instr.rs` 8 个单元用例（`FLD-05` 的三条验收行、`FLD-03` 占位符、tokenizer 不失败、策略表），
+  `tests/field.rs` 13 个（begin 在 `w:hyperlink` 内 / end 在外仍配对、嵌套 `IF { MERGEFIELD }`、
+  `w:fldSimple` 与嵌套、孤立 separate / end、跨流不配对、拆开的指令、`w:delInstrText`、fldChar 事实、
+  复选框状态与降级、策略表、hostile `field-unclosed.docx`（诊断 + 段落可编辑 + 未闭合段落零改动）、
+  全语料 43 份 / 57 个字段的普查）。语料普查：`Atom` 33、`Block` 6、`Picture` 6、`Form` 4、`Link` 3、
+  `Object` 3、`Marker` 1、`Unknown` 1；另有 3 份 TS 截断夹具本来就缺 `end`（已登记在测试里）。
+- [x] **2.5 字段进模型与 compat**（`model/build.rs`、`bind/compat_ts/blocks.rs`、`edit/ops.rs`）：
+  `Document.fields` 随投影建立（见 §8）；`MOD-04` 的 `facts.fields`（起点在本段的字段）与
+  `inside_field_result`（`FLD-08` 的块字段覆盖段落，按文档序取头尾段之间的全部段落）落地，`MOD-05`
+  R09 因此真正生效；`MOD-06` 的 `Inline::Field { id, result }`（原子形态：坐标流 1 个 `U+FFFC`，结构
+  run 不出现在 inlines 里）与透明形态（`Link` 策略：结构 run 与结果 run 都带 `field`，结果 run 另有
+  `Link::Field`）；`FLD-07` 的删除语义补进 `DeleteRange`（覆盖原子字段 → begin..end 含嵌套整个删，
+  M1 的 `EDIT_ANCHOR_UNMOVED` 只剩畸形字段）。
+  compat 侧（`COMPAT-03`/`COMPAT-07`）：可折叠字段折成一个 run（REF → `refField` + `refInstr`；
+  XE → `xeTerm` + 空文本；简单内联字段 → `instrField`，无结果时留一个空格；FORMCHECKBOX →
+  `instrField` + `fldBeginXml` + `☐`/`☒`；可转换 HYPERLINK → 结果 run 带 `link`），其余字段段落与
+  `Protected(FieldBlockResult)` 一样走 passthrough，带 `label` / `previewText` / `styleId` /
+  `fieldDisplay`。`fieldLabel` 与 `fieldDisplayOf` 的规则由语料 33 个实例反推（genoffice 源码不在手边），
+  逐条记在 `spec/10` 的 `COMPAT-03a`。
+  实测：全域未知差异 1925 → 1709（`fieldDisplay` 32 → 1，`label` 197 → 164，`type` 151 → 118，
+  `runs` 148 → 115，`previewText` 145 → 112，`rawPPr` 29 → 4），有差异的文档 341 → 311；文本域仍 0；
+  保存语料等价数不变。剩下那 1 处 `fieldDisplay` 是文本框分支（`out-of-run-breaks__004`，M5）。
+  测试 `tests/field.rs` 新增 6 个（原子字段占 1 个坐标单位、透明 HYPERLINK、R09 保护三段、四种折叠
+  run、可转换与不可转换 HYPERLINK、passthrough 的三种 `fieldDisplay`），`tests/edit.rs` 的 REF 用例
+  改成断言 `FLD-07` 的整字段删除。
+- [x] **2.6 批注与注释部件**
+  - [x] **读侧**（`model/notes.rs`、`model/build.rs`、`bind/compat_ts/{decl,blocks}.rs`）：`MOD-10` 的
+    批注与注释条目——`comments.xml` 的正文 / 作者 / 首字母 / 日期、`commentsExtended.xml` 的回复与
+    已解决（按最后一段的 `w14:paraId` 关联）、`commentsIds.xml` 的 durableId、`people.xml` 暂不建模；
+    `footnotes.xml` / `endnotes.xml` 的条目带 `kind`（`separator` 一类结构条目留在模型里，保存要原样
+    写回），`text` 吃掉首段前导空白与自引用标记，`richParas` 只在有格式时出，`noRefMark` 是"整条没有
+    `w:footnoteRef`"。`Document` 另加**投影侧**的 `spans: SpanIndex`（规范状态在 `EditSession.spans`），
+    `Run.comments` 按 TS 规则填：起终点都在本段的范围覆盖到的 run 挂 id，只有一端在本段的由块级
+    `commentStarts` / `commentEnds` 表达，只有 `commentReference` 的批注挂最近的**有字** run（先往前
+    再往后）。compat 侧补 `comments[]` / `footnotes[]` / `endnotes[]` / run 的 `commentIds`，以及正文里的
+    脚注引用 run（`noteRef` + 按 part 顺序的显示编号）。`commentIds` 要在 `run_json` 的**早退分支之前**
+    发（没有 `w:rPr` 的 run 会提前 return）。解析差分：全域 1709 → 1666 个差异点、311 → 295 份文档，
+    批注 / 注释域归零；`is_text_case` 不再排除带批注与注释的文档，`--scope text` 从 223 升到 **226 份**
+    （仍 0 未知差异）。测试 `tests/notes.rs` 6 个（三部件关联、语料字段、结构条目与首段裁剪、
+    `commentIds` 三种形态、`noteRef` 编号、全语料 id 唯一）。
+  - [x] **写侧**（`package/mod.rs`、`save/package_writer.rs`、`edit/{mod,session,ops}.rs`）：`SAVE-05`
+    新建 part——`Package::register_new_part` 把整份 XML 文本解析成 DOM 登记进 part 表（`zip_index`
+    为 `NO_ZIP_ENTRY`），`EditSession::add_part` 再走 DOM 机制补两处：owner 的 `.rels` 里一条
+    `Relationship`（没有 `.rels` 就先建 `<dir>/_rels/<name>.rels`，并按需给 `[Content_Types].xml`
+    补 `Default Extension="rels"`）、`[Content_Types].xml` 里一条 `Override`。写回时新 part 追加在
+    zip 末尾，原有条目仍原压缩数据拷贝（`SAVE-06`），`is_dirty` 把"有新 part"也算脏。
+    `EDIT-03` 三个操作：`AddComment`（同段；先把两端落到 inline 边界，建条目——`w:id` 按 `EDIT-06`
+    取最大值 + 1、末段带 `w14:paraId`、首段有 `w:annotationRef` run——再在正文插范围标记与
+    `w:commentReference` run，最后把范围登记进索引：标记本来就在锚点位置，物化不会重发）、
+    `RemoveComment`（条目 + 范围标记 + reference run + `commentsExtended` 条目一起删）、
+    `SetCommentText`（重写条目段落，**保留第一个有字 run 的 `rPr`**；`done` 与回复写
+    `commentsExtended`，缺 part 就建）。测试 `tests/notes.rs` 新增 5 个：`SAVE-05` 验收行
+    （首次加批注后 comments.xml / 关系 / 内容类型都对，其他条目原压缩数据不变，重开后
+    `commentIds` 挂上）、`EDIT-06` 验收行（两次 AddComment 拿到不同 id）、`SetCommentText`
+    保留加粗并新建 `commentsExtended`、`RemoveComment` 只清自己那条、失败回滚连新 part 一起退。
+  - [x] **compat 的权威条目列表**（`bind/compat_ts/save_blocks.rs`、`edit/ops.rs`）：`SaveOptions` 的
+    `comments` / `footnotes` / `endnotes` 是**整份替换**的列表——列表外的批注连正文里的范围标记与
+    reference run 一起删（`RemoveComment`），列表外的注释条目删掉，列表里的按内容 upsert。
+    `richParas` 的八个字段（bold / italic / underline / strike / caps / color / sizeHalfPoints）翻成
+    `w:rPr` 发出去；改注释条目时**保住自引用标记 run**（`w:footnoteRef` 是编号），结构条目
+    （separator）一个字节不动；缺 `footnotes.xml` / `endnotes.xml` 时按 `SAVE-05` 新建（连 Word
+    期待的两条结构条目）。条目列表在块之后应用，所以块重发出来的标记也会被"列表外"规则清掉。
+    保存语料：78 → **88 份等价**（41 份逐字节相同），跳过 81 → 70。新增一处有意不同
+    （`comments__001.save.2`：权威列表删掉批注后我们把空掉的 reference run 整个删掉，TS 留下
+    一个 `<w:r></w:r>`），登记在 `INTENTIONAL`。测试 `tests/notes.rs` 再加 2 个（脚注列表的
+    改 / 建 / 删与结构条目保留、批注列表的权威性）。
+  - [x] **收尾**：缺 `word/settings.xml` 时按 `SAVE-05` 建出来再写清洗标志（`SAVE-07`，M1 留下的债）。
+    只在要写 `true` 时建——标志缺失本来就等于 false，为写 `false` 凭空造个 part 只是噪音；
+    `save/options.rs` 的"缺 part 记诊断"那条因此撤掉。`people.xml` 不进模型：TS 的 `ParsedDoc`
+    里没有它，清洗路径直接按 part 删 `w15:person` 就够（`SAVE-07` 已实现）。
+- [x] **2.7 符号字体解码**（`resolve/symbol.rs`、`bind/compat_ts/blocks.rs`）：`RES-05` 的符号字体表与
+  `decode` / `decode_pua` / `is_symbol_font`；`w:sym` 按 `w:font` + `w:char` 解码（`0xF000` 偏移与裸码位
+  都认），符号字体 run 的 `w:t` **只**解码 PUA 区间（普通 ASCII 字母不动，语料 `symbol-fonts__004`），
+  表外码位保留原字符（`U+F000 + 码位`，与 TS 一致）。解码过文本的 run 在 compat 侧连 `w:rFonts` 一起
+  摘掉（按节点区间从原字节里剪，不做字符串匹配），`font` / `fontAscii` / `themeRFonts` 也不出——
+  字形已经是真 Unicode，再带符号字体反而显示不出来。
+  表的来源：`symbol-fonts.ts` 不在本仓库，`SYMBOL` 抄 Adobe Symbol 的标准映射，`WINGDINGS` 只收
+  把握得住的常用字形，`Wingdings 2/3` 与 `Webdings` 暂时留空（语料 `symbol-fonts__002` 里 TS 也没解码
+  `Wingdings 2` 的 `F045`）。补表要证据，模块头写了这条。
+  `KNOWN_DIFFS.md` 里整份放行的 `symbol-fonts__*` 已删除：6 份用例现在 0 处未知差异（文本域的已知
+  差异 165 → 160）。测试：`resolve/symbol.rs` 4 个单元用例 + `tests/resolve.rs` 的
+  `res_05_symbol_fonts_decode_for_display`（四种情形）。
+- [~] **2.8 `EDIT-06` id 分配**（`package/rels.rs`、`edit/session.rs`、`bind/compat_ts/save_blocks.rs`）：
+  `rId` 那一半落地——`Rels::next_id()` 按 `rId{max+1}` 且跳过已用号；
+  `EditSession::add_external_relationship(part, kind, target)` 走 `commit_plan` 往 `.rels` 里插
+  `Relationship`（因此在事务里、可回滚，`.rels` 按脏节点序列化），元素名照抄已有条目以带上默认
+  命名空间，提交后同步内存里的 `Rels`；compat 的保存路径在建 `Planner` 之前扫一遍 generated 块，
+  给没有 `rId` 的新外链先分配（那时还能借用 `EditSession`）。保存语料 77 → **78 份等价**
+  （`insert-and-layout__001.save.10` 新超链接关系），跳过 82 → 81。
+  测试 `tests/edit.rs` 的 `edit_06_new_external_relationship_is_allocated_in_the_rels_part`。
+  **未完**：批注 `w:id`（`EDIT-06` 的验收行"连续两次 AddComment 得到不同 id"要 2.6 的 `AddComment`）、
+  书签 `w:id`（要 2.9 的 `AddBookmark`；compat 路径按 TS 的哈希给号，与规范的 `max+1` 不同，
+  见下）、`w14:paraId`（要 2.6 / 2.9 里真正新建段落的操作）。part 没有 `.rels` 时报
+  `EditUnsupported`，新建 `.rels` 属 `SAVE-05`（2.6）。
+- [x] **2.9 字段与段落操作**（`edit/{mod,ops,inline}.rs`、`span/transform.rs`、`bind/compat_ts/save_blocks.rs`）
+  - **段落**：`SplitParagraph`（位置先落到 inline 边界，新 `w:p` 插在原段之后、`pPr` 字节克隆，
+    边界之后的内容项与标记搬进去）、`MergeWithNext`（下一段内容接到本段末尾、下一段删除，保留
+    **前**段的 `pPr`——Word 语义）。`SPAN-06` 的拆分 / 合并两行需要专用规则（从 `node_edits`
+    推导看不出"搬到哪个容器"）：`MutationPlan.span` 增加 `splits` / `merges`，拆分时 `index < k`
+    留在前段、`> k` 到后段的 `index - k`、`== k` 按 affinity（`Left` 留、`Right` 跟走），合并时
+    `index + len(前段)`；被搬走的内容项不计入"删除"。守卫：拆分点落在透明字段的 begin..end
+    之内 → `Err(EDIT_SPLIT_FIELD)`（否则字段跨段变成 `Block`），`Block` 字段的结果段落只读。
+  - **书签**：`AddBookmark`（`w:id` 按 `EDIT-06` 取 part 最大值 + 1，名字全文档唯一，空区间两端
+    同向）、`RemoveBookmark`（按名字删标记并在索引里作废）。
+  - **字段**：`InsertField`（`FLD-12` 五组 run，指令前后各一个空格 + `xml:space="preserve"`，
+    结构 run 带插入点的继承格式）、`SetLinkTarget`（`FLD-07`，两种链接都覆盖：HYPERLINK
+    字段只重写 `instrText`——第一个参数之后的开关原文保留，指令拆在多个 `w:instrText` 里时首个
+    写全量、其余清空；`w:hyperlink` 元素改 `r:id`（外部 URL 先按 `EDIT-06` 分配关系）或
+    `w:anchor`，两个属性互斥所以设一个删另一个）、`ToggleCheckbox` 与
+    `SetFormText`（`FLD-10`：改 `w:checked` / 结果 run，`w:ffData` 的 `default` 不动）、
+    `SetFieldResultProps`（`FLD-07`：只对结果 run 走 `PROP-06`）、`UpdateBlockField`（`FLD-09`
+    机制：`w:fldLock` → `Err(FLD_LOCKED)`；跨段字段按段落级替换、同段字段把新块的 inline 内联进去；
+    `mark_updated_fields_dirty` 打 `w:dirty`）。生成器（TOC 重算）仍在 M7。
+  - **compat**：`NewInline::Field` 让 `runsXml` 能重发字段类 run——`xeTerm` 发成没有 separate 的
+    `Marker` 字段，`refField` 用 `refInstr` **原文**发指令（`\r` `\h` 逐字保留）。保存语料
+    88 → **90 份等价**，跳过 70 → 68（剩下的 `instrField` / `fldBeginXml` 要 begin run 原字节，M7）。
+  - 测试 `tests/para_ops.rs` 17 个：段落拆分（段中 / 边界 / `SPAN-06` 锚点 / 透明字段拒绝）、
+    合并（保留前段 pPr / 锚点重定位 / 下一个块不是段落）、书签（`EDIT-06` 分配 / 重名拒绝 / 空书签 /
+    删除）、字段（`FLD-12` 五组 run 顺序与 `xml:space`、`SetLinkTarget` 保开关、复选框来回切、
+    FORMTEXT 保格式、结果格式只动结果、`UpdateBlockField` 与 `FLD_LOCKED`、`w:hyperlink` 元素的目标来回改）。
+- [x] **2.10 `fuzz_instr` 与 M2 门**（`fuzz/fuzz_targets/fuzz_instr.rs`、`bind/compat_ts/diff.rs`、
+  `tools/diff-parse`、`.github/workflows/*`）：`TEST-06` 的第三个目标——任意字符串当字段指令，
+  除了"不 panic"还断言四条不变式（`raw` 一字不改、token 文本总量不超过原文、`Nested` 只引用给定的
+  字段 id、`Unknown` 关键字规范化为大写），并顺带跑策略表与只读访问器。实跑
+  **13,572,886 次执行 / 601 秒无崩溃**（约 2.26 万次/秒）。种子语料手写 16 个（各种开关、
+  引号转义与未闭合引号、嵌套占位、空指令、小写关键字）；跑一轮会往同一目录写几百到上万个覆盖
+  单元，那些不提交（`fuzz/README.md` 写明）。
+  `TEST-10` 的 M2 门：`diff-parse` 增加 `--scope fields`——`is_span_field_case` 是文本域的**超集**，
+  再放开字段、范围标记、批注与注释引用，仍排除后续里程碑的图片 / 公式 / ruby / 文本框 / 表格 /
+  页眉页脚 / 参考文献。当前 **253 份文档 0 未知差异**（文本域 226 份）。CI 加一步
+  `--scope fields`，fuzz workflow 的 matrix 加 `fuzz_instr`。
+
+## 13. M4 执行进度
+
+任务分解与 DoD 在 `spec/15-m4-plan.md`。分支 `m4-drawing`（从 M2 之前的 `main` 开，所以是**真合并**
+不是 fast-forward），2026-09-05 完成，M4 门跑过：`diff-parse --scope drawing` 573 份 0 未知差异。
+
+- [x] **4.1 `MediaStore`**（`package/media.rs`）：`MediaId → {part, mime, bytes, kind}`，`r:embed` /
+  `r:link` / `v:imagedata r:id` 都经**所在 part 自己的 rels** 解析（含 `..` 归一化与越根拒绝）；
+  MIME 判定顺序=扩展名表 → `Override` → `Default`；External 与 `http(s)://` 直出 URL；EMF/WMF/EMZ/WMZ
+  与 TIFF 标 `MediaKind::Metafile` / `Tiff` **不转换**（`docs/03` §3.5 冻结，4 份 `emf-image__*` 因此
+  登记为有意差异）。字节惰性读取并缓存，base64 手写。顺带给 L1 补了 `Dom::semantic_descendants`。
+- [x] **4.2 DrawingML 颜色**（`resolve/drawingml.rs`、`model/units.rs`）：六种颜色基（`srgbClr` /
+  `schemeClr` / `sysClr` / `prstClr` / `scrgbClr` / `hslClr`）+ 七种变换（`lumMod` / `lumOff` /
+  `tint` / `shade` 按 sRGB 分量，`satMod` / `hueMod` 过 HSL，`alpha`），按文档序施加、`f64` 留到最后
+  一步（`gradFill` 要等权平均）；`schemeClr` 的 `tx1→dk1` 四条别名；EMU/px/pt/twips 换算集中在
+  `units.rs`。语料 89 个颜色容器全部定得出 sRGB。
+- [x] **4.3 绘图显示模型**（`model/drawing.rs`）：`wp:inline` / `wp:anchor` 的锚定几何、`pic:pic` 的
+  `ImageDisplay`（媒体、`wp:extent`、`a:srcRect` 裁剪、`a:xfrm` 旋转翻转、`a:ln` 边框、`wp:docPr`），
+  挂到 `Segment.display`。遍历**迭代**、带深度上限，且**不下钻** `w:txbxContent` 与嵌套 `w:drawing`
+  ——文本框是独立内容流，下钻会把框里的图当成段落级图片，分类全错。
+- [x] **4.4 图片段落投影**（`bind/compat_ts/{media,image}.rs`）：`MediaMap` 预取（读字节要
+  `&mut Package`，投影拿的是 DOM 不可变借用，所以先扫一遍）；`imageWrap` 九种取值、`imageAlign`、
+  `imagePosH/V`、`imageZOrder` 与 z 序归一化、图前引导文字与段落缩进。
+- [x] **4.5 + 4.7 VML 与嵌入对象**（`model/vml.rs`）：`style` 键值原样保留（`MOD-11` 不做语义解释）、
+  `fillcolor` / `stroked` / `coordsize` / `coordorigin` / `v:imagedata` / `v:textpath`；细横线
+  （`v:rect o:hr` 与 `wp:extent cy ≤ 130000`）→ `decorative` + `rule*`；`o:OLEObject/@ProgID` →
+  `oleProgId`，预览图尺寸取 `v:shape` 的 style、缺省退到 `w:object` 的 `dxaOrig`/`dyaOrig`。
+- [x] **4.6 文本框与形状**（`bind/compat_ts/{textbox,box_json}.rs`，分 a–f 六步上）：
+  a 分类（`Text box` / `Drawing object` / 隐藏形状）、b `textboxes[]` 载荷（几何 / 填充 / 内边距 /
+  组仿射 / 框内段落）、c 节页面几何与页面锚定（`model/section.rs`，只取锚定真正要的页宽页边距栏数，
+  M5 建 `SectionInfo` 时替换）、d `a:custGeom` 路径（`model/custgeom.rs`，遇到 `a:gd` 公式 / 引导名
+  坐标 / `a:arcTo` 就整条不给——宁可不给路径也不能给一条错的）、e VML WordArt + 投影层的声明宏、
+  f 放置（见下）。
+- [x] **4.6f 放置**：`AnchorCtx` 把三件只有在**整段**尺度上才定得下来的事收在一处——`posOffset`
+  归一化、`pinAll` 首页钉页、并集是否铺满栏；wrapSquare 铺满整栏时按 `wrapTopAndBottom` 成带；
+  VML 画布的缩放 / 原点 / `coordorigin` 沿组链下传，随文画布先占住流内位置；嵌套形状照样成框
+  （只读、不占保存序号）。顺带修了两处分类错误：`pict_kind` 的优先级按 TS 决策树而不是文档序，
+  `drawing_display` 的 `eff_ns` 在 `wps` / `wpg` 前缀没声明时按字面量认（见 §8）。
+- [x] **4.8 恶意输入与门**（`tools/diff-parse`、`corpus/hostile`、`tests/drawing.rs`）：
+  `--scope drawing` 按**路径**筛而不是按文档——绘图文档同时背着 M2/M3/M5/M6 的差异，按文档筛这道门
+  永远关不上；域的定义在 `compat_ts::is_drawing_path`，接进 CI。`corpus/hostile` 补 4 份绘图用例
+  （3000 层组套娃、退化画布、全悬空的 `r:id`、畸形 `style`），生成器进
+  `tools/export-golden/hostile.export.test.ts` 跟着 `run.sh` 重生成。
+
+**并入 `main` 时的三处整合**（2026-09-05）：
+
+1. `body_block` 的分派顺序按 TS 的决策树定死：**字段段落在绘图之前**。文本框里的字段不算数
+   （TS 的 `fieldDetect` 先剥掉文本框，我们的 `para_fields` / `has_stray_field_chars` 只看宿主段落
+   自己的 inline），所以带字段的文本框段落照样走得到绘图分支。
+2. `--scope` 合成四档：`text` / `fields` 按文档筛，`drawing` 按路径筛，`all` 全算。
+3. 修掉 M2 指令词法的一处转义：引号里只有 `\"` 与 `\\` 是转义，别的 `\x` 原样留着——Windows 路径
+   `"file:///C:\Users\u\x"` 被吃成 `C:Usersux` 了（`field-display__015`）。修完地址是对的，但
+   TS 的 `convertibleHyperlink` 正则遇到反斜杠干脆不认，所以那一处仍是有意差异（登记在册）。

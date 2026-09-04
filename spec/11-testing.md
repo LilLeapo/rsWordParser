@@ -94,6 +94,7 @@ fixtures/resolve/<area>/<case>/    # RES-12
 | M0 | 全部语料 `parse → serialize` 字节相同；`fuzz_zip`/`fuzz_xml` 各 10 分钟无崩溃 |
 | M1 | `synthetic` 文本段落用例 diff 为 0；单节点编辑保真；Strict 编辑保持 Strict |
 | M2 | 字段与 Span 用例 diff 为 0；`fuzz_instr` |
-| M3–M6 | 对应域的 `synthetic` diff 为 0 |
+| M4 | 绘图域**路径**的 diff 为 0（`--scope drawing`：全部文档照跑，只计绘图域路径；按文档筛关不上——绘图文档同时带着别的域的差异） |
+| M3 / M5 / M6 | 对应域的 `synthetic` diff 为 0 |
 | M7 | `COMPAT-08` XPath 等价全部通过；`TEST-07` 1,000 序列无失败；`fuzz_edit` |
 | M8 | genoffice e2e 通过 |

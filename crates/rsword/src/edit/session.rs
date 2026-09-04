@@ -1,12 +1,15 @@
 //! `EDIT-01` 会话：`Package`（规范状态）+ `Document`（投影）+ 事务（`EDIT-05`）。
 
+use std::collections::HashMap;
+
 use crate::diag::{DiagCode, Diagnostic};
 use crate::error::{Error, Result};
 use crate::model::Document;
 use crate::model::block::TextBlock;
-use crate::package::{Package, PartFlavor, PartId};
+use crate::package::{Package, PartFlavor, PartId, PartUri, RelTarget, RelType, Relationship};
 use crate::save::SaveOptions;
-use crate::xml::{Dom, NodeId};
+use crate::span::{FieldIndex, SpanIndex, is_content_item, plan_save, plan_update};
+use crate::xml::{Dom, LocalName, NewElement, NodeEdit, NodeId, NsId, QName, Target};
 
 use super::plan::{MutationPlan, MutationResult};
 use super::pos::{InlinePos, Loc, locate};
@@ -16,6 +19,16 @@ use super::{EditContext, EditOp, ops};
 pub struct EditSession {
     pkg: Package,
     doc: Document,
+    /// 规范状态的另一半（`docs/03` §6.8）：每个被编辑过的 part 的范围索引。
+    /// 按需在**第一次写该 part 之前**建立（那时 DOM 还没被改，锚点与标记一致），
+    /// 之后只由 `SPAN-06` 变换维护，绝不由标记反推（`SPAN-02`）。
+    spans: HashMap<PartId, SpanIndex>,
+    /// 字段索引（`FLD-02`）。与范围不同，它是 DOM 的**投影**——每条事实都能重新读出来，
+    /// 所以编辑后直接作废重建，不增量维护。
+    fields: HashMap<PartId, FieldIndex>,
+    /// 第一次写某个 part 之前记下的字段缺陷数（按诊断代码）。`FLD-13` 用它区分
+    /// "输入本来如此"与"编辑造成"：保存前重建，某个代码多出来的就是引擎干的。
+    field_baseline: HashMap<PartId, HashMap<DiagCode, usize>>,
     diagnostics: Vec<Diagnostic>,
     /// 事务期间每个被写入 part 的写前镜像（`EDIT-05`）。
     txn: Option<Snapshot>,
@@ -26,14 +39,14 @@ pub struct EditSession {
 /// 没碰过的 part 不付克隆代价。投影用整体 `rebuild` 恢复。
 #[derive(Default)]
 pub(crate) struct Snapshot {
-    doms: Vec<(PartId, Dom)>,
+    doms: Vec<(PartId, Dom, Option<SpanIndex>)>,
 }
 
 impl Snapshot {
-    /// 第一次写 `part` 时记下写前镜像。
-    fn remember(&mut self, part: PartId, dom: &Dom) {
-        if !self.doms.iter().any(|(p, _)| *p == part) {
-            self.doms.push((part, dom.clone()));
+    /// 第一次写 `part` 时记下写前镜像（DOM 与范围索引一起，它们合起来是规范状态）。
+    fn remember(&mut self, part: PartId, dom: &Dom, spans: Option<&SpanIndex>) {
+        if !self.doms.iter().any(|(p, ..)| *p == part) {
+            self.doms.push((part, dom.clone(), spans.cloned()));
         }
     }
 }
@@ -45,7 +58,15 @@ impl EditSession {
 
     pub fn from_package(mut pkg: Package) -> Result<Self> {
         let doc = Document::rebuild(&mut pkg)?;
-        Ok(Self { pkg, doc, diagnostics: Vec::new(), txn: None })
+        Ok(Self {
+            pkg,
+            doc,
+            spans: HashMap::new(),
+            fields: HashMap::new(),
+            field_baseline: HashMap::new(),
+            diagnostics: Vec::new(),
+            txn: None,
+        })
     }
 
     /// 投影（`MOD-01`）。
@@ -73,6 +94,428 @@ impl EditSession {
 
     pub fn flavor(&self) -> PartFlavor {
         self.pkg.flavor_of(self.pkg.main_part())
+    }
+
+    /// 主 part 的范围索引（`SPAN-04`）。第一次调用时建立。
+    pub fn spans(&mut self) -> Result<&SpanIndex> {
+        let part = self.pkg.main_part();
+        self.spans_of(part)
+    }
+
+    /// 某个 part 的范围索引；不是 XML part 时 `Err`。
+    pub fn spans_of(&mut self, part: PartId) -> Result<&SpanIndex> {
+        self.ensure_spans(part)?;
+        Ok(self.spans.get(&part).expect("just built"))
+    }
+
+    /// 已建立的范围索引（不触发建立）。
+    pub fn spans_built(&self, part: PartId) -> Option<&SpanIndex> {
+        self.spans.get(&part)
+    }
+
+    /// 测试用：直接改索引，往里注入破坏，验证 `SPAN-09` 的自检真的会拦下来。
+    #[cfg(test)]
+    pub(crate) fn spans_mut(&mut self, part: PartId) -> Option<&mut SpanIndex> {
+        self.spans.get_mut(&part)
+    }
+
+    /// 主 part 的字段索引（`FLD-02`）。
+    pub fn fields(&mut self) -> Result<&FieldIndex> {
+        let part = self.pkg.main_part();
+        self.fields_of(part)
+    }
+
+    /// 某个 part 的字段索引；编辑之后第一次调用会重建。
+    pub fn fields_of(&mut self, part: PartId) -> Result<&FieldIndex> {
+        if !self.fields.contains_key(&part) {
+            let index = self.build_fields(part)?;
+            self.fields.insert(part, index);
+        }
+        Ok(self.fields.get(&part).expect("just built"))
+    }
+
+    fn build_fields(&mut self, part: PartId) -> Result<FieldIndex> {
+        let Some(dom) = self.pkg.dom(part)? else {
+            return Err(Error::edit(
+                DiagCode::EditPlanInvalid,
+                format!("part#{} 不是 XML part", part.0),
+            ));
+        };
+        Ok(FieldIndex::build(dom))
+    }
+
+    /// `FLD-13`：在第一次写 `part` 之前记下解析期的字段缺陷，并把诊断报一次。
+    fn ensure_field_baseline(&mut self, part: PartId) -> Result<()> {
+        if self.field_baseline.contains_key(&part) {
+            return Ok(());
+        }
+        let mut index = self.build_fields(part)?;
+        self.field_baseline.insert(part, index.defect_counts());
+        let diags = index.take_diagnostics();
+        self.fields.insert(part, index);
+        self.record(diags);
+        Ok(())
+    }
+
+    /// `FLD-13` 的保存前一半：重建字段索引，比基线多出来的缺陷就是本次编辑造成的。
+    fn validate_fields(&mut self) -> Result<()> {
+        let parts: Vec<PartId> = self.field_baseline.keys().copied().collect();
+        let mut diags = Vec::new();
+        for part in parts {
+            let index = self.build_fields(part)?;
+            let before = self.field_baseline.get(&part).cloned().unwrap_or_default();
+            let after = index.defect_counts();
+            for (code, n) in after {
+                let was = before.get(&code).copied().unwrap_or(0);
+                if n > was {
+                    diags.push(Diagnostic::invariant_violation(
+                        part,
+                        None,
+                        code,
+                        format!("字段结构在本次编辑后新增了 {} 处 {code} 缺陷", n - was),
+                    ));
+                }
+            }
+            self.fields.insert(part, index);
+        }
+        crate::save::enforce(&diags)?;
+        self.record(diags);
+        Ok(())
+    }
+
+    /// `SPAN-04`：在第一次写 `part` 之前建立索引。
+    ///
+    /// 那一刻 DOM 还没被这个会话改过，所以"由标记建立 Anchor"是合法的（`SPAN-02` 只禁止
+    /// 编辑期反推）。已经建立过就直接返回。绕过 `commit_plan` 直接改 DOM（`package_mut`）
+    /// 之后再建立索引会读到改后的标记——那条路径要求调用方自己 `rebuild`。
+    fn ensure_spans(&mut self, part: PartId) -> Result<()> {
+        if self.spans.contains_key(&part) {
+            return Ok(());
+        }
+        let Some(dom) = self.pkg.dom(part)? else {
+            return Err(Error::edit(
+                DiagCode::EditPlanInvalid,
+                format!("part#{} 不是 XML part", part.0),
+            ));
+        };
+        let mut index = SpanIndex::build(dom);
+        let diags = index.take_diagnostics();
+        self.spans.insert(part, index);
+        self.record(diags);
+        Ok(())
+    }
+
+    /// `SAVE-05`：批注部件，不存在就建（空 `w:comments` 根，命名空间按目标 part 的 flavor）。
+    pub(crate) fn ensure_comments_part(&mut self) -> Result<PartId> {
+        if let Some(p) = self.doc.comments.part {
+            return Ok(p);
+        }
+        let main = self.pkg.main_part();
+        let xml = empty_root_xml(self.pkg.flavor_of(main), "comments");
+        let (id, _) =
+            self.add_part(main, RelType::Comments, "word/comments.xml", CT_COMMENTS, &xml)?;
+        self.rebuild()?;
+        Ok(id)
+    }
+
+    /// `SAVE-05`：`word/settings.xml`，不存在就建（清洗标志要有地方写，`SAVE-07`）。
+    pub(crate) fn ensure_settings_part(&mut self) -> Result<PartId> {
+        let main = self.pkg.main_part();
+        if let Some(id) = self
+            .pkg
+            .related(main, RelType::Settings)
+            .next()
+            .or_else(|| self.pkg.find_name(SETTINGS))
+        {
+            return Ok(id);
+        }
+        let xml = empty_root_xml(self.pkg.flavor_of(main), "settings");
+        let (id, _) = self.add_part(main, RelType::Settings, SETTINGS, CT_SETTINGS, &xml)?;
+        self.rebuild()?;
+        Ok(id)
+    }
+
+    /// `SAVE-05`：脚注 / 尾注部件，不存在就建（连 Word 期待的 separator 结构条目一起）。
+    pub(crate) fn ensure_notes_part(&mut self, endnote: bool) -> Result<PartId> {
+        let existing = if endnote { self.doc.endnotes.part } else { self.doc.footnotes.part };
+        if let Some(p) = existing {
+            return Ok(p);
+        }
+        let main = self.pkg.main_part();
+        let flavor = self.pkg.flavor_of(main);
+        let w = NsId::W.uri(flavor).expect("w 有两族 URI");
+        let (root, entry, mark) = if endnote {
+            ("endnotes", "endnote", "continuationSeparator")
+        } else {
+            ("footnotes", "footnote", "continuationSeparator")
+        };
+        // Word 期待前两条结构条目（`w:id` 为 -1 / 0）
+        let xml = format!(
+            concat!(
+                r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>"#,
+                r#"<w:{root} xmlns:w="{w}">"#,
+                r#"<w:{entry} w:type="separator" w:id="-1"><w:p><w:r><w:separator/></w:r></w:p></w:{entry}>"#,
+                r#"<w:{entry} w:type="continuationSeparator" w:id="0"><w:p><w:r><w:{mark}/></w:r></w:p></w:{entry}>"#,
+                r#"</w:{root}>"#
+            ),
+            root = root,
+            entry = entry,
+            mark = mark,
+            w = w
+        );
+        let (kind, uri, ct) = if endnote {
+            (RelType::Endnotes, "word/endnotes.xml", CT_ENDNOTES)
+        } else {
+            (RelType::Footnotes, "word/footnotes.xml", CT_FOOTNOTES)
+        };
+        let (id, _) = self.add_part(main, kind, uri, ct, &xml)?;
+        self.rebuild()?;
+        Ok(id)
+    }
+
+    /// `SAVE-05`：`commentsExtended` 部件（回复与已解决），不存在就建。
+    pub(crate) fn ensure_comments_extended_part(&mut self) -> Result<PartId> {
+        if let Some(p) = self.doc.comments.extended_part {
+            return Ok(p);
+        }
+        let main = self.pkg.main_part();
+        let xml = format!(
+            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w15:commentsEx xmlns:w15="{}"/>"#,
+            NsId::W15.uri(PartFlavor::Transitional).expect("w15 有 URI")
+        );
+        let (id, _) = self.add_part(
+            main,
+            RelType::CommentsExtended,
+            "word/commentsExtended.xml",
+            CT_COMMENTS_EXTENDED,
+            &xml,
+        )?;
+        self.rebuild()?;
+        Ok(id)
+    }
+
+    /// 把一个新范围登记进索引（`AddComment` / `AddBookmark`）。标记节点已经写进 DOM，
+    /// 所以 `SPAN-08` 物化时它就在锚点指的位置上，不会重发。
+    pub(crate) fn push_span(&mut self, part: PartId, span: crate::span::RangeSpan) -> Result<()> {
+        self.ensure_spans(part)?;
+        let index = self.spans.get_mut(&part).expect("just built");
+        index.push_span(span);
+        index.reindex_containers();
+        Ok(())
+    }
+
+    /// `SPAN-07`：把索引里的范围标记为已删除（节点的删除由调用方的计划完成）。
+    pub(crate) fn drop_span(&mut self, part: PartId, id: crate::span::SpanId) {
+        if let Some(index) = self.spans.get_mut(&part)
+            && let Some(s) = index.get_mut(id)
+        {
+            s.removed = true;
+        }
+    }
+
+    /// `SAVE-05`：新建一个 XML part，接上关系与内容类型 Override，返回 `(part, rId)`。
+    ///
+    /// 三处改动都走 DOM（新 part 的内容、`.rels` 的一条 `Relationship`、
+    /// `[Content_Types].xml` 的一条 `Override`），所以未变部分仍是原字节；新 part 在
+    /// `SAVE-06` 里追加到 zip 末尾，其余条目原压缩数据不动。
+    ///
+    /// `xml` 是新 part 的整份内容。`owner` 必须已经有 `.rels`（新建 `.rels` 目前不支持——
+    /// 语料里每个 docx 的主 part 都有）。
+    pub fn add_part(
+        &mut self,
+        owner: PartId,
+        kind: RelType,
+        uri: &str,
+        content_type: &str,
+        xml: &str,
+    ) -> Result<(PartId, String)> {
+        let uri = PartUri::from_entry_name(uri);
+        if self.pkg.find(&uri).is_some() {
+            return Err(Error::edit(DiagCode::EditPlanInvalid, format!("part {uri} 已存在")));
+        }
+        let part = self.pkg.register_new_part(uri.clone(), content_type, xml)?;
+        // 关系目标是相对 owner 所在目录的路径
+        let owner_dir = self.pkg.part(owner).uri.dir().to_string();
+        let target =
+            uri.as_str().strip_prefix(&format!("{owner_dir}/")).unwrap_or(uri.as_str()).to_string();
+        let rid = self.add_relationship(owner, kind, &target, RelTarget::Internal(uri.clone()))?;
+        self.add_content_type_override(&uri, content_type)?;
+        Ok((part, rid))
+    }
+
+    /// `[Content_Types].xml` 里加一条 `Override`（缺内容类型 part 时只记诊断）。
+    fn add_content_type_override(&mut self, uri: &PartUri, content_type: &str) -> Result<()> {
+        let Some(ct_part) = self.pkg.content_types_part() else {
+            self.record(vec![Diagnostic::invariant_violation(
+                self.pkg.main_part(),
+                None,
+                DiagCode::EditUnsupported,
+                format!("缺 [Content_Types].xml，{uri} 的内容类型写不进去"),
+            )]);
+            return Ok(());
+        };
+        let dom = self
+            .pkg
+            .dom(ct_part)?
+            .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "内容类型不是 XML part"))?;
+        let root = dom.root();
+        // 名字照抄已有的 `Override`（带着 `[Content_Types].xml` 的默认命名空间）
+        let name = dom
+            .children(root)
+            .iter()
+            .find_map(|&c| dom.name(c).filter(|q| q.local == LocalName::Override))
+            .unwrap_or_else(|| {
+                QName::new(dom.name(root).map(|q| q.ns).unwrap_or(NsId::None), LocalName::Override)
+            });
+        let none = |l: LocalName| QName::new(NsId::None, l);
+        let node = NewElement::new(name)
+            .with_attr(none(LocalName::PartName), format!("/{}", uri.as_str()))
+            .with_attr(none(LocalName::ContentType), content_type);
+        let mut plan = MutationPlan::new(ct_part);
+        plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(root), before: None, node });
+        self.commit_plan(plan)?;
+        Ok(())
+    }
+
+    /// `EDIT-06`：给 `part` 的 `.rels` 追加一条外部关系，返回分配到的 `rId`。
+    ///
+    /// 走 `commit_plan`，所以它在事务里、可回滚，`.rels` 也按脏节点序列化。
+    /// part 没有 `.rels` 时报 `EditUnsupported`——新建 `.rels` 属 `SAVE-05`（2.6）。
+    pub fn add_external_relationship(
+        &mut self,
+        part: PartId,
+        kind: RelType,
+        target: &str,
+    ) -> Result<String> {
+        self.add_relationship(part, kind, target, RelTarget::External(target.to_string()))
+    }
+
+    /// `SAVE-05`：part 的 `.rels`，没有就建（`<dir>/_rels/<name>.rels`）。
+    ///
+    /// `.rels` 靠 `[Content_Types].xml` 的 `Default Extension="rels"` 声明类型，缺了就补一条。
+    fn ensure_rels_part(&mut self, part: PartId) -> Result<PartId> {
+        if let Some(p) = self.pkg.part(part).rels_part {
+            return Ok(p);
+        }
+        let uri = self.pkg.part(part).uri.clone();
+        let dir = uri.dir();
+        let path = if dir.is_empty() {
+            format!("_rels/{}.rels", uri.file_name())
+        } else {
+            format!("{dir}/_rels/{}.rels", uri.file_name())
+        };
+        let xml = format!(
+            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="{}"/>"#,
+            RELS_NS
+        );
+        let rels_part = self.pkg.register_new_part(
+            PartUri::from_entry_name(&path),
+            "application/vnd.openxmlformats-package.relationships+xml",
+            &xml,
+        )?;
+        self.pkg.part_mut(part).rels_part = Some(rels_part);
+        self.ensure_rels_default_type()?;
+        Ok(rels_part)
+    }
+
+    /// `[Content_Types].xml` 缺 `Default Extension="rels"` 时补一条。
+    fn ensure_rels_default_type(&mut self) -> Result<()> {
+        let Some(ct_part) = self.pkg.content_types_part() else { return Ok(()) };
+        if self.pkg.content_types().default_for_extension("rels").is_some() {
+            return Ok(());
+        }
+        let dom = self
+            .pkg
+            .dom(ct_part)?
+            .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "内容类型不是 XML part"))?;
+        let root = dom.root();
+        let name = dom
+            .children(root)
+            .iter()
+            .find_map(|&c| dom.name(c).filter(|q| q.local == LocalName::UDefault))
+            .unwrap_or_else(|| {
+                QName::new(dom.name(root).map(|q| q.ns).unwrap_or(NsId::None), LocalName::UDefault)
+            });
+        let none = |l: LocalName| QName::new(NsId::None, l);
+        let node = NewElement::new(name).with_attr(none(LocalName::UExtension), "rels").with_attr(
+            none(LocalName::ContentType),
+            "application/vnd.openxmlformats-package.relationships+xml",
+        );
+        let first = dom.children(root).first().copied();
+        let mut plan = MutationPlan::new(ct_part);
+        plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(root), before: first, node });
+        self.commit_plan(plan)?;
+        Ok(())
+    }
+
+    /// 给 `part` 的 `.rels` 追加一条关系（内部或外部），返回分配到的 `rId`。
+    fn add_relationship(
+        &mut self,
+        part: PartId,
+        kind: RelType,
+        target: &str,
+        resolved: RelTarget,
+    ) -> Result<String> {
+        let external = matches!(resolved, RelTarget::External(_));
+        let rels_part = self.ensure_rels_part(part)?;
+        let id = self.pkg.part(part).rels.next_id();
+        let flavor = self.pkg.flavor_of(part);
+        let raw_type = kind.uri(flavor).ok_or_else(|| {
+            Error::edit(DiagCode::EditUnsupported, format!("关系类型 {kind:?} 没有 URI"))
+        })?;
+        let dom = self
+            .pkg
+            .dom(rels_part)?
+            .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, ".rels 不是 XML part"))?;
+        let root = dom.root();
+        // 名字照抄已有的 `Relationship`（它带着 `.rels` 的默认命名空间）；一条都没有时按根元素的
+        // 命名空间造一个
+        let name = dom
+            .children(root)
+            .iter()
+            .find_map(|&c| dom.name(c).filter(|q| q.local == LocalName::Relationship))
+            .unwrap_or_else(|| {
+                QName::new(
+                    dom.name(root).map(|q| q.ns).unwrap_or(NsId::None),
+                    LocalName::Relationship,
+                )
+            });
+        let none = |l: LocalName| QName::new(NsId::None, l);
+        let mut node = NewElement::new(name)
+            .with_attr(none(LocalName::UId), id.clone())
+            .with_attr(none(LocalName::UType), raw_type.clone())
+            .with_attr(none(LocalName::Target), target);
+        if external {
+            node.push_attr(none(LocalName::TargetMode), "External");
+        }
+        let mut plan = MutationPlan::new(rels_part);
+        plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(root), before: None, node });
+        let result = self.commit_plan(plan)?;
+        let created = result
+            .created
+            .first()
+            .copied()
+            .flatten()
+            .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "关系节点没有创建成功"))?;
+        let (rel_kind, family) = RelType::parse(&raw_type);
+        self.pkg.part_mut(part).rels.push(Relationship {
+            id: id.clone(),
+            kind: rel_kind,
+            target: resolved,
+            raw_type,
+            family,
+            node: created,
+        });
+        Ok(id)
+    }
+
+    /// 记诊断（会话与包各留一份）。
+    fn record(&mut self, diags: Vec<Diagnostic>) {
+        if diags.is_empty() {
+            return;
+        }
+        self.diagnostics.extend(diags.iter().cloned());
+        self.pkg.push_diagnostics(diags);
     }
 
     /// 编辑阶段累计的诊断（不含包 / 保存阶段的）。
@@ -148,7 +591,7 @@ impl EditSession {
     /// 1. 无脏节点且 `opts` 没有变更请求（`saved_at` 单独设置不算，与 TS `isUnchanged` 一致）
     ///    且文档没有 `w:removePersonalInformation` / `w:removeDateAndTime` 标志 → 返回原字节（不变式 1）。
     /// 2. 校验（`SAVE-02`，在 [`Package::save`] 里）。
-    /// 3. 物化 Span（`SPAN-08`）：Span 索引在 M2 建立，M1 无操作。
+    /// 3. 物化 Span（`SPAN-08`）与范围校验（`SPAN-09`）：位置没变的标记不动，变了的重发。
     /// 4. 应用保存选项（`SAVE-07`）：全部先 `validate`（只读）再逐个 `commit`，所以要么全做要么不动。
     /// 5. / 6. 序列化脏 part 并写回（`XML-13` / `SAVE-06`，在 [`Package::save`] 里）。
     pub fn save_with(&mut self, opts: &SaveOptions) -> Result<Vec<u8>> {
@@ -157,9 +600,16 @@ impl EditSession {
         if !self.pkg.is_dirty() && !opts.forces_save() && !authors && !dates {
             return Ok(self.pkg.original_bytes().to_vec());
         }
-        // 步骤 3：SPAN-08 物化在 M2（此处无操作，Span 索引尚未建立）。
+        // 要写 `true` 的清洗标志得有地方放：缺 `word/settings.xml` 就按 `SAVE-05` 建一个。
+        // 写 `false` 时不建——标志缺失本来就等于 false，凭空造个 part 只是噪音。
+        if opts.remove_personal_info == Some(true) || opts.remove_date_and_time == Some(true) {
+            self.transaction(|s| s.ensure_settings_part().map(|_| ()))?;
+        }
         let (plans, diags) = crate::save::options::plan_all(&mut self.pkg, opts, authors, dates)?;
-        let touches_main = plans.iter().any(|p| p.part == self.pkg.main_part());
+        let mut touches_main = plans.iter().any(|p| p.part == self.pkg.main_part());
+        touches_main |= self.transaction(|s| s.materialize_spans())?;
+        // `FLD-13`：物化之后字段结构应当仍然完好（物化只动范围标记，不该碰 fldChar）
+        self.validate_fields()?;
         self.transaction(|s| {
             // 先整批只读校验，再逐个提交：提交阶段不可能失败（失败也会被事务回滚）
             for plan in &plans {
@@ -181,6 +631,46 @@ impl EditSession {
         self.pkg.save()
     }
 
+    /// `SAVE-01` 步骤 3：把每个 part 的 Anchor 物化成标记（`SPAN-08`），顺带做范围校验
+    /// （`SPAN-09`）。返回主 part 是否被改动（需要重建投影）。
+    ///
+    /// 这个计划**不走**锚点变换：标记是 Anchor 的投影，不能反过来影响它（`SPAN-02`）。
+    fn materialize_spans(&mut self) -> Result<bool> {
+        let main = self.pkg.main_part();
+        let mut touched_main = false;
+        let parts: Vec<PartId> = self.spans.keys().copied().collect();
+        for part in parts {
+            let index = self.spans.get(&part).expect("key came from the map");
+            let dom = self.pkg.part(part).dom().ok_or_else(|| {
+                Error::edit(DiagCode::EditPlanInvalid, format!("part#{} 不是 XML part", part.0))
+            })?;
+            let mplan = plan_save(dom, index);
+            if mplan.is_empty() {
+                continue;
+            }
+            // `SAVE-02`：范围校验里的 `EngineInvariantViolation`（引擎自己弄丢 / 弄反了端点）
+            // 在调试构建与 CI 下是错误。输入本来就损坏的、以及调用方整体重写容器时丢的那一端
+            // 记成 `PreExistingDamage`（`SpanOrigin::Damaged`），不在这里拦。
+            crate::save::enforce(&mplan.diagnostics)?;
+            let mut plan = MutationPlan::new(part);
+            plan.node_edits = mplan.edits.clone();
+            let dom = self.pkg.dom_mut(part)?.ok_or_else(|| {
+                Error::edit(DiagCode::EditPlanInvalid, format!("part#{} 不是 XML part", part.0))
+            })?;
+            plan.validate(dom)?;
+            if let Some(txn) = &mut self.txn {
+                txn.remember(part, dom, self.spans.get(&part));
+            }
+            let has_edits = !plan.node_edits.is_empty();
+            let result = plan.commit(dom);
+            let index = self.spans.get_mut(&part).expect("key came from the map");
+            crate::span::apply_save(index, &result.created, &mplan);
+            self.record(mplan.diagnostics);
+            touched_main |= has_edits && part == main;
+        }
+        Ok(touched_main)
+    }
+
     /// 文档自带的 `w:removePersonalInformation`（`SAVE-07`：设置或文档标志为真时清洗作者）。
     pub fn remove_personal_info_flag(&self) -> bool {
         self.doc.settings.as_ref().and_then(|s| s.remove_personal_information) == Some(true)
@@ -199,27 +689,61 @@ impl EditSession {
 
     /// 把快照里的每个写前镜像放回去，并重建投影。
     fn restore(&mut self, snap: Snapshot) -> Result<()> {
-        for (part, image) in snap.doms {
+        for (part, image, spans) in snap.doms {
             if let Some(dom) = self.pkg.dom_mut(part)? {
                 *dom = image;
             }
+            match spans {
+                Some(idx) => {
+                    self.spans.insert(part, idx);
+                }
+                None => {
+                    self.spans.remove(&part);
+                }
+            }
+            self.fields.remove(&part); // 投影，重建即可
         }
         self.rebuild()
     }
 
     /// 一个阶段：`validate` → `commit` → 刷新投影 → 记诊断。编辑操作只碰主 part；保存选项
     /// （`SAVE-07`）也走这里，可以指向任意 XML part（投影只在主 part 上刷新）。
-    pub(crate) fn commit_plan(&mut self, plan: MutationPlan) -> Result<MutationResult> {
+    pub(crate) fn commit_plan(&mut self, mut plan: MutationPlan) -> Result<MutationResult> {
         let main = self.pkg.main_part();
         let part = plan.part;
+        self.ensure_spans(part)?;
+        self.ensure_field_baseline(part)?;
         let dom = self.pkg.dom_mut(part)?.ok_or_else(|| {
             Error::edit(DiagCode::EditPlanInvalid, format!("part#{} 不是 XML part", part.0))
         })?;
+        let index = self.spans.get(&part).expect("ensure_spans built it");
+        // `SPAN-06`：锚点变换从编辑列表推导，每个操作都自动得到维护
+        let mut update = plan_update(dom, index, &plan.node_edits, &plan.span);
+        // `SPAN-07`：整体删除的范围连标记与 reference run 一起删
+        let extra: Vec<NodeId> = update.removed_nodes().collect();
+        if !extra.is_empty() {
+            let touches_content = extra.iter().any(|&n| is_content_item(dom, n));
+            plan.node_edits.extend(extra.into_iter().map(NodeEdit::Delete));
+            if touches_content {
+                // 删掉的 reference run 是内容项，边界要按最终的编辑列表重算
+                update = plan_update(dom, index, &plan.node_edits, &plan.span);
+            }
+        }
         plan.validate(dom)?;
         if let Some(txn) = &mut self.txn {
-            txn.remember(part, dom);
+            txn.remember(part, dom, self.spans.get(&part));
         }
-        let result = plan.commit(dom);
+        let span_diags = std::mem::take(&mut update.diagnostics);
+        let result = plan.commit(&mut *dom);
+        if !update.is_empty() {
+            let index = self.spans.get_mut(&part).expect("ensure_spans built it");
+            index.apply(&*dom, &update);
+            let more = index.take_diagnostics();
+            self.record(more);
+        }
+        self.record(span_diags);
+        // 字段索引是投影：DOM 变了就作废，下次问的时候重建（`FLD-02`）
+        self.fields.remove(&part);
         self.diagnostics.extend(result.diagnostics.iter().cloned());
         if part == main {
             if result.structure_changed {
@@ -237,6 +761,33 @@ impl EditSession {
     }
 }
 
+/// `word/settings.xml` 的约定路径。
+const SETTINGS: &str = "word/settings.xml";
+
+/// `.rels` 的根命名空间。
+const RELS_NS: &str = "http://schemas.openxmlformats.org/package/2006/relationships";
+
+/// `SAVE-05` 的内容类型。
+pub(crate) const CT_COMMENTS: &str =
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml";
+pub(crate) const CT_SETTINGS: &str =
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml";
+pub(crate) const CT_FOOTNOTES: &str =
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml";
+pub(crate) const CT_ENDNOTES: &str =
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.endnotes+xml";
+pub(crate) const CT_COMMENTS_EXTENDED: &str =
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.commentsExtended+xml";
+
+/// 新建 `w:` 部件的空根：`<w:xxx xmlns:w="…"/>`，URI 按目标 part 的 flavor。
+///
+/// 只声明用得上的命名空间；`w14:paraId` 一类扩展前缀由 `SAVE-03` 的
+/// `ensure_extension_declarations` 在序列化前按需补声明（连 `mc:Ignorable` 一起）。
+fn empty_root_xml(flavor: PartFlavor, local: &str) -> String {
+    let w = NsId::W.uri(flavor).expect("w 有两族 URI");
+    format!(r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:{local} xmlns:w="{w}"/>"#)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -248,6 +799,11 @@ mod tests {
 
     /// 两个 XML part 的最小 docx（主 part + settings）。
     fn docx() -> Vec<u8> {
+        docx_with(r#"<w:p><w:r><w:t>x</w:t></w:r></w:p>"#)
+    }
+
+    /// 同上，正文由调用方给。
+    fn docx_with(body: &str) -> Vec<u8> {
         let ct = concat!(
             r#"<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">"#,
             r#"<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>"#,
@@ -264,7 +820,7 @@ mod tests {
             r#"<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/></Relationships>"#
         );
         let doc = format!(
-            r#"<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="{W}"><w:body><w:p><w:r><w:t>x</w:t></w:r></w:p></w:body></w:document>"#
+            r#"<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="{W}"><w:body>{body}</w:body></w:document>"#
         );
         let settings =
             format!(r#"<?xml version="1.0" encoding="UTF-8"?><w:settings xmlns:w="{W}"/>"#);
@@ -322,5 +878,40 @@ mod tests {
         assert!(!s.package().is_dirty(), "两个 part 都回滚了");
         assert_eq!(s.save_with(&SaveOptions::default()).unwrap(), bytes, "保存回到原字节");
         assert_eq!(s.document().text_blocks().next().unwrap().text(), "x", "投影也回滚");
+    }
+
+    /// `SPAN-09` / `SAVE-02`：引擎自己弄丢一端的范围在调试构建下让保存失败，发布构建只记诊断。
+    ///
+    /// 索引没有对外的可变入口，破坏只能从 crate 内部注入——这条自检就是为了让"变换弄丢锚点"
+    /// 这类缺陷在 CI 里当场暴露，而不是悄悄写出一份半开的范围。
+    #[test]
+    fn span_09_engine_broken_range_fails_the_save_in_debug_builds() {
+        let bytes = docx_with(
+            r#"<w:p><w:bookmarkStart w:id="1" w:name="a"/><w:r><w:t>x</w:t></w:r><w:bookmarkEnd w:id="1"/></w:p>"#,
+        );
+        let mut s = EditSession::open(&bytes).unwrap();
+        let para = s.nth_text_block(0).expect("text block").node;
+        // 一次正常编辑：建立索引并让主 part 变脏（否则保存直接返回原字节）
+        s.apply(
+            EditOp::InsertText { at: InlinePos::new(para, 0), text: "y".into(), props: None },
+            &EditContext::default(),
+        )
+        .expect("插入成功");
+        let main = s.main_part();
+        let index = s.spans_mut(main).expect("索引已建立");
+        let span = index.live().next().expect("书签范围").id;
+        index.get_mut(span).expect("范围还在").end = None; // 注入破坏：终点不见了
+        let saved = s.save();
+        if cfg!(debug_assertions) {
+            match saved {
+                Err(Error::Invariant(d)) => {
+                    assert_eq!(d.code, DiagCode::SpanUnclosed);
+                    assert_eq!(d.origin, crate::diag::ValidationOrigin::EngineInvariantViolation);
+                }
+                other => panic!("调试构建下应 Err(SAVE_INVARIANT)：{other:?}"),
+            }
+        } else {
+            assert!(saved.is_ok(), "发布构建只记诊断");
+        }
     }
 }

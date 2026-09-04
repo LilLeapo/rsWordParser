@@ -1,7 +1,8 @@
 //! L4 编辑引擎（任务 1.11 / 1.12，`EDIT-01/02/03/05`，M1 门第二条）。
 //! 定位与代理对；`InsertText` 只脏一个 `w:t`、其他 zip 条目 CRC 不变；`DeleteRange` 截断 / 整 run 删除、
-//! 范围标记原地保留并记 `EDIT_ANCHOR_UNMOVED`；`SetRunProps` 拆 run；`SetParaProps` 建 `pPr`；
+//! `SetRunProps` 拆 run；`SetParaProps` 建 `pPr`；
 //! `ReplaceInlines`；批操作第 3 步失败 → DOM 与投影与操作前完全一致。
+//! 任务 2.2 起：`DeleteRange` 覆盖整个书签范围按 `SPAN-07` 折叠，锚点由 `SPAN-06` 变换维护。
 
 mod common;
 
@@ -14,6 +15,7 @@ use rsword::edit::{
 use rsword::error::Error;
 use rsword::package::Package;
 use rsword::semantic::props::{Change, Jc, ParaPropsPatch, RunPropsPatch, Val};
+use rsword::span::RangeClass;
 use rsword::xml::{Dirty, LocalName, QName, xpath_strings};
 
 const W: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
@@ -218,8 +220,8 @@ fn edit_03_insert_text_new_run_inherits_and_splits() {
     );
 }
 
-/// EDIT-03 DeleteRange：截断 / 整 run 删除 / 原子删除；覆盖书签起点 → M1 标记原地保留并记
-/// `EDIT_ANCHOR_UNMOVED`；覆盖 REF 字段结果 → 结果 run 删除、字段结构保留（begin..end 全删在 M2）。
+/// EDIT-03 DeleteRange：截断 / 整 run 删除 / 原子删除；覆盖整个书签范围 → `SPAN-07` 折叠到删除点
+/// （标记物理上正好落在那里，不必重写）；覆盖 REF 字段结果 → 结果 run 删除、字段结构保留（2.4 全删）。
 #[test]
 fn edit_03_delete_range_truncates_runs_and_keeps_markers() {
     let mut s = EditSession::open(&doc_with_body(
@@ -234,7 +236,16 @@ fn edit_03_delete_range_truncates_runs_and_keeps_markers() {
         .unwrap();
     assert_eq!(para_text(&s, 0), "ah");
     assert_eq!(r.offset_delta, vec![(p, Utf16Offset(1), -7)]);
-    assert!(s.diagnostics().iter().any(|d| d.code == DiagCode::EditAnchorUnmoved));
+    // SPAN-07：书签两端都落进删除区间 → 折叠，范围仍在（`_Toc` / `_Ref` 目标不断链）
+    let idx = s.spans().unwrap();
+    let bm = idx.find(RangeClass::Bookmark, "7").expect("书签仍在索引里");
+    assert!(bm.is_collapsed(), "{bm:?}");
+    assert_eq!(bm.start.unwrap().index, 1, "锚点落到删除点（r(a) 之后）");
+    assert!(bm.start.unwrap().marker.is_some(), "标记还是原来那个节点");
+    assert!(
+        !s.diagnostics().iter().any(|d| d.code == DiagCode::EditAnchorUnmoved),
+        "范围标记不再需要 EDIT_ANCHOR_UNMOVED"
+    );
     let xml = saved_xml(&mut s);
     assert!(xml.contains(r#"<w:bookmarkStart w:id="7" w:name="bm"/>"#), "标记原地保留: {xml}");
     assert!(xml.contains(r#"<w:bookmarkEnd w:id="7"/>"#));
@@ -243,24 +254,21 @@ fn edit_03_delete_range_truncates_runs_and_keeps_markers() {
     assert!(xml.contains(r#"<w:t xml:space="preserve">a</w:t>"#));
     assert!(xml.contains(r#"<w:t xml:space="preserve">h</w:t>"#));
 
-    // REF 字段结果
+    // REF 字段是原子（`FLD-14`：坐标流里恒为 1 个 U+FFFC，与结果文字长度无关）
     let mut s2 = EditSession::open(&corpus("bookmarks-crossref__006.docx")).unwrap();
     let p2 = para(&s2, 1);
     let text = para_text(&s2, 1);
-    assert!(text.starts_with("详见2025"), "{text}");
-    let result_len = "2025 年市场规模达到 1200 亿。".encode_utf16().count() as u32;
-    s2.apply(
-        EditOp::DeleteRange { from: InlinePos::new(p2, 2), to: InlinePos::new(p2, 2 + result_len) },
-        &ctx,
-    )
-    .unwrap();
+    assert!(text.starts_with("详见\u{FFFC}"), "REF 结果折成一个原子: {text}");
+    // `FLD-07`：删除覆盖原子字段 → begin..end 整个删掉，不留半截结构
+    s2.apply(EditOp::DeleteRange { from: InlinePos::new(p2, 2), to: InlinePos::new(p2, 3) }, &ctx)
+        .unwrap();
     assert_eq!(para_text(&s2, 1), "详见一节。");
     let saved = s2.save().unwrap();
     let mut pkg = Package::open(&saved).unwrap();
     let main = pkg.main_part();
     let dom = pkg.dom(main).unwrap().unwrap();
-    assert_eq!(xpath_strings(dom, "count(//w:p[2]//w:fldChar)").unwrap(), ["3"], "字段结构保留");
-    assert_eq!(xpath_strings(dom, "count(//w:p[2]//w:instrText)").unwrap(), ["1"]);
+    assert_eq!(xpath_strings(dom, "count(//w:p[2]//w:fldChar)").unwrap(), ["0"], "字段整个删掉");
+    assert_eq!(xpath_strings(dom, "count(//w:p[2]//w:instrText)").unwrap(), ["0"]);
     // 跨段与越界
     let e = s2
         .apply(
@@ -423,4 +431,89 @@ fn edit_05_failed_batch_rolls_back_everything() {
     let results = s.apply_all(ops, &ctx).unwrap();
     assert_eq!(results.len(), 2);
     assert!(para_text(&s, 1).starts_with("A段落,包含"), "{}", para_text(&s, 1));
+}
+
+/// `EDIT-06`：新外链在 `.rels` 里分配 `rId{max+1}`，其余条目原样；两次分配不撞号。
+#[test]
+fn edit_06_new_external_relationship_is_allocated_in_the_rels_part() {
+    let bytes = corpus("insert-and-layout__001.docx");
+    let mut s = EditSession::open(&bytes).unwrap();
+    let main = s.main_part();
+    let before: Vec<String> = s.package().part(main).rels.iter().map(|r| r.id.clone()).collect();
+    let rid = s
+        .add_external_relationship(main, rsword::package::RelType::Hyperlink, "https://x.test/")
+        .unwrap();
+    assert!(!before.contains(&rid), "新号不与已有的重复: {rid} vs {before:?}");
+    let second = s
+        .add_external_relationship(main, rsword::package::RelType::Hyperlink, "https://y.test/")
+        .unwrap();
+    assert_ne!(rid, second, "两次分配不撞号");
+    // 内存视图与保存出来的 `.rels` 都有这条
+    let rel = s.package().part(main).rels.by_id(&rid).expect("内存里的 Rels 也更新了");
+    assert!(
+        matches!(&rel.target, rsword::package::RelTarget::External(t) if t == "https://x.test/")
+    );
+    let saved = s.save().unwrap();
+    let mut pkg = Package::open(&saved).unwrap();
+    let rels_part = pkg.part(pkg.main_part()).rels_part.unwrap();
+    let xml = pkg.dom(rels_part).unwrap().unwrap().src().to_string();
+    assert!(
+        xml.contains(&format!(r#"Id="{rid}""#)) && xml.contains(r#"Target="https://x.test/""#),
+        "{xml}"
+    );
+    assert!(xml.contains(r#"TargetMode="External""#), "{xml}");
+    for id in &before {
+        assert!(xml.contains(&format!(r#"Id="{id}""#)), "原有关系还在: {id}");
+    }
+    // 重开后关系能被解析出来
+    let reopened = pkg.part(pkg.main_part()).rels.by_id(&rid).cloned();
+    assert!(reopened.is_some(), "{xml}");
+}
+
+/// `EDIT-03 InsertText` 在字段原子旁边的边界插入：插入点落在原子**之外**，左邻取字段的 end run、
+/// 右邻取 begin run（`SPAN-10` 的同一条道理）。格式从字段结果的最后一个 run 继承。
+#[test]
+fn edit_03_insert_text_next_to_a_field_atom() {
+    const BODY: &str = concat!(
+        r#"<w:p><w:r><w:t>ab</w:t></w:r>"#,
+        r#"<w:r><w:fldChar w:fldCharType="begin"/></w:r>"#,
+        r#"<w:r><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>"#,
+        r#"<w:r><w:fldChar w:fldCharType="separate"/></w:r>"#,
+        r#"<w:r><w:rPr><w:b/></w:rPr><w:t>7</w:t></w:r>"#,
+        r#"<w:r><w:fldChar w:fldCharType="end"/></w:r>"#,
+        r#"<w:r><w:t>cd</w:t></w:r></w:p>"#
+    );
+    let ctx = EditContext::default();
+
+    // 字段前的边界（偏移 2）：新 run 插在 begin run 之前，继承左侧 "ab"（无 rPr）
+    let mut s = EditSession::open(&doc_with_body(BODY)).unwrap();
+    let p = para(&s, 0);
+    assert_eq!(para_text(&s, 0), "ab\u{FFFC}cd", "字段原子占 1 个坐标单位");
+    s.apply(EditOp::InsertText { at: InlinePos::new(p, 2), text: "\tX".into(), props: None }, &ctx)
+        .unwrap();
+    assert_eq!(para_text(&s, 0), "ab\tX\u{FFFC}cd");
+    let xml = saved_xml(&mut s);
+    let inserted = xml.find(">X<").expect("新 run");
+    let begin = xml.find("begin").expect("begin run");
+    assert!(inserted < begin, "插入点在字段原子之外（begin 之前）: {xml}");
+    assert!(!xml[..inserted].contains("<w:b/>"), "继承左侧 run 的空格式: {xml}");
+
+    // 字段后的边界（偏移 3）：新 run 插在 end run 之后，继承字段结果里最后一个 run 的 rPr
+    let mut s = EditSession::open(&doc_with_body(BODY)).unwrap();
+    let p = para(&s, 0);
+    s.apply(EditOp::InsertText { at: InlinePos::new(p, 3), text: "\tX".into(), props: None }, &ctx)
+        .unwrap();
+    assert_eq!(para_text(&s, 0), "ab\u{FFFC}\tXcd");
+    let xml = saved_xml(&mut s);
+    let end = xml.find(r#"w:fldCharType="end""#).expect("end run");
+    let inserted = xml.find(">X<").expect("新 run");
+    let cd = xml.find(">cd<").expect("cd run");
+    assert!(end < inserted && inserted < cd, "插入点在 end run 之后、cd 之前: {xml}");
+    assert!(
+        xml[end..inserted].contains("<w:b/>"),
+        "继承字段结果 run 的 rPr（新 run 带 w:b）: {xml}"
+    );
+    // 字段本身没被动过
+    assert_eq!(xml.matches("<w:fldChar").count(), 3, "{xml}");
+    assert!(xml.contains(r#"<w:instrText xml:space="preserve"> PAGE </w:instrText>"#), "{xml}");
 }

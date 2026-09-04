@@ -7,7 +7,6 @@ mod common;
 
 use std::io::{Cursor, Read};
 
-use rsword::diag::DiagCode;
 use rsword::edit::{EditContext, EditOp, EditSession, InlinePos};
 use rsword::package::Package;
 use rsword::save::SaveOptions;
@@ -50,17 +49,12 @@ fn save_01_unchanged_document_returns_original_bytes() {
     let stamped =
         SaveOptions { saved_at: Some("2026-07-28T08:30:00Z".into()), ..Default::default() };
     assert_eq!(s.save_with(&stamped).unwrap(), bytes, "saved_at 不强制保存");
-    // remove_personal_info 是强制选项：进入流程，但这份语料没有 settings.xml 也没有作者信息，
-    // 于是没有任何 part 变脏，写回仍是原字节（并记一条缺 settings.xml 的诊断）
+    // remove_personal_info 是强制选项：进入流程，但这份语料没有 settings.xml 也没有作者信息。
+    // 写 `false` 不需要 part（标志缺失就等于 false），所以没有任何 part 变脏，仍是原字节
     let forced = SaveOptions { remove_personal_info: Some(false), ..Default::default() };
     assert!(forced.forces_save());
     assert!(s.save_with(&forced).unwrap() == bytes, "无可改动时仍是原字节");
-    assert!(
-        s.diagnostics()
-            .iter()
-            .any(|d| d.code == DiagCode::EditUnsupported && d.message.contains("settings.xml")),
-        "缺 settings.xml 应记诊断"
-    );
+    assert!(s.diagnostics().is_empty(), "没什么可诊断的: {:?}", s.diagnostics());
     // 有 settings.xml 的文档：强制选项确实产生输出
     let other = corpus("revisions__013.docx");
     let mut s2 = EditSession::open(&other).unwrap();
@@ -153,13 +147,14 @@ fn save_07_remove_personal_info_scrubs_the_whole_package() {
     assert_eq!(xpath_on(&people, "count(//w15:person)"), ["0"], "person 条目删除");
     assert!(same_entry(&bytes, &saved, "customXml/item1.xml"), "customXml 不清洗");
     assert!(same_entry(&bytes, &saved, "docProps/custom.xml"), "自定义属性不清洗");
-    // 这份语料没有 settings.xml：标志写不进去，记诊断（新建 part 属 SAVE-05）
-    assert!(
-        s.diagnostics()
-            .iter()
-            .any(|d| d.code == DiagCode::EditUnsupported && d.message.contains("settings.xml")),
-        "缺 settings.xml 应记诊断"
-    );
+    // 这份语料没有 settings.xml：按 `SAVE-05` 建出来，标志写进去（M1 时这里只记诊断）
+    let settings = part_text(&saved, "word/settings.xml");
+    // 裸元素就是 true（`ST_OnOff` 的缺省）
+    assert_eq!(xpath_on(&settings, "count(//w:removePersonalInformation)"), ["1"], "{settings}");
+    let ct = part_text(&saved, "[Content_Types].xml");
+    assert!(ct.contains("/word/settings.xml"), "内容类型 Override: {ct}");
+    let rels = part_text(&saved, "word/_rels/document.xml.rels");
+    assert!(rels.contains("settings.xml"), "关系: {rels}");
 }
 
 /// `SAVE-07`：文档自带标志时，无编辑的保存也清洗（TS `scrubPersonalInfo`）；

@@ -18,10 +18,12 @@ use crate::semantic::props::{
 pub mod color;
 pub mod drawingml;
 pub mod fonts;
+pub mod symbol;
 
 pub use color::{resolve_theme_color, rgb_hex};
 pub use drawingml::{ColorBase, ColorTransform, DrawingColor, Rgb};
 pub use fonts::ResolvedFonts;
+pub use symbol::{decode as decode_symbol, decode_pua, is_symbol_font};
 
 /// 有效值的来源（`RES-01`）。
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -26,6 +26,7 @@ use crate::model::{
 use crate::package::{RelTarget, Rels};
 use crate::resolve::{Resolver, rgb_hex};
 use crate::semantic::props::{ParaProps, RunProps, UnderlineKind, Val};
+use crate::span::field::{FieldId, FieldSpan, FormData, InstrToken, Keyword, read_form_data};
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
 /// 样式的"显示"信息（TS `StyleInfo.display` 里 run 映射用到的三项）。
@@ -61,6 +62,16 @@ fn w(local: LocalName) -> QName {
 }
 
 impl<'a> Ctx<'a> {
+    /// TS `noteNumbers`：正文条目按 part 顺序 1..n；查不到写 `*`。
+    pub fn note_number(&self, endnote: bool, id: Option<&str>) -> String {
+        let notes = if endnote { &self.doc.endnotes } else { &self.doc.footnotes };
+        let Some(id) = id else { return "*".to_string() };
+        notes
+            .normal()
+            .position(|n| n.id == id)
+            .map_or_else(|| "*".to_string(), |i| (i + 1).to_string())
+    }
+
     pub fn new(
         dom: &'a Dom,
         doc: &'a Document,
@@ -625,6 +636,30 @@ fn ole_previews_resolve(ctx: &Ctx<'_>, tb: &TextBlock) -> bool {
     })
 }
 
+/// 绘图分支（`spec/15` 4.6），落空就是普通文本段落。
+fn drawing_or_text_block(
+    ctx: &Ctx<'_>,
+    p: NodeId,
+    tb: &TextBlock,
+    o: Map<String, Value>,
+) -> Map<String, Value> {
+    // 段落里既有文字又有 `w:object`，但预览图解析不出来：TS 退成 `Embedded object`
+    // 只读块（否则整段会只画一张画不出来的预览图，把文字吃掉）。预览图都解析得出来时
+    // 留在带图的文本段落路径上，`w:object` 的原字节照样往返（`docs/01` §6.2.6）。
+    if !tb.facts.objects.is_empty() && !ole_previews_resolve(ctx, tb) {
+        let mut o = passthrough(o, "Embedded object");
+        set(&mut o, "previewText", ctx.plain_text(p));
+        let v = vml_display(ctx.dom, tb.facts.objects[0]);
+        image::ole_display(ctx, p, &v, &mut o);
+        return o;
+    }
+    // 文本框 / 绘图对象的分类整个在投影层，模型里这仍是可编辑段落。
+    match textbox::drawing_block(ctx, p, tb, o.clone()) {
+        Some(o) => o,
+        None => text_block(ctx, tb, o),
+    }
+}
+
 fn paragraph_block(
     ctx: &Ctx<'_>,
     p: NodeId,
@@ -637,20 +672,23 @@ fn paragraph_block(
             set(&mut o, "invisibleMarker", true);
             o
         }
-        // 段落里既有文字又有 `w:object`，但预览图解析不出来：TS 退成 `Embedded object`
-        // 只读块（否则整段会只画一张画不出来的预览图，把文字吃掉）。预览图都解析得出来时
-        // 留在带图的文本段落路径上，`w:object` 的原字节照样往返（`docs/01` §6.2.6）。
-        Some(Block::Text(tb)) if !tb.facts.objects.is_empty() && !ole_previews_resolve(ctx, tb) => {
-            let mut o = passthrough(o, "Embedded object");
-            set(&mut o, "previewText", ctx.plain_text(p));
-            let v = vml_display(ctx.dom, tb.facts.objects[0]);
-            image::ole_display(ctx, p, &v, &mut o);
-            o
-        }
-        // 绘图分支（`spec/15` 4.6）：文本框 / 绘图对象的分类整个在投影层，模型里这仍是可编辑段落。
-        Some(Block::Text(tb)) => match textbox::drawing_block(ctx, p, tb, o.clone()) {
-            Some(o) => o,
-            None => text_block(ctx, tb, o),
+        // TS `buildBlock` 规则 2 / 3：字段段落与 TOC 行是只读的 passthrough，不出 runs / format。
+        // 顺序照 TS 的决策树：**字段在绘图之前**——文本框里的字段不算数（`para_fields` /
+        // `has_stray_field_chars` 都只看宿主段落自己的 inline），所以带字段的文本框段落照样
+        // 走得到下面的绘图分支（`vml-textbox__007`）。
+        Some(Block::Text(tb)) => match ts_field_passthrough(ctx, tb) {
+            Some(label) => {
+                let mut o = passthrough(o, &label);
+                set(&mut o, "previewText", ctx.plain_text(p));
+                if let Some(id) = &tb.style_id {
+                    set(&mut o, "styleId", id.clone());
+                }
+                if let Some(fd) = field_display(ctx, p, tb.facts.toc_style_level) {
+                    set(&mut o, "fieldDisplay", fd);
+                }
+                o
+            }
+            None => drawing_or_text_block(ctx, p, tb, o),
         },
         Some(Block::Protected(pb)) => match &pb.kind {
             ProtectedKind::Invisible => {
@@ -661,6 +699,31 @@ fn paragraph_block(
             ProtectedKind::SectionBreak => {
                 let mut o = passthrough(o, "Section break paragraph");
                 set(&mut o, "previewText", "");
+                o
+            }
+            // `COMPAT-03`：`Protected(FieldBlockResult)`（`R09`：Block 策略字段的结果段落）
+            // 与字段文本段落同形——TS 那边它们都是同一个 passthrough 分支
+            ProtectedKind::FieldBlockResult(_) => {
+                let style = para_style_id(ctx, p);
+                let toc = style.as_deref().and_then(crate::model::facts::toc_level_of_id);
+                // TS 没有 R09：它逐段判定。块字段中间那些**自己不含 fldChar / instrText** 的段落
+                // 在 TS 那边落到规则 3（TOC 样式 → `TOC entry`）。既不含字段结构又没有目录样式的
+                // 段落 TS 会当普通段落，本引擎按 `FLD-08` 保护整段区间（差异见 `docs/04` §8）。
+                let label = if has_field_chars(ctx, p) {
+                    field_label(ctx, p)
+                } else if toc.is_some() {
+                    "TOC entry".to_string()
+                } else {
+                    "Paragraph".to_string()
+                };
+                let mut o = passthrough(o, &label);
+                set(&mut o, "previewText", ctx.plain_text(p));
+                if let Some(id) = &style {
+                    set(&mut o, "styleId", id.clone());
+                }
+                if let Some(fd) = field_display(ctx, p, toc) {
+                    set(&mut o, "fieldDisplay", fd);
+                }
                 o
             }
             kind => {
@@ -724,6 +787,309 @@ fn paragraph_block(
             o
         }
     }
+}
+
+// ---- 字段段落（TS `buildBlock` 规则 2 / 3，`docs/01` §6.2）------------------------------------
+
+/// 起点在本段的字段（`MOD-04` 的 `facts.fields`）。
+fn para_fields<'a>(ctx: &'a Ctx<'_>, tb: &TextBlock) -> Vec<&'a FieldSpan> {
+    tb.facts.fields.iter().filter_map(|&id| ctx.doc.fields.get(id)).collect()
+}
+
+/// 段落里有配不上对的 `fldChar` / `instrText`（未闭合、孤立 end）。
+///
+/// 这种段落 TS 一律走 passthrough：`extractRuns` 折不动半个字段。已识别字段的结构 run 不算——
+/// 它们的 run 在索引里查得到。
+fn has_stray_field_chars(ctx: &Ctx<'_>, tb: &TextBlock) -> bool {
+    tb.inlines.iter().any(|i| match i {
+        Inline::Run(r) => {
+            r.segments.iter().any(|sg| {
+                matches!(
+                    sg.kind,
+                    SegmentKind::FldChar | SegmentKind::InstrText | SegmentKind::DelInstrText
+                )
+            }) && ctx.doc.fields.field_of(r.node).is_none()
+        }
+        _ => false,
+    })
+}
+
+/// TS `onlyXeFields` 的单字段判定：这些字段会被折成可编辑 run（`COMPAT-07`），其余让整段变
+/// passthrough。`w:fldSimple` 一律不折（TS 的 `onlyXeFields` 第一条）。
+fn ts_collapsible(ctx: &Ctx<'_>, f: &FieldSpan) -> bool {
+    if !f.form.is_complex() {
+        return false;
+    }
+    match f.keyword() {
+        Keyword::Xe | Keyword::Ref => true,
+        Keyword::FormCheckBox => {
+            matches!(read_form_data(ctx.dom, f.ff_data), Some(FormData::CheckBox { .. }))
+        }
+        Keyword::Hyperlink => ts_convertible_hyperlink(f),
+        k => is_simple_inline(k),
+    }
+}
+
+/// 段落里第一个字段的关键字（文档序）。
+///
+/// 直接走 DOM：未闭合的字段没有 `FieldSpan`（`FLD-02` 第 6 条），保护块（`R09`）也没有 inlines，
+/// 两种情况下指令都只在节点里。连续的 `w:instrText` 先攒起来，遇到 `w:fldChar` 才结算——
+/// `PAGE` 被拆成 `PA` + `GE` 也认得出。
+fn first_instr_keyword(ctx: &Ctx<'_>, p: NodeId) -> Option<Keyword> {
+    let dom = ctx.dom;
+    let mut pending = String::new();
+    for n in dom.descendants(p) {
+        let Some(name) = dom.name(n) else { continue };
+        if name.ns != NsId::W {
+            continue;
+        }
+        match name.local {
+            LocalName::InstrText | LocalName::DelInstrText => {
+                for c in dom.semantic_children(n) {
+                    if let Some(t) = dom.text(c) {
+                        pending.push_str(&t);
+                    }
+                }
+            }
+            LocalName::FldChar | LocalName::T if !pending.trim().is_empty() => {
+                return Some(instr_keyword(&pending));
+            }
+            _ => {}
+        }
+    }
+    (!pending.trim().is_empty()).then(|| instr_keyword(&pending))
+}
+
+fn instr_keyword(raw: &str) -> Keyword {
+    crate::span::field::instr::parse(raw, &[]).keyword
+}
+
+/// TS `fieldLabel`：段落里第一个字段的关键字决定标签；没有指令（只剩孤立的 `fldChar`）时是
+/// "字段结束标记"，段落里还有分页符则再加一句。
+fn field_label(ctx: &Ctx<'_>, p: NodeId) -> String {
+    match first_instr_keyword(ctx, p) {
+        None => {
+            if has_page_break(ctx, p) {
+                "Field end marker + page break".to_string()
+            } else {
+                "Field end marker".to_string()
+            }
+        }
+        Some(k) => match k {
+            Keyword::Toc => "Auto TOC (updates when opened in Word)".to_string(),
+            Keyword::PageRef => "Page reference field".to_string(),
+            Keyword::IncludePicture => "Linked picture field".to_string(),
+            Keyword::Hyperlink => "Hyperlink field".to_string(),
+            Keyword::Seq => "Caption number field".to_string(),
+            Keyword::Page => "Page number field".to_string(),
+            k => format!("Field ({})", k.as_str()),
+        },
+    }
+}
+
+fn has_page_break(ctx: &Ctx<'_>, p: NodeId) -> bool {
+    let dom = ctx.dom;
+    dom.descendants(p).any(|n| {
+        dom.is(n, w(LocalName::Br))
+            && ctx.attr(n, NsId::W, LocalName::Type).as_deref() == Some("page")
+    })
+}
+
+/// TS `buildBlock` 规则 2 / 3：文本段落是否走 passthrough，返回标签。
+///
+/// 规则 2：有字段且不是"全部可折叠"→ 字段 passthrough。规则 3：TOC 系列样式的段落 → `TOC entry`。
+/// 判定只看 facts 与字段索引，不重新解析 XML（`COMPAT-03`）。
+fn ts_field_passthrough(ctx: &Ctx<'_>, tb: &TextBlock) -> Option<String> {
+    let fields = para_fields(ctx, tb);
+    let stray = has_stray_field_chars(ctx, tb);
+    // 有配不上对的结构，或者有字段但不是"全部可折叠"
+    if stray || (!fields.is_empty() && !fields.iter().all(|f| ts_collapsible(ctx, f))) {
+        return Some(field_label(ctx, tb.node));
+    }
+    tb.facts.toc_style_level.map(|_| "TOC entry".to_string())
+}
+
+/// 段落自身有 `w:fldChar` / `w:instrText` / `w:fldSimple`（TS `hasFields`，逐段判定）。
+fn has_field_chars(ctx: &Ctx<'_>, p: NodeId) -> bool {
+    let dom = ctx.dom;
+    dom.descendants(p).any(|n| {
+        dom.name(n).is_some_and(|q| {
+            q.ns == NsId::W
+                && matches!(
+                    q.local,
+                    LocalName::FldChar
+                        | LocalName::InstrText
+                        | LocalName::DelInstrText
+                        | LocalName::FldSimple
+                )
+        })
+    })
+}
+
+/// 段落的 `w:pStyle`（保护块没有 `TextBlock.style_id`）。
+fn para_style_id(ctx: &Ctx<'_>, p: NodeId) -> Option<String> {
+    let dom = ctx.dom;
+    let ppr = dom.semantic_children(p).find(|&n| dom.is(n, w(LocalName::PPr)))?;
+    let style = dom.semantic_children(ppr).find(|&n| dom.is(n, w(LocalName::PStyle)))?;
+    ctx.attr(style, NsId::W, LocalName::Val)
+}
+
+/// 段落里贡献显示文字的 run：`(节点, 文字, 字号)`。`w:tab` 记成 `\t`，指令与 `fldChar` 不算。
+fn display_runs(ctx: &Ctx<'_>, p: NodeId) -> Vec<(NodeId, String, Option<i64>)> {
+    let dom = ctx.dom;
+    let mut out = Vec::new();
+    for r in dom.descendants(p).filter(|&n| dom.is(n, w(LocalName::R))) {
+        let mut text = String::new();
+        for c in dom.semantic_children(r) {
+            let Some(name) = dom.name(c) else { continue };
+            if name.ns != NsId::W {
+                continue;
+            }
+            match name.local {
+                LocalName::T | LocalName::DelText => {
+                    for t in dom.semantic_children(c) {
+                        if let Some(s) = dom.text(t) {
+                            text.push_str(&s);
+                        }
+                    }
+                }
+                LocalName::Tab | LocalName::Ptab => text.push('\t'),
+                _ => {}
+            }
+        }
+        if text.is_empty() {
+            continue;
+        }
+        let sz = dom
+            .semantic_children(r)
+            .find(|&n| dom.is(n, w(LocalName::RPr)))
+            .and_then(|rpr| dom.semantic_children(rpr).find(|&n| dom.is(n, w(LocalName::Sz))))
+            .and_then(|sz| ctx.attr(sz, NsId::W, LocalName::Val))
+            .and_then(|v| v.trim().parse::<i64>().ok())
+            .filter(|&n| n != 0);
+        out.push((r, text, sz));
+    }
+    out
+}
+
+/// TS `fieldDisplayOf`：`pageBreak` / `tocLine` / `text` 三选一，都不成立时没有 `fieldDisplay`。
+///
+/// `toc_level` 是段落样式的目录级别（`MOD-04` 的 `toc_style_level`）；保护块没有 facts，调用方
+/// 从 `styleId` 现算。
+fn field_display(ctx: &Ctx<'_>, p: NodeId, toc_level: Option<u8>) -> Option<Value> {
+    let runs = display_runs(ctx, p);
+    let text: String = runs.iter().map(|(_, t, _)| t.as_str()).collect();
+    if text.replace('\t', "").trim().is_empty() {
+        return has_page_break(ctx, p).then(|| json!({ "kind": "pageBreak" }));
+    }
+    match toc_level {
+        Some(level) => Some(toc_line_display(ctx, p, &text, &runs, level)),
+        None => Some(text_display(ctx, p, &text, &runs)),
+    }
+}
+
+/// 目录行：按制表符切成 `num? / left / right`。
+fn toc_line_display(
+    ctx: &Ctx<'_>,
+    p: NodeId,
+    text: &str,
+    runs: &[(NodeId, String, Option<i64>)],
+    level: u8,
+) -> Value {
+    let parts: Vec<&str> = text.split('\t').collect();
+    let (num, left, right) = if parts.len() < 2 {
+        (None, text.to_string(), String::new())
+    } else {
+        let right = parts[parts.len() - 1].to_string();
+        let head = &parts[..parts.len() - 1];
+        if head.len() >= 2 && looks_like_toc_number(head[0]) {
+            (Some(head[0].to_string()), head[1..].join(" "), right)
+        } else {
+            (None, head.join(" "), right)
+        }
+    };
+    let mut o = Map::new();
+    if let Some(a) = toc_anchor(ctx, p) {
+        set(&mut o, "anchor", a);
+    }
+    set(&mut o, "kind", "tocLine");
+    set(&mut o, "left", left);
+    set(&mut o, "level", i64::from(level));
+    if let Some(n) = num {
+        set(&mut o, "num", n);
+    }
+    set(&mut o, "right", right);
+    if let Some(sz) = runs.first().and_then(|(_, _, sz)| *sz) {
+        set(&mut o, "szHalfPoints", sz);
+    }
+    Value::Object(o)
+}
+
+/// `1.1.` 一类的目录编号：只有数字、点、连字符，且至少一个数字。
+fn looks_like_toc_number(s: &str) -> bool {
+    !s.is_empty()
+        && s.chars().any(|c| c.is_ascii_digit())
+        && s.chars().all(|c| c.is_ascii_digit() || c == '.' || c == '-')
+}
+
+/// 目录行里的内部链接锚点（`w:hyperlink w:anchor`）。
+fn toc_anchor(ctx: &Ctx<'_>, p: NodeId) -> Option<String> {
+    let dom = ctx.dom;
+    dom.descendants(p)
+        .find(|&n| dom.is(n, w(LocalName::Hyperlink)))
+        .and_then(|h| ctx.attr(h, NsId::W, LocalName::Anchor))
+}
+
+/// 普通字段段落的显示：整段文字 + 段落排版 + 字号 / 字体（不统一时逐 run 给）。
+fn text_display(
+    ctx: &Ctx<'_>,
+    p: NodeId,
+    text: &str,
+    runs: &[(NodeId, String, Option<i64>)],
+) -> Value {
+    let dom = ctx.dom;
+    let mut o = Map::new();
+    let ppr = dom.semantic_children(p).find(|&n| dom.is(n, w(LocalName::PPr)));
+    let mut warnings = Vec::new();
+    let props = crate::semantic::props::read_para_props(dom, ppr, &mut warnings);
+    if let Some(Value::Object(f)) = para_format_of_props(ctx, &props, ppr, p, false) {
+        for k in ["align", "lineRawTwips", "lineRule", "lineSpacing"] {
+            if let Some(v) = f.get(k) {
+                o.insert(k.to_string(), v.clone());
+            }
+        }
+    }
+    if let Some(font) = runs.first().and_then(|(r, _, _)| {
+        let rpr = dom.semantic_children(*r).find(|&n| dom.is(n, w(LocalName::RPr)));
+        let rp = crate::semantic::props::read_run_props(dom, rpr, &mut warnings);
+        ctx.resolver.fonts(&rp).display().map(str::to_string)
+    }) {
+        set(&mut o, "fontFamily", font);
+    }
+    set(&mut o, "kind", "text");
+    // TS 的 `left` 是 trim 过的整段文字（语料 `linked-image__003`：`"Company logo: "` → `"Company logo:"`）
+    set(&mut o, "left", text.trim().to_string());
+    let sizes: Vec<Option<i64>> = runs.iter().map(|(_, _, sz)| *sz).collect();
+    let uniform = sizes.windows(2).all(|w| w[0] == w[1]);
+    match (uniform, sizes.first().copied().flatten()) {
+        (true, Some(sz)) => set(&mut o, "szHalfPoints", sz),
+        (true, None) => {}
+        (false, _) => {
+            let list: Vec<Value> = runs
+                .iter()
+                .map(|(_, t, sz)| {
+                    let mut m = Map::new();
+                    if let Some(sz) = sz {
+                        set(&mut m, "szHalfPoints", *sz);
+                    }
+                    set(&mut m, "text", t.clone());
+                    Value::Object(m)
+                })
+                .collect();
+            set(&mut o, "runs", Value::Array(list));
+        }
+    }
+    Value::Object(o)
 }
 
 /// TS `buildTextParagraph` 的第三条隐藏规则（`docs/01` §6.3）：段落标记 `rPr/vanish` 为真（非 specVanish）、
@@ -1349,10 +1715,108 @@ pub(super) fn runs_json(ctx: &Ctx<'_>, tb: &TextBlock) -> Vec<Map<String, Value>
                 }
                 // Math / Other：TS 的公式 run 需要 OMML token 串（M3）
             }
-            Inline::Field { .. } => {}
+            Inline::Field { id, result } => {
+                if let Some(r) = field_run_json(ctx, *id, result, para_disp) {
+                    runs.push(r);
+                }
+            }
         }
     }
     merge_runs(runs)
+}
+
+/// TS 的"可转换 HYPERLINK"（`docs/01` §6.2 `onlyXeFields`）：`HYPERLINK "url"`，最多再带一个
+/// `\o "tip"`。其他开关（`\l` 文内锚点等）的 HYPERLINK 字段整段走 passthrough。
+fn ts_convertible_hyperlink(f: &FieldSpan) -> bool {
+    if *f.keyword() != Keyword::Hyperlink {
+        return false;
+    }
+    let mut target = false;
+    for t in &f.instr.tokens {
+        match t {
+            InstrToken::Word(_) | InstrToken::Quoted(_) if !target => target = true,
+            InstrToken::Switch { name, .. } if name.eq_ignore_ascii_case(&'o') => {}
+            _ => return false,
+        }
+    }
+    target
+}
+
+/// 可转换 HYPERLINK 的目标。
+fn hyperlink_href(f: &FieldSpan) -> String {
+    f.instr.first_argument().unwrap_or_default().to_string()
+}
+
+/// TS 的"简单内联字段"（`docs/01` §6.2 `SIMPLE_INLINE_FIELD_RE`）：结果直接当文字显示。
+fn is_simple_inline(k: &Keyword) -> bool {
+    matches!(
+        k,
+        Keyword::Date
+            | Keyword::Time
+            | Keyword::CreateDate
+            | Keyword::SaveDate
+            | Keyword::NumPages
+            | Keyword::FileName
+            | Keyword::Author
+            | Keyword::Page
+    )
+}
+
+/// `COMPAT-07`：原子形态字段折成一个 TS run。
+///
+/// 形状取自语料（TS 的 `extractRuns` 折叠）：XE → `xeTerm` 且 `text` 为空；REF → `refField` +
+/// `refInstr`（指令原文，不 trim），`text` 是结果文字；FORMCHECKBOX → `instrField` + `fldBeginXml`
+/// （begin run 的原字节），`text` 是 `☐` / `☒`；简单内联字段 → `instrField` + 结果文字。
+/// 其余关键字的字段在 TS 里会让整段变成 passthrough，走不到这里；真走到了就退化成结果文字。
+///
+/// 格式取第一个非空结果 run；没有结果 run（如未选中的复选框）时不带格式键——语料里这些字段的
+/// begin run 都没有 `w:rPr`，TS 的输出也没有格式键，等有反例再从 begin run 取。
+fn field_run_json(
+    ctx: &Ctx<'_>,
+    id: FieldId,
+    result: &[Inline],
+    para: StyleDisp,
+) -> Option<Map<String, Value>> {
+    let f = ctx.doc.fields.get(id)?;
+    let text = inlines_text(result);
+    let first = result.iter().find_map(|i| match i {
+        Inline::Run(r) if !run_text(r).is_empty() => Some(r),
+        _ => None,
+    });
+    let mut o = first.and_then(|r| run_json(ctx, r, para)).unwrap_or_default();
+    match f.keyword() {
+        Keyword::Xe => {
+            set(&mut o, "text", "");
+            set(&mut o, "xeTerm", f.instr.first_argument().unwrap_or_default().to_string());
+        }
+        Keyword::Ref => {
+            set(&mut o, "text", text);
+            set(&mut o, "refField", f.instr.first_argument().unwrap_or_default().to_string());
+            set(&mut o, "refInstr", f.instr.raw.clone());
+        }
+        Keyword::FormCheckBox => {
+            let checked = matches!(
+                read_form_data(ctx.dom, f.ff_data),
+                Some(FormData::CheckBox { checked: true, .. })
+            );
+            set(&mut o, "text", if checked { "☒" } else { "☐" });
+            set(&mut o, "instrField", "FORMCHECKBOX");
+            let begin = ctx.lex_range(f.form.head());
+            set(&mut o, "fldBeginXml", ctx.slice(&begin).to_string());
+        }
+        k if is_simple_inline(k) => {
+            // 没有结果的简单内联字段（PAGE 常见）：TS 放一个空格占位，run 才不是空的
+            set(&mut o, "text", if text.is_empty() { " ".to_string() } else { text });
+            set(&mut o, "instrField", k.as_str().to_string());
+        }
+        _ => {
+            if text.is_empty() {
+                return None;
+            }
+            set(&mut o, "text", text);
+        }
+    }
+    Some(o)
 }
 
 fn break_char(kind: BreakKind) -> &'static str {
@@ -1363,10 +1827,29 @@ fn break_char(kind: BreakKind) -> &'static str {
     }
 }
 
-/// TS `buildRun`。
-fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Value>> {
+/// `rawRPr` 的字节；`drop_fonts` 时把 `w:rFonts` 子元素从原字节里剪掉（`RES-05`：解码过的符号
+/// run 在 TS 那边是 `<w:rPr></w:rPr>`）。按节点区间剪，不做字符串匹配。
+fn raw_rpr(ctx: &Ctx<'_>, rpr: NodeId, drop_fonts: bool) -> String {
     let dom = ctx.dom;
-    let r = ctx.resolver;
+    let whole = ctx.lex_range(rpr);
+    if !drop_fonts {
+        return ctx.slice(&whole).to_string();
+    }
+    let Some(fonts) = dom.semantic_children(rpr).find(|&n| dom.is(n, w(LocalName::RFonts))) else {
+        return ctx.slice(&whole).to_string();
+    };
+    let cut = ctx.lex_range(fonts);
+    let src = ctx.dom.src();
+    let (a, b) = (whole.start as usize, whole.end as usize);
+    let (c, d) = (cut.start as usize, cut.end as usize);
+    if c < a || d > b {
+        return ctx.slice(&whole).to_string();
+    }
+    format!("{}{}", &src[a..c], &src[d..b])
+}
+
+/// `COMPAT-07`：run 的坐标流文本按 TS 的控制字符折回（结构段贡献 0）。
+fn run_text(run: &Run) -> String {
     let mut text = String::new();
     for seg in &run.segments {
         match &seg.kind {
@@ -1379,6 +1862,90 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
             _ => {}
         }
     }
+    text
+}
+
+/// 一段 inlines 的文本（字段结果用）。
+fn inlines_text(inlines: &[Inline]) -> String {
+    let mut s = String::new();
+    for i in inlines {
+        match i {
+            Inline::Run(r) => s.push_str(&run_text(r)),
+            Inline::Field { result, .. } => s.push_str(&inlines_text(result)),
+            Inline::Atom(a) => {
+                if let AtomKind::BareBreak { kind } = &a.kind {
+                    s.push_str(break_char(*kind));
+                }
+            }
+        }
+    }
+    s
+}
+
+/// `RES-05`：符号字体 run 的显示文本。
+///
+/// `w:sym` 按字体表解码，表外的保留原字符（`U+F000 + 码位`，与 TS 一致，语料
+/// `symbol-fonts__002`）；符号字体 run 的
+/// `w:t` 只解码 PUA 区间的字符。返回值第二项表示"文本段被解码过"——TS 那边这种 run 的 `w:rFonts`
+/// 会被摘掉（字形已经变成真正的 Unicode，再带符号字体反而显示不出来）。
+fn symbol_text(ctx: &Ctx<'_>, run: &Run) -> (String, bool) {
+    let font = ctx.resolver.fonts(&run.props).display_ascii().map(str::to_string);
+    let symbol_run = font.as_deref().is_some_and(crate::resolve::is_symbol_font);
+    let mut text = String::new();
+    let mut decoded_text = false;
+    for seg in &run.segments {
+        match &seg.kind {
+            SegmentKind::Text | SegmentKind::DelText if symbol_run => {
+                let f = font.as_deref().unwrap_or_default();
+                for c in run.segment_text(seg).chars() {
+                    match crate::resolve::decode_pua(f, c) {
+                        Some(d) => {
+                            text.push(d);
+                            decoded_text = true;
+                        }
+                        None => text.push(c),
+                    }
+                }
+            }
+            SegmentKind::Text | SegmentKind::DelText => text.push_str(run.segment_text(seg)),
+            SegmentKind::Tab | SegmentKind::PTab { .. } => text.push('\t'),
+            SegmentKind::Br { kind, .. } => text.push_str(break_char(*kind)),
+            SegmentKind::Cr => text.push('\n'),
+            SegmentKind::NoBreakHyphen => text.push('\u{2011}'),
+            // 解码失败保留原字符（`RES-05`）：模型里放的就是 `U+F000 + 码位`，TS 也是这样
+            SegmentKind::Sym { font, code: Some(_) } => {
+                match font.as_deref().and_then(|f| {
+                    let SegmentKind::Sym { code: Some(c), .. } = &seg.kind else { return None };
+                    crate::resolve::decode_symbol(f, *c)
+                }) {
+                    Some(d) => text.push(d),
+                    None => text.push_str(run.segment_text(seg)),
+                }
+            }
+            _ => {}
+        }
+    }
+    (text, decoded_text)
+}
+
+/// TS `buildRun`。
+fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Value>> {
+    let dom = ctx.dom;
+    let r = ctx.resolver;
+    // `COMPAT-07`：脚注 / 尾注引用是原子 run，`text` 是显示编号，其余字段一概不出（TS 行为）
+    if let Some((endnote, id)) = note_ref_of(run) {
+        let mut o = Map::new();
+        set(&mut o, "text", ctx.note_number(endnote, id.as_deref()));
+        let mut nr = Map::new();
+        if let Some(id) = id {
+            set(&mut nr, "id", id);
+        }
+        set(&mut nr, "kind", if endnote { "endnote" } else { "footnote" });
+        set(&mut o, "noteRef", Value::Object(nr));
+        comment_ids(ctx, run, &mut o);
+        return Some(o);
+    }
+    let (text, symbol_decoded) = symbol_text(ctx, run);
     // TS `buildRun(withImages)`：run 里的图片成为一个 `text: ""` 的原子 run。
     let image = run.segments.iter().find_map(|s| image::run_image(ctx, s));
     if text.is_empty() && image.is_none() {
@@ -1389,6 +1956,7 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
     if let Some(img) = image {
         set(&mut o, "image", Value::Object(img));
     }
+    comment_ids(ctx, run, &mut o);
     if let Some(link) = &run.link {
         match link {
             crate::model::Link::Hyperlink { target, tooltip, .. } => {
@@ -1415,7 +1983,19 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
                 }
                 set(&mut o, "link", Value::Object(l));
             }
-            crate::model::Link::Field(_) => {}
+            // `FLD-07` 透明字段：目标来自指令（`HYPERLINK "url" \o "tip"` / `\l anchor`）
+            crate::model::Link::Field(id) => {
+                if let Some(f) = ctx.doc.fields.get(*id)
+                    && ts_convertible_hyperlink(f)
+                {
+                    let mut l = Map::new();
+                    set(&mut l, "href", hyperlink_href(f));
+                    if let Some(tip) = f.instr.switch('o').filter(|t| !t.is_empty()) {
+                        set(&mut l, "tooltip", tip.to_string());
+                    }
+                    set(&mut o, "link", Value::Object(l));
+                }
+            }
         }
     }
     let rpr_node = dom.semantic_children(run.node).find(|&n| dom.is(n, w(LocalName::RPr)));
@@ -1432,7 +2012,7 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
         revision_ctx(run, &mut o);
         return Some(o);
     };
-    set(&mut o, "rawRPr", ctx.slice(&ctx.lex_range(rpr_node)));
+    set(&mut o, "rawRPr", raw_rpr(ctx, rpr_node, symbol_decoded));
     let r_style = props.style.as_deref().filter(|s| *s != "Hyperlink");
     if let Some(s) = r_style {
         set(&mut o, "styleId", s);
@@ -1471,6 +2051,8 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
         set(&mut o, "sizeHalfPoints", n);
     }
     let fonts = r.fonts(props);
+    // 解码过的符号 run：TS 连 `w:rFonts` 一起摘掉，`font` / `fontAscii` / `themeRFonts` 都不出
+    let fonts = if symbol_decoded { Default::default() } else { fonts };
     let font = fonts.display().map(str::to_string);
     if let Some(f) = &font {
         set(&mut o, "font", f.clone());
@@ -1606,6 +2188,32 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
     }
     revision_ctx(run, &mut o);
     Some(o)
+}
+
+/// run 里的脚注 / 尾注引用段（`w:footnoteReference` / `w:endnoteReference`）。
+fn note_ref_of(run: &Run) -> Option<(bool, Option<String>)> {
+    run.segments.iter().find_map(|s| match &s.kind {
+        SegmentKind::FootnoteRef { id } => Some((false, id.clone())),
+        SegmentKind::EndnoteRef { id } => Some((true, id.clone())),
+        _ => None,
+    })
+}
+
+/// `COMPAT-07` `commentIds`：起止都在本段的批注范围覆盖到的 run，加上只有 `commentReference`
+/// 的批注（模型侧已按 TS 规则挂到最近的有字 run，见 `Document` 的 `attach_comments`）。
+fn comment_ids(ctx: &Ctx<'_>, run: &Run, o: &mut Map<String, Value>) {
+    if run.comments.is_empty() {
+        return;
+    }
+    let ids: Vec<Value> = run
+        .comments
+        .iter()
+        .filter_map(|s| ctx.doc.spans.get(*s))
+        .map(|s| Value::String(s.pair_id().to_string()))
+        .collect();
+    if !ids.is_empty() {
+        set(o, "commentIds", Value::Array(ids));
+    }
 }
 
 fn revision_ctx(run: &Run, o: &mut Map<String, Value>) {

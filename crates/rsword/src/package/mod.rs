@@ -75,10 +75,14 @@ enum PartDom {
     Opaque(XmlError),
 }
 
+/// 新建 part 的 `zip_index`：原 zip 里没有对应条目（`SAVE-05` / `SAVE-06`：新 part 追加在末尾）。
+pub const NO_ZIP_ENTRY: u32 = u32::MAX;
+
 #[derive(Debug)]
 pub struct Part {
     pub id: PartId,
     pub uri: PartUri,
+    /// 原 zip 条目下标；本次会话新建的 part 为 [`NO_ZIP_ENTRY`]。
     pub zip_index: u32,
     pub content_type: Option<String>,
     pub is_xml: bool,
@@ -121,6 +125,11 @@ impl Part {
             PartDom::Parsed(d) => Some(d),
             _ => None,
         }
+    }
+
+    /// 本次会话新建、原 zip 里没有的 part。
+    pub fn is_new(&self) -> bool {
+        self.zip_index == NO_ZIP_ENTRY
     }
 }
 
@@ -350,6 +359,61 @@ impl Package {
 
     pub fn part(&self, id: PartId) -> &Part {
         &self.parts[id.idx()]
+    }
+
+    /// 可变 part（`EDIT-06` 追加关系后同步内存里的 `Rels`）。
+    pub(crate) fn part_mut(&mut self, id: PartId) -> &mut Part {
+        &mut self.parts[id.idx()]
+    }
+
+    /// 本次会话新建的 part（`SAVE-05`），按创建顺序。
+    pub fn new_parts(&self) -> impl Iterator<Item = PartId> + '_ {
+        self.parts.iter().filter(|p| p.is_new()).map(|p| p.id)
+    }
+
+    /// `SAVE-05`：登记一个新的 XML part。
+    ///
+    /// `xml` 是整份内容（含 XML 声明）：解析成 DOM 后这个 part 与别的 part 一样可编辑、
+    /// 可按脏节点序列化。**只登记 part 本身**——内容类型 Override 与 `.rels` 里的关系由
+    /// 调用方按同一套 DOM 机制写（`EditSession::add_part`），因此也满足"未变部分原字节"。
+    pub(crate) fn register_new_part(
+        &mut self,
+        uri: PartUri,
+        content_type: &str,
+        xml: &str,
+    ) -> Result<PartId> {
+        if self.by_uri.contains_key(&uri) {
+            return Err(Error::edit(
+                DiagCode::EditPlanInvalid,
+                format!("part {uri} 已存在，不能重复新建"),
+            ));
+        }
+        let id = PartId(u32::try_from(self.parts.len()).expect("part count fits u32"));
+        let dom = Dom::parse(id, xml.as_bytes()).map_err(|e| Error::Malformed {
+            part: uri.to_string(),
+            offset: e.offset,
+            message: e.message,
+        })?;
+        // flavor（`PKG-08`）：按根元素命名空间的族别，与打开时同一条规则
+        let flavor = sniff_root(xml.as_bytes())
+            .ok()
+            .and_then(|info| info.namespace_uri)
+            .and_then(|uri| NsId::from_uri(&uri))
+            .filter(|(ns, _)| ns.has_strict_uri())
+            .map(|(_, fl)| fl);
+        self.parts.push(Part {
+            id,
+            uri: uri.clone(),
+            zip_index: NO_ZIP_ENTRY,
+            content_type: Some(content_type.to_string()),
+            is_xml: true,
+            flavor,
+            rels: Rels::default(),
+            rels_part: None,
+            dom: PartDom::Parsed(Box::new(dom)),
+        });
+        self.by_uri.insert(uri, id);
+        Ok(id)
     }
 
     pub fn find(&self, uri: &PartUri) -> Option<PartId> {

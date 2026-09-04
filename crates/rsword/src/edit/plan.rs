@@ -3,6 +3,7 @@
 use crate::diag::{DiagCode, Diagnostic};
 use crate::error::{Error, Result};
 use crate::package::PartId;
+use crate::span::SpanPolicy;
 use crate::xml::{Dirty, Dom, NodeEdit, NodeId, NodeKind, Target};
 
 use super::pos::Utf16Offset;
@@ -20,6 +21,8 @@ pub struct MutationPlan {
     pub diagnostics: Vec<Diagnostic>,
     /// `(para, from, delta)`：供调用方修正光标。
     pub offset_delta: Vec<(NodeId, Utf16Offset, i32)>,
+    /// 与范围相关的要求（`SPAN-06/07`）；锚点变换本身由 `commit_plan` 从 `node_edits` 推导。
+    pub span: SpanPolicy,
 }
 
 /// `commit` 的结果。
@@ -57,6 +60,7 @@ impl MutationPlan {
             structure_changed: false,
             diagnostics: Vec::new(),
             offset_delta: Vec::new(),
+            span: SpanPolicy::default(),
         }
     }
 
