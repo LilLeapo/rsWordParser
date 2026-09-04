@@ -233,7 +233,12 @@ mod tests {
             "{}",
             diags[0].message
         );
-        assert!(matches!(enforce(&diags), Err(Error::Invariant(_))));
+        // `SAVE-02`：调试构建 / CI 报错，发布构建只记诊断
+        if cfg!(debug_assertions) {
+            assert!(matches!(enforce(&diags), Err(Error::Invariant(_))));
+        } else {
+            assert!(enforce(&diags).is_ok());
+        }
         // 同样的乱序若是输入本来如此（Clean），不报
         let clean =
             parse(&format!(r#"<w:r xmlns:w="{W}"><w:rPr><w:sz w:val="24"/><w:b/></w:rPr></w:r>"#));
