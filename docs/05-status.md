@@ -7,7 +7,8 @@
 
 **M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖），**已全部并入 `main`**（2026-09-04）。
 **M2 进行中**（分支 `m2-span-fields`）：2.1 Span 索引、2.2 Anchor 变换、2.3 物化与保存校验、
-2.4 字段子系统、2.5 字段进模型与 compat、2.6 的读侧与批注编辑操作（含 `SAVE-05` 新建 part）、2.7 符号字体解码、
+2.4 字段子系统、2.5 字段进模型与 compat、2.6 批注与注释（读侧 + 编辑操作 + `SAVE-05` 新建 part +
+compat 权威条目列表）、2.7 符号字体解码、
 2.8 的 `rId` 分配已落地；任务分解见
 `spec/13-m2-plan.md`，进度清单见 `docs/04` §11。
 
@@ -31,7 +32,7 @@ run 属性 / 改段落属性 / 整段替换、把 TS 的 `SaveBlock[]` 保存请
 | resolve `resolve/` | 首版 | 样式链（basedOn / link）、docDefaults 层叠、每字段 `Provenance`、主题字体与颜色、符号字体解码、heading 级别 | toggle 属性真实规则 + Word 实测 fixture（M5）、补全 Wingdings 2/3 与 Webdings 映射表 |
 | L4 编辑 `edit/` | M1 子集 + Anchor + 批注 | `EditSession`（含范围索引）、`InlinePos` 定位、`MutationPlan` plan/validate/commit、按 part 回滚的事务（DOM + 索引）、`InsertText`、`DeleteRange`（同段）、`SetRunProps`、`SetParaProps`、`ReplaceInlines`、`ReplaceParaProps`、`InsertBlock`/`DeleteBlock`/`MoveBlock`、`SPAN-06/07` 锚点维护、`AddComment`/`RemoveComment`/`SetCommentText`（含 `SAVE-05` 新建 part） | 字段操作、拆分 / 合并段落（M2）、表格操作（M3）、修订生成（M7） |
 | 保存 `save/` | M1 子集 + Span | `SAVE-01` 六步编排（含第 3 步 Span 物化）、`SAVE-02` 子集校验（未绑定前缀、`PROP-05` 顺序、`SPAN-09` 范围检查）、扩展命名空间声明、`w:t` preserve、`raw_copy_file` 写回、`SaveOptions`（`saved_at`、`remove_personal_info`、`remove_date_and_time`） | 节 / 页眉页脚 / 水印 / 图表 / 墨迹等选项（M3–M6） |
-| 兼容 `bind/compat_ts/` | 文本 + 字段 + 批注 | `parsed_doc` 整份 `ParsedDoc`（含 `extras`、UTF-16 索引、sdt 拆分）、字段折叠 run 与 `fieldDisplay` / `fieldLabel`、`comments` / `footnotes` / `endnotes` / `commentIds` / `noteRef`、`apply_save_blocks`（original / generated / xml 块）、容忍差分 | 表格 / 绘图 / 页眉页脚字段（随对应里程碑） |
+| 兼容 `bind/compat_ts/` | 文本 + 字段 + 批注 / 注释 | `parsed_doc` 整份 `ParsedDoc`（含 `extras`、UTF-16 索引、sdt 拆分）、字段折叠 run 与 `fieldDisplay` / `fieldLabel`、`comments` / `footnotes` / `endnotes` / `commentIds` / `noteRef`、`apply_save_blocks`（original / generated / xml 块）、容忍差分 | 表格 / 绘图 / 页眉页脚字段（随对应里程碑） |
 
 ## 公开 API 边界（今天可用的）
 
@@ -68,16 +69,16 @@ let bytes = s.save_with(&outcome.save_options)?;
 | resolve 对照 | 86,465 项 `StyleDisplay`、2,326 项 heading 级别、2,897 项 linked shell | `tests/resolve.rs` |
 | 解析差分（文本域） | 226 份用例（2.6 起含带批注 / 注释的文档），160 处已登记差异，**0 处未知差异** | `cargo run -p diff-parse -- --scope text` |
 | 解析差分（全域） | 573 份里 295 份有未知差异、1,666 个差异点（M3–M6 的工作面） | `cargo run -p diff-parse -- --scope all` |
-| 保存差分 | 162 份 TS 保存用例：78 份与 `saveDocx` 等价（其中 41 份逐字节相同）、3 份有意不同、81 份跳过 | `tests/save_blocks.rs` |
+| 保存差分 | 162 份 TS 保存用例：88 份与 `saveDocx` 等价（其中 41 份逐字节相同）、4 份有意不同、70 份跳过 | `tests/save_blocks.rs` |
 | 范围索引 | 573 份 / 3012 个 part 的 31 个标记全部成对认领 → 19 个范围（书签 7、批注 12）；1 处孤儿终点 | `tests/span.rs` |
 | Span 编辑与物化 | 29 个用例覆盖 `SPAN-01`–`SPAN-09`（含 4 条变换规则、整体删除策略、物化与原字节保真） | `cargo test -p rsword --test span` |
 | 字段索引 | 43 份文档 / 57 个字段（`Atom` 33、`Block` 6、`Picture` 6、`Form` 4、`Link` 3、`Object` 3、`Marker` 1、`Unknown` 1）；3 份 TS 截断夹具本来就缺 `end` | `cargo test -p rsword --test field -- --nocapture` |
 | 字段模型与 compat | 19 个用例（配对 / 指令 / 策略 / 坐标流 / R09 / 折叠 run / `fieldDisplay`） | `cargo test -p rsword --test field` |
-| 批注与注释 | 语料 11 份带批注（17 条）、5 条注释条目；6 个用例（三部件关联、结构条目、`commentIds` 三形态、`noteRef` 编号） | `cargo test -p rsword --test notes` |
+| 批注与注释 | 语料 11 份带批注（17 条）、5 条注释条目；13 个用例（三部件关联、结构条目、`commentIds` 三形态、`noteRef` 编号、`SAVE-05` 新建 part、三个编辑操作、compat 权威列表） | `cargo test -p rsword --test notes` |
 
 全域差异按域聚合（差异点，2.6 读侧之后实测 1,666）：绘图与图片 839、块分类连带项 394、
 run 相关 153（批注已归零，剩的是绘图与页眉页脚里的 run）、页眉页脚 146、表格 67、其他 67。保存侧 82 份跳过按里程碑：
-M5 约 48、M4/M6 约 20、M2 约 16、M7 2。
+M5 约 48（页眉页脚 / 节 / 水印 / 墨迹）、M4/M6 约 20（图片与图表）、M7 2（修订 `w:id`）。
 
 ## 与 TS 有意不同的地方
 

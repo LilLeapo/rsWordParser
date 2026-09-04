@@ -533,7 +533,18 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
     （首次加批注后 comments.xml / 关系 / 内容类型都对，其他条目原压缩数据不变，重开后
     `commentIds` 挂上）、`EDIT-06` 验收行（两次 AddComment 拿到不同 id）、`SetCommentText`
     保留加粗并新建 `commentsExtended`、`RemoveComment` 只清自己那条、失败回滚连新 part 一起退。
-  - [ ] compat 的 `comments` / `footnotes` 保存选项（权威列表：重写条目、删掉列表外批注在正文里的标记）
+  - [x] **compat 的权威条目列表**（`bind/compat_ts/save_blocks.rs`、`edit/ops.rs`）：`SaveOptions` 的
+    `comments` / `footnotes` / `endnotes` 是**整份替换**的列表——列表外的批注连正文里的范围标记与
+    reference run 一起删（`RemoveComment`），列表外的注释条目删掉，列表里的按内容 upsert。
+    `richParas` 的八个字段（bold / italic / underline / strike / caps / color / sizeHalfPoints）翻成
+    `w:rPr` 发出去；改注释条目时**保住自引用标记 run**（`w:footnoteRef` 是编号），结构条目
+    （separator）一个字节不动；缺 `footnotes.xml` / `endnotes.xml` 时按 `SAVE-05` 新建（连 Word
+    期待的两条结构条目）。条目列表在块之后应用，所以块重发出来的标记也会被"列表外"规则清掉。
+    保存语料：78 → **88 份等价**（41 份逐字节相同），跳过 81 → 70。新增一处有意不同
+    （`comments__001.save.2`：权威列表删掉批注后我们把空掉的 reference run 整个删掉，TS 留下
+    一个 `<w:r></w:r>`），登记在 `INTENTIONAL`。测试 `tests/notes.rs` 再加 2 个（脚注列表的
+    改 / 建 / 删与结构条目保留、批注列表的权威性）。
+  - [ ] 收尾：`people.xml` 进模型、缺 `settings.xml` 时用同一套 `SAVE-05` 写清洗标志
 - [x] **2.7 符号字体解码**（`resolve/symbol.rs`、`bind/compat_ts/blocks.rs`）：`RES-05` 的符号字体表与
   `decode` / `decode_pua` / `is_symbol_font`；`w:sym` 按 `w:font` + `w:char` 解码（`0xF000` 偏移与裸码位
   都认），符号字体 run 的 `w:t` **只**解码 PUA 区间（普通 ASCII 字母不动，语料 `symbol-fonts__004`），

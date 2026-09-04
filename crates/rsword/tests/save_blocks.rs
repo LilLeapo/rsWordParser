@@ -3,8 +3,9 @@
 //! 其中的 `documentXml`（TS `saveDocx` 的输出）按 `xml::canon` 规范化后相等——等价于任何 XPath 子集
 //! 表达式在两者上结果相同。等价是**手段不是目标**：TS 不是验收权威，`INTENTIONAL` 列出我们有意做得
 //! 不同的用例（`docs/04` §8）。M1 范围：`options` 只含 `savedAt` / `removePersonalInfo`（`SAVE-07`），
-//! 块只含 original / generated / xml；用到字段、
-//! 新超链接关系、块级修订等后续里程碑能力的用例记为"跳过"并列出原因。
+//! 块只含 original / generated / xml；`options` 到 2.6 为止支持 `savedAt` / `removePersonalInfo` /
+//! `comments` / `footnotes` / `endnotes`（`SAVE-07` + 权威条目列表）；用到页眉页脚、图表、图片、
+//! 墨迹等后续里程碑能力的用例记为"跳过"并列出原因。
 
 mod common;
 
@@ -55,6 +56,10 @@ const INTENTIONAL: &[(&str, &str)] = &[
     ),
     ("revisions__007.save.2.json", "同上（表格的块级修订）"),
     ("revisions__007.save.3.json", "run 级修订 w:id 同样按 EDIT-06 分配；TS 从固定的 9001 起"),
+    (
+        "comments__001.save.2.json",
+        "权威列表删掉批注后：我们把空掉的 commentReference run 整个删掉，TS 留下一个 <w:r></w:r>",
+    ),
 ];
 
 #[test]

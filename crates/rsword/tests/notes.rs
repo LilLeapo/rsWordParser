@@ -405,3 +405,80 @@ fn edit_05_failed_add_comment_rolls_back_the_new_part() {
     assert!(s.document().comments.items.is_empty());
     assert_eq!(s.save().unwrap(), bytes, "保存回到原字节（新 part 也回滚了）");
 }
+
+// ---- compat 的权威条目列表（`SaveOptions.comments` / `footnotes`，任务 2.6c）----
+
+/// `footnotes` 权威列表：改已有条目时保住自引用标记 run 与结构条目，列表里的新条目建出来，
+/// 列表外的条目删掉。
+#[test]
+fn compat_04_footnote_list_rewrites_entries_and_keeps_separators() {
+    let footnotes = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?><w:footnotes xmlns:w="{W}">
+             <w:footnote w:type="separator" w:id="-1"><w:p><w:r><w:separator/></w:r></w:p></w:footnote>
+             <w:footnote w:id="2"><w:p><w:r><w:footnoteRef/></w:r><w:r><w:t>旧正文</w:t></w:r></w:p></w:footnote>
+             <w:footnote w:id="4"><w:p><w:r><w:footnoteRef/></w:r><w:r><w:t>要删的</w:t></w:r></w:p></w:footnote>
+           </w:footnotes>"#
+    );
+    let bytes = common::docx_with_parts(
+        r#"<w:p><w:r><w:t>正文</w:t></w:r><w:r><w:footnoteReference w:id="2"/></w:r></w:p>"#,
+        &[("word/footnotes.xml", &footnotes)],
+    );
+    let mut s = EditSession::open(&bytes).unwrap();
+    let blocks = serde_json::json!([{ "kind": "original", "docxIndex": 0 }]);
+    let options = serde_json::json!({
+        "footnotes": [
+            { "id": "2", "richParas": [[{ "text": "新正文", "italic": true }]], "text": "新正文" },
+            { "id": "3", "text": "新脚注" }
+        ]
+    });
+    let outcome = rsword::bind::compat_ts::apply_save_blocks(&mut s, &blocks, &options).unwrap();
+    assert!(!outcome.unchanged && outcome.ops > 0);
+    let saved = s.save().unwrap();
+    let out = part_text(&saved, "word/footnotes.xml").unwrap();
+    assert!(out.contains(r#"w:type="separator""#), "结构条目留着: {out}");
+    assert!(out.contains("新正文") && !out.contains("旧正文"), "{out}");
+    assert!(out.contains("<w:i/>"), "richParas 的格式发出来: {out}");
+    assert_eq!(out.matches("<w:footnoteRef/>").count(), 2, "自引用标记 run 保住: {out}");
+    assert!(out.contains(r#"w:id="3""#) && out.contains("新脚注"), "新条目: {out}");
+    assert!(!out.contains("要删的"), "列表外的条目删掉: {out}");
+    // 重开：模型读得到
+    let re = EditSession::open(&saved).unwrap();
+    let ids: Vec<&str> = re.document().footnotes.normal().map(|n| n.id.as_str()).collect();
+    assert_eq!(ids, ["2", "3"]);
+    assert_eq!(re.document().footnotes.get("2").unwrap().text, "新正文");
+}
+
+/// `comments` 权威列表：列表外的批注连正文标记一起删，列表里的条目按内容改 / 建。
+#[test]
+fn compat_04_comment_list_is_authoritative() {
+    let comments = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?><w:comments xmlns:w="{W}">
+             <w:comment w:id="1" w:author="Alice"><w:p><w:r><w:t>留着改</w:t></w:r></w:p></w:comment>
+             <w:comment w:id="2" w:author="Bob"><w:p><w:r><w:t>要删</w:t></w:r></w:p></w:comment>
+           </w:comments>"#
+    );
+    let bytes = common::docx_with_parts(
+        concat!(
+            r#"<w:p><w:commentRangeStart w:id="1"/><w:r><w:t>甲</w:t></w:r><w:commentRangeEnd w:id="1"/>"#,
+            r#"<w:r><w:commentReference w:id="1"/></w:r>"#,
+            r#"<w:commentRangeStart w:id="2"/><w:r><w:t>乙</w:t></w:r><w:commentRangeEnd w:id="2"/>"#,
+            r#"<w:r><w:commentReference w:id="2"/></w:r></w:p>"#
+        ),
+        &[("word/comments.xml", &comments)],
+    );
+    let mut s = EditSession::open(&bytes).unwrap();
+    let blocks = serde_json::json!([{ "kind": "original", "docxIndex": 0 }]);
+    let options = serde_json::json!({
+        "comments": [{ "id": "1", "author": "Alice", "initials": "A", "text": "改过的" }]
+    });
+    rsword::bind::compat_ts::apply_save_blocks(&mut s, &blocks, &options).unwrap();
+    let saved = s.save().unwrap();
+    let out = part_text(&saved, "word/comments.xml").unwrap();
+    assert!(out.contains("改过的") && !out.contains("留着改"), "{out}");
+    assert!(!out.contains("要删"), "列表外的条目删掉: {out}");
+    assert!(out.contains(r#"w:initials="A""#), "属性按列表更新: {out}");
+    let doc = part_text(&saved, "word/document.xml").unwrap();
+    assert!(doc.contains(r#"<w:commentRangeStart w:id="1"/>"#), "留下的批注标记不动: {doc}");
+    assert!(!doc.contains(r#"w:id="2""#), "被删批注的标记与 reference 一起清掉: {doc}");
+    assert!(doc.contains("甲") && doc.contains("乙"), "正文文字不动: {doc}");
+}

@@ -17,7 +17,7 @@ use crate::xml::{
 use super::inline::{Emitter, has_control_chars, sanitize_text, text_segments};
 use super::plan::{MutationPlan, MutationResult};
 use super::pos::{InlinePos, Loc, inline_spans, locate, utf16_to_byte};
-use super::{BlockPos, EditContext, EditOp, EditSession, NewBlock, NewInline};
+use super::{BlockPos, EditContext, EditOp, EditSession, NewBlock, NewInline, NewRun};
 
 pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<MutationResult> {
     match op {
@@ -870,40 +870,70 @@ fn comment_reference_run(id: &str) -> NewElement {
         .with_child(NewElement::new(w(LocalName::CommentReference)).with_attr(w(LocalName::Id), id))
 }
 
-/// 批注条目的段落：首段带 `w:annotationRef`，每段一个 `w14:paraId`。
-fn comment_paragraphs(text: &str, para_id: &str, rpr: Option<&NewElement>) -> Vec<NewElement> {
-    let w14 = |l: LocalName| QName::new(NsId::W14, l);
+/// 条目段落：每段一串 run（`NewRun.props` 是整份 `w:rPr`）。
+pub(crate) type EntryParas = Vec<Vec<NewRun>>;
+
+/// 纯文本按 `\n` 分段，每段一个 run（可带一份共用的 `rPr`）。
+pub(crate) fn text_entry_paras(text: &str, rpr: Option<&NewElement>) -> EntryParas {
     let lines: Vec<&str> = if text.is_empty() { vec![""] } else { text.split('\n').collect() };
-    let last = lines.len() - 1;
     lines
         .into_iter()
+        .map(|line| vec![NewRun { text: line.to_string(), props: rpr.cloned() }])
+        .collect()
+}
+
+/// 一个 `w:r`：`props` 是整份 `w:rPr`，控制字符按 `MOD-06` 折回 `w:tab` / `w:br`。
+fn entry_run(r: &NewRun) -> NewElement {
+    let mut e = NewElement::new(w(LocalName::R));
+    if let Some(p) = &r.props {
+        e.push_child(p.clone());
+    }
+    for seg in text_segments(&r.text, false) {
+        e.push_child(seg);
+    }
+    e
+}
+
+/// 批注 / 注释条目的段落：首段可带一个引导 run（批注的 `w:annotationRef`、注释的
+/// `w:footnoteRef`），末段带 `w14:paraId`（`commentsExtended` 按它关联）。
+fn entry_paragraphs(
+    paras: &EntryParas,
+    para_id: Option<&str>,
+    lead: Option<NewElement>,
+) -> Vec<NewElement> {
+    let w14 = |l: LocalName| QName::new(NsId::W14, l);
+    let last = paras.len().saturating_sub(1);
+    paras
+        .iter()
         .enumerate()
-        .map(|(i, line)| {
+        .map(|(i, runs)| {
             let mut p = NewElement::new(w(LocalName::P));
-            // `commentsExtended` 按最后一段的 paraId 关联（`MOD-10`）
-            if i == last {
-                p.push_attr(w14(LocalName::ParaId), para_id.to_string());
+            if i == last
+                && let Some(pid) = para_id
+            {
+                p.push_attr(w14(LocalName::ParaId), pid.to_string());
             }
-            if i == 0 {
-                let mark_rpr = NewElement::new(w(LocalName::RPr)).with_child(
-                    NewElement::new(w(LocalName::RStyle))
-                        .with_attr(w(LocalName::Val), "CommentReference"),
-                );
-                p.push_child(
-                    NewElement::new(w(LocalName::R))
-                        .with_child(mark_rpr)
-                        .with_child(NewElement::new(w(LocalName::AnnotationRef))),
-                );
+            if i == 0
+                && let Some(l) = &lead
+            {
+                p.push_child(l.clone());
             }
-            let mut r = NewElement::new(w(LocalName::R));
-            if let Some(rpr) = rpr {
-                r.push_child(rpr.clone());
+            for r in runs {
+                p.push_child(entry_run(r));
             }
-            r.push_child(NewElement::new(w(LocalName::T)).with_text(line));
-            p.push_child(r);
             p
         })
         .collect()
+}
+
+/// 批注条目首段的引用标记 run（`CommentReference` 样式 + `w:annotationRef`）。
+fn annotation_ref_run() -> NewElement {
+    let rpr = NewElement::new(w(LocalName::RPr)).with_child(
+        NewElement::new(w(LocalName::RStyle)).with_attr(w(LocalName::Val), "CommentReference"),
+    );
+    NewElement::new(w(LocalName::R))
+        .with_child(rpr)
+        .with_child(NewElement::new(w(LocalName::AnnotationRef)))
 }
 
 /// 会话内唯一的 `w14:paraId`（8 位十六进制，避开已用的）。
@@ -957,7 +987,11 @@ fn add_comment(
     if let Some(d) = &c.date {
         entry.push_attr(w(LocalName::Date), d.clone());
     }
-    for p in comment_paragraphs(&c.text, &para_id, None) {
+    for p in entry_paragraphs(
+        &text_entry_paras(&c.text, None),
+        Some(&para_id),
+        Some(annotation_ref_run()),
+    ) {
         entry.push_child(p);
     }
     let cdom = s.package().part(comments_part).dom().expect("comments part is parsed");
@@ -1184,7 +1218,8 @@ fn set_comment_text(
             plan.node_edits.push(NodeEdit::Delete(c));
         }
     }
-    for p in comment_paragraphs(text, &para_id, first_rpr.as_ref()) {
+    let paras = text_entry_paras(text, first_rpr.as_ref());
+    for p in entry_paragraphs(&paras, Some(&para_id), Some(annotation_ref_run())) {
         plan.node_edits.push(NodeEdit::Insert {
             parent: Target::Node(node),
             before: None,
@@ -1202,4 +1237,172 @@ fn set_comment_text(
     }
     s.rebuild()?;
     Ok(result)
+}
+
+/// compat 的权威列表路径用的批注条目 upsert（`COMPAT-04` 的 `SaveOptions.comments`）。
+///
+/// 条目在就改（正文重写、属性按需改），不在就新建；**不动正文里的范围标记**——标记的位置由
+/// 块的 `commentStarts` / `commentEnds` / `commentIds` 决定。
+pub(crate) fn upsert_comment_entry(
+    s: &mut EditSession,
+    id: &str,
+    c: &super::NewComment,
+    paras: &EntryParas,
+) -> Result<MutationResult> {
+    let (author, initials, date) = (
+        (!c.author.is_empty()).then_some(c.author.as_str()),
+        c.initials.as_deref(),
+        c.date.as_deref(),
+    );
+    let (parent_id, done) = (c.parent_id.as_deref(), c.done);
+    let part = s.ensure_comments_part()?;
+    let existing = s.document().comments.get(id).map(|c| (c.node, c.para_id.clone()));
+    let mut result = MutationResult::default();
+    let para_id = match &existing {
+        Some((_, Some(pid))) => pid.clone(),
+        _ => fresh_para_id(s, id.len() as u32 + 1),
+    };
+    let body = entry_paragraphs(paras, Some(&para_id), Some(annotation_ref_run()));
+    let mut plan = MutationPlan::new(part);
+    match existing {
+        Some((node, _)) => {
+            let dom = s.package().part(part).dom().expect("comments part is parsed");
+            for c in dom.semantic_children(node) {
+                if dom.is(c, w(LocalName::P)) {
+                    plan.node_edits.push(NodeEdit::Delete(c));
+                }
+            }
+            for (name, value) in [
+                (LocalName::Author, author),
+                (LocalName::Initials, initials),
+                (LocalName::Date, date),
+            ] {
+                match value {
+                    Some(v) => plan.node_edits.push(NodeEdit::SetAttr {
+                        node: Target::Node(node),
+                        name: w(name),
+                        value: v.to_string(),
+                    }),
+                    None => plan
+                        .node_edits
+                        .push(NodeEdit::RemoveAttr { node: Target::Node(node), name: w(name) }),
+                }
+            }
+            for p in body {
+                plan.node_edits.push(NodeEdit::Insert {
+                    parent: Target::Node(node),
+                    before: None,
+                    node: p,
+                });
+            }
+        }
+        None => {
+            let dom = s.package().part(part).dom().expect("comments part is parsed");
+            let root = dom.root();
+            let mut entry = NewElement::new(w(LocalName::Comment)).with_attr(w(LocalName::Id), id);
+            if let Some(a) = author {
+                entry.push_attr(w(LocalName::Author), a);
+            }
+            if let Some(i) = initials {
+                entry.push_attr(w(LocalName::Initials), i);
+            }
+            if let Some(d) = date {
+                entry.push_attr(w(LocalName::Date), d);
+            }
+            for p in body {
+                entry.push_child(p);
+            }
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::Node(root),
+                before: None,
+                node: entry,
+            });
+        }
+    }
+    result.absorb(s.commit_plan(plan)?);
+    if parent_id.is_some() || done {
+        let parent_para = parent_id
+            .and_then(|pid| s.document().comments.get(pid))
+            .and_then(|p| p.para_id.clone());
+        result.absorb(set_comment_ex(s, &para_id, parent_para.as_deref(), done)?);
+    }
+    s.rebuild()?;
+    Ok(result)
+}
+
+/// 注释条目 upsert（`SaveOptions.footnotes` / `endnotes`）。
+///
+/// 条目在就只重写正文段落、**保留自引用标记 run**（`w:footnoteRef` 是编号，不能丢）；
+/// 不在就新建条目。结构条目（`separator` 一类）一个字节不动。
+pub(crate) fn upsert_note_entry(
+    s: &mut EditSession,
+    endnote: bool,
+    id: &str,
+    paras: &EntryParas,
+) -> Result<MutationResult> {
+    let part = s.ensure_notes_part(endnote)?;
+    let (entry_name, ref_name) = if endnote {
+        (LocalName::Endnote, LocalName::EndnoteRef)
+    } else {
+        (LocalName::Footnote, LocalName::FootnoteRef)
+    };
+    let notes = if endnote { &s.document().endnotes } else { &s.document().footnotes };
+    let existing = notes.get(id).map(|n| n.node);
+    let mut plan = MutationPlan::new(part);
+    let dom = s.package().part(part).dom().expect("notes part is parsed");
+    match existing {
+        Some(node) => {
+            // 只重发正文段落：把段落里除自引用标记 run 之外的内容换掉
+            let ref_run = dom
+                .descendants(node)
+                .find(|&n| dom.is(n, w(ref_name)))
+                .and_then(|m| dom.ancestors(m).find(|&a| dom.is(a, w(LocalName::R))));
+            let lead = ref_run
+                .and_then(|r| NewElement::from_dom(dom, r, &mut crate::xml::Interner::new()));
+            for c in dom.semantic_children(node) {
+                if dom.is(c, w(LocalName::P)) {
+                    plan.node_edits.push(NodeEdit::Delete(c));
+                }
+            }
+            for p in entry_paragraphs(paras, None, lead) {
+                plan.node_edits.push(NodeEdit::Insert {
+                    parent: Target::Node(node),
+                    before: None,
+                    node: p,
+                });
+            }
+        }
+        None => {
+            let root = dom.root();
+            let lead = NewElement::new(w(LocalName::R)).with_child(NewElement::new(w(ref_name)));
+            let mut entry = NewElement::new(w(entry_name)).with_attr(w(LocalName::Id), id);
+            for p in entry_paragraphs(paras, None, Some(lead)) {
+                entry.push_child(p);
+            }
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::Node(root),
+                before: None,
+                node: entry,
+            });
+        }
+    }
+    let r = s.commit_plan(plan)?;
+    s.rebuild()?;
+    Ok(r)
+}
+
+/// 从注释部件里删掉一条正文条目（结构条目不动）。
+pub(crate) fn remove_note_entry(
+    s: &mut EditSession,
+    endnote: bool,
+    id: &str,
+) -> Result<MutationResult> {
+    let notes = if endnote { &s.document().endnotes } else { &s.document().footnotes };
+    let Some(part) = notes.part else { return Ok(MutationResult::default()) };
+    let Some(node) = notes.get(id).map(|n| n.node) else { return Ok(MutationResult::default()) };
+    let mut plan = MutationPlan::new(part);
+    plan.node_edits.push(NodeEdit::Delete(node));
+    let r = s.commit_plan(plan)?;
+    s.rebuild()?;
+    Ok(r)
 }

@@ -218,6 +218,44 @@ impl EditSession {
         Ok(id)
     }
 
+    /// `SAVE-05`：脚注 / 尾注部件，不存在就建（连 Word 期待的 separator 结构条目一起）。
+    pub(crate) fn ensure_notes_part(&mut self, endnote: bool) -> Result<PartId> {
+        let existing = if endnote { self.doc.endnotes.part } else { self.doc.footnotes.part };
+        if let Some(p) = existing {
+            return Ok(p);
+        }
+        let main = self.pkg.main_part();
+        let flavor = self.pkg.flavor_of(main);
+        let w = NsId::W.uri(flavor).expect("w 有两族 URI");
+        let (root, entry, mark) = if endnote {
+            ("endnotes", "endnote", "continuationSeparator")
+        } else {
+            ("footnotes", "footnote", "continuationSeparator")
+        };
+        // Word 期待前两条结构条目（`w:id` 为 -1 / 0）
+        let xml = format!(
+            concat!(
+                r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>"#,
+                r#"<w:{root} xmlns:w="{w}">"#,
+                r#"<w:{entry} w:type="separator" w:id="-1"><w:p><w:r><w:separator/></w:r></w:p></w:{entry}>"#,
+                r#"<w:{entry} w:type="continuationSeparator" w:id="0"><w:p><w:r><w:{mark}/></w:r></w:p></w:{entry}>"#,
+                r#"</w:{root}>"#
+            ),
+            root = root,
+            entry = entry,
+            mark = mark,
+            w = w
+        );
+        let (kind, uri, ct) = if endnote {
+            (RelType::Endnotes, "word/endnotes.xml", CT_ENDNOTES)
+        } else {
+            (RelType::Footnotes, "word/footnotes.xml", CT_FOOTNOTES)
+        };
+        let (id, _) = self.add_part(main, kind, uri, ct, &xml)?;
+        self.rebuild()?;
+        Ok(id)
+    }
+
     /// `SAVE-05`：`commentsExtended` 部件（回复与已解决），不存在就建。
     pub(crate) fn ensure_comments_extended_part(&mut self) -> Result<PartId> {
         if let Some(p) = self.doc.comments.extended_part {
@@ -707,6 +745,10 @@ const RELS_NS: &str = "http://schemas.openxmlformats.org/package/2006/relationsh
 /// `SAVE-05` 的内容类型。
 pub(crate) const CT_COMMENTS: &str =
     "application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml";
+pub(crate) const CT_FOOTNOTES: &str =
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml";
+pub(crate) const CT_ENDNOTES: &str =
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.endnotes+xml";
 pub(crate) const CT_COMMENTS_EXTENDED: &str =
     "application/vnd.openxmlformats-officedocument.wordprocessingml.commentsExtended+xml";
 
