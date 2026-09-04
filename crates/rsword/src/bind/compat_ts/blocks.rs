@@ -130,15 +130,6 @@ impl<'a> Ctx<'a> {
     }
 
     /// TS `plainText`：`w:t` 文本拼接，`</w:tc>` 边界补一个空格。
-    /// 容器（`w:txbxContent`）里每个 `w:p` 的文字，按文档序。
-    pub(super) fn para_texts(&self, container: NodeId) -> Vec<String> {
-        self.dom
-            .semantic_children(container)
-            .filter(|&c| self.dom.is(c, w(LocalName::P)))
-            .map(|c| self.plain_text(c))
-            .collect()
-    }
-
     pub(super) fn plain_text(&self, node: NodeId) -> String {
         let dom = self.dom;
         let mut out = String::new();
@@ -647,7 +638,7 @@ fn paragraph_block(
             let mut o = o;
             let drawing = b.display.as_ref().and_then(Display::as_drawing);
             let media = drawing
-                .and_then(|d| d.picture.as_ref())
+                .and_then(|d| d.picture())
                 .and_then(|p| ctx.media.pick(p.embed.as_deref(), p.link.as_deref()));
             match media {
                 Some(m) => {
@@ -658,7 +649,7 @@ fn paragraph_block(
                 // 媒体解析不出来：TS 退成只读的 `Image` 块并标 brokenImage，预览文字取 docPr。
                 // 只对 DrawingML 图片这么做——VML 图片（`w:pict`）的显示模型在 4.5，
                 // 那之前它没有 `display`，不能据此断定媒体坏了。
-                None if drawing.is_some_and(|d| d.picture.is_some()) => {
+                None if drawing.is_some_and(|d| d.picture().is_some()) => {
                     o = passthrough(o, "Image");
                     set(&mut o, "brokenImage", true);
                     let preview = drawing
@@ -938,6 +929,13 @@ fn para_format(
 }
 
 /// TS `extractParaFormat(pPr)`：`props` 是声明值；`ppr` 节点用于重复 `w:pBdr` 容器。
+/// 文本框段落用的扁平 `format`（TS `txbxContentParas` 把 `extractParaFormat` 的字段直接摊在
+/// 段落对象上，而不是包进 `format`）。
+pub(super) fn para_format_json(ctx: &Ctx<'_>, tb: &TextBlock) -> Option<Value> {
+    let ppr = ctx.dom.semantic_children(tb.node).find(|&n| ctx.dom.is(n, w(LocalName::PPr)));
+    para_format_of_props(ctx, &tb.props, ppr, tb.node, true)
+}
+
 fn para_format_of_props(
     ctx: &Ctx<'_>,
     props: &ParaProps,

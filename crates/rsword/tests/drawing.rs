@@ -98,13 +98,13 @@ fn mod_11_drawing_facts_across_the_corpus() {
                     }
                     None => *st.by_wrap.entry("inline").or_default() += 1,
                 }
-                if let Some(p) = &d.picture
+                if let Some(p) = d.picture()
                     && (p.embed.is_some() || p.link.is_some())
                 {
                     st.with_media += 1;
                 }
                 if d.kind == DrawingKind::Picture {
-                    assert!(d.picture.is_some(), "{file}: Picture 绘图应当有 pic:pic");
+                    assert!(d.picture().is_some(), "{file}: Picture 绘图应当有 pic:pic");
                 }
             }
 

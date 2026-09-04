@@ -9,6 +9,7 @@
 //!
 //! 遍历是迭代的、带深度上限，和绘图那边同一条规矩。
 
+use crate::model::block::Block;
 use crate::model::units::{Length, parse_length, parse_style};
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
@@ -101,6 +102,8 @@ pub struct VmlShape {
     pub has_textbox: bool,
     /// `v:textbox/w:txbxContent`：框里的独立内容流。
     pub txbx: Option<NodeId>,
+    /// 框里内容流的块（`MOD-11` 的 `content`）。由 `Document::rebuild` 复用段落管线构建。
+    pub content: Vec<Block>,
     /// 所属 `v:group` 在 `shapes` 里的下标。
     pub parent: Option<usize>,
 }
@@ -198,6 +201,7 @@ fn shape(dom: &Dom, n: NodeId, kind: VmlKind, parent: Option<usize>) -> VmlShape
         }),
         has_textbox: false,
         txbx: None,
+        content: Vec::new(),
         parent,
     };
     // 直接子节点上的图片 / WordArt 文字 / 文本框
@@ -239,12 +243,14 @@ fn flag(dom: &Dom, node: NodeId, ns: NsId, local: LocalName) -> Option<bool> {
     Some(!(v == "f" || v == "false"))
 }
 
-/// `#aca899` / `aca899` / `#ffffff [65535]` → `ACA899`。认不出的写法（`red`、`window`）→ `None`。
+/// `#aca899` / `aca899` / `#ffffff [65535]` → `aca899`。认不出的写法（`red`、`window`）→ `None`。
+///
+/// **保留原大小写**：TS 的 VML 路径直接把 `fillcolor` 去掉 `#` 就用（`vml-textbox__002` 的
+/// `borderColor` 是小写），只有细横线那条路会 `toUpperCase`。
 fn hex6(v: &str) -> Option<String> {
     let s = v.trim().trim_start_matches('#');
     let head: String = s.chars().take(6).collect();
-    (head.len() == 6 && head.bytes().all(|b| b.is_ascii_hexdigit()))
-        .then(|| head.to_ascii_uppercase())
+    (head.len() == 6 && head.bytes().all(|b| b.is_ascii_hexdigit())).then_some(head)
 }
 
 /// `coordsize="2000,1000"`。
@@ -281,7 +287,7 @@ mod tests {
         );
         let r = v.rule().expect("hr");
         assert_eq!(r.kind, VmlKind::Rect);
-        assert_eq!(r.fill_color.as_deref(), Some("ACA899"), "去掉 # 并转大写");
+        assert_eq!(r.fill_color.as_deref(), Some("aca899"), "去掉 # 但保留原大小写");
         assert_eq!(r.stroked, Some(false));
         assert_eq!(r.style_len("height").unwrap().to_emu(), Some(1.5 * 12700.0));
         // width:0 是「铺满可用宽度」，不是 0 宽
@@ -320,8 +326,8 @@ mod tests {
     #[test]
     fn mod_11_vml_color_forms() {
         assert_eq!(hex6("#ACA899"), Some("ACA899".into()));
-        assert_eq!(hex6("aca899"), Some("ACA899".into()));
-        assert_eq!(hex6("#ffffff [65535]"), Some("FFFFFF".into()));
+        assert_eq!(hex6("aca899"), Some("aca899".into()));
+        assert_eq!(hex6("#ffffff [65535]"), Some("ffffff".into()));
         assert_eq!(hex6("red"), None);
         assert_eq!(hex6("#abc"), None);
     }

@@ -12,6 +12,7 @@
 //!
 //! 遍历是迭代的，带深度上限：语料里有几千层嵌套的恶意输入。
 
+use crate::model::block::Block;
 use crate::model::facts::DrawingKind;
 use crate::model::vml::VmlDisplay;
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
@@ -55,8 +56,9 @@ pub struct DrawingDisplay {
     /// `wp:extent`（EMU）。
     pub extent: Option<Extent>,
     pub doc_pr: DocPr,
-    /// `pic:pic`（`DrawingKind::Picture`）。图表 / SmartArt 的载荷在 M6。
-    pub picture: Option<ImageDisplay>,
+    /// 全部 `pic:pic`，文档序。段落级图片取第一个（[`DrawingDisplay::picture`]）；
+    /// 组里的图片各有自己的位置与所属组。图表 / SmartArt 的载荷在 M6。
+    pub pictures: Vec<ImageDisplay>,
     /// `wps:wsp` 形状与 `wpg` 组，文档序；组内形状排在组之后，`group` 指回组。
     pub shapes: Vec<ShapeDisplay>,
 }
@@ -100,6 +102,8 @@ pub struct ShapeDisplay {
     pub body: Option<BodyPr>,
     /// `wps:txbx/w:txbxContent`：框里的独立内容流。
     pub txbx: Option<NodeId>,
+    /// 框里内容流的块（`MOD-11` 的 `content`）。由 `Document::rebuild` 复用段落管线构建。
+    pub content: Vec<Block>,
     /// 所属组在 `shapes` 里的下标。
     pub group: Option<usize>,
 }
@@ -166,6 +170,13 @@ pub enum Anchor {
     Top,
     Center,
     Bottom,
+}
+
+impl DrawingDisplay {
+    /// 段落级图片：第一个 `pic:pic`。
+    pub fn picture(&self) -> Option<&ImageDisplay> {
+        self.pictures.first()
+    }
 }
 
 /// `wp:extent` / `a:ext`：EMU 宽高。
@@ -266,6 +277,11 @@ impl Wrap {
 pub struct ImageDisplay {
     /// `pic:pic` 节点。
     pub node: Option<NodeId>,
+    /// `pic:spPr/a:xfrm` 的 `a:off` / `a:ext`（EMU）。组里的图片靠它定位。
+    pub off: Option<(i64, i64)>,
+    pub ext: Option<Extent>,
+    /// 所属 `wpg` 组在 `shapes` 里的下标。
+    pub group: Option<usize>,
     /// `a:blip/@r:embed`：包内媒体的关系 id。
     pub embed: Option<String>,
     /// `a:blip/@r:link`：外链媒体的关系 id。
@@ -331,10 +347,10 @@ pub fn drawing_display(dom: &Dom, drawing: NodeId) -> DrawingDisplay {
         anchor: None,
         extent: None,
         doc_pr: DocPr::default(),
-        picture: None,
+        pictures: Vec::new(),
         shapes: Vec::new(),
     };
-    let mut pic_node = None;
+    let mut pic_nodes: Vec<(NodeId, Option<usize>)> = Vec::new();
     // 组的下标要在遍历时跟着走，所以这里用带父组的显式栈，而不是 `walk`。
     let mut stack: Vec<(NodeId, u32, Option<usize>)> = vec![(drawing, 0, None)];
     let mut scratch: Vec<NodeId> = Vec::new();
@@ -348,7 +364,7 @@ pub fn drawing_display(dom: &Dom, drawing: NodeId) -> DrawingDisplay {
                 (NsId::A, LocalName::GraphicData) if d.kind == DrawingKind::Unknown => {
                     d.kind = crate::model::facts::graphic_data_kind(dom, n);
                 }
-                (NsId::Pic, LocalName::Pic) if pic_node.is_none() => pic_node = Some(n),
+                (NsId::Pic, LocalName::Pic) => pic_nodes.push((n, parent)),
                 (NsId::Wps, LocalName::Wsp) => d.shapes.push(shape_display(dom, n, false, parent)),
                 (NsId::Wpg, LocalName::Wgp | LocalName::GrpSp) => {
                     d.shapes.push(shape_display(dom, n, true, parent));
@@ -363,8 +379,10 @@ pub fn drawing_display(dom: &Dom, drawing: NodeId) -> DrawingDisplay {
             stack.extend(scratch.iter().rev().map(|&c| (c, depth + 1, group)));
         }
     }
-    if let Some(pic) = pic_node {
-        d.picture = Some(image_display(dom, pic));
+    for (pic, group) in pic_nodes {
+        let mut img = image_display(dom, pic);
+        img.group = group;
+        d.pictures.push(img);
     }
     d
 }
@@ -393,6 +411,7 @@ fn shape_display(dom: &Dom, node: NodeId, is_group: bool, group: Option<usize>) 
         has_effects: false,
         body: None,
         txbx: None,
+        content: Vec::new(),
         group,
     };
     // 只走形状自己的属性容器：`spPr` / `grpSpPr` / `style` / `bodyPr` / `txbx`。
@@ -535,6 +554,13 @@ pub fn image_display(dom: &Dom, pic: NodeId) -> ImageDisplay {
                 img.rot_60k = num(dom, n, LocalName::Rot);
                 img.flip_h = flag(dom, n, LocalName::FlipH).unwrap_or(false);
                 img.flip_v = flag(dom, n, LocalName::FlipV).unwrap_or(false);
+                for g in dom.semantic_children(n) {
+                    match dom.name(g).map(|q| q.local) {
+                        Some(LocalName::Off) => img.off = xy(dom, g),
+                        Some(LocalName::Ext) => img.ext = extent_of(dom, g),
+                        _ => {}
+                    }
+                }
             }
             (NsId::A, LocalName::Ln) if in_sp_pr && img.border.is_none() => {
                 img.border = Some(line_display(dom, n));
@@ -764,7 +790,7 @@ mod tests {
         assert_eq!(d.extent, Some(Extent { cx: 914_400, cy: 457_200 }));
         assert_eq!(d.doc_pr.name.as_deref(), Some("Logo"));
         assert_eq!(d.doc_pr.descr.as_deref(), Some("a photo"));
-        let p = d.picture.expect("picture");
+        let p = d.picture().expect("picture").clone();
         assert_eq!(p.embed.as_deref(), Some("rId7"));
         assert!(p.link.is_none());
     }
@@ -809,7 +835,7 @@ mod tests {
             r#"<a:ln w="12700"><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill><a:prstDash val="dash"/></a:ln>"#,
             r#"</pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline>"#,
         ));
-        let p = d.picture.expect("picture");
+        let p = d.picture().expect("picture").clone();
         assert_eq!(p.link.as_deref(), Some("rId9"));
         assert!(p.embed.is_none());
         assert_eq!(p.crop, Some(RectFrac { l: 5000, t: 0, r: 0, b: 10000 }));
@@ -837,7 +863,7 @@ mod tests {
         ));
         assert_eq!(d.extent, Some(Extent { cx: 100, cy: 100 }), "取宿主的 extent");
         assert_eq!(d.kind, DrawingKind::Shape);
-        assert!(d.picture.is_none(), "框里的 pic:pic 不属于宿主 drawing");
+        assert!(d.picture().is_none(), "框里的 pic:pic 不属于宿主 drawing");
     }
 
     #[test]

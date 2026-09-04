@@ -530,10 +530,14 @@ impl<'a> Builder<'a> {
             // `MOD-11` 显示模型：绘图段带 `DrawingDisplay`，`w:pict` / `w:object` 段带 `VmlDisplay`。
             let display = match kind {
                 SegmentKind::Drawing { .. } => {
-                    Some(Display::Drawing(Box::new(drawing_display(dom, c))))
+                    let mut d = drawing_display(dom, c);
+                    self.fill_box_content(d.shapes.iter_mut().map(|s| (s.txbx, &mut s.content)));
+                    Some(Display::Drawing(Box::new(d)))
                 }
                 SegmentKind::Pict | SegmentKind::Object => {
-                    Some(Display::Vml(Box::new(vml_display(dom, c))))
+                    let mut v = vml_display(dom, c);
+                    self.fill_box_content(v.shapes.iter_mut().map(|s| (s.txbx, &mut s.content)));
+                    Some(Display::Vml(Box::new(v)))
                 }
                 _ => None,
             };
@@ -556,6 +560,21 @@ impl<'a> Builder<'a> {
             field: None,
             rev: (!ctx.is_empty()).then_some(ctx),
             comments: Vec::new(),
+        }
+    }
+
+    /// 文本框内容流（`w:txbxContent`）复用段落管线建块（`MOD-11` 的 `content`）。
+    ///
+    /// 框里是**独立内容流**：它的段落有自己的 run、自己的图，和宿主段落的坐标流无关。
+    fn fill_box_content<'b>(
+        &mut self,
+        boxes: impl Iterator<Item = (Option<NodeId>, &'b mut Vec<Block>)>,
+    ) {
+        for (txbx, content) in boxes {
+            let Some(txbx) = txbx else { continue };
+            let mut blocks = Vec::new();
+            self.build_container(txbx, None, &[], &mut blocks);
+            *content = blocks;
         }
     }
 

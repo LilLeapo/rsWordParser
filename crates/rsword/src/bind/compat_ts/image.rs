@@ -49,7 +49,7 @@ pub(super) fn image_meta(
             set(out, "imageHeightPx", emu_to_px(ext.cy as f64).round() as i64);
         }
     }
-    if let Some(pic) = &d.picture {
+    if let Some(pic) = d.picture() {
         if let Some(rot) = pic.rot_60k.filter(|&r| r != 0) {
             let deg = (rot as f64 / 60_000.0).round() as i64;
             set(out, "imageRotDeg", deg.rem_euclid(360));
@@ -107,7 +107,7 @@ fn vml_run_image(ctx: &Ctx<'_>, seg: &Segment) -> Option<Map<String, Value>> {
 
 fn drawing_run_image(ctx: &Ctx<'_>, seg: &Segment) -> Option<Map<String, Value>> {
     let d = seg.display.as_ref()?.as_drawing()?;
-    let pic = d.picture.as_ref()?;
+    let pic = d.picture()?;
     let m = ctx.media.pick(pic.embed.as_deref(), pic.link.as_deref())?;
     let mut o = Map::new();
     set(&mut o, "dataUrl", m.url.clone());
@@ -166,7 +166,8 @@ pub(super) fn vml_rule(v: &VmlDisplay, out: &mut Map<String, Value>) {
     let Some(r) = v.rule() else { return };
     set(out, "decorative", true);
     if let Some(c) = &r.fill_color {
-        set(out, "ruleColorHex", c.clone());
+        // 细横线这条路 TS 会转大写（VML 框那条不会）
+        set(out, "ruleColorHex", c.to_ascii_uppercase());
     }
     if let Some(h) = r.style_len("height").and_then(Length::to_emu).filter(|&h| h > 0.0) {
         set(out, "ruleThicknessPx", emu_to_px(h).round().max(1.0) as i64);
@@ -453,28 +454,51 @@ fn run_size_half_points(dom: &Dom, run: NodeId) -> Option<u32> {
 /// 于是 z 序会大得离谱。任何一块的 `|imageZOrder| > 10000` 就把所有块按 z 序稳定重排成 0..n，
 /// 0 的那块删掉字段，全部标 `imageZOrderNormalized`。
 pub(super) fn normalize_z_orders(blocks: &mut [Value]) {
-    let idx: Vec<usize> = blocks
-        .iter()
-        .enumerate()
-        .filter(|(_, b)| b.get("imageZOrder").and_then(Value::as_i64).is_some())
-        .map(|(i, _)| i)
-        .collect();
-    let needs = idx.iter().any(|&i| {
-        blocks[i].get("imageZOrder").and_then(Value::as_i64).is_some_and(|z| z.abs() > 10_000)
-    });
-    if !needs {
+    // 图片与浮动形状共用 Word 的 z 空间，要一起排：照片压在背景形状上的次序才不会乱。
+    // 位置用 (块下标, 框下标)；框下标 `None` 表示块自己的 `imageZOrder`。
+    let mut anchored: Vec<((usize, Option<usize>), i64)> = Vec::new();
+    for (bi, b) in blocks.iter().enumerate() {
+        if let Some(z) = b.get("imageZOrder").and_then(Value::as_i64) {
+            anchored.push(((bi, None), z));
+        }
+        if let Some(boxes) = b.get("textboxes").and_then(Value::as_array) {
+            for (ti, t) in boxes.iter().enumerate() {
+                if let Some(z) = t.get("z").and_then(Value::as_i64) {
+                    anchored.push(((bi, Some(ti)), z));
+                }
+            }
+        }
+    }
+    if !anchored.iter().any(|(_, z)| z.abs() > 10_000) {
         return;
     }
-    let mut order: Vec<usize> = idx.clone();
-    order.sort_by_key(|&i| blocks[i].get("imageZOrder").and_then(Value::as_i64).unwrap_or(0));
-    for (rank, &i) in order.iter().enumerate() {
-        let Some(o) = blocks[i].as_object_mut() else { continue };
-        if rank == 0 {
-            o.remove("imageZOrder");
-        } else {
-            o.insert("imageZOrder".into(), Value::from(rank as i64));
+    // 稳定排序：同 z 时按文档序
+    anchored.sort_by_key(|&(pos, z)| (z, pos));
+    for (rank, ((bi, ti), _)) in anchored.into_iter().enumerate() {
+        let rank = rank as i64;
+        match ti {
+            None => {
+                let Some(o) = blocks[bi].as_object_mut() else { continue };
+                if rank == 0 {
+                    o.remove("imageZOrder");
+                } else {
+                    o.insert("imageZOrder".into(), Value::from(rank));
+                }
+                // 原 XML 里还是那个离谱的值，标记出来供保存时统一改写
+                o.insert("imageZOrderNormalized".into(), Value::Bool(true));
+            }
+            // 框是纯显示的，XML 里的 relativeHeight 不动
+            Some(ti) => {
+                if let Some(t) = blocks[bi]
+                    .get_mut("textboxes")
+                    .and_then(Value::as_array_mut)
+                    .and_then(|a| a.get_mut(ti))
+                    .and_then(Value::as_object_mut)
+                {
+                    t.insert("z".into(), Value::from(rank));
+                }
+            }
         }
-        o.insert("imageZOrderNormalized".into(), Value::Bool(true));
     }
 }
 
@@ -512,7 +536,7 @@ mod tests {
             anchor: None,
             extent: Some(Extent { cx, cy: 0 }),
             doc_pr: Default::default(),
-            picture: None,
+            pictures: Vec::new(),
             shapes: Vec::new(),
         }
     }

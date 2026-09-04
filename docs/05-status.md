@@ -56,7 +56,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
-| 源码行数 / 文件数 | 28,267 行 / 69 个 `src` 文件（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l`；文件数是 `find crates/rsword/src -name '*.rs' \| wc -l` |
+| 源码行数 / 文件数 | 29,053 行 / 70 个 `src` 文件（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l`；文件数是 `find crates/rsword/src -name '*.rs' \| wc -l` |
 | 测试数 | 194（单元 + 集成，15 个集成测试文件） | `cargo test --workspace` |
 | 媒体解析 | 585 份文档 104 处 `a:blip` / `v:imagedata` 引用：包内 93（89 位图 + 4 metafile）、外链 4、文档本身就坏 7 | `cargo test -p rsword --test media -- --nocapture` |
 | DrawingML 颜色 | 573 份文档正文里 89 个颜色容器、17 种取值，全部能定出 sRGB | `cargo test -p rsword --test resolve -- --nocapture` |
@@ -68,10 +68,10 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 模型对照 | 445 段类型 / styleId、387 段坐标流文本、22 项列表、9 项级别 | `tests/model.rs` |
 | resolve 对照 | 86,465 项 `StyleDisplay`、2,326 项 heading 级别、2,897 项 linked shell | `tests/resolve.rs` |
 | 解析差分（文本域） | 223 份用例，165 处已登记差异，**0 处未知差异** | `cargo run -p diff-parse -- --scope text` |
-| 解析差分（全域） | 573 份里 279 份有未知差异、704 个差异点（M4 4.1–4.7 落地后，从 341 份 / 1,925 点降下来） | `cargo run -p diff-parse -- --scope all` |
+| 解析差分（全域） | 573 份里 **236 份**有未知差异、799 个差异点（M4 4.1–4.7 落地后，从 341 份 / 1,925 点降下来；差异点比 4.6a 略多是因为文本框从「整个数组缺失」变成了逐字段比对） | `cargo run -p diff-parse -- --scope all` |
 | 保存差分 | 162 份 TS 保存用例：77 份与 `saveDocx` 等价（其中 41 份逐字节相同）、3 份有意不同、82 份跳过 | `tests/save_blocks.rs` |
 
-全域差异按域聚合（差异点，M4 4.6 分类落地后）：`textboxes[]` 载荷 99（M4 4.6b）、表格 67、
+全域差异按域聚合（差异点，M4 4.6 落地后）：`textboxes[]` 逐字段 214（多数要节几何，见下）、表格 67、
 字段相关（label / type / runs / fieldDisplay / rawPPr）约 210、页眉页脚 141、图表与 SmartArt 预览约 50、
 批注 17。保存侧 82 份跳过按里程碑：M5 约 48、M4/M6 约 20、M2 约 16、M7 2。
 

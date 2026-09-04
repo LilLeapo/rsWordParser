@@ -11,13 +11,14 @@
 
 use serde_json::{Map, Value};
 
-use crate::model::drawing::{DrawingDisplay, FillKind, ShapeDisplay, Wrap};
+use crate::model::drawing::{DrawingDisplay, FillKind, ImageDisplay, ShapeDisplay, Wrap};
 use crate::model::units::emu_to_px;
 use crate::model::{Display, Inline, SegmentKind, TextBlock, VmlDisplay};
 use crate::resolve::drawingml::{color_in, hex};
 use crate::xml::{LocalName, NodeId, NsId, QName};
 
 use super::blocks::Ctx;
+use super::box_json;
 use super::image;
 
 /// 细横线的高度上限：`wp:extent cy` 在 (0, 130000] EMU（约 10 px）之内的无字形状是装饰线。
@@ -49,8 +50,10 @@ struct Para<'a> {
 
 /// 段落里提取出的一个「框」。这一步只用到文字；几何与样式在下一步。
 pub(super) struct BoxInfo {
-    /// 框里每个段落的文字。
+    /// 框里每个段落的文字（`previewText` 用）。
     pub texts: Vec<String>,
+    /// `textboxes[]` 里的那一项。
+    pub json: Map<String, Value>,
 }
 
 impl BoxInfo {
@@ -199,6 +202,11 @@ fn text_box_block(
     }
     preview.extend(boxes.iter().flat_map(|b| b.texts.iter().cloned()));
     set(o, "previewText", preview.join("\n"));
+    set(
+        o,
+        "textboxes",
+        Value::Array(boxes.iter().map(|b| Value::Object(b.json.clone())).collect()),
+    );
     if vml {
         if let Some(a) = image::jc_align(ctx.dom, p) {
             set(o, "imageAlign", a);
@@ -258,7 +266,7 @@ fn invisible_empty_shapes(ctx: &Ctx<'_>, drawings: &[&DrawingDisplay]) -> bool {
     if shapes.is_empty() {
         return false;
     }
-    if drawings.iter().any(|d| d.picture.is_some()) {
+    if drawings.iter().any(|d| d.picture().is_some()) {
         return false;
     }
     shapes.iter().all(|s| {
@@ -279,34 +287,157 @@ fn boxes_of(ctx: &Ctx<'_>, drawings: &[&DrawingDisplay], vmls: &[&VmlDisplay]) -
         .iter()
         .any(|d| d.anchor.as_ref().is_some_and(|a| matches!(a.wrap, Wrap::Square { .. })));
     let has_line_shapes = wrap_square && drawings.iter().any(|d| d.shapes.iter().any(is_line_prst));
+    // 一段里锚了不止一个绘图时，每个形状各浮各的（TS `multiDrawing`）。
+    let multi = drawings.len() > 1;
+    // 每个 `w:txbxContent` 占一个保存路径序号，不管框最后留没留下来。
+    let mut ordinal = 0usize;
+
     for d in drawings {
-        let mut had_shape = false;
-        for s in &d.shapes {
-            if s.is_group {
-                continue;
-            }
-            had_shape = true;
-            if let Some(b) = wps_box(ctx, s, has_line_shapes) {
+        // 组的填充供组内 `a:grpFill` 继承
+        let group_fills: Vec<Option<String>> = d
+            .shapes
+            .iter()
+            .map(|g| {
+                g.is_group
+                    .then(|| box_json::wps_box_json(ctx, g, None, true, None))
+                    .and_then(|j| j.get("fill").and_then(Value::as_str).map(str::to_string))
+            })
+            .collect();
+        // 文档序遍历：框的顺序必须和 `w:txbxContent` 的顺序一致（保存路径按序号找回）。
+        // `NodeId` 是解析时前序分配的，按它排就是文档序。
+        enum Item<'a> {
+            Shape(&'a ShapeDisplay),
+            Pic(&'a ImageDisplay),
+        }
+        let mut items: Vec<(NodeId, Item<'_>)> = Vec::new();
+        items.extend(d.shapes.iter().filter(|s| !s.is_group).map(|s| (s.node, Item::Shape(s))));
+        items.extend(d.pictures.iter().filter_map(|p| p.node.map(|n| (n, Item::Pic(p)))));
+        items.sort_by_key(|(n, _)| *n);
+        for (_, item) in items {
+            let s = match item {
+                Item::Shape(s) => s,
+                Item::Pic(pic) => {
+                    if let Some(mut b) = picture_box(ctx, d, pic) {
+                        if let Some(a) = &d.anchor {
+                            let grouped = pic.group.is_some();
+                            box_json::apply_anchor(a, d.extent, multi, grouped, &mut b.json);
+                        }
+                        out.push(b);
+                    }
+                    continue;
+                }
+            };
+            let nested = s.group.is_some();
+            let index = (!nested && s.txbx.is_some()).then(|| {
+                ordinal += 1;
+                ordinal - 1
+            });
+            let group_fill = s.group.and_then(|g| group_fills.get(g)).and_then(Option::as_deref);
+            if let Some(mut b) = wps_box(ctx, s, has_line_shapes, group_fill, nested, index) {
+                if let Some(ctm) = group_chain(d, s).and_then(|c| box_json::GroupCtm::compose(&c)) {
+                    box_json::apply_group_ctm(ctm, s, &mut b.json);
+                }
+                if let Some(a) = &d.anchor {
+                    box_json::apply_anchor(a, d.extent, multi, nested, &mut b.json);
+                }
                 out.push(b);
             }
         }
-        // `pictures` 选项：片段里没有形状但有图片 → 只读图片框
-        if !had_shape && d.picture.is_some() {
-            out.push(BoxInfo { texts: Vec::new() });
-        }
     }
+
     for v in vmls {
-        for s in &v.shapes {
+        for (i, s) in v.shapes.iter().enumerate() {
+            let group = s.parent.and_then(|g| v.shapes.get(g));
             if s.has_textbox {
-                let texts = s.txbx.map(|t| ctx.para_texts(t)).unwrap_or_default();
-                out.push(BoxInfo { texts });
+                let (paras, read_only) = box_json::paras_json(ctx, &s.content);
+                let mut json = box_json::vml_box_json(ctx, s, group, Some(i));
+                if read_only {
+                    json.insert("readOnly".into(), Value::Bool(true));
+                }
+                let texts = box_json::box_texts(&paras);
+                json.insert("paras".into(), Value::Array(paras));
+                out.push(BoxInfo { texts, json });
             } else if let Some(t) = &s.textpath {
                 // WordArt：`v:textpath/@string` 就是它的一行文字
-                out.push(BoxInfo { texts: vec![t.clone()] });
+                let mut json = box_json::vml_box_json(ctx, s, group, None);
+                json.insert("readOnly".into(), Value::Bool(true));
+                let mut run = Map::new();
+                run.insert("text".into(), Value::String(t.clone()));
+                let mut para = Map::new();
+                para.insert("runs".into(), Value::Array(vec![Value::Object(run)]));
+                json.insert("paras".into(), Value::Array(vec![Value::Object(para)]));
+                out.push(BoxInfo { texts: vec![t.clone()], json });
             }
         }
     }
     out
+}
+
+fn px(emu: i64) -> i64 {
+    crate::model::units::emu_to_px(emu as f64).round() as i64
+}
+
+/// `pictures` 选项下的只读照片框（TS `pushPic`）：组内图片按组仿射映射到绝对位置。
+fn picture_box(ctx: &Ctx<'_>, d: &DrawingDisplay, pic: &ImageDisplay) -> Option<BoxInfo> {
+    let m = ctx.media.pick(pic.embed.as_deref(), pic.link.as_deref())?;
+    let ext = pic.ext.filter(|e| e.cx > 0 && e.cy > 0)?;
+    let ctm = pic
+        .group
+        .and_then(|g| d.shapes.get(g))
+        .and_then(|g| group_chain_from(d, g))
+        .and_then(|c| box_json::GroupCtm::compose(&c));
+    let (sx, sy) = ctm.map_or((1.0, 1.0), |c| (c.sx, c.sy));
+    let mut json = Map::new();
+    json.insert("readOnly".into(), Value::Bool(true));
+    json.insert("fillImageDataUrl".into(), Value::String(m.url.clone()));
+    json.insert("widthPx".into(), Value::from(px((ext.cx as f64 * sx).round() as i64)));
+    json.insert("heightPx".into(), Value::from(px((ext.cy as f64 * sy).round() as i64)));
+    for k in ["insetTopPx", "insetRightPx", "insetBottomPx", "insetLeftPx"] {
+        json.insert(k.into(), Value::from(0));
+    }
+    if let Some(rot) = pic.rot_60k.filter(|&r| r != 0) {
+        json.insert("rotDeg".into(), Value::from((rot as f64 / 60_000.0).round() as i64));
+    }
+    if let Some(c) = ctm
+        && let Some((x, y)) = pic.off
+    {
+        json.insert("offsetXEmu".into(), Value::from((c.tx + x as f64 * c.sx).round() as i64));
+        json.insert("offsetYEmu".into(), Value::from((c.ty + y as f64 * c.sy).round() as i64));
+        json.insert("floating".into(), Value::Bool(true));
+    }
+    json.insert("paras".into(), Value::Array(Vec::new()));
+    Some(BoxInfo { texts: Vec::new(), json })
+}
+
+/// 从 `start` 这个组开始往外的组链（最外层在前）。
+fn group_chain_from<'a>(
+    d: &'a DrawingDisplay,
+    start: &'a ShapeDisplay,
+) -> Option<Vec<&'a ShapeDisplay>> {
+    let mut chain = vec![start];
+    let mut cur = start.group;
+    while let Some(i) = cur {
+        let g = d.shapes.get(i)?;
+        chain.push(g);
+        cur = g.group;
+    }
+    chain.reverse();
+    Some(chain)
+}
+
+/// 形状所在的组链，从最外层到最内层。
+fn group_chain<'a>(d: &'a DrawingDisplay, s: &ShapeDisplay) -> Option<Vec<&'a ShapeDisplay>> {
+    let mut chain = Vec::new();
+    let mut cur = s.group;
+    while let Some(i) = cur {
+        let g = d.shapes.get(i)?;
+        chain.push(g);
+        cur = g.group;
+    }
+    (!chain.is_empty()).then(|| {
+        chain.reverse();
+        chain
+    })
 }
 
 fn is_line_prst(s: &ShapeDisplay) -> bool {
@@ -314,12 +445,44 @@ fn is_line_prst(s: &ShapeDisplay) -> bool {
 }
 
 /// TS `buildWpsBox` 的「留不留这个形状」判定。`opts.shapes` 在绘图分支恒为真。
-fn wps_box(ctx: &Ctx<'_>, s: &ShapeDisplay, has_line_shapes: bool) -> Option<BoxInfo> {
-    let texts = s.txbx.map(|t| ctx.para_texts(t)).unwrap_or_default();
-    let has_text = texts.iter().any(|t| !t.is_empty());
+fn wps_box(
+    ctx: &Ctx<'_>,
+    s: &ShapeDisplay,
+    has_line_shapes: bool,
+    group_fill: Option<&str>,
+    nested: bool,
+    index: Option<usize>,
+) -> Option<BoxInfo> {
+    let (paras, structured) = box_json::paras_json(ctx, &s.content);
+    let texts = box_json::box_texts(&paras);
+    let has_text = box_json::any_runs(&paras);
     // `paint` 要查主题与媒体，所以放在最后算：前面的形状规则先把不用看颜色的情况筛掉。
-    keeps_box(s, has_line_shapes, s.txbx.is_some(), has_text, || paint(ctx, s))
-        .then_some(BoxInfo { texts: if has_text { texts } else { Vec::new() } })
+    if !keeps_box(s, has_line_shapes, s.txbx.is_some(), has_text, || paint(ctx, s)) {
+        return None;
+    }
+    // 连线形状走 `lineBoxOf`：合成的 `prst` 带箭头信息，内容恒为空。
+    if s.txbx.is_none() && is_line_prst(s) {
+        let mut json = box_json::line_box_json(ctx, s);
+        json.insert("paras".into(), Value::Array(Vec::new()));
+        return Some(BoxInfo { texts: Vec::new(), json });
+    }
+    let mut json = box_json::wps_box_json(ctx, s, group_fill, nested, index);
+    if structured {
+        json.insert("readOnly".into(), Value::Bool(true));
+    }
+    if s.txbx.is_none() {
+        // 无字预设形状：没有 `w:txbxContent` 可以打补丁，只有 `cNvPr` 的 id 能让保存路径
+        // 塞进一个新的 `wps:txbx` 时才可编辑；Word 把形状文字居中，没写 anchor 时对齐它。
+        if s.cnv_id.is_none() {
+            json.insert("readOnly".into(), Value::Bool(true));
+        } else if !json.contains_key("vAlign") && s.body.is_none_or(|b| b.anchor.is_none()) {
+            json.insert("vAlign".into(), Value::String("center".into()));
+        }
+    }
+    let paras = if has_text { paras } else { Vec::new() };
+    let texts = if has_text { texts } else { Vec::new() };
+    json.insert("paras".into(), Value::Array(paras));
+    Some(BoxInfo { texts, json })
 }
 
 /// TS `buildWpsBox` 的「留不留这个形状」判定，抽成纯函数好单测。`painted` 惰性求值。
@@ -430,6 +593,7 @@ mod tests {
             has_effects: false,
             body: None,
             txbx: None,
+            content: Vec::new(),
             group: None,
         }
     }

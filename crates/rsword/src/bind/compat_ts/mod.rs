@@ -13,6 +13,7 @@ use crate::package::{Package, RelType};
 use crate::resolve::Resolver;
 
 mod blocks;
+mod box_json;
 mod decl;
 pub mod diff;
 mod image;
