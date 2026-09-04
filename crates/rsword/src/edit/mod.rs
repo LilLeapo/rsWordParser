@@ -106,4 +106,9 @@ pub enum EditOp {
     RemoveComment { id: String },
     /// `EDIT-03 SetCommentText`：改条目正文（保留第一个文字 run 的格式）与 `w15:done`。
     SetCommentText { id: String, text: String, done: Option<bool> },
+    /// `EDIT-03 SplitParagraph`：`at` 之后的内容搬进新段落（`pPr` 字节克隆）。
+    /// 透明字段会因此跨段 → `Err(EDIT_SPLIT_FIELD)`。
+    SplitParagraph { at: InlinePos },
+    /// `EDIT-03 MergeWithNext`：下一段内容接到本段末尾，下一段删除（保留**前**段的 `pPr`）。
+    MergeWithNext { para: NodeId },
 }

@@ -27,7 +27,9 @@ pub use index::{
     Affinity, Anchor, RangeClass, RangeKind, RangeSpan, SpanEnd, SpanIndex, SpanOrigin, compare,
 };
 pub use materialize::{MaterializePlan, apply_save, plan_save};
-pub use transform::{SpanAction, SpanPolicy, SpanUpdate, plan_update};
+pub use transform::{
+    ContainerMerge, ContainerSplit, SpanAction, SpanPolicy, SpanUpdate, plan_update,
+};
 
 /// 一条修订的元数据（`w:id` / `w:author` / `w:date`）。
 ///

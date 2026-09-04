@@ -9,7 +9,10 @@ use crate::model::inline::{Inline, Run, Segment, SegmentKind, utf16_len};
 use crate::semantic::props::{
     ParaPropsPatch, RunPropsPatch, emit_run_props, plan_apply_para_props, plan_apply_run_props,
 };
-use crate::span::{Affinity, Anchor, FlowId, RangeClass, RangeKind, RangeSpan, SpanId, SpanOrigin};
+use crate::span::{
+    Affinity, Anchor, FlowId, RangeClass, RangeKind, RangeSpan, SpanId, SpanOrigin,
+    is_property_element,
+};
 use crate::xml::{
     Dirty, Dom, LocalName, NewElement, NodeEdit, NodeId, NodeKind, NsId, QName, Target,
 };
@@ -33,6 +36,8 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::AddComment { from, to, comment } => add_comment(s, from, to, &comment),
         EditOp::RemoveComment { id } => remove_comment(s, &id),
         EditOp::SetCommentText { id, text, done } => set_comment_text(s, &id, &text, done),
+        EditOp::SplitParagraph { at } => split_paragraph(s, at),
+        EditOp::MergeWithNext { para } => merge_with_next(s, para),
     }
 }
 
@@ -74,6 +79,17 @@ fn next_sibling(dom: &Dom, n: NodeId) -> Option<NodeId> {
     let kids = dom.children(p);
     let i = kids.iter().position(|&c| c == n)?;
     kids[i + 1..].iter().copied().find(|&c| dom.node(c).dirty != Dirty::Deleted)
+}
+
+/// 下一个未删除的**元素**兄弟（跳过缩排产生的空白文本节点）。
+fn next_element_sibling(dom: &Dom, n: NodeId) -> Option<NodeId> {
+    let p = dom.parent(n)?;
+    let kids = dom.children(p);
+    let i = kids.iter().position(|&c| c == n)?;
+    kids[i + 1..]
+        .iter()
+        .copied()
+        .find(|&c| dom.node(c).dirty != Dirty::Deleted && dom.element(c).is_some())
 }
 
 /// `w:t` 的唯一文本子节点；其他形态（空元素、多个子节点）返回 `None`，调用方整体替换。
@@ -1405,4 +1421,138 @@ pub(crate) fn remove_note_entry(
     let r = s.commit_plan(plan)?;
     s.rebuild()?;
     Ok(r)
+}
+
+// ---- 段落拆分与合并（`EDIT-03`，任务 2.9）------------------------------------------------------
+
+/// 段落里横跨内容边界 `k` 的字段：拆分会让它跨段（`FLD-08` 里那就变成 `Block` 策略）。
+///
+/// 判定按段落层的内容项下标：字段的 head 与 tail 在段落下各属一个内容项（可能是同一个），
+/// 边界落在两者**之间**就是横跨。原子形态字段的内部位置在 `locate` 那一步就被拒了。
+fn field_across(s: &EditSession, para: NodeId, k: u32) -> Option<crate::span::FieldId> {
+    let dom = s.dom();
+    let fields = &s.document().fields;
+    for f in fields.fields() {
+        let (head, tail) = (f.form.head(), f.form.tail());
+        if !dom.ancestors(head).any(|a| a == para) && head != para {
+            continue;
+        }
+        let item_of = |n: NodeId| crate::span::boundary_before(dom, para, top_child(dom, para, n));
+        let (Some(h), Some(t)) = (item_of(head), item_of(tail)) else { continue };
+        if k > h && k <= t {
+            return Some(f.id);
+        }
+    }
+    None
+}
+
+/// `Block` 策略字段的结果段落只读（`FLD-07`）。
+fn refuse_block_field_result(s: &EditSession, para: NodeId) -> Result<()> {
+    if s.document().fields.block_result_paragraphs(s.dom()).contains_key(&para) {
+        return Err(unsupported("Block 字段（TOC 等）的结果段落只读"));
+    }
+    Ok(())
+}
+
+fn split_paragraph(s: &mut EditSession, at: InlinePos) -> Result<MutationResult> {
+    let part = s.main_part();
+    refuse_block_field_result(s, at.para)?;
+    let tb = text_block(s, at.para)?;
+    let loc = locate(tb, at.offset)?;
+    // 位置落在 run 内部 → 先拆 run（原子内部的位置 `locate` 已经拒了）
+    let mut result = MutationResult::default();
+    split_at(s, at.para, loc, &mut result)?;
+    let k = content_boundary(s, at.para, at)?;
+    if let Some(id) = field_across(s, at.para, k) {
+        return Err(Error::edit(
+            DiagCode::EditSplitField,
+            format!("拆分会让字段 {} 跨段（FLD-08）", id.0),
+        ));
+    }
+    let dom = s.dom();
+    let parent = dom.parent(at.para).ok_or_else(|| unsupported("段落没有父节点"))?;
+    let ppr = ppr_of(dom, at.para);
+    let after = next_sibling(dom, at.para);
+    // 阶段 1：建新段落（`pPr` 字节克隆，`XML-12` 规则 F），插在原段之后
+    let mut plan = MutationPlan::new(part);
+    plan.structure_changed = true;
+    plan.node_edits.push(NodeEdit::Insert {
+        parent: Target::Node(parent),
+        before: after,
+        node: NewElement::new(w(LocalName::P)),
+    });
+    if let Some(ppr) = ppr {
+        plan.node_edits.push(NodeEdit::InsertClone {
+            parent: Target::New(0),
+            before: None,
+            source: ppr,
+        });
+    }
+    let r = s.commit_plan(plan)?;
+    let tail = r.created[0].ok_or_else(|| unsupported("新段落没创建"))?;
+    result.absorb(r);
+
+    // 阶段 2：把边界之后的内容项与范围标记搬进新段落（`SPAN-06` 拆分规则由 `SpanPolicy` 表达）
+    let dom = s.dom();
+    let mut plan = MutationPlan::new(part);
+    plan.structure_changed = true;
+    plan.span.splits.push(crate::span::ContainerSplit { source: at.para, boundary: k, tail });
+    let mut index = 0u32;
+    for c in dom.semantic_children(at.para).collect::<Vec<_>>() {
+        let Some(name) = dom.name(c) else { continue };
+        if is_property_element(name) {
+            continue;
+        }
+        if crate::span::is_range_marker(name) {
+            // 标记跟着它右边的内容走：边界处的标记留在前段（终点）或跟去后段（起点），
+            // 物化会按锚点摆正，这里只要不把它落在错误的段里
+            if index > k {
+                plan.node_edits.push(NodeEdit::Move {
+                    node: c,
+                    parent: Target::Node(tail),
+                    before: None,
+                });
+            }
+            continue;
+        }
+        if index >= k {
+            plan.node_edits.push(NodeEdit::Move {
+                node: c,
+                parent: Target::Node(tail),
+                before: None,
+            });
+        }
+        index += 1;
+    }
+    result.absorb(s.commit_plan(plan)?);
+    result.structure_changed = true;
+    Ok(result)
+}
+
+fn merge_with_next(s: &mut EditSession, para: NodeId) -> Result<MutationResult> {
+    let part = s.main_part();
+    require_paragraph(s.dom(), para)?;
+    refuse_block_field_result(s, para)?;
+    let dom = s.dom();
+    let next = next_element_sibling(dom, para)
+        .filter(|&n| dom.is(n, w(LocalName::P)))
+        .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, "下一个块不是段落"))?;
+    refuse_block_field_result(s, next)?;
+    let offset = crate::span::content_len(dom, para);
+    let mut plan = MutationPlan::new(part);
+    plan.structure_changed = true;
+    plan.touch(para);
+    // `SPAN-06` 合并行：`next` 里的锚点整体搬到 `para`，下标加上原有内容项数
+    plan.span.merges.push(crate::span::ContainerMerge { source: next, into: para, offset });
+    // 内容项与范围标记按原顺序接到 `para` 末尾；`next` 的 `pPr` 随它一起消失
+    // （Word 语义：合并后保留**前**段属性）
+    for c in dom.semantic_children(next).collect::<Vec<_>>() {
+        let Some(name) = dom.name(c) else { continue };
+        if is_property_element(name) {
+            continue;
+        }
+        plan.node_edits.push(NodeEdit::Move { node: c, parent: Target::Node(para), before: None });
+    }
+    plan.node_edits.push(NodeEdit::Delete(next));
+    s.commit_plan(plan)
 }

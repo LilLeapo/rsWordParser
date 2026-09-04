@@ -28,6 +28,10 @@ pub struct SpanPolicy {
     pub keep_orphan_comments: bool,
     /// 内容被整体重写的容器（compat 的 `ReplaceInlines`）：提交后按新标记重建这些容器的端点。
     pub rescan: Vec<NodeId>,
+    /// 容器在边界处被拆成两半（`SplitParagraph`）：`SPAN-06` 的拆分行。
+    pub splits: Vec<ContainerSplit>,
+    /// 两个容器合成一个（`MergeWithNext`）：`SPAN-06` 的合并行。
+    pub merges: Vec<ContainerMerge>,
     /// 被拆成两半的内容项（`split_run`）。
     ///
     /// 拆分与"在边界插入新内容"在 DOM 上一样（都是在某个边界插入一个元素），语义上不同：
@@ -36,9 +40,29 @@ pub struct SpanPolicy {
     pub split_items: Vec<NodeId>,
 }
 
+/// `SPAN-06` 拆分：`source` 在边界 `boundary` 处被拆开，之后的内容项已经在 `tail` 里。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ContainerSplit {
+    pub source: NodeId,
+    pub boundary: u32,
+    pub tail: NodeId,
+}
+
+/// `SPAN-06` 合并：`source` 的内容项接到 `into` 末尾，原来 `into` 有 `offset` 个内容项。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ContainerMerge {
+    pub source: NodeId,
+    pub into: NodeId,
+    pub offset: u32,
+}
+
 impl SpanPolicy {
     pub fn is_default(&self) -> bool {
-        !self.keep_orphan_comments && self.rescan.is_empty() && self.split_items.is_empty()
+        !self.keep_orphan_comments
+            && self.rescan.is_empty()
+            && self.split_items.is_empty()
+            && self.splits.is_empty()
+            && self.merges.is_empty()
     }
 }
 
@@ -221,6 +245,13 @@ pub fn plan_update(
             if policy.rescan.contains(&a.container) {
                 continue; // 已经 Drop
             }
+            // 容器被拆 / 合：`SPAN-06` 的专用规则优先（通用推导看不出"搬到哪个容器"）
+            if let Some(to) = map_container_change(policy, a) {
+                if to != *a {
+                    update.actions.push(SpanAction::Move { span: span.id, end, to });
+                }
+                continue;
+            }
             match map_anchor(dom, &delta, a) {
                 Some(to) if to != *a => {
                     update.actions.push(SpanAction::Move { span: span.id, end, to })
@@ -284,6 +315,27 @@ fn fully_deleted(dom: &Dom, delta: &ContentDelta, span: &RangeSpan) -> bool {
     (s.index..e.index).all(|i| delta.removed_item(s.container, i))
 }
 
+/// `SPAN-06` 拆分 / 合并：容器变了的锚点。返回 `None` 表示这个容器没被拆 / 合。
+///
+/// 拆分：`index < k` 留在原容器；`index > k` 到 tail 的 `index - k`；`index == k` 按 affinity
+/// ——`Left` 留在原容器末尾（吸附左侧内容），`Right` 到 tail 的开头（吸附右侧内容）。
+/// 合并：`source` 里的锚点整体搬到 `into`，`index + offset`。
+fn map_container_change(policy: &SpanPolicy, a: &Anchor) -> Option<Anchor> {
+    if let Some(sp) = policy.splits.iter().find(|sp| sp.source == a.container) {
+        let to_tail =
+            a.index > sp.boundary || (a.index == sp.boundary && a.affinity == Affinity::Right);
+        return Some(if to_tail {
+            Anchor { container: sp.tail, index: a.index - sp.boundary, ..*a }
+        } else {
+            *a
+        });
+    }
+    if let Some(m) = policy.merges.iter().find(|m| m.source == a.container) {
+        return Some(Anchor { container: m.into, index: a.index + m.offset, ..*a });
+    }
+    None
+}
+
 /// 锚点的新位置。`None` = 连同容器一起消失且外层也没了（该端失去）。
 fn map_anchor(dom: &Dom, delta: &ContentDelta, a: &Anchor) -> Option<Anchor> {
     let marker = a.marker.filter(|&m| !delta.is_dead(dom, m));
@@ -330,6 +382,13 @@ fn map_boundary(
 /// 从编辑列表推导内容序列变化。
 fn derive(dom: &Dom, edits: &[NodeEdit], policy: &SpanPolicy) -> ContentDelta {
     let mut d = ContentDelta::default();
+    // 拆分 / 合并里搬走的内容项不算"删除"：锚点由 `map_container_change` 整体重定位
+    let relocated: Vec<NodeId> = policy
+        .splits
+        .iter()
+        .map(|s| s.source)
+        .chain(policy.merges.iter().map(|m| m.source))
+        .collect();
     for &item in &policy.split_items {
         if let Some(c) = container_of(dom, item)
             && let Some(i) = boundary_before(dom, c, item)
@@ -364,7 +423,10 @@ fn derive(dom: &Dom, edits: &[NodeEdit], policy: &SpanPolicy) -> ContentDelta {
             }
             NodeEdit::Move { node, parent, before } => {
                 d.structural = true;
-                remove_item(dom, &mut d, *node);
+                // 从被拆 / 合的容器里搬出来的项：别记成删除（那会把留在原容器的锚点算错）
+                if !container_of(dom, *node).is_some_and(|c| relocated.contains(&c)) {
+                    remove_item(dom, &mut d, *node);
+                }
                 if let Target::Node(p) = parent
                     && is_content_item(dom, *node)
                 {
