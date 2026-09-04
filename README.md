@@ -31,7 +31,7 @@ GENOFFICE_DIR=~/code/genoffice tools/export-golden/run.sh   # 重新导出语料
 
 ## 状态
 
-架构 v3.2 已冻结（2026-09-03）。**M0 已完成**（2026-09-04）：任意语料 `parse → serialize` 字节相同（含 Strict），无编辑保存字节相同，改一个节点后其他条目原样，两个 fuzz 目标各 10 分钟无崩溃。**M1 进行中**：组 P（1.1 属性表格式与 codec、1.2 `RunProps` / `ParaProps`、1.3 `plan_apply_*` 合并写回）、1.4 声明模型、组 M（1.5–1.8 坐标流 / `ParagraphFacts` / 分类 / `Document::rebuild`）、1.9 `resolve` 首版、1.10 `compat_ts` 文本块（193 份文本用例与 TS `ParsedDoc` 零差异）、1.15 `diff-parse` / `xpath-assert` 工具、1.14 第一批（保存校验、扩展命名空间声明、Strict 保存测试）、1.11 `EditSession` / 定位 / `MutationPlan` 事务、1.12 内联操作（`InsertText` / `DeleteRange` / `SetRunProps` / `SetParaProps` / `ReplaceInlines`，M1 门第二条通过）、1.13 `SaveBlock[]` 兼容映射（162 份 TS 保存用例中 77 份与 `saveDocx` 输出等价，其余为后续里程碑能力）、1.14 第二批（`save(session, opts)` 编排与 `SAVE-07` 保存选项）已完成（2026-09-04，`docs/04-dev-plan.md` §5.1），M1 门三条均有测试覆盖（§5.2）。
+架构 v3.2 已冻结（2026-09-03）。**M0 已完成**（2026-09-04）：任意语料 `parse → serialize` 字节相同（含 Strict），无编辑保存字节相同，改一个节点后其他条目原样，两个 fuzz 目标各 10 分钟无崩溃。**M1 进行中**：组 P（1.1 属性表格式与 codec、1.2 `RunProps` / `ParaProps`、1.3 `plan_apply_*` 合并写回）、1.4 声明模型、组 M（1.5–1.8 坐标流 / `ParagraphFacts` / 分类 / `Document::rebuild`）、1.9 `resolve` 首版、1.10 `compat_ts` 文本块（193 份文本用例与 TS `ParsedDoc` 零差异）、1.15 `diff-parse` / `xpath-assert` 工具、1.14 第一批（保存校验、扩展命名空间声明、Strict 保存测试）、1.11 `EditSession` / 定位 / `MutationPlan` 事务、1.12 内联操作（`InsertText` / `DeleteRange` / `SetRunProps` / `SetParaProps` / `ReplaceInlines`，M1 门第二条通过）、1.13 `SaveBlock[]` 兼容映射（162 份 TS 保存用例中 77 份与 `saveDocx` 输出等价，其余为后续里程碑能力）、1.14 第二批（`save(session, opts)` 编排与 `SAVE-07` 保存选项）已完成（2026-09-04，`docs/04-dev-plan.md` §5.1），M1 门三条均有测试覆盖（§5.2）。验收政策：TS 是参考实现而非权威，目标是功能等价或更强，有意差异逐条登记（`docs/04` §8）。后续里程碑与 M2 任务分解见 `docs/04-dev-plan.md` §10。
 
 ## 与 genoffice 的关系
 

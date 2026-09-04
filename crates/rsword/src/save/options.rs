@@ -5,10 +5,12 @@
 //! `remove_personal_info`（`word/settings.xml` 的标志 + 全包清洗）；节 / 页眉页脚 / 页面颜色等
 //! 需要新建 part 或 `sectPr` 属性表，属 M5（`SAVE-05`）。
 //!
-//! 清洗规则与 TS `scrubPersonalMetadata` 对齐：除 `customXml/*` 与 `docProps/custom.xml` 外的每个 XML part 里
+//! 作者清洗规则与 TS `scrubPersonalMetadata` 对齐：除 `customXml/*` 与 `docProps/custom.xml` 外的每个 XML part 里
 //! `w:author`（含无前缀的 `author`）改为 `Author`、`w:initials` 改为 `A`；`core.xml` 的 `dc:creator` 与
 //! `cp:lastModifiedBy` 清空；`app.xml` 的 `Manager` / `Company` 清空；`word/people.xml` 的 `w15:person` 整条删除。
-//! `w:date` **保留**（TS 行为；`spec/09` 的措辞见 `docs/04` §8）。
+//!
+//! 日期清洗是独立的一项（OOXML 的 `w:removeDateAndTime`，TS 没有这个能力）：批注元素（带 `w:author` 的
+//! 修订与批注）上的 `w:date` 删除。`remove_personal_info` 单独开启时日期保留，与 TS 一致。
 
 use crate::diag::{DiagCode, Diagnostic};
 use crate::edit::MutationPlan;
@@ -24,9 +26,12 @@ pub struct SaveOptions {
     /// 只有保存真的进入序列化路径时才落盘：单独设置它**不会**让一份未编辑的文档产生输出
     /// （不变式 1 优先，与 TS 的 `isUnchanged` 判定一致）。
     pub saved_at: Option<String>,
-    /// `word/settings.xml` 的 `w:removePersonalInformation`：`Some` 写入该值并按该值决定是否清洗；
+    /// `word/settings.xml` 的 `w:removePersonalInformation`：`Some` 写入该值并按该值决定是否清洗作者；
     /// `None` 沿用文档已有的标志。
     pub remove_personal_info: Option<bool>,
+    /// `word/settings.xml` 的 `w:removeDateAndTime`：`Some` 写入该值并按该值决定是否删除批注 / 修订上的
+    /// `w:date`；`None` 沿用文档已有的标志。TS `SaveOptions` 没有这一项（`docs/04` §8）。
+    pub remove_date_and_time: Option<bool>,
 }
 
 impl SaveOptions {
@@ -36,7 +41,7 @@ impl SaveOptions {
 
     /// 是否要求保存必须进入序列化路径（即使没有脏节点）。
     pub fn forces_save(&self) -> bool {
-        self.remove_personal_info.is_some()
+        self.remove_personal_info.is_some() || self.remove_date_and_time.is_some()
     }
 }
 
@@ -120,13 +125,23 @@ fn plan_core_props(dom: &Dom, part: PartId, iso: &str) -> MutationPlan {
     plan
 }
 
-/// `word/settings.xml` 的 `w:removePersonalInformation`：`on` 时插为第一个子元素（`PROP-05` 的
-/// 序号由 `plan_apply_settings` 保证，这里直接用属性表计划），否则删除。
-fn plan_settings_flag(dom: &Dom, part: PartId, on: bool) -> MutationPlan {
+/// `word/settings.xml` 的两个清洗标志（位置与顺序由 `plan_apply_settings` 按 `PROP-05` 保证）。
+fn plan_settings_flags(
+    dom: &Dom,
+    part: PartId,
+    personal: Option<bool>,
+    dates: Option<bool>,
+) -> MutationPlan {
     use crate::semantic::props::{Change, SettingsPatch, plan_apply_settings};
+    let flag = |v: Option<bool>| match v {
+        None => Change::Keep,
+        Some(true) => Change::Set(true),
+        Some(false) => Change::Unset,
+    };
     let root = dom.root();
     let patch = SettingsPatch {
-        remove_personal_information: if on { Change::Set(true) } else { Change::Unset },
+        remove_personal_information: flag(personal),
+        remove_date_and_time: flag(dates),
         ..Default::default()
     };
     let mut plan = MutationPlan::new(part);
@@ -134,19 +149,30 @@ fn plan_settings_flag(dom: &Dom, part: PartId, on: bool) -> MutationPlan {
     plan
 }
 
-/// 一个 part 的清洗计划。
-fn plan_scrub(dom: &Dom, part: PartId, uri: &str) -> MutationPlan {
+/// 一个 part 的清洗计划：`authors` 改作者与缩写，`dates` 删批注元素上的 `w:date`。
+fn plan_scrub(dom: &Dom, part: PartId, uri: &str, authors: bool, dates: bool) -> MutationPlan {
     let mut plan = MutationPlan::new(part);
     let author = w(LocalName::Author);
     let initials = w(LocalName::Initials);
+    let date = w(LocalName::Date);
     let bare_author = QName::new(NsId::None, LocalName::Author);
     let bare_initials = QName::new(NsId::None, LocalName::Initials);
+    let bare_date = QName::new(NsId::None, LocalName::Date);
     for id in dom.descendants(dom.root()) {
         if !live(dom, id) {
             continue;
         }
         let Some(e) = dom.element(id) else { continue };
+        // 批注元素 = 带作者属性的元素（修订、`w:comment`、`w15:person` 之外的注释类）
+        let annotated = e.attrs.iter().any(|a| a.name == author || a.name == bare_author);
         for a in &e.attrs {
+            if dates && annotated && (a.name == date || a.name == bare_date) {
+                plan.node_edits.push(NodeEdit::RemoveAttr { node: Target::Node(id), name: a.name });
+                continue;
+            }
+            if !authors {
+                continue;
+            }
             let replacement = if a.name == author || a.name == bare_author {
                 "Author"
             } else if a.name == initials || a.name == bare_initials {
@@ -162,6 +188,9 @@ fn plan_scrub(dom: &Dom, part: PartId, uri: &str) -> MutationPlan {
                 });
             }
         }
+    }
+    if !authors {
+        return plan;
     }
     if uri.eq_ignore_ascii_case(CORE_PROPS) {
         for name in [
@@ -197,7 +226,8 @@ fn scrubbable(uri: &str) -> bool {
 pub(crate) fn plan_all(
     pkg: &mut Package,
     opts: &SaveOptions,
-    scrub: bool,
+    scrub_authors: bool,
+    scrub_dates: bool,
 ) -> Result<(Vec<MutationPlan>, Vec<Diagnostic>)> {
     let mut plans = Vec::new();
     let mut diags = Vec::new();
@@ -216,14 +246,19 @@ pub(crate) fn plan_all(
         }
     }
 
-    if let Some(on) = opts.remove_personal_info {
+    if opts.remove_personal_info.is_some() || opts.remove_date_and_time.is_some() {
         let settings =
             pkg.related(main, RelType::Settings).next().or_else(|| pkg.find_name(SETTINGS));
         match settings {
             Some(id) => {
                 pkg.dom(id)?;
                 if let Some(dom) = pkg.part(id).dom() {
-                    let plan = plan_settings_flag(dom, id, on);
+                    let plan = plan_settings_flags(
+                        dom,
+                        id,
+                        opts.remove_personal_info,
+                        opts.remove_date_and_time,
+                    );
                     if !plan.is_empty() {
                         plans.push(plan);
                     }
@@ -233,13 +268,12 @@ pub(crate) fn plan_all(
                 main,
                 None,
                 DiagCode::EditUnsupported,
-                "没有 word/settings.xml，removePersonalInformation 标志未写入（新建 part 属 SAVE-05）"
-                    .to_string(),
+                "没有 word/settings.xml，清洗标志未写入（新建 part 属 SAVE-05）".to_string(),
             )),
         }
     }
 
-    if scrub {
+    if scrub_authors || scrub_dates {
         let ids: Vec<(PartId, String)> = pkg
             .parts()
             .iter()
@@ -250,7 +284,7 @@ pub(crate) fn plan_all(
         for (id, uri) in ids {
             pkg.dom(id)?;
             if let Some(dom) = pkg.part(id).dom() {
-                let plan = plan_scrub(dom, id, &uri);
+                let plan = plan_scrub(dom, id, &uri, scrub_authors, scrub_dates);
                 if !plan.is_empty() {
                     plans.push(plan);
                 }

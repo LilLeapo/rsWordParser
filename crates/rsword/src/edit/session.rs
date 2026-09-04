@@ -17,12 +17,25 @@ pub struct EditSession {
     pkg: Package,
     doc: Document,
     diagnostics: Vec<Diagnostic>,
+    /// 事务期间每个被写入 part 的写前镜像（`EDIT-05`）。
+    txn: Option<Snapshot>,
 }
 
-/// 事务快照：M1 的编辑操作只碰主 part，快照即主 part DOM 的克隆（投影回滚时整体重建）。
-/// 保存选项不经快照——它们全部先 `validate` 再 `commit`，`commit` 不可失败。
+/// 事务快照（`EDIT-05`）：按需记录被写入 part 的 DOM 写前镜像——[`EditSession::commit_plan`] 在
+/// 第一次写某个 part 之前克隆它，所以回滚覆盖事务真正碰过的每个 part，而不是只有主 part；
+/// 没碰过的 part 不付克隆代价。投影用整体 `rebuild` 恢复。
+#[derive(Default)]
 pub(crate) struct Snapshot {
-    dom: Dom,
+    doms: Vec<(PartId, Dom)>,
+}
+
+impl Snapshot {
+    /// 第一次写 `part` 时记下写前镜像。
+    fn remember(&mut self, part: PartId, dom: &Dom) {
+        if !self.doms.iter().any(|(p, _)| *p == part) {
+            self.doms.push((part, dom.clone()));
+        }
+    }
 }
 
 impl EditSession {
@@ -32,7 +45,7 @@ impl EditSession {
 
     pub fn from_package(mut pkg: Package) -> Result<Self> {
         let doc = Document::rebuild(&mut pkg)?;
-        Ok(Self { pkg, doc, diagnostics: Vec::new() })
+        Ok(Self { pkg, doc, diagnostics: Vec::new(), txn: None })
     }
 
     /// 投影（`MOD-01`）。
@@ -87,14 +100,7 @@ impl EditSession {
 
     /// 应用一个操作：失败时会话状态（DOM 与投影）与操作前一致。
     pub fn apply(&mut self, op: EditOp, ctx: &EditContext) -> Result<MutationResult> {
-        let snap = self.snapshot();
-        match ops::run(self, op, ctx) {
-            Ok(r) => Ok(r),
-            Err(e) => {
-                self.restore(snap)?;
-                Err(e)
-            }
-        }
+        self.transaction(|s| ops::run(s, op, ctx))
     }
 
     /// 批量应用：任一失败则整批不生效。
@@ -103,18 +109,33 @@ impl EditSession {
         ops: Vec<EditOp>,
         ctx: &EditContext,
     ) -> Result<Vec<MutationResult>> {
-        let snap = self.snapshot();
-        let mut results = Vec::with_capacity(ops.len());
-        for op in ops {
-            match ops::run(self, op, ctx) {
-                Ok(r) => results.push(r),
-                Err(e) => {
-                    self.restore(snap)?;
-                    return Err(e);
-                }
+        self.transaction(|s| {
+            let mut results = Vec::with_capacity(ops.len());
+            for op in ops {
+                results.push(ops::run(s, op, ctx)?);
+            }
+            Ok(results)
+        })
+    }
+
+    /// `EDIT-05` 事务边界：`f` 里的每个 plan/commit 阶段共享一个快照，任一阶段 `Err` 就把
+    /// 事务碰过的每个 part 恢复到写前镜像并重建投影。事务不可嵌套（内层直接复用外层快照）。
+    fn transaction<T>(&mut self, f: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {
+        if self.txn.is_some() {
+            return f(self); // 已在事务里：外层负责回滚
+        }
+        self.txn = Some(Snapshot::default());
+        match f(self) {
+            Ok(v) => {
+                self.txn = None;
+                Ok(v)
+            }
+            Err(e) => {
+                let snap = self.txn.take().unwrap_or_default();
+                self.restore(snap)?;
+                Err(e)
             }
         }
-        Ok(results)
     }
 
     /// `SAVE-01`：等价于 `save_with(&SaveOptions::default())`。
@@ -125,28 +146,33 @@ impl EditSession {
     /// `SAVE-01` 全流程：
     ///
     /// 1. 无脏节点且 `opts` 没有变更请求（`saved_at` 单独设置不算，与 TS `isUnchanged` 一致）
-    ///    且文档没有 `w:removePersonalInformation` 标志 → 返回原字节（不变式 1）。
+    ///    且文档没有 `w:removePersonalInformation` / `w:removeDateAndTime` 标志 → 返回原字节（不变式 1）。
     /// 2. 校验（`SAVE-02`，在 [`Package::save`] 里）。
     /// 3. 物化 Span（`SPAN-08`）：Span 索引在 M2 建立，M1 无操作。
     /// 4. 应用保存选项（`SAVE-07`）：全部先 `validate`（只读）再逐个 `commit`，所以要么全做要么不动。
     /// 5. / 6. 序列化脏 part 并写回（`XML-13` / `SAVE-06`，在 [`Package::save`] 里）。
     pub fn save_with(&mut self, opts: &SaveOptions) -> Result<Vec<u8>> {
-        let scrub = opts.remove_personal_info.unwrap_or_else(|| self.remove_personal_info_flag());
-        if !self.pkg.is_dirty() && !opts.forces_save() && !scrub {
+        let authors = opts.remove_personal_info.unwrap_or_else(|| self.remove_personal_info_flag());
+        let dates = opts.remove_date_and_time.unwrap_or_else(|| self.remove_date_and_time_flag());
+        if !self.pkg.is_dirty() && !opts.forces_save() && !authors && !dates {
             return Ok(self.pkg.original_bytes().to_vec());
         }
         // 步骤 3：SPAN-08 物化在 M2（此处无操作，Span 索引尚未建立）。
-        let (plans, diags) = crate::save::options::plan_all(&mut self.pkg, opts, scrub)?;
-        for plan in &plans {
-            let dom = self.pkg.part(plan.part).dom().ok_or_else(|| {
-                Error::edit(DiagCode::EditPlanInvalid, "保存选项的目标不是 XML part")
-            })?;
-            plan.validate(dom)?;
-        }
+        let (plans, diags) = crate::save::options::plan_all(&mut self.pkg, opts, authors, dates)?;
         let touches_main = plans.iter().any(|p| p.part == self.pkg.main_part());
-        for plan in plans {
-            self.commit_plan(plan)?;
-        }
+        self.transaction(|s| {
+            // 先整批只读校验，再逐个提交：提交阶段不可能失败（失败也会被事务回滚）
+            for plan in &plans {
+                let dom = s.pkg.part(plan.part).dom().ok_or_else(|| {
+                    Error::edit(DiagCode::EditPlanInvalid, "保存选项的目标不是 XML part")
+                })?;
+                plan.validate(dom)?;
+            }
+            for plan in plans {
+                s.commit_plan(plan)?;
+            }
+            Ok(())
+        })?;
         self.diagnostics.extend(diags.iter().cloned());
         self.pkg.push_diagnostics(diags);
         if touches_main {
@@ -155,9 +181,14 @@ impl EditSession {
         self.pkg.save()
     }
 
-    /// 文档自带的 `w:removePersonalInformation`（`SAVE-07`：设置或文档标志为真时清洗）。
+    /// 文档自带的 `w:removePersonalInformation`（`SAVE-07`：设置或文档标志为真时清洗作者）。
     pub fn remove_personal_info_flag(&self) -> bool {
         self.doc.settings.as_ref().and_then(|s| s.remove_personal_information) == Some(true)
+    }
+
+    /// 文档自带的 `w:removeDateAndTime`（设置或文档标志为真时删批注日期）。
+    pub fn remove_date_and_time_flag(&self) -> bool {
+        self.doc.settings.as_ref().and_then(|s| s.remove_date_and_time) == Some(true)
     }
 
     /// 投影整体重建。
@@ -166,14 +197,13 @@ impl EditSession {
         Ok(())
     }
 
-    pub(crate) fn snapshot(&self) -> Snapshot {
-        Snapshot { dom: self.dom().clone() }
-    }
-
-    pub(crate) fn restore(&mut self, snap: Snapshot) -> Result<()> {
-        let main = self.pkg.main_part();
-        let dom = self.pkg.dom_mut(main)?.expect("main part is parsed");
-        *dom = snap.dom;
+    /// 把快照里的每个写前镜像放回去，并重建投影。
+    fn restore(&mut self, snap: Snapshot) -> Result<()> {
+        for (part, image) in snap.doms {
+            if let Some(dom) = self.pkg.dom_mut(part)? {
+                *dom = image;
+            }
+        }
         self.rebuild()
     }
 
@@ -186,16 +216,111 @@ impl EditSession {
             Error::edit(DiagCode::EditPlanInvalid, format!("part#{} 不是 XML part", part.0))
         })?;
         plan.validate(dom)?;
+        if let Some(txn) = &mut self.txn {
+            txn.remember(part, dom);
+        }
         let result = plan.commit(dom);
         self.diagnostics.extend(result.diagnostics.iter().cloned());
         if part == main {
             if result.structure_changed {
                 self.rebuild()?;
             } else if !result.affected_paragraphs.is_empty() {
-                // 不在正文顶层的段落（表格内等）M1 不投影，忽略返回的缺失列表
-                let _ = self.doc.refresh_paragraphs(&mut self.pkg, &result.affected_paragraphs)?;
+                // 投影里找不到的段落（表格单元格内的，M3 前不投影）→ 整体重建，不留过期投影
+                let missing =
+                    self.doc.refresh_paragraphs(&mut self.pkg, &result.affected_paragraphs)?;
+                if !missing.is_empty() {
+                    self.rebuild()?;
+                }
             }
         }
         Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::save::SaveOptions;
+    use crate::semantic::props::{Change, SettingsPatch, plan_apply_settings};
+    use std::io::{Cursor, Write};
+
+    const W: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+
+    /// 两个 XML part 的最小 docx（主 part + settings）。
+    fn docx() -> Vec<u8> {
+        let ct = concat!(
+            r#"<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">"#,
+            r#"<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>"#,
+            r#"<Default Extension="xml" ContentType="application/xml"/>"#,
+            r#"<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>"#,
+            r#"<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/></Types>"#
+        );
+        let rels = concat!(
+            r#"<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">"#,
+            r#"<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>"#
+        );
+        let doc_rels = concat!(
+            r#"<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">"#,
+            r#"<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/></Relationships>"#
+        );
+        let doc = format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="{W}"><w:body><w:p><w:r><w:t>x</w:t></w:r></w:p></w:body></w:document>"#
+        );
+        let settings =
+            format!(r#"<?xml version="1.0" encoding="UTF-8"?><w:settings xmlns:w="{W}"/>"#);
+        let mut w = zip::ZipWriter::new(Cursor::new(Vec::new()));
+        for (name, bytes) in [
+            ("[Content_Types].xml", ct),
+            ("_rels/.rels", rels),
+            ("word/_rels/document.xml.rels", doc_rels),
+            ("word/document.xml", doc.as_str()),
+            ("word/settings.xml", settings.as_str()),
+        ] {
+            w.start_file(name, zip::write::SimpleFileOptions::default()).unwrap();
+            w.write_all(bytes.as_bytes()).unwrap();
+        }
+        w.finish().unwrap().into_inner()
+    }
+
+    /// `EDIT-05`：事务回滚覆盖它碰过的**每个** part，不只是主 part。
+    #[test]
+    fn edit_05_transaction_rolls_back_every_touched_part() {
+        let bytes = docx();
+        let mut s = EditSession::open(&bytes).unwrap();
+        let main = s.main_part();
+        let settings = s.package().find_name("word/settings.xml").unwrap();
+        let err = s
+            .transaction(|s| {
+                // 阶段 1：写主 part（改字）
+                let dom = s.package_mut().dom_mut(main).unwrap().unwrap();
+                let t = dom
+                    .descendants(dom.root())
+                    .find(|&n| dom.is(n, crate::xml::QName::w(crate::xml::LocalName::T)))
+                    .unwrap();
+                let text = dom.children(t)[0];
+                let mut plan = MutationPlan::new(main);
+                plan.node_edits
+                    .push(crate::xml::NodeEdit::SetText { node: text, text: "y".into() });
+                s.commit_plan(plan)?;
+                // 阶段 2：写 settings part
+                let sdom = s.package().part(settings).dom().unwrap();
+                let root = sdom.root();
+                let patch = SettingsPatch {
+                    remove_personal_information: Change::Set(true),
+                    ..Default::default()
+                };
+                let mut plan = MutationPlan::new(settings);
+                plan.node_edits =
+                    plan_apply_settings(sdom, root, Some(root), &patch, sdom.flavor());
+                s.commit_plan(plan)?;
+                assert!(s.package().is_dirty(), "两个 part 都脏了");
+                // 阶段 3：失败
+                Err::<(), _>(Error::edit(DiagCode::EditUnsupported, "故意失败"))
+            })
+            .expect_err("事务应失败");
+        assert!(matches!(err, Error::Edit { code: DiagCode::EditUnsupported, .. }));
+        assert!(!s.package().is_dirty(), "两个 part 都回滚了");
+        assert_eq!(s.save_with(&SaveOptions::default()).unwrap(), bytes, "保存回到原字节");
+        assert_eq!(s.document().text_blocks().next().unwrap().text(), "x", "投影也回滚");
     }
 }

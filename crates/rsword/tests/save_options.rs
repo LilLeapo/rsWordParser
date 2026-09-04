@@ -1,6 +1,7 @@
 //! `SAVE-01` 编排与 `SAVE-07` 保存选项（任务 1.14 第二批）：`save_with(opts)` 的六步流程、
 //! 不变式 1 的短路条件、`saved_at` 只改 `core.xml`、`remove_personal_info` 的全包清洗与
-//! `settings.xml` 标志。验收清单 `SAVE-07`：清洗后没有 `w:author` 不是 `Author` 的修订。
+//! `settings.xml` 标志、`remove_date_and_time`（OOXML 有、TS 没有的一项）。
+//! 验收清单 `SAVE-07`：清洗后没有 `w:author` 不是 `Author` 的修订。
 
 mod common;
 
@@ -201,4 +202,93 @@ fn save_07_flag_written_into_existing_settings() {
     let root = dom.root();
     let read = rsword::semantic::props::read_settings(dom, Some(root), &mut diags);
     assert_eq!(read.remove_personal_information, Some(true), "重新解析后标志成立");
+}
+
+/// 最小 docx：便于构造带 `w:settings` 标志的文档（语料里没有带 `w:removeDateAndTime` 的）。
+fn build_docx(document_xml: &str, settings_xml: Option<&str>) -> Vec<u8> {
+    use std::io::Write;
+    let ct = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/></Types>"#;
+    let rels = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>"#;
+    let doc_rels = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/></Relationships>"#;
+    let mut w = zip::ZipWriter::new(Cursor::new(Vec::new()));
+    let mut files: Vec<(&str, &str)> = vec![
+        ("[Content_Types].xml", ct),
+        ("_rels/.rels", rels),
+        ("word/_rels/document.xml.rels", doc_rels),
+        ("word/document.xml", document_xml),
+    ];
+    if let Some(sx) = settings_xml {
+        files.push(("word/settings.xml", sx));
+    }
+    for (name, bytes) in files {
+        w.start_file(name, zip::write::SimpleFileOptions::default()).unwrap();
+        w.write_all(bytes.as_bytes()).unwrap();
+    }
+    w.finish().unwrap().into_inner()
+}
+
+const W: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+
+/// `remove_date_and_time`（TS 没有这项能力）：批注元素上的 `w:date` 删除、作者不动、标志写进
+/// `settings.xml` 且与已有设置同序；文档自带标志时无编辑的保存也执行。
+#[test]
+fn save_07_remove_date_and_time_drops_annotation_dates() {
+    let doc = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="{W}"><w:body><w:p><w:ins w:id="1" w:author="张三" w:date="2026-01-01T00:00:00Z"><w:r><w:t>a</w:t></w:r></w:ins><w:del w:id="2" w:author="李四" w:date="2026-01-02T00:00:00Z"><w:r><w:delText>b</w:delText></w:r></w:del></w:p><w:sectPr/></w:body></w:document>"#
+    );
+    let settings = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?><w:settings xmlns:w="{W}"><w:zoom w:percent="100"/></w:settings>"#
+    );
+    let bytes = build_docx(&doc, Some(&settings));
+
+    let mut s = EditSession::open(&bytes).unwrap();
+    assert!(!s.remove_date_and_time_flag());
+    let opts = SaveOptions { remove_date_and_time: Some(true), ..Default::default() };
+    let saved = s.save_with(&opts).unwrap();
+    let out = part_text(&saved, "word/document.xml");
+    assert_eq!(xpath_on(&out, "count(//*[@w:date])"), ["0"], "批注日期全删");
+    assert_eq!(xpath_on(&out, "//w:ins/@w:author"), ["张三"], "作者不动");
+    assert_eq!(xpath_on(&out, "//w:del/@w:author"), ["李四"]);
+    let set = part_text(&saved, "word/settings.xml");
+    assert_eq!(xpath_on(&set, "count(//w:removeDateAndTime)"), ["1"], "标志写入");
+    assert_eq!(xpath_on(&set, "count(//w:removePersonalInformation)"), ["0"], "另一项不受影响");
+    assert_eq!(xpath_on(&set, "count(//w:zoom)"), ["1"], "原有设置保留");
+
+    // 文档自带标志 → 无编辑的保存也删日期
+    let flagged = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?><w:settings xmlns:w="{W}"><w:removeDateAndTime/></w:settings>"#
+    );
+    let mut s2 = EditSession::open(&build_docx(&doc, Some(&flagged))).unwrap();
+    assert!(s2.remove_date_and_time_flag());
+    let saved2 = s2.save_with(&SaveOptions::default()).unwrap();
+    let out2 = part_text(&saved2, "word/document.xml");
+    assert_eq!(xpath_on(&out2, "count(//*[@w:date])"), ["0"]);
+    assert_eq!(xpath_on(&out2, "//w:ins/@w:author"), ["张三"], "只删日期不改作者");
+
+    // 两项一起开：作者与日期都清
+    let mut s3 = EditSession::open(&bytes).unwrap();
+    let both = SaveOptions {
+        remove_personal_info: Some(true),
+        remove_date_and_time: Some(true),
+        ..Default::default()
+    };
+    let saved3 = s3.save_with(&both).unwrap();
+    let out3 = part_text(&saved3, "word/document.xml");
+    assert_eq!(xpath_on(&out3, "count(//*[@w:date])"), ["0"]);
+    assert_eq!(xpath_on(&out3, "count(//*[@w:author][@w:author!='Author'])"), ["0"]);
+    let set3 = part_text(&saved3, "word/settings.xml");
+    assert_eq!(xpath_on(&set3, "count(//w:removePersonalInformation)"), ["1"]);
+    assert_eq!(xpath_on(&set3, "count(//w:removeDateAndTime)"), ["1"]);
+}
+
+/// `remove_personal_info` 单独开启时日期保留（与 TS 一致）。
+#[test]
+fn save_07_personal_info_alone_keeps_dates() {
+    let bytes = corpus("write-protection__003.docx");
+    let mut s = EditSession::open(&bytes).unwrap();
+    let opts = SaveOptions { remove_personal_info: Some(true), ..Default::default() };
+    let saved = s.save_with(&opts).unwrap();
+    let out = part_text(&saved, "word/document.xml");
+    assert_eq!(xpath_on(&out, "//w:ins/@w:date"), ["2026-01-01T00:00:00Z"]);
+    assert_eq!(xpath_on(&out, "//w:ins/@w:author"), ["Author"]);
 }

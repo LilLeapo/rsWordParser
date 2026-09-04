@@ -234,7 +234,7 @@ flowchart LR
 - [x] **1.11 `EditSession` / `InlinePos` / `MutationPlan`**（`edit/{mod,pos,plan,session}.rs`，分支 `m1.15-diff-tools`）：`EditSession::open(bytes)` 持有 `Package`（规范状态）与 `Document`（投影），`apply(op, ctx)` / `apply_all(ops, ctx)` / `save()`；`EDIT-02` 的 `InlinePos { para, offset: Utf16Offset }` 与 `locate` → `Loc::{Boundary, InRun, InText}`（代理对中间 → `EDIT_SPLIT_SURROGATE`，越界 / 非文本段落 → `EDIT_BAD_POSITION`）；`EDIT-05` 的 `MutationPlan { part, node_edits, affected_paragraphs, structure_changed, diagnostics, offset_delta }`，`validate(&Dom)` 只读检查每条 `NodeEdit` 的目标（存在、未删除、类型、`before` 是父的子节点、`Target::New(k)` 指向前面的创建、`Move` 不进自己子树），`commit(&mut Dom)` 只调 `Dom::apply_edits`，之后 `Document::refresh_paragraphs` 局部重建（块增删移则整体 `rebuild`）。事务：`apply` 前克隆主 part DOM 作快照，操作内部可分多个 plan/commit 阶段，任一阶段 `Err` → 恢复快照并重建投影。`xml::plan` 新增 `NodeEdit::SetText` / `NodeEdit::Move`、`NewElement::from_dom`（跨 DOM 重新 intern）；`xml::fragment::parse_fragment` 把 XML 片段（`rawPPr` / `rawRPr` / OMML …）解析为 `NewElement`。新诊断 `EDIT_BAD_POSITION / EDIT_CROSS_PARAGRAPH / EDIT_BAD_TEXT / EDIT_ANCHOR_UNMOVED / EDIT_PLAN_INVALID / EDIT_UNSUPPORTED`，错误 `Error::Edit { code, message }`。测试 `tests/edit.rs`：`edit_02_*`（😀 中间 → Err、原子前后差 1）、`edit_05_*`（三步批操作第三步越界 → 无脏节点、投影相等、保存返回原字节；单操作内部多阶段失败同样回滚）。
 - [x] **1.12 内联操作**（`edit/{ops,inline}.rs`）：`InsertText`（`props == None` 且紧邻 / 落在 `Text` 段 → `SetText` 该 `w:t` 文本节点，只有它变脏；否则边界插入 `New` run，`rPr` 为左侧 run 的字节克隆或 `default_run_props`，再按 `PROP-06` 合并 `props`；段中间先 `split_run`；`\t \n \r \v \f` 折回 `w:tab / w:br / w:cr`，XML 非法字符剔除记 `EDIT_BAD_TEXT`）、`DeleteRange`（同段：部分覆盖的文本段截断、整段 / 整 run / 原子 `Deleted`；字段结构段（`fldChar / instrText / commentReference …`）与范围标记原地保留并记 `EDIT_ANCHOR_UNMOVED`；跨段 → `EDIT_CROSS_PARAGRAPH`）、`SetRunProps`（先在 `to`、再在 `from` 处拆 run——右半 `New`、`rPr` 字节克隆、其后的段克隆并删原节点；范围内非零宽 run 各自 `plan_apply_run_props`）、`SetParaProps`（`plan_apply_para_props`）、`ReplaceInlines`（内容子节点全 `Deleted`，`NewInline::{Run, Hyperlink, Ins, Del, Marker, Xml}` 生成 `New`，修订 `w:id` 缺省按 `EDIT-06` 取文档最大值 + 1）；另有 compat 路径用的 `ReplaceParaProps`（整个 `pPr` 换成片段）与块级 `InsertBlock / DeleteBlock / MoveBlock`（`BlockPos::End(body)` 落在尾部 `sectPr` 之前）。测试 `tests/edit.rs`：干净 run 中间插字 → 只有该 `w:t` 子树变脏、`w:p` `DescendantDirty`、其他 zip 条目 CRC 与字节相同、其他块 `originalXml` 原样（M1 门第二条）；带 props 与控制字符的插入拆 run 并继承 `rPr`；删除截断 / 整 run / 原子并保留书签；REF 结果删除后字段结构仍在；`SetRunProps` 拆出的 run 与未覆盖 run 的原字节；`SetParaProps` 新建 `pPr` 与按序插入；`ReplaceInlines` 不动 `pPr`。
 - [x] **1.13 `SaveBlock[]` 兼容映射**（`bind/compat_ts/save_blocks.rs`，`xml/canon.rs`）：`apply_save_blocks(session, finalBlocks, options)` 按 `EDIT-04` 翻译 TS `saveDocx` 的输入——`docxIndex → 节点` 走与 `parsed_doc` 同一套枚举（`blocks::element_nodes`，多段 sdt 拆成每段）；TS `isUnchanged`（全 original 顺序不变、无选项、文档无 `removePersonalInformation`）→ 无操作；两个 present original 之间的 generated / xml 与其间缺失的 original 按序配对：generated 配到 `w:p`（或单段 sdt 里的 `w:p`）→ `ReplaceParaProps`（`rawPPr` 与现有 `pPr` 原字节相同则不动；否则 `rawPPr` 片段或按 `type/level/list/format` 重建——`headingStyleIds` / `listParagraphStyleId` 取自 `parsed_doc`，`formatPPrChildren` 全部字段含 `pBdr / shd / bidi / spacing / ind / jc（bidi 左右互换）/ tabs / framePr / dropCap / 段落标记 rPr`）+ `ReplaceInlines`；多余的 generated → `InsertBlock{Paragraph}` 插在下一个 original 之前（sdt 首段前 → 整个 sdt 之前，末尾 → 尾部 `sectPr` 之前）；`xml` → 每个顶层元素一个 `InsertBlock{Xml}`（带 `docxIndex` 先插后删）；块级 `revision` → `NewBlock::Wrapped`（`w:ins/w:del`，缺 id 按 `EDIT-06`）；缺失的 original → `DeleteBlock`；全 original 的重排 → `MoveBlock`。`runs` 按 TS `runsXml`：`commentIds` 首末 run 处重发批注范围标记与引用、同 `href` 连续 run 合成 `w:hyperlink`（`#anchor` / 已有 `rId`；新外链需 rId 分配 → M2）、`ins/del` 分组包裹、`math.omml` / `ruby.xml` / `image.xml` 走 `parse_fragment`、`noteRef` 生成引用 run；`rawRPr` 按 `mergeRPrModel` 分组比较（rStyle / rFonts（含 `mergeRFontsXml` 的槽合并与 theme 属性去除）/ bold / italic / strike / color / size / highlight / shading / underline / vertAlign / rtl，rtl 时比较 Cs 孪生），相等的组保留原值、不等的组重建，未建模子元素按 `order_index_run_props` 原位保留（`rPrChange` 由模型接管）；无 `rawRPr` → `modelRPrChildren`。`bookmarkIdOf` 的 31 进制哈希照抄。字段类 run（`refField / instrField / xeTerm / fldBeginXml`）、`rPrChange`、`chart / image` 块、`replaceImage`、所有 `SaveOptions` → `Err(EDIT_UNSUPPORTED)`（后续里程碑）。等价比较不用逐条 XPath 而用 `xml::canon::canonical`：`{uri}local` 名字（Strict / Transitional 同 URI、未绑定的规范前缀按其命名空间）、属性排序、忽略 `xmlns:*`、元素间空白丢弃、文本容器逐字——两树规范化文本相同 ⇔ 任何 XPath 子集表达式结果相同。测试 `tests/save_blocks.rs` 跑全部 162 份 `*.save.<k>.json`：72 份与 TS 输出等价（其中 40 份 `isUnchanged` 返回原字节），3 份已知差异（修订 `w:id` 分配：`EDIT-06` 最大值 + 1 vs TS 的 `0` / `9001`），87 份因 `SaveOptions` / 图表 / 图片 / 字段 / 新链接关系 / `removePersonalInformation` 跳过并列出原因；比较时忽略 `w:p` 上的 `w14:paraId` / `w:rsid*`（我们复用原段落节点）与 `xml:space`（`SAVE-03` 对 New `w:t` 一律写）。
-- [x] **1.14（第二批）`save(session, opts)` 编排与保存选项**（`save/options.rs`、`edit/session.rs`）：`EditSession::save_with(&SaveOptions)` 按 `SAVE-01` 六步执行——① 无脏节点、`opts` 无强制请求、文档也没有 `w:removePersonalInformation` 标志 → 返回原字节（不变式 1）；② 校验（`SAVE-02`，在 `Package::save` 内）；③ Span 物化（`SPAN-08`）在 M2，此处无操作；④ `apply_save_options`：全部选项先翻成各 part 的 `MutationPlan`、**先整批 `validate`（只读）再逐个 `commit`**，所以 `commit` 不可能失败、也不需要快照；⑤⑥ 序列化脏 part 与写回。`commit_plan` 放开到任意 XML part（投影只在主 part 上刷新）。`SaveOptions`（`SAVE-07`，与 TS 对齐的 M1 子集）：`saved_at` 改 `docProps/core.xml` 的 `dcterms:modified`（`.mmmZ` → `Z`）并把 `cp:revision` +1，缺标签不注入；`remove_personal_info` 写 `word/settings.xml` 的标志（走 `plan_apply_settings`，`PROP-05` 顺序与既有设置都不动）并按 TS `scrubPersonalMetadata` 清洗全包——除 `customXml/*` 与 `docProps/custom.xml` 外每个 XML part 的 `w:author`（含无前缀 `author`）→ `Author`、`w:initials` → `A`，`core.xml` 的 `dc:creator` / `cp:lastModifiedBy` 清空，`app.xml` 的 `Manager` / `Company` 清空，`word/people.xml` 的 `w15:person` 整条删除；`None` 时沿用文档标志（`EditSession::remove_personal_info_flag`）。`compat_ts::apply_save_blocks` 把 TS `SaveOptions` JSON 的这两项翻成 `SaveOptions` 随 `SaveBlocksOutcome` 返回（其余键仍 `EDIT_UNSUPPORTED`），语料等价用例因此从 72 升到 **77**（41 份逐字节相同），`write-protection__003/004/005/006` 与 `docprops__001.save.2` 全部通过。测试 `tests/save_options.rs` 5 个用例：不变式 1 的短路（含"`saved_at` 单独设置不触发保存"）、`saved_at` 只改 `core.xml` 而 `styles.xml` 原压缩数据不变、`write-protection__004` 的全包清洗（document / comments / header / footer / footnotes / endnotes / glossary 都没有非 `Author` 的作者，`customXml` 与自定义属性不动，`w:date` 保留）、文档标志触发清洗与 `Some(false)` 删标志不清洗、把标志写进已有 `settings.xml`（`SAVE-07` 验收行）。
+- [x] **1.14（第二批）`save(session, opts)` 编排与保存选项**（`save/options.rs`、`edit/session.rs`）：`EditSession::save_with(&SaveOptions)` 按 `SAVE-01` 六步执行——① 无脏节点、`opts` 无强制请求、文档也没有 `w:removePersonalInformation` 标志 → 返回原字节（不变式 1）；② 校验（`SAVE-02`，在 `Package::save` 内）；③ Span 物化（`SPAN-08`）在 M2，此处无操作；④ `apply_save_options`：全部选项先翻成各 part 的 `MutationPlan`、**先整批 `validate`（只读）再逐个 `commit`**，所以 `commit` 不可能失败、也不需要快照；⑤⑥ 序列化脏 part 与写回。`commit_plan` 放开到任意 XML part（投影只在主 part 上刷新）。`SaveOptions`（`SAVE-07`，与 TS 对齐的 M1 子集）：`saved_at` 改 `docProps/core.xml` 的 `dcterms:modified`（`.mmmZ` → `Z`）并把 `cp:revision` +1，缺标签不注入；`remove_personal_info` 写 `word/settings.xml` 的标志（走 `plan_apply_settings`，`PROP-05` 顺序与既有设置都不动）并按 TS `scrubPersonalMetadata` 清洗全包——除 `customXml/*` 与 `docProps/custom.xml` 外每个 XML part 的 `w:author`（含无前缀 `author`）→ `Author`、`w:initials` → `A`，`core.xml` 的 `dc:creator` / `cp:lastModifiedBy` 清空，`app.xml` 的 `Manager` / `Company` 清空，`word/people.xml` 的 `w15:person` 整条删除；`None` 时沿用文档标志（`EditSession::remove_personal_info_flag`）。`compat_ts::apply_save_blocks` 把 TS `SaveOptions` JSON 的这两项翻成 `SaveOptions` 随 `SaveBlocksOutcome` 返回（其余键仍 `EDIT_UNSUPPORTED`），语料等价用例因此从 72 升到 **77**（41 份逐字节相同），`write-protection__003/004/005/006` 与 `docprops__001.save.2` 全部通过。另加一项 TS 没有的能力 `remove_date_and_time`（OOXML `w:removeDateAndTime`）：删除批注与修订上的 `w:date`、写入同名标志、也认文档自带的标志，与 `remove_personal_info` 相互独立。事务同时补强：`Snapshot` 改成记录事务碰过的**每个** part 的写前镜像（`commit_plan` 第一次写某 part 时按需克隆），`apply` / `apply_all` / 保存选项共用 `transaction()`；投影刷新遇到不在正文顶层的段落（表格单元格）改为整体重建，不再留过期投影。测试 `tests/save_options.rs` 7 个用例：不变式 1 的短路（含"`saved_at` 单独设置不触发保存"）、`saved_at` 只改 `core.xml` 而 `styles.xml` 原压缩数据不变、`write-protection__004` 的全包清洗（document / comments / header / footer / footnotes / endnotes / glossary 都没有非 `Author` 的作者，`customXml` 与自定义属性不动，`w:date` 保留）、文档标志触发清洗与 `Some(false)` 删标志不清洗、把标志写进已有 `settings.xml`（`SAVE-07` 验收行）、`remove_date_and_time` 的三种入口（选项 / 文档标志 / 与作者清洗同开）与"只开作者清洗时日期保留"；`edit/session.rs` 单元测试 `edit_05_transaction_rolls_back_every_touched_part` 覆盖多 part 回滚。
 
 ### 5.2 M1 门（`TEST-10`）
 
@@ -287,6 +287,12 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 
 ## 8. 实现偏差记录（相对 `docs/03` / `spec` 的措辞，语义等价或补充）
 
+**验收政策（2026-09-04 定）**：TS `docx-engine` 是参考实现，不是验收权威。目标是**功能等价或更强**；
+与 TS 逐字节 / 逐字段一致只是发现回归的手段。凡是有意做得不同的地方都要有出处：解析侧记在
+`crates/rsword/src/bind/compat_ts/KNOWN_DIFFS.md` 的 ```known-diffs 块，保存侧记在
+`crates/rsword/tests/save_blocks.rs` 的 `INTENTIONAL`，语义层面的记在下表。差分测试因此断言"只有列出的
+差异"，而不是"零差异"。
+
 | 处 | 规范写法 | 实现 | 原因 |
 | --- | --- | --- | --- |
 | `docs/03` §4.1 `Lex.name` | 原始限定名在 `Lex` | `Element::lex_name: Option<Range<u32>>`，与 `Attr::lex_name` 对称 | `None` 直接表达"改名 / New，需按作用域生成前缀"；`Lex` 只管位置 |
@@ -318,6 +324,8 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `SAVE-07` `saved_at` | `core.xml` 的 `dcterms:modified` | 同；顺带 `cp:revision` +1；`None` 时**不碰** `core.xml`（TS 每次真实保存都写 `now()`） | 与 TS 的时间戳字段一致；不主动改时间戳才能保住"编辑一段 → 其他条目字节不变" |
 | `SAVE-07` `remove_personal_info` | 修订与批注的 `w:author` 改 `Author`、**`w:date` 删除** | `w:author` → `Author`、`w:initials` → `A`；`w:date` **保留** | 同一句规范要求"与 TS 行为对齐"，而 TS 只改作者与缩写；删日期会让全部 `write-protection` 差分用例与 TS 不等价。要 Word 那种删日期的行为时再加开关 |
 | `SAVE-07` 缺 `word/settings.xml` | 选项都翻成 DOM 变更 | 清洗照做，但标志写不进去：记一条 `EDIT_UNSUPPORTED` 诊断（TS 会新建 part + 关系） | 新建 part 属 `SAVE-05`（M2）；不因此让保存失败 |
+| `SAVE-07` 选项集合 | `saved_at` / `remove_personal_info` / 节 / 页眉页脚 / 页面颜色 | 另有 `remove_date_and_time`（OOXML `w:removeDateAndTime`）：删除批注与修订上的 `w:date`，写入同名设置标志，也认文档自带的标志 | 规范 `SAVE-07` 要求"`w:date` 删除"，但那是 Word 里独立的一项开关；TS 完全没有这个能力。拆成两项后既实现了规范要求，又保住 `remove_personal_info` 与 TS 的一致（**功能超过 TS** 的一处） |
+| `EDIT-06` 修订 `w:id` | 全局 `max + 1` | 按规范实现；因此 3 个 TS 保存用例有意不等价（TS 块级缺省写 `0`、run 级从 `9001` 起，重复插入会重号） | 见 §8 开头的政策：TS 的固定值是缺陷，不跟随 |
 | `PROP-01` 表格式 | 每行一个子元素 | 表另可声明 `attrs`（容器自身属性），读 / diff / emit / plan 一并生成；plan 用 `NodeEdit::SetAttr / RemoveAttr` | `w:lvl`、`w:style`、`w:num`、`w:font` 的身份都在属性上；M2 的 `w:cols` 也需要 |
 | `MOD-06` `xml:space` | "`w:t` 无 `xml:space="preserve"` 时 trim" | 按 XML 规范取**有效值**：最近祖先（含自身）的声明生效，`default` 复位 | 语料 `layout-fidelity__002` 在 `w:document` 上声明 `preserve`，TS 与 Word 都保留空格 |
 | `MOD-05` R07 | 非 `w:p/w:tbl/w:sdt/w:sectPr/w:br/w:ins/w:del` 的 body 子节点 → `Unknown` | `w:customXml` / `w:smartTag` 块级包裹透明递归；`w:moveFrom/w:moveTo` 包裹同 R06 | 它们是 `SPAN-01` 列出的容器，内容是普通段落 |
@@ -332,11 +340,44 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 
 ## 9. 待决事项（需要项目负责人拍板）
 
+2026-09-04 复核：原先 6 条里 5 条已落地或已决（仓库已有提交历史；语料 8.9 MB 直接入库；导出脚本留在本仓库；
+crate 名 `rsword`；nightly 与 cargo-fuzz 已装）。已决的政策见 §8 开头：**TS 不是验收权威，功能等价或更强**。
+另：并行的 `m1.11-edit-session` 分支已按决定删除（其提交 4b8032a 仍是 `/Users/lilleap/code/rsWordParser`
+那个工作树的游离 HEAD，未提交文件都在原处）。
+
 | # | 事项 | 建议 |
 | --- | --- | --- |
-| 1 | 仓库尚无任何提交 | 三次提交：`docs + spec`（v3.2 基线）、`workspace skeleton (m0.2)`、`corpus export tool + first corpus (m0.1)` |
-| 2 | genoffice 工作树 31 处已暂存未提交的改动（含 `docx-engine/src/generate.ts`）会影响 `.save.json` 的期望输出 | 要么在干净的 f105f36（或新基线提交）上重跑 `run.sh`，要么接受并在语料提交信息里写明 `dirty_files` |
-| 3 | 语料体积 8.9 MB（`expected.json` 含整个 `documentXml`） | 直接提交；超过约 30 MB 再考虑 git-lfs |
-| 4 | 导出脚本是否也提交到 genoffice（`spec/11` TEST-02 写"待写于 genoffice"） | 建议保留在本仓库，genoffice 侧不落文件；若两边团队分离再提 PR 到 genoffice |
-| 5 | crate 名 `rsword`；`docs/03` §11 的"77 个测试文件"更新为 87 | 名字无异议即沿用；数字更新随 0.1 提交顺手改 |
-| 6 | nightly 安装时机 | 0.13 之前；不阻塞其他任务 |
+| 1 | 语料基线：`corpus/` 导出自 genoffice `f105f36` **加 31 处未提交改动**（含 `generate.ts`），`.save.json` 的期望输出受其影响 | M2 之前在干净基线上重跑 `tools/export-golden/run.sh` 并在提交信息里记下 commit；差分数量会有小幅变化 |
+| 2 | `m1.15-diff-tools`（M1 的 1.11–1.15）何时并入 `main` | M2 开工前并入，让 M2 从单一基线出发 |
+| 3 | M2 计划文档 | 照 `spec/12` 的格式写 `spec/13-m2-plan.md`（任务 / SPEC ID / DoD），内容见 §10 |
+
+---
+
+## 10. M2 及以后的执行顺序（2026-09-04 规划）
+
+里程碑内容与 CI 门见 `docs/03` §12 与 `spec/11` TEST-10。下面是排期依据与任务分解。
+
+**优先级依据（实测）**：`diff-parse --scope all` 在 573 份文档里有 341 份存在未知差异、1925 个差异点，按域聚合：
+绘图与图片约 830、块分类连带项（label / type / previewText）493、run 相关（字段 / 批注 / 符号字体）220、
+页眉页脚 157、表格 67、字段显示 36。保存侧 `tests/save_blocks.rs` 的 82 份跳过用例里，M5 约 48 份、
+M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的一块且不依赖 Span 与字段，适合并行开发。
+
+**M2（L2：Span + 字段）任务分解**
+
+| 任务 | 内容 | SPEC | DoD |
+| --- | --- | --- | --- |
+| 2.1 | Span 索引：`RangeSpan`/`RangeKind`/`SpanId` 按内容流构建 | `SPAN-01`–`SPAN-05` | 全语料范围标记成对，孤儿 / 未闭合 / 跨流各有诊断 |
+| 2.2 | `Anchor`/`Affinity`、`dom.compare`、四条变换规则 | `SPAN-06` | 删除覆盖书签起点后起点落到删除处（`EDIT-03` 验收行），替掉现在的 `EDIT_ANCHOR_UNMOVED` |
+| 2.3 | Span 物化与保存校验 | `SPAN-08`、`SAVE-02` | 接进 `save_with` 现在空着的第 3 步；Span 成对 / 顺序 / 同流三项检查 |
+| 2.4 | 字段子系统：`FieldSpan`、指令解析、三种 `FieldForm` 策略 | `FLD-01`–`FLD-08`、`FLD-13` | 字段用例 diff 为 0 |
+| 2.5 | 字段进模型与 compat：`Inline::Field`、`Run.field`、`fieldDisplay` | `MOD-06`、`COMPAT-07` | `bookmarks-crossref` / XE / 复选框用例 diff 为 0 |
+| 2.6 | 批注与 notes 部件（含首次创建 part / 关系 / 内容类型） | `SAVE-05`、`EDIT-03` | 保存语料 7 份 comments + 3 份 footnotes 用例通过 |
+| 2.7 | 符号字体解码 | `RES-05` | 删掉 `KNOWN_DIFFS.md` 里整份放行的 `symbol-fonts__*` |
+| 2.8 | `EDIT-06` id 分配落地：rId / 书签 / 批注 / `w14:paraId` | `EDIT-06` | `insert-and-layout__001.save.10`（新外链）通过 |
+| 2.9 | 字段与段落操作：`InsertField`、`SetLinkTarget`、`ToggleCheckbox`、`SplitParagraph`、`MergeWithNext` 等 | `FLD-09`–`FLD-12`、`EDIT-03` | 各自的验收行 |
+| 2.10 | `fuzz_instr` 与 M2 门 | `TEST-08`、`TEST-10` | 字段与 Span 域 diff 为 0；10 分钟无崩溃 |
+
+**M1 遗留债的处置**：事务快照已改成覆盖事务碰过的每个 part（`edit/session.rs`，单元测试
+`edit_05_transaction_rolls_back_every_touched_part`）；投影刷新遇到不在正文顶层的段落改为整体重建，不再留过期投影。
+剩下两条要等对应里程碑：`DeleteRange` 对字段结构段的"原地保留"要 2.4 的 `FieldSpan` 才能真正删对；
+表格单元格的容器级刷新要 M3。等价比较忽略 `xml:space` 的事记在 §8，M7 与 TS 全面差分时复核。

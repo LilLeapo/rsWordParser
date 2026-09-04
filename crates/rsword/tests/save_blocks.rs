@@ -1,7 +1,8 @@
 //! `SaveBlock[]` 兼容映射（任务 1.13，`EDIT-04` / `COMPAT-08`）：用 TS 测试导出的
 //! `corpus/synthetic/*.save.<k>.json`（`blocks` + `options`）驱动 `apply_save_blocks`，保存后主 part 与
 //! 其中的 `documentXml`（TS `saveDocx` 的输出）按 `xml::canon` 规范化后相等——等价于任何 XPath 子集
-//! 表达式在两者上结果相同。M1 范围：`options` 只含 `savedAt` / `removePersonalInfo`（`SAVE-07`），
+//! 表达式在两者上结果相同。等价是**手段不是目标**：TS 不是验收权威，`INTENTIONAL` 列出我们有意做得
+//! 不同的用例（`docs/04` §8）。M1 范围：`options` 只含 `savedAt` / `removePersonalInfo`（`SAVE-07`），
 //! 块只含 original / generated / xml；用到字段、
 //! 新超链接关系、块级修订等后续里程碑能力的用例记为"跳过"并列出原因。
 
@@ -45,11 +46,15 @@ fn body_of(dom: &Dom) -> rsword::xml::NodeId {
         .expect("w:body")
 }
 
-/// 已知与 TS 输出不等价、且属于后续里程碑或 TS 自身行为的用例（`<save 文件名> <原因>`）。
-const KNOWN: &[(&str, &str)] = &[
-    ("revisions__007.save.1.json", "块级修订 w:id：EDIT-06 取文档最大值 + 1，TS 缺省写 0"),
-    ("revisions__007.save.2.json", "块级修订 w:id：EDIT-06 取文档最大值 + 1，TS 缺省写 0"),
-    ("revisions__007.save.3.json", "run 级修订 w:id：EDIT-06 取文档最大值 + 1，TS 从 9001 起"),
+/// **有意**与 TS 输出不同的用例（`<save 文件名> <理由>`）。TS 不是验收权威：目标是功能等价或更强
+/// （`docs/04` §8 开头的政策），这几条是我们按 `EDIT-06` 分配修订 id 的结果，比 TS 的固定值更安全。
+const INTENTIONAL: &[(&str, &str)] = &[
+    (
+        "revisions__007.save.1.json",
+        "块级修订 w:id 按 EDIT-06 取全文档最大值 + 1；TS 缺省写 0（多次插入会重号）",
+    ),
+    ("revisions__007.save.2.json", "同上（表格的块级修订）"),
+    ("revisions__007.save.3.json", "run 级修订 w:id 同样按 EDIT-06 分配；TS 从固定的 9001 起"),
 ];
 
 #[test]
@@ -138,9 +143,9 @@ fn compat_08_save_blocks_match_ts_save_docx_output() {
     for (f, d) in &failed {
         eprintln!("save-blocks: FAIL {f}\n  {d}");
     }
-    let unknown: Vec<_> =
-        failed.iter().filter(|(f, _)| !KNOWN.iter().any(|(k, _)| k == f)).collect();
-    assert!(unknown.is_empty(), "{} 个用例与 TS saveDocx 输出不等价", unknown.len());
+    let unexpected: Vec<_> =
+        failed.iter().filter(|(f, _)| !INTENTIONAL.iter().any(|(k, _)| k == f)).collect();
+    assert!(unexpected.is_empty(), "{} 个用例意外地与 TS saveDocx 输出不等价", unexpected.len());
     // 必须覆盖的 text-patch 用例
     for must in [
         "insert-and-layout__001.save.8.json",
@@ -169,7 +174,10 @@ fn compat_08_save_blocks_match_ts_save_docx_output() {
         assert!(passed.iter().any(|f| f == must), "{must} 应在等价用例里");
     }
     assert!(passed.len() >= 75, "等价用例过少: {}", passed.len());
-    for (f, why) in KNOWN {
-        assert!(failed.iter().any(|(x, _)| x == f), "{f} 已与 TS 等价（{why}），请从 KNOWN 移除");
+    for (f, why) in INTENTIONAL {
+        assert!(
+            failed.iter().any(|(x, _)| x == f),
+            "{f} 现在与 TS 等价（有意差异：{why}），请从 INTENTIONAL 移除"
+        );
     }
 }
