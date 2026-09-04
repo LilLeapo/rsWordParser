@@ -111,6 +111,18 @@ pub enum DiagCode {
     EditSdtLocked,
     /// `EDIT-03`：sdt 带 `dataBinding`，第一阶段只读。
     EditSdtBound,
+    /// `EDIT-02`：位置不合法（不是文本段落、偏移越界、`from > to`）。
+    EditBadPosition,
+    /// `EDIT-03`：同段操作的两端不在同一段落。
+    EditCrossParagraph,
+    /// `EDIT-03`：文本含 XML 非法字符，已剔除。
+    EditBadText,
+    /// `EDIT-03`（M1）：删除范围覆盖范围标记或字段结构段，标记 / 结构原地保留（Anchor 变换在 M2）。
+    EditAnchorUnmoved,
+    /// `EDIT-05`：计划引用了不存在 / 已删除的节点或非法目标，`validate` 拦下。
+    EditPlanInvalid,
+    /// `EDIT-03`：该操作或输入形态在当前阶段不支持。
+    EditUnsupported,
 
     // ---- SAVE（spec/09）----
     /// `SAVE-02`：调试构建与 CI 下的 `EngineInvariantViolation`。
@@ -156,6 +168,12 @@ impl DiagCode {
             Self::ResStyleCycle => "RES_STYLE_CYCLE",
             Self::ResBasedOnTypeMismatch => "RES_BASED_ON_TYPE_MISMATCH",
             Self::EditSplitSurrogate => "EDIT_SPLIT_SURROGATE",
+            Self::EditBadPosition => "EDIT_BAD_POSITION",
+            Self::EditCrossParagraph => "EDIT_CROSS_PARAGRAPH",
+            Self::EditBadText => "EDIT_BAD_TEXT",
+            Self::EditAnchorUnmoved => "EDIT_ANCHOR_UNMOVED",
+            Self::EditPlanInvalid => "EDIT_PLAN_INVALID",
+            Self::EditUnsupported => "EDIT_UNSUPPORTED",
             Self::EditSplitField => "EDIT_SPLIT_FIELD",
             Self::EditUnsupportedTrackedMove => "EDIT_UNSUPPORTED_TRACKED_MOVE",
             Self::EditSdtLocked => "EDIT_SDT_LOCKED",

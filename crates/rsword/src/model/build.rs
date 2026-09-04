@@ -109,6 +109,35 @@ impl Document {
     pub fn text_blocks(&self) -> impl Iterator<Item = &TextBlock> {
         self.main.iter().filter_map(Block::as_text)
     }
+
+    /// 局部刷新（`MOD-13` 的 `refresh`，M1 版本）：重建给定 `w:p` 在正文块表里的投影，
+    /// 保留其 sdt / 修订上下文；返回不在正文顶层的段落（表格内等，M1 不投影）。
+    pub fn refresh_paragraphs(
+        &mut self,
+        pkg: &mut Package,
+        paras: &[NodeId],
+    ) -> Result<Vec<NodeId>> {
+        let main = self.main_part;
+        pkg.dom(main)?;
+        let dom = pkg.part(main).dom().expect("main part parsed above");
+        let rels = &pkg.part(main).rels;
+        let mut b =
+            Builder { dom, styles: self.styles.as_ref(), rels, warnings: Vec::new(), depth: 0 };
+        let mut missing = Vec::new();
+        for &p in paras {
+            match self.main.iter().position(|blk| blk.node() == p) {
+                Some(i) => {
+                    let sdt = self.main[i].sdt().cloned();
+                    let revs = self.main[i].revisions().to_vec();
+                    self.main[i] = b.build_paragraph(p, sdt.as_ref(), &revs);
+                }
+                None => missing.push(p),
+            }
+        }
+        let warnings = b.warnings;
+        self.warnings.extend(warnings);
+        Ok(missing)
+    }
 }
 
 struct Builder<'a> {

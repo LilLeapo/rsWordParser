@@ -38,4 +38,15 @@ pub enum Error {
     /// `SAVE-02`：调试构建与 CI 下的 `EngineInvariantViolation`。
     #[error("engine invariant violated: {0}")]
     Invariant(Diagnostic),
+
+    /// `EDIT-01/02/03/05`：编辑操作被拒绝（位置非法、跨段、计划校验失败、当前阶段不支持）。
+    /// 会话状态不变（`EDIT-05`）。
+    #[error("edit rejected ({}): {message}", code.as_str())]
+    Edit { code: DiagCode, message: String },
+}
+
+impl Error {
+    pub fn edit(code: DiagCode, message: impl Into<String>) -> Self {
+        Error::Edit { code, message: message.into() }
+    }
 }

@@ -93,11 +93,17 @@ impl Package {
 fn check_clean_substrings(dom: &crate::xml::Dom, out: &[u8], uri: &str) {
     use crate::xml::NodeKind;
     let mut checked = 0;
-    for id in dom.descendants(dom.root()) {
+    // 手工前序遍历：不进入 `Deleted` 子树（其中的 `Clean` 后代本来就不输出）
+    let mut stack = vec![dom.root()];
+    while let Some(id) = stack.pop() {
         if checked >= 64 {
             break;
         }
         let node = dom.node(id);
+        if node.dirty == Dirty::Deleted {
+            continue;
+        }
+        stack.extend(dom.children(id).iter().rev());
         if node.dirty != Dirty::Clean || !matches!(node.kind, NodeKind::Element(_)) {
             continue;
         }

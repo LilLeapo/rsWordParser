@@ -12,6 +12,7 @@
 pub mod dom;
 pub mod edit;
 pub mod entities;
+pub mod fragment;
 pub mod interner;
 pub mod lex;
 pub mod mce;
@@ -22,6 +23,7 @@ pub mod plan;
 pub mod xpath;
 
 pub use dom::{Attr, AttrValue, Dom, Element, Mce, MceRole, Node, NodeId, NodeKind, TextValue};
+pub use fragment::parse_fragment;
 pub use interner::{Interned, Interner};
 pub use lex::Lex;
 pub use mce::{DEFAULT_UNDERSTOOD, SemanticChildren};
