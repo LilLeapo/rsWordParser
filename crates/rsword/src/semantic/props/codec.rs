@@ -359,6 +359,69 @@ impl Codec for HexColorOrAuto {
     }
 }
 
+/// `ST_MeasurementOrPercent`（`CT_TblWidth/@w:w`）：无单位十进制数、带单位度量或字面 `NN%`。
+/// 无单位数的单位由同元素的 `w:type` 决定（`TblWidth::twips` / `TblWidth::percent`），codec 只区分
+/// "数"与"百分数字面"；带单位的度量换算成 twips（只有 `dxa` 才会带单位）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Measure {
+    /// 无单位数（`type=dxa` 时是 twips，`type=pct` 时是 1/50 百分点）；带单位的度量已换算为 twips。
+    Number(i32),
+    /// 字面百分数，单位 1/100 百分点：`"50%"` → 5000，`"12.5%"` → 1250。
+    Percent(i32),
+}
+
+impl Measure {
+    pub fn parse(s: &str) -> Option<Self> {
+        let s = s.trim();
+        if let Some(pct) = s.strip_suffix('%') {
+            let hundredths = (parse_decimal(pct.trim())? * 100.0).round();
+            if hundredths.abs() > f64::from(i32::MAX) {
+                return None;
+            }
+            return Some(Measure::Percent(hundredths as i32));
+        }
+        parse_measure(s, 20.0).and_then(|n| i32::try_from(n).ok()).map(Measure::Number)
+    }
+
+    pub fn to_xml(self) -> String {
+        match self {
+            Measure::Number(n) => n.to_string(),
+            Measure::Percent(h) if h % 100 == 0 => format!("{}%", h / 100),
+            Measure::Percent(h) => format!("{}%", f64::from(h) / 100.0),
+        }
+    }
+}
+
+/// `Measure` 的 codec（`CT_TblWidth` 各处的 `w:w`）。
+pub struct MeasureOrPercent;
+
+impl Codec for MeasureOrPercent {
+    type Value = Val<Measure>;
+    const NAME: &'static str = "ST_MeasurementOrPercent";
+
+    fn parse(text: &str, ctx: &mut Ctx<'_>) -> Val<Measure> {
+        match Measure::parse(text) {
+            Some(m) => Val::Value(m),
+            None => raw_val(text, ctx, Self::NAME),
+        }
+    }
+
+    fn parse_attr(text: &str, what: &str, ctx: &mut Ctx<'_>) -> Val<Measure> {
+        match Measure::parse(text) {
+            Some(m) => Val::Value(m),
+            None => raw_attr(text, what, ctx, Self::NAME),
+        }
+    }
+
+    fn write(v: &Val<Measure>, _flavor: PartFlavor) -> Cow<'_, str> {
+        v.write(|m| Cow::Owned(m.to_xml()))
+    }
+
+    fn missing(ctx: &mut Ctx<'_>) -> Val<Measure> {
+        missing_val(ctx, Self::NAME)
+    }
+}
+
 /// 原文字符串（`ST_String`）；不会失败。
 pub struct Str;
 
@@ -412,6 +475,21 @@ mod tests {
         assert_eq!(HexColorOrAuto::parse("GG0000"), None);
         assert_eq!(HexColorOrAuto::Rgb([0, 255, 127]).to_xml(), "00FF7F");
         assert_eq!(HexColorOrAuto::Auto.to_xml(), "auto");
+    }
+
+    #[test]
+    fn prop_02_measure_or_percent() {
+        assert_eq!(Measure::parse("2500"), Some(Measure::Number(2500)));
+        assert_eq!(Measure::parse("-115"), Some(Measure::Number(-115)));
+        assert_eq!(Measure::parse("1in"), Some(Measure::Number(1440)));
+        assert_eq!(Measure::parse("50%"), Some(Measure::Percent(5000)));
+        assert_eq!(Measure::parse(" 12.5% "), Some(Measure::Percent(1250)));
+        assert_eq!(Measure::parse("abc"), None);
+        assert_eq!(Measure::parse("%"), None);
+        assert_eq!(Measure::Number(2500).to_xml(), "2500");
+        assert_eq!(Measure::Percent(5000).to_xml(), "50%");
+        assert_eq!(Measure::Percent(1250).to_xml(), "12.5%");
+        assert_eq!(Measure::Percent(1234).to_xml(), "12.34%");
     }
 
     #[test]

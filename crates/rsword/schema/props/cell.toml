@@ -1,0 +1,185 @@
+# CellProps（`w:tcPr`）与它的子表：PROP-05 CT_TcPr 顺序、PROP-08 字段（任务 3.1）。格式见 README.md。
+
+[[table]]
+name = "CellProps"
+element = "w:tcPr"
+change = "w:tcPrChange"
+doc = "CT_TcPr（§17.4.70）：CT_TcPrBase 为 sequence，顺序强制；之后 cellIns / cellDel / cellMerge（单元格修订）、tcPrChange。"
+order = [
+  "w:cnfStyle", "w:tcW", "w:gridSpan", "w:hMerge", "w:vMerge", "w:tcBorders", "w:shd", "w:noWrap", "w:tcMar",
+  "w:textDirection", "w:tcFitText", "w:vAlign", "w:hideMark", "w:headers", "w:cellIns", "w:cellDel", "w:cellMerge",
+  "w:tcPrChange",
+]
+
+[[table.field]]
+name = "cnf_style"
+element = "w:cnfStyle"
+codec = "CnfStyle"
+
+[[table.field]]
+name = "width"
+element = "w:tcW"
+codec = "TblWidth"
+
+[[table.field]]
+name = "grid_span"
+element = "w:gridSpan"
+codec = "Int"
+doc = "跨越的网格列数，缺省 1"
+
+[[table.field]]
+name = "h_merge"
+element = "w:hMerge"
+codec = "Merge"
+doc = "旧式横向合并；模型不折叠（MOD-07），resolve 折叠"
+
+[[table.field]]
+name = "v_merge"
+element = "w:vMerge"
+codec = "Merge"
+
+[[table.field]]
+name = "borders"
+element = "w:tcBorders"
+codec = "TcBorders"
+
+[[table.field]]
+name = "shading"
+element = "w:shd"
+codec = "Shading"
+
+[[table.field]]
+name = "no_wrap"
+element = "w:noWrap"
+codec = "OnOff"
+
+[[table.field]]
+name = "margins"
+element = "w:tcMar"
+codec = "TcMar"
+
+[[table.field]]
+name = "text_direction"
+element = "w:textDirection"
+codec = "TextDirection"
+
+[[table.field]]
+name = "fit_text"
+element = "w:tcFitText"
+codec = "OnOff"
+
+[[table.field]]
+name = "v_align"
+element = "w:vAlign"
+codec = "VerticalJc"
+
+[[table.field]]
+name = "hide_mark"
+element = "w:hideMark"
+codec = "OnOff"
+
+[[table.field]]
+name = "headers"
+element = "w:headers"
+codec = "Raw"
+in_change = false
+doc = "CT_Headers：无障碍表头引用列表，原样保留"
+
+[[table.field]]
+name = "cell_ins"
+element = "w:cellIns"
+codec = "TrackChangeMark"
+in_change = false
+doc = "单元格插入修订（MOD-09 的 Cell.revisions）"
+
+[[table.field]]
+name = "cell_del"
+element = "w:cellDel"
+codec = "TrackChangeMark"
+in_change = false
+
+[[table.field]]
+name = "cell_merge"
+element = "w:cellMerge"
+codec = "CellMergeMark"
+in_change = false
+
+# ---- 子表 -----------------------------------------------------------------------------------------
+
+[[table]]
+name = "TcBorders"
+element = "w:tcBorders"
+doc = "CT_TcBorders（§17.4.67）：六边同 tblBorders，另加两条对角线。Strict 拼写 start/end。"
+order = ["w:top", "w:start|w:left", "w:bottom", "w:end|w:right", "w:insideH", "w:insideV", "w:tl2br", "w:tr2bl"]
+
+[[table.field]]
+name = "top"
+element = "w:top"
+codec = "Border"
+
+[[table.field]]
+name = "start"
+element = "w:start"
+legacy = "w:left"
+codec = "Border"
+
+[[table.field]]
+name = "bottom"
+element = "w:bottom"
+codec = "Border"
+
+[[table.field]]
+name = "end"
+element = "w:end"
+legacy = "w:right"
+codec = "Border"
+
+[[table.field]]
+name = "inside_h"
+element = "w:insideH"
+codec = "Border"
+
+[[table.field]]
+name = "inside_v"
+element = "w:insideV"
+codec = "Border"
+
+[[table.field]]
+name = "tl2br"
+element = "w:tl2br"
+codec = "Border"
+doc = "左上到右下的对角线"
+
+[[table.field]]
+name = "tr2bl"
+element = "w:tr2bl"
+codec = "Border"
+doc = "右上到左下的对角线"
+
+[[table]]
+name = "TcMar"
+element = "w:tcMar"
+doc = "CT_TcMar（§17.4.69）：单元格自身边距，各边 CT_TblWidth。"
+order = ["w:top", "w:start|w:left", "w:bottom", "w:end|w:right"]
+
+[[table.field]]
+name = "top"
+element = "w:top"
+codec = "TblWidth"
+
+[[table.field]]
+name = "start"
+element = "w:start"
+legacy = "w:left"
+codec = "TblWidth"
+
+[[table.field]]
+name = "bottom"
+element = "w:bottom"
+codec = "TblWidth"
+
+[[table.field]]
+name = "end"
+element = "w:end"
+legacy = "w:right"
+codec = "TblWidth"

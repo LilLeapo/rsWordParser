@@ -61,7 +61,7 @@ codec = "ParaProps"
 [[table]]
 name = "Style"
 element = "w:style"
-doc = "CT_Style（§17.7.4.17）。表格样式的 tblPr / trPr / tcPr 在 M2 建表前先按 Raw 保留。"
+doc = "CT_Style（§17.7.4.17）。表格样式的 tblPr / trPr / tcPr 用表格属性表（任务 3.1）。"
 order = [
   "w:name", "w:aliases", "w:basedOn", "w:next", "w:link", "w:autoRedefine", "w:hidden", "w:uiPriority",
   "w:semiHidden", "w:unhideWhenUsed", "w:qFormat", "w:locked", "w:personal", "w:personalCompose",
@@ -167,17 +167,17 @@ codec = "RunProps"
 [[table.field]]
 name = "tbl_pr"
 element = "w:tblPr"
-codec = "Raw"
+codec = "TableProps"
 
 [[table.field]]
 name = "tr_pr"
 element = "w:trPr"
-codec = "Raw"
+codec = "RowProps"
 
 [[table.field]]
 name = "tc_pr"
 element = "w:tcPr"
-codec = "Raw"
+codec = "CellProps"
 
 [[table.field]]
 name = "conditional"
@@ -205,14 +205,14 @@ codec = "RunProps"
 [[table.field]]
 name = "tbl_pr"
 element = "w:tblPr"
-codec = "Raw"
+codec = "TableProps"
 
 [[table.field]]
 name = "tr_pr"
 element = "w:trPr"
-codec = "Raw"
+codec = "RowProps"
 
 [[table.field]]
 name = "tc_pr"
 element = "w:tcPr"
-codec = "Raw"
+codec = "CellProps"

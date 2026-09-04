@@ -438,3 +438,124 @@ attrs = [
   { name = "font_key", attr = "w:fontKey", codec = "Str" },
   { name = "subsetted", attr = "w:subsetted", codec = "OnOff" },
 ]
+
+# ---- 表格属性用到的枚举（任务 3.1）-----------------------------------------------------------------
+
+[enum.TblWidthType]
+doc = "ST_TblWidth（§17.18.90）：`w` 的单位——auto / dxa（twips）/ nil / pct（1/50 百分点）"
+values = ["nil", "pct", "dxa", "auto"]
+
+[enum.MergeKind]
+doc = "ST_Merge（§17.18.57）：vMerge / hMerge 的 `w:val`；元素存在而无 `w:val` 即 continue"
+values = ["continue", "restart"]
+
+[enum.VerticalJc]
+doc = "ST_VerticalJc（§17.18.101）：单元格垂直对齐"
+values = ["top", "center", "both", "bottom"]
+
+[enum.TextDirection]
+doc = "ST_TextDirection（§17.18.93）：Transitional（lrTb…）与 Strict（tb…）两套字面都收"
+values = ["lrTb", "tbRl", "btLr", "lrTbV", "tbRlV", "tbLrV", "tb", "rl", "lr", "tbV", "rlV", "lrV"]
+
+[enum.TblLayoutType]
+doc = "ST_TblLayoutType（§17.18.87）"
+values = ["fixed", "autofit"]
+
+[enum.TblOverlap]
+doc = "ST_TblOverlap（§17.18.88）：浮动表格是否允许与别的浮动表格重叠"
+values = ["never", "overlap"]
+
+[enum.JcTable]
+doc = "ST_JcTable（§17.18.45）：表格 / 行的水平对齐；Strict 没有 left/right"
+values = ["center", "end", "left", "right", "start"]
+
+[enum.AnnotationVMerge]
+doc = "ST_AnnotationVMerge（§17.18.1）：cellMerge 修订里的合并方向"
+values = ["cont", "rest"]
+
+# ---- 表格属性用到的结构体 -----------------------------------------------------------------------
+
+[struct.TblWidth]
+doc = "CT_TblWidth（`w:tblW` / `w:tcW` / `w:tblInd` / `w:tblCellSpacing` / `w:wBefore` / `w:wAfter` / 单元格边距各边）：`w` 的单位由 `type` 决定（dxa = twips，pct = 1/50 百分点；字面 `NN%` 也接受）。解释见 `TblWidth::twips` / `TblWidth::percent`。"
+attrs = [
+  { name = "w", attr = "w:w", codec = "MeasureOrPercent" },
+  { name = "kind", attr = "w:type", codec = "TblWidthType" },
+]
+
+[struct.TblLayout]
+doc = "CT_TblLayoutType（`w:tblLayout`）：属性是 `w:type` 而不是 `w:val`"
+attrs = [{ name = "kind", attr = "w:type", codec = "TblLayoutType" }]
+
+[struct.TblLook]
+doc = "CT_TblLook（`w:tblLook`）：表格样式条件格式开关。属性形式优先于 `w:val` 位掩码（RES-08）。"
+attrs = [
+  { name = "val", attr = "w:val", codec = "Str", doc = "ST_ShortHexNumber 位掩码原文（0x20 firstRow … 0x400 noVBand）" },
+  { name = "first_row", attr = "w:firstRow", codec = "OnOff" },
+  { name = "last_row", attr = "w:lastRow", codec = "OnOff" },
+  { name = "first_column", attr = "w:firstColumn", codec = "OnOff" },
+  { name = "last_column", attr = "w:lastColumn", codec = "OnOff" },
+  { name = "no_h_band", attr = "w:noHBand", codec = "OnOff" },
+  { name = "no_v_band", attr = "w:noVBand", codec = "OnOff" },
+]
+
+[struct.TblpPr]
+doc = "CT_TblPPr（`w:tblpPr`）：浮动表格的定位与环绕距离"
+attrs = [
+  { name = "left_from_text", attr = "w:leftFromText", codec = "Twips" },
+  { name = "right_from_text", attr = "w:rightFromText", codec = "Twips" },
+  { name = "top_from_text", attr = "w:topFromText", codec = "Twips" },
+  { name = "bottom_from_text", attr = "w:bottomFromText", codec = "Twips" },
+  { name = "vert_anchor", attr = "w:vertAnchor", codec = "FrameAnchor" },
+  { name = "horz_anchor", attr = "w:horzAnchor", codec = "FrameAnchor" },
+  { name = "tblp_x_spec", attr = "w:tblpXSpec", codec = "XAlign" },
+  { name = "tblp_x", attr = "w:tblpX", codec = "Twips" },
+  { name = "tblp_y_spec", attr = "w:tblpYSpec", codec = "YAlign" },
+  { name = "tblp_y", attr = "w:tblpY", codec = "Twips" },
+]
+
+[struct.Merge]
+doc = "CT_VMerge / CT_HMerge（`w:vMerge` / `w:hMerge`）：元素存在而无 `w:val` 即 continue，`val` 只有 restart 才写。见 `Merge::is_restart`。"
+attrs = [{ name = "val", attr = "w:val", codec = "MergeKind" }]
+
+[struct.TrHeight]
+doc = "CT_Height（`w:trHeight`）：行高 twips 与规则；Word 上限 31680（RES-08 截断，模型保持原值）"
+attrs = [
+  { name = "val", attr = "w:val", codec = "Twips" },
+  { name = "h_rule", attr = "w:hRule", codec = "HeightRule" },
+]
+
+[struct.CnfStyle]
+doc = "CT_Cnf（`w:cnfStyle`）：条件格式位图（12 位 0/1 字符串）与逐位属性"
+attrs = [
+  { name = "val", attr = "w:val", codec = "Str" },
+  { name = "first_row", attr = "w:firstRow", codec = "OnOff" },
+  { name = "last_row", attr = "w:lastRow", codec = "OnOff" },
+  { name = "first_column", attr = "w:firstColumn", codec = "OnOff" },
+  { name = "last_column", attr = "w:lastColumn", codec = "OnOff" },
+  { name = "odd_v_band", attr = "w:oddVBand", codec = "OnOff" },
+  { name = "even_v_band", attr = "w:evenVBand", codec = "OnOff" },
+  { name = "odd_h_band", attr = "w:oddHBand", codec = "OnOff" },
+  { name = "even_h_band", attr = "w:evenHBand", codec = "OnOff" },
+  { name = "first_row_first_column", attr = "w:firstRowFirstColumn", codec = "OnOff" },
+  { name = "first_row_last_column", attr = "w:firstRowLastColumn", codec = "OnOff" },
+  { name = "last_row_first_column", attr = "w:lastRowFirstColumn", codec = "OnOff" },
+  { name = "last_row_last_column", attr = "w:lastRowLastColumn", codec = "OnOff" },
+]
+
+[struct.TrackChangeMark]
+doc = "CT_TrackChange（`trPr/w:ins` / `trPr/w:del` / `w:cellIns` / `w:cellDel`）：修订标记的 id / 作者 / 日期"
+attrs = [
+  { name = "id", attr = "w:id", codec = "Int" },
+  { name = "author", attr = "w:author", codec = "Str" },
+  { name = "date", attr = "w:date", codec = "Str" },
+]
+
+[struct.CellMergeMark]
+doc = "CT_CellMergeTrackChange（`w:cellMerge`）：单元格合并修订"
+attrs = [
+  { name = "id", attr = "w:id", codec = "Int" },
+  { name = "author", attr = "w:author", codec = "Str" },
+  { name = "date", attr = "w:date", codec = "Str" },
+  { name = "v_merge", attr = "w:vMerge", codec = "AnnotationVMerge" },
+  { name = "v_merge_orig", attr = "w:vMergeOrig", codec = "AnnotationVMerge" },
+]

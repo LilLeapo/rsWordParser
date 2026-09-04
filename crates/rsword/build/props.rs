@@ -115,6 +115,7 @@ const BUILTIN: &[(&str, &str)] = &[
     ("Str", "String"),
     ("Int", "Val<i32>"),
     ("UInt", "Val<u32>"),
+    ("MeasureOrPercent", "Val<Measure>"),
 ];
 
 #[derive(Clone)]

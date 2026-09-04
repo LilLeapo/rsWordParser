@@ -10,6 +10,7 @@
 | --- | --- |
 | `types.toml` | `[enum.X]` 枚举类型、`[struct.X]` 带属性的元素类型（`w:color`、`w:rFonts` 一类） |
 | `run.toml` / `para.toml` | `w:rPr`、`w:pPr` 及子表（`PROP-08`） |
+| `table.toml` / `row.toml` / `cell.toml` | `w:tblPr`（也读 `w:tblPrEx`）、`w:trPr`、`w:tcPr` 及子表（边框、边距；任务 3.1） |
 | `styles.toml` / `numbering.toml` / `settings.toml` / `font_table.toml` | 声明模型（`MOD-10`）：整份 part 就是一张表 |
 | 其余 `*.toml` | 若干 `[[table]]`：一个属性容器一张表 |
 
@@ -86,6 +87,7 @@ codec 列的解析顺序：内建标量（见下表）→ `types.toml` 的枚举
 | `Percent` | `Val<u32>` | `ST_TextScale` |
 | `Str` | `String` | 原文 |
 | `Int` / `UInt` | `Val<i32>` / `Val<u32>` | `ST_DecimalNumber` / 无符号 |
+| `MeasureOrPercent` | `Val<Measure>` | `ST_MeasurementOrPercent`（`CT_TblWidth/@w:w`）：数、带单位度量（→ twips）或字面 `NN%`；单位由同元素 `w:type` 决定，解释在 `TblWidth::twips / percent` |
 
 ## 生成的函数（每张表）
 

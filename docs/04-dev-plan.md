@@ -622,7 +622,23 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
 合并顺序见 `spec/14` 「实现约定」第 2 条与「风险提示」第 1 条。实测差距（2026-09-05）：`blocks[*].table` 67 处 /
 67 份文档整对象缺失，语料 85 张表 / 15 张嵌套 / 199 格。
 
-- [ ] **3.1 表格属性表**（`schema/props/{table,row,cell}.toml`，`styles.toml` 的三个 `Raw` 改类型）
+- [x] **3.1 表格属性表**（`schema/props/{table,row,cell}.toml`、`types.toml`、`semantic/props/{codec,table}.rs`）：七张新表
+  ——`TableProps`（`w:tblPr`，同一张表读 `w:tblPrEx`，`tblPrExChange` 与 `tblPrChange` 同序号）+ `TblBorders` /
+  `TblCellMar`；`RowProps`（`w:trPr`）；`CellProps`（`w:tcPr`）+ `TcBorders`（8 边）/ `TcMar`——全部按 `PROP-05` 的
+  XSD 顺序，`start/end` 与 `left/right` 按 flavor 换拼写。`types.toml` 增 8 个枚举（`TblWidthType`、`MergeKind`、
+  `VerticalJc`、`TextDirection` 两套字面、`TblLayoutType`、`TblOverlap`、`JcTable`、`AnnotationVMerge`）与 9 个
+  struct（`TblWidth`、`TblLayout`（属性是 `w:type`）、`TblLook`（`val` + 六个开关）、`TblpPr`、`Merge`（裸
+  `<w:vMerge/>` = continue，靠 struct 的"存在即 Some"表达）、`TrHeight`、`CnfStyle`（12 位）、`TrackChangeMark`、
+  `CellMergeMark`）。新 codec `MeasureOrPercent`（`CT_TblWidth/@w:w`：数 / 带单位度量 / `NN%` 字面，单位由
+  `w:type` 决定，`TblWidth::twips / percent` 负责解释）。`styles.toml` 的 `tblPr / trPr / tcPr` 从 `Raw` 改成这三张表
+  （`TableStyleDecl` 有类型，`RES-08` 的边框 / 边距回退才拿得到值）。`local_names.txt` 补 9 个名字。
+  验收：`PROP-07` 每行往返（三张表 × 两种 flavor，样本覆盖全部非 Raw 字段；`plan_apply` 缺容器建为第一个子元素、
+  `Set` 同值空计划、a → b 每个字段都改到、顺序单调）收成一个 `check_table_rows!` 宏；`PROP-02` 的 `MeasureOrPercent`
+  与 `TblWidth` 解释；`PROP-08` 三张表的读 / 写 / 快照与表格样式类型化各一用例；`PROP-05` 三张表的序号关系。
+  语料（585 份）：`w:tblPr` 2,064 个（含 styles.xml 里的表格样式）、`w:tcPr` 134、`w:trPr` 9、`w:tblPrEx` 0——
+  read → emit → read 建模字段全等，**0 个 `PROP_BAD_VALUE`**；顺序单调率 2063 / 2064、133 / 134、8 / 9，三处例外
+  （`tblLayout` 在 `tblInd` 前、`vAlign` 在 `tcBorders` 前、`trHeight` 在 `cantSplit` 前）都来自 TS 测试构造的 XML，
+  顺序表不改。`tcPr` / `trPr` 在语料里很薄，行为正确性靠单元用例。属性表总数 20 → 27。
 - [ ] **3.2 表格模型**（`model/table.rs`：`TableBlock / Row / Cell`、穿透 sdt、TooDeep、`paragraphs()` / `block_path()`、表格修订）
 - [ ] **3.3 `SdtInfo` 完整模型**（`MOD-08`；`EDIT_SDT_LOCKED` / `EDIT_SDT_BOUND`）
 - [ ] **3.4 `resolve` 表格视图**（`resolve/table.rs`：`tblLook`、条件格式、边框 / 边距回退、`ColumnView` 四条启发式）

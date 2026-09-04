@@ -1,0 +1,83 @@
+# RowProps（`w:trPr`）：PROP-05 CT_TrPr 顺序、PROP-08 字段（任务 3.1）。格式见 README.md。
+
+[[table]]
+name = "RowProps"
+element = "w:trPr"
+change = "w:trPrChange"
+doc = "CT_TrPr（§17.4.82）：CT_TrPrBase 是 choice 组，schema 不强制顺序，这里按 Word 输出顺序（PROP-05）；之后 ins / del（行级修订）、trPrChange。"
+order = [
+  "w:cnfStyle", "w:divId", "w:gridBefore", "w:gridAfter", "w:wBefore", "w:wAfter", "w:cantSplit", "w:trHeight",
+  "w:tblHeader", "w:tblCellSpacing", "w:jc", "w:hidden", "w:ins", "w:del", "w:trPrChange",
+]
+
+[[table.field]]
+name = "cnf_style"
+element = "w:cnfStyle"
+codec = "CnfStyle"
+
+[[table.field]]
+name = "grid_before"
+element = "w:gridBefore"
+codec = "Int"
+doc = "行首跳过的网格列数"
+
+[[table.field]]
+name = "grid_after"
+element = "w:gridAfter"
+codec = "Int"
+doc = "行尾跳过的网格列数"
+
+[[table.field]]
+name = "width_before"
+element = "w:wBefore"
+codec = "TblWidth"
+
+[[table.field]]
+name = "width_after"
+element = "w:wAfter"
+codec = "TblWidth"
+
+[[table.field]]
+name = "cant_split"
+element = "w:cantSplit"
+codec = "OnOff"
+
+[[table.field]]
+name = "height"
+element = "w:trHeight"
+codec = "TrHeight"
+
+[[table.field]]
+name = "tbl_header"
+element = "w:tblHeader"
+codec = "OnOff"
+doc = "每页重复的表头行"
+
+[[table.field]]
+name = "cell_spacing"
+element = "w:tblCellSpacing"
+codec = "TblWidth"
+
+[[table.field]]
+name = "jc"
+element = "w:jc"
+codec = "JcTable"
+
+[[table.field]]
+name = "hidden"
+element = "w:hidden"
+codec = "OnOff"
+
+[[table.field]]
+name = "ins"
+element = "w:ins"
+codec = "TrackChangeMark"
+in_change = false
+doc = "整行插入修订（MOD-09 的 Row.revisions）"
+
+[[table.field]]
+name = "del"
+element = "w:del"
+codec = "TrackChangeMark"
+in_change = false
+doc = "整行删除修订"

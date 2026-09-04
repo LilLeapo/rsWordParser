@@ -283,6 +283,8 @@ eqArrPr
 equalWidth
 equation
 evenAndOddHeaders
+evenHBand
+evenVBand
 exitMacro
 ext
 Extension=UExtension
@@ -305,6 +307,8 @@ firstColumn
 firstLine
 firstLineChars
 firstRow
+firstRowFirstColumn
+firstRowLastColumn
 fitpath
 fitshape
 fitText
@@ -435,6 +439,8 @@ lastColumn
 lastModifiedBy
 lastRenderedPageBreak
 lastRow
+lastRowFirstColumn
+lastRowLastColumn
 latentStyles
 latin
 layout
@@ -541,6 +547,8 @@ nvPicPr
 nvSpPr
 object
 ObjectID
+oddHBand
+oddVBand
 off
 ole
 OLEObject
@@ -802,6 +810,7 @@ tblPrExChange
 tblpX
 tblpXSpec
 tblpY
+tblpYSpec
 tblStyle
 tblStyleColBandSize
 tblStylePr
