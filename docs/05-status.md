@@ -6,8 +6,8 @@
 ## 结论
 
 **M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖），**已全部并入 `main`**（2026-09-04）。
-**M2 进行中**（分支 `m2-span-fields`）：2.1 Span 索引、2.2 Anchor 变换已落地；任务分解见
-`spec/13-m2-plan.md`，进度清单见 `docs/04` §11。
+**M2 进行中**（分支 `m2-span-fields`）：2.1 Span 索引、2.2 Anchor 变换、2.3 物化与保存校验已落地；
+任务分解见 `spec/13-m2-plan.md`，进度清单见 `docs/04` §11。
 
 现在这套代码能：打开任意语料文档、输出与 TS 兼容的 `ParsedDoc` JSON、在文本段落上做插入 / 删除 / 改
 run 属性 / 改段落属性 / 整段替换、把 TS 的 `SaveBlock[]` 保存请求翻成编辑操作、以字节级局部补丁写回，
@@ -20,13 +20,13 @@ run 属性 / 改段落属性 / 整段替换、把 TS 的 `SaveBlock[]` 保存请
 | --- | --- | --- | --- |
 | L0 包层 `package/` | 完成 | zip（0x7075 中和、限额、raw copy）、`[Content_Types].xml`、`.rels` 双族、flavor 判定（Strict / Transitional / Mixed）、`NamespaceContext` | 新建 part（`SAVE-05`，M2） |
 | L1 无损 DOM `xml/` | 完成 | tokenizer（区间精确、属性顺序 / 引号 / 重复容忍）、`Dirty` 五态与传播、MCE（含 `ProcessContent`）、命名空间作用域、`NodeEdit` 计划、片段解析、规范化比较、XPath 子集 | — |
-| L2 范围 `span/` | 索引 + 变换完成 | `FlowId` / `FlowMap`、内容序列（`SPAN-01`）、`Anchor` / `Affinity`、九种 `RangeKind`、按流构建与配对诊断、文档序 `compare`、按容器倒排、编辑期变换与整体删除策略（`SPAN-06/07`，接进 `EditSession` 事务） | 物化与保存校验（M2 2.3） |
+| L2 范围 `span/` | 完成（范围部分） | `FlowId` / `FlowMap`、内容序列（`SPAN-01`）、`Anchor` / `Affinity`、九种 `RangeKind`、按流构建与配对诊断、文档序 `compare`、按容器倒排、编辑期变换与整体删除策略（`SPAN-06/07`）、物化与保存前校验（`SPAN-08/09`） | 与字段的交界（`SPAN-10`，随 2.4） |
 | L2 字段 `span/field/` | 未开始 | `FieldId` 占位 | 整个字段子系统（M2 2.4–2.5、2.9） |
 | L3 属性表 `semantic/props/` | 完成 | 20 张表由 TOML 生成（读 / 写 / diff / patch / merge / `plan_apply_*`）、按 flavor 编解码、`Val::Raw` 降级、`PROP-05` 顺序 | 表格与节的属性表（M3 / M5） |
 | L3 模型 `model/` | 文本完成 | `Document::rebuild`、块分类 R01–R19、段落坐标流（`Run`/`Segment`，UTF-16）、`ParagraphFacts`、声明模型（styles / numbering / theme / settings / fontTable） | 表格模型（M3）、绘图显示模型（M4）、字段 inline（M2） |
 | resolve `resolve/` | 首版 | 样式链（basedOn / link）、docDefaults 层叠、每字段 `Provenance`、主题字体与颜色、heading 级别 | toggle 属性真实规则 + Word 实测 fixture（M5） |
 | L4 编辑 `edit/` | M1 子集 + Anchor | `EditSession`（含范围索引）、`InlinePos` 定位、`MutationPlan` plan/validate/commit、按 part 回滚的事务（DOM + 索引）、`InsertText`、`DeleteRange`（同段）、`SetRunProps`、`SetParaProps`、`ReplaceInlines`、`ReplaceParaProps`、`InsertBlock`/`DeleteBlock`/`MoveBlock`、`SPAN-06/07` 锚点维护 | 字段操作、拆分 / 合并段落（M2）、表格操作（M3）、修订生成（M7） |
-| 保存 `save/` | M1 子集 | `SAVE-01` 六步编排、`SAVE-02` 子集校验（未绑定前缀、`PROP-05` 顺序）、扩展命名空间声明、`w:t` preserve、`raw_copy_file` 写回、`SaveOptions`（`saved_at`、`remove_personal_info`、`remove_date_and_time`） | Span 物化（M2）、节 / 页眉页脚 / 水印 / 图表 / 墨迹等选项（M3–M6） |
+| 保存 `save/` | M1 子集 + Span | `SAVE-01` 六步编排（含第 3 步 Span 物化）、`SAVE-02` 子集校验（未绑定前缀、`PROP-05` 顺序、`SPAN-09` 范围检查）、扩展命名空间声明、`w:t` preserve、`raw_copy_file` 写回、`SaveOptions`（`saved_at`、`remove_personal_info`、`remove_date_and_time`） | 节 / 页眉页脚 / 水印 / 图表 / 墨迹等选项（M3–M6） |
 | 兼容 `bind/compat_ts/` | 文本完成 | `parsed_doc` 整份 `ParsedDoc`（含 `extras`、UTF-16 索引、sdt 拆分）、`apply_save_blocks`（original / generated / xml 块）、容忍差分 | 表格 / 绘图 / 字段 / 页眉页脚字段（随对应里程碑） |
 
 ## 公开 API 边界（今天可用的）
@@ -56,7 +56,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
 | 源码行数 / 文件数 | 24,189 行 / 61 个（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 186（单元 + 集成，14 个集成测试文件） | `cargo test --workspace` |
+| 测试数 | 192（单元 + 集成，14 个集成测试文件） | `cargo test --workspace` |
 | 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 16 份 hostile | `ls corpus/*` |
 | 往返字节保真 | 589 份文档、3,093 个 XML part 全部字节相同 | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
@@ -66,6 +66,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 解析差分（全域） | 573 份里 341 份有未知差异、1,925 个差异点（M2–M6 的工作面） | `cargo run -p diff-parse -- --scope all` |
 | 保存差分 | 162 份 TS 保存用例：77 份与 `saveDocx` 等价（其中 41 份逐字节相同）、3 份有意不同、82 份跳过 | `tests/save_blocks.rs` |
 | 范围索引 | 573 份 / 3012 个 part 的 31 个标记全部成对认领 → 19 个范围（书签 7、批注 12）；1 处孤儿终点 | `tests/span.rs` |
+| Span 编辑与物化 | 29 个用例覆盖 `SPAN-01`–`SPAN-09`（含 4 条变换规则、整体删除策略、物化与原字节保真） | `cargo test -p rsword --test span` |
 
 全域差异按域聚合（差异点）：绘图与图片约 830、块分类连带项 493、run 相关（字段 / 批注 / 符号字体）220、
 页眉页脚 157、表格 67、字段显示 36。保存侧 82 份跳过按里程碑：M5 约 48、M4/M6 约 20、M2 约 16、M7 2。
@@ -87,8 +88,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 ## 明确未实现
 
-- **Span 物化**：锚点已经在编辑期正确维护，但 `save_with` 的第 3 步还是空的（M2 2.3）：锚点位置与标记位置不一致时（例如整段被删后书签搬到 body、边界插入让起点右移）保存出来的还是旧标记位置。`DeleteRange` 覆盖字段结构段时仍记 `EDIT_ANCHOR_UNMOVED`（2.4 清掉）。
-- **跨容器范围遇上 `ReplaceInlines`**：被重写容器里的那一端置空、另一端保留，成为半开范围，等 2.3 的 `SPAN-09` 修复；在那之前保存出来会留一个孤儿标记。
+- **字段**：`DeleteRange` 覆盖字段结构段（`fldChar` / `instrText` / `commentReference`）时整 run 保留、只删文本段，并记 `EDIT_ANCHOR_UNMOVED`（M2 2.4 的 `FieldSpan` 接管）。
 - **字段**：`Inline::Field` 不构建，`fieldDisplay` 缺失，`refField` / `xeTerm` / 表单域的 `SaveBlock` 直接 `EditUnsupported`。
 - **新建 part**：缺 `settings.xml` 时清洗标志写不进去（记诊断）；批注 / 脚注 part 不能创建。
 - **表格 / 绘图**：块层面是占位（`Table` / `Image` / `Protected`），单元格与图片属性不进模型。

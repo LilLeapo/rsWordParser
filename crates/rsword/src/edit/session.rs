@@ -8,7 +8,7 @@ use crate::model::Document;
 use crate::model::block::TextBlock;
 use crate::package::{Package, PartFlavor, PartId};
 use crate::save::SaveOptions;
-use crate::span::{SpanIndex, is_content_item, plan_update};
+use crate::span::{SpanIndex, is_content_item, plan_save, plan_update};
 use crate::xml::{Dom, NodeEdit, NodeId};
 
 use super::plan::{MutationPlan, MutationResult};
@@ -203,7 +203,7 @@ impl EditSession {
     /// 1. 无脏节点且 `opts` 没有变更请求（`saved_at` 单独设置不算，与 TS `isUnchanged` 一致）
     ///    且文档没有 `w:removePersonalInformation` / `w:removeDateAndTime` 标志 → 返回原字节（不变式 1）。
     /// 2. 校验（`SAVE-02`，在 [`Package::save`] 里）。
-    /// 3. 物化 Span（`SPAN-08`）：Span 索引在 M2 建立，M1 无操作。
+    /// 3. 物化 Span（`SPAN-08`）与范围校验（`SPAN-09`）：位置没变的标记不动，变了的重发。
     /// 4. 应用保存选项（`SAVE-07`）：全部先 `validate`（只读）再逐个 `commit`，所以要么全做要么不动。
     /// 5. / 6. 序列化脏 part 并写回（`XML-13` / `SAVE-06`，在 [`Package::save`] 里）。
     pub fn save_with(&mut self, opts: &SaveOptions) -> Result<Vec<u8>> {
@@ -212,9 +212,9 @@ impl EditSession {
         if !self.pkg.is_dirty() && !opts.forces_save() && !authors && !dates {
             return Ok(self.pkg.original_bytes().to_vec());
         }
-        // 步骤 3：SPAN-08 物化在 M2（此处无操作，Span 索引尚未建立）。
         let (plans, diags) = crate::save::options::plan_all(&mut self.pkg, opts, authors, dates)?;
-        let touches_main = plans.iter().any(|p| p.part == self.pkg.main_part());
+        let mut touches_main = plans.iter().any(|p| p.part == self.pkg.main_part());
+        touches_main |= self.transaction(|s| s.materialize_spans())?;
         self.transaction(|s| {
             // 先整批只读校验，再逐个提交：提交阶段不可能失败（失败也会被事务回滚）
             for plan in &plans {
@@ -234,6 +234,42 @@ impl EditSession {
             self.rebuild()?;
         }
         self.pkg.save()
+    }
+
+    /// `SAVE-01` 步骤 3：把每个 part 的 Anchor 物化成标记（`SPAN-08`），顺带做范围校验
+    /// （`SPAN-09`）。返回主 part 是否被改动（需要重建投影）。
+    ///
+    /// 这个计划**不走**锚点变换：标记是 Anchor 的投影，不能反过来影响它（`SPAN-02`）。
+    fn materialize_spans(&mut self) -> Result<bool> {
+        let main = self.pkg.main_part();
+        let mut touched_main = false;
+        let parts: Vec<PartId> = self.spans.keys().copied().collect();
+        for part in parts {
+            let index = self.spans.get(&part).expect("key came from the map");
+            let dom = self.pkg.part(part).dom().ok_or_else(|| {
+                Error::edit(DiagCode::EditPlanInvalid, format!("part#{} 不是 XML part", part.0))
+            })?;
+            let mplan = plan_save(dom, index);
+            if mplan.is_empty() {
+                continue;
+            }
+            let mut plan = MutationPlan::new(part);
+            plan.node_edits = mplan.edits.clone();
+            let dom = self.pkg.dom_mut(part)?.ok_or_else(|| {
+                Error::edit(DiagCode::EditPlanInvalid, format!("part#{} 不是 XML part", part.0))
+            })?;
+            plan.validate(dom)?;
+            if let Some(txn) = &mut self.txn {
+                txn.remember(part, dom, self.spans.get(&part));
+            }
+            let has_edits = !plan.node_edits.is_empty();
+            let result = plan.commit(dom);
+            let index = self.spans.get_mut(&part).expect("key came from the map");
+            crate::span::apply_save(index, &result.created, &mplan);
+            self.record(mplan.diagnostics);
+            touched_main |= has_edits && part == main;
+        }
+        Ok(touched_main)
     }
 
     /// 文档自带的 `w:removePersonalInformation`（`SAVE-07`：设置或文档标志为真时清洗作者）。

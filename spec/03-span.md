@@ -109,7 +109,9 @@ Anchor { container: NodeId, index: u32, affinity: Left | Right, marker: Option<N
 
 ## SPAN-09 校验
 
-保存前校验（`SAVE-02`）对范围检查：起终点都存在；`flow_of(start) == flow_of(end)`；`compare(start, end) != Greater`；Comment 有 reference 与条目；`id` 在 part 内唯一。失败按 `origin` 处理：解析阶段就存在的缺陷为 `PreExistingDamage`（成对删除或补齐并记诊断）；编辑后新出现的为 `EngineInvariantViolation`。
+保存前校验（`SAVE-02`）对范围检查：起终点都存在；`flow_of(start) == flow_of(end)`；`compare(start, end) != Greater`（两端同位置的空范围一律算有序，affinity 只用于给同一边界上的不同范围排序）；Comment 有 reference 与条目；`id` 在 part 内唯一。失败按 `origin` 处理：解析阶段就损坏的为 `PreExistingDamage`，编辑后新出现的为 `EngineInvariantViolation`。
+
+修复的边界：**`Clean` 标记一个字节都不动**。落单标记的"成对删除"只在标记已经不在、或已经被本次会话改写过时执行；否则只记诊断、原样写回。删除一个从未被碰过的标记等于改写未编辑内容，不变式 1 / 2 优先于这条安全网。不物化的范围（跨流、反序）也只记诊断，不试图猜测修法。
 
 ## SPAN-10 与字段的关系
 

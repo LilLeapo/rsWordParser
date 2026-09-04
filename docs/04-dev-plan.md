@@ -346,6 +346,9 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `SPAN-06` 移动子树 | 子树内 Anchor 不变 | 同；另外把 `FlowMap` 标脏并在提交后重建 | 新节点的 id 超出建表时的长度，跨流移动还会让缓存失效（`SPAN-01` 要求），不重建 `compare` 会返回"不可比" |
 | `SPAN-07` MoveFrom / MoveTo / CustomXml 整体删除 | "由修订操作决定" | 当作删除（`Remove`）：范围失去内容后没有意义 | 接受 / 拒绝修订是 M7；在那之前把空的移动范围留着只会写出无意义的标记 |
 | `SPAN-02` "禁止由标记推导 Anchor" | 无例外 | 一个例外：`ReplaceInlines` 整体重写的容器在提交后按新标记重建端点（`SpanIndex::rescan_container`） | compat 的 generated 块把段落内容连批注标记一起按 `commentIds` 重发，那是编辑器的意图；这时容器里标记的位置才是真相。跨容器范围落在被重写容器里的那一端置空，交给 `SPAN-09` 修复 |
+| `SPAN-09` 孤儿端点 | "成对删除并记诊断" | 只在标记已不在、或已被本次会话改写过时删；`Clean` 标记原样写回，只记诊断 | 删一个从未被碰过的标记就是改写未编辑内容；不变式 1 / 2 优先于安全网。语料 `bugfix-regressions__002` 有一个 body 级未闭合书签，删掉它会让 compat 的块数变化 |
+| `SPAN-05` `compare` 的空范围 | `Left < Right` | 两端同位置时 `is_ordered` 直接算有序 | affinity 的次序只用来给同一边界上的**不同**范围排序；变换让一个范围折叠后不该被判成"起在终后" |
+| `SPAN-06` rescan 的落单标记 | — | 重写容器里配不上对的标记先**认领**索引里刚失去这一端的跨容器范围，认领不到才留半开 | compat 会把批注范围的一端重发进被重写的段落，另一端在别的段落里；认领后范围复原，物理输出与 TS 一致（`comments__001.save.1` 因此仍等价） |
 | `PROP-06` 第 1 步 | 新容器"按父容器的 schema 顺序插入" | 顶层容器（`w:pPr` / `w:rPr`）插为父节点第一个语义子节点之前；子表容器按父表 `order` 插入 | `w:p` / `w:r` 不是属性表，没有 order；M2 的 `trPr`（在 `tblPrEx` 之后）到时补规则 |
 
 ## 9. 待决事项（需要项目负责人拍板）
@@ -432,7 +435,20 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   （拆分的延续语义）、直接写 `w:t` 不动锚点、删除跨越起点 → 起点落到删除点、整体删除的折叠与批注删除、
   `keep_orphan_comments`、删段落把书签搬到 body、块插入不影响段内边界、`ReplaceInlines` 的 rescan、
   失败回滚恢复索引；`tests/edit.rs` 的 M1 用例改成断言折叠后的锚点。
-- [ ] 2.3 Span 物化与保存校验（`SPAN-08`、`SPAN-09`）
+- [x] **2.3 Span 物化与保存前校验**（`span/materialize.rs`、`edit/session.rs`）：`save_with` 的第 3 步
+  不再是空操作。`SPAN-08`：位置没变的标记一个字节不动（`boundary_before(marker) == anchor.index`
+  就算在位），位置变了的旧标记 `Deleted`、新位置插 `New` 并**照抄旧标记的全部属性**（`w:colFirst`、
+  `w:displacedByCustomXml` 一类未建模的属性因此不丢）；没有旧标记的（新建范围、容器被删后搬出来的
+  锚点）按 `RangeKind` 生成属性。插入位置按"同一边界先终点标记、后起点标记"，并且不跨过属性元素
+  （`w:pPr` 之后、`w:sectPr` 之前）；空范围两端都要重发时放同一位置、起点在前（`SPAN-08` 例外）。
+  `implicit` 的范围（文件里只有 `commentReference` 的批注）永远不写标记。`SPAN-09`：物化前检查成对、
+  同流、起在终前、`w:id` 在 part 内唯一；半开范围只在标记已不在或已被改写过时成对删除，`Clean` 标记
+  原样写回（见 §8——这条比"成对删除"重要）。提交后把新标记的 `NodeId` 回填到锚点，索引与 DOM 保持一致。
+  变换把范围折叠后统一 affinity（`normalize_collapsed`）。测试 `tests/span.rs` 新增 6 个：未编辑保存
+  字节相同 + 直接写 `w:t` 时标记原字节、边界插入后起点标记重发到新 run 之后（重开后索引与物理一致）、
+  删段落后折叠书签在 body 里重发且属性照抄、只有 reference 的批注不补标记、hostile 孤儿终点在编辑
+  别处后保持原字节且记 `PreExistingDamage`、`ReplaceInlines` 让跨段批注一端消失时另一端原字节保留并记
+  `EngineInvariantViolation`。保存语料等价数不变（77 / 41 逐字节 / 3 有意不同）。
 - [ ] 2.4 字段子系统（`FLD-01`–`FLD-08`、`FLD-13`）
 - [ ] 2.5 字段进模型与 compat（`MOD-06`、`COMPAT-07`）
 - [ ] 2.6 批注与注释部件、新建 part（`SAVE-05`）

@@ -170,7 +170,11 @@ impl RangeKind {
 /// 本次编辑造成的是 `EngineInvariantViolation`。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SpanOrigin {
+    /// 解析出来的完好范围。
     Parsed,
+    /// 解析时就损坏（孤儿终点 / 未闭合起点 / 跨流）：`SPAN-09` 按 `PreExistingDamage` 处理。
+    ParsedDamaged,
+    /// 本次会话新建。
     New,
 }
 
@@ -340,8 +344,14 @@ impl SpanIndex {
     }
 
     /// 起点是否不在终点之后（`SPAN-05`）。缺端点的范围返回 `false`。
+    ///
+    /// 两端在同一位置（空范围）一律算有序：affinity 的 `Left < Right` 只用来给同一边界上的
+    /// 不同范围排序，不该把空范围判成反序（`SPAN-02` 的空范围例外）。
     pub fn is_ordered(&self, dom: &Dom, span: &RangeSpan) -> bool {
         let (Some(s), Some(e)) = (&span.start, &span.end) else { return false };
+        if s.same_place(e) {
+            return self.flow_of(s).is_some() && self.flow_of(s) == self.flow_of(e);
+        }
         matches!(self.compare(dom, s, e), Some(Ordering::Less | Ordering::Equal))
     }
 }
@@ -712,7 +722,7 @@ impl<'d> Builder<'d> {
             part: self.part,
             flow,
             kind,
-            origin: SpanOrigin::Parsed,
+            origin: SpanOrigin::ParsedDamaged,
             implicit: false,
             removed: false,
             start: None,
@@ -733,6 +743,7 @@ impl<'d> Builder<'d> {
         }
         pending.sort_by_key(|(_, _, span)| span.0);
         for (class, key, span) in pending {
+            self.spans[span.0 as usize].origin = SpanOrigin::ParsedDamaged;
             let marker = self.spans[span.0 as usize].start.and_then(|a| a.marker);
             let node = marker.unwrap_or(self.dom.root());
             self.diag(
@@ -817,13 +828,14 @@ impl SpanIndex {
     ///
     /// 只用于内容被外部描述**整体重写**的容器（compat 的 `ReplaceInlines` 会按 `commentIds`
     /// 重发批注标记）：这时那个容器里标记的位置才是真相。其余情形一律禁止由标记反推 Anchor
-    /// （`SPAN-02`）。跨容器范围落在被重写容器里的那一端由调用方先 `Drop`，剩下的半开范围
-    /// 交给 `SPAN-09` 在保存前修复。
+    /// （`SPAN-02`）。容器里配不上对的标记先尝试**认领**索引里刚刚失去这一端的跨容器范围
+    /// （调用方对那些范围先做了 `Drop`），认领不到才留成半开范围并记诊断。
     pub(crate) fn rescan_container(&mut self, dom: &Dom, container: NodeId) {
         let part = self.part;
         let flow = self.flows.flow_of(container).unwrap_or(FlowId(0));
         let mut index = 0u32;
         let mut open: Vec<(RangeClass, String, SpanId)> = Vec::new();
+        let mut orphans: Vec<(RangeClass, String, SpanId)> = Vec::new();
         let mut refs: Vec<(String, NodeId)> = Vec::new();
         for c in dom.semantic_children(container).collect::<Vec<_>>() {
             let Some(q) = dom.name(c) else { continue };
@@ -870,7 +882,7 @@ impl SpanIndex {
                             s.end = Some(anchor);
                         }
                         None => {
-                            self.push_span(RangeSpan {
+                            let span = self.push_span(RangeSpan {
                                 id: SpanId(0),
                                 part,
                                 flow,
@@ -881,24 +893,17 @@ impl SpanIndex {
                                 start: None,
                                 end: Some(anchor),
                             });
-                            self.diagnostics.push(Diagnostic::invariant_violation(
-                                part,
-                                None,
-                                DiagCode::SpanOrphanEnd,
-                                format!("重写的容器里 {class:?} w:id=\"{id}\" 的终点没有起点"),
-                            ));
+                            orphans.push((class, id, span));
                         }
                     }
                 }
             }
         }
-        for (class, id, _) in open {
-            self.diagnostics.push(Diagnostic::invariant_violation(
-                part,
-                None,
-                DiagCode::SpanUnclosed,
-                format!("重写的容器里 {class:?} w:id=\"{id}\" 的起点没有终点"),
-            ));
+        for (class, id, span) in open {
+            self.settle_unpaired(container, span, SpanEnd::Start, class, &id);
+        }
+        for (class, id, span) in orphans {
+            self.settle_unpaired(container, span, SpanEnd::End, class, &id);
         }
         for (id, run) in refs {
             let hit = self.spans.iter_mut().find(|s| {
@@ -910,6 +915,81 @@ impl SpanIndex {
                 && let RangeKind::Comment { reference, .. } = &mut s.kind
             {
                 *reference = Some(run);
+            }
+        }
+    }
+
+    /// 重写容器里配不上对的标记：先认领索引里刚失去这一端的跨容器范围，认领不到就记诊断。
+    fn settle_unpaired(
+        &mut self,
+        container: NodeId,
+        local: SpanId,
+        which: SpanEnd,
+        class: RangeClass,
+        id: &str,
+    ) {
+        let anchor = self.spans[local.0 as usize].anchor(which).copied();
+        let target = anchor.and_then(|_| {
+            self.spans
+                .iter()
+                .position(|s| {
+                    !s.removed
+                        && s.id != local
+                        && s.class() == class
+                        && s.pair_id() == id
+                        && s.anchor(which).is_none()
+                        && s.anchor(other_end(which)).is_some_and(|o| o.container != container)
+                })
+                .map(|i| SpanId(self.spans[i].id.0))
+        });
+        match (target, anchor) {
+            (Some(t), Some(a)) => {
+                // 跨容器范围复原：重发的标记就是它这一端
+                let s = &mut self.spans[t.0 as usize];
+                match which {
+                    SpanEnd::Start => s.start = Some(a),
+                    SpanEnd::End => s.end = Some(a),
+                }
+                self.spans[local.0 as usize].removed = true;
+            }
+            _ => {
+                let code = match which {
+                    SpanEnd::Start => DiagCode::SpanUnclosed,
+                    SpanEnd::End => DiagCode::SpanOrphanEnd,
+                };
+                self.diagnostics.push(Diagnostic::invariant_violation(
+                    self.part,
+                    None,
+                    code,
+                    format!("重写的容器里 {class:?} w:id=\"{id}\" 的标记配不上对"),
+                ));
+            }
+        }
+    }
+}
+
+fn other_end(end: SpanEnd) -> SpanEnd {
+    match end {
+        SpanEnd::Start => SpanEnd::End,
+        SpanEnd::End => SpanEnd::Start,
+    }
+}
+
+impl SpanIndex {
+    /// 变换后两端落到同一位置的范围，affinity 统一为 `Right`（`SPAN-02` 的空范围例外）。
+    ///
+    /// 否则 `Left < Right` 会把空范围判成"起在终后"，而且在该边界插入内容会把它拆反
+    /// （起点右移、终点不动）。
+    pub(crate) fn normalize_collapsed(&mut self) {
+        for s in &mut self.spans {
+            if s.removed {
+                continue;
+            }
+            let (Some(a), Some(b)) = (s.start, s.end) else { continue };
+            if a.same_place(&b) && (a.affinity != Affinity::Right || b.affinity != Affinity::Right)
+            {
+                s.start = Some(Anchor { affinity: Affinity::Right, ..a });
+                s.end = Some(Anchor { affinity: Affinity::Right, ..b });
             }
         }
     }

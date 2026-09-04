@@ -10,7 +10,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::diag::Diagnostic;
+use crate::diag::{DiagCode, Diagnostic};
 use crate::xml::{Dirty, Dom, NodeEdit, NodeId, Target};
 
 use super::content::{
@@ -179,11 +179,24 @@ pub fn plan_update(
                 continue;
             }
             if si || ei {
+                // 跨容器范围只有一端落在被重写的容器里：那一端的标记随内容消失。**不动**另一端
+                // ——它在没被编辑的容器里，删掉就改写了未编辑内容（不变式 2）。范围变成半开，
+                // `SPAN-09` 保存时按"不动 Clean 标记"的规则原样写回并记诊断，物理输出与 TS 一致。
                 update.actions.push(SpanAction::Drop {
                     span: span.id,
                     end: if si { SpanEnd::Start } else { SpanEnd::End },
                 });
-                // 另一端仍按普通规则变换
+                update.diagnostics.push(Diagnostic::invariant_violation(
+                    span.part,
+                    None,
+                    DiagCode::SpanUnclosed,
+                    format!(
+                        "{:?} w:id=\"{}\" 跨容器，一端所在容器的内容被整体重写，索引里只剩另一端",
+                        span.class(),
+                        span.pair_id()
+                    ),
+                ));
+                continue;
             }
         }
         if fully_deleted(dom, &delta, span) && !keep_whole(span, policy) {
@@ -421,6 +434,7 @@ impl SpanIndex {
                 }
             }
         }
+        self.normalize_collapsed();
         for &container in &update.rescan {
             self.rescan_container(dom, container);
         }

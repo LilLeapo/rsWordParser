@@ -12,6 +12,7 @@ use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 pub mod content;
 pub mod field;
 pub mod index;
+pub mod materialize;
 pub mod transform;
 
 pub use content::{
@@ -22,6 +23,7 @@ pub use field::FieldId;
 pub use index::{
     Affinity, Anchor, RangeClass, RangeKind, RangeSpan, SpanEnd, SpanIndex, SpanOrigin, compare,
 };
+pub use materialize::{MaterializePlan, apply_save, plan_save};
 pub use transform::{SpanAction, SpanPolicy, SpanUpdate, plan_update};
 
 /// 一条修订的元数据（`w:id` / `w:author` / `w:date`）。

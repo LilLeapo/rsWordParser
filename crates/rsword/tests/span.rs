@@ -605,3 +605,141 @@ fn document_xml(s: &mut EditSession) -> String {
     let dom = pkg.dom(main).unwrap().unwrap();
     dom.src().to_string()
 }
+
+// ---- SPAN-08 / SPAN-09：物化与保存前校验（任务 2.3）----
+
+#[test]
+fn span_08_unmoved_markers_keep_their_bytes() {
+    let bytes = common::docx_with_body(TWO_RUNS_BOOKMARKED);
+    // 不变式 1：没编辑就没有索引，也不物化
+    let mut untouched = EditSession::open(&bytes).unwrap();
+    assert_eq!(untouched.save().unwrap(), bytes, "未编辑保存字节相同");
+
+    let mut s = EditSession::open(&bytes).unwrap();
+    let p = first_para(&s);
+    // 直接写 w:t：内容序列不变 → 锚点不动 → 标记原字节
+    s.apply(
+        EditOp::InsertText { at: InlinePos::new(p, 1), text: "!".into(), props: None },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let xml = document_xml(&mut s);
+    assert!(xml.contains(r#"<w:t xml:space="preserve">a!b</w:t>"#), "{xml}");
+    assert!(
+        xml.contains(r#"</w:r><w:bookmarkStart w:id="1" w:name="bm"/><w:r>"#),
+        "标记原位原字节: {xml}"
+    );
+}
+
+#[test]
+fn span_08_boundary_insert_moves_the_start_marker() {
+    let mut s = session(TWO_RUNS_BOOKMARKED);
+    let p = first_para(&s);
+    s.apply(
+        EditOp::InsertText { at: InlinePos::new(p, 2), text: "X".into(), props: Some(bold()) },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let xml = document_xml(&mut s);
+    let x = xml.find(">X<").expect("新 run");
+    let start = xml.find("<w:bookmarkStart").expect("起点标记");
+    let end = xml.find("<w:bookmarkEnd").expect("终点标记");
+    assert!(x < start, "锚点右移了 → 标记必须重发到新 run 之后: {xml}");
+    assert!(start < end);
+    assert_eq!(xml.matches("<w:bookmarkStart").count(), 1, "旧标记已删除: {xml}");
+    // 重开后索引与物理位置一致
+    let mut re = EditSession::open(&s.save().unwrap()).unwrap();
+    let bm = bookmark(&mut re, "1");
+    assert_eq!((bm.start.unwrap().index, bm.end.unwrap().index), (2, 3));
+}
+
+#[test]
+fn span_08_marker_reappears_where_the_anchor_moved() {
+    let mut s = session(
+        r#"<w:p><w:r><w:t>one</w:t></w:r></w:p>
+           <w:p><w:bookmarkStart w:id="1" w:name="keepme"/><w:r><w:t>two</w:t></w:r><w:bookmarkEnd w:id="1"/></w:p>
+           <w:p><w:r><w:t>three</w:t></w:r></w:p>"#,
+    );
+    let second = s.document().text_blocks().nth(1).unwrap().node;
+    s.apply(EditOp::DeleteBlock { node: second }, &EditContext::default()).unwrap();
+    let xml = document_xml(&mut s);
+    assert!(!xml.contains("two"), "段落删除: {xml}");
+    assert!(
+        xml.contains(r#"<w:bookmarkStart w:id="1" w:name="keepme"/><w:bookmarkEnd w:id="1"/>"#),
+        "折叠书签在 body 里重发，属性照抄: {xml}"
+    );
+    // 重开：书签仍在，落在两段之间
+    let mut re = EditSession::open(&s.save().unwrap()).unwrap();
+    let bm = bookmark(&mut re, "1");
+    assert!(bm.is_collapsed());
+    assert_eq!(bm.start.unwrap().index, 1);
+    assert_eq!(re.document().text_blocks().count(), 2);
+}
+
+#[test]
+fn span_08_implicit_comment_never_gets_markers() {
+    let mut s =
+        session(r#"<w:p><w:r><w:t>ab</w:t></w:r><w:r><w:commentReference w:id="7"/></w:r></w:p>"#);
+    let p = first_para(&s);
+    assert!(s.spans().unwrap().find(RangeClass::Comment, "7").unwrap().implicit);
+    s.apply(
+        EditOp::InsertText { at: InlinePos::new(p, 2), text: "X".into(), props: Some(bold()) },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let xml = document_xml(&mut s);
+    assert!(!xml.contains("commentRangeStart"), "不得为只有 reference 的批注补标记: {xml}");
+    assert!(!xml.contains("commentRangeEnd"), "{xml}");
+    assert!(xml.contains("commentReference"), "reference 本身还在: {xml}");
+}
+
+#[test]
+fn span_09_pre_existing_damage_keeps_its_bytes() {
+    let path = common::corpus_dir("hostile").join("span-orphan-end.docx");
+    let bytes = std::fs::read(&path).unwrap();
+    let mut s = EditSession::open(&bytes).unwrap();
+    // 编辑第二段（孤儿 bookmarkEnd 在第一段，未被碰过）
+    let second = s.document().text_blocks().nth(1).unwrap().node;
+    s.apply(
+        EditOp::InsertText { at: InlinePos::new(second, 0), text: "Z".into(), props: None },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let xml = document_xml(&mut s);
+    assert!(
+        xml.contains(r#"<w:p><w:r><w:t>a</w:t></w:r><w:bookmarkEnd w:id="7"/></w:p>"#),
+        "解析期缺陷保持原字节（不变式 2）: {xml}"
+    );
+    assert!(xml.contains("Zhello"), "{xml}");
+    assert!(
+        s.diagnostics().iter().any(|d| d.code == DiagCode::SpanOrphanEnd
+            && d.origin == rsword::ValidationOrigin::PreExistingDamage),
+        "{:?}",
+        s.diagnostics()
+    );
+}
+
+#[test]
+fn span_09_engine_dropped_end_voids_the_range() {
+    // ReplaceInlines 重写含批注范围起点的段落，终点在下一段：索引里那一端消失
+    let mut s = session(
+        r#"<w:p><w:commentRangeStart w:id="3"/><w:r><w:t>ab</w:t></w:r></w:p>
+           <w:p><w:r><w:t>cd</w:t></w:r><w:commentRangeEnd w:id="3"/><w:r><w:commentReference w:id="3"/></w:r></w:p>"#,
+    );
+    let p = first_para(&s);
+    s.apply(
+        EditOp::ReplaceInlines { para: p, inlines: vec![NewInline::Run(NewRun::text("new"))] },
+        &EditContext::default(),
+    )
+    .unwrap();
+    assert!(
+        s.diagnostics().iter().any(|d| d.code == DiagCode::SpanUnclosed
+            && d.origin == rsword::ValidationOrigin::EngineInvariantViolation),
+        "{:?}",
+        s.diagnostics()
+    );
+    let xml = document_xml(&mut s);
+    // 未被重写的第二段原字节保留（落单的 commentRangeEnd 是 Clean，不动）
+    assert!(xml.contains(r#"<w:commentRangeEnd w:id="3"/>"#), "{xml}");
+    assert!(!xml.contains("commentRangeStart"), "被重写的那一端随内容消失: {xml}");
+}
