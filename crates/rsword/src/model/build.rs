@@ -2,6 +2,8 @@
 //! 完整构建投影。M1 只建正文流：段落 → inlines → run 坐标流；表格 / 图片块占位；
 //! `refresh` 在 M2 随编辑引擎加入。
 
+use std::collections::HashMap;
+
 use crate::diag::{DiagCode, Diagnostic};
 use crate::error::Result;
 use crate::model::block::{
@@ -22,6 +24,7 @@ use crate::package::{Package, PartId, RelTarget, RelType, Rels};
 use crate::semantic::props::{
     ParaProps, RunProps, read_para_props, read_run_props, read_run_props_change,
 };
+use crate::span::field::{FieldForm, FieldId, FieldIndex};
 use crate::span::{FlowMap, is_range_marker};
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
@@ -39,6 +42,8 @@ pub struct Document {
     pub font_table: Option<FontTable>,
     /// 主 part 的内容流映射（`SPAN-01`）。
     pub flows: FlowMap,
+    /// 主 part 的字段索引（`FLD-02`）。与投影同寿命：`rebuild` / `refresh_paragraphs` 都重建它。
+    pub fields: FieldIndex,
     pub warnings: Vec<Diagnostic>,
 }
 
@@ -71,7 +76,9 @@ impl Document {
         let dom = pkg.part(main).dom().expect("main part parsed above");
         let rels = &pkg.part(main).rels;
         let flows = FlowMap::build(dom);
-        let mut b = Builder { dom, styles: styles.as_ref(), rels, warnings, depth: 0 };
+        let mut fields = FieldIndex::build(dom);
+        warnings.extend(fields.take_diagnostics());
+        let mut b = Builder::new(dom, styles.as_ref(), rels, &fields, warnings);
         let body = b.find_body();
         let mut blocks = Vec::new();
         if let Some(body) = body {
@@ -88,6 +95,7 @@ impl Document {
             settings,
             font_table,
             flows,
+            fields,
             warnings,
         })
     }
@@ -98,7 +106,8 @@ impl Document {
         styles: Option<&Styles>,
         rels: &Rels,
     ) -> (Vec<Block>, Vec<Diagnostic>) {
-        let mut b = Builder { dom, styles, rels, warnings: Vec::new(), depth: 0 };
+        let fields = FieldIndex::build(dom);
+        let mut b = Builder::new(dom, styles, rels, &fields, Vec::new());
         let mut blocks = Vec::new();
         if let Some(body) = b.find_body() {
             b.build_container(body, None, &[], &mut blocks);
@@ -121,8 +130,9 @@ impl Document {
         pkg.dom(main)?;
         let dom = pkg.part(main).dom().expect("main part parsed above");
         let rels = &pkg.part(main).rels;
-        let mut b =
-            Builder { dom, styles: self.styles.as_ref(), rels, warnings: Vec::new(), depth: 0 };
+        // 字段索引是投影：DOM 变了就重建（M3 的容器级刷新会把这条也做成增量）
+        let fields = FieldIndex::build(dom);
+        let mut b = Builder::new(dom, self.styles.as_ref(), rels, &fields, Vec::new());
         let mut missing = Vec::new();
         for &p in paras {
             match self.main.iter().position(|blk| blk.node() == p) {
@@ -136,6 +146,7 @@ impl Document {
         }
         let warnings = b.warnings;
         self.warnings.extend(warnings);
+        self.fields = fields;
         Ok(missing)
     }
 }
@@ -144,8 +155,44 @@ struct Builder<'a> {
     dom: &'a Dom,
     styles: Option<&'a Styles>,
     rels: &'a Rels,
+    fields: &'a FieldIndex,
+    /// `FLD-08`：被 `Block` 策略字段覆盖的段落 → 字段 id。
+    block_fields: HashMap<NodeId, FieldId>,
+    /// 字段起点所在的段落 → 字段 id（`MOD-04` 的 `facts.fields`）。
+    fields_by_para: HashMap<NodeId, Vec<FieldId>>,
     warnings: Vec<Diagnostic>,
     depth: u32,
+}
+
+impl<'a> Builder<'a> {
+    fn new(
+        dom: &'a Dom,
+        styles: Option<&'a Styles>,
+        rels: &'a Rels,
+        fields: &'a FieldIndex,
+        warnings: Vec<Diagnostic>,
+    ) -> Self {
+        let mut fields_by_para: HashMap<NodeId, Vec<FieldId>> = HashMap::new();
+        for f in fields.fields() {
+            let head = f.form.head();
+            if let Some(p) = std::iter::once(head)
+                .chain(dom.ancestors(head))
+                .find(|&n| dom.is(n, QName::w(LocalName::P)))
+            {
+                fields_by_para.entry(p).or_default().push(f.id);
+            }
+        }
+        Builder {
+            dom,
+            styles,
+            rels,
+            fields,
+            block_fields: fields.block_result_paragraphs(dom),
+            fields_by_para,
+            warnings,
+            depth: 0,
+        }
+    }
 }
 
 const MAX_CONTAINER_DEPTH: u32 = 64;
@@ -298,7 +345,10 @@ impl<'a> Builder<'a> {
         let dom = self.dom;
         let ppr = dom.semantic_children(p).find(|&n| dom.is(n, w(LocalName::PPr)));
         let props: ParaProps = read_para_props(dom, ppr, &mut self.warnings);
-        let facts = ParagraphFacts::compute(dom, p, &props, self.styles, sdt.cloned());
+        let mut facts = ParagraphFacts::compute(dom, p, &props, self.styles, sdt.cloned());
+        // `MOD-04`：字段事实来自 `FieldIndex`（`FLD-08` 的块字段覆盖段落 → R09）
+        facts.fields = self.fields_by_para.get(&p).cloned().unwrap_or_default();
+        facts.inside_field_result = self.block_fields.get(&p).copied();
         let (_rule, class) = classify_paragraph(&facts);
         let mut revisions = revs.to_vec();
         // 段落标记修订与 pPrChange（MOD-09）
@@ -398,7 +448,23 @@ impl<'a> Builder<'a> {
         }
         self.depth += 1;
         let children: Vec<NodeId> = dom.semantic_children(container).collect();
-        for node in children {
+        self.build_inline_nodes(&children, link, rev, out);
+        self.depth -= 1;
+    }
+
+    /// 一段兄弟节点 → inlines。字段的结果区也走这里（它是同一个容器里的一段子节点）。
+    fn build_inline_nodes(
+        &mut self,
+        nodes: &[NodeId],
+        link: Option<&Link>,
+        rev: Option<&RevisionCtx>,
+        out: &mut Vec<Inline>,
+    ) {
+        let dom = self.dom;
+        let mut i = 0usize;
+        while i < nodes.len() {
+            let node = nodes[i];
+            i += 1;
             let Some(name) = dom.name(node) else { continue };
             if is_range_marker(name) {
                 continue;
@@ -414,6 +480,11 @@ impl<'a> Builder<'a> {
                     | LocalName::SmartTagPr,
                 ) => {}
                 (NsId::W, LocalName::R) => {
+                    // `FLD-07` 原子形态：begin run 起，整段字段折成一个 `Inline::Field`
+                    if let Some(next) = self.atomic_field_at(node, &nodes[i..], link, rev, out) {
+                        i += next;
+                        continue;
+                    }
                     let run = self.build_run(node, link, rev);
                     out.push(Inline::Run(run));
                 }
@@ -459,13 +530,22 @@ impl<'a> Builder<'a> {
                     }
                     self.build_inlines(node, link, Some(&ctx), out);
                 }
+                (NsId::W, LocalName::FldSimple) => {
+                    match self.fields.field_of(node).filter(|f| f.is_atomic()).map(|f| f.id) {
+                        Some(id) => {
+                            let mut result = Vec::new();
+                            self.build_inlines(node, link, rev, &mut result);
+                            out.push(Inline::Field { id, result });
+                        }
+                        None => self.build_inlines(node, link, rev, out),
+                    }
+                }
                 (
                     NsId::W,
                     LocalName::SmartTag
                     | LocalName::Sdt
                     | LocalName::SdtContent
                     | LocalName::CustomXml
-                    | LocalName::FldSimple
                     | LocalName::Dir
                     | LocalName::Bdo,
                 ) => self.build_inlines(node, link, rev, out),
@@ -492,7 +572,39 @@ impl<'a> Builder<'a> {
                 })),
             }
         }
-        self.depth -= 1;
+    }
+
+    /// `node` 是某个原子形态字段的 begin run 且该字段在这一段兄弟节点里闭合时，把整个字段折成
+    /// 一个 [`Inline::Field`]，返回要跳过的节点数（含 end run）。
+    ///
+    /// 结果区是 separate 与 end 之间的节点；没有 separate（XE 一类无结果字段）时结果为空。
+    /// 字段没在这一段兄弟节点里闭合（跨段 / 跨容器）时返回 `None`，各 run 照常出现——
+    /// 那种字段的策略是 `Block`，段落已经被 R09 保护，不该到这里。
+    fn atomic_field_at(
+        &mut self,
+        node: NodeId,
+        rest: &[NodeId],
+        link: Option<&Link>,
+        rev: Option<&RevisionCtx>,
+        out: &mut Vec<Inline>,
+    ) -> Option<usize> {
+        let f = self.fields.field_of(node).filter(|f| f.form.head() == node && f.is_atomic())?;
+        let (id, tail, separate) = match &f.form {
+            FieldForm::Complex { end, separate, .. } => (f.id, *end, *separate),
+            FieldForm::Simple { .. } => return None,
+        };
+        let tail_at = rest.iter().position(|&c| c == tail)?;
+        let result_from = match separate {
+            Some(sep) => rest.iter().position(|&c| c == sep).map_or(tail_at, |k| k + 1),
+            None => tail_at,
+        };
+        let mut result = Vec::new();
+        if result_from < tail_at {
+            let nodes: Vec<NodeId> = rest[result_from..tail_at].to_vec();
+            self.build_inline_nodes(&nodes, link, rev, &mut result);
+        }
+        out.push(Inline::Field { id, result });
+        Some(tail_at + 1)
     }
 
     /// 一个 `w:r` → `Run`：段与坐标流文本。
@@ -522,14 +634,21 @@ impl<'a> Builder<'a> {
             ctx.props_change = Some((self.meta(change), Box::new(old)));
         }
         let utf16 = utf16_len(&text);
+        // `FLD-07` 透明形态（`Link` 策略）：结构 run 与结果 run 都带 `field`，结果 run 另有
+        // `Link::Field`（目标来自指令，由 `compat_ts` / 渲染器解析）。外层 `w:hyperlink` 优先。
+        let transparent = self.fields.field_of(r).filter(|f| f.is_transparent());
+        let link = match (link, transparent) {
+            (None, Some(f)) if f.form.result_nodes().contains(&r) => Some(Link::Field(f.id)),
+            (l, _) => l.cloned(),
+        };
         Run {
             node: r,
             segments,
             text,
             utf16_len: utf16,
             props,
-            link: link.cloned(),
-            field: None,
+            link,
+            field: transparent.map(|f| f.id),
             rev: (!ctx.is_empty()).then_some(ctx),
             comments: Vec::new(),
         }

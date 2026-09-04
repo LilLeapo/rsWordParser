@@ -70,6 +70,26 @@ TS 的 `buildBlock` 决策树（`docs/01` 6.2）在新模型中已不存在；�
 
 复现的判定必须基于 facts 与显示模型，**不得**重新解析 XML。
 
+### COMPAT-03a `fieldLabel` / `fieldDisplayOf`
+
+TS 这两个函数的规则（`docs/01` 只给了函数名）从语料 33 个 `fieldDisplay` 实例反推，实现里逐条标注：
+
+- **走 passthrough 的条件**（TS `buildBlock` 规则 2 / 3，逐段判定）：段落自身有 `w:fldChar` /
+  `w:instrText` / `w:fldSimple`，且不是"全部可折叠"（`onlyXeFields`：无 `w:fldSimple`，每个字段是
+  XE / REF / 简单内联字段（DATE TIME CREATEDATE SAVEDATE NUMPAGES FILENAME AUTHOR PAGE）/ 可转换
+  HYPERLINK（`HYPERLINK "url"`，最多再带 `\o "tip"`）/ 有 `w:checkBox` 定义的 FORMCHECKBOX）；
+  配不上对的 `fldChar`（未闭合、孤立 end）一律不可折叠。否则若段落样式是目录系列 → `TOC entry`。
+- **`fieldLabel`**：段落里**第一条**指令的关键字决定标签——TOC → `Auto TOC (updates when opened in
+  Word)`、PAGEREF → `Page reference field`、INCLUDEPICTURE → `Linked picture field`、HYPERLINK →
+  `Hyperlink field`、SEQ → `Caption number field`、PAGE → `Page number field`、其余 → `Field (关键字)`；
+  一条指令都没有（只剩孤立 `fldChar`）→ `Field end marker`，段落里还有分页符再加 ` + page break`。
+- **`fieldDisplayOf`**：段落没有可见文字而有分页符 → `{kind: pageBreak}`；否则目录样式 →
+  `{kind: tocLine, left, right, level, anchor?, num?, szHalfPoints?}`（显示文字按制表符切开，最后一段是
+  `right`，`num` 是形如 `1.1.` 的纯数字前缀，`anchor` 取段落里 `w:hyperlink/@w:anchor`，`szHalfPoints`
+  取第一个有文字的 run）；否则有文字 → `{kind: text, left（trim 过的整段文字）, align?, fontFamily?,
+  szHalfPoints?, lineRawTwips?, lineRule?, lineSpacing?, runs?}`（字号不统一时逐 run 给 `runs`）；
+  都不成立 → 没有 `fieldDisplay`。
+
 ## COMPAT-04 docxIndex 与 originalXml
 
 - TS 的 `extras.elements` 是 body 顶层元素序列，但 **sdt 被拆分**：`splitSdtParts` 把含 ≥2 个 `w:p/w:tbl` 子节点的 sdt 拆成多条，每条的区间划分为"首块从 sdt 开头、末块到 sdt 结尾、中间到下一子块开头"。适配器复现此划分：`elements[i]` 与 `blocks[i].docxIndex == i`。

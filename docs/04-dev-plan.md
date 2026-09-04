@@ -355,6 +355,11 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `docs/03` §5.4 `Keyword` | 列了 20 个变体 + `…` | `FLD-06` 表里的全部 76 个关键字都是变体，由一张 `macro_rules!` 表同时生成 `parse` / `as_str` / `policy` | 策略表与关键字表必须是同一份数据，否则加关键字时会漏改策略；`FLD-11` 的 `has_page_number` 也要按变体判断 |
 | `FLD-02` 索引的地位 | — | `FieldIndex` 是 DOM 的**投影**（编辑后作废重建），不像 `SpanIndex` 那样是规范状态的一半 | `FieldSpan` 里每条事实都能从节点重新读出来（`docs/03` §5.4："保存真相是 `instr_nodes` 的原字节"），没有 Anchor 那种"标记之外的信息"，增量维护只会多一份可能不同步的状态 |
 | `FLD-13` 缺陷来源判定 | "解析阶段的缺陷为 `PreExistingDamage`；编辑后新出现的为 `EngineInvariantViolation`" | 第一次写某个 part 之前记下按诊断代码的缺陷计数作基线，保存前重建索引比对，多出来的按 `EngineInvariantViolation` 并经 `save::enforce` 在调试构建下报错 | 索引是重建出来的，没有"这条诊断是不是新的"的天然标识；计数比对不需要跨编辑追踪节点身份 |
+| `MOD-01` `Document` | 投影里没有字段索引 | `Document.fields: FieldIndex`，`rebuild` / `refresh_paragraphs` 一并重建 | 字段是 DOM 的投影（见上一行），模型建 inlines 时要用它；跟着投影一起重建就不会不同步。代价是每次段落刷新都全 part 扫一遍，M3 的容器级刷新一起解决 |
+| `MOD-04` `toc_style_level` | styleId 匹配 `^TOC ?([1-9])$` | 另认 `TableofFigures` / `TableofAuthorities`（1 级） | Word 的图表目录 / 引文目录也是目录行，TS 同样给 `TOC entry` + `tocLine`（语料 `field-display__010`） |
+| `MOD-05` R09 | 块字段的头段、尾段与其间所有段落 → `Protected(FieldBlockResult)` | 同；但 `compat_ts` 逐段复现 TS 的判定：中间那些**自己不含 `fldChar` / `instrText`** 的段落，TS 按规则 3（目录样式 → `TOC entry`）或普通段落处理 | TS 没有跨段的字段区间概念，它逐段看 XML。模型按 `FLD-08` 保护整段区间是对的（结果段落只读），适配器只是把标签对齐；既不含字段结构又没有目录样式的中间段落 TS 会当普通段落，本引擎仍是保护块（语料里没有这种，出现了再评估） |
+| `EDIT-03 DeleteRange`（M1 债） | 覆盖字段结构段 → 整 run 保留 + `EDIT_ANCHOR_UNMOVED` | 覆盖**原子形态字段** → `begin..end`（含嵌套）整个删掉（`FLD-07`）；透明字段（`Link`）的结构 run 原地保留是正确行为，不再记诊断；诊断只留给未闭合 / 畸形字段的结构 run | 2.4 建了 `FieldSpan`，"整 run 保留"这条临时行为到期。原子只占 1 个坐标单位，区间与它相交就是整个覆盖 |
+| `COMPAT-07` 折叠 run 的格式 | 未规定 | 取第一个非空结果 run 的格式；没有结果 run（未选中的复选框、无结果的 PAGE）时不带格式键 | 语料里这些字段的 begin run 都没有 `w:rPr`，TS 输出也没有格式键；等有反例再从 begin run 取（`FLD-07` 说原子字段的 `props` 取 begin run 的 rPr，那是给"新输入继承格式"用的） |
 | `PROP-06` 第 1 步 | 新容器"按父容器的 schema 顺序插入" | 顶层容器（`w:pPr` / `w:rPr`）插为父节点第一个语义子节点之前；子表容器按父表 `order` 插入 | `w:p` / `w:r` 不是属性表，没有 order；M2 的 `trPr`（在 `tblPrEx` 之后）到时补规则 |
 
 ## 9. 待决事项（需要项目负责人拍板）
@@ -478,7 +483,25 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   复选框状态与降级、策略表、hostile `field-unclosed.docx`（诊断 + 段落可编辑 + 未闭合段落零改动）、
   全语料 43 份 / 57 个字段的普查）。语料普查：`Atom` 33、`Block` 6、`Picture` 6、`Form` 4、`Link` 3、
   `Object` 3、`Marker` 1、`Unknown` 1；另有 3 份 TS 截断夹具本来就缺 `end`（已登记在测试里）。
-- [ ] 2.5 字段进模型与 compat（`MOD-06`、`COMPAT-07`）
+- [x] **2.5 字段进模型与 compat**（`model/build.rs`、`bind/compat_ts/blocks.rs`、`edit/ops.rs`）：
+  `Document.fields` 随投影建立（见 §8）；`MOD-04` 的 `facts.fields`（起点在本段的字段）与
+  `inside_field_result`（`FLD-08` 的块字段覆盖段落，按文档序取头尾段之间的全部段落）落地，`MOD-05`
+  R09 因此真正生效；`MOD-06` 的 `Inline::Field { id, result }`（原子形态：坐标流 1 个 `U+FFFC`，结构
+  run 不出现在 inlines 里）与透明形态（`Link` 策略：结构 run 与结果 run 都带 `field`，结果 run 另有
+  `Link::Field`）；`FLD-07` 的删除语义补进 `DeleteRange`（覆盖原子字段 → begin..end 含嵌套整个删，
+  M1 的 `EDIT_ANCHOR_UNMOVED` 只剩畸形字段）。
+  compat 侧（`COMPAT-03`/`COMPAT-07`）：可折叠字段折成一个 run（REF → `refField` + `refInstr`；
+  XE → `xeTerm` + 空文本；简单内联字段 → `instrField`，无结果时留一个空格；FORMCHECKBOX →
+  `instrField` + `fldBeginXml` + `☐`/`☒`；可转换 HYPERLINK → 结果 run 带 `link`），其余字段段落与
+  `Protected(FieldBlockResult)` 一样走 passthrough，带 `label` / `previewText` / `styleId` /
+  `fieldDisplay`。`fieldLabel` 与 `fieldDisplayOf` 的规则由语料 33 个实例反推（genoffice 源码不在手边），
+  逐条记在 `spec/10` 的 `COMPAT-03a`。
+  实测：全域未知差异 1925 → 1709（`fieldDisplay` 32 → 1，`label` 197 → 164，`type` 151 → 118，
+  `runs` 148 → 115，`previewText` 145 → 112，`rawPPr` 29 → 4），有差异的文档 341 → 311；文本域仍 0；
+  保存语料等价数不变。剩下那 1 处 `fieldDisplay` 是文本框分支（`out-of-run-breaks__004`，M5）。
+  测试 `tests/field.rs` 新增 6 个（原子字段占 1 个坐标单位、透明 HYPERLINK、R09 保护三段、四种折叠
+  run、可转换与不可转换 HYPERLINK、passthrough 的三种 `fieldDisplay`），`tests/edit.rs` 的 REF 用例
+  改成断言 `FLD-07` 的整字段删除。
 - [ ] 2.6 批注与注释部件、新建 part（`SAVE-05`）
 - [ ] 2.7 符号字体解码（`RES-05`）
 - [ ] 2.8 `EDIT-06` id 分配落地

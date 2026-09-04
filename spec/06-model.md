@@ -57,7 +57,7 @@ ProtectedKind = FieldBlockResult(FieldId) | Equation(FormulaDisplay) | Chart(Cha
 | `math` | `oMath` 数量、是否有 `oMathPara` |
 | `revision` | 含 `w:ins/w:del/w:moveFrom/w:moveTo`、`delInstrText`、段落标记 ins/del、`pPrChange` |
 | `style_id`, `style_vanish` | `pStyle`；样式链 `vanish == true` 且段落无 `w:vanish w:val=0` 且不含绘图/书签/批注/sectPr/numPr |
-| `toc_style_level` | styleId 匹配 `^TOC ?([1-9])$` |
+| `toc_style_level` | styleId 匹配 `^TOC ?([1-9])$`；`TableofFigures` / `TableofAuthorities`（忽略空白与大小写）算 1 级——Word 的图表目录 / 引文目录也是目录行 |
 | `numbering_ref`, `outline_level` | 见 MOD-03 |
 | `sdt` | 最近的 `w:sdt` 祖先信息（`MOD-08`） |
 

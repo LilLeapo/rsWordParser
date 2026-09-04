@@ -104,6 +104,11 @@ fn set_segment_text(dom: &Dom, seg_node: NodeId, text: &str, plan: &mut Mutation
 }
 
 /// 字段 / 批注 / 脚注结构段：删除范围覆盖时原地保留（M2 由 `FieldSpan` 接管）。
+/// 字段结构段（`fldChar` / 指令文本）：`is_structural` 的子集。
+fn is_field_structure(kind: &SegmentKind) -> bool {
+    matches!(kind, SegmentKind::FldChar | SegmentKind::InstrText | SegmentKind::DelInstrText)
+}
+
 fn is_structural(kind: &SegmentKind) -> bool {
     matches!(
         kind,
@@ -479,6 +484,7 @@ fn delete_range(
         return s.commit_plan(plan);
     }
     let dom = s.dom();
+    let fields = &s.document().fields;
     let spans = inline_spans(tb);
     let mut kept_structure = 0usize;
     for (inline, span) in tb.inlines.iter().zip(&spans) {
@@ -487,7 +493,13 @@ fn delete_range(
         }
         match inline {
             Inline::Atom(atom) => plan.node_edits.push(NodeEdit::Delete(atom.node)),
-            Inline::Field { .. } => return Err(unsupported("字段形态 inline（M2）")),
+            // `FLD-07`：原子形态字段被覆盖 → 整个字段（begin..end，含嵌套）一起删。
+            // 原子只占 1 个坐标单位，区间与它相交就必然把它整个盖住。
+            Inline::Field { id, .. } => {
+                for n in fields.all_nodes(*id) {
+                    plan.node_edits.push(NodeEdit::Delete(n));
+                }
+            }
             Inline::Run(run) => {
                 let fully = span.start >= a && span.end <= b;
                 let structural = run.segments.iter().any(|sg| is_structural(&sg.kind));
@@ -495,7 +507,14 @@ fn delete_range(
                     plan.node_edits.push(NodeEdit::Delete(run.node));
                     continue;
                 }
-                if structural {
+                // 属于已识别字段的结构 run 原地保留是**正确**行为：透明字段（`Link`）的结果可以
+                // 正常编辑，字段本身不该跟着消失。剩下的（畸形 / 未闭合字段的 fldChar）才是缺陷。
+                if structural
+                    && run.field.is_none()
+                    && run.segments.iter().any(|sg| {
+                        is_field_structure(&sg.kind) && fields.field_of(run.node).is_none()
+                    })
+                {
                     kept_structure += 1;
                 }
                 let mut ss = span.start;
@@ -537,7 +556,7 @@ fn delete_range(
             part,
             None,
             DiagCode::EditAnchorUnmoved,
-            format!("删除范围内有 {kept_structure} 个含字段结构的 run 原地保留（字段在 2.4）"),
+            format!("删除范围内有 {kept_structure} 个未闭合 / 畸形字段的结构 run 原地保留"),
         ));
     }
     plan.offset_delta.push((from.para, from.offset, -((b - a) as i32)));

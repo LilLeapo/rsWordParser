@@ -404,3 +404,211 @@ fn fld_02_every_field_in_the_corpus_is_accounted_for() {
     damaged.sort();
     assert_eq!(damaged, expected, "只有已登记的那 3 份夹具带字段缺陷");
 }
+
+// ---- 字段进模型与 compat（任务 2.5）----
+
+use rsword::bind::compat_ts::parsed_doc;
+use rsword::model::{Block, Document, Inline, ProtectedKind};
+use serde_json::Value;
+
+fn document(body: &str) -> (Package, Document) {
+    let mut pkg = Package::open(&common::docx_with_body(body)).unwrap();
+    let doc = Document::rebuild(&mut pkg).unwrap();
+    (pkg, doc)
+}
+
+fn json_of(body: &str) -> Value {
+    let mut pkg = Package::open(&common::docx_with_body(body)).unwrap();
+    parsed_doc(&mut pkg).unwrap()
+}
+
+fn blocks(v: &Value) -> &Vec<Value> {
+    v.get("blocks").unwrap().as_array().unwrap()
+}
+
+/// `MOD-06` / `FLD-14`：原子形态字段在坐标流里恒为 1 个 `U+FFFC`，与结果文字长度无关。
+#[test]
+fn mod_06_atomic_field_takes_one_coordinate_unit() {
+    let (_pkg, doc) =
+        document(&format!("<w:p>{}{}{}</w:p>", run("a"), complex(" PAGE ", &run("12")), run("b")));
+    let tb = doc.text_blocks().next().unwrap();
+    assert_eq!(tb.text(), "a\u{FFFC}b", "结果 `12` 只占 1 个单位");
+    assert_eq!(tb.inlines.len(), 3);
+    let Inline::Field { id, result } = &tb.inlines[1] else { panic!("{:?}", tb.inlines[1]) };
+    assert_eq!(*doc.fields.get(*id).unwrap().keyword(), Keyword::Page);
+    assert_eq!(result.len(), 1, "结果 run 仍在，只是不参与坐标");
+    // 结构 run（begin / instrText / separate / end）不出现在 inlines 里
+    assert!(tb.inlines.iter().all(|i| !matches!(i, Inline::Run(r)
+        if r.segments.iter().any(|s| matches!(s.kind, rsword::model::SegmentKind::FldChar)))));
+}
+
+/// `FLD-07` 透明形态：`Link` 策略字段的结果 run 正常出现，带 `field` 与 `Link::Field`。
+#[test]
+fn fld_07_hyperlink_field_is_transparent() {
+    let body =
+        format!("<w:p>{}</w:p>", complex(r#" HYPERLINK "http://x" \o "tip" "#, &run("click")));
+    let (_pkg, doc) = document(&body);
+    let tb = doc.text_blocks().next().unwrap();
+    assert_eq!(tb.text(), "click", "透明字段：结果就是段落文字");
+    let runs: Vec<_> = tb
+        .inlines
+        .iter()
+        .filter_map(|i| match i {
+            Inline::Run(r) => Some(r),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(runs.len(), 5, "begin / instr / separate / 结果 / end 五个 run 都在");
+    assert!(runs.iter().all(|r| r.field.is_some()), "结构 run 也带 field");
+    let result = runs.iter().find(|r| !r.text.is_empty()).unwrap();
+    assert!(matches!(result.link, Some(rsword::model::Link::Field(_))));
+}
+
+/// `MOD-05` R09 / `FLD-08`：`Block` 策略字段（TOC）的头段、尾段与其间的段落都是保护块。
+#[test]
+fn mod_05_r09_block_field_protects_its_paragraphs() {
+    let body = format!(
+        concat!(
+            r#"<w:p><w:r><w:fldChar w:fldCharType="begin"/></w:r>"#,
+            r#"<w:r><w:instrText> TOC \o "1-3" </w:instrText></w:r>"#,
+            r#"<w:r><w:fldChar w:fldCharType="separate"/></w:r>{}</w:p>"#,
+            "<w:p>{}</w:p>",
+            r#"<w:p>{}<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>"#,
+            "<w:p>{}</w:p>"
+        ),
+        run("head"),
+        run("middle"),
+        run("tail"),
+        run("after")
+    );
+    let (_pkg, doc) = document(&body);
+    let kinds: Vec<String> = doc
+        .main
+        .iter()
+        .map(|b| match b {
+            Block::Protected(p) => format!("{:?}", p.kind),
+            Block::Text(_) => "Text".into(),
+            _ => "other".into(),
+        })
+        .collect();
+    assert_eq!(kinds.len(), 4);
+    for k in &kinds[..3] {
+        assert!(k.starts_with("FieldBlockResult"), "{kinds:?}");
+    }
+    assert_eq!(kinds[3], "Text", "字段之后的段落照常可编辑");
+    let field = doc.fields.fields().iter().find(|f| *f.keyword() == Keyword::Toc).unwrap();
+    assert!(field.cross_paragraph && field.is_block());
+    assert!(matches!(
+        doc.main[1],
+        Block::Protected(ref p) if matches!(p.kind, ProtectedKind::FieldBlockResult(id) if id == field.id)
+    ));
+}
+
+/// `COMPAT-07`：可折叠字段折成一个 run（REF / XE / 简单内联 / FORMCHECKBOX）。
+#[test]
+fn compat_07_collapsible_fields_become_one_run() {
+    let v = json_of(&format!(
+        "<w:p>{}{}{}</w:p>",
+        run("详见"),
+        complex(r" REF 市场规模 \h ", &run("第二节")),
+        run("一节。")
+    ));
+    let runs = blocks(&v)[0].get("runs").unwrap().as_array().unwrap();
+    assert_eq!(runs.len(), 3, "{runs:?}");
+    assert_eq!(runs[1]["refField"], "市场规模");
+    assert_eq!(runs[1]["refInstr"], " REF 市场规模 \\h ");
+    assert_eq!(runs[1]["text"], "第二节");
+
+    let v = json_of(&format!("<w:p>{}{}</w:p>", run("热点"), complex(r#" XE "人工智能" "#, "")));
+    let runs = blocks(&v)[0].get("runs").unwrap().as_array().unwrap();
+    assert_eq!(runs[1]["xeTerm"], "人工智能");
+    assert_eq!(runs[1]["text"], "", "XE 是零宽标记");
+
+    let v = json_of(&format!("<w:p>{}</w:p>", complex(" PAGE ", "")));
+    let runs = blocks(&v)[0].get("runs").unwrap().as_array().unwrap();
+    assert_eq!(runs[0]["instrField"], "PAGE");
+    assert_eq!(runs[0]["text"], " ", "没有结果的简单内联字段留一个空格");
+
+    let checkbox = r#"<w:p><w:r><w:fldChar w:fldCharType="begin"><w:ffData><w:checkBox><w:checked/></w:checkBox></w:ffData></w:fldChar></w:r>
+        <w:r><w:instrText> FORMCHECKBOX </w:instrText></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>"#;
+    let v = json_of(checkbox);
+    let runs = blocks(&v)[0].get("runs").unwrap().as_array().unwrap();
+    assert_eq!(runs[0]["instrField"], "FORMCHECKBOX");
+    assert_eq!(runs[0]["text"], "☒");
+    assert!(runs[0]["fldBeginXml"].as_str().unwrap().contains("w:ffData"));
+}
+
+/// `COMPAT-07`：可转换 HYPERLINK 的结果 run 带 `link`；带别的开关的不折叠（整段 passthrough）。
+#[test]
+fn compat_07_convertible_hyperlink_gets_a_link() {
+    let v = json_of(&format!(
+        "<w:p>{}{}</w:p>",
+        run("see "),
+        complex(r#" HYPERLINK "http://x" \o "tip" "#, &run("x.org"))
+    ));
+    let runs = blocks(&v)[0].get("runs").unwrap().as_array().unwrap();
+    assert_eq!(runs[1]["link"]["href"], "http://x");
+    assert_eq!(runs[1]["link"]["tooltip"], "tip");
+
+    // `\l` 锚点形式 TS 不折叠：整段 passthrough
+    let v = json_of(&format!("<w:p>{}</w:p>", complex(r#" HYPERLINK \l "bm1" "#, &run("x"))));
+    assert_eq!(blocks(&v)[0]["type"], "passthrough");
+    assert_eq!(blocks(&v)[0]["label"], "Hyperlink field");
+}
+
+/// `COMPAT-03`：不可折叠字段的段落是 passthrough，带 `fieldDisplay`。
+#[test]
+fn compat_03_field_paragraph_is_passthrough_with_display() {
+    // TOC 行：制表符切成 left / right，级别来自样式
+    let v = json_of(&format!(
+        r#"<w:p><w:pPr><w:pStyle w:val="TOC2"/></w:pPr><w:r><w:fldChar w:fldCharType="begin"/></w:r>
+           <w:r><w:instrText> TOC \o "1-3" </w:instrText></w:r>
+           <w:r><w:fldChar w:fldCharType="separate"/></w:r>{}<w:r><w:tab/></w:r>{}<w:r><w:tab/></w:r>{}
+           <w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>"#,
+        run("1.1."),
+        run("背景"),
+        run("7")
+    ));
+    let b = &blocks(&v)[0];
+    assert_eq!(b["type"], "passthrough");
+    assert_eq!(b["label"], "Auto TOC (updates when opened in Word)");
+    assert_eq!(b["styleId"], "TOC2");
+    assert_eq!(b["previewText"], "1.1.背景7");
+    assert_eq!(b["fieldDisplay"]["kind"], "tocLine");
+    assert_eq!(b["fieldDisplay"]["num"], "1.1.");
+    assert_eq!(b["fieldDisplay"]["left"], "背景");
+    assert_eq!(b["fieldDisplay"]["right"], "7");
+    assert_eq!(b["fieldDisplay"]["level"], 2);
+    assert!(b.get("runs").is_none() && b.get("format").is_none(), "只读块不出 runs / format");
+
+    // 普通字段段落：整段文字 + 段落排版
+    let v = json_of(&format!(
+        r#"<w:p><w:pPr><w:jc w:val="center"/></w:pPr>{}{}</w:p>"#,
+        run("图 "),
+        complex(r" SEQ 图 \* ARABIC ", &run("1"))
+    ));
+    let b = &blocks(&v)[0];
+    assert_eq!(b["label"], "Caption number field");
+    assert_eq!(b["fieldDisplay"]["kind"], "text");
+    assert_eq!(b["fieldDisplay"]["left"], "图 1");
+    assert_eq!(b["fieldDisplay"]["align"], "center");
+
+    // 只有孤立 fldChar end 的段落
+    let v = json_of(
+        r#"<w:p><w:r><w:fldChar w:fldCharType="end"/></w:r><w:r><w:br w:type="page"/></w:r></w:p>"#,
+    );
+    let b = &blocks(&v)[0];
+    assert_eq!(b["label"], "Field end marker + page break");
+    assert_eq!(b["fieldDisplay"]["kind"], "pageBreak");
+
+    // 没有字段的目录样式段落（TS 规则 3）
+    let v = json_of(&format!(
+        r#"<w:p><w:pPr><w:pStyle w:val="TableofFigures"/></w:pPr>{}<w:r><w:tab/></w:r>{}</w:p>"#,
+        run("表 2.1 语法"),
+        run("11")
+    ));
+    let b = &blocks(&v)[0];
+    assert_eq!(b["label"], "TOC entry");
+    assert_eq!(b["fieldDisplay"]["level"], 1, "图表目录样式算 1 级");
+    assert_eq!(b["fieldDisplay"]["left"], "表 2.1 语法");
+}

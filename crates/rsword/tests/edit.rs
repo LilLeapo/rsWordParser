@@ -254,24 +254,21 @@ fn edit_03_delete_range_truncates_runs_and_keeps_markers() {
     assert!(xml.contains(r#"<w:t xml:space="preserve">a</w:t>"#));
     assert!(xml.contains(r#"<w:t xml:space="preserve">h</w:t>"#));
 
-    // REF 字段结果
+    // REF 字段是原子（`FLD-14`：坐标流里恒为 1 个 U+FFFC，与结果文字长度无关）
     let mut s2 = EditSession::open(&corpus("bookmarks-crossref__006.docx")).unwrap();
     let p2 = para(&s2, 1);
     let text = para_text(&s2, 1);
-    assert!(text.starts_with("详见2025"), "{text}");
-    let result_len = "2025 年市场规模达到 1200 亿。".encode_utf16().count() as u32;
-    s2.apply(
-        EditOp::DeleteRange { from: InlinePos::new(p2, 2), to: InlinePos::new(p2, 2 + result_len) },
-        &ctx,
-    )
-    .unwrap();
+    assert!(text.starts_with("详见\u{FFFC}"), "REF 结果折成一个原子: {text}");
+    // `FLD-07`：删除覆盖原子字段 → begin..end 整个删掉，不留半截结构
+    s2.apply(EditOp::DeleteRange { from: InlinePos::new(p2, 2), to: InlinePos::new(p2, 3) }, &ctx)
+        .unwrap();
     assert_eq!(para_text(&s2, 1), "详见一节。");
     let saved = s2.save().unwrap();
     let mut pkg = Package::open(&saved).unwrap();
     let main = pkg.main_part();
     let dom = pkg.dom(main).unwrap().unwrap();
-    assert_eq!(xpath_strings(dom, "count(//w:p[2]//w:fldChar)").unwrap(), ["3"], "字段结构保留");
-    assert_eq!(xpath_strings(dom, "count(//w:p[2]//w:instrText)").unwrap(), ["1"]);
+    assert_eq!(xpath_strings(dom, "count(//w:p[2]//w:fldChar)").unwrap(), ["0"], "字段整个删掉");
+    assert_eq!(xpath_strings(dom, "count(//w:p[2]//w:instrText)").unwrap(), ["0"]);
     // 跨段与越界
     let e = s2
         .apply(

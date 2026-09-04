@@ -130,7 +130,7 @@ impl FieldSpan {
 }
 
 /// 一个 part 的字段索引（`FLD-02`）。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FieldIndex {
     part: PartId,
     /// `FieldId` 即下标；顺序是 end 的文档序（嵌套字段排在父字段之前）。
@@ -192,6 +192,60 @@ impl FieldIndex {
             *m.entry(d.code).or_insert(0) += 1;
         }
         m
+    }
+
+    /// 一个字段占用的全部节点：结构 run、指令 run、结果节点，连同嵌套字段的（递归）。
+    ///
+    /// `FLD-07` 的"删除原子字段 = 删 begin..end"用它；嵌套字段的 run 记在嵌套字段自己名下，
+    /// 所以必须递归，否则会剩下半个内层字段。
+    pub fn all_nodes(&self, id: FieldId) -> Vec<NodeId> {
+        let mut out = Vec::new();
+        let mut stack = vec![id];
+        while let Some(id) = stack.pop() {
+            let Some(f) = self.get(id) else { continue };
+            out.extend(f.form.structure_nodes());
+            if let FieldForm::Complex { instr_nodes, .. } = &f.form {
+                out.extend(instr_nodes);
+            }
+            if let FieldForm::Simple { node, .. } = &f.form {
+                out.push(*node);
+                continue; // `w:fldSimple` 的子节点随它一起删
+            }
+            out.extend(f.form.result_nodes());
+            stack.extend(f.nested.iter().copied());
+        }
+        out.sort_by_key(|n| n.0);
+        out.dedup();
+        out
+    }
+
+    /// `FLD-08`：`Block` 策略字段覆盖的段落 → 字段 id。
+    ///
+    /// 头段（begin 所在段落）、尾段（end 所在段落）与其间的所有段落（含表格单元格里的）都算，
+    /// 所以按**文档序**取区间，而不是只看 `result_nodes` 落在哪些段落——中间的空段落也要保护。
+    /// 嵌套的 `Block` 字段以最外层为准（先标记的胜出）。
+    pub fn block_result_paragraphs(&self, dom: &Dom) -> HashMap<NodeId, FieldId> {
+        let mut out = HashMap::new();
+        if !self.fields.iter().any(|f| f.is_block()) {
+            return out;
+        }
+        // 一次前序遍历取全部段落的文档序
+        let paras: Vec<NodeId> =
+            dom.descendants(dom.root()).filter(|&n| dom.is(n, w(LocalName::P))).collect();
+        let pos: HashMap<NodeId, usize> = paras.iter().enumerate().map(|(i, &n)| (n, i)).collect();
+        let para_of = |node: NodeId| -> Option<usize> {
+            std::iter::once(node).chain(dom.ancestors(node)).find_map(|n| pos.get(&n).copied())
+        };
+        // 外层字段先标记：`fields` 按 end 的文档序排，嵌套的排在前面，所以倒着来
+        for f in self.fields.iter().rev().filter(|f| f.is_block()) {
+            let (Some(a), Some(b)) = (para_of(f.form.head()), para_of(f.form.tail())) else {
+                continue;
+            };
+            for &p in &paras[a.min(b)..=a.max(b)] {
+                out.insert(p, f.id);
+            }
+        }
+        out
     }
 
     /// 该 run 是字段的结构 run（`fldChar`）还是指令 run：删除范围覆盖它时要连整个字段一起删。
