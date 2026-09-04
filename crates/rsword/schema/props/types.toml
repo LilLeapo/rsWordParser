@@ -115,3 +115,155 @@ attrs = [
   { name = "east_asia", attr = "w:eastAsia", codec = "Str" },
   { name = "bidi", attr = "w:bidi", codec = "Str" },
 ]
+
+# ---- 段落属性用到的枚举（任务 1.2）-----------------------------------------------------------------
+
+[enum.Jc]
+doc = "ST_Jc（§17.18.44）；Strict 没有 left/right，flavor 换写在 SAVE-02"
+values = [
+  "start", "center", "end", "both", "mediumKashida", "distribute", "numTab", "highKashida",
+  "lowKashida", "thaiDistribute", "left", "right",
+]
+
+[enum.TabJc]
+doc = "ST_TabJc（§17.18.84）"
+values = ["clear", "start", "center", "end", "decimal", "bar", "num", "left", "right"]
+
+[enum.TabLeader]
+doc = "ST_TabTlc（§17.18.85）"
+values = ["none", "dot", "hyphen", "underscore", "heavy", "middleDot"]
+
+[enum.LineSpacingRule]
+doc = "ST_LineSpacingRule（§17.18.48）"
+values = ["auto", "exact", "atLeast"]
+
+[enum.HeightRule]
+doc = "ST_HeightRule（§17.18.37）"
+values = ["auto", "exact", "atLeast"]
+
+[enum.FrameWrap]
+doc = "ST_Wrap（§17.18.104）"
+values = ["auto", "notBeside", "around", "none", "tight", "through"]
+
+[enum.DropCap]
+doc = "ST_DropCap（§17.18.20）"
+values = ["none", "drop", "margin"]
+
+[enum.FrameAnchor]
+doc = "ST_HAnchor / ST_VAnchor（§17.18.34 / §17.18.101），取值相同"
+values = ["text", "margin", "page"]
+
+[enum.XAlign]
+doc = "ST_XAlign（§22.9.2.20）"
+values = ["left", "center", "right", "inside", "outside"]
+
+[enum.YAlign]
+doc = "ST_YAlign（§22.9.2.22）"
+values = ["inline", "top", "center", "bottom", "inside", "outside"]
+
+[enum.BorderStyle]
+doc = "ST_Border（§17.18.2）：27 种线型 + 艺术型边框 + custom"
+values = [
+  "nil", "none", "single", "thick", "double", "dotted", "dashed", "dotDash", "dotDotDash", "triple",
+  "thinThickSmallGap", "thickThinSmallGap", "thinThickThinSmallGap", "thinThickMediumGap",
+  "thickThinMediumGap", "thinThickThinMediumGap", "thinThickLargeGap", "thickThinLargeGap",
+  "thinThickThinLargeGap", "wave", "doubleWave", "dashSmallGap", "dashDotStroked", "threeDEmboss",
+  "threeDEngrave", "outset", "inset",
+  "apples", "archedScallops", "babyPacifier", "babyRattle", "balloons3Colors", "balloonsHotAir",
+  "basicBlackDashes", "basicBlackDots", "basicBlackSquares", "basicThinLines", "basicWhiteDashes",
+  "basicWhiteDots", "basicWhiteSquares", "basicWideInline", "basicWideMidline", "basicWideOutline",
+  "bats", "birds", "birdsFlight", "cabins", "cakeSlice", "candyCorn", "celticKnotwork",
+  "certificateBanner", "chainLink", "championshipRibbon", "checkedBarBlack", "checkedBarColor",
+  "checkered", "christmasTree", "circlesLines", "circlesRectangles", "classicalWave", "clocks",
+  "compass", "confetti", "confettiGrays", "confettiOutline", "confettiStreamers", "confettiWhite",
+  "cornerTriangles", "couponCutoutDashes", "couponCutoutDots", "crazyMaze", "creaturesButterfly",
+  "creaturesFish", "creaturesInsects", "creaturesLadyBug", "crossStitch", "cup", "decoArch",
+  "decoArchColor", "decoBlocks", "diamondsGray", "doubleD", "doubleDiamonds", "earth1", "earth2",
+  "earth3", "eclipsingSquares1", "eclipsingSquares2", "eggsBlack", "fans", "film", "firecrackers",
+  "flowersBlockPrint", "flowersDaisies", "flowersModern1", "flowersModern2", "flowersPansy",
+  "flowersRedRose", "flowersRoses", "flowersTeacup", "flowersTiny", "gems", "gingerbreadMan",
+  "gradient", "handmade1", "handmade2", "heartBalloon", "heartGray", "hearts", "heebieJeebies",
+  "holly", "houseFunky", "hypnotic", "iceCreamCones", "lightBulb", "lightning1", "lightning2",
+  "mapPins", "mapleLeaf", "mapleMuffins", "marquee", "marqueeToothed", "moons", "mosaic",
+  "musicNotes", "northwest", "ovals", "packages", "palmsBlack", "palmsColor", "paperClips",
+  "papyrus", "partyFavor", "partyGlass", "pencils", "people", "peopleWaving", "peopleHats",
+  "poinsettias", "postageStamp", "pumpkin1", "pushPinNote2", "pushPinNote1", "pyramids",
+  "pyramidsAbove", "quadrants", "rings", "safari", "sawtooth", "sawtoothGray", "scaredCat",
+  "seattle", "shadowedSquares", "sharksTeeth", "shorebirdTracks", "skyrocket", "snowflakeFancy",
+  "snowflakes", "sombrero", "southwest", "stars", "starsTop", "stars3d", "starsBlack",
+  "starsShadowed", "sun", "swirligig", "tornPaper", "tornPaperBlack", "trees", "triangleParty",
+  "triangles", "triangle1", "triangle2", "triangleCircle1", "triangleCircle2", "shapes1", "shapes2",
+  "twistedLines1", "twistedLines2", "vine", "waveline", "weavingAngles", "weavingBraid",
+  "weavingRibbon", "weavingStrips", "whiteFlowers", "woodwork", "xIllusions", "zanyTriangles",
+  "zigZag", "zigZagStitch", "custom",
+]
+
+# ---- 段落属性用到的结构体 -----------------------------------------------------------------------
+
+[struct.Border]
+doc = "CT_Border（§17.3.4）：pBdr / tcBorders / tblBorders / bdr 各边共用。`space` 单位 pt。"
+attrs = [
+  { name = "val", attr = "w:val", codec = "BorderStyle" },
+  { name = "color", attr = "w:color", codec = "HexColorOrAuto" },
+  { name = "theme_color", attr = "w:themeColor", codec = "ThemeColor" },
+  { name = "theme_tint", attr = "w:themeTint", codec = "Hex2" },
+  { name = "theme_shade", attr = "w:themeShade", codec = "Hex2" },
+  { name = "sz", attr = "w:sz", codec = "EighthPoints", doc = "线宽，1/8 pt" },
+  { name = "space", attr = "w:space", codec = "UInt", doc = "与文字的间距，pt" },
+  { name = "shadow", attr = "w:shadow", codec = "OnOff" },
+  { name = "frame", attr = "w:frame", codec = "OnOff" },
+]
+
+[struct.Spacing]
+doc = "CT_Spacing（`w:spacing`，§17.3.1.33）。`line` 在 lineRule=auto 时是 1/240 行，否则 twip。"
+attrs = [
+  { name = "before", attr = "w:before", codec = "Twips" },
+  { name = "before_lines", attr = "w:beforeLines", codec = "Int", doc = "1/100 行" },
+  { name = "before_autospacing", attr = "w:beforeAutospacing", codec = "OnOff" },
+  { name = "after", attr = "w:after", codec = "Twips" },
+  { name = "after_lines", attr = "w:afterLines", codec = "Int", doc = "1/100 行" },
+  { name = "after_autospacing", attr = "w:afterAutospacing", codec = "OnOff" },
+  { name = "line", attr = "w:line", codec = "Twips" },
+  { name = "line_rule", attr = "w:lineRule", codec = "LineSpacingRule" },
+]
+
+[struct.Indent]
+doc = "CT_Ind（`w:ind`，§17.3.1.12）。start/end 是 Strict 拼写，left/right 是 Transitional 拼写（PROP-05）。"
+attrs = [
+  { name = "start", attr = "w:start", legacy = "w:left", codec = "Twips" },
+  { name = "start_chars", attr = "w:startChars", legacy = "w:leftChars", codec = "Int", doc = "1/100 字符" },
+  { name = "end", attr = "w:end", legacy = "w:right", codec = "Twips" },
+  { name = "end_chars", attr = "w:endChars", legacy = "w:rightChars", codec = "Int" },
+  { name = "hanging", attr = "w:hanging", codec = "Twips" },
+  { name = "hanging_chars", attr = "w:hangingChars", codec = "Int" },
+  { name = "first_line", attr = "w:firstLine", codec = "Twips" },
+  { name = "first_line_chars", attr = "w:firstLineChars", codec = "Int" },
+]
+
+[struct.FramePr]
+doc = "CT_FramePr（`w:framePr`，§17.3.1.11）：文本框架 / 首字下沉。"
+attrs = [
+  { name = "drop_cap", attr = "w:dropCap", codec = "DropCap" },
+  { name = "lines", attr = "w:lines", codec = "Int" },
+  { name = "w", attr = "w:w", codec = "Twips" },
+  { name = "h", attr = "w:h", codec = "Twips" },
+  { name = "v_space", attr = "w:vSpace", codec = "Twips" },
+  { name = "h_space", attr = "w:hSpace", codec = "Twips" },
+  { name = "wrap", attr = "w:wrap", codec = "FrameWrap" },
+  { name = "h_anchor", attr = "w:hAnchor", codec = "FrameAnchor" },
+  { name = "v_anchor", attr = "w:vAnchor", codec = "FrameAnchor" },
+  { name = "x", attr = "w:x", codec = "Twips" },
+  { name = "x_align", attr = "w:xAlign", codec = "XAlign" },
+  { name = "y", attr = "w:y", codec = "Twips" },
+  { name = "y_align", attr = "w:yAlign", codec = "YAlign" },
+  { name = "h_rule", attr = "w:hRule", codec = "HeightRule" },
+  { name = "anchor_lock", attr = "w:anchorLock", codec = "OnOff" },
+]
+
+[struct.Tab]
+doc = "CT_TabStop（`w:tab`，§17.3.1.37）"
+attrs = [
+  { name = "val", attr = "w:val", codec = "TabJc" },
+  { name = "leader", attr = "w:leader", codec = "TabLeader" },
+  { name = "pos", attr = "w:pos", codec = "Twips" },
+]

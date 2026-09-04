@@ -1,0 +1,193 @@
+# ParaProps（`w:pPr`）与它的子表：PROP-05 CT_PPr 顺序、PROP-08 第一批字段。格式见 README.md。
+
+[[table]]
+name = "ParaProps"
+element = "w:pPr"
+change = "w:pPrChange"
+doc = "CT_PPr：CT_PPrBase 为 sequence，顺序强制；之后 rPr（段落标记）、sectPr、pPrChange。"
+order = [
+  "w:pStyle", "w:keepNext", "w:keepLines", "w:pageBreakBefore", "w:framePr", "w:widowControl", "w:numPr",
+  "w:suppressLineNumbers", "w:pBdr", "w:shd", "w:tabs", "w:suppressAutoHyphens", "w:kinsoku", "w:wordWrap",
+  "w:overflowPunct", "w:topLinePunct", "w:autoSpaceDE", "w:autoSpaceDN", "w:bidi", "w:adjustRightInd",
+  "w:snapToGrid", "w:spacing", "w:ind", "w:contextualSpacing", "w:mirrorIndents", "w:suppressOverlap", "w:jc",
+  "w:textDirection", "w:textAlignment", "w:textboxTightWrap", "w:outlineLvl", "w:divId", "w:cnfStyle",
+  "w:rPr", "w:sectPr", "w:pPrChange",
+]
+
+[[table.field]]
+name = "style"
+element = "w:pStyle"
+codec = "Str"
+doc = "段落样式 styleId"
+
+[[table.field]]
+name = "keep_next"
+element = "w:keepNext"
+codec = "OnOff"
+
+[[table.field]]
+name = "keep_lines"
+element = "w:keepLines"
+codec = "OnOff"
+
+[[table.field]]
+name = "page_break_before"
+element = "w:pageBreakBefore"
+codec = "OnOff"
+
+[[table.field]]
+name = "frame"
+element = "w:framePr"
+codec = "FramePr"
+
+[[table.field]]
+name = "widow_control"
+element = "w:widowControl"
+codec = "OnOff"
+
+[[table.field]]
+name = "num"
+element = "w:numPr"
+codec = "NumPr"
+
+[[table.field]]
+name = "borders"
+element = "w:pBdr"
+codec = "ParaBorders"
+
+[[table.field]]
+name = "shading"
+element = "w:shd"
+codec = "Shading"
+
+[[table.field]]
+name = "tabs"
+element = "w:tabs"
+codec = "Tabs"
+
+[[table.field]]
+name = "auto_space_de"
+element = "w:autoSpaceDE"
+codec = "OnOff"
+
+[[table.field]]
+name = "auto_space_dn"
+element = "w:autoSpaceDN"
+codec = "OnOff"
+
+[[table.field]]
+name = "bidi"
+element = "w:bidi"
+codec = "OnOff"
+
+[[table.field]]
+name = "snap_to_grid"
+element = "w:snapToGrid"
+codec = "OnOff"
+
+[[table.field]]
+name = "spacing"
+element = "w:spacing"
+codec = "Spacing"
+
+[[table.field]]
+name = "indent"
+element = "w:ind"
+codec = "Indent"
+
+[[table.field]]
+name = "contextual_spacing"
+element = "w:contextualSpacing"
+codec = "OnOff"
+
+[[table.field]]
+name = "jc"
+element = "w:jc"
+codec = "Jc"
+
+[[table.field]]
+name = "outline_lvl"
+element = "w:outlineLvl"
+codec = "Int"
+doc = "0–9；9 = 正文"
+
+[[table.field]]
+name = "rpr"
+element = "w:rPr"
+codec = "RunProps"
+in_change = false
+doc = "段落标记的 run 属性（嵌套表）"
+
+[[table.field]]
+name = "sect_pr"
+element = "w:sectPr"
+codec = "Raw"
+in_change = false
+doc = "节属性；M1 只记位置（MOD-04 用），M2 建 SectionProps"
+
+# ---- 子表 -----------------------------------------------------------------------------------------
+
+[[table]]
+name = "NumPr"
+element = "w:numPr"
+doc = "CT_NumPr（§17.3.1.19）"
+order = ["w:ilvl", "w:numId", "w:numberingChange", "w:ins"]
+
+[[table.field]]
+name = "ilvl"
+element = "w:ilvl"
+codec = "Int"
+
+[[table.field]]
+name = "num_id"
+element = "w:numId"
+codec = "Int"
+doc = "0 = 显式无编号"
+
+[[table]]
+name = "ParaBorders"
+element = "w:pBdr"
+doc = "CT_PBdr（§17.3.1.24）：Strict 与 Transitional 都用 left/right。"
+order = ["w:top", "w:left", "w:bottom", "w:right", "w:between", "w:bar"]
+
+[[table.field]]
+name = "top"
+element = "w:top"
+codec = "Border"
+
+[[table.field]]
+name = "left"
+element = "w:left"
+codec = "Border"
+
+[[table.field]]
+name = "bottom"
+element = "w:bottom"
+codec = "Border"
+
+[[table.field]]
+name = "right"
+element = "w:right"
+codec = "Border"
+
+[[table.field]]
+name = "between"
+element = "w:between"
+codec = "Border"
+
+[[table.field]]
+name = "bar"
+element = "w:bar"
+codec = "Border"
+
+[[table]]
+name = "Tabs"
+element = "w:tabs"
+doc = "CT_Tabs（§17.3.1.38）：只有重复的 w:tab。"
+order = ["w:tab"]
+
+[[table.field]]
+name = "tab"
+element = "w:tab"
+codec = "Tab"
+multi = true
