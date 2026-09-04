@@ -28,7 +28,7 @@ run 属性 / 改段落属性 / 整段替换、把 TS 的 `SaveBlock[]` 保存请
 | L3 属性表 `semantic/props/` | 完成 | 20 张表由 TOML 生成（读 / 写 / diff / patch / merge / `plan_apply_*`）、按 flavor 编解码、`Val::Raw` 降级、`PROP-05` 顺序 | 表格与节的属性表（M3 / M5） |
 | L3 模型 `model/` | 文本 + 字段完成 | `Document::rebuild`、块分类 R01–R19（含 R09 字段块）、段落坐标流（`Run`/`Segment`，UTF-16）、`Inline::Field` 与透明字段、`ParagraphFacts`、声明模型（styles / numbering / theme / settings / fontTable） | 表格模型（M3）、绘图显示模型（M4） |
 | resolve `resolve/` | 首版 | 样式链（basedOn / link）、docDefaults 层叠、每字段 `Provenance`、主题字体与颜色、符号字体解码、heading 级别 | toggle 属性真实规则 + Word 实测 fixture（M5）、补全 Wingdings 2/3 与 Webdings 映射表 |
-| L4 编辑 `edit/` | M1 子集 + Anchor | `EditSession`（含范围索引）、`InlinePos` 定位、`MutationPlan` plan/validate/commit、按 part 回滚的事务（DOM + 索引）、`InsertText`、`DeleteRange`（同段）、`SetRunProps`、`SetParaProps`、`ReplaceInlines`、`ReplaceParaProps`、`InsertBlock`/`DeleteBlock`/`MoveBlock`、`SPAN-06/07` 锚点维护 | 字段操作、拆分 / 合并段落（M2）、表格操作（M3）、修订生成（M7） |
+| L4 编辑 `edit/` | M1 子集 + Anchor + 字段旁编辑 | `EditSession`（含范围索引）、`InlinePos` 定位、`MutationPlan` plan/validate/commit、按 part 回滚的事务（DOM + 索引）、`InsertText`、`DeleteRange`（同段）、`SetRunProps`、`SetParaProps`、`ReplaceInlines`、`ReplaceParaProps`、`InsertBlock`/`DeleteBlock`/`MoveBlock`、`SPAN-06/07` 锚点维护 | 字段操作、拆分 / 合并段落（M2）、表格操作（M3）、修订生成（M7） |
 | 保存 `save/` | M1 子集 + Span | `SAVE-01` 六步编排（含第 3 步 Span 物化）、`SAVE-02` 子集校验（未绑定前缀、`PROP-05` 顺序、`SPAN-09` 范围检查）、扩展命名空间声明、`w:t` preserve、`raw_copy_file` 写回、`SaveOptions`（`saved_at`、`remove_personal_info`、`remove_date_and_time`） | 节 / 页眉页脚 / 水印 / 图表 / 墨迹等选项（M3–M6） |
 | 兼容 `bind/compat_ts/` | 文本 + 字段完成 | `parsed_doc` 整份 `ParsedDoc`（含 `extras`、UTF-16 索引、sdt 拆分）、字段折叠 run 与 `fieldDisplay` / `fieldLabel`、`apply_save_blocks`（original / generated / xml 块）、容忍差分 | 表格 / 绘图 / 页眉页脚字段（随对应里程碑） |
 
@@ -98,6 +98,9 @@ M5 约 48、M4/M6 约 20、M2 约 16、M7 2。
 - **字段**：解析、进模型与 compat 输出都在（`FLD-01`–`FLD-08`、`MOD-06`、`COMPAT-03/07`）；缺的是
   **编辑操作**——`InsertField` / `SetLinkTarget` / `ToggleCheckbox` / `SetFormText` / `UpdateBlockField`
   与 `refField` / `xeTerm` / 表单域的 `SaveBlock` 仍是 `EditUnsupported`（2.9），块字段生成器在 M7。
+  已经能做的：在字段原子**旁边**的边界插入文字（左邻取 end run、右邻取 begin run，插入点落在原子外，
+  格式可从字段结果的最后一个 run 继承）、删除覆盖原子形态字段（`FLD-07`：begin..end 连嵌套一起删）。
+  跨段 `Block` 字段的边界仍是 `EditUnsupported`（结果段落只读）。
 - **新建 part**：缺 `settings.xml` 时清洗标志写不进去（记诊断）；批注 / 脚注 part 不能创建；
   part 没有 `.rels` 时也建不出来（新外链会因此报 `EditUnsupported`）——都等 2.6 的 `SAVE-05`。
 - **表格 / 绘图**：块层面是占位（`Table` / `Image` / `Protected`），单元格与图片属性不进模型。

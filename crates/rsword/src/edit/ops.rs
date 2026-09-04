@@ -339,6 +339,38 @@ fn common_site(dom: &Dom, para: NodeId, left: NodeId, right: NodeId) -> (NodeId,
     }
 }
 
+/// 边界的哪一侧。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Side {
+    Left,
+    Right,
+}
+
+/// 边界一侧的 inline 对应的 DOM 节点。
+///
+/// 字段原子（`Inline::Field`）自己没有单一节点，取它靠着边界的那一端：左邻取 `tail`
+/// （end run / `w:fldSimple`）、右邻取 `head`（begin run）。插入点因此落在原子**之外**，
+/// 与 `SPAN-10`"端点落在字段原子内部时移到原子边界"是同一条道理。
+fn boundary_node(s: &EditSession, tb: &TextBlock, i: &Inline, side: Side) -> Result<NodeId> {
+    if let Some(n) = i.node() {
+        return Ok(n);
+    }
+    let Inline::Field { id, .. } = i else {
+        return Err(unsupported("inline 没有对应节点"));
+    };
+    let f =
+        s.document().fields.get(*id).ok_or_else(|| unsupported("字段不在索引里（投影过期）"))?;
+    let n = match side {
+        Side::Left => f.form.tail(),
+        Side::Right => f.form.head(),
+    };
+    // 跨段字段（`FLD-06` 的 `Block`）另一端在别的段落里，结果段落只读
+    if !s.dom().ancestors(n).any(|a| a == tb.node) {
+        return Err(unsupported("跨段字段的边界（Block 字段的结果段落只读）"));
+    }
+    Ok(n)
+}
+
 /// 边界插入点：`(parent, before, 继承格式的 run)`。
 fn boundary_site(
     s: &EditSession,
@@ -347,10 +379,21 @@ fn boundary_site(
 ) -> Result<(NodeId, Option<NodeId>, Option<NodeId>)> {
     let dom = s.dom();
     let para = tb.node;
-    let node_of = |i: &Inline| i.node().ok_or_else(|| unsupported("字段形态 inline（M2）"));
-    let left = (index > 0).then(|| node_of(&tb.inlines[index - 1])).transpose()?;
-    let right = (index < tb.inlines.len()).then(|| node_of(&tb.inlines[index])).transpose()?;
-    let run_node = |i: &Inline| if let Inline::Run(r) = i { Some(r.node) } else { None };
+    let left = (index > 0)
+        .then(|| boundary_node(s, tb, &tb.inlines[index - 1], Side::Left))
+        .transpose()?;
+    let right = (index < tb.inlines.len())
+        .then(|| boundary_node(s, tb, &tb.inlines[index], Side::Right))
+        .transpose()?;
+    // 继承格式的 run：先看平铺的 run，再看字段结果里的 run（紧邻字段插字沿用结果的格式）
+    let run_node = |i: &Inline| match i {
+        Inline::Run(r) => Some(r.node),
+        Inline::Field { result, .. } => result.iter().rev().find_map(|r| match r {
+            Inline::Run(r) => Some(r.node),
+            _ => None,
+        }),
+        Inline::Atom(_) => None,
+    };
     let inherit = tb.inlines[..index]
         .iter()
         .rev()

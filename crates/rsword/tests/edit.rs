@@ -469,3 +469,51 @@ fn edit_06_new_external_relationship_is_allocated_in_the_rels_part() {
     let reopened = pkg.part(pkg.main_part()).rels.by_id(&rid).cloned();
     assert!(reopened.is_some(), "{xml}");
 }
+
+/// `EDIT-03 InsertText` 在字段原子旁边的边界插入：插入点落在原子**之外**，左邻取字段的 end run、
+/// 右邻取 begin run（`SPAN-10` 的同一条道理）。格式从字段结果的最后一个 run 继承。
+#[test]
+fn edit_03_insert_text_next_to_a_field_atom() {
+    const BODY: &str = concat!(
+        r#"<w:p><w:r><w:t>ab</w:t></w:r>"#,
+        r#"<w:r><w:fldChar w:fldCharType="begin"/></w:r>"#,
+        r#"<w:r><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>"#,
+        r#"<w:r><w:fldChar w:fldCharType="separate"/></w:r>"#,
+        r#"<w:r><w:rPr><w:b/></w:rPr><w:t>7</w:t></w:r>"#,
+        r#"<w:r><w:fldChar w:fldCharType="end"/></w:r>"#,
+        r#"<w:r><w:t>cd</w:t></w:r></w:p>"#
+    );
+    let ctx = EditContext::default();
+
+    // 字段前的边界（偏移 2）：新 run 插在 begin run 之前，继承左侧 "ab"（无 rPr）
+    let mut s = EditSession::open(&doc_with_body(BODY)).unwrap();
+    let p = para(&s, 0);
+    assert_eq!(para_text(&s, 0), "ab\u{FFFC}cd", "字段原子占 1 个坐标单位");
+    s.apply(EditOp::InsertText { at: InlinePos::new(p, 2), text: "\tX".into(), props: None }, &ctx)
+        .unwrap();
+    assert_eq!(para_text(&s, 0), "ab\tX\u{FFFC}cd");
+    let xml = saved_xml(&mut s);
+    let inserted = xml.find(">X<").expect("新 run");
+    let begin = xml.find("begin").expect("begin run");
+    assert!(inserted < begin, "插入点在字段原子之外（begin 之前）: {xml}");
+    assert!(!xml[..inserted].contains("<w:b/>"), "继承左侧 run 的空格式: {xml}");
+
+    // 字段后的边界（偏移 3）：新 run 插在 end run 之后，继承字段结果里最后一个 run 的 rPr
+    let mut s = EditSession::open(&doc_with_body(BODY)).unwrap();
+    let p = para(&s, 0);
+    s.apply(EditOp::InsertText { at: InlinePos::new(p, 3), text: "\tX".into(), props: None }, &ctx)
+        .unwrap();
+    assert_eq!(para_text(&s, 0), "ab\u{FFFC}\tXcd");
+    let xml = saved_xml(&mut s);
+    let end = xml.find(r#"w:fldCharType="end""#).expect("end run");
+    let inserted = xml.find(">X<").expect("新 run");
+    let cd = xml.find(">cd<").expect("cd run");
+    assert!(end < inserted && inserted < cd, "插入点在 end run 之后、cd 之前: {xml}");
+    assert!(
+        xml[end..inserted].contains("<w:b/>"),
+        "继承字段结果 run 的 rPr（新 run 带 w:b）: {xml}"
+    );
+    // 字段本身没被动过
+    assert_eq!(xml.matches("<w:fldChar").count(), 3, "{xml}");
+    assert!(xml.contains(r#"<w:instrText xml:space="preserve"> PAGE </w:instrText>"#), "{xml}");
+}
