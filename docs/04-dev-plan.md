@@ -341,6 +341,11 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `docs/03` §5.2 `Dom::compare -> Ordering` | `Dom` 的方法，返回 `Ordering` | `span::compare(dom, flows, a, b) -> Option<Ordering>`（`SpanIndex::compare` 是便利方法） | 同流判定要 `FlowMap`，而 `FlowMap` 是 L2 的；跨流与畸形容器返回 `None`（调用方按 `SPAN_CROSS_FLOW` 处理），不用 `Result` 是因为它在校验与变换里被逐范围调用，不是错误路径 |
 | `docs/03` §6.3 `RevisionMeta` | L3 类型 | 定义在 `span`（L2），`model::RevisionMeta` 重新导出 | 范围标记（`w:moveFromRangeStart`、`w:customXmlInsRangeStart`）与内容修订元素携带同一组 `w:id/author/date`，L2 不能反向依赖 L3 |
 | `SPAN-05` 步骤 2 | "比较两侧在 `C.children` 中的子序号" | 一侧是另一侧祖先时用内容项下标；两侧都在 `C` 之下分叉时比较分叉节点的**原始**子序号 | 分叉点的原始子序号与内容序列同序，但不需要枚举内容序列；只有"祖先 vs 后代"那一支必须换算成内容项下标才能和 `index` 比 |
+| `SPAN-06` 变换的入口 | 每个操作在自己的 `MutationPlan` 里算锚点变换 | 变换在 `commit_plan` 里**从 `node_edits` 统一推导**（`span::plan_update`）；操作只在 `MutationPlan.span` 里补编辑列表看不出来的语义（`keep_orphan_comments`、`rescan`、`split_items`） | 内容序列只因"插入 / 删除 / 移动内容项"变化，这三件事都写在编辑列表里；一处实现，每个操作（含 compat 路径与以后新增的操作）自动得到维护，不会漏 |
+| `SPAN-06` 插入行 | 只按 affinity 分两种 | 增加"延续插入"：`split_run` 拆出的后半在该边界上让 `Left` 锚点也右移（`SpanPolicy::split_items`） | 拆分与新内容插入在 DOM 上是同一件事（在边界插一个元素），语义不同：后半是原内容的延续，否则"在范围内部输入"会把后半挤到范围外 |
+| `SPAN-06` 移动子树 | 子树内 Anchor 不变 | 同；另外把 `FlowMap` 标脏并在提交后重建 | 新节点的 id 超出建表时的长度，跨流移动还会让缓存失效（`SPAN-01` 要求），不重建 `compare` 会返回"不可比" |
+| `SPAN-07` MoveFrom / MoveTo / CustomXml 整体删除 | "由修订操作决定" | 当作删除（`Remove`）：范围失去内容后没有意义 | 接受 / 拒绝修订是 M7；在那之前把空的移动范围留着只会写出无意义的标记 |
+| `SPAN-02` "禁止由标记推导 Anchor" | 无例外 | 一个例外：`ReplaceInlines` 整体重写的容器在提交后按新标记重建端点（`SpanIndex::rescan_container`） | compat 的 generated 块把段落内容连批注标记一起按 `commentIds` 重发，那是编辑器的意图；这时容器里标记的位置才是真相。跨容器范围落在被重写容器里的那一端置空，交给 `SPAN-09` 修复 |
 | `PROP-06` 第 1 步 | 新容器"按父容器的 schema 顺序插入" | 顶层容器（`w:pPr` / `w:rPr`）插为父节点第一个语义子节点之前；子表容器按父表 `order` 插入 | `w:p` / `w:r` 不是属性表，没有 order；M2 的 `trPr`（在 `tblPrEx` 之后）到时补规则 |
 
 ## 9. 待决事项（需要项目负责人拍板）
@@ -413,7 +418,20 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   扫描：573 份 / 3012 个 XML part 的 31 个标记全部恰好被一个端点认领（19 个范围：书签 7、批注 12，其中 9 个
   空范围、1 个缺端点、3 个只有 reference），配对的范围起在终前、`index` 不越界。
   **语料在 Span 这个域上很薄**（只有 15 份文档带标记），2.2 起的行为正确性主要靠单元测试保证。
-- [ ] 2.2 `Anchor` 变换（`SPAN-06/07`）
+- [x] **2.2 `Anchor` 变换**（`span/transform.rs`、`edit/{session,plan,ops}.rs`）：索引接进 `EditSession`
+  ——`spans: HashMap<PartId, SpanIndex>`，在**第一次写某个 part 之前**建立（那时 DOM 还没被改，由标记
+  建立 Anchor 是合法的），之后只由变换维护；事务快照连索引一起记，回滚同时恢复 DOM 与索引。
+  变换从 `MutationPlan.node_edits` 统一推导（见 §8）：删除内容项按"存活项计数"重算边界（`SPAN-06`
+  删除行，对不连续删除同样成立），插入按 affinity 决定是否落在锚点之前（插入行），容器被删时锚点搬到
+  外层容器里它原来占的边界并清掉 `marker`（等 2.3 物化），移动子树内部锚点不变但 `FlowMap` 重建。
+  `SPAN-07`：书签折叠（`_Toc` / `_Ref` 不断链）、批注连标记与 reference run 一起删（`keep_orphan_comments`
+  改为折叠）、权限与移动 / customXml 范围删除；被删范围要一起删的节点由 `commit_plan` 追加到编辑列表，
+  其中 reference run 是内容项，会触发一次边界重算。`DeleteRange` 的 `EDIT_ANCHOR_UNMOVED` 只剩字段结构
+  那一半（2.4 清掉）：范围标记在内容项删掉后物理上正好落在删除点，也就是变换算出的位置，不必重写。
+  测试 `tests/span.rs` 新增 10 个 `span_06_*` / `span_07_*`：边界插入落在范围外、范围内部插入扩展范围
+  （拆分的延续语义）、直接写 `w:t` 不动锚点、删除跨越起点 → 起点落到删除点、整体删除的折叠与批注删除、
+  `keep_orphan_comments`、删段落把书签搬到 body、块插入不影响段内边界、`ReplaceInlines` 的 rescan、
+  失败回滚恢复索引；`tests/edit.rs` 的 M1 用例改成断言折叠后的锚点。
 - [ ] 2.3 Span 物化与保存校验（`SPAN-08`、`SPAN-09`）
 - [ ] 2.4 字段子系统（`FLD-01`–`FLD-08`、`FLD-13`）
 - [ ] 2.5 字段进模型与 compat（`MOD-06`、`COMPAT-07`）

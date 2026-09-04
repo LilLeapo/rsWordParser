@@ -164,10 +164,10 @@ impl RangeKind {
     }
 }
 
-/// 范围是解析出来的还是本次会话新建的（`SPAN-08` 物化用）。
+/// 范围是解析出来的还是本次会话新建的。
 ///
-/// `Parsed` 且某端 `marker == None` 表示**文件里本来就没有这个标记**（只有 `commentReference`
-/// 的批注就是这样）：物化**不得**为它凭空插入标记，否则未编辑内容会被改写（不变式 1/2）。
+/// 决定 `SPAN-09` 校验失败时的 `origin`：解析时就有的缺陷是 `PreExistingDamage`，
+/// 本次编辑造成的是 `EngineInvariantViolation`。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SpanOrigin {
     Parsed,
@@ -185,6 +185,12 @@ pub struct RangeSpan {
     pub flow: FlowId,
     pub kind: RangeKind,
     pub origin: SpanOrigin,
+    /// 文件里没有物理标记元素（只有 `commentReference` 的批注就是这样）。
+    /// `SPAN-08` 物化**不得**为它插入标记，否则未编辑内容会被改写（不变式 1/2）。
+    /// 与"标记本来有、被这次编辑删掉了"（`marker` 变 `None`）不是一回事：后者要重新物化。
+    pub implicit: bool,
+    /// 本次会话按 `SPAN-07` 整体删除。保留在索引里供撤销；物化与校验跳过。
+    pub removed: bool,
     pub start: Option<Anchor>,
     pub end: Option<Anchor>,
 }
@@ -288,13 +294,40 @@ impl SpanIndex {
         std::mem::take(&mut self.diagnostics)
     }
 
-    pub fn iter_class(&self, class: RangeClass) -> impl Iterator<Item = &RangeSpan> + '_ {
-        self.spans.iter().filter(move |s| s.class() == class)
+    /// 未被 `SPAN-07` 删除的范围。
+    pub fn live(&self) -> impl Iterator<Item = &RangeSpan> + '_ {
+        self.spans.iter().filter(|s| !s.removed)
     }
 
-    /// 按 `w:id` 找范围（同 id 重复时返回第一个）。
+    pub fn iter_class(&self, class: RangeClass) -> impl Iterator<Item = &RangeSpan> + '_ {
+        self.spans.iter().filter(move |s| !s.removed && s.class() == class)
+    }
+
+    /// 追加一个范围，返回它的 id。
+    pub(crate) fn push_span(&mut self, span: RangeSpan) -> SpanId {
+        let id = SpanId(self.spans.len() as u32);
+        self.spans.push(RangeSpan { id, ..span });
+        id
+    }
+
+    /// 结构变化后重建流映射（`SPAN-01`：子树移动跨越流根时缓存必须失效）。
+    pub(crate) fn refresh_flows(&mut self, dom: &Dom) {
+        self.flows = FlowMap::build(dom);
+        for s in &mut self.spans {
+            if let Some(f) = s.start.or(s.end).and_then(|a| self.flows.flow_of(a.container)) {
+                s.flow = f;
+            }
+        }
+    }
+
+    /// 重建按容器的倒排表。
+    pub(crate) fn reindex_containers(&mut self) {
+        self.by_container = invert(&self.spans);
+    }
+
+    /// 按 `w:id` 找范围（同 id 重复时返回第一个；跳过已删除的）。
     pub fn find(&self, class: RangeClass, id: &str) -> Option<&RangeSpan> {
-        self.spans.iter().find(|s| s.class() == class && s.pair_id() == id)
+        self.spans.iter().find(|s| !s.removed && s.class() == class && s.pair_id() == id)
     }
 
     pub fn flow_of(&self, anchor: &Anchor) -> Option<FlowId> {
@@ -365,6 +398,69 @@ fn path(dom: &Dom, node: NodeId) -> Vec<NodeId> {
     let mut v: Vec<NodeId> = std::iter::once(node).chain(dom.ancestors(node)).collect();
     v.reverse();
     v
+}
+
+/// `w:id`（配对键与修订 id）。
+pub(crate) fn w_id() -> QName {
+    QName::new(NsId::W, LocalName::Id)
+}
+
+/// `w:commentReference`。
+pub(crate) fn comment_ref_name() -> QName {
+    QName::new(NsId::W, LocalName::CommentReference)
+}
+
+/// 元素名 → （种类, 哪一端）；不是范围标记则 `None`。
+pub(crate) fn classify(name: QName) -> Option<(RangeClass, SpanEnd)> {
+    (name.ns == NsId::W).then(|| classify_marker(name.local)).flatten()
+}
+
+fn attr_of(dom: &Dom, node: NodeId, local: LocalName) -> Option<String> {
+    dom.attr_value(node, QName::new(NsId::W, local)).map(|v| v.into_owned())
+}
+
+fn attr_u32_of(dom: &Dom, node: NodeId, local: LocalName) -> Option<u32> {
+    attr_of(dom, node, local)?.trim().parse().ok()
+}
+
+/// 从标记元素的属性读出 `RangeKind`（`SPAN-03`）。
+pub(crate) fn read_kind_of(dom: &Dom, class: RangeClass, marker: NodeId, id: String) -> RangeKind {
+    let attr = |l: LocalName| attr_of(dom, marker, l);
+    let cols = || match (
+        attr_u32_of(dom, marker, LocalName::ColFirst),
+        attr_u32_of(dom, marker, LocalName::ColLast),
+    ) {
+        (Some(a), Some(b)) => Some((a, b)),
+        (Some(a), None) => Some((a, a)),
+        (None, Some(b)) => Some((b, b)),
+        (None, None) => None,
+    };
+    let meta = || RevisionMeta {
+        node: marker,
+        id: attr(LocalName::Id),
+        author: attr(LocalName::Author),
+        date: attr(LocalName::Date),
+    };
+    let name = || attr(LocalName::Name).unwrap_or_default();
+    match class {
+        RangeClass::Bookmark => {
+            let name = name();
+            RangeKind::Bookmark { id, hidden: name.starts_with('_'), name, cols: cols() }
+        }
+        RangeClass::Comment => RangeKind::Comment { id, reference: None },
+        RangeClass::Permission => RangeKind::Permission {
+            id,
+            editor: attr(LocalName::Ed),
+            group: attr(LocalName::EdGrp),
+            cols: cols(),
+        },
+        RangeClass::MoveFrom => RangeKind::MoveFrom { id, name: name(), meta: meta() },
+        RangeClass::MoveTo => RangeKind::MoveTo { id, name: name(), meta: meta() },
+        RangeClass::CustomXmlIns => RangeKind::CustomXmlIns { id, meta: meta() },
+        RangeClass::CustomXmlDel => RangeKind::CustomXmlDel { id, meta: meta() },
+        RangeClass::CustomXmlMoveFrom => RangeKind::CustomXmlMoveFrom { id, meta: meta() },
+        RangeClass::CustomXmlMoveTo => RangeKind::CustomXmlMoveTo { id, meta: meta() },
+    }
 }
 
 /// 标记元素 → （种类, 哪一端）。
@@ -536,7 +632,7 @@ impl<'d> Builder<'d> {
     fn on_marker(&mut self, flow: FlowId, container: NodeId, index: u32, marker: NodeId) {
         let Some(q) = self.dom.name(marker) else { return };
         let Some((class, which)) = classify_marker(q.local) else { return };
-        let key = self.attr(marker, LocalName::Id).unwrap_or_default();
+        let key = attr_of(self.dom, marker, LocalName::Id).unwrap_or_default();
         match which {
             SpanEnd::Start => {
                 let id = SpanId(self.spans.len() as u32);
@@ -547,6 +643,8 @@ impl<'d> Builder<'d> {
                     flow,
                     kind,
                     origin: SpanOrigin::Parsed,
+                    implicit: false,
+                    removed: false,
                     start: Some(Anchor::at(container, index, Affinity::Right, marker)),
                     end: None,
                 });
@@ -615,6 +713,8 @@ impl<'d> Builder<'d> {
             flow,
             kind,
             origin: SpanOrigin::Parsed,
+            implicit: false,
+            removed: false,
             start: None,
             end: Some(anchor),
         });
@@ -648,7 +748,7 @@ impl<'d> Builder<'d> {
     fn note_comment_reference(&mut self, container: NodeId, index: u32, item: NodeId) {
         for c in self.dom.semantic_children(item) {
             if self.dom.is(c, QName::w(LocalName::CommentReference)) {
-                let id = self.attr(c, LocalName::Id).unwrap_or_default();
+                let id = attr_of(self.dom, c, LocalName::Id).unwrap_or_default();
                 self.refs.push(CommentRef { id, container, index, run: item });
             }
         }
@@ -682,6 +782,8 @@ impl<'d> Builder<'d> {
                 flow: flows.flow_of(r.container).unwrap_or(FlowId(0)),
                 kind: RangeKind::Comment { id: r.id, reference: Some(r.run) },
                 origin: SpanOrigin::Parsed,
+                implicit: true,
+                removed: false,
                 start: Some(anchor),
                 end: Some(anchor),
             });
@@ -689,50 +791,7 @@ impl<'d> Builder<'d> {
     }
 
     fn read_kind(&self, class: RangeClass, marker: NodeId, id: String) -> RangeKind {
-        let attr = |l: LocalName| self.attr(marker, l);
-        let cols = || match (
-            self.attr_u32(marker, LocalName::ColFirst),
-            self.attr_u32(marker, LocalName::ColLast),
-        ) {
-            (Some(a), Some(b)) => Some((a, b)),
-            (Some(a), None) => Some((a, a)),
-            (None, Some(b)) => Some((b, b)),
-            (None, None) => None,
-        };
-        let meta = || RevisionMeta {
-            node: marker,
-            id: attr(LocalName::Id),
-            author: attr(LocalName::Author),
-            date: attr(LocalName::Date),
-        };
-        let name = || attr(LocalName::Name).unwrap_or_default();
-        match class {
-            RangeClass::Bookmark => {
-                let name = name();
-                RangeKind::Bookmark { id, hidden: name.starts_with('_'), name, cols: cols() }
-            }
-            RangeClass::Comment => RangeKind::Comment { id, reference: None },
-            RangeClass::Permission => RangeKind::Permission {
-                id,
-                editor: attr(LocalName::Ed),
-                group: attr(LocalName::EdGrp),
-                cols: cols(),
-            },
-            RangeClass::MoveFrom => RangeKind::MoveFrom { id, name: name(), meta: meta() },
-            RangeClass::MoveTo => RangeKind::MoveTo { id, name: name(), meta: meta() },
-            RangeClass::CustomXmlIns => RangeKind::CustomXmlIns { id, meta: meta() },
-            RangeClass::CustomXmlDel => RangeKind::CustomXmlDel { id, meta: meta() },
-            RangeClass::CustomXmlMoveFrom => RangeKind::CustomXmlMoveFrom { id, meta: meta() },
-            RangeClass::CustomXmlMoveTo => RangeKind::CustomXmlMoveTo { id, meta: meta() },
-        }
-    }
-
-    fn attr(&self, node: NodeId, local: LocalName) -> Option<String> {
-        self.dom.attr_value(node, QName::new(NsId::W, local)).map(|v| v.into_owned())
-    }
-
-    fn attr_u32(&self, node: NodeId, local: LocalName) -> Option<u32> {
-        self.attr(node, local)?.trim().parse().ok()
+        read_kind_of(self.dom, class, marker, id)
     }
 
     fn diag(&mut self, node: NodeId, code: DiagCode, message: String) {
@@ -751,4 +810,107 @@ fn invert(spans: &[RangeSpan]) -> HashMap<NodeId, Vec<(SpanId, SpanEnd)>> {
         }
     }
     map
+}
+
+impl SpanIndex {
+    /// 按容器里现有的标记重建该容器的端点（`SPAN-06` 的 `rescan`）。
+    ///
+    /// 只用于内容被外部描述**整体重写**的容器（compat 的 `ReplaceInlines` 会按 `commentIds`
+    /// 重发批注标记）：这时那个容器里标记的位置才是真相。其余情形一律禁止由标记反推 Anchor
+    /// （`SPAN-02`）。跨容器范围落在被重写容器里的那一端由调用方先 `Drop`，剩下的半开范围
+    /// 交给 `SPAN-09` 在保存前修复。
+    pub(crate) fn rescan_container(&mut self, dom: &Dom, container: NodeId) {
+        let part = self.part;
+        let flow = self.flows.flow_of(container).unwrap_or(FlowId(0));
+        let mut index = 0u32;
+        let mut open: Vec<(RangeClass, String, SpanId)> = Vec::new();
+        let mut refs: Vec<(String, NodeId)> = Vec::new();
+        for c in dom.semantic_children(container).collect::<Vec<_>>() {
+            let Some(q) = dom.name(c) else { continue };
+            if is_property_element(q) {
+                continue;
+            }
+            let Some((class, which)) = classify(q) else {
+                // 内容项：记下承载 commentReference 的 run，再前进一个边界
+                if let Some(r) = dom.semantic_children(c).find(|&g| dom.is(g, comment_ref_name())) {
+                    refs.push((
+                        dom.attr_value(r, w_id()).map(|v| v.into_owned()).unwrap_or_default(),
+                        c,
+                    ));
+                }
+                index += 1;
+                continue;
+            };
+            let id = dom.attr_value(c, w_id()).map(|v| v.into_owned()).unwrap_or_default();
+            let kind = read_kind_of(dom, class, c, id.clone());
+            match which {
+                SpanEnd::Start => {
+                    let span = self.push_span(RangeSpan {
+                        id: SpanId(0),
+                        part,
+                        flow,
+                        kind,
+                        origin: SpanOrigin::New,
+                        implicit: false,
+                        removed: false,
+                        start: Some(Anchor::at(container, index, Affinity::Right, c)),
+                        end: None,
+                    });
+                    open.push((class, id, span));
+                }
+                SpanEnd::End => {
+                    let mut anchor = Anchor::at(container, index, Affinity::Left, c);
+                    match open.iter().rposition(|(k, i, _)| *k == class && *i == id) {
+                        Some(pos) => {
+                            let (_, _, span) = open.remove(pos);
+                            let s = &mut self.spans[span.0 as usize];
+                            if s.start.is_some_and(|st| st.same_place(&anchor)) {
+                                anchor.affinity = Affinity::Right;
+                            }
+                            s.end = Some(anchor);
+                        }
+                        None => {
+                            self.push_span(RangeSpan {
+                                id: SpanId(0),
+                                part,
+                                flow,
+                                kind,
+                                origin: SpanOrigin::New,
+                                implicit: false,
+                                removed: false,
+                                start: None,
+                                end: Some(anchor),
+                            });
+                            self.diagnostics.push(Diagnostic::invariant_violation(
+                                part,
+                                None,
+                                DiagCode::SpanOrphanEnd,
+                                format!("重写的容器里 {class:?} w:id=\"{id}\" 的终点没有起点"),
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        for (class, id, _) in open {
+            self.diagnostics.push(Diagnostic::invariant_violation(
+                part,
+                None,
+                DiagCode::SpanUnclosed,
+                format!("重写的容器里 {class:?} w:id=\"{id}\" 的起点没有终点"),
+            ));
+        }
+        for (id, run) in refs {
+            let hit = self.spans.iter_mut().find(|s| {
+                !s.removed
+                    && s.start.is_some_and(|a| a.container == container)
+                    && matches!(&s.kind, RangeKind::Comment { id: cid, .. } if *cid == id)
+            });
+            if let Some(s) = hit
+                && let RangeKind::Comment { reference, .. } = &mut s.kind
+            {
+                *reference = Some(run);
+            }
+        }
+    }
 }

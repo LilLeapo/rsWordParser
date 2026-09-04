@@ -1,12 +1,15 @@
 //! `EDIT-01` 会话：`Package`（规范状态）+ `Document`（投影）+ 事务（`EDIT-05`）。
 
+use std::collections::HashMap;
+
 use crate::diag::{DiagCode, Diagnostic};
 use crate::error::{Error, Result};
 use crate::model::Document;
 use crate::model::block::TextBlock;
 use crate::package::{Package, PartFlavor, PartId};
 use crate::save::SaveOptions;
-use crate::xml::{Dom, NodeId};
+use crate::span::{SpanIndex, is_content_item, plan_update};
+use crate::xml::{Dom, NodeEdit, NodeId};
 
 use super::plan::{MutationPlan, MutationResult};
 use super::pos::{InlinePos, Loc, locate};
@@ -16,6 +19,10 @@ use super::{EditContext, EditOp, ops};
 pub struct EditSession {
     pkg: Package,
     doc: Document,
+    /// 规范状态的另一半（`docs/03` §6.8）：每个被编辑过的 part 的范围索引。
+    /// 按需在**第一次写该 part 之前**建立（那时 DOM 还没被改，锚点与标记一致），
+    /// 之后只由 `SPAN-06` 变换维护，绝不由标记反推（`SPAN-02`）。
+    spans: HashMap<PartId, SpanIndex>,
     diagnostics: Vec<Diagnostic>,
     /// 事务期间每个被写入 part 的写前镜像（`EDIT-05`）。
     txn: Option<Snapshot>,
@@ -26,14 +33,14 @@ pub struct EditSession {
 /// 没碰过的 part 不付克隆代价。投影用整体 `rebuild` 恢复。
 #[derive(Default)]
 pub(crate) struct Snapshot {
-    doms: Vec<(PartId, Dom)>,
+    doms: Vec<(PartId, Dom, Option<SpanIndex>)>,
 }
 
 impl Snapshot {
-    /// 第一次写 `part` 时记下写前镜像。
-    fn remember(&mut self, part: PartId, dom: &Dom) {
-        if !self.doms.iter().any(|(p, _)| *p == part) {
-            self.doms.push((part, dom.clone()));
+    /// 第一次写 `part` 时记下写前镜像（DOM 与范围索引一起，它们合起来是规范状态）。
+    fn remember(&mut self, part: PartId, dom: &Dom, spans: Option<&SpanIndex>) {
+        if !self.doms.iter().any(|(p, ..)| *p == part) {
+            self.doms.push((part, dom.clone(), spans.cloned()));
         }
     }
 }
@@ -45,7 +52,7 @@ impl EditSession {
 
     pub fn from_package(mut pkg: Package) -> Result<Self> {
         let doc = Document::rebuild(&mut pkg)?;
-        Ok(Self { pkg, doc, diagnostics: Vec::new(), txn: None })
+        Ok(Self { pkg, doc, spans: HashMap::new(), diagnostics: Vec::new(), txn: None })
     }
 
     /// 投影（`MOD-01`）。
@@ -73,6 +80,54 @@ impl EditSession {
 
     pub fn flavor(&self) -> PartFlavor {
         self.pkg.flavor_of(self.pkg.main_part())
+    }
+
+    /// 主 part 的范围索引（`SPAN-04`）。第一次调用时建立。
+    pub fn spans(&mut self) -> Result<&SpanIndex> {
+        let part = self.pkg.main_part();
+        self.spans_of(part)
+    }
+
+    /// 某个 part 的范围索引；不是 XML part 时 `Err`。
+    pub fn spans_of(&mut self, part: PartId) -> Result<&SpanIndex> {
+        self.ensure_spans(part)?;
+        Ok(self.spans.get(&part).expect("just built"))
+    }
+
+    /// 已建立的范围索引（不触发建立）。
+    pub fn spans_built(&self, part: PartId) -> Option<&SpanIndex> {
+        self.spans.get(&part)
+    }
+
+    /// `SPAN-04`：在第一次写 `part` 之前建立索引。
+    ///
+    /// 那一刻 DOM 还没被这个会话改过，所以"由标记建立 Anchor"是合法的（`SPAN-02` 只禁止
+    /// 编辑期反推）。已经建立过就直接返回。绕过 `commit_plan` 直接改 DOM（`package_mut`）
+    /// 之后再建立索引会读到改后的标记——那条路径要求调用方自己 `rebuild`。
+    fn ensure_spans(&mut self, part: PartId) -> Result<()> {
+        if self.spans.contains_key(&part) {
+            return Ok(());
+        }
+        let Some(dom) = self.pkg.dom(part)? else {
+            return Err(Error::edit(
+                DiagCode::EditPlanInvalid,
+                format!("part#{} 不是 XML part", part.0),
+            ));
+        };
+        let mut index = SpanIndex::build(dom);
+        let diags = index.take_diagnostics();
+        self.spans.insert(part, index);
+        self.record(diags);
+        Ok(())
+    }
+
+    /// 记诊断（会话与包各留一份）。
+    fn record(&mut self, diags: Vec<Diagnostic>) {
+        if diags.is_empty() {
+            return;
+        }
+        self.diagnostics.extend(diags.iter().cloned());
+        self.pkg.push_diagnostics(diags);
     }
 
     /// 编辑阶段累计的诊断（不含包 / 保存阶段的）。
@@ -199,9 +254,17 @@ impl EditSession {
 
     /// 把快照里的每个写前镜像放回去，并重建投影。
     fn restore(&mut self, snap: Snapshot) -> Result<()> {
-        for (part, image) in snap.doms {
+        for (part, image, spans) in snap.doms {
             if let Some(dom) = self.pkg.dom_mut(part)? {
                 *dom = image;
+            }
+            match spans {
+                Some(idx) => {
+                    self.spans.insert(part, idx);
+                }
+                None => {
+                    self.spans.remove(&part);
+                }
             }
         }
         self.rebuild()
@@ -209,17 +272,39 @@ impl EditSession {
 
     /// 一个阶段：`validate` → `commit` → 刷新投影 → 记诊断。编辑操作只碰主 part；保存选项
     /// （`SAVE-07`）也走这里，可以指向任意 XML part（投影只在主 part 上刷新）。
-    pub(crate) fn commit_plan(&mut self, plan: MutationPlan) -> Result<MutationResult> {
+    pub(crate) fn commit_plan(&mut self, mut plan: MutationPlan) -> Result<MutationResult> {
         let main = self.pkg.main_part();
         let part = plan.part;
+        self.ensure_spans(part)?;
         let dom = self.pkg.dom_mut(part)?.ok_or_else(|| {
             Error::edit(DiagCode::EditPlanInvalid, format!("part#{} 不是 XML part", part.0))
         })?;
+        let index = self.spans.get(&part).expect("ensure_spans built it");
+        // `SPAN-06`：锚点变换从编辑列表推导，每个操作都自动得到维护
+        let mut update = plan_update(dom, index, &plan.node_edits, &plan.span);
+        // `SPAN-07`：整体删除的范围连标记与 reference run 一起删
+        let extra: Vec<NodeId> = update.removed_nodes().collect();
+        if !extra.is_empty() {
+            let touches_content = extra.iter().any(|&n| is_content_item(dom, n));
+            plan.node_edits.extend(extra.into_iter().map(NodeEdit::Delete));
+            if touches_content {
+                // 删掉的 reference run 是内容项，边界要按最终的编辑列表重算
+                update = plan_update(dom, index, &plan.node_edits, &plan.span);
+            }
+        }
         plan.validate(dom)?;
         if let Some(txn) = &mut self.txn {
-            txn.remember(part, dom);
+            txn.remember(part, dom, self.spans.get(&part));
         }
-        let result = plan.commit(dom);
+        let span_diags = std::mem::take(&mut update.diagnostics);
+        let result = plan.commit(&mut *dom);
+        if !update.is_empty() {
+            let index = self.spans.get_mut(&part).expect("ensure_spans built it");
+            index.apply(&*dom, &update);
+            let more = index.take_diagnostics();
+            self.record(more);
+        }
+        self.record(span_diags);
         self.diagnostics.extend(result.diagnostics.iter().cloned());
         if part == main {
             if result.structure_changed {

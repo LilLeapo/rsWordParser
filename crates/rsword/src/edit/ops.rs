@@ -2,9 +2,6 @@
 //! [`EditSession::apply`]（失败整体回滚）。这里的函数只读 DOM 与投影、产出 [`MutationPlan`]，
 //! 写入全部经 [`EditSession::commit_plan`]。
 
-use std::collections::HashMap;
-use std::ops::Range;
-
 use crate::diag::{DiagCode, Diagnostic};
 use crate::error::{Error, Result};
 use crate::model::block::TextBlock;
@@ -12,7 +9,6 @@ use crate::model::inline::{Inline, Run, Segment, SegmentKind, utf16_len};
 use crate::semantic::props::{
     ParaPropsPatch, RunPropsPatch, emit_run_props, plan_apply_para_props, plan_apply_run_props,
 };
-use crate::span::is_range_marker;
 use crate::xml::{
     Dirty, Dom, LocalName, NewElement, NodeEdit, NodeId, NodeKind, NsId, QName, Target,
 };
@@ -25,7 +21,7 @@ use super::{BlockPos, EditContext, EditOp, EditSession, NewBlock, NewInline};
 pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<MutationResult> {
     match op {
         EditOp::InsertText { at, text, props } => insert_text(s, at, &text, props, ctx),
-        EditOp::DeleteRange { from, to } => delete_range(s, from, to),
+        EditOp::DeleteRange { from, to } => delete_range(s, from, to, ctx),
         EditOp::SetRunProps { from, to, patch } => set_run_props(s, from, to, &patch),
         EditOp::ReplaceInlines { para, inlines } => replace_inlines(s, para, &inlines),
         EditOp::SetParaProps { para, patch } => set_para_props(s, para, &patch),
@@ -201,6 +197,8 @@ fn split_run(s: &EditSession, para: NodeId, run: &Run, seg: usize, byte: usize) 
     let dom = s.dom();
     let mut plan = MutationPlan::new(s.main_part());
     plan.touch(para);
+    // 后半是原 run 的延续：该边界上的 `Left` 锚点也要右移（`SPAN-06` 的补充，见 `SpanPolicy`）
+    plan.span.split_items.push(run.node);
     let parent = dom.parent(run.node).expect("run has a parent");
     let k = plan.node_edits.len();
     plan.node_edits.push(NodeEdit::Insert {
@@ -454,32 +452,12 @@ fn insert_text(
 
 // ---- DeleteRange ------------------------------------------------------------------------------
 
-/// 严格落在 `(a, b)` 内的范围标记数：标记的位置 = 其前面最后一个 inline 的终点。
-fn markers_strictly_inside(
-    dom: &Dom,
-    tb: &TextBlock,
-    spans: &[Range<u32>],
-    a: u32,
-    b: u32,
-) -> usize {
-    let end_of: HashMap<NodeId, u32> =
-        tb.inlines.iter().zip(spans).filter_map(|(i, sp)| i.node().map(|n| (n, sp.end))).collect();
-    let mut cur = 0u32;
-    let mut count = 0;
-    for n in dom.descendants(tb.node) {
-        if dom.node(n).dirty == Dirty::Deleted {
-            continue;
-        }
-        if let Some(&e) = end_of.get(&n) {
-            cur = e;
-        } else if dom.name(n).is_some_and(is_range_marker) && cur > a && cur < b {
-            count += 1;
-        }
-    }
-    count
-}
-
-fn delete_range(s: &mut EditSession, from: InlinePos, to: InlinePos) -> Result<MutationResult> {
+fn delete_range(
+    s: &mut EditSession,
+    from: InlinePos,
+    to: InlinePos,
+    ctx: &EditContext,
+) -> Result<MutationResult> {
     if from.para != to.para {
         return Err(Error::edit(
             DiagCode::EditCrossParagraph,
@@ -495,6 +473,7 @@ fn delete_range(s: &mut EditSession, from: InlinePos, to: InlinePos) -> Result<M
     locate(tb, from.offset)?;
     locate(tb, to.offset)?;
     let mut plan = MutationPlan::new(part);
+    plan.span.keep_orphan_comments = ctx.keep_orphan_comments;
     plan.touch(from.para);
     if a == b {
         return s.commit_plan(plan);
@@ -551,15 +530,14 @@ fn delete_range(s: &mut EditSession, from: InlinePos, to: InlinePos) -> Result<M
             }
         }
     }
-    let markers = markers_strictly_inside(dom, tb, &spans, a, b);
-    if markers > 0 || kept_structure > 0 {
+    // 范围标记不再原地"漏"着：删除内容项后标记物理上就落在删除点，正好是 `SPAN-06`
+    // 把锚点算到的位置（`commit_plan` 统一变换）。剩下的只有字段结构，等 2.4 的 `FieldSpan`。
+    if kept_structure > 0 {
         plan.diagnostics.push(Diagnostic::invariant_violation(
             part,
             None,
             DiagCode::EditAnchorUnmoved,
-            format!(
-                "删除范围内有 {markers} 个范围标记、{kept_structure} 个含字段结构的 run 原地保留（Anchor 变换在 M2）"
-            ),
+            format!("删除范围内有 {kept_structure} 个含字段结构的 run 原地保留（字段在 2.4）"),
         ));
     }
     plan.offset_delta.push((from.para, from.offset, -((b - a) as i32)));
@@ -652,6 +630,8 @@ fn replace_inlines(
     require_paragraph(dom, para)?;
     let mut plan = MutationPlan::new(s.main_part());
     plan.touch(para);
+    // 内容（含范围标记）被外部描述整体重写：提交后按新标记重建这个容器的端点（`SPAN-06` rescan）
+    plan.span.rescan.push(para);
     for c in live_children(dom, para) {
         if !dom.is(c, w(LocalName::PPr)) {
             plan.node_edits.push(NodeEdit::Delete(c));

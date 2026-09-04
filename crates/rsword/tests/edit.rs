@@ -1,7 +1,8 @@
 //! L4 编辑引擎（任务 1.11 / 1.12，`EDIT-01/02/03/05`，M1 门第二条）。
 //! 定位与代理对；`InsertText` 只脏一个 `w:t`、其他 zip 条目 CRC 不变；`DeleteRange` 截断 / 整 run 删除、
-//! 范围标记原地保留并记 `EDIT_ANCHOR_UNMOVED`；`SetRunProps` 拆 run；`SetParaProps` 建 `pPr`；
+//! `SetRunProps` 拆 run；`SetParaProps` 建 `pPr`；
 //! `ReplaceInlines`；批操作第 3 步失败 → DOM 与投影与操作前完全一致。
+//! 任务 2.2 起：`DeleteRange` 覆盖整个书签范围按 `SPAN-07` 折叠，锚点由 `SPAN-06` 变换维护。
 
 mod common;
 
@@ -14,6 +15,7 @@ use rsword::edit::{
 use rsword::error::Error;
 use rsword::package::Package;
 use rsword::semantic::props::{Change, Jc, ParaPropsPatch, RunPropsPatch, Val};
+use rsword::span::RangeClass;
 use rsword::xml::{Dirty, LocalName, QName, xpath_strings};
 
 const W: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
@@ -218,8 +220,8 @@ fn edit_03_insert_text_new_run_inherits_and_splits() {
     );
 }
 
-/// EDIT-03 DeleteRange：截断 / 整 run 删除 / 原子删除；覆盖书签起点 → M1 标记原地保留并记
-/// `EDIT_ANCHOR_UNMOVED`；覆盖 REF 字段结果 → 结果 run 删除、字段结构保留（begin..end 全删在 M2）。
+/// EDIT-03 DeleteRange：截断 / 整 run 删除 / 原子删除；覆盖整个书签范围 → `SPAN-07` 折叠到删除点
+/// （标记物理上正好落在那里，不必重写）；覆盖 REF 字段结果 → 结果 run 删除、字段结构保留（2.4 全删）。
 #[test]
 fn edit_03_delete_range_truncates_runs_and_keeps_markers() {
     let mut s = EditSession::open(&doc_with_body(
@@ -234,7 +236,16 @@ fn edit_03_delete_range_truncates_runs_and_keeps_markers() {
         .unwrap();
     assert_eq!(para_text(&s, 0), "ah");
     assert_eq!(r.offset_delta, vec![(p, Utf16Offset(1), -7)]);
-    assert!(s.diagnostics().iter().any(|d| d.code == DiagCode::EditAnchorUnmoved));
+    // SPAN-07：书签两端都落进删除区间 → 折叠，范围仍在（`_Toc` / `_Ref` 目标不断链）
+    let idx = s.spans().unwrap();
+    let bm = idx.find(RangeClass::Bookmark, "7").expect("书签仍在索引里");
+    assert!(bm.is_collapsed(), "{bm:?}");
+    assert_eq!(bm.start.unwrap().index, 1, "锚点落到删除点（r(a) 之后）");
+    assert!(bm.start.unwrap().marker.is_some(), "标记还是原来那个节点");
+    assert!(
+        !s.diagnostics().iter().any(|d| d.code == DiagCode::EditAnchorUnmoved),
+        "范围标记不再需要 EDIT_ANCHOR_UNMOVED"
+    );
     let xml = saved_xml(&mut s);
     assert!(xml.contains(r#"<w:bookmarkStart w:id="7" w:name="bm"/>"#), "标记原地保留: {xml}");
     assert!(xml.contains(r#"<w:bookmarkEnd w:id="7"/>"#));

@@ -88,3 +88,29 @@ pub fn item_containing(dom: &Dom, container: NodeId, node: NodeId) -> Option<u32
     }
     None
 }
+
+/// `node` 所在容器：从父节点起向上第一个内容容器。
+///
+/// MCE 透明节点（`mc:AlternateContent` / `mc:Choice` / `mc:Fallback`）不是容器，会被跳过，
+/// 与 `semantic_children` 的展平一致。
+pub fn container_of(dom: &Dom, node: NodeId) -> Option<NodeId> {
+    dom.ancestors(node).find(|&a| dom.name(a).is_some_and(is_content_container))
+}
+
+/// `node` 在 `container` 内容序列中所处的边界：它前面的内容项个数。
+///
+/// 内容项本身返回它的下标（与 [`content_index_of`] 相同）；标记与属性元素返回它所在的边界。
+/// `node` 不是 `container` 的语义子节点时返回 `None`——插入 / 删除的目标是否落在这个容器的
+/// 内容序列上，就靠这一条判定（`w:r` 里的 `w:t` 不是段落的内容项）。
+pub fn boundary_before(dom: &Dom, container: NodeId, node: NodeId) -> Option<u32> {
+    let mut i = 0u32;
+    for c in dom.semantic_children(container) {
+        if c == node {
+            return Some(i);
+        }
+        if is_content_item(dom, c) {
+            i += 1;
+        }
+    }
+    None
+}

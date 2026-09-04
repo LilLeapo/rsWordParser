@@ -74,7 +74,11 @@ Anchor { container: NodeId, index: u32, affinity: Left | Right, marker: Option<N
 | 删除容器 | 容器内 Anchor 按 `SPAN-07`；若容器是某内容序列的一项，外层容器按"删除 `[a,a+1)`"处理 |
 | 移动子树 | 子树内部 Anchor 不变（`container` 未变）；源父与目标父分别按删除与插入处理 |
 
-变换在 `MutationPlan` 中计算并与 DOM 变更同一事务提交（`EDIT-05`）。
+| 把内容项拆成两半（`split_run`） | 后半是原内容的**延续**：该边界上的 `Left` 锚点也右移，否则范围内部输入会把后半挤出范围 |
+
+变换在 `MutationPlan` 中计算并与 DOM 变更同一事务提交（`EDIT-05`）。实现从 `node_edits` 统一推导
+（内容序列只因插入 / 删除 / 移动内容项而变），编辑列表看不出来的语义（拆分的延续、批注是否折叠、
+容器内容被整体重写）由 `MutationPlan.span` 补充。
 
 ## SPAN-07 整体删除策略
 
@@ -89,6 +93,9 @@ Anchor { container: NodeId, index: u32, affinity: Left | Right, marker: Option<N
 | CustomXml 范围 | 随所属修订处理 |
 
 仅一端落入删除区间 → 该端按 `SPAN-06` 移到删除点（范围缩短）。
+
+`MoveFrom`/`MoveTo`/CustomXml 范围在修订操作（M7）之前按"删除"处理：范围失去内容后没有意义。
+被整体删除的范围，其标记与批注的 `commentReference` run 由编辑引擎在同一事务里一并删除。
 
 ## SPAN-08 物化
 

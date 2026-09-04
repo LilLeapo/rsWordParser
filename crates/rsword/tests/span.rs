@@ -365,3 +365,243 @@ fn span_09_hostile_orphan_end_saves_successfully() {
     assert!(d.range.is_some(), "诊断带标记的字节区间");
     assert_eq!(pkg.save().unwrap(), bytes, "未编辑保存字节相同");
 }
+
+// ---- SPAN-06 / SPAN-07：编辑期的 Anchor 变换（任务 2.2）----
+
+use rsword::edit::{
+    BlockPos, EditContext, EditOp, EditSession, InlinePos, NewBlock, NewInline, NewMarker, NewRun,
+};
+use rsword::semantic::props::{Change, RunPropsPatch};
+
+/// `<w:p>` 里两个 run 中间夹一个书签：`[ab]` / 书签起点 / `[cd]` / 书签终点。
+const TWO_RUNS_BOOKMARKED: &str = r#"<w:p><w:r><w:t>ab</w:t></w:r><w:bookmarkStart w:id="1" w:name="bm"/><w:r><w:t>cd</w:t></w:r><w:bookmarkEnd w:id="1"/></w:p>"#;
+
+fn session(body: &str) -> EditSession {
+    EditSession::open(&common::docx_with_body(body)).unwrap()
+}
+
+fn first_para(s: &EditSession) -> NodeId {
+    s.document().text_blocks().next().unwrap().node
+}
+
+fn bookmark(s: &mut EditSession, id: &str) -> rsword::span::RangeSpan {
+    s.spans().unwrap().find(RangeClass::Bookmark, id).expect("bookmark").clone()
+}
+
+fn bold() -> RunPropsPatch {
+    RunPropsPatch { bold: Change::Set(true), ..Default::default() }
+}
+
+#[test]
+fn span_06_insert_at_the_start_boundary_lands_outside_the_range() {
+    let mut s = session(TWO_RUNS_BOOKMARKED);
+    let p = first_para(&s);
+    let before = bookmark(&mut s, "1");
+    assert_eq!((before.start.unwrap().index, before.end.unwrap().index), (1, 2));
+    // 边界插入（新 run）：起点 Right 右移、终点也右移 → 文字落在范围外
+    s.apply(
+        EditOp::InsertText { at: InlinePos::new(p, 2), text: "X".into(), props: Some(bold()) },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let after = bookmark(&mut s, "1");
+    assert_eq!((after.start.unwrap().index, after.end.unwrap().index), (2, 3));
+    assert!(after.start.unwrap().marker.is_some(), "标记节点没变");
+}
+
+#[test]
+fn span_06_insert_inside_the_range_extends_it() {
+    let mut s = session(TWO_RUNS_BOOKMARKED);
+    let p = first_para(&s);
+    // "abcd" 的偏移 3 落在第二个 run 内部（范围内），带 props → 先拆 run 再插新 run
+    s.apply(
+        EditOp::InsertText { at: InlinePos::new(p, 3), text: "X".into(), props: Some(bold()) },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let bm = bookmark(&mut s, "1");
+    // 拆分把 "cd" 变成 "c" + "d"，新 run 插在中间：范围要覆盖三项（起点 1，终点 4）
+    assert_eq!((bm.start.unwrap().index, bm.end.unwrap().index), (1, 4));
+    assert_eq!(s.document().text_blocks().next().unwrap().text(), "abcXd");
+}
+
+#[test]
+fn span_06_insert_into_an_existing_run_does_not_move_anchors() {
+    let mut s = session(TWO_RUNS_BOOKMARKED);
+    let p = first_para(&s);
+    // 路径 1（直接写 w:t）：内容序列不变
+    s.apply(
+        EditOp::InsertText { at: InlinePos::new(p, 3), text: "X".into(), props: None },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let bm = bookmark(&mut s, "1");
+    assert_eq!((bm.start.unwrap().index, bm.end.unwrap().index), (1, 2));
+    assert_eq!(s.document().text_blocks().next().unwrap().text(), "abcXd");
+}
+
+#[test]
+fn span_06_delete_across_the_start_moves_it_to_the_delete_point() {
+    // [ab] [cd] 书签起点 [ef] 书签终点：删掉 "bcde" → 起点落到删除点
+    let mut s = session(
+        r#"<w:p><w:r><w:t>ab</w:t></w:r><w:r><w:t>cd</w:t></w:r><w:bookmarkStart w:id="1" w:name="bm"/><w:r><w:t>ef</w:t></w:r><w:bookmarkEnd w:id="1"/></w:p>"#,
+    );
+    let p = first_para(&s);
+    let before = bookmark(&mut s, "1");
+    assert_eq!((before.start.unwrap().index, before.end.unwrap().index), (2, 3));
+    s.apply(
+        EditOp::DeleteRange { from: InlinePos::new(p, 1), to: InlinePos::new(p, 5) },
+        &EditContext::default(),
+    )
+    .unwrap();
+    assert_eq!(s.document().text_blocks().next().unwrap().text(), "af");
+    let bm = bookmark(&mut s, "1");
+    // "cd" 整项被删 → 起点从 2 落到 1（"a" 之后）；终点仍在末尾
+    assert_eq!((bm.start.unwrap().index, bm.end.unwrap().index), (1, 2));
+    assert!(!bm.is_collapsed(), "只删掉一半，范围还在");
+}
+
+#[test]
+fn span_07_whole_range_delete_collapses_a_bookmark_and_removes_a_comment() {
+    let mut s = session(
+        r#"<w:p><w:r><w:t>ab</w:t></w:r>
+             <w:bookmarkStart w:id="1" w:name="bm"/><w:commentRangeStart w:id="9"/>
+             <w:r><w:t>cd</w:t></w:r>
+             <w:commentRangeEnd w:id="9"/><w:bookmarkEnd w:id="1"/>
+             <w:r><w:commentReference w:id="9"/></w:r></w:p>"#,
+    );
+    let p = first_para(&s);
+    let len = s.document().text_blocks().next().unwrap().text().encode_utf16().count() as u32;
+    assert_eq!(len, 4, "commentReference 不占坐标");
+    s.apply(
+        EditOp::DeleteRange { from: InlinePos::new(p, 2), to: InlinePos::new(p, 4) },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let idx = s.spans().unwrap();
+    let bm = idx.find(RangeClass::Bookmark, "1").expect("书签折叠保留");
+    assert!(bm.is_collapsed() && bm.start.unwrap().index == 1);
+    assert!(idx.find(RangeClass::Comment, "9").is_none(), "批注整体删除");
+    let xml = document_xml(&mut s);
+    assert!(xml.contains("bookmarkStart"), "{xml}");
+    assert!(!xml.contains("commentRangeStart"), "批注标记删除: {xml}");
+    assert!(!xml.contains("commentReference"), "reference run 删除: {xml}");
+}
+
+#[test]
+fn span_07_keep_orphan_comments_collapses_instead() {
+    let mut s = session(
+        r#"<w:p><w:r><w:t>ab</w:t></w:r><w:commentRangeStart w:id="9"/><w:r><w:t>cd</w:t></w:r>
+           <w:commentRangeEnd w:id="9"/><w:r><w:commentReference w:id="9"/></w:r></w:p>"#,
+    );
+    let p = first_para(&s);
+    let ctx = EditContext { keep_orphan_comments: true, ..Default::default() };
+    s.apply(EditOp::DeleteRange { from: InlinePos::new(p, 2), to: InlinePos::new(p, 4) }, &ctx)
+        .unwrap();
+    let idx = s.spans().unwrap();
+    let c = idx.find(RangeClass::Comment, "9").expect("批注折叠保留");
+    assert!(c.is_collapsed());
+    let xml = document_xml(&mut s);
+    assert!(xml.contains("commentRangeStart"), "{xml}");
+}
+
+#[test]
+fn span_06_deleting_a_paragraph_moves_its_bookmark_out_to_the_body() {
+    let mut s = session(
+        r#"<w:p><w:r><w:t>one</w:t></w:r></w:p>
+           <w:p><w:bookmarkStart w:id="1" w:name="bm"/><w:r><w:t>two</w:t></w:r><w:bookmarkEnd w:id="1"/></w:p>
+           <w:p><w:r><w:t>three</w:t></w:r></w:p>"#,
+    );
+    let second = s.document().text_blocks().nth(1).unwrap().node;
+    s.apply(EditOp::DeleteBlock { node: second }, &EditContext::default()).unwrap();
+    let idx = s.spans().unwrap();
+    let bm = idx.find(RangeClass::Bookmark, "1").expect("书签折叠到段落原位");
+    let start = bm.start.unwrap();
+    assert!(bm.is_collapsed());
+    assert_eq!(start.index, 1, "落在 body 里被删段落原来的边界");
+    assert_eq!(start.marker, None, "标记随段落消失，等物化重发（2.3）");
+    assert_ne!(start.container, second, "锚点搬到了外层容器");
+}
+
+#[test]
+fn span_06_inserting_a_block_shifts_body_anchors() {
+    let mut s = session(
+        r#"<w:p><w:bookmarkStart w:id="1" w:name="bm"/><w:r><w:t>one</w:t></w:r></w:p>
+           <w:p><w:r><w:t>two</w:t></w:r></w:p>"#,
+    );
+    let first = first_para(&s);
+    // body 层的锚点：段落里的书签不受影响，但如果锚点在 body 上就要移动——这里用块插入验证
+    // 段落内锚点不动
+    s.apply(
+        EditOp::InsertBlock {
+            at: BlockPos::Before(first),
+            block: NewBlock::Paragraph {
+                props: None,
+                inlines: vec![NewInline::Run(NewRun::text("zero"))],
+            },
+        },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let bm = bookmark(&mut s, "1");
+    assert_eq!(bm.start.unwrap().index, 0, "段落内的边界不受块插入影响");
+    assert_eq!(s.document().text_blocks().count(), 3);
+}
+
+#[test]
+fn span_06_replace_inlines_rescans_the_container() {
+    let mut s = session(TWO_RUNS_BOOKMARKED);
+    let p = first_para(&s);
+    // compat 路径整体重写段落内容：旧标记全删，新标记（这里重发一个书签）成为真相
+    s.apply(
+        EditOp::ReplaceInlines {
+            para: p,
+            inlines: vec![
+                NewInline::Marker(NewMarker::BookmarkStart {
+                    id: "5".into(),
+                    name: "fresh".into(),
+                }),
+                NewInline::Run(NewRun::text("new")),
+                NewInline::Marker(NewMarker::BookmarkEnd { id: "5".into() }),
+            ],
+        },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let idx = s.spans().unwrap();
+    assert!(idx.find(RangeClass::Bookmark, "1").is_none(), "旧书签随内容消失");
+    let fresh = idx.find(RangeClass::Bookmark, "5").expect("新书签进索引");
+    assert_eq!((fresh.start.unwrap().index, fresh.end.unwrap().index), (0, 1));
+    assert!(fresh.start.unwrap().marker.is_some());
+}
+
+#[test]
+fn span_06_rollback_restores_the_index() {
+    let mut s = session(TWO_RUNS_BOOKMARKED);
+    let p = first_para(&s);
+    let before = bookmark(&mut s, "1");
+    let err = s
+        .apply_all(
+            vec![
+                EditOp::InsertText {
+                    at: InlinePos::new(p, 2),
+                    text: "X".into(),
+                    props: Some(bold()),
+                },
+                EditOp::DeleteRange { from: InlinePos::new(p, 0), to: InlinePos::new(p, 99) },
+            ],
+            &EditContext::default(),
+        )
+        .expect_err("第二步越界");
+    assert!(matches!(err, rsword::Error::Edit { .. }));
+    let after = bookmark(&mut s, "1");
+    assert_eq!(before, after, "索引回滚到操作前");
+}
+
+fn document_xml(s: &mut EditSession) -> String {
+    let bytes = s.save().unwrap();
+    let mut pkg = Package::open(&bytes).unwrap();
+    let main = pkg.main_part();
+    let dom = pkg.dom(main).unwrap().unwrap();
+    dom.src().to_string()
+}
