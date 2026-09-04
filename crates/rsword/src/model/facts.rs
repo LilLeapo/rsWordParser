@@ -34,6 +34,10 @@ pub struct ParagraphFacts {
     /// `MOD-03`：直接 `outlineLvl` 0–8 → +1（9 → `None`，不再看样式）；否则样式链；否则 styleId 匹配。
     pub outline_level: Option<u8>,
     pub sdt: Option<SdtInfo>,
+    /// 段落里有 `w:vanish w:val="0|false|off"`（把样式的隐藏关掉）。
+    pub unvanish: bool,
+    /// 段落里有书签起点或批注范围标记（TS `staysVanished` 的排除项）。
+    pub has_range_marker: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -242,6 +246,8 @@ impl ParagraphFacts {
             }
         }
 
+        f.unvanish = unvanish;
+        f.has_range_marker = has_marker;
         // MOD-03：编号与标题级别
         let chain: Vec<&Style> = match (styles, f.style_id.as_deref()) {
             (Some(s), Some(id)) => s.chain(id, StyleType::Paragraph),
@@ -250,8 +256,22 @@ impl ParagraphFacts {
         f.numbering_ref = list_ref(props, &chain);
         f.outline_level = outline_level(props, &chain, f.style_id.as_deref());
         // style_vanish（TS `staysVanished`）
-        let chain_vanish =
-            chain.iter().find_map(|s| s.rpr.as_ref().and_then(|r| r.vanish)).unwrap_or(false);
+        // 无 pStyle 时看默认段落样式链（TS `defaultParaVanish`）
+        let vanish_chain: Vec<&Style> = if f.style_id.is_none() {
+            styles
+                .and_then(|s| {
+                    s.default_for(StyleType::Paragraph)
+                        .and_then(Style::id)
+                        .map(|id| s.chain(id, StyleType::Paragraph))
+                })
+                .unwrap_or_default()
+        } else {
+            chain.clone()
+        };
+        let chain_vanish = vanish_chain
+            .iter()
+            .find_map(|s| s.rpr.as_ref().and_then(|r| r.vanish))
+            .unwrap_or(false);
         f.style_vanish = chain_vanish
             && !unvanish
             && !has_marker

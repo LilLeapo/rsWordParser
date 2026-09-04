@@ -15,9 +15,7 @@ path = "src/lib.rs"
 zip.workspace = true
 memchr.workspace = true
 thiserror.workspace = true
-
-[dev-dependencies]
-# 语料 .expected.json（TS 解析结果）的读取，只在测试里用
+# compat_ts 适配器的 ParsedDoc JSON（COMPAT-02）与差分工具
 serde_json = "1"
 
 [build-dependencies]

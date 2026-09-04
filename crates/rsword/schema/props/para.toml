@@ -66,6 +66,11 @@ element = "w:tabs"
 codec = "Tabs"
 
 [[table.field]]
+name = "suppress_auto_hyphens"
+element = "w:suppressAutoHyphens"
+codec = "OnOff"
+
+[[table.field]]
 name = "auto_space_de"
 element = "w:autoSpaceDE"
 codec = "OnOff"

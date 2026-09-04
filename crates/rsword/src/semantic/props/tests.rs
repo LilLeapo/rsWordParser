@@ -469,6 +469,7 @@ fn para_sample() -> ParaProps {
             first_line_chars: Some(Val::Value(200)),
             ..Default::default()
         }),
+        suppress_auto_hyphens: Some(false),
         contextual_spacing: Some(true),
         jc: Some(Val::Value(Jc::Both)),
         outline_lvl: Some(Val::Value(9)),
@@ -861,6 +862,7 @@ fn para_sample_alt() -> ParaProps {
         snap_to_grid: Some(true),
         spacing: Some(Spacing { after: Some(Val::Value(200)), ..Default::default() }),
         indent: Some(Indent { hanging: Some(Val::Value(360)), ..Default::default() }),
+        suppress_auto_hyphens: Some(true),
         contextual_spacing: Some(false),
         jc: Some(Val::Value(Jc::Start)),
         outline_lvl: Some(Val::Value(1)),
