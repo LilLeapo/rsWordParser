@@ -355,6 +355,9 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `docs/03` §5.4 `Keyword` | 列了 20 个变体 + `…` | `FLD-06` 表里的全部 76 个关键字都是变体，由一张 `macro_rules!` 表同时生成 `parse` / `as_str` / `policy` | 策略表与关键字表必须是同一份数据，否则加关键字时会漏改策略；`FLD-11` 的 `has_page_number` 也要按变体判断 |
 | `FLD-02` 索引的地位 | — | `FieldIndex` 是 DOM 的**投影**（编辑后作废重建），不像 `SpanIndex` 那样是规范状态的一半 | `FieldSpan` 里每条事实都能从节点重新读出来（`docs/03` §5.4："保存真相是 `instr_nodes` 的原字节"），没有 Anchor 那种"标记之外的信息"，增量维护只会多一份可能不同步的状态 |
 | `FLD-13` 缺陷来源判定 | "解析阶段的缺陷为 `PreExistingDamage`；编辑后新出现的为 `EngineInvariantViolation`" | 第一次写某个 part 之前记下按诊断代码的缺陷计数作基线，保存前重建索引比对，多出来的按 `EngineInvariantViolation` 并经 `save::enforce` 在调试构建下报错 | 索引是重建出来的，没有"这条诊断是不是新的"的天然标识；计数比对不需要跨编辑追踪节点身份 |
+| `MOD-09` 表格修订的 `old` | `TablePropsChange` / `RowPropsChange` / `CellPropsChange` 的 `old: NodeId` | `old: Box<TableProps / RowProps / CellProps>`（类型化快照，同 `ParaPropsChange`）；`TableGridChange` 仍是 `NodeId`（网格没有属性表） | 3.1 之后三张表都有类型，快照读出来比留个节点再解析一次更好用；`RevisionMeta.node` 仍指向 `*PrChange` 元素，要原字节随时能取 |
+| `MOD-07` 模型字段 | `props: TableProps` 等按值 | `TableBlock.props` / `Row.props` / `Row.tbl_pr_ex` / `Cell.props` 装箱 | 三张表各几 KB，64 层嵌套时按值搬运的栈帧在 debug 构建下超过 2 MiB 测试线程栈；`Block` 枚举也跟着小了 |
+| `MOD-06` 内联深度上限 | "内联容器嵌套超过 64 层降级" | 上限相对**段落起点**计：`Builder.inline_base` 记段落开始时的容器深度，`build_inlines` 用差值判 | 单一计数器把块嵌套也算进去时，第 64 层表格里的段落会被误判 TooDeep；两个上限各自独立后最深 128 层，栈仍够 |
 | `MOD-01` `Document` | 投影里没有字段索引 | `Document.fields: FieldIndex`，`rebuild` / `refresh_paragraphs` 一并重建 | 字段是 DOM 的投影（见上一行），模型建 inlines 时要用它；跟着投影一起重建就不会不同步。代价是每次段落刷新都全 part 扫一遍，M3 的容器级刷新一起解决 |
 | `MOD-04` `toc_style_level` | styleId 匹配 `^TOC ?([1-9])$` | 另认 `TableofFigures` / `TableofAuthorities`（1 级） | Word 的图表目录 / 引文目录也是目录行，TS 同样给 `TOC entry` + `tocLine`（语料 `field-display__010`） |
 | `MOD-05` R09 | 块字段的头段、尾段与其间所有段落 → `Protected(FieldBlockResult)` | 同；但 `compat_ts` 逐段复现 TS 的判定：中间那些**自己不含 `fldChar` / `instrText`** 的段落，TS 按规则 3（目录样式 → `TOC entry`）或普通段落处理 | TS 没有跨段的字段区间概念，它逐段看 XML。模型按 `FLD-08` 保护整段区间是对的（结果段落只读），适配器只是把标签对齐；既不含字段结构又没有目录样式的中间段落 TS 会当普通段落，本引擎仍是保护块（语料里没有这种，出现了再评估） |
@@ -639,7 +642,26 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   read → emit → read 建模字段全等，**0 个 `PROP_BAD_VALUE`**；顺序单调率 2063 / 2064、133 / 134、8 / 9，三处例外
   （`tblLayout` 在 `tblInd` 前、`vAlign` 在 `tcBorders` 前、`trHeight` 在 `cantSplit` 前）都来自 TS 测试构造的 XML，
   顺序表不改。`tcPr` / `trPr` 在语料里很薄，行为正确性靠单元用例。属性表总数 20 → 27。
-- [ ] **3.2 表格模型**（`model/table.rs`：`TableBlock / Row / Cell`、穿透 sdt、TooDeep、`paragraphs()` / `block_path()`、表格修订）
+- [x] **3.2 表格模型**（`model/table.rs`，`Builder` 的另一组方法）：`TableBlock { node, props: Box<TableProps>, grid: Vec<GridCol>,
+  rows, style_id, sdt, revisions }`、`Row { node, props, tbl_pr_ex, cells, sdt, revisions }`、`Cell { node, props, blocks, sdt,
+  revisions }`。行 / 格的收集是**迭代**的（工作栈带 sdt / 修订上下文），穿透 `w:sdt/w:sdtContent`、`w:customXml` 与
+  `w:ins/w:del/w:moveFrom/w:moveTo` 包裹；范围标记与属性元素跳过，别的记 `MOD_UNKNOWN_BLOCK`。格内容复用
+  `build_container`（`w:tcPr` 在那里跳过），所以嵌套表 / sdt / 修订包裹与正文同一套；嵌套超过 64 层的子表
+  → `Protected(TooDeep)` + `MOD_TOO_DEEP`（第 65 层）。`grid` 是 `gridCol/@w:w` 原值（0 与缺失都保留）；
+  `hMerge` 不折叠、`trHeight` 不截、`tcW` 不校正。修订（`MOD-09`）：`TablePropsChange` / `TableGridChange` 挂表，
+  `RowPropsChange` 与 `trPr/ins|del`（复用 `Revision::Insert / Delete`）挂行，`CellPropsChange` / `CellInsert` /
+  `CellDelete` / `CellMerge` 挂格；`*PrChange` 的 `old` 是类型化快照（见 §8）。新诊断 `MOD_TABLE_SHAPE`：格不以 `w:p`
+  结尾、行没有格、行网格宽度 ≠ `tblGrid` 列数——只记不改，`SAVE-02` 据此把这类缺陷判 PreExisting。`Document` 补
+  `blocks()` / `paragraphs()` / `tables()`（深入单元格，迭代）与 `block_path()` / `block_at()` / `block_at_mut()`
+  （`BlockStep::Main(i)` / `Cell { row, cell, block }`），`text_blocks()` 仍只给顶层。两处为 64 层嵌套付的代价：
+  三张属性表装箱（debug 构建下每层递归几十 KB 栈帧，2 MiB 的测试线程栈放不下 65 层），内联容器的深度守卫改成
+  相对段落起点计（否则第 64 层表格里的段落被误判 TooDeep）。
+  验收（`tests/table.rs`，8 个用例）：`MOD-07` 验收行（sdt 包裹的 tr/tc 解析出行列、`tblPrEx` 读入、声明网格保留 0
+  与缺失、65 层第 65 层 TooDeep 且 64 层完整）；`TEST-09` 的 `xml-deep-table`（5000 层）解析成功、≥ 64 张表、
+  深层 TooDeep、无编辑保存字节相同；`MOD-09` 合成用例覆盖七种表格修订 + 语料 `table-revisions__001/003`
+  的行 / 格修订；`MOD_TABLE_SHAPE` 三种形态；`MOD-13` 的遍历与路径。全语料对照 TS `TableModel`：69 份文档、
+  83 张表（13 张嵌套，比到第 7 层）、113 行、196 格——每张表行数 = TS `rows.length`，每行物理 `w:tc` 数 = TS 格数
+  （去 `gridGap`）+ 折叠的 `hMerge continue`，**0 处不一致、0 份跳过**。
 - [ ] **3.3 `SdtInfo` 完整模型**（`MOD-08`；`EDIT_SDT_LOCKED` / `EDIT_SDT_BOUND`）
 - [ ] **3.4 `resolve` 表格视图**（`resolve/table.rs`：`tblLook`、条件格式、边框 / 边距回退、`ColumnView` 四条启发式）
 - [ ] **3.5 `compat_ts` 表格投影**（`bind/compat_ts/table.rs`；`COMPAT-10`；`diff-parse --scope tables`）

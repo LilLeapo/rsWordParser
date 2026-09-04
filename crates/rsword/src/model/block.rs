@@ -2,7 +2,8 @@
 
 use crate::model::facts::ParagraphFacts;
 use crate::model::inline::{Inline, RevisionMeta};
-use crate::semantic::props::{ParaProps, RunProps};
+pub use crate::model::table::TableBlock;
+use crate::semantic::props::{CellProps, ParaProps, RowProps, RunProps, TableProps};
 use crate::span::FieldId;
 use crate::xml::{NodeId, QName};
 
@@ -103,14 +104,6 @@ pub struct ListRef {
     pub from_style: bool,
 }
 
-/// 表格（`MOD-07`）。M1 只占位：行列模型在 M2。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TableBlock {
-    pub node: NodeId,
-    pub sdt: Option<SdtInfo>,
-    pub revisions: Vec<Revision>,
-}
-
 /// 只含一张图片的段落（`MOD-05` R15）。显示模型在 M3。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImageBlock {
@@ -178,9 +171,9 @@ pub struct SdtInfo {
 /// 块级 / 段落标记修订（`MOD-09`）。run 级修订在 [`crate::model::inline::RevisionCtx`]。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Revision {
-    /// 顶层 `w:ins` 包裹的块。
+    /// 顶层 `w:ins` 包裹的块；也用于 `trPr/ins`（整行插入，挂在 `Row.revisions`）。
     Insert(RevisionMeta),
-    /// 顶层 `w:del` 包裹的块。
+    /// 顶层 `w:del` 包裹的块；也用于 `trPr/del`（整行删除）。
     Delete(RevisionMeta),
     MoveFrom(RevisionMeta),
     MoveTo(RevisionMeta),
@@ -195,4 +188,30 @@ pub enum Revision {
     },
     /// `numPr/numberingChange`。
     NumberingChange(RevisionMeta),
+    /// `tblPr/tblPrChange`：表格属性旧值（`TableBlock.revisions`）。
+    TablePropsChange {
+        meta: RevisionMeta,
+        old: Box<TableProps>,
+    },
+    /// `tblGrid/tblGridChange`：旧网格；`old` 是快照里的 `w:tblGrid`（没有就是 change 元素本身）。
+    TableGridChange {
+        meta: RevisionMeta,
+        old: NodeId,
+    },
+    /// `trPr/trPrChange`（`Row.revisions`）。
+    RowPropsChange {
+        meta: RevisionMeta,
+        old: Box<RowProps>,
+    },
+    /// `tcPr/tcPrChange`（`Cell.revisions`）。
+    CellPropsChange {
+        meta: RevisionMeta,
+        old: Box<CellProps>,
+    },
+    /// `tcPr/cellIns`。
+    CellInsert(RevisionMeta),
+    /// `tcPr/cellDel`。
+    CellDelete(RevisionMeta),
+    /// `tcPr/cellMerge`。
+    CellMerge(RevisionMeta),
 }

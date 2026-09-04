@@ -7,8 +7,7 @@ use std::collections::HashMap;
 use crate::diag::{DiagCode, Diagnostic};
 use crate::error::Result;
 use crate::model::block::{
-    Block, ImageBlock, ListRef, ProtectedBlock, ProtectedKind, Revision, SdtInfo, TableBlock,
-    TextBlock,
+    Block, ImageBlock, ListRef, ProtectedBlock, ProtectedKind, Revision, SdtInfo, TextBlock,
 };
 use crate::model::classify::{
     BodyClass, ParaClass, classify_body_child, classify_paragraph, text_kind,
@@ -204,8 +203,9 @@ impl Document {
     }
 }
 
-struct Builder<'a> {
-    dom: &'a Dom,
+/// 正文构建器；表格部分在 `model/table.rs`（同一个类型的另一组方法）。
+pub(super) struct Builder<'a> {
+    pub(super) dom: &'a Dom,
     styles: Option<&'a Styles>,
     rels: &'a Rels,
     fields: &'a FieldIndex,
@@ -214,8 +214,13 @@ struct Builder<'a> {
     block_fields: HashMap<NodeId, FieldId>,
     /// 字段起点所在的段落 → 字段 id（`MOD-04` 的 `facts.fields`）。
     fields_by_para: HashMap<NodeId, Vec<FieldId>>,
-    warnings: Vec<Diagnostic>,
-    depth: u32,
+    pub(super) warnings: Vec<Diagnostic>,
+    /// 当前嵌套的容器层数（body / sdtContent / 修订包裹 / 单元格都算一层，段落内的内联容器也算）；
+    /// 块容器超过 [`MAX_CONTAINER_DEPTH`] 层的子树降级为 `TooDeep`（`MOD-07`）。
+    pub(super) depth: u32,
+    /// 当前段落开始时的 `depth`：内联容器的深度上限相对它计，块的嵌套不占内联的额度
+    /// （第 64 层表格里的段落照样要能建 inlines）。
+    inline_base: u32,
 }
 
 impl<'a> Builder<'a> {
@@ -247,11 +252,12 @@ impl<'a> Builder<'a> {
             fields_by_para,
             warnings,
             depth: 0,
+            inline_base: 0,
         }
     }
 }
 
-const MAX_CONTAINER_DEPTH: u32 = 64;
+pub(super) const MAX_CONTAINER_DEPTH: u32 = 64;
 
 fn w(local: LocalName) -> QName {
     QName::w(local)
@@ -272,7 +278,7 @@ impl<'a> Builder<'a> {
         body
     }
 
-    fn warn(&mut self, node: NodeId, code: DiagCode, message: impl Into<String>) {
+    pub(super) fn warn(&mut self, node: NodeId, code: DiagCode, message: impl Into<String>) {
         let range = self.dom.node(node).lex.as_ref().map(|l| l.range.clone());
         self.warnings.push(Diagnostic::pre_existing(self.dom.part(), range, code, message));
     }
@@ -281,7 +287,7 @@ impl<'a> Builder<'a> {
         self.dom.attr_value(node, QName::new(ns, local)).map(|s| s.into_owned())
     }
 
-    fn meta(&self, node: NodeId) -> RevisionMeta {
+    pub(super) fn meta(&self, node: NodeId) -> RevisionMeta {
         RevisionMeta {
             node,
             id: self.attr(node, NsId::W, LocalName::Id),
@@ -292,8 +298,8 @@ impl<'a> Builder<'a> {
 
     // ---- 块 ------------------------------------------------------------------------------------
 
-    /// body / sdtContent / 修订包裹 / customXml 的子节点 → 块（R01–R07）。
-    fn build_container(
+    /// body / sdtContent / 修订包裹 / customXml / 单元格的子节点 → 块（R01–R07）。
+    pub(super) fn build_container(
         &mut self,
         container: NodeId,
         sdt: Option<&SdtInfo>,
@@ -318,6 +324,9 @@ impl<'a> Builder<'a> {
             if dom.name(node).is_none() {
                 continue; // 空白文本
             }
+            if dom.is(node, w(LocalName::TcPr)) {
+                continue; // 单元格属性：`Cell.props` 已读（`MOD-07`）
+            }
             let (_rule, class) = classify_body_child(dom, node);
             match class {
                 BodyClass::SectionProps => out.push(Block::Protected(ProtectedBlock {
@@ -327,11 +336,10 @@ impl<'a> Builder<'a> {
                     sdt: sdt.cloned(),
                     revisions: revs.to_vec(),
                 })),
-                BodyClass::Table => out.push(Block::Table(TableBlock {
-                    node,
-                    sdt: sdt.cloned(),
-                    revisions: revs.to_vec(),
-                })),
+                BodyClass::Table => {
+                    let block = self.build_table(node, sdt, revs);
+                    out.push(block);
+                }
                 BodyClass::Sdt => {
                     let info = SdtInfo { node };
                     let content =
@@ -399,6 +407,7 @@ impl<'a> Builder<'a> {
 
     fn build_paragraph(&mut self, p: NodeId, sdt: Option<&SdtInfo>, revs: &[Revision]) -> Block {
         let dom = self.dom;
+        self.inline_base = self.depth;
         let ppr = dom.semantic_children(p).find(|&n| dom.is(n, w(LocalName::PPr)));
         let props: ParaProps = read_para_props(dom, ppr, &mut self.warnings);
         let mut facts = ParagraphFacts::compute(dom, p, &props, self.styles, sdt.cloned());
@@ -592,8 +601,9 @@ impl<'a> Builder<'a> {
 
     // ---- 内联 ----------------------------------------------------------------------------------
 
-    /// 段落（或透明容器）的子节点 → inlines（`MOD-06`）。内联容器嵌套超过 [`MAX_CONTAINER_DEPTH`]
-    /// 时不再下钻，整个子树作为一个 `Atom(Other)` 占位并记 `MOD_TOO_DEEP`（病态输入局部降级）。
+    /// 段落（或透明容器）的子节点 → inlines（`MOD-06`）。内联容器在段落内嵌套超过
+    /// [`MAX_CONTAINER_DEPTH`] 层时不再下钻，整个子树作为一个 `Atom(Other)` 占位并记 `MOD_TOO_DEEP`
+    /// （病态输入局部降级）；深度相对段落起点计，所以表格嵌套不吃这个额度。
     fn build_inlines(
         &mut self,
         container: NodeId,
@@ -602,7 +612,7 @@ impl<'a> Builder<'a> {
         out: &mut Vec<Inline>,
     ) {
         let dom = self.dom;
-        if self.depth > MAX_CONTAINER_DEPTH {
+        if self.depth - self.inline_base > MAX_CONTAINER_DEPTH {
             self.warn(container, DiagCode::ModTooDeep, "内联容器嵌套过深");
             let name = dom.name(container).expect("container is an element");
             out.push(Inline::Atom(InlineAtom {

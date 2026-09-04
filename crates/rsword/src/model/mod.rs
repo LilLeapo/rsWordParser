@@ -8,6 +8,7 @@
 //! | --- | --- |
 //! | [`inline`] | `Inline` / `Run` / `Segment` 与坐标流（`MOD-06`） |
 //! | [`block`] | `Block` / `TextBlock` / `ProtectedBlock` / `Revision`（`MOD-02/08/09`） |
+//! | [`table`] | `TableBlock` / `Row` / `Cell` 与跨表格的块遍历（`MOD-07`） |
 //! | [`facts`] | `ParagraphFacts`（`MOD-04`） |
 //! | [`classify`] | 分类规则表与 `TextKind` 判定（`MOD-05/03`） |
 //! | [`build`] | `Document` 与 `rebuild`（`MOD-01/13`） |
@@ -20,6 +21,7 @@ pub mod decl;
 pub mod facts;
 pub mod inline;
 pub mod notes;
+pub mod table;
 pub mod theme;
 
 pub use block::{
@@ -41,6 +43,7 @@ pub use inline::{
     RevisionMeta, Run, Segment, SegmentKind,
 };
 pub use notes::{Comment, Comments, Note, NoteKind, Notes, RichRun};
+pub use table::{BlockStep, Blocks, Cell, GridCol, Row};
 pub use theme::{ColorScheme, FontScheme, FontSlots, Theme, ThemeSlot};
 
 #[cfg(test)]

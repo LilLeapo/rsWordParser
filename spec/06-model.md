@@ -166,7 +166,8 @@ SdtInfo { node, alias, tag, id, control: RichText|PlainText|Picture|ComboBox|Dro
 | `ParaMarkInsert`/`ParaMarkDelete`（`pPr/rPr/ins|del`） | `TextBlock.revisions` |
 | `RunPropsChange` | `Run.rev`（`old: RunProps` 由 `PROP-06` 读 `rPrChange/rPr`） |
 | `ParaPropsChange` | `TextBlock.revisions`（`old: ParaProps + old_style + old_list`） |
-| `SectPropsChange`/`TablePropsChange`/`TableGridChange`/`RowPropsChange`/`CellPropsChange` | 对应对象的 `revisions`，`old: NodeId` |
+| `SectPropsChange`/`TableGridChange` | 对应对象的 `revisions`，`old: NodeId`（快照里的 `sectPr` / `tblGrid` 节点） |
+| `TablePropsChange`/`RowPropsChange`/`CellPropsChange` | `TableBlock` / `Row` / `Cell` 的 `revisions`，`old` 是类型化快照（`Box<TableProps>` 等，由属性表的 `read_*_change` 读出） |
 | `NumberingChange` | `TextBlock.revisions` |
 | `CellInsert`/`CellDelete`/`CellMerge` | `Cell.revisions`；`Row.revisions` 承接 `trPr/ins|del` |
 | `FieldInstrDelete` | 字段所在 `Run.rev` 与 `FieldSpan` |
