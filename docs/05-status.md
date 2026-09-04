@@ -7,7 +7,7 @@
 
 **M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖），**已全部并入 `main`**（2026-09-04）。
 **M2 进行中**（分支 `m2-span-fields`）：2.1 Span 索引、2.2 Anchor 变换、2.3 物化与保存校验、
-2.4 字段子系统、2.5 字段进模型与 compat、2.7 符号字体解码已落地；任务分解见
+2.4 字段子系统、2.5 字段进模型与 compat、2.7 符号字体解码、2.8 的 `rId` 分配已落地；任务分解见
 `spec/13-m2-plan.md`，进度清单见 `docs/04` §11。
 
 现在这套代码能：打开任意语料文档、输出与 TS 兼容的 `ParsedDoc` JSON、在文本段落上做插入 / 删除 / 改
@@ -59,7 +59,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
 | 源码行数 / 文件数 | 24,189 行 / 61 个（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 225（单元 + 集成，15 个集成测试文件） | `cargo test --workspace` |
+| 测试数 | 226（单元 + 集成，15 个集成测试文件） | `cargo test --workspace` |
 | 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 16 份 hostile | `ls corpus/*` |
 | 往返字节保真 | 589 份文档、3,093 个 XML part 全部字节相同 | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
@@ -67,7 +67,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | resolve 对照 | 86,465 项 `StyleDisplay`、2,326 项 heading 级别、2,897 项 linked shell | `tests/resolve.rs` |
 | 解析差分（文本域） | 223 份用例，160 处已登记差异，**0 处未知差异** | `cargo run -p diff-parse -- --scope text` |
 | 解析差分（全域） | 573 份里 311 份有未知差异、1,709 个差异点（M3–M6 的工作面） | `cargo run -p diff-parse -- --scope all` |
-| 保存差分 | 162 份 TS 保存用例：77 份与 `saveDocx` 等价（其中 41 份逐字节相同）、3 份有意不同、82 份跳过 | `tests/save_blocks.rs` |
+| 保存差分 | 162 份 TS 保存用例：78 份与 `saveDocx` 等价（其中 41 份逐字节相同）、3 份有意不同、81 份跳过 | `tests/save_blocks.rs` |
 | 范围索引 | 573 份 / 3012 个 part 的 31 个标记全部成对认领 → 19 个范围（书签 7、批注 12）；1 处孤儿终点 | `tests/span.rs` |
 | Span 编辑与物化 | 29 个用例覆盖 `SPAN-01`–`SPAN-09`（含 4 条变换规则、整体删除策略、物化与原字节保真） | `cargo test -p rsword --test span` |
 | 字段索引 | 43 份文档 / 57 个字段（`Atom` 33、`Block` 6、`Picture` 6、`Form` 4、`Link` 3、`Object` 3、`Marker` 1、`Unknown` 1）；3 份 TS 截断夹具本来就缺 `end` | `cargo test -p rsword --test field -- --nocapture` |
@@ -98,11 +98,11 @@ M5 约 48、M4/M6 约 20、M2 约 16、M7 2。
 - **字段**：解析、进模型与 compat 输出都在（`FLD-01`–`FLD-08`、`MOD-06`、`COMPAT-03/07`）；缺的是
   **编辑操作**——`InsertField` / `SetLinkTarget` / `ToggleCheckbox` / `SetFormText` / `UpdateBlockField`
   与 `refField` / `xeTerm` / 表单域的 `SaveBlock` 仍是 `EditUnsupported`（2.9），块字段生成器在 M7。
-- **新建 part**：缺 `settings.xml` 时清洗标志写不进去（记诊断）；批注 / 脚注 part 不能创建。
+- **新建 part**：缺 `settings.xml` 时清洗标志写不进去（记诊断）；批注 / 脚注 part 不能创建；
+  part 没有 `.rels` 时也建不出来（新外链会因此报 `EditUnsupported`）——都等 2.6 的 `SAVE-05`。
 - **表格 / 绘图**：块层面是占位（`Table` / `Image` / `Protected`），单元格与图片属性不进模型。
 - **保存选项**：节、页眉页脚、水印、页面颜色、编号、样式 upsert、保护、主题、墨迹、图表、`partXml` 全部 `EditUnsupported`。
 - **修订生成**：`EditContext.track_changes` 字段存在但被忽略（M7）。
-- **新关系分配**：新外部超链接需要 rId 分配（M2 2.8）。
 
 ## 如何验证
 

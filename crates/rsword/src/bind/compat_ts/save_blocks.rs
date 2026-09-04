@@ -29,7 +29,7 @@ use crate::edit::{
     NewRevision, NewRun,
 };
 use crate::error::{Error, Result};
-use crate::package::PartFlavor;
+use crate::package::{PartFlavor, RelType};
 use crate::save::SaveOptions;
 use crate::semantic::props::{
     Border, BorderStyle, Color, DropCap, FontHint, Fonts, FrameAnchor, FramePr, FrameWrap,
@@ -194,6 +194,12 @@ pub fn apply_save_blocks(
     }
 
     let main = session.main_part();
+    // `EDIT-06`：generated 块里没有 `rId` 的新外链先分配关系（`.rels` 也进同一个事务）
+    let mut link_rels: HashMap<String, String> = HashMap::new();
+    for href in new_external_links(final_blocks) {
+        let rid = session.add_external_relationship(main, RelType::Hyperlink, &href)?;
+        link_rels.insert(href, rid);
+    }
     let flavor = session.flavor();
     let ops = {
         let dom = session.package_mut().dom_mut(main)?.expect("main part parsed");
@@ -204,6 +210,7 @@ pub fn apply_save_blocks(
             nodes: &nodes,
             heading_ids: &heading_ids,
             list_style: list_style.as_deref(),
+            link_rels: &link_rels,
         };
         planner.build_ops(&items, &visible)?
     };
@@ -219,6 +226,43 @@ struct Planner<'a> {
     nodes: &'a [NodeId],
     heading_ids: &'a HashMap<u32, String>,
     list_style: Option<&'a str>,
+    /// 新外链的 `href` → 刚分配的 `rId`（`EDIT-06`）。
+    link_rels: &'a HashMap<String, String>,
+}
+
+/// generated 块里需要新建关系的外部链接：有 `href`、不是文内锚点、没带 `rId`。
+///
+/// 顺序即出现顺序，去重；`rId` 在建 `Planner` 之前分配，那时还能借用 `EditSession`。
+fn new_external_links(final_blocks: &[Value]) -> Vec<String> {
+    fn walk(v: &Value, out: &mut Vec<String>) {
+        match v {
+            Value::Object(m) => {
+                if let Some(Value::Object(l)) = m.get("link")
+                    && let Some(href) = l.get("href").and_then(Value::as_str)
+                    && !href.is_empty()
+                    && !href.starts_with('#')
+                    && l.get("rId").and_then(Value::as_str).is_none_or(str::is_empty)
+                    && !out.iter().any(|h| h == href)
+                {
+                    out.push(href.to_string());
+                }
+                for (_, x) in m {
+                    walk(x, out);
+                }
+            }
+            Value::Array(a) => {
+                for x in a {
+                    walk(x, out);
+                }
+            }
+            _ => {}
+        }
+    }
+    let mut out = Vec::new();
+    for b in final_blocks {
+        walk(b, &mut out);
+    }
+    out
 }
 
 impl Planner<'_> {
@@ -630,12 +674,10 @@ impl Planner<'_> {
                 let target = if let Some(anchor) = href.strip_prefix('#') {
                     Some(NewLinkTarget::Anchor(anchor.to_string()))
                 } else {
-                    match rid {
+                    match rid.or_else(|| self.link_rels.get(&href).cloned()) {
                         Some(r) => Some(NewLinkTarget::Rel(r)),
                         None => {
-                            return Err(unsupported(format!(
-                                "新外部超链接 {href} 需要分配关系（EDIT-06 rId，M2）"
-                            )));
+                            return Err(unsupported(format!("新外部超链接 {href} 没有可用的关系")));
                         }
                     }
                 };

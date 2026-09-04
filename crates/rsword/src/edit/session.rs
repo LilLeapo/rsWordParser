@@ -6,10 +6,10 @@ use crate::diag::{DiagCode, Diagnostic};
 use crate::error::{Error, Result};
 use crate::model::Document;
 use crate::model::block::TextBlock;
-use crate::package::{Package, PartFlavor, PartId};
+use crate::package::{Package, PartFlavor, PartId, RelTarget, RelType, Relationship};
 use crate::save::SaveOptions;
 use crate::span::{FieldIndex, SpanIndex, is_content_item, plan_save, plan_update};
-use crate::xml::{Dom, NodeEdit, NodeId};
+use crate::xml::{Dom, LocalName, NewElement, NodeEdit, NodeId, NsId, QName, Target};
 
 use super::plan::{MutationPlan, MutationResult};
 use super::pos::{InlinePos, Loc, locate};
@@ -203,6 +203,71 @@ impl EditSession {
         self.spans.insert(part, index);
         self.record(diags);
         Ok(())
+    }
+
+    /// `EDIT-06`：给 `part` 的 `.rels` 追加一条外部关系，返回分配到的 `rId`。
+    ///
+    /// 走 `commit_plan`，所以它在事务里、可回滚，`.rels` 也按脏节点序列化。
+    /// part 没有 `.rels` 时报 `EditUnsupported`——新建 `.rels` 属 `SAVE-05`（2.6）。
+    pub fn add_external_relationship(
+        &mut self,
+        part: PartId,
+        kind: RelType,
+        target: &str,
+    ) -> Result<String> {
+        let rels_part = self.pkg.part(part).rels_part.ok_or_else(|| {
+            Error::edit(
+                DiagCode::EditUnsupported,
+                format!("part#{} 没有 .rels，新建 .rels 在 2.6（SAVE-05）", part.0),
+            )
+        })?;
+        let id = self.pkg.part(part).rels.next_id();
+        let flavor = self.pkg.flavor_of(part);
+        let raw_type = kind.uri(flavor).ok_or_else(|| {
+            Error::edit(DiagCode::EditUnsupported, format!("关系类型 {kind:?} 没有 URI"))
+        })?;
+        let dom = self
+            .pkg
+            .dom(rels_part)?
+            .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, ".rels 不是 XML part"))?;
+        let root = dom.root();
+        // 名字照抄已有的 `Relationship`（它带着 `.rels` 的默认命名空间）；一条都没有时按根元素的
+        // 命名空间造一个
+        let name = dom
+            .children(root)
+            .iter()
+            .find_map(|&c| dom.name(c).filter(|q| q.local == LocalName::Relationship))
+            .unwrap_or_else(|| {
+                QName::new(
+                    dom.name(root).map(|q| q.ns).unwrap_or(NsId::None),
+                    LocalName::Relationship,
+                )
+            });
+        let none = |l: LocalName| QName::new(NsId::None, l);
+        let node = NewElement::new(name)
+            .with_attr(none(LocalName::UId), id.clone())
+            .with_attr(none(LocalName::UType), raw_type.clone())
+            .with_attr(none(LocalName::Target), target)
+            .with_attr(none(LocalName::TargetMode), "External");
+        let mut plan = MutationPlan::new(rels_part);
+        plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(root), before: None, node });
+        let result = self.commit_plan(plan)?;
+        let created = result
+            .created
+            .first()
+            .copied()
+            .flatten()
+            .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "关系节点没有创建成功"))?;
+        let (rel_kind, family) = RelType::parse(&raw_type);
+        self.pkg.part_mut(part).rels.push(Relationship {
+            id: id.clone(),
+            kind: rel_kind,
+            target: RelTarget::External(target.to_string()),
+            raw_type,
+            family,
+            node: created,
+        });
+        Ok(id)
     }
 
     /// 记诊断（会话与包各留一份）。

@@ -432,3 +432,40 @@ fn edit_05_failed_batch_rolls_back_everything() {
     assert_eq!(results.len(), 2);
     assert!(para_text(&s, 1).starts_with("A段落,包含"), "{}", para_text(&s, 1));
 }
+
+/// `EDIT-06`：新外链在 `.rels` 里分配 `rId{max+1}`，其余条目原样；两次分配不撞号。
+#[test]
+fn edit_06_new_external_relationship_is_allocated_in_the_rels_part() {
+    let bytes = corpus("insert-and-layout__001.docx");
+    let mut s = EditSession::open(&bytes).unwrap();
+    let main = s.main_part();
+    let before: Vec<String> = s.package().part(main).rels.iter().map(|r| r.id.clone()).collect();
+    let rid = s
+        .add_external_relationship(main, rsword::package::RelType::Hyperlink, "https://x.test/")
+        .unwrap();
+    assert!(!before.contains(&rid), "新号不与已有的重复: {rid} vs {before:?}");
+    let second = s
+        .add_external_relationship(main, rsword::package::RelType::Hyperlink, "https://y.test/")
+        .unwrap();
+    assert_ne!(rid, second, "两次分配不撞号");
+    // 内存视图与保存出来的 `.rels` 都有这条
+    let rel = s.package().part(main).rels.by_id(&rid).expect("内存里的 Rels 也更新了");
+    assert!(
+        matches!(&rel.target, rsword::package::RelTarget::External(t) if t == "https://x.test/")
+    );
+    let saved = s.save().unwrap();
+    let mut pkg = Package::open(&saved).unwrap();
+    let rels_part = pkg.part(pkg.main_part()).rels_part.unwrap();
+    let xml = pkg.dom(rels_part).unwrap().unwrap().src().to_string();
+    assert!(
+        xml.contains(&format!(r#"Id="{rid}""#)) && xml.contains(r#"Target="https://x.test/""#),
+        "{xml}"
+    );
+    assert!(xml.contains(r#"TargetMode="External""#), "{xml}");
+    for id in &before {
+        assert!(xml.contains(&format!(r#"Id="{id}""#)), "原有关系还在: {id}");
+    }
+    // 重开后关系能被解析出来
+    let reopened = pkg.part(pkg.main_part()).rels.by_id(&rid).cloned();
+    assert!(reopened.is_some(), "{xml}");
+}

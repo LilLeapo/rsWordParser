@@ -350,6 +350,11 @@ impl Package {
         &self.parts[id.idx()]
     }
 
+    /// 可变 part（`EDIT-06` 追加关系后同步内存里的 `Rels`）。
+    pub(crate) fn part_mut(&mut self, id: PartId) -> &mut Part {
+        &mut self.parts[id.idx()]
+    }
+
     pub fn find(&self, uri: &PartUri) -> Option<PartId> {
         self.by_uri.get(uri).copied()
     }

@@ -360,6 +360,7 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `MOD-05` R09 | 块字段的头段、尾段与其间所有段落 → `Protected(FieldBlockResult)` | 同；但 `compat_ts` 逐段复现 TS 的判定：中间那些**自己不含 `fldChar` / `instrText`** 的段落，TS 按规则 3（目录样式 → `TOC entry`）或普通段落处理 | TS 没有跨段的字段区间概念，它逐段看 XML。模型按 `FLD-08` 保护整段区间是对的（结果段落只读），适配器只是把标签对齐；既不含字段结构又没有目录样式的中间段落 TS 会当普通段落，本引擎仍是保护块（语料里没有这种，出现了再评估） |
 | `EDIT-03 DeleteRange`（M1 债） | 覆盖字段结构段 → 整 run 保留 + `EDIT_ANCHOR_UNMOVED` | 覆盖**原子形态字段** → `begin..end`（含嵌套）整个删掉（`FLD-07`）；透明字段（`Link`）的结构 run 原地保留是正确行为，不再记诊断；诊断只留给未闭合 / 畸形字段的结构 run | 2.4 建了 `FieldSpan`，"整 run 保留"这条临时行为到期。原子只占 1 个坐标单位，区间与它相交就是整个覆盖 |
 | `COMPAT-07` 折叠 run 的格式 | 未规定 | 取第一个非空结果 run 的格式；没有结果 run（未选中的复选框、无结果的 PAGE）时不带格式键 | 语料里这些字段的 begin run 都没有 `w:rPr`，TS 输出也没有格式键；等有反例再从 begin run 取（`FLD-07` 说原子字段的 `props` 取 begin run 的 rPr，那是给"新输入继承格式"用的） |
+| `EDIT-06` 书签 `w:id` | part 内 `max+1` | compat 保存路径按 TS 的 `bookmarkIdOf`（名字的 31 进制哈希）给号 | 那条路径要复现 TS 的输出；引擎自己的 `AddBookmark`（2.9）按规范给号 |
 | `PROP-06` 第 1 步 | 新容器"按父容器的 schema 顺序插入" | 顶层容器（`w:pPr` / `w:rPr`）插为父节点第一个语义子节点之前；子表容器按父表 `order` 插入 | `w:p` / `w:r` 不是属性表，没有 order；M2 的 `trPr`（在 `tblPrEx` 之后）到时补规则 |
 
 ## 9. 待决事项（需要项目负责人拍板）
@@ -515,6 +516,17 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   `KNOWN_DIFFS.md` 里整份放行的 `symbol-fonts__*` 已删除：6 份用例现在 0 处未知差异（文本域的已知
   差异 165 → 160）。测试：`resolve/symbol.rs` 4 个单元用例 + `tests/resolve.rs` 的
   `res_05_symbol_fonts_decode_for_display`（四种情形）。
-- [ ] 2.8 `EDIT-06` id 分配落地
+- [~] **2.8 `EDIT-06` id 分配**（`package/rels.rs`、`edit/session.rs`、`bind/compat_ts/save_blocks.rs`）：
+  `rId` 那一半落地——`Rels::next_id()` 按 `rId{max+1}` 且跳过已用号；
+  `EditSession::add_external_relationship(part, kind, target)` 走 `commit_plan` 往 `.rels` 里插
+  `Relationship`（因此在事务里、可回滚，`.rels` 按脏节点序列化），元素名照抄已有条目以带上默认
+  命名空间，提交后同步内存里的 `Rels`；compat 的保存路径在建 `Planner` 之前扫一遍 generated 块，
+  给没有 `rId` 的新外链先分配（那时还能借用 `EditSession`）。保存语料 77 → **78 份等价**
+  （`insert-and-layout__001.save.10` 新超链接关系），跳过 82 → 81。
+  测试 `tests/edit.rs` 的 `edit_06_new_external_relationship_is_allocated_in_the_rels_part`。
+  **未完**：批注 `w:id`（`EDIT-06` 的验收行"连续两次 AddComment 得到不同 id"要 2.6 的 `AddComment`）、
+  书签 `w:id`（要 2.9 的 `AddBookmark`；compat 路径按 TS 的哈希给号，与规范的 `max+1` 不同，
+  见下）、`w14:paraId`（要 2.6 / 2.9 里真正新建段落的操作）。part 没有 `.rels` 时报
+  `EditUnsupported`，新建 `.rels` 属 `SAVE-05`（2.6）。
 - [ ] 2.9 字段与段落操作（`FLD-09`–`FLD-12`）
 - [ ] 2.10 `fuzz_instr` 与 M2 门
