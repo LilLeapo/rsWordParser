@@ -9,14 +9,15 @@
 //!
 //! `XML-14`：`New` 子树根上先声明子树里所有未绑定的命名空间；其余缺失前缀在首次使用处内联声明。
 //! 声明只写进输出，不改 DOM；编辑引擎应在提交时调用 `Dom::declare_for_new_subtree` 让 DOM 也看到它们。
-//! `SAVE-03`：`New`/`SelfDirty` 的 `w:t`/`w:delText`/`w:instrText` 一律带 `xml:space="preserve"`。
+//! `SAVE-03`：`New`/`SelfDirty` 的 `w:t`/`w:delText`/`w:instrText` 一律带 `xml:space="preserve"`；文本子节点变了
+//! 而元素只是 `DescendantDirty` 的文本容器（`set_text` 的常见情形）按 `SelfDirty` 重建开标签，同样补 preserve。
 
 use std::fmt;
 use std::ops::Range;
 
 use crate::package::ns_context::NamespaceContext;
 use crate::xml::Dirty;
-use crate::xml::dom::{Attr, AttrValue, Dom, Element, NodeId, NodeKind, TextValue};
+use crate::xml::dom::{Attr, AttrValue, Dom, Element, Node, NodeId, NodeKind, TextValue};
 use crate::xml::entities;
 use crate::xml::lex::urange;
 use crate::xml::names::{LocalName, NsId, QName};
@@ -152,6 +153,20 @@ struct Writer<'a> {
     gen_counter: u32,
 }
 
+/// `SAVE-03`：内容变了的文本容器若还没有 `xml:space`，开标签必须重建以补 preserve，
+/// 因此把 `DescendantDirty` 提升为 `SelfDirty`；其余节点按原状态。
+fn effective_dirty(node: &Node) -> Dirty {
+    if node.dirty == Dirty::DescendantDirty
+        && let NodeKind::Element(e) = &node.kind
+        && e.name.ns == NsId::W
+        && matches!(e.name.local, LocalName::T | LocalName::DelText | LocalName::InstrText)
+        && !e.attrs.iter().any(|a| a.name == QName::new(NsId::Xml, LocalName::Space))
+    {
+        return Dirty::SelfDirty;
+    }
+    node.dirty
+}
+
 impl Writer<'_> {
     fn run(&mut self, root: NodeId) -> Result<(), SerializeError> {
         let src = self.dom.src_bytes();
@@ -171,7 +186,7 @@ impl Writer<'_> {
                 }
                 Step::Enter(id) => {
                     let node = self.dom.node(id);
-                    match node.dirty {
+                    match effective_dirty(node) {
                         Dirty::Deleted => {}
                         Dirty::Clean => {
                             let lex =
@@ -504,6 +519,18 @@ mod tests {
                 "<w:document xmlns:w=\"{W_STRICT}\"><w:body><pic:pic xmlns:pic=\"http://purl.oclc.org/ooxml/drawingml/picture\"/></w:body></w:document>"
             )
         );
+    }
+
+    #[test]
+    fn save_03_changed_text_child_makes_container_preserve() {
+        let mut dom =
+            parse(&format!("<w:p xmlns:w=\"{W}\"><w:r><w:t>a</w:t><w:t>b</w:t></w:r></w:p>"));
+        let t = dom.descendants(dom.root()).find(|&n| dom.is(n, QName::w(LocalName::T))).unwrap();
+        let text = dom.children(t)[0];
+        dom.set_text(text, " a ");
+        assert_eq!(dom.node(t).dirty, Dirty::DescendantDirty);
+        let s = out(&dom);
+        assert!(s.contains("<w:t xml:space=\"preserve\"> a </w:t><w:t>b</w:t>"), "{s}");
     }
 
     #[test]

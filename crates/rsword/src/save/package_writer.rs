@@ -29,12 +29,22 @@ impl Package {
         !self.dirty_parts().is_empty()
     }
 
-    /// 写回整个包。
+    /// 写回整个包。`SAVE-01` 步骤 1 / 2 / 5 / 6：无脏节点直接返回原字节；校验（`SAVE-02`，调试构建下
+    /// `EngineInvariantViolation` 为 `Err`）并补扩展命名空间声明（`SAVE-03`）；序列化脏 part；包写回。
     pub fn save(&mut self) -> Result<Vec<u8>> {
         let dirty = self.dirty_parts();
         if dirty.is_empty() {
             return Ok(self.original_bytes().to_vec());
         }
+        let mut diags = Vec::new();
+        for &id in &dirty {
+            if let Ok(Some(dom)) = self.dom_mut(id) {
+                crate::save::validate::ensure_extension_declarations(dom);
+                diags.extend(crate::save::validate::validate_part(dom));
+            }
+        }
+        crate::save::validate::enforce(&diags)?;
+        self.push_diagnostics(diags);
         // 先序列化所有脏 part（不可变借用 DOM），再做 zip 写入（可变借用 zip）
         let mut replaced: Vec<(u32, Vec<u8>)> = Vec::with_capacity(dirty.len());
         for id in dirty {

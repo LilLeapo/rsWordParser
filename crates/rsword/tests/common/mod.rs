@@ -7,11 +7,13 @@ pub fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").canonicalize().expect("repo root")
 }
 
+#[allow(dead_code)]
 pub fn corpus_dir(kind: &str) -> PathBuf {
     repo_root().join("corpus").join(kind)
 }
 
 /// `corpus/<kind>/*.docx`，按文件名排序，保证测试输出稳定。
+#[allow(dead_code)]
 pub fn docx_paths(kind: &str) -> Vec<PathBuf> {
     let dir = corpus_dir(kind);
     let Ok(rd) = std::fs::read_dir(&dir) else { return Vec::new() };

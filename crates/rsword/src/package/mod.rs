@@ -391,6 +391,11 @@ impl Package {
         self.root_rels_part
     }
 
+    /// 保存期新增的诊断（`SAVE-02`）。
+    pub(crate) fn push_diagnostics(&mut self, more: impl IntoIterator<Item = Diagnostic>) {
+        self.diagnostics.extend(more);
+    }
+
     pub fn diagnostics(&self) -> &[Diagnostic] {
         &self.diagnostics
     }

@@ -408,8 +408,9 @@ mod tests {
         let out = serialize(&dom).unwrap();
         let out = std::str::from_utf8(&out).unwrap();
         assert!(
+            // SAVE-03：文本变了的 w:t 重建开标签并补 preserve；其余原字节
             out.contains(
-                "<w:p w:rsidR=\"1\"><w:r><w:t>new</w:t></w:r><w:r><w:t>keep</w:t></w:r></w:p>"
+                "<w:p w:rsidR=\"1\"><w:r><w:t xml:space=\"preserve\">new</w:t></w:r><w:r><w:t>keep</w:t></w:r></w:p>"
             ),
             "{out}"
         );
