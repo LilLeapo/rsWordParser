@@ -22,6 +22,7 @@ pub use pos::{InlinePos, Loc, Utf16Offset, inline_spans, locate};
 pub use session::EditSession;
 
 use crate::semantic::props::{ParaPropsPatch, RunProps, RunPropsPatch};
+use crate::span::FieldId;
 use crate::xml::{NewElement, NodeId};
 
 /// 修订作者（`track_changes` 开启时写入 `w:author` / `w:date`）。M1 不生成修订，字段保留供 M7。
@@ -115,4 +116,26 @@ pub enum EditOp {
     AddBookmark { name: String, from: InlinePos, to: InlinePos },
     /// `EDIT-03 RemoveBookmark`：按名字删（标记 `Deleted`，索引里作废）。
     RemoveBookmark { name: String },
+    /// `FLD-12 InsertField`：生成 begin / instrText / separate / 结果 / end 五组 run。
+    InsertField { at: InlinePos, field: NewField },
+    /// `FLD-07 Link`：改 HYPERLINK 字段的目标（只重写 `instrText`，开关原样保留）。
+    SetLinkTarget { field: FieldId, target: String },
+    /// `FLD-10`：FORMCHECKBOX 的 `w:checked` 取反。
+    ToggleCheckbox { field: FieldId },
+    /// `FLD-10`：FORMTEXT 的结果文字。
+    SetFormText { field: FieldId, text: String },
+    /// `FLD-07`：字段结果 run 的格式。
+    SetFieldResultProps { field: FieldId, patch: RunPropsPatch },
+    /// `FLD-09`：用给定的块替换块字段的 `separate..end`（生成器在 M7；`w:fldLock` 拒绝）。
+    UpdateBlockField { field: FieldId, blocks: Vec<NewBlock> },
+}
+
+/// `FLD-12` 的新字段。`instr` 是指令原文（不含首尾空格，生成时补上）。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct NewField {
+    pub instr: String,
+    /// 结果区内容（空 = 只有 begin..end 的空结果）。
+    pub result: Vec<NewInline>,
+    /// begin 的 `w:fldChar` 上打 `w:dirty="true"`，Word 打开时重算。
+    pub mark_dirty: bool,
 }

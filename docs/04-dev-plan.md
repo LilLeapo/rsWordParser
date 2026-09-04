@@ -572,5 +572,28 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   书签 `w:id`（要 2.9 的 `AddBookmark`；compat 路径按 TS 的哈希给号，与规范的 `max+1` 不同，
   见下）、`w14:paraId`（要 2.6 / 2.9 里真正新建段落的操作）。part 没有 `.rels` 时报
   `EditUnsupported`，新建 `.rels` 属 `SAVE-05`（2.6）。
-- [ ] 2.9 字段与段落操作（`FLD-09`–`FLD-12`）
+- [x] **2.9 字段与段落操作**（`edit/{mod,ops,inline}.rs`、`span/transform.rs`、`bind/compat_ts/save_blocks.rs`）
+  - **段落**：`SplitParagraph`（位置先落到 inline 边界，新 `w:p` 插在原段之后、`pPr` 字节克隆，
+    边界之后的内容项与标记搬进去）、`MergeWithNext`（下一段内容接到本段末尾、下一段删除，保留
+    **前**段的 `pPr`——Word 语义）。`SPAN-06` 的拆分 / 合并两行需要专用规则（从 `node_edits`
+    推导看不出"搬到哪个容器"）：`MutationPlan.span` 增加 `splits` / `merges`，拆分时 `index < k`
+    留在前段、`> k` 到后段的 `index - k`、`== k` 按 affinity（`Left` 留、`Right` 跟走），合并时
+    `index + len(前段)`；被搬走的内容项不计入"删除"。守卫：拆分点落在透明字段的 begin..end
+    之内 → `Err(EDIT_SPLIT_FIELD)`（否则字段跨段变成 `Block`），`Block` 字段的结果段落只读。
+  - **书签**：`AddBookmark`（`w:id` 按 `EDIT-06` 取 part 最大值 + 1，名字全文档唯一，空区间两端
+    同向）、`RemoveBookmark`（按名字删标记并在索引里作废）。
+  - **字段**：`InsertField`（`FLD-12` 五组 run，指令前后各一个空格 + `xml:space="preserve"`，
+    结构 run 带插入点的继承格式）、`SetLinkTarget`（`FLD-07`：只重写 `instrText`，第一个参数之后的
+    开关原文保留；指令拆在多个 `w:instrText` 里时首个写全量、其余清空）、`ToggleCheckbox` 与
+    `SetFormText`（`FLD-10`：改 `w:checked` / 结果 run，`w:ffData` 的 `default` 不动）、
+    `SetFieldResultProps`（`FLD-07`：只对结果 run 走 `PROP-06`）、`UpdateBlockField`（`FLD-09`
+    机制：`w:fldLock` → `Err(FLD_LOCKED)`；跨段字段按段落级替换、同段字段把新块的 inline 内联进去；
+    `mark_updated_fields_dirty` 打 `w:dirty`）。生成器（TOC 重算）仍在 M7。
+  - **compat**：`NewInline::Field` 让 `runsXml` 能重发字段类 run——`xeTerm` 发成没有 separate 的
+    `Marker` 字段，`refField` 用 `refInstr` **原文**发指令（`\r` `\h` 逐字保留）。保存语料
+    88 → **90 份等价**，跳过 70 → 68（剩下的 `instrField` / `fldBeginXml` 要 begin run 原字节，M7）。
+  - 测试 `tests/para_ops.rs` 16 个：段落拆分（段中 / 边界 / `SPAN-06` 锚点 / 透明字段拒绝）、
+    合并（保留前段 pPr / 锚点重定位 / 下一个块不是段落）、书签（`EDIT-06` 分配 / 重名拒绝 / 空书签 /
+    删除）、字段（`FLD-12` 五组 run 顺序与 `xml:space`、`SetLinkTarget` 保开关、复选框来回切、
+    FORMTEXT 保格式、结果格式只动结果、`UpdateBlockField` 与 `FLD_LOCKED`）。
 - [ ] 2.10 `fuzz_instr` 与 M2 门

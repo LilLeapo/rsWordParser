@@ -257,3 +257,219 @@ fn edit_03_remove_bookmark() {
     assert!(xml.contains(r#"w:name="two""#), "另一个不动: {xml}");
     assert!(xml.contains("ab") && xml.contains("cd"), "正文不动: {xml}");
 }
+
+// ---- 字段操作（`FLD-09`–`FLD-12`，任务 2.9）----------------------------------------------------
+
+use rsword::edit::{NewField, NewInline, NewRun};
+use rsword::semantic::props::{Change, RunPropsPatch};
+use rsword::span::FieldId;
+use rsword::span::field::{FormData, Keyword, read_form_data};
+
+fn field_id(s: &EditSession, keyword: &Keyword) -> FieldId {
+    s.document()
+        .fields
+        .fields()
+        .iter()
+        .find(|f| f.keyword() == keyword)
+        .unwrap_or_else(|| panic!("没有 {keyword:?} 字段"))
+        .id
+}
+
+/// `FLD-12` 验收行：插入 SEQ 字段后保存 → begin / instrText / separate / end 顺序与 `xml:space`。
+#[test]
+fn fld_12_insert_field_emits_the_five_runs_in_order() {
+    let mut s = session(r#"<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>ab</w:t></w:r></w:p>"#);
+    let p = para(&s, 0);
+    s.apply(
+        EditOp::InsertField {
+            at: InlinePos::new(p, 2),
+            field: NewField {
+                instr: "SEQ Figure \\* ARABIC".into(),
+                result: vec![NewInline::Run(NewRun::text("1"))],
+                mark_dirty: false,
+            },
+        },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let xml = saved_xml(&mut s);
+    let at = |needle: &str| xml.find(needle).unwrap_or_else(|| panic!("{needle} 不在: {xml}"));
+    let begin = at(r#"w:fldCharType="begin""#);
+    let instr = at("<w:instrText");
+    let sep = at(r#"w:fldCharType="separate""#);
+    let end = at(r#"w:fldCharType="end""#);
+    assert!(begin < instr && instr < sep && sep < end, "五组 run 顺序: {xml}");
+    assert!(
+        xml.contains(r#"<w:instrText xml:space="preserve"> SEQ Figure \* ARABIC </w:instrText>"#),
+        "指令前后各一个空格且带 preserve: {xml}"
+    );
+    // 结构 run 继承插入点的格式
+    assert!(xml[begin - 60..begin].contains("<w:b/>"), "begin run 继承 rPr: {xml}");
+    // 模型：字段进索引，坐标流里是一个原子
+    let f = s.document().fields.fields();
+    assert_eq!(f.len(), 1);
+    assert_eq!(*f[0].keyword(), Keyword::Seq);
+    assert!(f[0].is_atomic());
+    assert_eq!(s.document().text_blocks().next().unwrap().text(), "ab\u{FFFC}");
+}
+
+/// `FLD-07 Link` 验收行：`SetLinkTarget` 只改 instrText，字段形态与开关都留着。
+#[test]
+fn fld_07_set_link_target_only_rewrites_the_instruction() {
+    let mut s = session(concat!(
+        r#"<w:p><w:r><w:fldChar w:fldCharType="begin"/></w:r>"#,
+        r#"<w:r><w:instrText xml:space="preserve"> HYPERLINK "http://old/" \o "tip" </w:instrText></w:r>"#,
+        r#"<w:r><w:fldChar w:fldCharType="separate"/></w:r>"#,
+        r#"<w:r><w:rPr><w:color w:val="0000FF"/></w:rPr><w:t>点这里</w:t></w:r>"#,
+        r#"<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>"#
+    ));
+    let id = field_id(&s, &Keyword::Hyperlink);
+    s.apply(
+        EditOp::SetLinkTarget { field: id, target: "https://new.example/".into() },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let xml = saved_xml(&mut s);
+    assert!(xml.contains(r#" HYPERLINK "https://new.example/" \o "tip" "#), "{xml}");
+    assert!(!xml.contains("http://old/"), "{xml}");
+    assert_eq!(xml.matches("<w:fldChar").count(), 3, "还是字段形态: {xml}");
+    assert!(
+        xml.contains("点这里") && xml.contains(r#"<w:color w:val="0000FF"/>"#),
+        "结果不动: {xml}"
+    );
+    // 重开后目标已更新
+    let re = EditSession::open(&s.save().unwrap()).unwrap();
+    let f = &re.document().fields.fields()[0];
+    assert_eq!(f.instr.first_argument(), Some("https://new.example/"));
+    assert_eq!(f.instr.switch('o'), Some("tip"));
+}
+
+/// `FLD-10`：`ToggleCheckbox` 改 `w:checked`（不存在则插入），`w:default` 不动。
+#[test]
+fn fld_10_toggle_checkbox() {
+    let ff = concat!(
+        r#"<w:ffData><w:name w:val="Check1"/><w:enabled/><w:calcOnExit w:val="0"/>"#,
+        r#"<w:checkBox><w:sizeAuto/><w:default w:val="0"/></w:checkBox></w:ffData>"#
+    );
+    let body = format!(
+        concat!(
+            r#"<w:p><w:r><w:fldChar w:fldCharType="begin">{ff}</w:fldChar></w:r>"#,
+            r#"<w:r><w:instrText xml:space="preserve"> FORMCHECKBOX </w:instrText></w:r>"#,
+            r#"<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>"#
+        ),
+        ff = ff
+    );
+    let mut s = session(&body);
+    let id = field_id(&s, &Keyword::FormCheckBox);
+    let ctx = EditContext::default();
+    s.apply(EditOp::ToggleCheckbox { field: id }, &ctx).unwrap();
+    let xml = saved_xml(&mut s);
+    assert!(xml.contains(r#"<w:checked w:val="1"/>"#), "插入 checked: {xml}");
+    assert!(xml.contains(r#"<w:default w:val="0"/>"#), "default 不动: {xml}");
+    // 再切一次回到未选中
+    let mut re = EditSession::open(&s.save().unwrap()).unwrap();
+    let id = field_id(&re, &Keyword::FormCheckBox);
+    re.apply(EditOp::ToggleCheckbox { field: id }, &ctx).unwrap();
+    let xml = saved_xml(&mut re);
+    assert!(xml.contains(r#"<w:checked w:val="0"/>"#), "{xml}");
+    let dom_bytes = re.save().unwrap();
+    let mut pkg = Package::open(&dom_bytes).unwrap();
+    let main = pkg.main_part();
+    let dom = pkg.dom(main).unwrap().unwrap();
+    let f = rsword::span::FieldIndex::build(dom);
+    let ff = f.fields()[0].ff_data;
+    assert!(matches!(read_form_data(dom, ff), Some(FormData::CheckBox { checked: false, .. })));
+}
+
+/// `FLD-10`：`SetFormText` 改 FORMTEXT 的结果文字，格式沿用原结果 run。
+#[test]
+fn fld_10_set_form_text() {
+    let mut s = session(concat!(
+        r#"<w:p><w:r><w:fldChar w:fldCharType="begin"><w:ffData><w:name w:val="T1"/>"#,
+        r#"<w:textInput><w:default w:val="旧值"/></w:textInput></w:ffData></w:fldChar></w:r>"#,
+        r#"<w:r><w:instrText xml:space="preserve"> FORMTEXT </w:instrText></w:r>"#,
+        r#"<w:r><w:fldChar w:fldCharType="separate"/></w:r>"#,
+        r#"<w:r><w:rPr><w:i/></w:rPr><w:t>旧值</w:t></w:r>"#,
+        r#"<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>"#
+    ));
+    let id = field_id(&s, &Keyword::FormText);
+    s.apply(EditOp::SetFormText { field: id, text: "新值".into() }, &EditContext::default())
+        .unwrap();
+    let xml = saved_xml(&mut s);
+    assert!(xml.contains("新值") && !xml.contains("<w:t>旧值</w:t>"), "{xml}");
+    assert!(xml.contains("<w:i/>"), "结果格式保留: {xml}");
+    assert!(xml.contains(r#"<w:default w:val="旧值"/>"#), "ffData 的 default 不动: {xml}");
+}
+
+/// `FLD-06/07` 验收行：REF 结果两个 run 改格式后只重生成结果 run，结构 run 原字节。
+#[test]
+fn fld_07_set_field_result_props_only_touches_the_result() {
+    let mut s = session(concat!(
+        r#"<w:p><w:r><w:fldChar w:fldCharType="begin"/></w:r>"#,
+        r#"<w:r><w:instrText xml:space="preserve"> REF bm \h </w:instrText></w:r>"#,
+        r#"<w:r><w:fldChar w:fldCharType="separate"/></w:r>"#,
+        r#"<w:r><w:rPr><w:b/></w:rPr><w:t>粗</w:t></w:r><w:r><w:t>普通</w:t></w:r>"#,
+        r#"<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>"#
+    ));
+    let id = field_id(&s, &Keyword::Ref);
+    s.apply(
+        EditOp::SetFieldResultProps {
+            field: id,
+            patch: RunPropsPatch { italic: Change::Set(true), ..Default::default() },
+        },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let xml = saved_xml(&mut s);
+    assert_eq!(xml.matches("<w:i/>").count(), 2, "两个结果 run 都加了斜体: {xml}");
+    assert!(xml.contains("<w:b/>"), "原有的加粗保留: {xml}");
+    assert!(
+        xml.contains(r#"<w:instrText xml:space="preserve"> REF bm \h </w:instrText>"#),
+        "指令原字节: {xml}"
+    );
+    assert_eq!(xml.matches("<w:fldChar").count(), 3);
+}
+
+/// `FLD-09`：`UpdateBlockField` 换掉 `separate..end`；`w:fldLock` 的字段拒绝（`FLD_LOCKED`）。
+#[test]
+fn fld_09_update_block_field_and_lock() {
+    let toc = |lock: &str| {
+        format!(
+            concat!(
+                r#"<w:p><w:r><w:fldChar w:fldCharType="begin"{lock}/></w:r>"#,
+                r#"<w:r><w:instrText xml:space="preserve"> TOC \o "1-3" \h </w:instrText></w:r>"#,
+                r#"<w:r><w:fldChar w:fldCharType="separate"/></w:r>"#,
+                r#"<w:r><w:t>旧目录</w:t></w:r></w:p>"#,
+                r#"<w:p><w:r><w:t>旧目录第二行</w:t></w:r>"#,
+                r#"<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>"#
+            ),
+            lock = lock
+        )
+    };
+    // 带 fldLock：拒绝
+    let mut locked = session(&toc(r#" w:fldLock="true""#));
+    let id = field_id(&locked, &Keyword::Toc);
+    let err = locked
+        .apply(EditOp::UpdateBlockField { field: id, blocks: Vec::new() }, &EditContext::default())
+        .expect_err("fldLock 要拒绝");
+    assert_eq!(code(&err), Some(DiagCode::FldLocked));
+
+    // 不带：换掉结果区
+    let mut s = session(&toc(""));
+    let id = field_id(&s, &Keyword::Toc);
+    let block = rsword::edit::NewBlock::Paragraph {
+        props: None,
+        inlines: vec![NewInline::Run(NewRun::text("新目录"))],
+    };
+    let ctx = EditContext { mark_updated_fields_dirty: true, ..Default::default() };
+    s.apply(EditOp::UpdateBlockField { field: id, blocks: vec![block] }, &ctx).unwrap();
+    let xml = saved_xml(&mut s);
+    assert!(xml.contains("新目录"), "{xml}");
+    assert!(!xml.contains("旧目录"), "旧结果全删: {xml}");
+    assert!(
+        xml.contains(r#"<w:instrText xml:space="preserve"> TOC \o "1-3" \h </w:instrText>"#),
+        "指令原字节: {xml}"
+    );
+    assert!(xml.contains(r#"w:dirty="true""#), "mark_updated_fields_dirty: {xml}");
+    assert_eq!(xml.matches("<w:fldChar").count(), 3, "结构 run 都在: {xml}");
+}

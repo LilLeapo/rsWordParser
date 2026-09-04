@@ -77,8 +77,39 @@ pub enum NewInline {
         inlines: Vec<NewInline>,
     },
     Marker(NewMarker),
+    /// 复杂字段（`FLD-12`）：begin / `w:instrText` / [separate] / 结果 / end 五组 run。
+    ///
+    /// `instr` 是指令原文（生成时 trim 后前后各补一个空格，与 Word 一致）；`separate == false`
+    /// 时不发 separate 也不发结果（XE / TA 一类 `Marker` 策略字段就是这个形状）。
+    Field {
+        instr: String,
+        result: Vec<NewInline>,
+        separate: bool,
+        /// begin 的 `w:fldChar` 上打 `w:dirty="true"`。
+        dirty: bool,
+        /// 结构 run 的 `w:rPr`（compat 路径不带，`InsertField` 带插入点的继承格式）。
+        props: Option<NewElement>,
+    },
     /// 任意内联片段（`m:oMath`、带 `w:ruby` / `w:drawing` 的 `w:r` …）。
     Xml(NewElement),
+}
+
+impl NewInline {
+    /// 复杂字段的便捷构造（`separate` 与结果都有）。
+    pub fn field(instr: impl Into<String>, result: Vec<NewInline>) -> Self {
+        NewInline::Field { instr: instr.into(), result, separate: true, dirty: false, props: None }
+    }
+
+    /// 没有结果区的字段（XE / TA 一类）。
+    pub fn marker_field(instr: impl Into<String>) -> Self {
+        NewInline::Field {
+            instr: instr.into(),
+            result: Vec::new(),
+            separate: false,
+            dirty: false,
+            props: None,
+        }
+    }
 }
 
 fn w(local: LocalName) -> QName {
@@ -263,6 +294,37 @@ impl Emitter {
                     e.push_child(k);
                 }
                 out.push(e);
+            }
+            NewInline::Field { instr, result, separate, dirty, props } => {
+                let fld = |kind: &str, dirty: bool| {
+                    let mut e = NewElement::new(w(LocalName::FldChar))
+                        .with_attr(w(LocalName::FldCharType), kind);
+                    if dirty {
+                        e.push_attr(w(LocalName::Dirty), "true");
+                    }
+                    e
+                };
+                let structural = |child: NewElement| {
+                    let mut r = NewElement::new(w(LocalName::R));
+                    if let Some(p) = props {
+                        r.push_child(p.clone());
+                    }
+                    r.push_child(child);
+                    r
+                };
+                out.push(structural(fld("begin", *dirty)));
+                out.push(structural(
+                    NewElement::new(w(LocalName::InstrText))
+                        .with_attr(QName::new(NsId::Xml, LocalName::Space), "preserve")
+                        .with_text(format!(" {} ", instr.trim())),
+                ));
+                if *separate {
+                    out.push(structural(fld("separate", false)));
+                    for i in result {
+                        self.emit(i, deleted, out);
+                    }
+                }
+                out.push(structural(fld("end", false)));
             }
             NewInline::Marker(m) => out.push(marker(m)),
             NewInline::Xml(e) => out.push(e.clone()),

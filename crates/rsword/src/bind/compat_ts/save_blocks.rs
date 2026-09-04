@@ -904,9 +904,32 @@ impl Planner<'_> {
             out.push(NewInline::Xml(r));
             return Ok(());
         }
-        for k in ["refField", "instrField", "xeTerm", "fldBeginXml"] {
+        // `FLD-12`：字段类 run 重新发成 begin / instrText / [separate] / 结果 / end
+        if let Some(term) = s_of(run, "xeTerm") {
+            // XE 是 `Marker` 策略：没有 separate 也没有结果
+            out.push(NewInline::marker_field(format!(r#"XE "{term}""#)));
+            return Ok(());
+        }
+        if run.get("refField").is_some_and(|v| !v.is_null()) {
+            // 指令原文照发（`\r` `\h` 等开关必须逐字保留，`docs/03` §13）
+            let instr = s_of(run, "refInstr")
+                .map(str::to_string)
+                .unwrap_or_else(|| format!("REF {}", s_of(run, "refField").unwrap_or_default()));
+            let text = s_of(run, "text").unwrap_or_default();
+            let props = self.run_props(run, inside_link)?;
+            let result = if text.is_empty() {
+                Vec::new()
+            } else {
+                vec![NewInline::Run(NewRun { text: text.to_string(), props })]
+            };
+            out.push(NewInline::field(instr, result));
+            return Ok(());
+        }
+        for k in ["instrField", "fldBeginXml"] {
             if run.get(k).is_some_and(|v| !v.is_null()) {
-                return Err(unsupported(format!("run.{k}：字段生成（FLD-12）在 M2")));
+                return Err(unsupported(format!(
+                    "run.{k}：表单域 / 简单内联字段的重发要 begin run 原字节（M7）"
+                )));
             }
         }
         if run.get("rPrChange").is_some_and(|v| !v.is_null()) {
