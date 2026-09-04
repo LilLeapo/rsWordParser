@@ -3,21 +3,43 @@
 //! 有未知差异时退出码 1（CI 门 `TEST-10`）。
 //!
 //! ```text
-//! diff-parse [--corpus DIR] [--scope text|all] [--known FILE] [--doc PREFIX] [--show N] [--json]
+//! diff-parse [--corpus DIR] [--scope text|fields|all] [--known FILE] [--doc PREFIX] [--show N] [--json]
 //! ```
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use rsword::bind::compat_ts::{
-    Report, diff_json, is_text_case, known_diffs, parse_known_diffs, parsed_doc, split_known,
+    Report, diff_json, is_span_field_case, is_text_case, known_diffs, parse_known_diffs,
+    parsed_doc, split_known,
 };
 use rsword::package::Package;
 use serde_json::{Value, json};
 
+/// 差分的取样范围（`TEST-10` 的里程碑门）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Scope {
+    /// M1 门：纯文本段落用例。
+    Text,
+    /// M2 门：文本域 + 字段 / 范围标记 / 批注 / 注释（文本域的超集）。
+    Fields,
+    /// 全部语料。
+    All,
+}
+
+impl Scope {
+    fn as_str(self) -> &'static str {
+        match self {
+            Scope::Text => "text",
+            Scope::Fields => "fields",
+            Scope::All => "all",
+        }
+    }
+}
+
 struct Args {
     corpus: PathBuf,
-    scope_text: bool,
+    scope: Scope,
     known: Option<PathBuf>,
     doc_prefix: Option<String>,
     show: usize,
@@ -26,7 +48,8 @@ struct Args {
 
 fn usage() -> ! {
     eprintln!(
-        "用法: diff-parse [--corpus DIR] [--scope text|all] [--known KNOWN_DIFFS.md] [--doc PREFIX] [--show N] [--json]\n\
+        "用法: diff-parse [--corpus DIR] [--scope text|fields|all] [--known KNOWN_DIFFS.md] [--doc PREFIX] [--show N] [--json]\n\
+         scope: text = M1 门（纯文本段落），fields = M2 门（再加字段 / 范围 / 批注），all = 全部语料\n\
          缺省 corpus = <仓库根>/corpus/synthetic，scope = all，known = 编进库里的 KNOWN_DIFFS.md，show = 3"
     );
     std::process::exit(2)
@@ -35,7 +58,7 @@ fn usage() -> ! {
 fn parse_args() -> Args {
     let mut a = Args {
         corpus: repo_root().join("corpus/synthetic"),
-        scope_text: false,
+        scope: Scope::All,
         known: None,
         doc_prefix: None,
         show: 3,
@@ -46,9 +69,10 @@ fn parse_args() -> Args {
         match arg.as_str() {
             "--corpus" => a.corpus = PathBuf::from(it.next().unwrap_or_else(|| usage())),
             "--scope" => {
-                a.scope_text = match it.next().as_deref() {
-                    Some("text") => true,
-                    Some("all") => false,
+                a.scope = match it.next().as_deref() {
+                    Some("text") => Scope::Text,
+                    Some("fields") => Scope::Fields,
+                    Some("all") => Scope::All,
                     _ => usage(),
                 }
             }
@@ -134,7 +158,12 @@ fn main() -> ExitCode {
                 continue;
             }
         };
-        if args.scope_text && !is_text_case(&expected) {
+        let in_scope = match args.scope {
+            Scope::Text => is_text_case(&expected),
+            Scope::Fields => is_span_field_case(&expected),
+            Scope::All => true,
+        };
+        if !in_scope {
             skipped_scope += 1;
             continue;
         }
@@ -166,7 +195,7 @@ fn main() -> ExitCode {
             .collect();
         let out = json!({
             "corpus": args.corpus.to_string_lossy(),
-            "scope": if args.scope_text { "text" } else { "all" },
+            "scope": args.scope.as_str(),
             "docs": report.docs, "docsWithUnknown": report.docs_with_unknown,
             "known": report.known, "unknown": report.unknown,
             "skippedByScope": skipped_scope, "noExpected": no_expected, "failedOpen": failed_open,
@@ -177,7 +206,7 @@ fn main() -> ExitCode {
         println!(
             "diff-parse: {} 份文档（scope {}），{} 处已知差异，{} 处未知差异（{} 份文档）；范围外 {}，无 expected {}，打开失败 {}",
             report.docs,
-            if args.scope_text { "text" } else { "all" },
+            args.scope.as_str(),
             report.known,
             report.unknown,
             report.docs_with_unknown,

@@ -32,3 +32,10 @@ path = "fuzz_targets/fuzz_zip.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "fuzz_instr"
+path = "fuzz_targets/fuzz_instr.rs"
+test = false
+doc = false
+bench = false

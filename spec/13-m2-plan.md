@@ -9,6 +9,8 @@
 目标：范围标记与字段进入规范状态，编辑操作能正确变换它们；含字段的段落可编辑。
 
 CI 门（`spec/11` TEST-10）：字段与 Span 域的 `synthetic` diff 为 0；`fuzz_instr` 10 分钟无崩溃。
+**两条都已达成**（2026-09-05）：`diff-parse --scope fields` 253 份文档 0 未知差异（`.github/workflows/ci.yml`
+里是一步），`fuzz_instr` 13,572,886 次执行 / 601 秒无崩溃（`fuzz.yml` 的 matrix 里）。
 
 | # | 任务 | 规范 | DoD |
 | --- | --- | --- | --- |
@@ -21,7 +23,7 @@ CI 门（`spec/11` TEST-10）：字段与 Span 域的 `synthetic` diff 为 0；`
 | 2.7 ✅ | 符号字体解码（`w:sym` 与符号字体 run 的文本映射） | RES-05 | 删掉 `KNOWN_DIFFS.md` 里整份放行的 `symbol-fonts__*` |
 | 2.8 ◐ | `EDIT-06` id 分配落地（`rId` 完成，批注 / 书签 / `paraId` 随 2.6 / 2.9）：`rId`（新外链）、书签 `w:id`、批注 `w:id`、修订 `w:id` 预留、`w14:paraId` | EDIT-06 | 验收清单 EDIT-06；`insert-and-layout__001.save.10`（新超链接关系）通过 |
 | 2.9 | 字段与段落操作：`InsertField`、`SetFieldResultProps`、`ToggleCheckbox`、`SetFormText`、`SetLinkTarget`、`UpdateBlockField`、`SplitParagraph`、`MergeWithNext`、`AddBookmark` / `RemoveBookmark` | FLD-09–FLD-12, EDIT-03 | 各操作的验收行；跨段透明字段拆分返回 `Err(EDIT_SPLIT_FIELD)` |
-| 2.10 | `fuzz_instr` 目标与 M2 门接入 CI | TEST-06, TEST-10 | 指令解析 10 分钟无崩溃；`diff-parse` 字段与 Span 域 0 未知差异 |
+| 2.10 ✅ | `fuzz_instr` 目标与 M2 门接入 CI | TEST-06, TEST-10 | 指令解析 10 分钟无崩溃（实跑 1,357 万次执行）；`diff-parse --scope fields` 253 份 0 未知差异 |
 
 `compare`（`SPAN-05`）原计划在 2.2，实际随 2.1 落地——"起在终前"是索引自己的验收项，绕不开它。
 

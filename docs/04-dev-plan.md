@@ -598,4 +598,14 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
     合并（保留前段 pPr / 锚点重定位 / 下一个块不是段落）、书签（`EDIT-06` 分配 / 重名拒绝 / 空书签 /
     删除）、字段（`FLD-12` 五组 run 顺序与 `xml:space`、`SetLinkTarget` 保开关、复选框来回切、
     FORMTEXT 保格式、结果格式只动结果、`UpdateBlockField` 与 `FLD_LOCKED`、`w:hyperlink` 元素的目标来回改）。
-- [ ] 2.10 `fuzz_instr` 与 M2 门
+- [x] **2.10 `fuzz_instr` 与 M2 门**（`fuzz/fuzz_targets/fuzz_instr.rs`、`bind/compat_ts/diff.rs`、
+  `tools/diff-parse`、`.github/workflows/*`）：`TEST-06` 的第三个目标——任意字符串当字段指令，
+  除了"不 panic"还断言四条不变式（`raw` 一字不改、token 文本总量不超过原文、`Nested` 只引用给定的
+  字段 id、`Unknown` 关键字规范化为大写），并顺带跑策略表与只读访问器。实跑
+  **13,572,886 次执行 / 601 秒无崩溃**（约 2.26 万次/秒）。种子语料手写 16 个（各种开关、
+  引号转义与未闭合引号、嵌套占位、空指令、小写关键字）；跑一轮会往同一目录写几百到上万个覆盖
+  单元，那些不提交（`fuzz/README.md` 写明）。
+  `TEST-10` 的 M2 门：`diff-parse` 增加 `--scope fields`——`is_span_field_case` 是文本域的**超集**，
+  再放开字段、范围标记、批注与注释引用，仍排除后续里程碑的图片 / 公式 / ruby / 文本框 / 表格 /
+  页眉页脚 / 参考文献。当前 **253 份文档 0 未知差异**（文本域 226 份）。CI 加一步
+  `--scope fields`，fuzz workflow 的 matrix 加 `fuzz_instr`。

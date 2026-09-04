@@ -6,11 +6,11 @@
 ## 结论
 
 **M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖），**已全部并入 `main`**（2026-09-04）。
-**M2 进行中**（分支 `m2-span-fields`）：2.1 Span 索引、2.2 Anchor 变换、2.3 物化与保存校验、
-2.4 字段子系统、2.5 字段进模型与 compat、**2.6 批注与注释**（读侧 + 三个编辑操作 + `SAVE-05` 新建
-part + compat 权威条目列表）、2.7 符号字体解码、
-2.8 的 `rId` 分配、**2.9 段落 / 书签 / 字段操作**已落地（只剩 2.10 的 fuzz 与 CI 门）；任务分解见
-`spec/13-m2-plan.md`，进度清单见 `docs/04` §11。
+**M2 完成**（分支 `m2-span-fields`，2.1–2.10 全部落地，M2 门两条都跑过；尚未并入 `main`）：
+Span 索引与 Anchor 变换 / 物化（2.1–2.3）、字段子系统与它的模型 / compat（2.4–2.5）、
+批注与注释（2.6：读侧 + 三个编辑操作 + `SAVE-05` 新建 part + compat 权威条目列表）、
+符号字体（2.7）、`rId` 分配（2.8）、段落 / 书签 / 字段操作（2.9）、`fuzz_instr` 与 M2 门（2.10）。
+任务分解见 `spec/13-m2-plan.md`，逐条进度见 `docs/04` §11。下一个里程碑是 **M3（表格）**。
 
 现在这套代码能：打开任意语料文档、输出与 TS 兼容的 `ParsedDoc` JSON、在文本段落上做插入 / 删除 / 改
 run 属性 / 改段落属性 / 整段替换、把 TS 的 `SaveBlock[]` 保存请求翻成编辑操作、以字节级局部补丁写回，
@@ -68,6 +68,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 模型对照 | 445 段类型 / styleId、387 段坐标流文本、22 项列表、9 项级别 | `tests/model.rs` |
 | resolve 对照 | 86,465 项 `StyleDisplay`、2,326 项 heading 级别、2,897 项 linked shell | `tests/resolve.rs` |
 | 解析差分（文本域） | 226 份用例（2.6 起含带批注 / 注释的文档），160 处已登记差异，**0 处未知差异** | `cargo run -p diff-parse -- --scope text` |
+| 解析差分（字段与 Span 域，M2 门） | 253 份用例（文本域 + 字段 / 标记 / 批注 / 注释），**0 处未知差异** | `cargo run -p diff-parse -- --scope fields` |
 | 解析差分（全域） | 573 份里 295 份有未知差异、1,666 个差异点（M3–M6 的工作面） | `cargo run -p diff-parse -- --scope all` |
 | 保存差分 | 162 份 TS 保存用例：90 份与 `saveDocx` 等价（其中 41 份逐字节相同）、4 份有意不同、68 份跳过 | `tests/save_blocks.rs` |
 | 范围索引 | 573 份 / 3012 个 part 的 31 个标记全部成对认领 → 19 个范围（书签 7、批注 12）；1 处孤儿终点 | `tests/span.rs` |
@@ -114,8 +115,10 @@ M5 约 48（页眉页脚 / 节 / 水印 / 墨迹）、M4/M6 约 20（图片与�
 
 ```sh
 cargo fmt --all --check && cargo clippy --workspace --all-targets   # 零告警
-cargo test --workspace && cargo test --workspace --release          # 163 个测试，两种构建
+cargo test --workspace && cargo test --workspace --release          # 258 个测试，两种构建
 cargo run -p diff-parse -- --scope text                             # M1 门第一条：0 未知差异
+cargo run -p diff-parse -- --scope fields                           # M2 门：字段与 Span 域 0 未知差异
+cd fuzz && cargo +nightly fuzz run fuzz_instr -- -max_total_time=600 # M2 门：指令 tokenizer 无崩溃
 cargo test -p rsword --test edit                                    # M1 门第二条：其他条目 CRC 不变
 cargo test -p rsword --test save_validate                           # M1 门第三条：Strict 改字仍 Strict
 cargo test -p rsword --test save_blocks -- --nocapture              # 保存差分明细与跳过原因
