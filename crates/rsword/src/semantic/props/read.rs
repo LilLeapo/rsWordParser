@@ -4,10 +4,10 @@ use std::borrow::Cow;
 
 use crate::diag::{DiagCode, Diagnostic};
 use crate::package::PartFlavor;
-use crate::semantic::props::NewElement;
 use crate::semantic::props::codec::Codec;
 use crate::xml::dom::{Dom, NodeId};
 use crate::xml::names::{LocalName, NsId, QName};
+use crate::xml::plan::{NewElement, NodeEdit, Target};
 
 /// `w:val`。
 pub const W_VAL: QName = QName::new(NsId::W, LocalName::Val);
@@ -116,4 +116,65 @@ pub const fn spell(flavor: PartFlavor, strict: QName, legacy: Option<QName>) -> 
 /// `Cow<str>` 的辅助：把 `&'static str` 借出。
 pub(crate) fn lit(s: &'static str) -> Cow<'static, str> {
     Cow::Borrowed(s)
+}
+
+// ---- plan_apply 的三种字段落地（PROP-06 第 2、3、6 步）------------------------------------------
+
+/// 单值字段 `Set`：已有 → 原位替换（多余的重复元素删掉）；没有 → 插到 `anchor` 之前。
+pub(crate) fn plan_single(
+    existing: &[NodeId],
+    anchor: Option<NodeId>,
+    mut nodes: Vec<NewElement>,
+    container: NodeId,
+    out: &mut Vec<NodeEdit>,
+) {
+    let Some(node) = nodes.pop() else { return };
+    match existing.split_first() {
+        Some((&old, extra)) => {
+            out.push(NodeEdit::Replace { old, node });
+            out.extend(extra.iter().map(|&n| NodeEdit::Delete(n)));
+        }
+        None => {
+            out.push(NodeEdit::Insert { parent: Target::Node(container), before: anchor, node })
+        }
+    }
+}
+
+/// `multi` 字段 `Set`：整体替换——删掉全部旧元素，新列表插在第一个旧元素的位置（没有旧的则按序号）。
+pub(crate) fn plan_multi(
+    existing: &[NodeId],
+    anchor: Option<NodeId>,
+    nodes: Vec<NewElement>,
+    container: NodeId,
+    out: &mut Vec<NodeEdit>,
+) {
+    let before = existing.first().copied().or(anchor);
+    out.extend(existing.iter().map(|&n| NodeEdit::Delete(n)));
+    out.extend(nodes.into_iter().map(|node| NodeEdit::Insert {
+        parent: Target::Node(container),
+        before,
+        node,
+    }));
+}
+
+/// `Raw` 字段 `Set(node)`：克隆 `source` 子树到位。
+pub(crate) fn plan_raw(
+    existing: &[NodeId],
+    anchor: Option<NodeId>,
+    source: Option<NodeId>,
+    container: NodeId,
+    out: &mut Vec<NodeEdit>,
+) {
+    let Some(source) = source else { return };
+    match existing.split_first() {
+        Some((&old, extra)) => {
+            out.push(NodeEdit::ReplaceClone { old, source });
+            out.extend(extra.iter().map(|&n| NodeEdit::Delete(n)));
+        }
+        None => out.push(NodeEdit::InsertClone {
+            parent: Target::Node(container),
+            before: anchor,
+            source,
+        }),
+    }
 }

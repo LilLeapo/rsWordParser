@@ -76,6 +76,19 @@ codec 列的解析顺序：内建标量（见下表）→ `types.toml` 的枚举
 | `Str` | `String` | 原文 |
 | `Int` / `UInt` | `Val<i32>` / `Val<u32>` | `ST_DecimalNumber` / 无符号 |
 
+## 生成的函数（每张表）
+
+| 函数 | 作用 |
+| --- | --- |
+| `read_x(dom, container, &mut diags) -> X` | 读取；未建模子元素进 `raw_unmodeled` |
+| `read_x_change(dom, container, &mut diags)` | `*PrChange` 里的旧值快照（有 `change` 的表才生成） |
+| `diff_x(&a, &b) -> XPatch` | 变更集；嵌套表两侧都有时给 `TableChange::Patch` |
+| `apply_x_patch(&mut v, &patch)` | 把 patch 施加到值上 |
+| `emit_x(&v, flavor) -> NewElement` / `emit_x_value(&v, field, flavor)` | 按 codec 生成整容器 / 单字段元素 |
+| `plan_apply_x(dom, parent, container, &patch, flavor) -> Vec<NodeEdit>` | `PROP-06` 合并写回计划，`Dom::apply_edits` 执行 |
+| `order_index_x(name) -> Option<u16>` | schema 序号 |
+| `X_FIELDS` / `X` (`TableInfo`) / `XField` | 元数据与字段枚举 |
+
 ## 校验
 
 生成器在构建时检查：字段名是合法 snake_case 且不重复；每个元素都在 `order` 里且不重复建模；

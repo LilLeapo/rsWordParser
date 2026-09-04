@@ -5,7 +5,8 @@
 //!
 //! - [`Val`]：解析失败时保留原文的值（`PROP-09`）；
 //! - [`Change`] / [`TableChange`]：patch 的字段变更（`PROP-06`）；
-//! - [`NewElement`]：按 codec 生成的新元素描述，`plan_apply`（任务 1.3）把它落成 `New` 节点；
+//! - [`NewElement`] / [`NodeEdit`]（定义在 `xml::plan`）：codec 生成的新元素描述与 `plan_apply_*`
+//!   产出的机械变更，`Dom::apply_edits` 执行；
 //! - [`FieldInfo`] / [`TableInfo`] / [`AttrInfo`]：表元数据，供合并算法与工具泛型使用。
 //!
 //! 与 `PROP-07` 措辞的差别：`read_*` 多一个 `&mut Vec<Diagnostic>` 参数收集 `PROP_BAD_VALUE`；
@@ -17,12 +18,14 @@ use crate::diag::Diagnostic;
 use crate::package::PartFlavor;
 use crate::xml::dom::{Dom, NodeId};
 use crate::xml::names::{LocalName, NsId, QName};
+pub use crate::xml::plan::{NewElement, NewNode, NodeEdit, Target};
 
 pub mod codec;
 mod read;
 
 pub use codec::{Codec, HexColorOrAuto};
 pub use read::{Ctx, emit_val, read_attr, read_val, spell};
+use read::{plan_multi, plan_raw, plan_single};
 
 /// 解析结果（`PROP-09`）：能理解的值，或原文。比较按 `derive` 语义（`Raw` 与任何 `Value` 不等），
 /// 写回时 `Raw` 原文输出，保证读到什么就能写回什么。
@@ -172,49 +175,6 @@ impl<T, P: PropsPatch> TableChange<T, P> {
             TableChange::Patch(p) if p.is_empty() => ChangeKind::Keep,
             TableChange::Patch(_) => ChangeKind::Patch,
         }
-    }
-}
-
-/// 待创建的元素：codec 的输出，与 DOM 无关。`plan_apply` / `commit` 用 [`NewElement::materialize`]
-/// 落成 `New` 节点（`XML-12`），命名空间声明由序列化按作用域补（`XML-14`）。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NewElement {
-    pub name: QName,
-    /// 按生成顺序；值已是解码后的文本，序列化时再转义。
-    pub attrs: Vec<(QName, String)>,
-    pub children: Vec<NewElement>,
-}
-
-impl NewElement {
-    pub fn new(name: QName) -> Self {
-        Self { name, attrs: Vec::new(), children: Vec::new() }
-    }
-
-    pub fn push_attr(&mut self, name: QName, value: impl Into<String>) {
-        self.attrs.push((name, value.into()));
-    }
-
-    pub fn with_attr(mut self, name: QName, value: impl Into<String>) -> Self {
-        self.push_attr(name, value);
-        self
-    }
-
-    pub fn with_child(mut self, child: NewElement) -> Self {
-        self.children.push(child);
-        self
-    }
-
-    /// 在 `dom` 里创建游离的 `New` 子树，返回根节点。
-    pub fn materialize(&self, dom: &mut Dom) -> NodeId {
-        let id = dom.new_element(self.name);
-        for (name, value) in &self.attrs {
-            dom.set_attr(id, *name, value.clone());
-        }
-        for child in &self.children {
-            let c = child.materialize(dom);
-            dom.append_child(id, c);
-        }
-        id
     }
 }
 

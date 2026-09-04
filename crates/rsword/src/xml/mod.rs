@@ -18,6 +18,7 @@ pub mod mce;
 pub mod names;
 pub mod ns;
 pub mod parse;
+pub mod plan;
 
 pub use dom::{Attr, AttrValue, Dom, Element, Mce, MceRole, Node, NodeId, NodeKind, TextValue};
 pub use interner::{Interned, Interner};
@@ -26,6 +27,7 @@ pub use mce::{DEFAULT_UNDERSTOOD, SemanticChildren};
 pub use names::{LocalName, NsId, QName};
 pub use ns::{PrefixUse, Scope};
 pub use parse::{RootInfo, XmlError, sniff_root};
+pub use plan::{NewElement, NewNode, NodeEdit, Target};
 
 /// `XML-08`：迭代解析的深度上限。POI 5000 层嵌套表格必须成功。
 pub const MAX_DEPTH: u32 = 100_000;

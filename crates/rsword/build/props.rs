@@ -906,7 +906,9 @@ fn gen_table(out: &mut String, t: &Table) {
     writeln!(out, "pub fn emit_{snake}(v: &{name}, flavor: PartFlavor) -> NewElement {{").unwrap();
     writeln!(out, "    let mut e = NewElement::new({});", t.element.expr()).unwrap();
     writeln!(out, "    for f in {field_enum}::ALL {{").unwrap();
-    writeln!(out, "        e.children.extend(emit_{snake}_value(v, *f, flavor));").unwrap();
+    writeln!(out, "        for c in emit_{snake}_value(v, *f, flavor) {{").unwrap();
+    writeln!(out, "            e.push_child(c);").unwrap();
+    writeln!(out, "        }}").unwrap();
     writeln!(out, "    }}\n    e\n}}\n").unwrap();
 
     writeln!(out, "/// 字段当前值对应的新元素（`None` / 空列表 / `Raw` 字段 → 空）。").unwrap();
@@ -921,6 +923,119 @@ fn gen_table(out: &mut String, t: &Table) {
         }
     }
     writeln!(out, "    }}\n}}\n").unwrap();
+
+    gen_plan(out, t);
+}
+
+/// `apply_*_patch`（patch 施加到值）与 `plan_apply_*`（PROP-06 合并写回，只产出 `NodeEdit`）。
+fn gen_plan(out: &mut String, t: &Table) {
+    let name = &t.name;
+    let snake = &t.snake;
+    let field_enum = format!("{name}Field");
+    let patch = format!("{name}Patch");
+
+    writeln!(
+        out,
+        "/// 把 patch 施加到值上：`Keep` 不动、`Unset` 清空、`Set` 替换、嵌套 `Patch` 递归。"
+    )
+    .unwrap();
+    writeln!(out, "#[allow(clippy::clone_on_copy)]").unwrap();
+    writeln!(out, "pub fn apply_{snake}_patch(v: &mut {name}, p: &{patch}) {{").unwrap();
+    for f in &t.fields {
+        let n = &f.name;
+        let line = match (&f.kind, f.multi) {
+            (Kind::Table(t2), false) => format!(
+                "    match &p.{n} {{ TableChange::Keep => {{}}, TableChange::Unset => v.{n} = None, TableChange::Set(x) => v.{n} = Some(x.clone()), TableChange::Patch(sp) => apply_{}_patch(v.{n}.get_or_insert_with(Default::default), sp) }}",
+                self::snake(t2)
+            ),
+            (_, true) => format!(
+                "    match &p.{n} {{ Change::Keep => {{}}, Change::Unset => v.{n}.clear(), Change::Set(x) => v.{n} = x.clone() }}"
+            ),
+            (_, false) => format!(
+                "    match &p.{n} {{ Change::Keep => {{}}, Change::Unset => v.{n} = None, Change::Set(x) => v.{n} = Some(x.clone()) }}"
+            ),
+        };
+        writeln!(out, "{line}").unwrap();
+    }
+    writeln!(out, "}}\n").unwrap();
+
+    writeln!(out, "/// `PROP-06` 合并写回：只产出计划，不改 DOM。先把 patch 施加到当前值再 diff，所以 `Set` 同值是空计划。").unwrap();
+    writeln!(
+        out,
+        "/// `container` 缺席且有效变更非空 → 新容器插为 `parent` 的第一个语义子节点之前。"
+    )
+    .unwrap();
+    writeln!(
+        out,
+        "pub fn plan_apply_{snake}(dom: &Dom, parent: NodeId, container: Option<NodeId>, patch: &{patch}, flavor: PartFlavor) -> Vec<NodeEdit> {{"
+    )
+    .unwrap();
+    writeln!(out, "    let mut out = Vec::new();").unwrap();
+    writeln!(out, "    let before = dom.semantic_children(parent).next();").unwrap();
+    writeln!(out, "    plan_apply_{snake}_at(dom, Target::Node(parent), container, before, patch, flavor, &mut out);").unwrap();
+    writeln!(out, "    out\n}}\n").unwrap();
+
+    writeln!(out, "#[allow(clippy::too_many_arguments)]").unwrap();
+    writeln!(
+        out,
+        "pub(crate) fn plan_apply_{snake}_at(dom: &Dom, parent: Target, container: Option<NodeId>, before: Option<NodeId>, patch: &{patch}, flavor: PartFlavor, out: &mut Vec<NodeEdit>) {{"
+    )
+    .unwrap();
+    writeln!(out, "    let mut sink = Vec::new();").unwrap();
+    writeln!(out, "    let current = read_{snake}_in(container, &mut Ctx::new(dom, &mut sink));")
+        .unwrap();
+    writeln!(out, "    let mut desired = current.clone();").unwrap();
+    writeln!(out, "    apply_{snake}_patch(&mut desired, patch);").unwrap();
+    writeln!(out, "    let eff = diff_{snake}(&current, &desired);").unwrap();
+    writeln!(out, "    if eff.is_empty() {{\n        return;\n    }}").unwrap();
+    writeln!(out, "    let Some(c) = container else {{").unwrap();
+    let raw_fields: Vec<&Field> = t.fields.iter().filter(|f| matches!(f.kind, Kind::Raw)).collect();
+    if raw_fields.is_empty() {
+        writeln!(out, "        out.push(NodeEdit::Insert {{ parent, before, node: emit_{snake}(&desired, flavor) }});").unwrap();
+    } else {
+        writeln!(out, "        let k = out.len();").unwrap();
+        writeln!(out, "        out.push(NodeEdit::Insert {{ parent, before, node: emit_{snake}(&desired, flavor) }});").unwrap();
+        for f in &raw_fields {
+            writeln!(out, "        if let Some(src) = desired.{} {{", f.name).unwrap();
+            writeln!(out, "            out.push(NodeEdit::InsertClone {{ parent: Target::New(k), before: None, source: src }});").unwrap();
+            writeln!(out, "        }}").unwrap();
+        }
+    }
+    writeln!(out, "        return;\n    }};").unwrap();
+    writeln!(out, "    let kids: Vec<(NodeId, QName)> = dom.semantic_children(c).filter_map(|n| dom.name(n).map(|q| (n, q))).collect();").unwrap();
+    writeln!(out, "    let anchor = |order: u16| kids.iter().find(|(_, q)| order_index_{snake}(*q).is_some_and(|i| i > order)).map(|(n, _)| *n);").unwrap();
+    writeln!(out, "    for f in {field_enum}::ALL {{").unwrap();
+    writeln!(out, "        let info = f.info();").unwrap();
+    writeln!(out, "        let existing: Vec<NodeId> = kids.iter().filter(|(_, q)| *q == info.element || Some(*q) == info.legacy).map(|(n, _)| *n).collect();").unwrap();
+    writeln!(out, "        match eff.kind(*f) {{").unwrap();
+    writeln!(out, "            ChangeKind::Keep => {{}}").unwrap();
+    writeln!(out, "            ChangeKind::Unset => out.extend(existing.iter().map(|&n| NodeEdit::Delete(n))),").unwrap();
+    writeln!(out, "            ChangeKind::Set | ChangeKind::Patch => match f {{").unwrap();
+    for f in &t.fields {
+        let v = &f.variant;
+        let line = match (&f.kind, f.multi) {
+            (Kind::Raw, _) => format!(
+                "                {field_enum}::{v} => plan_raw(&existing, anchor(info.order), desired.{}, c, out),",
+                f.name
+            ),
+            (Kind::Table(t2), false) => {
+                let s2 = self::snake(t2);
+                format!(
+                    "                {field_enum}::{v} => match &eff.{n} {{ TableChange::Set(x) => plan_apply_{s2}_at(dom, Target::Node(c), existing.first().copied(), anchor(info.order), &diff_{s2}(&Default::default(), x), flavor, out), TableChange::Patch(sp) => plan_apply_{s2}_at(dom, Target::Node(c), existing.first().copied(), anchor(info.order), sp, flavor, out), _ => {{}} }},",
+                    n = f.name
+                )
+            }
+            (_, true) => format!(
+                "                {field_enum}::{v} => plan_multi(&existing, anchor(info.order), eff.emit_field(*f, flavor), c, out),"
+            ),
+            (_, false) => format!(
+                "                {field_enum}::{v} => plan_single(&existing, anchor(info.order), eff.emit_field(*f, flavor), c, out),"
+            ),
+        };
+        writeln!(out, "{line}").unwrap();
+    }
+    writeln!(out, "            }},").unwrap();
+    writeln!(out, "        }}\n    }}\n}}\n").unwrap();
 }
 
 fn gen_index(out: &mut String, tables: &[Table]) {

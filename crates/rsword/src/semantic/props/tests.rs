@@ -4,6 +4,7 @@ use super::*;
 use crate::diag::DiagCode;
 use crate::package::PartId;
 use crate::save::serialize;
+use crate::xml::Dirty;
 
 const W_T: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const W_S: &str = "http://purl.oclc.org/ooxml/wordprocessingml/main";
@@ -192,7 +193,7 @@ fn prop_07_read_emit_read_roundtrip_and_unmodeled() {
 
     // 生成顺序 = schema 顺序（PROP-05）
     let names: Vec<String> =
-        e.children.iter().map(|c| c.name.display(d2.interner()).to_string()).collect();
+        e.child_elements().map(|c| c.name.display(d2.interner()).to_string()).collect();
     assert_eq!(names, ["w:rStyle", "w:b", "w:bCs", "w:i", "w:color", "w:sz", "w:u"]);
 }
 
@@ -384,17 +385,19 @@ fn prop_08_nested_tables_sub_tables_and_multi() {
     assert_eq!(same.kind(ParaPropsField::Rpr), ChangeKind::Keep);
 }
 
-/// PROP-07 每行往返：样本里每个非 Raw 字段都有值，emit → materialize → read 全等。
-#[test]
-fn prop_07_every_para_props_row_roundtrips() {
-    let border = |v: BorderStyle, sz: u32| Border {
+fn border(v: BorderStyle, sz: u32) -> Border {
+    Border {
         val: Some(Val::Value(v)),
         sz: Some(Val::Value(sz)),
         space: Some(Val::Value(1)),
         color: Some(Val::Value(HexColorOrAuto::Rgb([0, 0x70, 0xC0]))),
         ..Default::default()
-    };
-    let sample = ParaProps {
+    }
+}
+
+/// 覆盖 `ParaProps` 全部非 Raw 字段的样本。
+fn para_sample() -> ParaProps {
+    ParaProps {
         style: Some("Normal".into()),
         keep_next: Some(true),
         keep_lines: Some(false),
@@ -481,7 +484,13 @@ fn prop_07_every_para_props_row_roundtrips() {
         }),
         sect_pr: None,
         raw_unmodeled: Vec::new(),
-    };
+    }
+}
+
+/// PROP-07 每行往返：样本里每个非 Raw 字段都有值，emit → materialize → read 全等。
+#[test]
+fn prop_07_every_para_props_row_roundtrips() {
+    let sample = para_sample();
     // 每一行都被样本覆盖
     for f in ParaPropsField::ALL {
         if f.info().kind == FieldKind::Raw {
@@ -544,4 +553,472 @@ fn prop_05_para_order_table() {
     assert!(TabsField::Tab.info().multi);
     assert_eq!(TABLES.len(), 5);
     assert!(PARA_PROPS.field("indent").is_some());
+}
+
+// ---- plan_apply（任务 1.3，PROP-05 / 06 / 07）------------------------------------------------------
+
+fn p_dom(inner: &str) -> Dom {
+    dom(&format!(r#"<w:p xmlns:w="{W_T}" xmlns:w14="{W14}">{inner}</w:p>"#))
+}
+
+fn first_child(d: &Dom, n: NodeId) -> NodeId {
+    d.semantic_children(n).next().unwrap()
+}
+
+fn xml_of(d: &Dom) -> String {
+    String::from_utf8(serialize(d).unwrap()).unwrap()
+}
+
+fn rgb(r: u8, g: u8, b: u8) -> Option<Val<HexColorOrAuto>> {
+    Some(Val::Value(HexColorOrAuto::Rgb([r, g, b])))
+}
+
+#[test]
+fn prop_05_new_element_inserted_before_first_greater_order() {
+    // 向只有 w:jc 的 pPr 加 w:spacing → 插在 w:jc 之前
+    let mut d = p_dom(r#"<w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t>x</w:t></w:r>"#);
+    let p = d.root();
+    let ppr = first_child(&d, p);
+    let jc = first_child(&d, ppr);
+    let patch = ParaPropsPatch {
+        spacing: Change::Set(Spacing { before: Some(Val::Value(240)), ..Default::default() }),
+        ..Default::default()
+    };
+    let edits = plan_apply_para_props(&d, p, Some(ppr), &patch, PartFlavor::Transitional);
+    assert_eq!(edits.len(), 1);
+    assert!(
+        matches!(&edits[0], NodeEdit::Insert { parent: Target::Node(c), before: Some(b), node }
+        if *c == ppr && *b == jc && node.name == QName::w(LocalName::Spacing))
+    );
+    d.apply_edits(&edits);
+    assert!(
+        xml_of(&d).contains(r#"<w:pPr><w:spacing w:before="240"/><w:jc w:val="center"/></w:pPr>"#),
+        "{}",
+        xml_of(&d)
+    );
+
+    // 向只有 w:sz 的 rPr 加 w:b → 插在 w:sz 之前
+    let mut d = dom(&format!(
+        r#"<w:r xmlns:w="{W_T}"><w:rPr><w:sz w:val="24"/></w:rPr><w:t>x</w:t></w:r>"#
+    ));
+    let r = d.root();
+    let rpr = first_child(&d, r);
+    let patch = RunPropsPatch { bold: Change::Set(true), ..Default::default() };
+    d.apply_edits(&plan_apply_run_props(&d, r, Some(rpr), &patch, PartFlavor::Transitional));
+    assert!(xml_of(&d).contains(r#"<w:rPr><w:b/><w:sz w:val="24"/></w:rPr>"#), "{}", xml_of(&d));
+
+    // 没有更大序号的 → 追加到末尾，但在 rPrChange 之前
+    let mut d = dom(&format!(
+        r#"<w:r xmlns:w="{W_T}"><w:rPr><w:b/><w:rPrChange w:id="1" w:author="a" w:date="2020-01-01T00:00:00Z"><w:rPr/></w:rPrChange></w:rPr></w:r>"#
+    ));
+    let r = d.root();
+    let rpr = first_child(&d, r);
+    let patch = RunPropsPatch {
+        lang: Change::Set(Language { val: Some("en-US".into()), ..Default::default() }),
+        ..Default::default()
+    };
+    d.apply_edits(&plan_apply_run_props(&d, r, Some(rpr), &patch, PartFlavor::Transitional));
+    assert!(xml_of(&d).contains(r#"<w:b/><w:lang w:val="en-US"/><w:rPrChange"#), "{}", xml_of(&d));
+}
+
+#[test]
+fn prop_06_unmodeled_and_open_tag_bytes_preserved() {
+    let src = format!(
+        r#"<w:r xmlns:w="{W_T}"><w:rPr  w:x='1' ><w:b/><w:color w:val="FF0000"/><w:bdr w:val="single"  w:sz='4' w:space="0" w:color='auto'/><w:sz w:val="24"/></w:rPr><w:t>x</w:t></w:r>"#
+    );
+    let mut d = dom(&src);
+    let r = d.root();
+    let rpr = first_child(&d, r);
+    let blue = Color { val: rgb(0, 0x70, 0xC0), ..Default::default() };
+    let patch = RunPropsPatch { color: Change::Set(blue.clone()), ..Default::default() };
+    let edits = plan_apply_run_props(&d, r, Some(rpr), &patch, PartFlavor::Transitional);
+    assert_eq!(edits.len(), 1);
+    assert!(matches!(&edits[0], NodeEdit::Replace { .. }));
+    d.apply_edits(&edits);
+    assert_eq!(
+        xml_of(&d),
+        format!(
+            r#"<w:r xmlns:w="{W_T}"><w:rPr  w:x='1' ><w:b/><w:color w:val="0070C0"/><w:bdr w:val="single"  w:sz='4' w:space="0" w:color='auto'/><w:sz w:val="24"/></w:rPr><w:t>x</w:t></w:r>"#
+        )
+    );
+    assert_eq!(d.node(rpr).dirty, Dirty::DescendantDirty, "容器只因子列表变化而变脏");
+    assert!(d.check_dirty_invariants().is_ok());
+
+    // Set 同值 → 空计划（PROP-07）
+    let same =
+        RunPropsPatch { color: Change::Set(blue), bold: Change::Set(true), ..Default::default() };
+    assert!(plan_apply_run_props(&d, r, Some(rpr), &same, PartFlavor::Transitional).is_empty());
+
+    // Unset → Deleted；未建模 w:bdr 仍在原位
+    let unset = RunPropsPatch { bold: Change::Unset, size: Change::Unset, ..Default::default() };
+    let edits = plan_apply_run_props(&d, r, Some(rpr), &unset, PartFlavor::Transitional);
+    assert_eq!(edits.len(), 2);
+    assert!(edits.iter().all(|e| matches!(e, NodeEdit::Delete(_))));
+    d.apply_edits(&edits);
+    assert_eq!(
+        xml_of(&d),
+        format!(
+            r#"<w:r xmlns:w="{W_T}"><w:rPr  w:x='1' ><w:color w:val="0070C0"/><w:bdr w:val="single"  w:sz='4' w:space="0" w:color='auto'/></w:rPr><w:t>x</w:t></w:r>"#
+        )
+    );
+    // Unset 不存在的字段、Keep → 无操作
+    let noop = RunPropsPatch { italic: Change::Unset, ..Default::default() };
+    assert!(plan_apply_run_props(&d, r, Some(rpr), &noop, PartFlavor::Transitional).is_empty());
+}
+
+#[test]
+fn prop_06_missing_container_is_created_as_first_child() {
+    let mut d = p_dom(r#"<w:r><w:t>x</w:t></w:r>"#);
+    let p = d.root();
+    let patch = ParaPropsPatch {
+        jc: Change::Set(Val::Value(Jc::Center)),
+        rpr: TableChange::Patch(RunPropsPatch { bold: Change::Set(true), ..Default::default() }),
+        ..Default::default()
+    };
+    let edits = plan_apply_para_props(&d, p, None, &patch, PartFlavor::Transitional);
+    assert_eq!(edits.len(), 1, "{edits:#?}");
+    d.apply_edits(&edits);
+    assert_eq!(
+        xml_of(&d),
+        format!(
+            r#"<w:p xmlns:w="{W_T}" xmlns:w14="{W14}"><w:pPr><w:jc w:val="center"/><w:rPr><w:b/></w:rPr></w:pPr><w:r><w:t>x</w:t></w:r></w:p>"#
+        )
+    );
+    // 空 patch / 只有 Unset → 不建容器
+    assert!(
+        plan_apply_para_props(&d, p, None, &ParaPropsPatch::default(), PartFlavor::Transitional)
+            .is_empty()
+    );
+    let unset_only = ParaPropsPatch { jc: Change::Unset, ..Default::default() };
+    assert!(plan_apply_para_props(&d, p, None, &unset_only, PartFlavor::Transitional).is_empty());
+    // Strict：新容器里的 OnOff false 写 "false"
+    let mut d = dom(&format!(r#"<w:r xmlns:w="{W_S}"><w:t>x</w:t></w:r>"#));
+    let r = d.root();
+    let patch = RunPropsPatch { bold: Change::Set(false), ..Default::default() };
+    d.apply_edits(&plan_apply_run_props(&d, r, None, &patch, PartFlavor::Strict));
+    assert!(xml_of(&d).contains(r#"<w:rPr><w:b w:val="false"/></w:rPr><w:t>"#), "{}", xml_of(&d));
+}
+
+#[test]
+fn prop_06_nested_patch_and_sub_container_placement() {
+    let mut d = p_dom(
+        r#"<w:pPr><w:jc w:val="both"/><w:pPrChange w:id="1" w:author="a" w:date="2020-01-01T00:00:00Z"><w:pPr/></w:pPrChange></w:pPr>"#,
+    );
+    let p = d.root();
+    let ppr = first_child(&d, p);
+    let patch = ParaPropsPatch {
+        rpr: TableChange::Patch(RunPropsPatch { italic: Change::Set(true), ..Default::default() }),
+        borders: TableChange::Set(ParaBorders {
+            top: Some(border(BorderStyle::Single, 4)),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    d.apply_edits(&plan_apply_para_props(&d, p, Some(ppr), &patch, PartFlavor::Transitional));
+    let out = xml_of(&d);
+    assert!(
+        out.contains(r#"<w:pPr><w:pBdr><w:top w:val="single" w:color="0070C0" w:sz="4" w:space="1"/></w:pBdr><w:jc w:val="both"/><w:rPr><w:i/></w:rPr><w:pPrChange"#),
+        "{out}"
+    );
+
+    // 再对已存在的 rPr 打 Patch：只加 b，i 不动
+    let rpr_node = d.semantic_children(ppr).find(|&n| d.is(n, QName::w(LocalName::RPr))).unwrap();
+    let patch2 = ParaPropsPatch {
+        rpr: TableChange::Patch(RunPropsPatch { bold: Change::Set(true), ..Default::default() }),
+        ..Default::default()
+    };
+    let edits = plan_apply_para_props(&d, p, Some(ppr), &patch2, PartFlavor::Transitional);
+    assert_eq!(edits.len(), 1);
+    assert!(
+        matches!(&edits[0], NodeEdit::Insert { parent: Target::Node(c), before: Some(_), .. } if *c == rpr_node)
+    );
+    d.apply_edits(&edits);
+    assert!(xml_of(&d).contains(r#"<w:rPr><w:b/><w:i/></w:rPr>"#), "{}", xml_of(&d));
+
+    // TableChange::Set 在已有容器上按 diff 合并：只替换变化的字段
+    let patch3 = ParaPropsPatch {
+        rpr: TableChange::Set(RunProps {
+            bold: Some(true),
+            italic: Some(false),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let edits = plan_apply_para_props(&d, p, Some(ppr), &patch3, PartFlavor::Transitional);
+    assert_eq!(edits.len(), 1);
+    assert!(matches!(&edits[0], NodeEdit::Replace { .. }));
+    d.apply_edits(&edits);
+    assert!(xml_of(&d).contains(r#"<w:rPr><w:b/><w:i w:val="0"/></w:rPr>"#), "{}", xml_of(&d));
+    // 嵌套 Unset 删整个子容器
+    let patch4 = ParaPropsPatch { rpr: TableChange::Unset, ..Default::default() };
+    d.apply_edits(&plan_apply_para_props(&d, p, Some(ppr), &patch4, PartFlavor::Transitional));
+    assert!(!xml_of(&d).contains("<w:rPr>"), "{}", xml_of(&d));
+    assert!(d.check_dirty_invariants().is_ok());
+}
+
+#[test]
+fn prop_06_multi_replaces_whole_list_in_place() {
+    let mut d = p_dom(
+        r#"<w:pPr><w:tabs><w:tab w:val="left" w:pos="1"/><w:tab w:val="left" w:pos="2"/></w:tabs><w:jc w:val="both"/></w:pPr>"#,
+    );
+    let p = d.root();
+    let ppr = first_child(&d, p);
+    let tab = Tab { val: Some(Val::Value(TabJc::Center)), pos: Some(Val::Value(3)), leader: None };
+    let patch = ParaPropsPatch {
+        tabs: TableChange::Patch(TabsPatch { tab: Change::Set(vec![tab]) }),
+        ..Default::default()
+    };
+    let edits = plan_apply_para_props(&d, p, Some(ppr), &patch, PartFlavor::Transitional);
+    assert_eq!(edits.len(), 3, "{edits:#?}");
+    d.apply_edits(&edits);
+    assert!(
+        xml_of(&d).contains(r#"<w:tabs><w:tab w:val="center" w:pos="3"/></w:tabs><w:jc"#),
+        "{}",
+        xml_of(&d)
+    );
+    // 空列表 = Unset：删掉全部 w:tab，容器保留
+    let patch = ParaPropsPatch {
+        tabs: TableChange::Patch(TabsPatch { tab: Change::Set(Vec::new()) }),
+        ..Default::default()
+    };
+    d.apply_edits(&plan_apply_para_props(&d, p, Some(ppr), &patch, PartFlavor::Transitional));
+    assert!(xml_of(&d).contains(r#"<w:tabs></w:tabs><w:jc"#), "{}", xml_of(&d));
+}
+
+#[test]
+fn prop_06_raw_field_set_clones_subtree() {
+    let mut d = dom(&format!(
+        r#"<w:body xmlns:w="{W_T}"><w:p><w:pPr><w:sectPr><w:pgSz w:w="1"/></w:sectPr></w:pPr></w:p><w:p><w:pPr><w:jc w:val="both"/></w:pPr></w:p><w:p/></w:body>"#
+    ));
+    let body = d.root();
+    let ps: Vec<NodeId> = d.semantic_children(body).collect();
+    let ppr1 = first_child(&d, ps[0]);
+    let ppr2 = first_child(&d, ps[1]);
+    let sect = read_para_props(&d, Some(ppr1), &mut Vec::new()).sect_pr.unwrap();
+
+    let patch = ParaPropsPatch { sect_pr: Change::Set(sect), ..Default::default() };
+    let edits = plan_apply_para_props(&d, ps[1], Some(ppr2), &patch, PartFlavor::Transitional);
+    assert_eq!(
+        edits,
+        vec![NodeEdit::InsertClone { parent: Target::Node(ppr2), before: None, source: sect }]
+    );
+    d.apply_edits(&edits);
+    // 缺容器 + Raw：先建容器，再把克隆挂到新容器（Target::New）
+    let patch = ParaPropsPatch {
+        jc: Change::Set(Val::Value(Jc::Center)),
+        sect_pr: Change::Set(sect),
+        ..Default::default()
+    };
+    let edits = plan_apply_para_props(&d, ps[2], None, &patch, PartFlavor::Transitional);
+    assert_eq!(edits.len(), 2);
+    assert!(matches!(&edits[1], NodeEdit::InsertClone { parent: Target::New(0), .. }));
+    d.apply_edits(&edits);
+    let out = xml_of(&d);
+    assert!(out.contains(r#"<w:p><w:pPr><w:jc w:val="both"/><w:sectPr><w:pgSz w:w="1"/></w:sectPr></w:pPr></w:p>"#), "{out}");
+    assert!(out.contains(r#"<w:p><w:pPr><w:jc w:val="center"/><w:sectPr><w:pgSz w:w="1"/></w:sectPr></w:pPr></w:p>"#), "{out}");
+    // 原件不动
+    assert!(out.starts_with(&format!(r#"<w:body xmlns:w="{W_T}"><w:p><w:pPr><w:sectPr><w:pgSz w:w="1"/></w:sectPr></w:pPr></w:p>"#)), "{out}");
+}
+
+/// 与 [`para_sample`] 每个非 Raw 字段都不同的样本。
+fn para_sample_alt() -> ParaProps {
+    ParaProps {
+        style: Some("Body".into()),
+        keep_next: Some(false),
+        keep_lines: Some(true),
+        page_break_before: Some(false),
+        frame: Some(FramePr {
+            w: Some(Val::Value(5000)),
+            wrap: Some(Val::Value(FrameWrap::None)),
+            ..Default::default()
+        }),
+        widow_control: Some(true),
+        num: Some(NumPr {
+            ilvl: Some(Val::Value(0)),
+            num_id: Some(Val::Value(1)),
+            ..Default::default()
+        }),
+        borders: Some(ParaBorders {
+            bottom: Some(border(BorderStyle::Wave, 18)),
+            ..Default::default()
+        }),
+        shading: Some(Shading {
+            val: Some(Val::Value(ShadingPattern::Solid)),
+            fill: rgb(1, 2, 3),
+            ..Default::default()
+        }),
+        tabs: Some(Tabs {
+            tab: vec![Tab {
+                val: Some(Val::Value(TabJc::Clear)),
+                pos: Some(Val::Value(1)),
+                leader: None,
+            }],
+            ..Default::default()
+        }),
+        auto_space_de: Some(true),
+        auto_space_dn: Some(true),
+        bidi: Some(false),
+        snap_to_grid: Some(true),
+        spacing: Some(Spacing { after: Some(Val::Value(200)), ..Default::default() }),
+        indent: Some(Indent { hanging: Some(Val::Value(360)), ..Default::default() }),
+        contextual_spacing: Some(false),
+        jc: Some(Val::Value(Jc::Start)),
+        outline_lvl: Some(Val::Value(1)),
+        rpr: Some(RunProps { italic: Some(true), ..Default::default() }),
+        sect_pr: None,
+        raw_unmodeled: Vec::new(),
+    }
+}
+
+fn run_sample() -> RunProps {
+    RunProps {
+        style: Some("Emphasis".into()),
+        fonts: Some(Fonts {
+            ascii: Some("Calibri".into()),
+            east_asia: Some("宋体".into()),
+            ..Default::default()
+        }),
+        bold: Some(true),
+        bold_cs: Some(true),
+        italic: Some(false),
+        italic_cs: Some(false),
+        caps: Some(true),
+        small_caps: Some(false),
+        strike: Some(true),
+        dstrike: Some(false),
+        vanish: Some(true),
+        color: Some(Color { val: rgb(0xFF, 0, 0), ..Default::default() }),
+        spacing: Some(Val::Value(20)),
+        scale: Some(Val::Value(90)),
+        kern: Some(Val::Value(2)),
+        position: Some(Val::Value(-4)),
+        size: Some(Val::Value(24)),
+        size_cs: Some(Val::Value(24)),
+        highlight: Some(Val::Value(HighlightColor::Yellow)),
+        underline: Some(Underline {
+            val: Some(Val::Value(UnderlineKind::Single)),
+            ..Default::default()
+        }),
+        shading: Some(Shading {
+            val: Some(Val::Value(ShadingPattern::Clear)),
+            fill: rgb(0xEE, 0xEE, 0xEE),
+            ..Default::default()
+        }),
+        vert_align: Some(Val::Value(VerticalAlignRun::Superscript)),
+        rtl: Some(false),
+        cs: Some(false),
+        em: Some(Val::Value(EmphasisMark::Dot)),
+        lang: Some(Language { val: Some("en-US".into()), ..Default::default() }),
+        spec_vanish: Some(false),
+        text_fill: None,
+        raw_unmodeled: Vec::new(),
+    }
+}
+
+fn run_sample_alt() -> RunProps {
+    RunProps {
+        style: Some("Strong".into()),
+        fonts: Some(Fonts { h_ansi: Some("Arial".into()), ..Default::default() }),
+        bold: Some(false),
+        bold_cs: Some(false),
+        italic: Some(true),
+        italic_cs: Some(true),
+        caps: Some(false),
+        small_caps: Some(true),
+        strike: Some(false),
+        dstrike: Some(true),
+        vanish: Some(false),
+        color: Some(Color {
+            theme_color: Some(Val::Value(ThemeColor::Accent1)),
+            ..Default::default()
+        }),
+        spacing: Some(Val::Value(-10)),
+        scale: Some(Val::Value(200)),
+        kern: Some(Val::Value(28)),
+        position: Some(Val::Value(6)),
+        size: Some(Val::Value(36)),
+        size_cs: Some(Val::Value(32)),
+        highlight: Some(Val::Value(HighlightColor::Green)),
+        underline: Some(Underline {
+            val: Some(Val::Value(UnderlineKind::Double)),
+            color: rgb(0, 0, 0xFF),
+            ..Default::default()
+        }),
+        shading: Some(Shading {
+            val: Some(Val::Value(ShadingPattern::Pct10)),
+            ..Default::default()
+        }),
+        vert_align: Some(Val::Value(VerticalAlignRun::Subscript)),
+        rtl: Some(true),
+        cs: Some(true),
+        em: Some(Val::Value(EmphasisMark::Circle)),
+        lang: Some(Language { east_asia: Some("zh-CN".into()), ..Default::default() }),
+        spec_vanish: Some(true),
+        text_fill: None,
+        raw_unmodeled: Vec::new(),
+    }
+}
+
+/// PROP-07 每行：Set 同值 → 空计划；Set 新值 → commit → read 得新值；每个非 Raw 字段都参与。
+#[test]
+fn prop_07_plan_apply_every_row_same_value_empty_new_value_commits() {
+    // ParaProps
+    let (a, b) = (para_sample(), para_sample_alt());
+    for flavor in [PartFlavor::Transitional, PartFlavor::Strict] {
+        let ns = if flavor == PartFlavor::Strict { W_S } else { W_T };
+        let mut d =
+            dom(&format!(r#"<w:p xmlns:w="{ns}" xmlns:w14="{W14}"><w:r><w:t>x</w:t></w:r></w:p>"#));
+        let p = d.root();
+        let set_all = diff_para_props(&ParaProps::default(), &a);
+        d.apply_edits(&plan_apply_para_props(&d, p, None, &set_all, flavor));
+        let ppr = first_child(&d, p);
+        assert!(d.is(ppr, QName::w(LocalName::PPr)));
+        let mut diags = Vec::new();
+        assert_eq!(read_para_props(&d, Some(ppr), &mut diags), a);
+        assert!(diags.is_empty(), "{diags:?}");
+        assert!(
+            plan_apply_para_props(&d, p, Some(ppr), &set_all, flavor).is_empty(),
+            "Set 同值应为空计划"
+        );
+
+        let to_b = diff_para_props(&a, &b);
+        for f in ParaPropsField::ALL {
+            if f.info().kind != FieldKind::Raw {
+                assert_ne!(to_b.kind(*f), ChangeKind::Keep, "样本在字段 {} 上相同", f.info().name);
+            }
+        }
+        let edits = plan_apply_para_props(&d, p, Some(ppr), &to_b, flavor);
+        assert!(edits.len() >= ParaPropsField::ALL.len() - 1, "{}", edits.len());
+        d.apply_edits(&edits);
+        assert_eq!(read_para_props(&d, Some(ppr), &mut Vec::new()), b, "{}", xml_of(&d));
+        assert!(d.check_dirty_invariants().is_ok());
+        // 顺序仍单调
+        let mut last = 0;
+        for c in d.semantic_children(ppr) {
+            let i = order_index_para_props(d.name(c).unwrap()).unwrap();
+            assert!(i >= last, "{}", xml_of(&d));
+            last = i;
+        }
+    }
+
+    // RunProps
+    let (a, b) = (run_sample(), run_sample_alt());
+    let mut d = dom(&format!(r#"<w:r xmlns:w="{W_T}"><w:t>x</w:t></w:r>"#));
+    let r = d.root();
+    let set_all = diff_run_props(&RunProps::default(), &a);
+    d.apply_edits(&plan_apply_run_props(&d, r, None, &set_all, PartFlavor::Transitional));
+    let rpr = first_child(&d, r);
+    assert_eq!(read_run_props(&d, Some(rpr), &mut Vec::new()), a);
+    assert!(plan_apply_run_props(&d, r, Some(rpr), &set_all, PartFlavor::Transitional).is_empty());
+    let to_b = diff_run_props(&a, &b);
+    for f in RunPropsField::ALL {
+        if f.info().kind != FieldKind::Raw {
+            assert_ne!(to_b.kind(*f), ChangeKind::Keep, "样本在字段 {} 上相同", f.info().name);
+        }
+    }
+    let edits = plan_apply_run_props(&d, r, Some(rpr), &to_b, PartFlavor::Transitional);
+    assert_eq!(edits.len(), RunPropsField::ALL.len() - 1, "每个字段一次 Replace");
+    assert!(edits.iter().all(|e| matches!(e, NodeEdit::Replace { .. })));
+    d.apply_edits(&edits);
+    assert_eq!(read_run_props(&d, Some(rpr), &mut Vec::new()), b);
 }
