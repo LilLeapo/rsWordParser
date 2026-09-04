@@ -75,9 +75,10 @@ fn collect_rids(dom: &Dom, out: &mut Vec<String>) {
     // 语义遍历：未生效的 `mc:Choice` 里的坏 rId 不算（见 `Dom::semantic_descendants`）。
     for n in dom.semantic_descendants(dom.root()) {
         let Some(name) = dom.name(n) else { continue };
-        let attrs: &[LocalName] = match (name.ns, name.local) {
-            (NsId::A, LocalName::Blip) => &[LocalName::Embed, LocalName::Link],
-            (NsId::V, LocalName::Imagedata) => &[LocalName::Id],
+        // 前缀未绑定时按字面量兜底（见 `Dom::is_ns`）：语料里有不声明 `xmlns:v` 的文档。
+        let attrs: &[LocalName] = match name.local {
+            LocalName::Blip if dom.is_ns(n, NsId::A, "a") => &[LocalName::Embed, LocalName::Link],
+            LocalName::Imagedata if dom.is_ns(n, NsId::V, "v") => &[LocalName::Id],
             _ => continue,
         };
         for &a in attrs {

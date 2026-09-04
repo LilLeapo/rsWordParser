@@ -142,3 +142,86 @@ fn mod_11_drawing_facts_across_the_corpus() {
     assert!(st.compared_extent > 0, "应当有能与 TS 对照的 extent");
     assert!(st.mismatches.is_empty(), "extent 与 TS 不一致：\n{}", st.mismatches.join("\n"));
 }
+
+/// VML 与嵌入对象（`MOD-11`，`spec/15` 任务 4.5 / 4.7）在语料上的普查。
+#[test]
+fn mod_11_vml_and_ole_across_the_corpus() {
+    use rsword::model::{VmlDisplay, VmlKind};
+
+    let mut docs = 0usize;
+    let mut picts = 0usize;
+    let mut shapes = 0usize;
+    let mut by_kind: BTreeMap<&'static str, usize> = BTreeMap::new();
+    let mut rules = 0usize;
+    let mut images = 0usize;
+    let mut textboxes = 0usize;
+    let mut ole = 0usize;
+    let mut prog_ids: BTreeMap<String, usize> = BTreeMap::new();
+
+    for path in common::docx_paths("synthetic").into_iter().chain(common::docx_paths("hostile")) {
+        let bytes = std::fs::read(&path).unwrap();
+        let Ok(mut pkg) = Package::open(&bytes) else { continue };
+        let Ok(doc) = Document::rebuild(&mut pkg) else { continue };
+        docs += 1;
+        let mut seen: Vec<&VmlDisplay> = Vec::new();
+        for block in &doc.main {
+            match block {
+                Block::Protected(b) => seen.extend(b.display.as_ref().and_then(Display::as_vml)),
+                Block::Image(b) => seen.extend(b.display.as_ref().and_then(Display::as_vml)),
+                Block::Text(tb) => {
+                    for i in &tb.inlines {
+                        let Inline::Run(r) = i else { continue };
+                        for s in &r.segments {
+                            if matches!(s.kind, SegmentKind::Pict | SegmentKind::Object) {
+                                seen.extend(s.display.as_ref().and_then(Display::as_vml));
+                            }
+                        }
+                    }
+                }
+                Block::Table(_) => {}
+            }
+        }
+        for v in seen {
+            picts += 1;
+            shapes += v.shapes.len();
+            for s in &v.shapes {
+                let name = match s.kind {
+                    VmlKind::Shape => "shape",
+                    VmlKind::Rect => "rect",
+                    VmlKind::RoundRect => "roundRect",
+                    VmlKind::Oval => "oval",
+                    VmlKind::Line => "line",
+                    VmlKind::Group => "group",
+                    VmlKind::ShapeType => "shapeType",
+                    VmlKind::Other => "other",
+                };
+                *by_kind.entry(name).or_default() += 1;
+            }
+            if v.rule().is_some() {
+                rules += 1;
+            }
+            if v.image().is_some() {
+                images += 1;
+            }
+            if v.has_textbox() {
+                textboxes += 1;
+            }
+            if let Some(o) = &v.ole {
+                ole += 1;
+                if let Some(id) = &o.prog_id {
+                    *prog_ids.entry(id.clone()).or_default() += 1;
+                }
+            }
+        }
+    }
+
+    println!(
+        "vml: {docs} 份文档，{picts} 个 pict/object，{shapes} 个形状（{by_kind:?}）；\
+         细横线 {rules}，带图 {images}，带文本框 {textboxes}，嵌入对象 {ole}（{prog_ids:?}）"
+    );
+    assert!(picts > 0, "语料里应当有 VML");
+    assert!(rules > 0, "语料里应当有 v:rect o:hr 细横线");
+    assert!(ole > 0, "语料里应当有 w:object 嵌入对象");
+    // `resource-cleanup__008` 的 `<o:OLEObject>` 不声明 xmlns:o，靠前缀字面量兜底才认得出来
+    assert!(prog_ids.contains_key("Package"), "未绑定前缀的 OLEObject 也要认出 ProgID");
+}

@@ -21,8 +21,8 @@ pub struct ParagraphFacts {
     pub inside_field_result: Option<FieldId>,
     pub drawings: Vec<DrawingFacts>,
     pub picts: Vec<PictFacts>,
-    /// `w:object` 数量。
-    pub objects: u32,
+    /// `w:object` 节点（文档序）。
+    pub objects: Vec<NodeId>,
     pub math: MathFacts,
     pub revision: RevisionFacts,
     pub style_id: Option<String>,
@@ -232,7 +232,7 @@ impl ParagraphFacts {
                     gfx = true;
                 }
                 (NsId::W, LocalName::Object) if !in_gfx => {
-                    f.objects += 1;
+                    f.objects.push(node);
                     gfx = true;
                 }
                 (NsId::M, LocalName::OMath) if !in_gfx && !in_txbx => f.math.count += 1,
@@ -295,7 +295,7 @@ impl ParagraphFacts {
             && !has_marker
             && f.drawings.is_empty()
             && f.picts.is_empty()
-            && f.objects == 0
+            && f.objects.is_empty()
             && !f.has_sect_pr
             && props.num.is_none();
         f

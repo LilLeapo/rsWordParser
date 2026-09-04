@@ -13,21 +13,33 @@
 //! 遍历是迭代的，带深度上限：语料里有几千层嵌套的恶意输入。
 
 use crate::model::facts::DrawingKind;
+use crate::model::vml::VmlDisplay;
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
 /// 绘图子树的深度上限，与 `MOD-07` 的块嵌套上限同值。
 const MAX_DEPTH: u32 = 64;
 
-/// `Segment.display`：段在显示上的载荷（`MOD-11`）。VML 与 OLE 的变体在 4.5 / 4.7 补。
+/// `Segment.display` / `ProtectedBlock.display` / `ImageBlock.display`：显示载荷（`MOD-11`）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Display {
+    /// `w:drawing`
     Drawing(Box<DrawingDisplay>),
+    /// `w:pict` / `w:object`（含 OLE 信息）
+    Vml(Box<VmlDisplay>),
 }
 
 impl Display {
     pub fn as_drawing(&self) -> Option<&DrawingDisplay> {
         match self {
             Display::Drawing(d) => Some(d),
+            Display::Vml(_) => None,
+        }
+    }
+
+    pub fn as_vml(&self) -> Option<&VmlDisplay> {
+        match self {
+            Display::Vml(v) => Some(v),
+            Display::Drawing(_) => None,
         }
     }
 }

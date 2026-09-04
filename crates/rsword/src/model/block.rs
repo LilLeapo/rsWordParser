@@ -129,11 +129,13 @@ pub struct ProtectedBlock {
     pub kind: ProtectedKind,
     /// 可见文本预览（最多 80 个字符），供编辑器显示占位。
     pub preview: String,
+    /// 显示载荷（`MOD-11`）：细横线 / 嵌入对象的 VML，图表与 SmartArt 的载荷在 M6。
+    pub display: Option<Display>,
     pub sdt: Option<SdtInfo>,
     pub revisions: Vec<Revision>,
 }
 
-/// 保护原因；显示载荷（`ChartDisplay` 等，`MOD-11`）在 M3 挂到对应变体。
+/// 保护原因。显示载荷挂在 [`ProtectedBlock::display`]；图表 / SmartArt 的载荷在 M6。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProtectedKind {
     FieldBlockResult(FieldId),

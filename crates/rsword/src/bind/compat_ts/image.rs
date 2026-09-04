@@ -6,8 +6,8 @@
 use serde_json::{Map, Value};
 
 use crate::model::drawing::{AnchorGeom, DrawingDisplay, Wrap};
-use crate::model::units::{EMU_PER_PT, emu_to_px};
-use crate::model::{Segment, SegmentKind};
+use crate::model::units::{EMU_PER_PT, Length, emu_to_px};
+use crate::model::{Segment, SegmentKind, VmlDisplay};
 use crate::resolve::drawingml::{ColorBase, color_in, hex};
 use crate::xml::{Dom, LocalName, NodeId, QName};
 
@@ -80,9 +80,32 @@ pub(super) fn image_meta(
 /// 只对能解析出媒体的 DrawingML 图片给；形状（`wps:wsp`）与解析失败的图不给——TS 那两条路
 /// 分别走文本框投影与 `brokenImage`，不会走到「带图的文本段落」。
 pub(super) fn run_image(ctx: &Ctx<'_>, seg: &Segment) -> Option<Map<String, Value>> {
-    if !matches!(seg.kind, SegmentKind::Drawing { .. }) {
-        return None;
+    match seg.kind {
+        SegmentKind::Drawing { .. } => drawing_run_image(ctx, seg),
+        // `w:pict` / `w:object` 的预览图也是一个原子 run（`smartart-ole__016`：OLE 预览与
+        // 随后的图片各占一个 run）。
+        SegmentKind::Pict | SegmentKind::Object => vml_run_image(ctx, seg),
+        _ => None,
     }
+}
+
+fn vml_run_image(ctx: &Ctx<'_>, seg: &Segment) -> Option<Map<String, Value>> {
+    let v = seg.display.as_ref()?.as_vml()?;
+    let m = ctx.media.get(v.image()?.imagedata.as_deref()?)?;
+    let mut o = Map::new();
+    set(&mut o, "dataUrl", m.url.clone());
+    set(&mut o, "xml", ctx.node_xml(seg.node).to_string());
+    let (w, h) = vml_px(v);
+    if let Some(w) = w {
+        set(&mut o, "widthPx", w);
+    }
+    if let Some(h) = h {
+        set(&mut o, "heightPx", h);
+    }
+    Some(o)
+}
+
+fn drawing_run_image(ctx: &Ctx<'_>, seg: &Segment) -> Option<Map<String, Value>> {
     let d = seg.display.as_ref()?.as_drawing()?;
     let pic = d.picture.as_ref()?;
     let m = ctx.media.pick(pic.embed.as_deref(), pic.link.as_deref())?;
@@ -133,6 +156,67 @@ fn run_anchor_meta(a: &AnchorGeom, d: &DrawingDisplay, out: &mut Map<String, Val
     if a.v.relative_from.as_deref() == Some("line") && a.v.align.as_deref() == Some("center") {
         set(out, "lineCenterV", true);
     }
+}
+
+/// VML 细横线（`v:rect o:hr="t"`）的显示字段（`docs/01` §6.2.6；`spec/15` 4.5）。
+///
+/// `width:0` 在 VML HR 里表示「铺满可用宽度」，所以不设 `ruleWidthPx`——这一点和 DrawingML
+/// 细线不同，那边的宽度来自 `wp:extent cx`。
+pub(super) fn vml_rule(v: &VmlDisplay, out: &mut Map<String, Value>) {
+    let Some(r) = v.rule() else { return };
+    set(out, "decorative", true);
+    if let Some(c) = &r.fill_color {
+        set(out, "ruleColorHex", c.clone());
+    }
+    if let Some(h) = r.style_len("height").and_then(Length::to_emu).filter(|&h| h > 0.0) {
+        set(out, "ruleThicknessPx", emu_to_px(h).round().max(1.0) as i64);
+    }
+}
+
+/// `w:object` 的嵌入对象（TS `oleDisplay`；`spec/15` 4.7）。
+///
+/// 预览图按**声明尺寸**画：`v:shape` 的 `style`（磅）优先，退到 `w:object` 的
+/// `dxaOrig`/`dyaOrig`（缇）。不给尺寸的话，metafile 预览的原始像素会撑满整个正文宽度。
+pub(super) fn ole_display(
+    ctx: &Ctx<'_>,
+    para: NodeId,
+    v: &VmlDisplay,
+    out: &mut Map<String, Value>,
+) {
+    let ole = v.ole.as_ref();
+    if let Some(id) = ole.and_then(|o| o.prog_id.clone()) {
+        set(out, "oleProgId", id);
+    }
+    if let Some(m) = v.image().and_then(|s| s.imagedata.as_deref()).and_then(|r| ctx.media.get(r)) {
+        set(out, "imageDataUrl", m.url.clone());
+    }
+    let (w, h) = vml_px(v);
+    if let Some(w) = w {
+        set(out, "imageWidthPx", w);
+    }
+    if let Some(h) = h {
+        set(out, "imageHeightPx", h);
+    }
+    if let Some(a) = jc_align(ctx.dom, para) {
+        set(out, "imageAlign", a);
+    }
+}
+
+/// VML 预览图的声明尺寸：`v:shape` 的 `style`（磅）优先，退到 `w:object` 的
+/// `dxaOrig`/`dyaOrig`（缇，1 px = 15 缇）。
+fn vml_px(v: &VmlDisplay) -> (Option<i64>, Option<i64>) {
+    let shape = v.shapes.iter().find(|s| s.imagedata.is_some());
+    let ole = v.ole.as_ref();
+    let px = |key: &str, twips: Option<i64>| -> Option<i64> {
+        let from_style = shape
+            .and_then(|s| s.style_len(key))
+            .and_then(Length::to_emu)
+            .filter(|&v| v > 0.0)
+            .map(emu_to_px);
+        let from_twips = twips.filter(|&t| t > 0).map(|t| t as f64 / 15.0);
+        from_style.or(from_twips).map(|v| v.round() as i64)
+    };
+    (px("width", ole.and_then(|o| o.dxa_orig)), px("height", ole.and_then(|o| o.dya_orig)))
 }
 
 fn anchor_meta(a: &AnchorGeom, d: &DrawingDisplay, out: &mut Map<String, Value>) {

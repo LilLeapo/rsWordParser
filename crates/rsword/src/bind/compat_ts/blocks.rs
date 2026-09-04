@@ -16,6 +16,7 @@ use super::decl::{
 use super::image;
 use super::media::MediaMap;
 use super::utf16::Utf16Index;
+use crate::model::vml::vml_display;
 use crate::model::{
     AtomKind, Block, BreakKind, Display, Document, Inline, LinkTarget, ProtectedKind, Revision,
     RevisionMeta, Run, SegmentKind, StyleType, TextBlock, TextKind,
@@ -82,6 +83,17 @@ impl<'a> Ctx<'a> {
     /// 一个节点的原字节（`COMPAT-04`：TS 的各种 `xml` 字段都是原文切片）。
     pub(super) fn node_xml(&self, node: NodeId) -> &'a str {
         self.slice(&self.lex_range(node))
+    }
+
+    /// `w:instrText` 的文本内容。
+    fn plain_instr(&self, node: NodeId) -> String {
+        let mut s = String::new();
+        for c in self.dom.semantic_children(node) {
+            if let Some(t) = self.dom.text(c) {
+                s.push_str(&t);
+            }
+        }
+        s
     }
 
     fn u16(&self, byte: u32) -> u32 {
@@ -520,6 +532,45 @@ fn body_block(
     }
 }
 
+/// 嵌入对象的显示信息该不该输出（TS `onlyOleFields`，`docs/01` §6.2.2）。
+///
+/// TS 的决策树里字段分支在 `w:object` 之前：段落里只要还有别的字段，这一段就归字段管
+/// （`smartart-ole__013` 的 `EMBED` 后面跟了个 `TOC`，标签是 `Field (EMBED)`）。只有当段落
+/// 没有字段、或者所有指令都是 `EMBED` / `LINK` 时，才走嵌入对象这条路。
+fn ole_display_applies(ctx: &Ctx<'_>, p: NodeId) -> bool {
+    let dom = ctx.dom;
+    let mut instrs = 0usize;
+    let mut all_ole = true;
+    for n in dom.semantic_descendants(p) {
+        // 文本框里的字段不算（TS 的 `fieldDetect` 先剥掉文本框）
+        if dom.is(n, w(LocalName::TxbxContent)) {
+            continue;
+        }
+        if dom.is(n, w(LocalName::FldSimple)) {
+            return false;
+        }
+        if dom.is(n, w(LocalName::InstrText)) {
+            instrs += 1;
+            let text = ctx.plain_instr(n);
+            let head = text.trim_start();
+            if !(head.starts_with("EMBED") || head.starts_with("LINK")) {
+                all_ole = false;
+            }
+        }
+    }
+    instrs == 0 || all_ole
+}
+
+/// 段落里每个 `w:object` 的 `v:imagedata` 预览图都能解析。
+fn ole_previews_resolve(ctx: &Ctx<'_>, tb: &TextBlock) -> bool {
+    tb.facts.objects.iter().all(|&n| {
+        vml_display(ctx.dom, n)
+            .image()
+            .and_then(|s| s.imagedata.as_deref())
+            .is_some_and(|r| ctx.media.get(r).is_some())
+    })
+}
+
 fn paragraph_block(
     ctx: &Ctx<'_>,
     p: NodeId,
@@ -530,6 +581,16 @@ fn paragraph_block(
         Some(Block::Text(tb)) if mark_vanish_hidden(ctx, tb) => {
             let mut o = passthrough(o, "Hidden paragraph");
             set(&mut o, "invisibleMarker", true);
+            o
+        }
+        // 段落里既有文字又有 `w:object`，但预览图解析不出来：TS 退成 `Embedded object`
+        // 只读块（否则整段会只画一张画不出来的预览图，把文字吃掉）。预览图都解析得出来时
+        // 留在带图的文本段落路径上，`w:object` 的原字节照样往返（`docs/01` §6.2.6）。
+        Some(Block::Text(tb)) if !tb.facts.objects.is_empty() && !ole_previews_resolve(ctx, tb) => {
+            let mut o = passthrough(o, "Embedded object");
+            set(&mut o, "previewText", ctx.plain_text(p));
+            let v = vml_display(ctx.dom, tb.facts.objects[0]);
+            image::ole_display(ctx, p, &v, &mut o);
             o
         }
         Some(Block::Text(tb)) => text_block(ctx, tb, o),
@@ -555,6 +616,16 @@ fn paragraph_block(
                 };
                 let mut o = passthrough(o, label);
                 set(&mut o, "previewText", ctx.plain_text(p));
+                let vml = pb.display.as_ref().and_then(Display::as_vml);
+                match (kind, vml) {
+                    // HTML `<hr>` 导入的细横线：Word 按声明高度画一条线，画成绘图对象芯片会
+                    // 既画错又白吃掉一行版面（`docs/01` §6.2.6）。
+                    (ProtectedKind::Rule, Some(v)) => image::vml_rule(v, &mut o),
+                    (ProtectedKind::Ole, Some(v)) if ole_display_applies(ctx, p) => {
+                        image::ole_display(ctx, p, v, &mut o);
+                    }
+                    _ => {}
+                }
                 o
             }
         },
@@ -610,7 +681,7 @@ fn mark_vanish_hidden(ctx: &Ctx<'_>, tb: &TextBlock) -> bool {
         || f.has_range_marker
         || !f.drawings.is_empty()
         || !f.picts.is_empty()
-        || f.objects > 0
+        || !f.objects.is_empty()
         || f.has_sect_pr
         || tb.props.num.is_some()
     {

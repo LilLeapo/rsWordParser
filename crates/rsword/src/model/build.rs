@@ -19,6 +19,7 @@ use crate::model::inline::{
     RevisionMeta, Run, Segment, SegmentKind, utf16_len,
 };
 use crate::model::theme::Theme;
+use crate::model::vml::vml_display;
 use crate::package::{Package, PartId, RelTarget, RelType, Rels};
 use crate::semantic::props::{
     ParaProps, RunProps, read_para_props, read_run_props, read_run_props_change,
@@ -205,6 +206,7 @@ impl<'a> Builder<'a> {
                 node: container,
                 kind: ProtectedKind::TooDeep,
                 preview: String::new(),
+                display: None,
                 sdt: sdt.cloned(),
                 revisions: revs.to_vec(),
             }));
@@ -222,6 +224,7 @@ impl<'a> Builder<'a> {
                     node,
                     kind: ProtectedKind::SectionProps,
                     preview: String::new(),
+                    display: None,
                     sdt: sdt.cloned(),
                     revisions: revs.to_vec(),
                 })),
@@ -243,6 +246,7 @@ impl<'a> Builder<'a> {
                             node,
                             kind: ProtectedKind::Invisible,
                             preview: String::new(),
+                            display: None,
                             sdt: Some(info),
                             revisions: revs.to_vec(),
                         }));
@@ -253,6 +257,7 @@ impl<'a> Builder<'a> {
                     node,
                     kind: ProtectedKind::BodyBreak { page },
                     preview: String::new(),
+                    display: None,
                     sdt: sdt.cloned(),
                     revisions: revs.to_vec(),
                 })),
@@ -282,6 +287,7 @@ impl<'a> Builder<'a> {
                         node,
                         kind: ProtectedKind::Unknown(name),
                         preview: self.preview(node),
+                        display: None,
                         sdt: sdt.cloned(),
                         revisions: revs.to_vec(),
                     }));
@@ -334,17 +340,17 @@ impl<'a> Builder<'a> {
                 node: p,
                 kind,
                 preview: self.preview(p),
+                display: graphic_display(dom, &facts),
                 sdt: sdt.cloned(),
                 revisions,
             }),
-            ParaClass::Image => {
-                // R15 保证该段恰有一个绘图或一个 VML 图片；取绘图的显示模型（VML 在 4.5）。
-                let display = facts
-                    .drawings
-                    .first()
-                    .map(|d| Display::Drawing(Box::new(drawing_display(dom, d.node))));
-                Block::Image(ImageBlock { node: p, display, sdt: sdt.cloned(), revisions })
-            }
+            // R15 保证该段恰有一个绘图或一个 VML 图片。
+            ParaClass::Image => Block::Image(ImageBlock {
+                node: p,
+                display: graphic_display(dom, &facts),
+                sdt: sdt.cloned(),
+                revisions,
+            }),
             ParaClass::Text => {
                 let mut inlines = Vec::new();
                 self.build_inlines(p, None, None, &mut inlines);
@@ -521,9 +527,16 @@ impl<'a> Builder<'a> {
             let kind = self.segment(c, name, &mut text);
             let end = text.len() as u32;
             let len = utf16_len(&text[start as usize..end as usize]);
-            // `MOD-11` 显示模型：绘图段带 `DrawingDisplay`（VML / OLE 在 4.5 / 4.7）。
-            let display = matches!(kind, SegmentKind::Drawing { .. })
-                .then(|| Display::Drawing(Box::new(drawing_display(dom, c))));
+            // `MOD-11` 显示模型：绘图段带 `DrawingDisplay`，`w:pict` / `w:object` 段带 `VmlDisplay`。
+            let display = match kind {
+                SegmentKind::Drawing { .. } => {
+                    Some(Display::Drawing(Box::new(drawing_display(dom, c))))
+                }
+                SegmentKind::Pict | SegmentKind::Object => {
+                    Some(Display::Vml(Box::new(vml_display(dom, c))))
+                }
+                _ => None,
+            };
             segments.push(Segment { node: c, kind, text: start..end, utf16_len: len, display });
         }
         let mut ctx = rev.cloned().unwrap_or_default();
@@ -665,6 +678,16 @@ impl<'a> Builder<'a> {
 }
 
 /// `xml:space` 的有效值（XML 规范：沿祖先继承，最近的声明生效）；没有声明 → Word 行为，trim。
+/// 段落唯一那个图形的显示模型（`MOD-11`）。同时有多种时按 drawing → pict → object 取第一个：
+/// 只有 R15 / R17 / R18 这些「段里就一个图形」的分类会用到它。
+fn graphic_display(dom: &Dom, facts: &ParagraphFacts) -> Option<Display> {
+    if let Some(d) = facts.drawings.first() {
+        return Some(Display::Drawing(Box::new(drawing_display(dom, d.node))));
+    }
+    let vml = facts.picts.first().map(|p| p.node).or_else(|| facts.objects.first().copied())?;
+    Some(Display::Vml(Box::new(vml_display(dom, vml))))
+}
+
 fn xml_space_preserved(dom: &Dom, node: NodeId) -> bool {
     let space = QName::new(NsId::Xml, LocalName::Space);
     let mut cur = Some(node);
