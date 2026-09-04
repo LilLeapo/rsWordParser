@@ -1,7 +1,8 @@
 //! `SaveBlock[]` 兼容映射（任务 1.13，`EDIT-04` / `COMPAT-08`）：用 TS 测试导出的
 //! `corpus/synthetic/*.save.<k>.json`（`blocks` + `options`）驱动 `apply_save_blocks`，保存后主 part 与
 //! 其中的 `documentXml`（TS `saveDocx` 的输出）按 `xml::canon` 规范化后相等——等价于任何 XPath 子集
-//! 表达式在两者上结果相同。M1 范围：`options == {}`，块只含 original / generated / xml；用到字段、
+//! 表达式在两者上结果相同。M1 范围：`options` 只含 `savedAt` / `removePersonalInfo`（`SAVE-07`），
+//! 块只含 original / generated / xml；用到字段、
 //! 新超链接关系、块级修订等后续里程碑能力的用例记为"跳过"并列出原因。
 
 mod common;
@@ -84,10 +85,13 @@ fn compat_08_save_blocks_match_ts_save_docx_output() {
             }
             Err(e) => panic!("{file}: {e}"),
         };
-        let saved = session.save().unwrap_or_else(|e| panic!("{file}: save: {e}"));
-        if outcome.unchanged {
-            assert_eq!(saved, bytes, "{file}: isUnchanged 应返回原字节");
-            assert_eq!(case["outputIdenticalToSource"], Value::Bool(true), "{file}");
+        let saved = session
+            .save_with(&outcome.save_options)
+            .unwrap_or_else(|e| panic!("{file}: save: {e}"));
+        if case["outputIdenticalToSource"] == Value::Bool(true) {
+            // TS 自己记录的"输出与源文件逐字节相同"：我们也必须走不变式 1 的短路
+            assert_eq!(saved, bytes, "{file}: 无变更保存应返回原字节");
+            assert!(outcome.unchanged, "{file}: 没有编辑却产生了 EditOp");
             unchanged += 1;
         }
         let mut pkg = Package::open(&saved).unwrap();
@@ -121,7 +125,7 @@ fn compat_08_save_blocks_match_ts_save_docx_output() {
         failed.push((file, detail));
     }
     eprintln!(
-        "save-blocks: {} 用例，{} 等价（其中 {} 无变化），{} 失败，{} 跳过",
+        "save-blocks: {} 用例，{} 等价（其中 {} 份逐字节相同），{} 失败，{} 跳过",
         files.len(),
         passed.len(),
         unchanged,
@@ -156,10 +160,15 @@ fn compat_08_save_blocks_match_ts_save_docx_output() {
         "smartart-ole__007.save.1.json",
         "comments__001.save.4.json",
         "revisions__001.save.1.json",
+        "write-protection__003.save.1.json",
+        "write-protection__004.save.1.json",
+        "write-protection__005.save.1.json",
+        "write-protection__006.save.1.json",
+        "docprops__001.save.2.json",
     ] {
         assert!(passed.iter().any(|f| f == must), "{must} 应在等价用例里");
     }
-    assert!(passed.len() >= 60, "等价用例过少: {}", passed.len());
+    assert!(passed.len() >= 75, "等价用例过少: {}", passed.len());
     for (f, why) in KNOWN {
         assert!(failed.iter().any(|(x, _)| x == f), "{f} 已与 TS 等价（{why}），请从 KNOWN 移除");
     }

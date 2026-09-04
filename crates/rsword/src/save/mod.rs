@@ -5,9 +5,11 @@
 //! 直接拷压缩数据（`SAVE-06`）。无脏节点且无新增 part → 直接返回原字节（不变式 1）。
 //! M0 任务 0.11–0.12 做序列化与 `raw_copy_file` 写回；M1 任务 1.14 加校验（[`validate`]）。
 
+pub mod options;
 pub mod package_writer;
 pub mod serialize;
 pub mod validate;
 
+pub use options::SaveOptions;
 pub use serialize::{SerializeError, serialize, serialize_subtree};
 pub use validate::{enforce, ensure_extension_declarations, validate_part};

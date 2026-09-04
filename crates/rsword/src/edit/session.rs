@@ -5,6 +5,7 @@ use crate::error::{Error, Result};
 use crate::model::Document;
 use crate::model::block::TextBlock;
 use crate::package::{Package, PartFlavor, PartId};
+use crate::save::SaveOptions;
 use crate::xml::{Dom, NodeId};
 
 use super::plan::{MutationPlan, MutationResult};
@@ -18,7 +19,8 @@ pub struct EditSession {
     diagnostics: Vec<Diagnostic>,
 }
 
-/// 事务快照：M1 的操作只碰主 part，快照即主 part DOM 的克隆（投影回滚时整体重建）。
+/// 事务快照：M1 的编辑操作只碰主 part，快照即主 part DOM 的克隆（投影回滚时整体重建）。
+/// 保存选项不经快照——它们全部先 `validate` 再 `commit`，`commit` 不可失败。
 pub(crate) struct Snapshot {
     dom: Dom,
 }
@@ -115,9 +117,47 @@ impl EditSession {
         Ok(results)
     }
 
-    /// 保存（`SAVE-01` 的 M1 版本：校验 → 序列化脏 part → 写回；无脏节点返回原字节）。
+    /// `SAVE-01`：等价于 `save_with(&SaveOptions::default())`。
     pub fn save(&mut self) -> Result<Vec<u8>> {
+        self.save_with(&SaveOptions::default())
+    }
+
+    /// `SAVE-01` 全流程：
+    ///
+    /// 1. 无脏节点且 `opts` 没有变更请求（`saved_at` 单独设置不算，与 TS `isUnchanged` 一致）
+    ///    且文档没有 `w:removePersonalInformation` 标志 → 返回原字节（不变式 1）。
+    /// 2. 校验（`SAVE-02`，在 [`Package::save`] 里）。
+    /// 3. 物化 Span（`SPAN-08`）：Span 索引在 M2 建立，M1 无操作。
+    /// 4. 应用保存选项（`SAVE-07`）：全部先 `validate`（只读）再逐个 `commit`，所以要么全做要么不动。
+    /// 5. / 6. 序列化脏 part 并写回（`XML-13` / `SAVE-06`，在 [`Package::save`] 里）。
+    pub fn save_with(&mut self, opts: &SaveOptions) -> Result<Vec<u8>> {
+        let scrub = opts.remove_personal_info.unwrap_or_else(|| self.remove_personal_info_flag());
+        if !self.pkg.is_dirty() && !opts.forces_save() && !scrub {
+            return Ok(self.pkg.original_bytes().to_vec());
+        }
+        // 步骤 3：SPAN-08 物化在 M2（此处无操作，Span 索引尚未建立）。
+        let (plans, diags) = crate::save::options::plan_all(&mut self.pkg, opts, scrub)?;
+        for plan in &plans {
+            let dom = self.pkg.part(plan.part).dom().ok_or_else(|| {
+                Error::edit(DiagCode::EditPlanInvalid, "保存选项的目标不是 XML part")
+            })?;
+            plan.validate(dom)?;
+        }
+        let touches_main = plans.iter().any(|p| p.part == self.pkg.main_part());
+        for plan in plans {
+            self.commit_plan(plan)?;
+        }
+        self.diagnostics.extend(diags.iter().cloned());
+        self.pkg.push_diagnostics(diags);
+        if touches_main {
+            self.rebuild()?;
+        }
         self.pkg.save()
+    }
+
+    /// 文档自带的 `w:removePersonalInformation`（`SAVE-07`：设置或文档标志为真时清洗）。
+    pub fn remove_personal_info_flag(&self) -> bool {
+        self.doc.settings.as_ref().and_then(|s| s.remove_personal_information) == Some(true)
     }
 
     /// 投影整体重建。
@@ -137,21 +177,24 @@ impl EditSession {
         self.rebuild()
     }
 
-    /// 一个阶段：`validate` → `commit` → 刷新投影 → 记诊断。
+    /// 一个阶段：`validate` → `commit` → 刷新投影 → 记诊断。编辑操作只碰主 part；保存选项
+    /// （`SAVE-07`）也走这里，可以指向任意 XML part（投影只在主 part 上刷新）。
     pub(crate) fn commit_plan(&mut self, plan: MutationPlan) -> Result<MutationResult> {
         let main = self.pkg.main_part();
-        if plan.part != main {
-            return Err(Error::edit(DiagCode::EditUnsupported, "M1 只编辑主 part"));
-        }
-        let dom = self.pkg.dom_mut(main)?.expect("main part is parsed");
+        let part = plan.part;
+        let dom = self.pkg.dom_mut(part)?.ok_or_else(|| {
+            Error::edit(DiagCode::EditPlanInvalid, format!("part#{} 不是 XML part", part.0))
+        })?;
         plan.validate(dom)?;
         let result = plan.commit(dom);
         self.diagnostics.extend(result.diagnostics.iter().cloned());
-        if result.structure_changed {
-            self.rebuild()?;
-        } else if !result.affected_paragraphs.is_empty() {
-            // 不在正文顶层的段落（表格内等）M1 不投影，忽略返回的缺失列表
-            let _ = self.doc.refresh_paragraphs(&mut self.pkg, &result.affected_paragraphs)?;
+        if part == main {
+            if result.structure_changed {
+                self.rebuild()?;
+            } else if !result.affected_paragraphs.is_empty() {
+                // 不在正文顶层的段落（表格内等）M1 不投影，忽略返回的缺失列表
+                let _ = self.doc.refresh_paragraphs(&mut self.pkg, &result.affected_paragraphs)?;
+            }
         }
         Ok(result)
     }

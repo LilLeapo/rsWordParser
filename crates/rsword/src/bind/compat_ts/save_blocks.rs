@@ -8,7 +8,9 @@
 //! | 多余的 `generated` | `InsertBlock{Paragraph}`，插在下一个 original 之前（sdt 首段前 → sdt 之前） |
 //! | `xml` | `InsertBlock{Xml}`；带 `docxIndex` 时先插后删原块 |
 //! | 缺失的 original | `DeleteBlock` |
-//! | `chart` / `image` / 块级 `revision` / `SaveOptions` | M1 不支持 → `Err(EDIT_UNSUPPORTED)` |
+//! | `chart` / `image` | M1 不支持 → `Err(EDIT_UNSUPPORTED)` |
+//! | `SaveOptions.savedAt` / `removePersonalInfo` | 翻成 [`SaveOptions`]，由 `save_with` 执行（`SAVE-07`） |
+//! | 其余 `SaveOptions` | M1 不支持 → `Err(EDIT_UNSUPPORTED)` |
 //!
 //! `GeneratedBlock.runs` 按 TS `runsXml` / `runFragmentXml` / `generateRunXml` 的语义翻译成 `NewInline`：
 //! 批注范围标记按 `commentIds` 的首末 run 重发，同 `href` 的连续 run 合成一个 `w:hyperlink`，`ins/del`
@@ -28,6 +30,7 @@ use crate::edit::{
 };
 use crate::error::{Error, Result};
 use crate::package::PartFlavor;
+use crate::save::SaveOptions;
 use crate::semantic::props::{
     Border, BorderStyle, Color, DropCap, FontHint, Fonts, FrameAnchor, FramePr, FrameWrap,
     HeightRule, HexColorOrAuto, HighlightColor, Indent, Jc, LineSpacingRule, NumPr, ParaBorders,
@@ -42,9 +45,12 @@ use crate::xml::{
 /// `apply_save_blocks` 的结果。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SaveBlocksOutcome {
-    /// TS `isUnchanged`：全部 original 且顺序不变、无选项 → 无操作。
+    /// 全部 original 且顺序不变 → 没有产生任何 `EditOp`（是否真的返回原字节还要看 `save_options`
+    /// 与文档的 `w:removePersonalInformation` 标志，由 [`crate::edit::EditSession::save_with`] 判定）。
     pub unchanged: bool,
     pub ops: usize,
+    /// `SaveOptions.savedAt` / `removePersonalInfo` 的翻译结果，交给 `save_with`。
+    pub save_options: SaveOptions,
 }
 
 fn unsupported(msg: impl Into<String>) -> Error {
@@ -93,23 +99,33 @@ fn round(x: f64) -> i32 {
     x.round() as i32
 }
 
+/// TS `SaveOptions` JSON → [`SaveOptions`]（M1 支持的两项）；其余键属后续里程碑。
+fn save_options_of(options: &Value) -> Result<SaveOptions> {
+    let mut out = SaveOptions::default();
+    let Some(map) = options.as_object() else { return Ok(out) };
+    for (k, v) in map {
+        match k.as_str() {
+            "savedAt" => out.saved_at = v.as_str().map(str::to_string),
+            "removePersonalInfo" => out.remove_personal_info = v.as_bool(),
+            other => {
+                return Err(unsupported(format!("SaveOptions {other:?} 在后续里程碑（SAVE-07）")));
+            }
+        }
+    }
+    Ok(out)
+}
+
 /// 把 TS `SaveBlock[]`（`finalBlocks`）与 `SaveOptions` 应用到会话；任一块不受支持则不改任何状态。
+/// 返回的 `save_options` 要传给 [`crate::edit::EditSession::save_with`]（`SAVE-01` 第 4 步）。
 pub fn apply_save_blocks(
     session: &mut EditSession,
     final_blocks: &Value,
     options: &Value,
 ) -> Result<SaveBlocksOutcome> {
-    if options.as_object().is_some_and(|o| !o.is_empty()) {
-        let keys: Vec<&String> = options.as_object().unwrap().keys().collect();
-        return Err(unsupported(format!("SaveOptions {keys:?} 在后续里程碑（SAVE-07）")));
-    }
+    let save_options = save_options_of(options)?;
     let final_blocks =
         final_blocks.as_array().ok_or_else(|| unsupported("finalBlocks 不是数组"))?;
     let parsed = parsed_doc_of(session.package(), session.document());
-    if parsed["removePersonalInfo"] == Value::Bool(true) {
-        // TS：文档自带 w:removePersonalInformation 时即使无编辑也清洗作者信息
-        return Err(unsupported("removePersonalInformation 清洗（SAVE-07）"));
-    }
     let body = session
         .document()
         .body
@@ -174,7 +190,7 @@ pub fn apply_save_blocks(
     let all_original_in_order = items.len() == visible.len()
         && items.iter().zip(&visible).all(|(it, &v)| matches!(it, Item::Original(d) if *d == v));
     if all_original_in_order {
-        return Ok(SaveBlocksOutcome { unchanged: true, ops: 0 });
+        return Ok(SaveBlocksOutcome { unchanged: true, ops: 0, save_options });
     }
 
     let main = session.main_part();
@@ -193,7 +209,7 @@ pub fn apply_save_blocks(
     };
     let n = ops.len();
     session.apply_all(ops, &EditContext::default())?;
-    Ok(SaveBlocksOutcome { unchanged: false, ops: n })
+    Ok(SaveBlocksOutcome { unchanged: false, ops: n, save_options })
 }
 
 struct Planner<'a> {
