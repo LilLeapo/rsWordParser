@@ -13,9 +13,9 @@ CI 门（`spec/11` TEST-10）：字段与 Span 域的 `synthetic` diff 为 0；`
 | # | 任务 | 规范 | DoD |
 | --- | --- | --- | --- |
 | 2.1 ✅ | Span 索引：`Anchor` / `Affinity` / `RangeSpan` / `RangeKind` / `SpanId`，内容序列与按 `FlowId` 构建；起终点配对、同流、`compare` 文档序；孤儿 / 未闭合 / 重复 / 跨流各记诊断 | SPAN-01–SPAN-05 | 全语料标记成对；`corpus/hostile/span-orphan-end.docx` 记 `SPAN_ORPHAN_END` 且保存成功 |
-| 2.2 | 四条变换规则（插入 / 删除 / 拆分 / 合并）+ 整体删除策略，索引接进 `EditSession` 与事务 | SPAN-06, SPAN-07 | `EDIT-03` 验收行：删除覆盖书签起点后起点落到删除处；`DeleteRange` 不再记 `EDIT_ANCHOR_UNMOVED` |
-| 2.3 | Span 物化与保存校验：接进 `EditSession::save_with` 的第 3 步；孤儿端点成对删除 / 补齐 | SPAN-08, SPAN-09, SAVE-02 | 编辑后标记位置与 Anchor 一致；未动过的标记字节不变；注入破坏的 Span 在调试构建下 `Err(SAVE_INVARIANT)` |
-| 2.4 | 字段子系统：`FieldSpan` 解析（begin / instr / separate / end 与嵌套）、指令解析器、`FieldForm` 的 Link / Atom / Block 三种策略 | FLD-01–FLD-08, FLD-13 | 验收清单 FLD 对应行；未闭合字段保持原字节；`corpus/hostile/field-unclosed.docx` 记诊断 |
+| 2.2 ✅ | 四条变换规则（插入 / 删除 / 拆分 / 合并）+ 整体删除策略，索引接进 `EditSession` 与事务 | SPAN-06, SPAN-07 | `EDIT-03` 验收行：删除覆盖书签起点后起点落到删除处；`DeleteRange` 不再记 `EDIT_ANCHOR_UNMOVED` |
+| 2.3 ✅ | Span 物化与保存校验：接进 `EditSession::save_with` 的第 3 步；孤儿端点成对删除 / 补齐 | SPAN-08, SPAN-09, SAVE-02 | 编辑后标记位置与 Anchor 一致；未动过的标记字节不变；注入破坏的 Span 在调试构建下 `Err(SAVE_INVARIANT)` |
+| 2.4 ✅ | 字段子系统：`FieldSpan` 解析（begin / instr / separate / end 与嵌套）、指令解析器、`FieldForm` 的 Link / Atom / Block 三种策略 | FLD-01–FLD-08, FLD-13 | 验收清单 FLD 对应行；未闭合字段保持原字节；`corpus/hostile/field-unclosed.docx` 记诊断 |
 | 2.5 | 字段进模型与 compat：`Inline::Field{id,result}`、`Run.field`、透明字段的 `Link`；`fieldDisplay` | MOD-06, COMPAT-07 | `bookmarks-crossref` / XE / 复选框 / PAGE 等用例 diff 为 0（约 36 处字段显示差异归零） |
 | 2.6 | 批注与注释部件：解析 `comments.xml` / `commentsExtended.xml`，`Run.comments` 与块级 `commentStarts/Ends`；`AddComment` / `RemoveComment` / `SetCommentText`；**新建 part**（关系 + 内容类型） | SAVE-05, EDIT-03 | 保存语料 7 份 comments 与 3 份 footnotes 用例通过；首次加批注后其他条目原压缩数据不变 |
 | 2.7 | 符号字体解码（`w:sym` 与符号字体 run 的文本映射） | RES-05 | 删掉 `KNOWN_DIFFS.md` 里整份放行的 `symbol-fonts__*` |

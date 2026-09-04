@@ -5,7 +5,7 @@
 //! `RangeSpan` 列表表示，并在编辑时维护。字段子系统见 [`field`]。
 //!
 //! 里程碑：M2 任务 2.1 建立索引（[`SpanIndex`]，`SPAN-01`–`SPAN-05`）；Anchor 变换（`SPAN-06/07`）
-//! 与物化（`SPAN-08`）在 2.2 / 2.3。字段子系统见 [`field`]（2.4）。
+//! 与物化（`SPAN-08`）在 2.2 / 2.3；字段子系统（[`field`]，`FLD-01`–`FLD-06`）在 2.4。
 
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
@@ -19,7 +19,10 @@ pub use content::{
     content_children, content_index_of, content_len, is_content_container, is_content_item,
     item_containing,
 };
-pub use field::FieldId;
+pub use field::{
+    FieldForm, FieldId, FieldIndex, FieldPolicy, FieldSpan, FormData, InstrToken, Instruction,
+    Keyword,
+};
 pub use index::{
     Affinity, Anchor, RangeClass, RangeKind, RangeSpan, SpanEnd, SpanIndex, SpanOrigin, compare,
 };

@@ -8,7 +8,7 @@ use crate::model::Document;
 use crate::model::block::TextBlock;
 use crate::package::{Package, PartFlavor, PartId};
 use crate::save::SaveOptions;
-use crate::span::{SpanIndex, is_content_item, plan_save, plan_update};
+use crate::span::{FieldIndex, SpanIndex, is_content_item, plan_save, plan_update};
 use crate::xml::{Dom, NodeEdit, NodeId};
 
 use super::plan::{MutationPlan, MutationResult};
@@ -23,6 +23,12 @@ pub struct EditSession {
     /// 按需在**第一次写该 part 之前**建立（那时 DOM 还没被改，锚点与标记一致），
     /// 之后只由 `SPAN-06` 变换维护，绝不由标记反推（`SPAN-02`）。
     spans: HashMap<PartId, SpanIndex>,
+    /// 字段索引（`FLD-02`）。与范围不同，它是 DOM 的**投影**——每条事实都能重新读出来，
+    /// 所以编辑后直接作废重建，不增量维护。
+    fields: HashMap<PartId, FieldIndex>,
+    /// 第一次写某个 part 之前记下的字段缺陷数（按诊断代码）。`FLD-13` 用它区分
+    /// "输入本来如此"与"编辑造成"：保存前重建，某个代码多出来的就是引擎干的。
+    field_baseline: HashMap<PartId, HashMap<DiagCode, usize>>,
     diagnostics: Vec<Diagnostic>,
     /// 事务期间每个被写入 part 的写前镜像（`EDIT-05`）。
     txn: Option<Snapshot>,
@@ -52,7 +58,15 @@ impl EditSession {
 
     pub fn from_package(mut pkg: Package) -> Result<Self> {
         let doc = Document::rebuild(&mut pkg)?;
-        Ok(Self { pkg, doc, spans: HashMap::new(), diagnostics: Vec::new(), txn: None })
+        Ok(Self {
+            pkg,
+            doc,
+            spans: HashMap::new(),
+            fields: HashMap::new(),
+            field_baseline: HashMap::new(),
+            diagnostics: Vec::new(),
+            txn: None,
+        })
     }
 
     /// 投影（`MOD-01`）。
@@ -103,6 +117,70 @@ impl EditSession {
     #[cfg(test)]
     pub(crate) fn spans_mut(&mut self, part: PartId) -> Option<&mut SpanIndex> {
         self.spans.get_mut(&part)
+    }
+
+    /// 主 part 的字段索引（`FLD-02`）。
+    pub fn fields(&mut self) -> Result<&FieldIndex> {
+        let part = self.pkg.main_part();
+        self.fields_of(part)
+    }
+
+    /// 某个 part 的字段索引；编辑之后第一次调用会重建。
+    pub fn fields_of(&mut self, part: PartId) -> Result<&FieldIndex> {
+        if !self.fields.contains_key(&part) {
+            let index = self.build_fields(part)?;
+            self.fields.insert(part, index);
+        }
+        Ok(self.fields.get(&part).expect("just built"))
+    }
+
+    fn build_fields(&mut self, part: PartId) -> Result<FieldIndex> {
+        let Some(dom) = self.pkg.dom(part)? else {
+            return Err(Error::edit(
+                DiagCode::EditPlanInvalid,
+                format!("part#{} 不是 XML part", part.0),
+            ));
+        };
+        Ok(FieldIndex::build(dom))
+    }
+
+    /// `FLD-13`：在第一次写 `part` 之前记下解析期的字段缺陷，并把诊断报一次。
+    fn ensure_field_baseline(&mut self, part: PartId) -> Result<()> {
+        if self.field_baseline.contains_key(&part) {
+            return Ok(());
+        }
+        let mut index = self.build_fields(part)?;
+        self.field_baseline.insert(part, index.defect_counts());
+        let diags = index.take_diagnostics();
+        self.fields.insert(part, index);
+        self.record(diags);
+        Ok(())
+    }
+
+    /// `FLD-13` 的保存前一半：重建字段索引，比基线多出来的缺陷就是本次编辑造成的。
+    fn validate_fields(&mut self) -> Result<()> {
+        let parts: Vec<PartId> = self.field_baseline.keys().copied().collect();
+        let mut diags = Vec::new();
+        for part in parts {
+            let index = self.build_fields(part)?;
+            let before = self.field_baseline.get(&part).cloned().unwrap_or_default();
+            let after = index.defect_counts();
+            for (code, n) in after {
+                let was = before.get(&code).copied().unwrap_or(0);
+                if n > was {
+                    diags.push(Diagnostic::invariant_violation(
+                        part,
+                        None,
+                        code,
+                        format!("字段结构在本次编辑后新增了 {} 处 {code} 缺陷", n - was),
+                    ));
+                }
+            }
+            self.fields.insert(part, index);
+        }
+        crate::save::enforce(&diags)?;
+        self.record(diags);
+        Ok(())
     }
 
     /// `SPAN-04`：在第一次写 `part` 之前建立索引。
@@ -221,6 +299,8 @@ impl EditSession {
         let (plans, diags) = crate::save::options::plan_all(&mut self.pkg, opts, authors, dates)?;
         let mut touches_main = plans.iter().any(|p| p.part == self.pkg.main_part());
         touches_main |= self.transaction(|s| s.materialize_spans())?;
+        // `FLD-13`：物化之后字段结构应当仍然完好（物化只动范围标记，不该碰 fldChar）
+        self.validate_fields()?;
         self.transaction(|s| {
             // 先整批只读校验，再逐个提交：提交阶段不可能失败（失败也会被事务回滚）
             for plan in &plans {
@@ -312,6 +392,7 @@ impl EditSession {
                     self.spans.remove(&part);
                 }
             }
+            self.fields.remove(&part); // 投影，重建即可
         }
         self.rebuild()
     }
@@ -322,6 +403,7 @@ impl EditSession {
         let main = self.pkg.main_part();
         let part = plan.part;
         self.ensure_spans(part)?;
+        self.ensure_field_baseline(part)?;
         let dom = self.pkg.dom_mut(part)?.ok_or_else(|| {
             Error::edit(DiagCode::EditPlanInvalid, format!("part#{} 不是 XML part", part.0))
         })?;
@@ -351,6 +433,8 @@ impl EditSession {
             self.record(more);
         }
         self.record(span_diags);
+        // 字段索引是投影：DOM 变了就作废，下次问的时候重建（`FLD-02`）
+        self.fields.remove(&part);
         self.diagnostics.extend(result.diagnostics.iter().cloned());
         if part == main {
             if result.structure_changed {

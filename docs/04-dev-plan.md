@@ -350,6 +350,11 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `SPAN-09` 失败的 `origin` | "解析阶段就存在的缺陷为 `PreExistingDamage`；编辑后新出现的为 `EngineInvariantViolation`" | 再加一类按 `PreExistingDamage` 处理：调用方把容器内容**整体重写**时丢掉的那一端（`SpanOrigin::Damaged`）。引擎自己的变换弄丢 / 弄反的范围仍是 `EngineInvariantViolation`，并按 `SAVE-02` 在调试构建下 `Err(SAVE_INVARIANT)` | compat 的 `ReplaceInlines` 按编辑器的描述重发段落内容，描述里没有那个批注标记时范围就半开了——引擎照做了被要求的事，把它算成引擎缺陷会让这条合法路径在调试构建下保存失败；而不接 `enforce` 又会让"变换漏了锚点"这类真缺陷悄悄写出半开范围 |
 | `SPAN-05` `compare` 的空范围 | `Left < Right` | 两端同位置时 `is_ordered` 直接算有序 | affinity 的次序只用来给同一边界上的**不同**范围排序；变换让一个范围折叠后不该被判成"起在终后" |
 | `SPAN-06` rescan 的落单标记 | — | 重写容器里配不上对的标记先**认领**索引里刚失去这一端的跨容器范围，认领不到才留半开 | compat 会把批注范围的一端重发进被重写的段落，另一端在别的段落里；认领后范围复原，物理输出与 TS 一致（`comments__001.save.1` 因此仍等价） |
+| `docs/03` §5.4 `FieldForm::Simple` | `Simple { node }` | 另有 `result_nodes: Vec<NodeId>` | `FLD-02` 第 5 条要求"其子 run 归入结果"，不记下来就得在每次读取时重新遍历子树 |
+| `docs/03` §5.4 `FieldSpan` | 十一个字段 | 另有 `flow: FlowId` 与 `instr_deleted: bool` | 字段禁止跨流（`FLD-02` 第 7 条），同流判定要 `FlowId`；`instr_deleted` 是 `FLD-03` 的 `w:delInstrText` 标记（`MOD-09` 用） |
+| `docs/03` §5.4 `Keyword` | 列了 20 个变体 + `…` | `FLD-06` 表里的全部 76 个关键字都是变体，由一张 `macro_rules!` 表同时生成 `parse` / `as_str` / `policy` | 策略表与关键字表必须是同一份数据，否则加关键字时会漏改策略；`FLD-11` 的 `has_page_number` 也要按变体判断 |
+| `FLD-02` 索引的地位 | — | `FieldIndex` 是 DOM 的**投影**（编辑后作废重建），不像 `SpanIndex` 那样是规范状态的一半 | `FieldSpan` 里每条事实都能从节点重新读出来（`docs/03` §5.4："保存真相是 `instr_nodes` 的原字节"），没有 Anchor 那种"标记之外的信息"，增量维护只会多一份可能不同步的状态 |
+| `FLD-13` 缺陷来源判定 | "解析阶段的缺陷为 `PreExistingDamage`；编辑后新出现的为 `EngineInvariantViolation`" | 第一次写某个 part 之前记下按诊断代码的缺陷计数作基线，保存前重建索引比对，多出来的按 `EngineInvariantViolation` 并经 `save::enforce` 在调试构建下报错 | 索引是重建出来的，没有"这条诊断是不是新的"的天然标识；计数比对不需要跨编辑追踪节点身份 |
 | `PROP-06` 第 1 步 | 新容器"按父容器的 schema 顺序插入" | 顶层容器（`w:pPr` / `w:rPr`）插为父节点第一个语义子节点之前；子表容器按父表 `order` 插入 | `w:p` / `w:r` 不是属性表，没有 order；M2 的 `trPr`（在 `tblPrEx` 之后）到时补规则 |
 
 ## 9. 待决事项（需要项目负责人拍板）
@@ -454,7 +459,25 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   别处后保持原字节且记 `PreExistingDamage`、`ReplaceInlines` 让跨段批注一端消失时另一端原字节保留并记
   `PreExistingDamage`；另有 `edit/session.rs` 的单元用例往索引里注入破坏（抹掉一端），断言调试构建下
   保存 `Err(SAVE_INVARIANT)`、发布构建 `Ok`。保存语料等价数不变（77 / 41 逐字节 / 3 有意不同）。
-- [ ] 2.4 字段子系统（`FLD-01`–`FLD-08`、`FLD-13`）
+- [x] **2.4 字段子系统**（`span/field/{index,instr,form}.rs`、`edit/session.rs`）：`FLD-01` 的两种形式统一成
+  `FieldSpan`；`FLD-02` 逐内容流迭代遍历（进出事件的显式栈，不递归），复杂字段用栈配对 begin /
+  separate / end，`w:fldSimple` 进出元素时开合，run 按 `separate` 是否出现归入 `instr_nodes` 或
+  `result_nodes`，弹出的字段成为新栈顶的 `nested`（父 id 回填），孤立 separate / end 与流结束时
+  未闭合的各记诊断（`FLD_STRAY_SEPARATE` / `FLD_STRAY_END` / `FLD_UNCLOSED`，未闭合的**不产出字段**，
+  begin run 当普通内容保存原字节），字段禁止跨流；`FLD-03` 指令文本按 `w:instrText` / `w:delInstrText`
+  顺序拼接不 trim（`PAGE` 拆成 `PA` + `GE` 照样识别），指令区里的嵌套字段留 `U+FFFC` 占位符；
+  `FLD-04` begin 的 `w:fldLock` / `w:dirty` 与 `w:ffData`；`FLD-05` tokenizer（`keyword` / `quoted`
+  含 `\"` `\\` 转义 / `bare` / `switch` / 通用格式 `\* \# \@ \!` / `Nested`，对任何输入都不失败）；
+  `FLD-06` 76 个关键字的策略表加两条覆盖规则（跨段一律 `Block`；FORMCHECKBOX 没有 `w:ffData/w:checkBox`
+  降为 `Unknown`——语料 `field-display__023` 就是这种）；`FLD-10` 读侧（复选框 `checked ?? default`、
+  下拉 `w:result` 选中项、文本框）；`FLD-13` 基线比对（见 §8）接进 `save_with`。`EditSession` 加
+  `fields()` / `fields_of(part)`，提交后作废重建。
+  测试：`instr.rs` 8 个单元用例（`FLD-05` 的三条验收行、`FLD-03` 占位符、tokenizer 不失败、策略表），
+  `tests/field.rs` 13 个（begin 在 `w:hyperlink` 内 / end 在外仍配对、嵌套 `IF { MERGEFIELD }`、
+  `w:fldSimple` 与嵌套、孤立 separate / end、跨流不配对、拆开的指令、`w:delInstrText`、fldChar 事实、
+  复选框状态与降级、策略表、hostile `field-unclosed.docx`（诊断 + 段落可编辑 + 未闭合段落零改动）、
+  全语料 43 份 / 57 个字段的普查）。语料普查：`Atom` 33、`Block` 6、`Picture` 6、`Form` 4、`Link` 3、
+  `Object` 3、`Marker` 1、`Unknown` 1；另有 3 份 TS 截断夹具本来就缺 `end`（已登记在测试里）。
 - [ ] 2.5 字段进模型与 compat（`MOD-06`、`COMPAT-07`）
 - [ ] 2.6 批注与注释部件、新建 part（`SAVE-05`）
 - [ ] 2.7 符号字体解码（`RES-05`）
