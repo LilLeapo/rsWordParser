@@ -14,12 +14,13 @@ use serde_json::{Map, Value};
 use crate::model::drawing::{DrawingDisplay, FillKind, ImageDisplay, ShapeDisplay, Wrap};
 use crate::model::units::emu_to_px;
 use crate::model::{Display, Inline, SegmentKind, TextBlock, VmlDisplay};
-use crate::resolve::drawingml::{color_in, hex};
+use crate::resolve::drawingml::{ColorBase, color_in, hex};
 use crate::xml::{LocalName, NodeId, NsId, QName};
 
 use super::blocks::Ctx;
 use super::box_json;
 use super::image;
+use super::json::{set, set_some};
 
 /// 细横线的高度上限：`wp:extent cy` 在 (0, 130000] EMU（约 10 px）之内的无字形状是装饰线。
 const THIN_RULE_EMU: i64 = 130_000;
@@ -35,10 +36,6 @@ const LINE_PRSTS: &[&str] = &[
     "curvedConnector3",
     "curvedConnector4",
 ];
-
-fn set<T: Into<Value>>(m: &mut Map<String, Value>, k: &str, v: T) {
-    m.insert(k.to_string(), v.into());
-}
 
 /// 宿主段落：节点、模型块、框外文字。参数打包，免得每个分支都拖一串。
 #[derive(Clone, Copy)]
@@ -208,21 +205,17 @@ fn text_box_block(
         Value::Array(boxes.iter().map(|b| Value::Object(b.json.clone())).collect()),
     );
     if vml {
-        if let Some(a) = image::jc_align(ctx.dom, p) {
-            set(o, "imageAlign", a);
-        }
+        set_some!(o, "imageAlign" => image::jc_align(ctx.dom, p));
         return;
     }
     // 段落自己带的文字（画布旁的说明、超链接）：作为只读的 `strayRuns` 留住，别让它凭空消失。
-    if !stray.is_empty() {
-        let runs = super::blocks::runs_json(ctx, tb);
-        if !runs.is_empty() {
-            set(o, "strayRuns", Value::Array(runs.into_iter().map(Value::Object).collect()));
-            if let Some(id) = &tb.style_id {
-                set(o, "strayStyleId", id.clone());
-            }
-        }
-    }
+    let stray_runs =
+        (!stray.is_empty()).then(|| super::blocks::runs_json(ctx, tb)).filter(|r| !r.is_empty());
+    set_some!(o,
+        "strayStyleId" => stray_runs.as_ref().and(tb.style_id.clone()),
+        "strayRuns" =>
+            stray_runs.map(|r| Value::Array(r.into_iter().map(Value::Object).collect())),
+    );
     for d in drawings {
         image::image_meta(ctx, Some(p), d, o);
     }
@@ -238,24 +231,23 @@ fn is_thin_rule(d: &DrawingDisplay) -> bool {
 /// TS `ruleDisplayOf`：装饰线的颜色、粗细与宽度。
 fn rule_display(ctx: &Ctx<'_>, drawings: &[&DrawingDisplay], out: &mut Map<String, Value>) {
     let Some(d) = drawings.iter().find(|d| is_thin_rule(d)) else { return };
-    if let Some(ln) = d.shapes.iter().find_map(|s| s.line.as_ref()) {
-        if let Some(c) = ln.fill.and_then(|f| color_in(ctx.dom, f)) {
-            // 只认字面 `a:srgbClr`（同 `picBorderOf`）
-            if let crate::resolve::drawingml::ColorBase::Srgb(rgb) = c.base {
-                set(
-                    out,
-                    "ruleColorHex",
-                    hex([f64::from(rgb[0]), f64::from(rgb[1]), f64::from(rgb[2])]),
-                );
-            }
-        }
-        if let Some(w) = ln.width_emu.filter(|&w| w > 0) {
-            set(out, "ruleThicknessPx", emu_to_px(w as f64).round().max(1.0) as i64);
-        }
-    }
-    if let Some(cx) = d.extent.map(|e| e.cx).filter(|&cx| cx > 0) {
-        set(out, "ruleWidthPx", emu_to_px(cx as f64).round() as i64);
-    }
+    let ln = d.shapes.iter().find_map(|s| s.line.as_ref());
+    set_some!(out,
+        // 只认字面 `a:srgbClr`（同 `picBorderOf`）
+        "ruleColorHex" => ln
+            .and_then(|l| l.fill)
+            .and_then(|f| color_in(ctx.dom, f))
+            .and_then(|c| match c.base {
+                ColorBase::Srgb(rgb) => Some(hex(rgb.map(f64::from))),
+                _ => None,
+            }),
+        "ruleThicknessPx" => ln
+            .and_then(|l| l.width_emu)
+            .filter(|&w| w > 0)
+            .map(|w| emu_to_px(w as f64).round().max(1.0) as i64),
+        "ruleWidthPx" =>
+            d.extent.map(|e| e.cx).filter(|&cx| cx > 0).map(|cx| emu_to_px(cx as f64).round() as i64),
+    );
 }
 
 /// TS `isInvisibleEmptyShape`：每个 `wps:wsp` 都显式 noFill + 描边 noFill、没有图也没有文字，
@@ -367,16 +359,10 @@ fn boxes_of(
                 let texts = box_json::box_texts(&paras);
                 json.insert("paras".into(), Value::Array(paras));
                 out.push(BoxInfo { texts, json });
-            } else if let Some(t) = &s.textpath {
-                // WordArt：`v:textpath/@string` 就是它的一行文字
-                let mut json = box_json::vml_box_json(ctx, s, group, None);
-                json.insert("readOnly".into(), Value::Bool(true));
-                let mut run = Map::new();
-                run.insert("text".into(), Value::String(t.clone()));
-                let mut para = Map::new();
-                para.insert("runs".into(), Value::Array(vec![Value::Object(run)]));
-                json.insert("paras".into(), Value::Array(vec![Value::Object(para)]));
-                out.push(BoxInfo { texts: vec![t.clone()], json });
+            } else if let Some(json) = box_json::vml_wordart_box(s) {
+                // WordArt：`v:textpath` 降级成一行带样式的文字
+                let texts = s.textpath.clone().into_iter().collect();
+                out.push(BoxInfo { texts, json });
             }
         }
     }

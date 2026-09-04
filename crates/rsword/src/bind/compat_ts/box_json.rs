@@ -16,22 +16,19 @@ use crate::model::drawing::{
     Anchor, AnchorGeom, BodyPr, Extent, FillKind, ShapeDisplay, StyleRef, Wrap,
 };
 use crate::model::section::SectionGeom;
-use crate::model::units::{EMU_PER_PX, emu_to_px};
-use crate::model::vml::VmlShape;
+use crate::model::units::{EMU_PER_PX, emu_to_px, parse_length, parse_style};
+use crate::model::vml::{VmlShape, vml_color};
 use crate::model::{Block, Display};
 use crate::resolve::drawingml::{DrawingColor, Rgb, average, color_in, hex, parse_color};
 use crate::xml::{LocalName, NodeId, NsId, QName};
 
 use super::blocks::Ctx;
+use super::json::{set, set_if, set_some};
 
 /// Word 的 `relativeHeight` 基数。
 const Z_ORDER_BASE: i64 = 251_658_240;
 /// 零高连线保留的抓取带（px）。
 const LINE_GRAB_PX: i64 = 12;
-
-fn set<T: Into<Value>>(m: &mut Map<String, Value>, k: &str, v: T) {
-    m.insert(k.to_string(), v.into());
-}
 
 fn px_round(emu: i64) -> i64 {
     emu_to_px(emu as f64).round() as i64
@@ -97,36 +94,24 @@ pub(super) fn wps_box_json(
     txbx_index: Option<usize>,
 ) -> Map<String, Value> {
     let mut o = Map::new();
-    if let Some(i) = txbx_index.filter(|_| !nested) {
-        set(&mut o, "txbxIndex", i as i64);
-    }
-    if nested {
-        set(&mut o, "readOnly", true);
-    }
-    if !nested && let Some(id) = &s.cnv_id {
-        set(&mut o, "shapeId", id.clone());
-    }
+    set_if!(&mut o, "readOnly" => nested);
+    set_some!(&mut o,
+        "txbxIndex" => txbx_index.filter(|_| !nested).map(|i| i as i64),
+        "shapeId" => (!nested).then(|| s.cnv_id.clone()).flatten(),
+    );
     fill_and_line(ctx, s, group_fill, &mut o);
-    if let Some(prst) = s.prst.as_deref().filter(|p| *p != "rect") {
-        set(&mut o, "prst", prst);
-    }
-    if let Some(g) = &s.geom
-        && let Some(d) = path_data(g, s.ext)
-    {
-        set(&mut o, "pathData", Value::Object(d));
-    }
-    if let Some(rot) = s.rot_60k.filter(|&r| r != 0) {
-        set(&mut o, "rotDeg", (rot as f64 / 60_000.0).round() as i64);
-    }
-    if let Some(cx) = s.ext.map(|e| e.cx).filter(|&cx| cx > 0) {
-        set(&mut o, "widthPx", px_round(cx));
-    }
     // Word 会裁掉溢出的文字，除非形状自适应；带上固定高度，稀疏的高框才不会撑爆版面。
-    let auto_fit = s.body.is_some_and(|b| b.auto_fit);
-    if !auto_fit && let Some(cy) = s.ext.map(|e| e.cy).filter(|&cy| cy > 0) {
-        set(&mut o, "heightPx", px_round(cy));
-        set(&mut o, "minHeightPx", px_round(cy));
-    }
+    let height = (!s.body.is_some_and(|b| b.auto_fit))
+        .then(|| s.ext.map(|e| e.cy).filter(|&cy| cy > 0).map(px_round))
+        .flatten();
+    set_some!(&mut o,
+        "prst" => s.prst.as_deref().filter(|p| *p != "rect"),
+        "pathData" => s.geom.as_ref().and_then(|g| path_data(g, s.ext)).map(Value::Object),
+        "rotDeg" => s.rot_60k.filter(|&r| r != 0).map(|r| (r as f64 / 60_000.0).round() as i64),
+        "widthPx" => s.ext.map(|e| e.cx).filter(|&cx| cx > 0).map(px_round),
+        "heightPx" => height,
+        "minHeightPx" => height,
+    );
     if let Some(b) = s.body {
         body_pr(b, &mut o);
     }
@@ -187,78 +172,54 @@ fn fill_and_line(
     o: &mut Map<String, Value>,
 ) {
     let no_fill = s.fill.as_ref().is_some_and(|f| f.kind == FillKind::None);
-    if !no_fill {
-        let fill = s.fill.as_ref().and_then(|f| match f.kind {
+    let fill = s.fill.as_ref().filter(|_| !no_fill);
+    let blip = fill
+        .filter(|f| f.kind == FillKind::Blip)
+        .filter(|f| f.blip.as_deref().is_some_and(|r| ctx.media.get(r).is_some()));
+    let line = s.line.as_ref().filter(|l| !l.no_fill);
+    set_some!(o,
+        "fill" => fill.and_then(|f| match f.kind {
             FillKind::Solid => color_hex(ctx, f.node),
             FillKind::Gradient => grad_hex(ctx, f.node),
             FillKind::Pattern => patt_hex(ctx, f.node),
             // `a:grpFill` 继承所在组的填充
             FillKind::Group => group_fill.map(str::to_string),
             _ => None,
-        });
-        if let Some(c) = fill {
-            set(o, "fill", c);
-        }
-        if let Some(f) = s.fill.as_ref().filter(|f| f.kind == FillKind::Blip)
-            && let Some(m) = f.blip.as_deref().and_then(|r| ctx.media.get(r))
-        {
-            set(o, "fillImageDataUrl", m.url.clone());
-            if f.tile {
-                set(o, "fillTile", true);
-            }
-        }
-    }
-    if let Some(ln) = &s.line
-        && !ln.no_fill
-    {
-        if let Some(c) = ln.fill.and_then(|f| color_hex(ctx, f)) {
-            set(o, "borderColor", c);
-        }
-        if let Some(w) = ln.width_emu.filter(|&w| w > 0) {
-            set(o, "borderWidthPx", px2(w));
-        }
-        if let Some(dash) = &ln.dash {
-            set(o, "borderDash", if dash.contains("dot") { "dotted" } else { "dashed" });
-        }
-    }
+        }),
+        "fillImageDataUrl" =>
+            blip.and_then(|f| ctx.media.get(f.blip.as_deref()?)).map(|m| m.url.clone()),
+        "borderColor" => line.and_then(|l| l.fill).and_then(|f| color_hex(ctx, f)),
+        "borderWidthPx" => line.and_then(|l| l.width_emu).filter(|&w| w > 0).map(px2),
+        "borderDash" => line.and_then(|l| l.dash.as_deref())
+            .map(|d| if d.contains("dot") { "dotted" } else { "dashed" }),
+    );
+    set_if!(o, "fillTile" => blip.is_some_and(|f| f.tile));
     // `wps:style`：spPr 没写颜色的图库形状从主题引用取
-    let ln_no_fill = s.line.as_ref().is_some_and(|l| l.no_fill);
-    if !o.contains_key("fill")
-        && !o.contains_key("fillImageDataUrl")
-        && !no_fill
-        && let Some(c) = style_ref_hex(ctx, s.fill_ref.as_ref(), true)
-    {
-        set(o, "fill", c);
-    }
-    if !o.contains_key("borderColor")
-        && !ln_no_fill
-        && let Some(c) = style_ref_hex(ctx, s.line_ref.as_ref(), true)
-    {
-        set(o, "borderColor", c);
-    }
-    // `a:fontRef` 是图库形状文字颜色的出处：缺省蓝形状引用 lt1，所以 Word 里不写 run 颜色
-    // 也显示白字。run 自己写了 `w:color` 时以 run 为准。
-    if let Some(c) = style_ref_hex(ctx, s.font_ref.as_ref(), false) {
-        set(o, "textColor", c);
-    }
+    let need_fill = !o.contains_key("fill") && !o.contains_key("fillImageDataUrl") && !no_fill;
+    let need_border = !o.contains_key("borderColor") && !s.line.as_ref().is_some_and(|l| l.no_fill);
+    set_some!(o,
+        "fill" => need_fill.then(|| style_ref_hex(ctx, s.fill_ref.as_ref(), true)).flatten(),
+        "borderColor" =>
+            need_border.then(|| style_ref_hex(ctx, s.line_ref.as_ref(), true)).flatten(),
+        // `a:fontRef` 是图库形状文字颜色的出处：缺省蓝形状引用 lt1，所以 Word 里不写 run
+        // 颜色也显示白字。run 自己写了 `w:color` 时以 run 为准。
+        "textColor" => style_ref_hex(ctx, s.font_ref.as_ref(), false),
+    );
 }
 
 fn body_pr(b: BodyPr, o: &mut Map<String, Value>) {
-    for (key, v) in [
-        ("insetLeftPx", b.l_ins),
-        ("insetTopPx", b.t_ins),
-        ("insetRightPx", b.r_ins),
-        ("insetBottomPx", b.b_ins),
-    ] {
-        if let Some(v) = v.filter(|&v| v >= 0) {
-            set(o, key, px2(v));
-        }
-    }
-    match b.anchor {
-        Some(Anchor::Bottom) => set(o, "vAlign", "bottom"),
-        Some(Anchor::Center) => set(o, "vAlign", "center"),
-        _ => {}
-    }
+    let inset = |v: Option<i64>| v.filter(|&v| v >= 0).map(px2);
+    set_some!(o,
+        "insetLeftPx" => inset(b.l_ins),
+        "insetTopPx" => inset(b.t_ins),
+        "insetRightPx" => inset(b.r_ins),
+        "insetBottomPx" => inset(b.b_ins),
+        "vAlign" => match b.anchor {
+            Some(Anchor::Bottom) => Some("bottom"),
+            Some(Anchor::Center) => Some("center"),
+            _ => None,
+        },
+    );
 }
 
 /// 连线形状 → 只读的线框（TS `lineBoxOf`）。合成的 `prst` 带上箭头信息。
@@ -369,32 +330,24 @@ pub(super) fn vml_box_json(
             _ => None,
         }
     };
-    if let Some(w) = dim("width", s, 0).filter(|&w| w > 0) {
-        set(&mut o, "widthPx", px_round(w));
-    }
-    if let Some(h) = dim("height", s, 1).filter(|&h| h > 0) {
-        set(&mut o, "heightPx", px_round(h));
-        set(&mut o, "minHeightPx", px_round(h));
-    }
-    if s.filled != Some(false)
-        && let Some(c) = &s.fill_color
-    {
-        set(&mut o, "fill", c.clone());
-    }
-    if s.stroked != Some(false)
-        && let Some(c) = &s.stroke_color
-    {
-        set(&mut o, "borderColor", c.clone());
-    }
+    let h = dim("height", s, 1).filter(|&h| h > 0).map(px_round);
     // 组外的 `position:absolute` 才是真的绝对定位
-    if group.is_none() && s.is_absolute() {
-        set(&mut o, "floating", true);
-        for (key, out) in [("margin-left", "offsetXEmu"), ("margin-top", "offsetYEmu")] {
-            if let Some(v) = s.style_len(key).and_then(|l| l.to_emu()) {
-                set(&mut o, out, v.round() as i64);
-            }
-        }
-    }
+    let absolute = group.is_none() && s.is_absolute();
+    let margin = |key: &str| {
+        absolute
+            .then(|| s.style_len(key).and_then(|l| l.to_emu()).map(|v| v.round() as i64))
+            .flatten()
+    };
+    set_if!(&mut o, "floating" => absolute);
+    set_some!(&mut o,
+        "widthPx" => dim("width", s, 0).filter(|&w| w > 0).map(px_round),
+        "heightPx" => h,
+        "minHeightPx" => h,
+        "fill" => (s.filled != Some(false)).then(|| s.fill_color.clone()).flatten(),
+        "borderColor" => (s.stroked != Some(false)).then(|| s.stroke_color.clone()).flatten(),
+        "offsetXEmu" => margin("margin-left"),
+        "offsetYEmu" => margin("margin-top"),
+    );
     o
 }
 
@@ -434,10 +387,10 @@ impl GroupCtm {
 /// 组内形状：`a:off` 经仿射变成绝对偏移，宽高按比例缩放，并且一律浮动
 /// （Word 就是把组内形状按映射后的位置绝对摆放的）。
 pub(super) fn apply_group_ctm(ctm: GroupCtm, s: &ShapeDisplay, o: &mut Map<String, Value>) {
-    if let Some((x, y)) = s.off {
-        set(o, "offsetXEmu", (ctm.tx + x as f64 * ctm.sx).round() as i64);
-        set(o, "offsetYEmu", (ctm.ty + y as f64 * ctm.sy).round() as i64);
-    }
+    set_some!(o,
+        "offsetXEmu" => s.off.map(|(x, _)| (ctm.tx + x as f64 * ctm.sx).round() as i64),
+        "offsetYEmu" => s.off.map(|(_, y)| (ctm.ty + y as f64 * ctm.sy).round() as i64),
+    );
     if ctm.sx != 1.0
         && let Some(w) = o.get("widthPx").and_then(Value::as_i64)
     {
@@ -451,6 +404,109 @@ pub(super) fn apply_group_ctm(ctm: GroupCtm, s: &ShapeDisplay, o: &mut Map<Strin
         }
     }
     set(o, "floating", true);
+}
+
+/// VML WordArt（`v:textpath`）降级成一行带样式的文字（TS `vmlWordArtBox`）。
+///
+/// 不做路径扭曲与 3D，但文字按声明的大小与位置显示出来，好过一块不透明的占位芯片。
+pub(super) fn vml_wordart_box(s: &VmlShape) -> Option<Map<String, Value>> {
+    let text = s.textpath.as_deref().filter(|t| !t.trim().is_empty())?;
+    let mut o = Map::new();
+    set(&mut o, "readOnly", true);
+    for k in ["insetTopPx", "insetRightPx", "insetBottomPx", "insetLeftPx"] {
+        set(&mut o, k, 0);
+    }
+    let w_px = vml_dim_px(s, "width");
+    let h_px = vml_dim_px(s, "height");
+    // 浮动的 WordArt 和别的绝对定位形状一样离开文字流
+    let absolute = s.is_absolute();
+    let margin = |key: &str| {
+        absolute.then(|| px_to_emu_round(s.style_len(key).map_or(0.0, |l| l.value) / 72.0 * 96.0))
+    };
+    set_if!(&mut o, "floating" => absolute);
+    set_some!(&mut o,
+        "widthPx" => w_px,
+        "heightPx" => h_px,
+        "offsetXEmu" => margin("margin-left"),
+        "offsetYEmu" => margin("margin-top"),
+    );
+    let tp = s.textpath_style.as_deref().unwrap_or("");
+    let tp_style = parse_style(tp);
+    let get = |k: &str| tp_style.iter().find(|(n, _)| n == k).map(|(_, v)| v.as_str());
+    let family = get("font-family").map(|v| v.trim().trim_matches('"').trim().to_string());
+    let size_pt = get("font-size").and_then(parse_length).map(|l| l.value);
+
+    // 填充色是**文字**颜色：`@fillcolor`，其次 `v:fill` 的 `color` / `color2`
+    let fill = (s.filled != Some(false))
+        .then(|| {
+            s.fill_color.clone().or_else(|| {
+                s.fill.as_ref().and_then(|f| {
+                    f.color
+                        .as_deref()
+                        .and_then(vml_color)
+                        .or_else(|| f.color2.as_deref().and_then(vml_color))
+                })
+            })
+        })
+        .flatten();
+    if s.stroked != Some(false) {
+        let mut outline = Map::new();
+        set(&mut outline, "colorHex", s.stroke_color.clone().unwrap_or_else(|| "000000".into()));
+        let weight =
+            s.stroke_weight.as_deref().and_then(parse_length).map(|l| l.value).filter(|&v| v > 0.0);
+        let px = match weight {
+            Some(pt) => (pt / 72.0 * 96.0 * 100.0).round() / 100.0,
+            None => 1.0,
+        };
+        set(&mut outline, "widthPx", px);
+        set(&mut o, "textOutline", Value::Object(outline));
+    }
+
+    let mut run = Map::new();
+    set(&mut run, "text", text);
+    // `fitshape` 让字随框缩放；实测声明的 font-size 与框高对得上（框高 ≈ 字号 × 行距系数），
+    // 所以优先用声明值，没有就按框高 / 1.4 估。
+    let height_pt = h_px.map(|h| h as f64 / 96.0 * 72.0);
+    let mut pt =
+        size_pt.filter(|&v| v > 0.0).or_else(|| height_pt.filter(|&v| v > 0.0).map(|h| h / 1.4));
+    // `fitpath` 会把长字串压进框里：按宽度收字号近似（一个字约 0.62 em）
+    if let (Some(p), Some(w)) = (pt, w_px.map(|w| w as f64 / 96.0 * 72.0).filter(|&v| v > 0.0)) {
+        let chars = text.chars().count() as f64;
+        if chars > 0.0 {
+            pt = Some(p.min(w / (0.62 * chars)).max(6.0));
+        }
+    }
+    set(&mut o, "nowrap", true);
+    set_some!(&mut run,
+        "sizeHalfPoints" => pt.filter(|&v| v > 0.0).map(|p| (p * 2.0).round() as i64),
+        "fontAscii" => family,
+        "color" => fill,
+    );
+    let decl = |key: &str, want: &str| get(key).is_some_and(|v| v.trim() == want);
+    set_if!(&mut run,
+        "bold" => decl("font-weight", "bold"),
+        "italic" => decl("font-style", "italic"),
+    );
+    let mut para = Map::new();
+    para.insert("runs".into(), Value::Array(vec![Value::Object(run)]));
+    set(&mut para, "align", "center");
+    set(&mut o, "paras", Value::Array(vec![Value::Object(para)]));
+    Some(o)
+}
+
+/// VML `style` 里的尺寸 → px。**没写单位时按磅算**（TS `vmlStyleDimPx`）。
+fn vml_dim_px(s: &VmlShape, key: &str) -> Option<i64> {
+    let l = s.style_len(key).filter(|l| l.value > 0.0)?;
+    let px = match l.to_emu() {
+        Some(emu) => emu_to_px(emu),
+        // 无单位：按磅
+        None => l.value / 72.0 * 96.0,
+    };
+    Some(px.round() as i64)
+}
+
+fn px_to_emu_round(px: f64) -> i64 {
+    (px * EMU_PER_PX).round() as i64
 }
 
 // ---- 框里的段落 ---------------------------------------------------------------------------------
@@ -658,12 +714,8 @@ pub(super) fn apply_anchor(
     grouped: bool,
     o: &mut Map<String, Value>,
 ) {
-    if a.behind_doc {
-        set(o, "behind", true);
-    }
-    if let Some(z) = a.relative_height.map(|h| h - Z_ORDER_BASE).filter(|&z| z != 0) {
-        set(o, "z", z);
-    }
+    set_if!(o, "behind" => a.behind_doc);
+    set_some!(o, "z" => a.relative_height.map(|h| h - Z_ORDER_BASE).filter(|&z| z != 0));
     let add = |o: &mut Map<String, Value>, key: &str, v: i64| {
         let cur = o.get(key).and_then(Value::as_i64).unwrap_or(0);
         set(o, key, cur + v);

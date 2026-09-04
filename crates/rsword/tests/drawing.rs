@@ -26,20 +26,6 @@ struct Stats {
     mismatches: Vec<String>,
 }
 
-fn kind_name(k: DrawingKind) -> &'static str {
-    match k {
-        DrawingKind::Picture => "picture",
-        DrawingKind::Chart => "chart",
-        DrawingKind::ChartEx => "chartEx",
-        DrawingKind::Diagram => "diagram",
-        DrawingKind::LockedCanvas => "lockedCanvas",
-        DrawingKind::Shape => "shape",
-        DrawingKind::Group => "group",
-        DrawingKind::Line => "line",
-        DrawingKind::Unknown => "unknown",
-    }
-}
-
 fn wrap_name(w: &Wrap) -> &'static str {
     match w {
         Wrap::None => "none",
@@ -87,7 +73,7 @@ fn mod_11_drawing_facts_across_the_corpus() {
             let ds = drawings_of(block);
             for d in &ds {
                 st.drawings += 1;
-                *st.by_kind.entry(kind_name(d.kind)).or_default() += 1;
+                *st.by_kind.entry(d.kind.as_str()).or_default() += 1;
                 if d.kind == DrawingKind::Unknown {
                     *st.unknown_docs.entry(file.clone()).or_default() += 1;
                 }
@@ -146,7 +132,7 @@ fn mod_11_drawing_facts_across_the_corpus() {
 /// VML 与嵌入对象（`MOD-11`，`spec/15` 任务 4.5 / 4.7）在语料上的普查。
 #[test]
 fn mod_11_vml_and_ole_across_the_corpus() {
-    use rsword::model::{VmlDisplay, VmlKind};
+    use rsword::model::VmlDisplay;
 
     let mut docs = 0usize;
     let mut picts = 0usize;
@@ -185,17 +171,7 @@ fn mod_11_vml_and_ole_across_the_corpus() {
             picts += 1;
             shapes += v.shapes.len();
             for s in &v.shapes {
-                let name = match s.kind {
-                    VmlKind::Shape => "shape",
-                    VmlKind::Rect => "rect",
-                    VmlKind::RoundRect => "roundRect",
-                    VmlKind::Oval => "oval",
-                    VmlKind::Line => "line",
-                    VmlKind::Group => "group",
-                    VmlKind::ShapeType => "shapeType",
-                    VmlKind::Other => "other",
-                };
-                *by_kind.entry(name).or_default() += 1;
+                *by_kind.entry(s.kind.as_str()).or_default() += 1;
             }
             if v.rule().is_some() {
                 rules += 1;

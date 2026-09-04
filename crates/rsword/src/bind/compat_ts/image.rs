@@ -12,6 +12,7 @@ use crate::resolve::drawingml::{ColorBase, color_in, hex};
 use crate::xml::{Dom, LocalName, NodeId, QName};
 
 use super::blocks::Ctx;
+use super::json::{set, set_if, set_some};
 
 /// Word 的 `relativeHeight` 基数：`relativeHeight - 251658240` 才是 z 序。
 const Z_ORDER_BASE: i64 = 251_658_240;
@@ -20,8 +21,14 @@ const Z_ORDER_BASE: i64 = 251_658_240;
 const HALF_BODY_TWIPS: i64 = 4680;
 const EMU_PER_TWIP: i64 = 635;
 
-fn set<T: Into<Value>>(m: &mut Map<String, Value>, k: &str, v: T) {
-    m.insert(k.to_string(), v.into());
+/// EMU → 取整的 px。
+fn px(emu: i64) -> i64 {
+    emu_to_px(emu as f64).round() as i64
+}
+
+/// 1/60000 度 → 0..359 的整度。
+fn deg_360(rot_60k: i64) -> i64 {
+    ((rot_60k as f64 / 60_000.0).round() as i64).rem_euclid(360)
 }
 
 /// TS `imageMeta(xml)`：把一个绘图的事实投影成 `image*` 字段，写进 `out`。
@@ -37,38 +44,21 @@ pub(super) fn image_meta(
     if let Some(p) = para {
         leading(dom, p, out);
         paragraph_indent(dom, p, out);
-        if let Some(a) = jc_align(dom, p) {
-            set(out, "imageAlign", a);
-        }
+        set_some!(out, "imageAlign" => jc_align(dom, p));
     }
-    if let Some(ext) = d.extent {
-        if ext.cx > 0 {
-            set(out, "imageWidthPx", emu_to_px(ext.cx as f64).round() as i64);
-        }
-        if ext.cy > 0 {
-            set(out, "imageHeightPx", emu_to_px(ext.cy as f64).round() as i64);
-        }
-    }
+    set_some!(out,
+        "imageWidthPx" => d.extent.map(|e| e.cx).filter(|&cx| cx > 0).map(px),
+        "imageHeightPx" => d.extent.map(|e| e.cy).filter(|&cy| cy > 0).map(px),
+    );
     if let Some(pic) = d.picture() {
-        if let Some(rot) = pic.rot_60k.filter(|&r| r != 0) {
-            let deg = (rot as f64 / 60_000.0).round() as i64;
-            set(out, "imageRotDeg", deg.rem_euclid(360));
-        }
-        if pic.flip_h {
-            set(out, "imageFlipH", true);
-        }
-        if pic.flip_v {
-            set(out, "imageFlipV", true);
-        }
-        if let Some(b) = border(ctx, pic.border.as_ref()) {
-            set(out, "imageBorder", Value::Object(b));
-        }
-        if let Some(c) = pic.crop.filter(|c| !c.is_zero()) {
-            set(out, "imageCrop", Value::Object(rect(c)));
-        }
-        if let Some(c) = pic.fill_rect.filter(|c| !c.is_zero()) {
-            set(out, "imageFillRect", Value::Object(rect(c)));
-        }
+        set_some!(out,
+            "imageRotDeg" => pic.rot_60k.filter(|&r| r != 0).map(deg_360),
+            "imageBorder" => border(ctx, pic.border.as_ref()).map(Value::Object),
+            "imageCrop" => pic.crop.filter(|c| !c.is_zero()).map(|c| Value::Object(rect(c))),
+            "imageFillRect" =>
+                pic.fill_rect.filter(|c| !c.is_zero()).map(|c| Value::Object(rect(c))),
+        );
+        set_if!(out, "imageFlipH" => pic.flip_h, "imageFlipV" => pic.flip_v);
     }
     if let Some(a) = &d.anchor {
         anchor_meta(a, d, out);
@@ -132,30 +122,21 @@ fn drawing_run_image(ctx: &Ctx<'_>, seg: &Segment) -> Option<Map<String, Value>>
 /// 锚定图片 run 的定位信息（`docs/01` §6.5）。键名没有 `image` 前缀，是块级 `imageMeta` 的子集：
 /// 块级还带 z 序与位置预设，run 级只要绕排与偏移。
 fn run_anchor_meta(a: &AnchorGeom, d: &DrawingDisplay, out: &mut Map<String, Value>) {
-    for (key, v) in [
-        ("wrapDistTopEmu", a.dist.top),
-        ("wrapDistBottomEmu", a.dist.bottom),
-        ("wrapDistLeftEmu", a.dist.left),
-        ("wrapDistRightEmu", a.dist.right),
-    ] {
-        if let Some(v) = v {
-            set(out, key, v);
-        }
-    }
     set(out, "wrap", wrap_kind(a, d));
-    if let Some(x) = a.h.offset_emu {
-        set(out, "offsetXEmu", x);
-    }
-    if let Some(y) = a.v.offset_emu {
-        set(out, "offsetYEmu", y);
-    }
-    if !a.allow_overlap {
-        set(out, "noOverlap", true);
-    }
-    // 相对「行」居中：Word 把图片压在行中线上（LibreOffice tdf#162551）。
-    if a.v.relative_from.as_deref() == Some("line") && a.v.align.as_deref() == Some("center") {
-        set(out, "lineCenterV", true);
-    }
+    set_some!(out,
+        "wrapDistTopEmu" => a.dist.top,
+        "wrapDistBottomEmu" => a.dist.bottom,
+        "wrapDistLeftEmu" => a.dist.left,
+        "wrapDistRightEmu" => a.dist.right,
+        "offsetXEmu" => a.h.offset_emu,
+        "offsetYEmu" => a.v.offset_emu,
+    );
+    set_if!(out,
+        "noOverlap" => !a.allow_overlap,
+        // 相对「行」居中：Word 把图片压在行中线上（LibreOffice tdf#162551）
+        "lineCenterV" => a.v.relative_from.as_deref() == Some("line")
+            && a.v.align.as_deref() == Some("center"),
+    );
 }
 
 /// VML 细横线（`v:rect o:hr="t"`）的显示字段（`docs/01` §6.2.6；`spec/15` 4.5）。
@@ -222,32 +203,17 @@ fn vml_px(v: &VmlDisplay) -> (Option<i64>, Option<i64>) {
 }
 
 fn anchor_meta(a: &AnchorGeom, d: &DrawingDisplay, out: &mut Map<String, Value>) {
-    for (key, v) in [
-        ("imageWrapDistTopEmu", a.dist.top),
-        ("imageWrapDistBottomEmu", a.dist.bottom),
-        ("imageWrapDistLeftEmu", a.dist.left),
-        ("imageWrapDistRightEmu", a.dist.right),
-    ] {
-        if let Some(v) = v {
-            set(out, key, v);
-        }
-    }
-    if !a.allow_overlap {
-        set(out, "imageNoOverlap", true);
-    }
-    if a.locked {
-        set(out, "imageAnchorLocked", true);
-    }
-    if let Some(z) = a.relative_height.map(|h| h - Z_ORDER_BASE).filter(|&z| z != 0) {
-        set(out, "imageZOrder", z);
-    }
     set(out, "imageWrap", wrap_kind(a, d));
-    if let Some(x) = a.h.offset_emu {
-        set(out, "imageOffsetXEmu", x);
-    }
-    if let Some(y) = a.v.offset_emu {
-        set(out, "imageOffsetYEmu", y);
-    }
+    set_some!(out,
+        "imageWrapDistTopEmu" => a.dist.top,
+        "imageWrapDistBottomEmu" => a.dist.bottom,
+        "imageWrapDistLeftEmu" => a.dist.left,
+        "imageWrapDistRightEmu" => a.dist.right,
+        "imageZOrder" => a.relative_height.map(|h| h - Z_ORDER_BASE).filter(|&z| z != 0),
+        "imageOffsetXEmu" => a.h.offset_emu,
+        "imageOffsetYEmu" => a.v.offset_emu,
+    );
+    set_if!(out, "imageNoOverlap" => !a.allow_overlap, "imageAnchorLocked" => a.locked);
     // margin 对齐的一对 `wp:align` 是 Word 的「位置库」预设，原样带回去才能往返。
     let h_from = a.h.relative_from.as_deref();
     let v_from = a.v.relative_from.as_deref();

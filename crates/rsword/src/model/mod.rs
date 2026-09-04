@@ -16,6 +16,8 @@
 pub mod block;
 pub mod build;
 pub mod classify;
+mod macros;
+
 pub mod custgeom;
 pub mod decl;
 pub mod drawing;
@@ -51,7 +53,7 @@ pub use inline::{
 };
 pub use section::{SectionGeom, Sections};
 pub use theme::{ColorScheme, FontScheme, FontSlots, Theme, ThemeSlot};
-pub use vml::{OleInfo, VmlDisplay, VmlKind, VmlShape};
+pub use vml::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};
 
 #[cfg(test)]
 mod tests;

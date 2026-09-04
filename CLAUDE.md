@@ -84,6 +84,7 @@ GENOFFICE_DIR=~/code/genoffice tools/export-golden/run.sh   # 重导语料（改
 - 新的元素名 / 属性名要先加进 `crates/rsword/schema/local_names.txt`（生成器会造 `LocalName` 变体）。表外名字会 intern 成 `LocalName::Other`，可用但不能用于常量匹配。
 - 树遍历写成**迭代**的。语料里有几千层嵌套的文档，递归会栈溢出，表现为测试 SIGABRT。
 - 编辑操作的事务边界是 `EditSession::apply` / `apply_all`：`plan`（只读）→ `validate`（只读）→ `commit`（机械写入，不可失败）。任一步 `Err` 必须不留半修改状态。`commit_plan` 会为事务碰过的每个 part 记写前镜像。
+- **同一形状重复三次以上就上声明宏**。已有的：`bind/compat_ts/json.rs` 的 `set_some!`（有值才写）与 `set_if!`（为真才写 `true`）——投影层新写字段用它们，别再手写 `if let Some`；`model/macros.rs` 的 `named_enum!`（无字段枚举 + `as_str` + `Display`），测试里就不用再抄名字表。跨模块用 `macro_rules!` + `pub(super) use`，展开里写 `$crate::…` 全路径。会把函数定义藏起来、让人跳不到声明处的，用共享模块而不是宏。
 - 用 python 脚本改 Rust 源码时：先 `cargo fmt`，按**精确字符串**匹配，并逐步打印是否命中（rustfmt 会重排你以为的那一行）。
 - 串联多条检查再提交时，逐条捕获退出码；`grep | head` 这类管道会吞掉失败。
 

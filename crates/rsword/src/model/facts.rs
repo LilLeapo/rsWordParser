@@ -6,6 +6,7 @@
 
 use crate::model::block::{ListRef, SdtInfo};
 use crate::model::decl::{OwnHeadingLevel, Styles};
+use crate::model::macros::named_enum;
 use crate::semantic::props::{ParaProps, Style, StyleType, Val};
 use crate::span::FieldId;
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
@@ -52,18 +53,19 @@ pub struct DrawingFacts {
     pub is_ink: bool,
 }
 
-/// 按 `a:graphicData/@uri` 判定；`@uri` 缺失时退回看 `a:graphicData` 的子元素命名空间。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DrawingKind {
-    Picture,
-    Chart,
-    ChartEx,
-    Diagram,
-    LockedCanvas,
-    Shape,
-    Group,
-    Line,
-    Unknown,
+named_enum! {
+    /// 按 `a:graphicData/@uri` 判定；`@uri` 缺失时退回看 `a:graphicData` 的子元素命名空间。
+    pub enum DrawingKind {
+        Picture = "picture",
+        Chart = "chart",
+        ChartEx = "chartEx",
+        Diagram = "diagram",
+        LockedCanvas = "lockedCanvas",
+        Shape = "shape",
+        Group = "group",
+        Line = "line",
+        Unknown = "unknown",
+    }
 }
 
 impl DrawingKind {

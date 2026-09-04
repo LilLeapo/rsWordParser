@@ -17,6 +17,7 @@ mod box_json;
 mod decl;
 pub mod diff;
 mod image;
+mod json;
 pub mod media;
 pub mod save_blocks;
 mod textbox;

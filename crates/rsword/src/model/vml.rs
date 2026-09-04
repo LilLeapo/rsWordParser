@@ -10,6 +10,7 @@
 //! 遍历是迭代的、带深度上限，和绘图那边同一条规矩。
 
 use crate::model::block::Block;
+use crate::model::macros::named_enum;
 use crate::model::units::{Length, parse_length, parse_style};
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
@@ -43,18 +44,19 @@ impl VmlDisplay {
     }
 }
 
-/// VML 元素种类（`v:` 命名空间下的元素名）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum VmlKind {
-    Shape,
-    Rect,
-    RoundRect,
-    Oval,
-    Line,
-    Group,
-    /// `v:shapetype`：只是形状模板，不画东西。
-    ShapeType,
-    Other,
+named_enum! {
+    /// VML 元素种类（`v:` 命名空间下的元素名）。
+    pub enum VmlKind {
+        Shape = "shape",
+        Rect = "rect",
+        RoundRect = "roundRect",
+        Oval = "oval",
+        Line = "line",
+        Group = "group",
+        /// `v:shapetype`：只是形状模板，不画东西。
+        ShapeType = "shapeType",
+        Other = "other",
+    }
 }
 
 impl VmlKind {
@@ -96,6 +98,12 @@ pub struct VmlShape {
     pub imagedata: Option<String>,
     /// `v:textpath/@string`（WordArt 文字）。
     pub textpath: Option<String>,
+    /// `v:textpath/@style`：WordArt 的字体与字号写在这里。
+    pub textpath_style: Option<String>,
+    /// `@strokeweight`（多半带 `pt`）。
+    pub stroke_weight: Option<String>,
+    /// `v:fill` 元素上的颜色。WordArt 拿它当**文字**颜色。
+    pub fill: Option<VmlFill>,
     /// `@o:hr="t"`：HTML `<hr>` 导入的细横线。
     pub hr: bool,
     /// 直接挂着 `v:textbox`。
@@ -128,6 +136,13 @@ impl VmlShape {
     pub fn is_hidden(&self) -> bool {
         self.style_get("visibility").is_some_and(|v| v.eq_ignore_ascii_case("hidden"))
     }
+}
+
+/// `v:fill` 元素上的颜色。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct VmlFill {
+    pub color: Option<String>,
+    pub color2: Option<String>,
 }
 
 /// `w:object` 的嵌入对象。
@@ -189,13 +204,16 @@ fn shape(dom: &Dom, n: NodeId, kind: VmlKind, parent: Option<usize>) -> VmlShape
         style: attr(dom, n, NsId::None, LocalName::Style)
             .map(|v| parse_style(&v))
             .unwrap_or_default(),
-        fill_color: attr(dom, n, NsId::None, LocalName::Fillcolor).and_then(|v| hex6(&v)),
+        fill_color: attr(dom, n, NsId::None, LocalName::Fillcolor).and_then(|v| vml_color(&v)),
         filled: flag(dom, n, NsId::None, LocalName::Filled),
-        stroke_color: attr(dom, n, NsId::None, LocalName::Strokecolor).and_then(|v| hex6(&v)),
+        stroke_color: attr(dom, n, NsId::None, LocalName::Strokecolor).and_then(|v| vml_color(&v)),
         stroked: flag(dom, n, NsId::None, LocalName::Stroked),
         coordsize: attr(dom, n, NsId::None, LocalName::Coordsize).and_then(|v| pair(&v)),
         imagedata: None,
         textpath: None,
+        textpath_style: None,
+        stroke_weight: attr(dom, n, NsId::None, LocalName::Strokeweight),
+        fill: None,
         hr: dom.attr(n, QName::new(NsId::O, LocalName::Hr)).is_some_and(|_| {
             attr(dom, n, NsId::O, LocalName::Hr).is_some_and(|v| v == "t" || v == "true")
         }),
@@ -216,6 +234,13 @@ fn shape(dom: &Dom, n: NodeId, kind: VmlKind, parent: Option<usize>) -> VmlShape
             }
             LocalName::Textpath if s.textpath.is_none() => {
                 s.textpath = attr(dom, c, NsId::None, LocalName::String);
+                s.textpath_style = attr(dom, c, NsId::None, LocalName::Style);
+            }
+            LocalName::Fill if s.fill.is_none() => {
+                s.fill = Some(VmlFill {
+                    color: attr(dom, c, NsId::None, LocalName::Color),
+                    color2: attr(dom, c, NsId::None, LocalName::Color2),
+                });
             }
             LocalName::Textbox => {
                 s.has_textbox = true;
@@ -243,14 +268,52 @@ fn flag(dom: &Dom, node: NodeId, ns: NsId, local: LocalName) -> Option<bool> {
     Some(!(v == "f" || v == "false"))
 }
 
-/// `#aca899` / `aca899` / `#ffffff [65535]` → `aca899`。认不出的写法（`red`、`window`）→ `None`。
+/// HTML 颜色名，VML 属性里常见（TS `VML_NAMED_COLORS`）。
+const NAMED: &[(&str, &str)] = &[
+    ("black", "000000"),
+    ("white", "FFFFFF"),
+    ("red", "FF0000"),
+    ("green", "008000"),
+    ("blue", "0000FF"),
+    ("yellow", "FFFF00"),
+    ("silver", "C0C0C0"),
+    ("gray", "808080"),
+    ("grey", "808080"),
+    ("maroon", "800000"),
+    ("olive", "808000"),
+    ("navy", "000080"),
+    ("purple", "800080"),
+    ("teal", "008080"),
+    ("fuchsia", "FF00FF"),
+    ("lime", "00FF00"),
+    ("aqua", "00FFFF"),
+    ("cyan", "00FFFF"),
+    ("orange", "FFA500"),
+];
+
+/// VML 颜色属性 → 6 位 hex（不带 `#`）。`#dbe5f1` / `#aaa` / `#dbe5f1 [3204]` / `silver` 都认。
 ///
 /// **保留原大小写**：TS 的 VML 路径直接把 `fillcolor` 去掉 `#` 就用（`vml-textbox__002` 的
 /// `borderColor` 是小写），只有细横线那条路会 `toUpperCase`。
-fn hex6(v: &str) -> Option<String> {
-    let s = v.trim().trim_start_matches('#');
-    let head: String = s.chars().take(6).collect();
-    (head.len() == 6 && head.bytes().all(|b| b.is_ascii_hexdigit())).then_some(head)
+pub fn vml_color(v: &str) -> Option<String> {
+    let s = v.trim();
+    let body = s.trim_start_matches('#');
+    let head: String = body.chars().take(6).collect();
+    if head.len() == 6 && head.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Some(head);
+    }
+    // `#abc` 简写（后面不能再跟十六进制位）
+    if let Some(short) = s.strip_prefix('#') {
+        let three: String = short.chars().take(3).collect();
+        if three.len() == 3
+            && three.bytes().all(|b| b.is_ascii_hexdigit())
+            && !short.chars().nth(3).is_some_and(|c| c.is_ascii_hexdigit())
+        {
+            return Some(three.chars().flat_map(|c| [c, c]).collect());
+        }
+    }
+    let name = s.split([' ', '[']).next().unwrap_or("").to_ascii_lowercase();
+    NAMED.iter().find(|(n, _)| *n == name).map(|(_, h)| (*h).to_string())
 }
 
 /// `coordsize="2000,1000"`。
@@ -325,10 +388,13 @@ mod tests {
 
     #[test]
     fn mod_11_vml_color_forms() {
-        assert_eq!(hex6("#ACA899"), Some("ACA899".into()));
-        assert_eq!(hex6("aca899"), Some("aca899".into()));
-        assert_eq!(hex6("#ffffff [65535]"), Some("ffffff".into()));
-        assert_eq!(hex6("red"), None);
-        assert_eq!(hex6("#abc"), None);
+        assert_eq!(vml_color("#ACA899"), Some("ACA899".into()));
+        assert_eq!(vml_color("aca899"), Some("aca899".into()));
+        assert_eq!(vml_color("#ffffff [65535]"), Some("ffffff".into()));
+        // HTML 颜色名与 `#abc` 简写也认（TS `vmlColorHex`）
+        assert_eq!(vml_color("red"), Some("FF0000".into()));
+        assert_eq!(vml_color("Silver [2]"), Some("C0C0C0".into()));
+        assert_eq!(vml_color("#abc"), Some("aabbcc".into()));
+        assert_eq!(vml_color("window"), None);
     }
 }
