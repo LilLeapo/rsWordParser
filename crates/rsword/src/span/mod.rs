@@ -16,8 +16,8 @@ pub mod materialize;
 pub mod transform;
 
 pub use content::{
-    content_children, content_index_of, content_len, is_content_container, is_content_item,
-    item_containing,
+    boundary_before, container_of, content_children, content_index_of, content_len,
+    is_content_container, is_content_item, item_containing,
 };
 pub use field::{
     FieldForm, FieldId, FieldIndex, FieldPolicy, FieldSpan, FormData, InstrToken, Instruction,

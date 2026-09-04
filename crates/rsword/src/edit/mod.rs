@@ -62,6 +62,19 @@ pub enum NewBlock {
     Wrapped { wrapper: NewElement, block: Box<NewBlock> },
 }
 
+/// `EDIT-03 AddComment` 的内容。`text` 里的 `\n` 分段。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct NewComment {
+    pub author: String,
+    pub initials: Option<String>,
+    /// ISO 时间戳；`None` 时不写 `w:date`。
+    pub date: Option<String>,
+    pub text: String,
+    /// 回复哪条批注（写 `commentsExtended` 的 `w15:paraIdParent`）。
+    pub parent_id: Option<String>,
+    pub done: bool,
+}
+
 /// `docs/03` §8.2 的操作枚举（M1 子集）。
 // 属性补丁（`ParaPropsPatch`）体积大；操作是一次性传入的值，不装箱。
 #[allow(clippy::large_enum_variant)]
@@ -86,4 +99,11 @@ pub enum EditOp {
     DeleteBlock { node: NodeId },
     /// `EDIT-03 MoveBlock`：同 part `move_within_part`。
     MoveBlock { node: NodeId, to: BlockPos },
+    /// `EDIT-03 AddComment`（同段）：`comments.xml` 不存在则新建 part（`SAVE-05`），
+    /// 正文里插范围标记与 `w:commentReference` run，`w:id` 按 `EDIT-06` 取最大值 + 1。
+    AddComment { from: InlinePos, to: InlinePos, comment: NewComment },
+    /// `EDIT-03 RemoveComment`：条目、范围标记与 reference run 一起删。
+    RemoveComment { id: String },
+    /// `EDIT-03 SetCommentText`：改条目正文（保留第一个文字 run 的格式）与 `w15:done`。
+    SetCommentText { id: String, text: String, done: Option<bool> },
 }

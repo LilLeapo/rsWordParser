@@ -1,8 +1,8 @@
 //! 包写回（`SAVE-01` 步骤 1/5/6、`SAVE-06`、`SAVE-08`）。
 //!
 //! 遍历原 zip 条目按原顺序：未变 part 用 `raw_copy_file` 直接拷压缩数据；变脏 part 用 Deflate 写新数据。
-//! 无脏节点且无新增 / 删除 part → 直接返回原字节（不变式 1）。
-//! 新增 part 追加在末尾（M7 接入 `[Content_Types].xml` 与 `.rels` 的同机制改写后启用）。
+//! 无脏节点且无新增 part → 直接返回原字节（不变式 1）。
+//! 新增 part（`SAVE-05`）追加在末尾，原有条目仍按原顺序原压缩数据拷贝。
 
 use std::io::{Cursor, Write};
 
@@ -25,16 +25,24 @@ impl Package {
             .collect()
     }
 
+    /// 有脏节点，或有本次会话新建的 part（`SAVE-05`）。
     pub fn is_dirty(&self) -> bool {
-        !self.dirty_parts().is_empty()
+        !self.dirty_parts().is_empty() || self.new_parts().next().is_some()
     }
 
     /// 写回整个包。`SAVE-01` 步骤 1 / 2 / 5 / 6：无脏节点直接返回原字节；校验（`SAVE-02`，调试构建下
     /// `EngineInvariantViolation` 为 `Err`）并补扩展命名空间声明（`SAVE-03`）；序列化脏 part；包写回。
     pub fn save(&mut self) -> Result<Vec<u8>> {
-        let dirty = self.dirty_parts();
-        if dirty.is_empty() {
+        let mut dirty = self.dirty_parts();
+        let fresh: Vec<PartId> = self.new_parts().collect();
+        if dirty.is_empty() && fresh.is_empty() {
             return Ok(self.original_bytes().to_vec());
+        }
+        // 新 part 整份都要写（它的 DOM 是从文本解析出来的，根节点是 `Clean`）
+        for id in &fresh {
+            if !dirty.contains(id) {
+                dirty.push(*id);
+            }
         }
         let mut diags = Vec::new();
         for &id in &dirty {
@@ -46,7 +54,7 @@ impl Package {
         crate::save::validate::enforce(&diags)?;
         self.push_diagnostics(diags);
         // 先序列化所有脏 part（不可变借用 DOM），再做 zip 写入（可变借用 zip）
-        let mut replaced: Vec<(u32, Vec<u8>)> = Vec::with_capacity(dirty.len());
+        let mut replaced: Vec<(PartId, u32, Vec<u8>)> = Vec::with_capacity(dirty.len());
         for id in dirty {
             let part = self.part(id);
             let dom = part.dom().expect("dirty part has a DOM");
@@ -61,8 +69,15 @@ impl Package {
             })?;
             #[cfg(debug_assertions)]
             check_clean_substrings(dom, &bytes, &part.uri.to_string());
-            replaced.push((part.zip_index, bytes));
+            replaced.push((id, part.zip_index, bytes));
         }
+        let appended: Vec<(String, Vec<u8>)> = fresh
+            .iter()
+            .filter_map(|&id| {
+                let bytes = replaced.iter().find(|(p, ..)| *p == id).map(|(.., b)| b.clone())?;
+                Some((self.part(id).uri.as_str().to_string(), bytes))
+            })
+            .collect();
 
         let entries: Vec<(u32, String, bool)> =
             self.zip().entries().iter().map(|e| (e.index, e.name.clone(), e.is_dir)).collect();
@@ -70,7 +85,7 @@ impl Package {
             zip::ZipWriter::new(Cursor::new(Vec::with_capacity(self.original_bytes().len())));
         let deflate = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
         for (index, name, is_dir) in entries {
-            if let Some((_, bytes)) = replaced.iter().find(|(i, _)| *i == index) {
+            if let Some((.., bytes)) = replaced.iter().find(|(_, i, _)| *i == index) {
                 writer
                     .start_file(name.as_str(), deflate)
                     .map_err(|e| Error::Zip(format!("start {name}: {e}")))?;
@@ -82,6 +97,13 @@ impl Package {
             } else {
                 self.zip_mut().raw_copy_into(index, &mut writer)?;
             }
+        }
+        // `SAVE-06`：新 part 追加在末尾
+        for (name, bytes) in &appended {
+            writer
+                .start_file(name.as_str(), deflate)
+                .map_err(|e| Error::Zip(format!("start {name}: {e}")))?;
+            writer.write_all(bytes).map_err(|e| Error::Zip(format!("write {name}: {e}")))?;
         }
         let cursor = writer.finish().map_err(|e| Error::Zip(format!("finish: {e}")))?;
         Ok(cursor.into_inner())

@@ -518,7 +518,21 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
     批注 / 注释域归零；`is_text_case` 不再排除带批注与注释的文档，`--scope text` 从 223 升到 **226 份**
     （仍 0 未知差异）。测试 `tests/notes.rs` 6 个（三部件关联、语料字段、结构条目与首段裁剪、
     `commentIds` 三种形态、`noteRef` 编号、全语料 id 唯一）。
-  - [ ] 写侧：`AddComment` / `RemoveComment` / `SetCommentText` 与新建 part（`SAVE-05`：关系 + 内容类型）
+  - [x] **写侧**（`package/mod.rs`、`save/package_writer.rs`、`edit/{mod,session,ops}.rs`）：`SAVE-05`
+    新建 part——`Package::register_new_part` 把整份 XML 文本解析成 DOM 登记进 part 表（`zip_index`
+    为 `NO_ZIP_ENTRY`），`EditSession::add_part` 再走 DOM 机制补两处：owner 的 `.rels` 里一条
+    `Relationship`（没有 `.rels` 就先建 `<dir>/_rels/<name>.rels`，并按需给 `[Content_Types].xml`
+    补 `Default Extension="rels"`）、`[Content_Types].xml` 里一条 `Override`。写回时新 part 追加在
+    zip 末尾，原有条目仍原压缩数据拷贝（`SAVE-06`），`is_dirty` 把"有新 part"也算脏。
+    `EDIT-03` 三个操作：`AddComment`（同段；先把两端落到 inline 边界，建条目——`w:id` 按 `EDIT-06`
+    取最大值 + 1、末段带 `w14:paraId`、首段有 `w:annotationRef` run——再在正文插范围标记与
+    `w:commentReference` run，最后把范围登记进索引：标记本来就在锚点位置，物化不会重发）、
+    `RemoveComment`（条目 + 范围标记 + reference run + `commentsExtended` 条目一起删）、
+    `SetCommentText`（重写条目段落，**保留第一个有字 run 的 `rPr`**；`done` 与回复写
+    `commentsExtended`，缺 part 就建）。测试 `tests/notes.rs` 新增 5 个：`SAVE-05` 验收行
+    （首次加批注后 comments.xml / 关系 / 内容类型都对，其他条目原压缩数据不变，重开后
+    `commentIds` 挂上）、`EDIT-06` 验收行（两次 AddComment 拿到不同 id）、`SetCommentText`
+    保留加粗并新建 `commentsExtended`、`RemoveComment` 只清自己那条、失败回滚连新 part 一起退。
   - [ ] compat 的 `comments` / `footnotes` 保存选项（权威列表：重写条目、删掉列表外批注在正文里的标记）
 - [x] **2.7 符号字体解码**（`resolve/symbol.rs`、`bind/compat_ts/blocks.rs`）：`RES-05` 的符号字体表与
   `decode` / `decode_pua` / `is_symbol_font`；`w:sym` 按 `w:font` + `w:char` 解码（`0xF000` 偏移与裸码位

@@ -7,7 +7,7 @@
 
 **M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖），**已全部并入 `main`**（2026-09-04）。
 **M2 进行中**（分支 `m2-span-fields`）：2.1 Span 索引、2.2 Anchor 变换、2.3 物化与保存校验、
-2.4 字段子系统、2.5 字段进模型与 compat、2.6 的读侧（批注与注释条目）、2.7 符号字体解码、
+2.4 字段子系统、2.5 字段进模型与 compat、2.6 的读侧与批注编辑操作（含 `SAVE-05` 新建 part）、2.7 符号字体解码、
 2.8 的 `rId` 分配已落地；任务分解见
 `spec/13-m2-plan.md`，进度清单见 `docs/04` §11。
 
@@ -22,14 +22,14 @@ run 属性 / 改段落属性 / 整段替换、把 TS 的 `SaveBlock[]` 保存请
 
 | 层 | 状态 | 已实现 | 缺口（里程碑） |
 | --- | --- | --- | --- |
-| L0 包层 `package/` | 完成 | zip（0x7075 中和、限额、raw copy）、`[Content_Types].xml`、`.rels` 双族、flavor 判定（Strict / Transitional / Mixed）、`NamespaceContext` | 新建 part（`SAVE-05`，M2） |
+| L0 包层 `package/` | 完成 | zip（0x7075 中和、限额、raw copy）、`[Content_Types].xml`、`.rels` 双族、flavor 判定（Strict / Transitional / Mixed）、`NamespaceContext`、新建 part（`SAVE-05`：内容类型 Override + 关系 + `.rels` 自建） | — |
 | L1 无损 DOM `xml/` | 完成 | tokenizer（区间精确、属性顺序 / 引号 / 重复容忍）、`Dirty` 五态与传播、MCE（含 `ProcessContent`）、命名空间作用域、`NodeEdit` 计划、片段解析、规范化比较、XPath 子集 | — |
 | L2 范围 `span/` | 完成（范围部分） | `FlowId` / `FlowMap`、内容序列（`SPAN-01`）、`Anchor` / `Affinity`、九种 `RangeKind`、按流构建与配对诊断、文档序 `compare`、按容器倒排、编辑期变换与整体删除策略（`SPAN-06/07`）、物化与保存前校验（`SPAN-08/09`） | 与字段的交界（`SPAN-10`：端点落进指令区时移到原子边界，随 2.9 的字段操作） |
 | L2 字段 `span/field/` | 解析完成 | `FieldSpan` 配对（复杂 / 简单 / 嵌套 / 跨段 / 未闭合诊断）、指令 tokenizer 与 76 个关键字的策略表、`w:ffData` 读侧、`FLD-13` 基线校验 | 字段编辑操作（2.9）、块字段生成器（M7） |
 | L3 属性表 `semantic/props/` | 完成 | 20 张表由 TOML 生成（读 / 写 / diff / patch / merge / `plan_apply_*`）、按 flavor 编解码、`Val::Raw` 降级、`PROP-05` 顺序 | 表格与节的属性表（M3 / M5） |
 | L3 模型 `model/` | 文本 + 字段 + 批注 / 注释 | `Document::rebuild`、块分类 R01–R19（含 R09 字段块）、段落坐标流（`Run`/`Segment`，UTF-16）、`Inline::Field` 与透明字段、`ParagraphFacts`、声明模型（styles / numbering / theme / settings / fontTable / comments / footnotes / endnotes） | 表格模型（M3）、绘图显示模型（M4） |
 | resolve `resolve/` | 首版 | 样式链（basedOn / link）、docDefaults 层叠、每字段 `Provenance`、主题字体与颜色、符号字体解码、heading 级别 | toggle 属性真实规则 + Word 实测 fixture（M5）、补全 Wingdings 2/3 与 Webdings 映射表 |
-| L4 编辑 `edit/` | M1 子集 + Anchor + 字段旁编辑 | `EditSession`（含范围索引）、`InlinePos` 定位、`MutationPlan` plan/validate/commit、按 part 回滚的事务（DOM + 索引）、`InsertText`、`DeleteRange`（同段）、`SetRunProps`、`SetParaProps`、`ReplaceInlines`、`ReplaceParaProps`、`InsertBlock`/`DeleteBlock`/`MoveBlock`、`SPAN-06/07` 锚点维护 | 字段操作、拆分 / 合并段落（M2）、表格操作（M3）、修订生成（M7） |
+| L4 编辑 `edit/` | M1 子集 + Anchor + 批注 | `EditSession`（含范围索引）、`InlinePos` 定位、`MutationPlan` plan/validate/commit、按 part 回滚的事务（DOM + 索引）、`InsertText`、`DeleteRange`（同段）、`SetRunProps`、`SetParaProps`、`ReplaceInlines`、`ReplaceParaProps`、`InsertBlock`/`DeleteBlock`/`MoveBlock`、`SPAN-06/07` 锚点维护、`AddComment`/`RemoveComment`/`SetCommentText`（含 `SAVE-05` 新建 part） | 字段操作、拆分 / 合并段落（M2）、表格操作（M3）、修订生成（M7） |
 | 保存 `save/` | M1 子集 + Span | `SAVE-01` 六步编排（含第 3 步 Span 物化）、`SAVE-02` 子集校验（未绑定前缀、`PROP-05` 顺序、`SPAN-09` 范围检查）、扩展命名空间声明、`w:t` preserve、`raw_copy_file` 写回、`SaveOptions`（`saved_at`、`remove_personal_info`、`remove_date_and_time`） | 节 / 页眉页脚 / 水印 / 图表 / 墨迹等选项（M3–M6） |
 | 兼容 `bind/compat_ts/` | 文本 + 字段 + 批注 | `parsed_doc` 整份 `ParsedDoc`（含 `extras`、UTF-16 索引、sdt 拆分）、字段折叠 run 与 `fieldDisplay` / `fieldLabel`、`comments` / `footnotes` / `endnotes` / `commentIds` / `noteRef`、`apply_save_blocks`（original / generated / xml 块）、容忍差分 | 表格 / 绘图 / 页眉页脚字段（随对应里程碑） |
 
@@ -103,8 +103,8 @@ M5 约 48、M4/M6 约 20、M2 约 16、M7 2。
   已经能做的：在字段原子**旁边**的边界插入文字（左邻取 end run、右邻取 begin run，插入点落在原子外，
   格式可从字段结果的最后一个 run 继承）、删除覆盖原子形态字段（`FLD-07`：begin..end 连嵌套一起删）。
   跨段 `Block` 字段的边界仍是 `EditUnsupported`（结果段落只读）。
-- **新建 part**：缺 `settings.xml` 时清洗标志写不进去（记诊断）；批注 / 脚注 part 不能创建；
-  part 没有 `.rels` 时也建不出来（新外链会因此报 `EditUnsupported`）——都等 2.6 的 `SAVE-05`。
+- **新建 part**：`SAVE-05` 已落地（批注 / `commentsExtended` / 缺失的 `.rels` 都能建，内容类型与关系
+  同步写）。还没接上的：缺 `word/settings.xml` 时的清洗标志（记诊断）、脚注 / 尾注 part 的创建。
 - **表格 / 绘图**：块层面是占位（`Table` / `Image` / `Protected`），单元格与图片属性不进模型。
 - **保存选项**：节、页眉页脚、水印、页面颜色、编号、样式 upsert、保护、主题、墨迹、图表、`partXml` 全部 `EditUnsupported`。
 - **修订生成**：`EditContext.track_changes` 字段存在但被忽略（M7）。

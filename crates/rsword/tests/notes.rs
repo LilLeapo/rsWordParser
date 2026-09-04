@@ -198,3 +198,210 @@ fn mod_10_comments_and_notes_across_the_corpus() {
     eprintln!("语料 {docs} 份：{with_comments} 份带批注（{comments} 条），{notes} 条注释");
     assert!(docs > 500 && comments > 0 && notes > 0);
 }
+
+// ---- `SAVE-05` 新建 part 与批注编辑操作（任务 2.6 写侧）----
+
+use rsword::edit::{EditContext, EditOp, EditSession, InlinePos, NewComment};
+
+fn session(body: &str) -> EditSession {
+    EditSession::open(&common::docx_with_body(body)).unwrap()
+}
+
+fn first_para(s: &EditSession) -> rsword::xml::NodeId {
+    s.document().text_blocks().next().unwrap().node
+}
+
+fn part_text(bytes: &[u8], name: &str) -> Option<String> {
+    let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes.to_vec())).unwrap();
+    let mut f = z.by_name(name).ok()?;
+    let mut s = String::new();
+    std::io::Read::read_to_string(&mut f, &mut s).unwrap();
+    Some(s)
+}
+
+fn entries(bytes: &[u8]) -> Vec<(String, u32, Vec<u8>)> {
+    let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes.to_vec())).unwrap();
+    (0..z.len())
+        .map(|i| {
+            let mut f = z.by_index_raw(i).unwrap();
+            let mut raw = Vec::new();
+            std::io::Read::read_to_end(&mut f, &mut raw).unwrap();
+            (f.name().to_string(), f.crc32(), raw)
+        })
+        .collect()
+}
+
+/// `SAVE-05` 验收行：首次加批注 → 新建 `comments.xml` + 关系 + 内容类型，
+/// 其他条目的原压缩数据一个字节不变。
+#[test]
+fn save_05_first_comment_creates_the_part_and_leaves_others_untouched() {
+    let bytes = common::docx_with_body(r#"<w:p><w:r><w:t>hello world</w:t></w:r></w:p>"#);
+    let before = entries(&bytes);
+    let mut s = EditSession::open(&bytes).unwrap();
+    let p = first_para(&s);
+    s.apply(
+        EditOp::AddComment {
+            from: InlinePos::new(p, 0),
+            to: InlinePos::new(p, 5),
+            comment: NewComment {
+                author: "Alice".into(),
+                initials: Some("A".into()),
+                date: Some("2026-09-04T10:00:00Z".into()),
+                text: "第一条\n第二段".into(),
+                ..Default::default()
+            },
+        },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let saved = s.save().unwrap();
+
+    let comments = part_text(&saved, "word/comments.xml").expect("新 part 在包里");
+    assert!(comments.contains(r#"w:id="1""#), "{comments}");
+    assert!(comments.contains(r#"w:author="Alice""#) && comments.contains(r#"w:initials="A""#));
+    assert!(comments.contains("第一条") && comments.contains("第二段"));
+    assert!(comments.contains("w14:paraId"), "最后一段带 paraId: {comments}");
+    assert!(comments.contains("w:annotationRef"), "首段有引用标记 run: {comments}");
+    // 关系与内容类型
+    let rels = part_text(&saved, "word/_rels/document.xml.rels").unwrap();
+    assert!(rels.contains("comments.xml") && rels.contains("/comments"), "{rels}");
+    let ct = part_text(&saved, "[Content_Types].xml").unwrap();
+    assert!(ct.contains("/word/comments.xml") && ct.contains("comments+xml"), "{ct}");
+    // 正文：范围标记与 reference run
+    let doc = part_text(&saved, "word/document.xml").unwrap();
+    assert!(doc.contains(r#"<w:commentRangeStart w:id="1"/>"#), "{doc}");
+    assert!(doc.contains(r#"<w:commentRangeEnd w:id="1"/>"#), "{doc}");
+    assert!(doc.contains(r#"<w:commentReference w:id="1"/>"#), "{doc}");
+    // `SAVE-06`：除主 part / rels / 内容类型外，其他条目原压缩数据不变
+    let after = entries(&saved);
+    for (name, crc, raw) in &before {
+        let Some((_, c2, r2)) = after.iter().find(|(n, ..)| n == name) else {
+            panic!("条目 {name} 丢了")
+        };
+        if ["word/document.xml", "word/_rels/document.xml.rels", "[Content_Types].xml"]
+            .contains(&name.as_str())
+        {
+            continue;
+        }
+        assert_eq!((crc, raw), (c2, r2), "{name} 的压缩数据变了");
+    }
+    // 重开：模型看得到这条批注，run 上挂着 id
+    let mut re = EditSession::open(&saved).unwrap();
+    let doc = re.document();
+    assert_eq!(doc.comments.items.len(), 1);
+    assert_eq!(doc.comments.get("1").unwrap().text, "第一条\n第二段");
+    let json = rsword::bind::compat_ts::parsed_doc(re.package_mut()).unwrap();
+    assert_eq!(json["blocks"][0]["runs"][0]["commentIds"], serde_json::json!(["1"]));
+    assert_eq!(json["comments"][0]["author"], "Alice");
+}
+
+/// `EDIT-06` 验收行：连续两次 `AddComment` 拿到不同的 `w:id`，`comments.xml` 有两条。
+#[test]
+fn edit_06_two_comments_get_different_ids() {
+    let mut s = session(r#"<w:p><w:r><w:t>ab</w:t></w:r><w:r><w:t>cd</w:t></w:r></w:p>"#);
+    let p = first_para(&s);
+    let ctx = EditContext::default();
+    for (a, b, who) in [(0u32, 2u32, "Alice"), (2, 4, "Bob")] {
+        s.apply(
+            EditOp::AddComment {
+                from: InlinePos::new(p, a),
+                to: InlinePos::new(p, b),
+                comment: NewComment {
+                    author: who.into(),
+                    text: format!("{who} 说"),
+                    ..Default::default()
+                },
+            },
+            &ctx,
+        )
+        .unwrap();
+    }
+    let ids: Vec<&str> = s.document().comments.items.iter().map(|c| c.id.as_str()).collect();
+    assert_eq!(ids, ["1", "2"]);
+    let saved = s.save().unwrap();
+    let comments = part_text(&saved, "word/comments.xml").unwrap();
+    assert_eq!(comments.matches("<w:comment ").count(), 2, "{comments}");
+    let doc = part_text(&saved, "word/document.xml").unwrap();
+    assert_eq!(doc.matches("<w:commentRangeStart").count(), 2, "{doc}");
+    assert_eq!(doc.matches("<w:commentReference").count(), 2, "{doc}");
+}
+
+/// `SetCommentText` 保留原有格式；`done` 与回复写进 `commentsExtended`（不存在则新建 part）。
+#[test]
+fn edit_03_set_comment_text_and_resolved_state() {
+    let comments = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?><w:comments xmlns:w="{W}" xmlns:w14="{W14}">
+             <w:comment w:id="1" w:author="Alice">
+               <w:p w14:paraId="0000AAAA"><w:r><w:rPr><w:b/></w:rPr><w:t>原文</w:t></w:r></w:p>
+             </w:comment></w:comments>"#
+    );
+    let bytes = common::docx_with_parts(
+        r#"<w:p><w:commentRangeStart w:id="1"/><w:r><w:t>正文</w:t></w:r><w:commentRangeEnd w:id="1"/>
+           <w:r><w:commentReference w:id="1"/></w:r></w:p>"#,
+        &[("word/comments.xml", &comments)],
+    );
+    let mut s = EditSession::open(&bytes).unwrap();
+    s.apply(
+        EditOp::SetCommentText { id: "1".into(), text: "改过了".into(), done: Some(true) },
+        &EditContext::default(),
+    )
+    .unwrap();
+    assert_eq!(s.document().comments.get("1").unwrap().text, "改过了");
+    assert!(s.document().comments.get("1").unwrap().done);
+    let saved = s.save().unwrap();
+    let out = part_text(&saved, "word/comments.xml").unwrap();
+    assert!(out.contains("改过了") && !out.contains("原文"), "{out}");
+    assert!(out.contains("<w:b/>"), "保留原来的加粗: {out}");
+    let ex = part_text(&saved, "word/commentsExtended.xml").expect("新建 commentsExtended");
+    assert!(ex.contains(r#"w15:paraId="0000AAAA""#) && ex.contains(r#"w15:done="1""#), "{ex}");
+    // 重开后 done 还在
+    let re = EditSession::open(&saved).unwrap();
+    assert!(re.document().comments.get("1").unwrap().done);
+}
+
+/// `RemoveComment`：条目、范围标记与 reference run 一起消失，正文其他内容不动。
+#[test]
+fn edit_03_remove_comment_clears_entry_markers_and_reference() {
+    let comments = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?><w:comments xmlns:w="{W}">
+             <w:comment w:id="1" w:author="Alice"><w:p><w:r><w:t>要删</w:t></w:r></w:p></w:comment>
+             <w:comment w:id="2" w:author="Bob"><w:p><w:r><w:t>留着</w:t></w:r></w:p></w:comment>
+           </w:comments>"#
+    );
+    let bytes = common::docx_with_parts(
+        r#"<w:p><w:commentRangeStart w:id="1"/><w:r><w:t>被批注</w:t></w:r><w:commentRangeEnd w:id="1"/>
+           <w:r><w:commentReference w:id="1"/></w:r><w:r><w:t>尾巴</w:t></w:r></w:p>"#,
+        &[("word/comments.xml", &comments)],
+    );
+    let mut s = EditSession::open(&bytes).unwrap();
+    s.apply(EditOp::RemoveComment { id: "1".into() }, &EditContext::default()).unwrap();
+    assert!(s.document().comments.get("1").is_none());
+    assert!(s.document().comments.get("2").is_some(), "另一条不受影响");
+    let saved = s.save().unwrap();
+    let doc = part_text(&saved, "word/document.xml").unwrap();
+    assert!(!doc.contains("commentRangeStart") && !doc.contains("commentReference"), "{doc}");
+    assert!(doc.contains("被批注") && doc.contains("尾巴"), "正文内容不动: {doc}");
+    let out = part_text(&saved, "word/comments.xml").unwrap();
+    assert!(!out.contains("要删") && out.contains("留着"), "{out}");
+}
+
+/// 加批注失败（位置非法）不留半改状态：包与投影都回到操作前。
+#[test]
+fn edit_05_failed_add_comment_rolls_back_the_new_part() {
+    let bytes = common::docx_with_body(r#"<w:p><w:r><w:t>ab</w:t></w:r></w:p>"#);
+    let mut s = EditSession::open(&bytes).unwrap();
+    let p = first_para(&s);
+    let err = s
+        .apply(
+            EditOp::AddComment {
+                from: InlinePos::new(p, 0),
+                to: InlinePos::new(p, 99),
+                comment: NewComment { author: "A".into(), text: "x".into(), ..Default::default() },
+            },
+            &EditContext::default(),
+        )
+        .expect_err("越界");
+    assert!(matches!(err, rsword::Error::Edit { .. }), "{err:?}");
+    assert!(s.document().comments.items.is_empty());
+    assert_eq!(s.save().unwrap(), bytes, "保存回到原字节（新 part 也回滚了）");
+}

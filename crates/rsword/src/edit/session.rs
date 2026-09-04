@@ -6,7 +6,7 @@ use crate::diag::{DiagCode, Diagnostic};
 use crate::error::{Error, Result};
 use crate::model::Document;
 use crate::model::block::TextBlock;
-use crate::package::{Package, PartFlavor, PartId, RelTarget, RelType, Relationship};
+use crate::package::{Package, PartFlavor, PartId, PartUri, RelTarget, RelType, Relationship};
 use crate::save::SaveOptions;
 use crate::span::{FieldIndex, SpanIndex, is_content_item, plan_save, plan_update};
 use crate::xml::{Dom, LocalName, NewElement, NodeEdit, NodeId, NsId, QName, Target};
@@ -205,6 +205,123 @@ impl EditSession {
         Ok(())
     }
 
+    /// `SAVE-05`：批注部件，不存在就建（空 `w:comments` 根，命名空间按目标 part 的 flavor）。
+    pub(crate) fn ensure_comments_part(&mut self) -> Result<PartId> {
+        if let Some(p) = self.doc.comments.part {
+            return Ok(p);
+        }
+        let main = self.pkg.main_part();
+        let xml = empty_root_xml(self.pkg.flavor_of(main), "comments");
+        let (id, _) =
+            self.add_part(main, RelType::Comments, "word/comments.xml", CT_COMMENTS, &xml)?;
+        self.rebuild()?;
+        Ok(id)
+    }
+
+    /// `SAVE-05`：`commentsExtended` 部件（回复与已解决），不存在就建。
+    pub(crate) fn ensure_comments_extended_part(&mut self) -> Result<PartId> {
+        if let Some(p) = self.doc.comments.extended_part {
+            return Ok(p);
+        }
+        let main = self.pkg.main_part();
+        let xml = format!(
+            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w15:commentsEx xmlns:w15="{}"/>"#,
+            NsId::W15.uri(PartFlavor::Transitional).expect("w15 有 URI")
+        );
+        let (id, _) = self.add_part(
+            main,
+            RelType::CommentsExtended,
+            "word/commentsExtended.xml",
+            CT_COMMENTS_EXTENDED,
+            &xml,
+        )?;
+        self.rebuild()?;
+        Ok(id)
+    }
+
+    /// 把一个新范围登记进索引（`AddComment` / `AddBookmark`）。标记节点已经写进 DOM，
+    /// 所以 `SPAN-08` 物化时它就在锚点指的位置上，不会重发。
+    pub(crate) fn push_span(&mut self, part: PartId, span: crate::span::RangeSpan) -> Result<()> {
+        self.ensure_spans(part)?;
+        let index = self.spans.get_mut(&part).expect("just built");
+        index.push_span(span);
+        index.reindex_containers();
+        Ok(())
+    }
+
+    /// `SPAN-07`：把索引里的范围标记为已删除（节点的删除由调用方的计划完成）。
+    pub(crate) fn drop_span(&mut self, part: PartId, id: crate::span::SpanId) {
+        if let Some(index) = self.spans.get_mut(&part)
+            && let Some(s) = index.get_mut(id)
+        {
+            s.removed = true;
+        }
+    }
+
+    /// `SAVE-05`：新建一个 XML part，接上关系与内容类型 Override，返回 `(part, rId)`。
+    ///
+    /// 三处改动都走 DOM（新 part 的内容、`.rels` 的一条 `Relationship`、
+    /// `[Content_Types].xml` 的一条 `Override`），所以未变部分仍是原字节；新 part 在
+    /// `SAVE-06` 里追加到 zip 末尾，其余条目原压缩数据不动。
+    ///
+    /// `xml` 是新 part 的整份内容。`owner` 必须已经有 `.rels`（新建 `.rels` 目前不支持——
+    /// 语料里每个 docx 的主 part 都有）。
+    pub fn add_part(
+        &mut self,
+        owner: PartId,
+        kind: RelType,
+        uri: &str,
+        content_type: &str,
+        xml: &str,
+    ) -> Result<(PartId, String)> {
+        let uri = PartUri::from_entry_name(uri);
+        if self.pkg.find(&uri).is_some() {
+            return Err(Error::edit(DiagCode::EditPlanInvalid, format!("part {uri} 已存在")));
+        }
+        let part = self.pkg.register_new_part(uri.clone(), content_type, xml)?;
+        // 关系目标是相对 owner 所在目录的路径
+        let owner_dir = self.pkg.part(owner).uri.dir().to_string();
+        let target =
+            uri.as_str().strip_prefix(&format!("{owner_dir}/")).unwrap_or(uri.as_str()).to_string();
+        let rid = self.add_relationship(owner, kind, &target, RelTarget::Internal(uri.clone()))?;
+        self.add_content_type_override(&uri, content_type)?;
+        Ok((part, rid))
+    }
+
+    /// `[Content_Types].xml` 里加一条 `Override`（缺内容类型 part 时只记诊断）。
+    fn add_content_type_override(&mut self, uri: &PartUri, content_type: &str) -> Result<()> {
+        let Some(ct_part) = self.pkg.content_types_part() else {
+            self.record(vec![Diagnostic::invariant_violation(
+                self.pkg.main_part(),
+                None,
+                DiagCode::EditUnsupported,
+                format!("缺 [Content_Types].xml，{uri} 的内容类型写不进去"),
+            )]);
+            return Ok(());
+        };
+        let dom = self
+            .pkg
+            .dom(ct_part)?
+            .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "内容类型不是 XML part"))?;
+        let root = dom.root();
+        // 名字照抄已有的 `Override`（带着 `[Content_Types].xml` 的默认命名空间）
+        let name = dom
+            .children(root)
+            .iter()
+            .find_map(|&c| dom.name(c).filter(|q| q.local == LocalName::Override))
+            .unwrap_or_else(|| {
+                QName::new(dom.name(root).map(|q| q.ns).unwrap_or(NsId::None), LocalName::Override)
+            });
+        let none = |l: LocalName| QName::new(NsId::None, l);
+        let node = NewElement::new(name)
+            .with_attr(none(LocalName::PartName), format!("/{}", uri.as_str()))
+            .with_attr(none(LocalName::ContentType), content_type);
+        let mut plan = MutationPlan::new(ct_part);
+        plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(root), before: None, node });
+        self.commit_plan(plan)?;
+        Ok(())
+    }
+
     /// `EDIT-06`：给 `part` 的 `.rels` 追加一条外部关系，返回分配到的 `rId`。
     ///
     /// 走 `commit_plan`，所以它在事务里、可回滚，`.rels` 也按脏节点序列化。
@@ -215,12 +332,77 @@ impl EditSession {
         kind: RelType,
         target: &str,
     ) -> Result<String> {
-        let rels_part = self.pkg.part(part).rels_part.ok_or_else(|| {
-            Error::edit(
-                DiagCode::EditUnsupported,
-                format!("part#{} 没有 .rels，新建 .rels 在 2.6（SAVE-05）", part.0),
-            )
-        })?;
+        self.add_relationship(part, kind, target, RelTarget::External(target.to_string()))
+    }
+
+    /// `SAVE-05`：part 的 `.rels`，没有就建（`<dir>/_rels/<name>.rels`）。
+    ///
+    /// `.rels` 靠 `[Content_Types].xml` 的 `Default Extension="rels"` 声明类型，缺了就补一条。
+    fn ensure_rels_part(&mut self, part: PartId) -> Result<PartId> {
+        if let Some(p) = self.pkg.part(part).rels_part {
+            return Ok(p);
+        }
+        let uri = self.pkg.part(part).uri.clone();
+        let dir = uri.dir();
+        let path = if dir.is_empty() {
+            format!("_rels/{}.rels", uri.file_name())
+        } else {
+            format!("{dir}/_rels/{}.rels", uri.file_name())
+        };
+        let xml = format!(
+            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="{}"/>"#,
+            RELS_NS
+        );
+        let rels_part = self.pkg.register_new_part(
+            PartUri::from_entry_name(&path),
+            "application/vnd.openxmlformats-package.relationships+xml",
+            &xml,
+        )?;
+        self.pkg.part_mut(part).rels_part = Some(rels_part);
+        self.ensure_rels_default_type()?;
+        Ok(rels_part)
+    }
+
+    /// `[Content_Types].xml` 缺 `Default Extension="rels"` 时补一条。
+    fn ensure_rels_default_type(&mut self) -> Result<()> {
+        let Some(ct_part) = self.pkg.content_types_part() else { return Ok(()) };
+        if self.pkg.content_types().default_for_extension("rels").is_some() {
+            return Ok(());
+        }
+        let dom = self
+            .pkg
+            .dom(ct_part)?
+            .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "内容类型不是 XML part"))?;
+        let root = dom.root();
+        let name = dom
+            .children(root)
+            .iter()
+            .find_map(|&c| dom.name(c).filter(|q| q.local == LocalName::UDefault))
+            .unwrap_or_else(|| {
+                QName::new(dom.name(root).map(|q| q.ns).unwrap_or(NsId::None), LocalName::UDefault)
+            });
+        let none = |l: LocalName| QName::new(NsId::None, l);
+        let node = NewElement::new(name).with_attr(none(LocalName::UExtension), "rels").with_attr(
+            none(LocalName::ContentType),
+            "application/vnd.openxmlformats-package.relationships+xml",
+        );
+        let first = dom.children(root).first().copied();
+        let mut plan = MutationPlan::new(ct_part);
+        plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(root), before: first, node });
+        self.commit_plan(plan)?;
+        Ok(())
+    }
+
+    /// 给 `part` 的 `.rels` 追加一条关系（内部或外部），返回分配到的 `rId`。
+    fn add_relationship(
+        &mut self,
+        part: PartId,
+        kind: RelType,
+        target: &str,
+        resolved: RelTarget,
+    ) -> Result<String> {
+        let external = matches!(resolved, RelTarget::External(_));
+        let rels_part = self.ensure_rels_part(part)?;
         let id = self.pkg.part(part).rels.next_id();
         let flavor = self.pkg.flavor_of(part);
         let raw_type = kind.uri(flavor).ok_or_else(|| {
@@ -244,11 +426,13 @@ impl EditSession {
                 )
             });
         let none = |l: LocalName| QName::new(NsId::None, l);
-        let node = NewElement::new(name)
+        let mut node = NewElement::new(name)
             .with_attr(none(LocalName::UId), id.clone())
             .with_attr(none(LocalName::UType), raw_type.clone())
-            .with_attr(none(LocalName::Target), target)
-            .with_attr(none(LocalName::TargetMode), "External");
+            .with_attr(none(LocalName::Target), target);
+        if external {
+            node.push_attr(none(LocalName::TargetMode), "External");
+        }
         let mut plan = MutationPlan::new(rels_part);
         plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(root), before: None, node });
         let result = self.commit_plan(plan)?;
@@ -262,7 +446,7 @@ impl EditSession {
         self.pkg.part_mut(part).rels.push(Relationship {
             id: id.clone(),
             kind: rel_kind,
-            target: RelTarget::External(target.to_string()),
+            target: resolved,
             raw_type,
             family,
             node: created,
@@ -515,6 +699,24 @@ impl EditSession {
         }
         Ok(result)
     }
+}
+
+/// `.rels` 的根命名空间。
+const RELS_NS: &str = "http://schemas.openxmlformats.org/package/2006/relationships";
+
+/// `SAVE-05` 的内容类型。
+pub(crate) const CT_COMMENTS: &str =
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml";
+pub(crate) const CT_COMMENTS_EXTENDED: &str =
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.commentsExtended+xml";
+
+/// 新建 `w:` 部件的空根：`<w:xxx xmlns:w="…"/>`，URI 按目标 part 的 flavor。
+///
+/// 只声明用得上的命名空间；`w14:paraId` 一类扩展前缀由 `SAVE-03` 的
+/// `ensure_extension_declarations` 在序列化前按需补声明（连 `mc:Ignorable` 一起）。
+fn empty_root_xml(flavor: PartFlavor, local: &str) -> String {
+    let w = NsId::W.uri(flavor).expect("w 有两族 URI");
+    format!(r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:{local} xmlns:w="{w}"/>"#)
 }
 
 #[cfg(test)]
