@@ -380,6 +380,11 @@ pub(super) fn styles_json(doc: &Document, r: &Resolver) -> StylesOut {
         if r.is_linked_char_shell(id) {
             set(&mut o, "linkedCharShell", true);
         }
+        if kind == StyleType::Table
+            && let Some(td) = super::table::table_display(r, id)
+        {
+            set(&mut o, "tableDisplay", td);
+        }
         if kind != StyleType::Table {
             let mut d = Map::new();
             if let Some(rp) = r.style_run_props(id, kind) {

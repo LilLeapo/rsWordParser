@@ -16,11 +16,13 @@ mod blocks;
 mod decl;
 pub mod diff;
 pub mod save_blocks;
+mod table;
 pub mod utf16;
 
 pub use diff::{
-    Diff, KNOWN_DIFFS_MD, KnownDiff, PathStat, Report, diff_json, filter_known, is_span_field_case,
-    is_text_case, known_diffs, parse_known_diffs, path_key, path_matches, split_known,
+    Diff, KNOWN_DIFFS_MD, KnownDiff, PathStat, Report, Scope, diff_json, filter_known,
+    is_span_field_case, is_table_case, is_text_case, known_diffs, parse_known_diffs, path_key,
+    path_matches, split_known,
 };
 pub use save_blocks::{SaveBlocksOutcome, apply_save_blocks, bookmark_id_of};
 pub use utf16::Utf16Index;

@@ -24,4 +24,6 @@ jobs:
       - run: cargo run -p diff-parse -- --scope text
       # TEST-10 M2 门：再放开字段 / 范围标记 / 批注 / 注释的用例（文本域的超集）
       - run: cargo run -p diff-parse -- --scope fields
+      # TEST-10 M3 门：再放开表格的用例（字段域的超集；单元格里的绘图归 M4）
+      - run: cargo run -p diff-parse -- --scope tables
   # fuzz 在 .github/workflows/fuzz.yml（手动 / 每周），不挂在每次 push 上。

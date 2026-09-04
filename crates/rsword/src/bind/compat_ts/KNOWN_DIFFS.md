@@ -10,7 +10,6 @@
 | `extra__strict-minimal` | `internal.documentXml`、`internal.bodyInner*`、`extras.elements[*]` | TS 装载时把 Strict URI 改写为 Transitional（`normalizeOoxmlParts`），偏移随之变化 | 本引擎不归一化（Strict stays Strict） | 本引擎；整份文档在 `tests/compat.rs` 的 `KNOWN_DOCS` 放行 |
 | `balance-dbcs-spacing__*` | `blocks[*].runs[*].charSpacingTwips` | TS 在 `balanceSingleByteDoubleByteWidth` 下按双字节字符比例缩放显示值 | 显示层决定（`MOD-11` 禁止排版字段进模型） | 本引擎；渲染器接管后删除 |
 | 任意 | `blocks[*].format.charIndents*` 及由其换算的 indent* | TS `withCharIndents` 用字号换算字符单位缩进 | 需字体度量，属显示层 | 暂放行（`KNOWN_PATHS`） |
-| 任意 | `styles.*.tableDisplay*` | 表格样式显示模型 | M2 随表格实现 | 暂放行 |
 | 含字段 / `w14:textFill` 的段落 | 整段 | 字段折叠、`w14:textFill` 取色在 M2 | — | `tests/compat.rs` 的文本用例过滤排除 |
 
 ## 定位辅助 part 的差别（不算差异，测试里已对齐）
@@ -28,6 +27,5 @@ numbering-defs__012*     numbering.*                              # 未声明前
 char-unit-indents__*     *                                        # *Chars 缩进换算需字体度量（TS withCharIndents）
 extra__strict-minimal*   *                                        # TS 装载时把 Strict 改写为 Transitional
 balance-dbcs-spacing__*  blocks[*].runs[*].charSpacingTwips       # TS 按双字节比例缩放显示值
-*                        styles.*.tableDisplay*                   # 表格样式显示模型（M2）
 *                        blocks[*].format.charIndents*            # 字符单位缩进（显示层）
 ```

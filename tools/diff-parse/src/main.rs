@@ -3,26 +3,23 @@
 //! 有未知差异时退出码 1（CI 门 `TEST-10`）。
 //!
 //! ```text
-//! diff-parse [--corpus DIR] [--scope text|fields|all] [--known FILE] [--doc PREFIX] [--show N] [--json]
+//! diff-parse [--corpus DIR] [--scope text|fields|tables|all] [--known FILE] [--doc PREFIX] [--show N] [--json]
 //! ```
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use rsword::bind::compat_ts::{
-    Report, diff_json, is_span_field_case, is_text_case, known_diffs, parse_known_diffs,
-    parsed_doc, split_known,
+    Report, Scope as CaseScope, diff_json, known_diffs, parse_known_diffs, parsed_doc, split_known,
 };
 use rsword::package::Package;
 use serde_json::{Value, json};
 
-/// 差分的取样范围（`TEST-10` 的里程碑门）。
+/// 差分的取样范围（`TEST-10` 的里程碑门）。`Text` ⊂ `Fields` ⊂ `Tables` ⊂ `All`。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Scope {
-    /// M1 门：纯文本段落用例。
-    Text,
-    /// M2 门：文本域 + 字段 / 范围标记 / 批注 / 注释（文本域的超集）。
-    Fields,
+    /// 里程碑门：`text`（M1）/ `fields`（M2）/ `tables`（M3）。
+    Case(CaseScope),
     /// 全部语料。
     All,
 }
@@ -30,9 +27,16 @@ enum Scope {
 impl Scope {
     fn as_str(self) -> &'static str {
         match self {
-            Scope::Text => "text",
-            Scope::Fields => "fields",
+            Scope::Case(c) => c.as_str(),
             Scope::All => "all",
+        }
+    }
+
+    /// 该文档是否在取样范围内。
+    fn accepts(self, expected: &Value) -> bool {
+        match self {
+            Scope::Case(c) => c.accepts(expected),
+            Scope::All => true,
         }
     }
 }
@@ -48,8 +52,9 @@ struct Args {
 
 fn usage() -> ! {
     eprintln!(
-        "用法: diff-parse [--corpus DIR] [--scope text|fields|all] [--known KNOWN_DIFFS.md] [--doc PREFIX] [--show N] [--json]\n\
-         scope: text = M1 门（纯文本段落），fields = M2 门（再加字段 / 范围 / 批注），all = 全部语料\n\
+        "用法: diff-parse [--corpus DIR] [--scope text|fields|tables|all] [--known KNOWN_DIFFS.md] [--doc PREFIX] [--show N] [--json]\n\
+         scope: text = M1 门（纯文本段落），fields = M2 门（再加字段 / 范围 / 批注），\n\
+                tables = M3 门（再加表格），all = 全部语料\n\
          缺省 corpus = <仓库根>/corpus/synthetic，scope = all，known = 编进库里的 KNOWN_DIFFS.md，show = 3"
     );
     std::process::exit(2)
@@ -70,10 +75,9 @@ fn parse_args() -> Args {
             "--corpus" => a.corpus = PathBuf::from(it.next().unwrap_or_else(|| usage())),
             "--scope" => {
                 a.scope = match it.next().as_deref() {
-                    Some("text") => Scope::Text,
-                    Some("fields") => Scope::Fields,
                     Some("all") => Scope::All,
-                    _ => usage(),
+                    Some(s) => CaseScope::parse(s).map(Scope::Case).unwrap_or_else(|| usage()),
+                    None => usage(),
                 }
             }
             "--known" => a.known = Some(PathBuf::from(it.next().unwrap_or_else(|| usage()))),
@@ -158,12 +162,7 @@ fn main() -> ExitCode {
                 continue;
             }
         };
-        let in_scope = match args.scope {
-            Scope::Text => is_text_case(&expected),
-            Scope::Fields => is_span_field_case(&expected),
-            Scope::All => true,
-        };
-        if !in_scope {
+        if !args.scope.accepts(&expected) {
             skipped_scope += 1;
             continue;
         }

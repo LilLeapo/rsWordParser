@@ -42,7 +42,7 @@ pub(super) struct Ctx<'a> {
     disp_cache: RefCell<HashMap<(String, StyleType), StyleDisp>>,
 }
 
-fn set<T: Into<Value>>(m: &mut Map<String, Value>, k: &str, v: T) {
+pub(super) fn set<T: Into<Value>>(m: &mut Map<String, Value>, k: &str, v: T) {
     m.insert(k.to_string(), v.into());
 }
 
@@ -72,7 +72,7 @@ impl<'a> Ctx<'a> {
         Ctx { dom, doc, resolver, idx, rels, numbering, disp_cache: RefCell::new(HashMap::new()) }
     }
 
-    fn slice(&self, r: &Range<u32>) -> &'a str {
+    pub(super) fn slice(&self, r: &Range<u32>) -> &'a str {
         self.dom.lex_str(r)
     }
 
@@ -80,7 +80,7 @@ impl<'a> Ctx<'a> {
         self.idx.at(self.dom.src(), byte)
     }
 
-    fn lex_range(&self, node: NodeId) -> Range<u32> {
+    pub(super) fn lex_range(&self, node: NodeId) -> Range<u32> {
         self.dom.node(node).lex.as_ref().map(|l| l.range.clone()).unwrap_or(0..0)
     }
 
@@ -167,7 +167,7 @@ fn is_ts_invisible_marker(name: QName) -> bool {
         )
 }
 
-fn revision_info(m: &RevisionMeta) -> Map<String, Value> {
+pub(super) fn revision_info(m: &RevisionMeta) -> Map<String, Value> {
     let mut o = Map::new();
     set(&mut o, "author", m.author.clone().unwrap_or_default());
     if let Some(d) = &m.date {
@@ -373,7 +373,7 @@ fn sdt_blocks(
     // TS：内容以表格开头 → 表格块；否则第一个 w:p → 段落块 + sdtShell；都没有 → Content control
     match parts.first() {
         Some(&child) if dom.is(child, w(LocalName::Tbl)) => {
-            o = table_block(ctx, child, o);
+            o = table_block(ctx, child, o, by_node.get(&child).copied());
         }
         Some(&child) => {
             let cr = ctx.lex_range(child);
@@ -398,20 +398,47 @@ fn sdt_blocks(
     blocks.push(Value::Object(o));
 }
 
-fn table_block(ctx: &Ctx<'_>, tbl: NodeId, mut o: Map<String, Value>) -> Map<String, Value> {
-    let dom = ctx.dom;
-    // TS tableSummary：整段 xml 里 <w:tr 的个数 × 第一行 <w:tc 的个数
-    let rows = dom.descendants(tbl).filter(|&n| dom.is(n, w(LocalName::Tr))).count();
-    let cols = dom
-        .descendants(tbl)
-        .find(|&n| dom.is(n, w(LocalName::Tr)))
-        .map(|tr| dom.descendants(tr).filter(|&n| dom.is(n, w(LocalName::Tc))).count())
-        .unwrap_or(0);
+fn table_block(
+    ctx: &Ctx<'_>,
+    tbl: NodeId,
+    mut o: Map<String, Value>,
+    block: Option<&Block>,
+) -> Map<String, Value> {
+    let (rows, cols) = ts_table_summary(ctx.slice(&ctx.lex_range(tbl)));
     set(&mut o, "type", "table");
     set(&mut o, "label", format!("Table {rows}×{cols}"));
     set(&mut o, "previewText", ctx.plain_text(tbl).chars().take(120).collect::<String>());
-    // `table` 模型在 M2（KNOWN_DIFFS）
+    if let Some(Block::Table(t)) = block
+        && let Some(model) = super::table::table_json(ctx, t, 1)
+    {
+        set(&mut o, "table", model);
+    }
     o
+}
+
+/// TS `tableSummary`：`label` 的行列数是在**原字节**上数出来的——行数是整段 XML 里 `<w:tr` 的个数
+/// （嵌套表的行也算），列数是"第一行"里 `<w:tc` 的个数，而那个"第一行"止于**第一个** `</w:tr>`，
+/// 于是首格里的嵌套表会把自己的行尾借给外层（`table-display__003`：外层 1 行 2 格 + 嵌套 1 行 2 格
+/// → `Table 2×3`）。这是 TS 正则切片的产物，照数才对得上；`table` 模型走的是真正的行列。
+fn ts_table_summary(xml: &str) -> (usize, usize) {
+    fn count(hay: &str, tag: &str) -> usize {
+        let mut n = 0;
+        let mut from = 0;
+        while let Some(i) = hay[from..].find(tag) {
+            let at = from + i + tag.len();
+            if hay[at..].starts_with(|c: char| c == '>' || c.is_ascii_whitespace()) {
+                n += 1;
+            }
+            from = at;
+        }
+        n
+    }
+    let rows = count(xml, "<w:tr");
+    let first_row = xml
+        .find("<w:tr")
+        .and_then(|start| xml[start..].find("</w:tr>").map(|end| &xml[start..start + end + 7]))
+        .unwrap_or("");
+    (rows, count(first_row, "<w:tc"))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -470,7 +497,7 @@ fn body_block(
             set(&mut o, "hidden", true);
             o
         }
-        LocalName::Tbl => table_block(ctx, node, o),
+        LocalName::Tbl => table_block(ctx, node, o, by_node.get(&node).copied()),
         _ if is_ts_invisible_marker(name) => {
             let mut o = passthrough(o, lex_name);
             set(&mut o, "invisibleMarker", true);
@@ -1081,7 +1108,7 @@ fn markers(ctx: &Ctx<'_>, p: NodeId) -> (Vec<Value>, Vec<Value>, Vec<Value>, Vec
 
 // ---- ParaFormat（TS extractParaFormat 及 buildTextParagraph 的补充）------------------------------------
 
-fn para_format(
+pub(super) fn para_format(
     ctx: &Ctx<'_>,
     tb: &TextBlock,
     ppr: Option<NodeId>,
@@ -1396,7 +1423,7 @@ fn borders_json(ctx: &Ctx<'_>, ppr: NodeId, f: &mut Map<String, Value>) {
 }
 
 /// TS `emptyParaSizeHalfPoints`：段落标记 `pPr/rPr/sz`，否则最后一个直接子 `w:r` 的 `rPr/sz`。
-fn empty_para_size(ctx: &Ctx<'_>, p: NodeId, ppr: Option<NodeId>) -> Option<i64> {
+pub(super) fn empty_para_size(ctx: &Ctx<'_>, p: NodeId, ppr: Option<NodeId>) -> Option<i64> {
     let dom = ctx.dom;
     let sz_of = |rpr: NodeId| -> Option<String> {
         let sz = dom.semantic_children(rpr).find(|&n| dom.is(n, w(LocalName::Sz)))?;
@@ -1419,7 +1446,7 @@ fn empty_para_size(ctx: &Ctx<'_>, p: NodeId, ppr: Option<NodeId>) -> Option<i64>
 }
 
 /// TS `emptyParaMarkFont`。
-fn empty_para_font(ctx: &Ctx<'_>, p: NodeId, ppr: Option<NodeId>) -> Option<String> {
+pub(super) fn empty_para_font(ctx: &Ctx<'_>, p: NodeId, ppr: Option<NodeId>) -> Option<String> {
     let dom = ctx.dom;
     let pick = |rpr: NodeId| -> Option<String> {
         let rf = dom.semantic_children(rpr).find(|&n| dom.is(n, w(LocalName::RFonts)))?;
@@ -1444,7 +1471,7 @@ fn empty_para_font(ctx: &Ctx<'_>, p: NodeId, ppr: Option<NodeId>) -> Option<Stri
 
 // ---- Run（TS extractRuns / buildRun / mergeRuns）--------------------------------------------------------
 
-fn runs_json(ctx: &Ctx<'_>, tb: &TextBlock) -> Vec<Map<String, Value>> {
+pub(super) fn runs_json(ctx: &Ctx<'_>, tb: &TextBlock) -> Vec<Map<String, Value>> {
     let mut para_disp =
         tb.style_id.as_deref().map(|s| ctx.style_disp(s, StyleType::Paragraph)).unwrap_or_default();
     if tb.style_id.is_none()

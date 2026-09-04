@@ -706,7 +706,27 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   `table-style__004/005` 的 basedOn 条件层继承、边框 / 边距回退的来源、行高截断、`RES-03` 第 4 层的位置；
   **全语料 69 份 / 70 张表的 `colWidthsTwips`、`colWidthsPct`、每行每格的跨度与 `gridGap` 占位与 TS 逐项一致**
   （来源分布：grid 56、tcW 4、reconciled 2、无网格 8），这是四条启发式唯一靠得住的验收。
-- [ ] **3.5 `compat_ts` 表格投影**（`bind/compat_ts/table.rs`；`COMPAT-10`；`diff-parse --scope tables`）
+- [x] **3.5 `compat_ts` 表格投影**（`bind/compat_ts/table.rs`）：`blocks[*].table` 的全部字段（`COMPAT-10`）
+  与 `styles.*.tableDisplay`。表级取自模型 + `TableView`：`rows` / `colWidthsPct` / `colWidthsTwips` /
+  `widthPct` / `autoLayout` / `autoFit` / `fixedLayout` / `cellMarTwips` / `cellSpacingTwips` / `fill` /
+  `borders` / `align` / `indentTwips` / `floatSide` / `floatPos` / `rowHeightsTwips` / `rowHeightRules` /
+  `repeatHeaderRows` / `rawTrPrs` / `rowRevisions` / `tblStyleId` / `tableLook` / `bidiVisual`；格级
+  `paras` / `richParas`（复用段落投影的 `para_format` + `runs_json`）/ `colSpan` / `gridGap` / `vMerge` /
+  `hMerge` / `fill` / `bold` / `color` / `align` / `vAlign` / `textDirection` / `cellMarTwips` / `borders` /
+  `rawTcPr` / `nestedTables` / `nestedTableAnchors` / `cellRevision`。三处照抄 TS 的"半解析"：
+  ① `attachRawTablePr` 只给顶层表，`w:tbl` 的直接 `w:tr` 数与行数不符 → 整张表不挂，某行的直接 `w:tc` 数
+  与折叠后的真实格数不符 → 那行不挂格属性；② 深度 ≥ 8 的子表整棵扁平化成 1×1（迭代直读 DOM——模型在
+  64 层才截断）；③ `tableSummary` 的 `label` 在**原字节**上数 `<w:tr` / `<w:tc`，"第一行"止于第一个
+  `</w:tr>`，所以首格里的嵌套表会把行尾借给外层（`table-display__003` → `Table 2×3`）。
+  `styles.*.tableDisplay` 按 TS `tableStyleDisplayOf` 逐样式算再沿 basedOn 链合并（六个子对象逐字段深合并，
+  其余整体覆盖），`KNOWN_DIFFS` 里整条放行的 `styles.*.tableDisplay*` 随之删除。
+  `TEST-03` 增加 `--scope tables`（`Scope` 枚举收进 `compat_ts::diff`，`text ⊂ fields ⊂ tables`；表格块
+  在域内，但单元格带 `anchoredBoxes` 或 run 带 `image`/`math`/`ruby` 的文档剔除——那是 M4 / M6），
+  CI 多一步。**M3 门第 1 条达成：311 份文档 0 未知差异**（字段域 253 份 → 表格域 311 份）。
+  全域差异 1,666 → 1,615，有差异的文档 295 → 238（53 份彻底对齐）；表格域剩下的 19 处全在
+  `cell-anchored-boxes__*`（5 份）与格内图片 / OLE（4 份），归 M4 / M6。
+  定点用例 `tests/compat_table.rs`（5 个）：第 9 层扁平化且带下方全部 3,983 段、折叠过的行不挂 `rawTcPr`、
+  `gridGap` 占位的形状、`tableDisplay` 的条件层与 basedOn 继承、`tableSummary` 的行列数。
 - [ ] **3.6 容器级刷新与单元格内编辑**（`MOD-13`；`TEST-04` 扩到单元格；删掉整体重建退路）
 - [ ] **3.7 表格属性操作**（`SetTableProps / SetRowProps / SetCellProps`；`trPr` 位置规则）
 - [ ] **3.8 行列结构操作**（`InsertRow / DeleteRow / InsertColumn / DeleteColumn / MergeCells / NewBlock::Table`；`SAVE_TABLE_GRID`）

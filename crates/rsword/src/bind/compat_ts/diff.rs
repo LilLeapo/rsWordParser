@@ -133,7 +133,7 @@ pub fn path_key(path: &str) -> String {
 /// M1 门的"文本段落"用例判定：只有 paragraph / heading / listItem 与允许的 passthrough，
 /// 不含字段 / 图片 / 公式 / ruby / 脚注 / 批注 / 书签 / 文本框 / `w14:textFill` / 参考文献 / 页眉页脚。
 pub fn is_text_case(e: &Value) -> bool {
-    case_in_scope(e, false)
+    case_in_scope(e, Scope::Text)
 }
 
 /// M2 门的"字段与 Span"域：文本域再放开字段、范围标记、批注与注释引用。
@@ -141,10 +141,81 @@ pub fn is_text_case(e: &Value) -> bool {
 /// 是文本域的**超集**——M2 之后这些特性都该是零未知差异，所以门只会更严，不会漏掉 M1 的用例。
 /// 仍然排除后续里程碑的东西：图片 / 公式 / ruby / 文本框 / 表格 / 页眉页脚 / 参考文献。
 pub fn is_span_field_case(e: &Value) -> bool {
-    case_in_scope(e, true)
+    case_in_scope(e, Scope::Fields)
 }
 
-fn case_in_scope(e: &Value, fields_ok: bool) -> bool {
+/// M3 门的"表格"域：字段域再放开表格块。
+///
+/// 是字段域的**超集**。仍然排除单元格里的绘图（`anchoredBoxes` 与 run 上的 `image`）与公式 / ruby
+/// ——那些是 M4 / M6 的域（`spec/14`「不在 M3」）。
+pub fn is_table_case(e: &Value) -> bool {
+    case_in_scope(e, Scope::Tables)
+}
+
+/// 差分取样范围（`TEST-03`）；每一档是前一档的超集。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Scope {
+    /// M1 门：纯文本段落。
+    Text,
+    /// M2 门：再加字段 / 范围标记 / 批注 / 注释。
+    Fields,
+    /// M3 门：再加表格。
+    Tables,
+}
+
+impl Scope {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Scope::Text => "text",
+            Scope::Fields => "fields",
+            Scope::Tables => "tables",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<Scope> {
+        match s {
+            "text" => Some(Scope::Text),
+            "fields" => Some(Scope::Fields),
+            "tables" => Some(Scope::Tables),
+            _ => None,
+        }
+    }
+
+    /// 该范围的取样判定。
+    pub fn accepts(self, e: &Value) -> bool {
+        case_in_scope(e, self)
+    }
+}
+
+/// 表格块本身是否在 M3 的域内：单元格里没有绘图（`anchoredBoxes` / run `image`）、公式与 ruby。
+fn table_in_scope(table: &Value) -> bool {
+    let Some(rows) = table.get("rows").and_then(Value::as_array) else { return true };
+    for row in rows {
+        for cell in row.as_array().into_iter().flatten() {
+            if cell.get("anchoredBoxes").is_some() || cell.get("anchoredBoxAnchors").is_some() {
+                return false;
+            }
+            for rp in cell.get("richParas").and_then(Value::as_array).into_iter().flatten() {
+                for r in rp.get("runs").and_then(Value::as_array).into_iter().flatten() {
+                    for k in ["image", "math", "ruby"] {
+                        if r.get(k).is_some() {
+                            return false;
+                        }
+                    }
+                }
+            }
+            for nested in cell.get("nestedTables").and_then(Value::as_array).into_iter().flatten() {
+                if !table_in_scope(nested) {
+                    return false;
+                }
+            }
+        }
+    }
+    true
+}
+
+fn case_in_scope(e: &Value, scope: Scope) -> bool {
+    let fields_ok = scope >= Scope::Fields;
     let Some(blocks) = e.get("blocks").and_then(Value::as_array) else { return false };
     let mut text_blocks = 0;
     for b in blocks {
@@ -208,6 +279,14 @@ fn case_in_scope(e: &Value, fields_ok: bool) -> bool {
                     || b.get("invisibleMarker").and_then(Value::as_bool).unwrap_or(false);
                 if !ok {
                     return false;
+                }
+            }
+            "table" if scope >= Scope::Tables => {
+                text_blocks += 1;
+                match b.get("table") {
+                    Some(t) if table_in_scope(t) => {}
+                    // TS 解析失败（恶意深度）时没有 `table`，不该拿来当门
+                    _ => return false,
                 }
             }
             _ => return false,
