@@ -2,6 +2,7 @@
 
 use crate::model::facts::ParagraphFacts;
 use crate::model::inline::{Inline, RevisionMeta};
+pub use crate::model::sdt::SdtInfo;
 pub use crate::model::table::TableBlock;
 use crate::semantic::props::{CellProps, ParaProps, RowProps, RunProps, TableProps};
 use crate::span::FieldId;
@@ -160,12 +161,6 @@ impl ProtectedKind {
             ProtectedKind::Unparseable => "protected.unparseable",
         }
     }
-}
-
-/// 最近的 `w:sdt` 祖先（`MOD-08`）。M1 只记节点；控件类型、锁、数据绑定在 M2。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SdtInfo {
-    pub node: NodeId,
 }
 
 /// 块级 / 段落标记修订（`MOD-09`）。run 级修订在 [`crate::model::inline::RevisionCtx`]。

@@ -6,12 +6,13 @@ use crate::diag::{DiagCode, Diagnostic};
 use crate::error::{Error, Result};
 use crate::model::block::TextBlock;
 use crate::model::inline::{Inline, Run, Segment, SegmentKind, utf16_len};
+use crate::model::{SdtRefusal, refusing_sdt};
 use crate::package::RelType;
 use crate::semantic::props::{
     ParaPropsPatch, RunPropsPatch, emit_run_props, plan_apply_para_props, plan_apply_run_props,
 };
 use crate::span::{
-    Affinity, Anchor, FlowId, RangeClass, RangeKind, RangeSpan, SpanId, SpanOrigin,
+    Affinity, Anchor, FieldId, FlowId, RangeClass, RangeKind, RangeSpan, SpanId, SpanOrigin,
     is_property_element,
 };
 use crate::xml::{
@@ -21,9 +22,10 @@ use crate::xml::{
 use super::inline::{Emitter, has_control_chars, sanitize_text, text_segments};
 use super::plan::{MutationPlan, MutationResult};
 use super::pos::{InlinePos, Loc, inline_spans, locate, utf16_to_byte};
-use super::{BlockPos, EditContext, EditOp, EditSession, NewBlock, NewInline, NewRun};
+use super::{BlockPos, EditContext, EditOp, EditSession, LinkRef, NewBlock, NewInline, NewRun};
 
 pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<MutationResult> {
+    guard_sdt(s, &op)?;
     match op {
         EditOp::InsertText { at, text, props } => insert_text(s, at, &text, props, ctx),
         EditOp::DeleteRange { from, to } => delete_range(s, from, to, ctx),
@@ -48,6 +50,69 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::SetFieldResultProps { field, patch } => set_field_result_props(s, field, &patch),
         EditOp::UpdateBlockField { field, blocks } => update_block_field(s, field, blocks, ctx),
     }
+}
+
+/// `EDIT-03` / `MOD-08`：编辑目标落在只读（`contentLocked` / `sdtContentLocked`）或数据绑定的内容
+/// 控件里 → 整体拒绝，状态不变（`EDIT-05`）。第一阶段绑定控件一律只读：显示文字只是 customXml 的
+/// 缓存，改了 Word 重开会刷回去。
+///
+/// 只看主 part：位置类操作都在正文（批注 / 注释条目按 id 定位，条目里不会有内容控件）。
+fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
+    let dom = s.dom();
+    let pos = |p: &InlinePos| p.para;
+    let block_pos = |p: &BlockPos| match p {
+        BlockPos::Start(c) | BlockPos::End(c) => *c,
+        BlockPos::After(n) | BlockPos::Before(n) => *n,
+    };
+    let field = |id: FieldId| s.document().fields.get(id).map(|f| f.form.head());
+    let targets: Vec<NodeId> = match op {
+        EditOp::InsertText { at, .. }
+        | EditOp::SplitParagraph { at }
+        | EditOp::InsertField { at, .. } => vec![pos(at)],
+        EditOp::DeleteRange { from, to }
+        | EditOp::SetRunProps { from, to, .. }
+        | EditOp::AddComment { from, to, .. }
+        | EditOp::AddBookmark { from, to, .. } => vec![pos(from), pos(to)],
+        EditOp::ReplaceInlines { para, .. }
+        | EditOp::SetParaProps { para, .. }
+        | EditOp::ReplaceParaProps { para, .. }
+        | EditOp::MergeWithNext { para } => vec![*para],
+        EditOp::InsertBlock { at, .. } => vec![block_pos(at)],
+        EditOp::DeleteBlock { node } => vec![*node],
+        EditOp::MoveBlock { node, to } => vec![*node, block_pos(to)],
+        EditOp::SetLinkTarget { link, .. } => match link {
+            LinkRef::Field(id) => field(*id).into_iter().collect(),
+            LinkRef::Element(node) => vec![*node],
+        },
+        EditOp::ToggleCheckbox { field: id }
+        | EditOp::SetFormText { field: id, .. }
+        | EditOp::SetFieldResultProps { field: id, .. }
+        | EditOp::UpdateBlockField { field: id, .. } => field(*id).into_iter().collect(),
+        // 按 id 定位的操作（批注条目、书签名）不在正文树上。这里**不写通配分支**：
+        // 新增操作时编译器会提醒你决定它要不要守卫。
+        EditOp::RemoveComment { .. }
+        | EditOp::SetCommentText { .. }
+        | EditOp::RemoveBookmark { .. } => Vec::new(),
+    };
+    for node in targets {
+        let Some((info, why)) = refusing_sdt(dom, node) else { continue };
+        let what = info
+            .alias
+            .clone()
+            .or_else(|| info.tag.clone())
+            .unwrap_or_else(|| info.control.as_str().to_string());
+        return Err(match why {
+            SdtRefusal::Locked => Error::edit(
+                DiagCode::EditSdtLocked,
+                format!("内容控件 `{what}` 的 w:lock 是 {}，内容只读", info.lock),
+            ),
+            SdtRefusal::Bound => Error::edit(
+                DiagCode::EditSdtBound,
+                format!("内容控件 `{what}` 绑定了 customXml 数据，第一阶段不可编辑"),
+            ),
+        });
+    }
+    Ok(())
 }
 
 // ---- 小工具 ----------------------------------------------------------------------------------

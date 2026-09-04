@@ -341,7 +341,7 @@ impl<'a> Builder<'a> {
                     out.push(block);
                 }
                 BodyClass::Sdt => {
-                    let info = SdtInfo { node };
+                    let info = SdtInfo::read(dom, node);
                     let content =
                         dom.semantic_children(node).find(|&n| dom.is(n, w(LocalName::SdtContent)));
                     let before = out.len();

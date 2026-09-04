@@ -33,7 +33,7 @@ Span 索引与 Anchor 变换 / 物化（2.1–2.3）、字段子系统与它的�
 | L2 范围 `span/` | 完成（范围部分） | `FlowId` / `FlowMap`、内容序列（`SPAN-01`）、`Anchor` / `Affinity`、九种 `RangeKind`、按流构建与配对诊断、文档序 `compare`、按容器倒排、编辑期变换与整体删除策略（`SPAN-06/07`）、物化与保存前校验（`SPAN-08/09`）、拆分 / 合并容器时的锚点重定位 | `SPAN-10` 的另一半：范围端点**落在字段指令区内**时移到原子边界（插入侧已按同一规则处理，端点侧还没做） |
 | L2 字段 `span/field/` | 完成 | `FieldSpan` 配对（复杂 / 简单 / 嵌套 / 跨段 / 未闭合诊断）、指令 tokenizer 与 76 个关键字的策略表、`w:ffData` 读写、`FLD-13` 基线校验、`fuzz_instr` | 块字段生成器（`FLD-09` 的内容重算，M7） |
 | L3 属性表 `semantic/props/` | 完成 | 27 张表由 TOML 生成（读 / 写 / diff / patch / merge / `plan_apply_*`）、按 flavor 编解码、`Val::Raw` 降级、`PROP-05` 顺序；表格三组表 `TableProps`（含 `tblPrEx`）/ `RowProps` / `CellProps` 与边框 / 边距子表、`MeasureOrPercent` codec（3.1） | 节的属性表（M5） |
-| L3 模型 `model/` | 文本 + 表格 + 字段 + 批注 / 注释 | `Document::rebuild`、块分类 R01–R19（含 R09 字段块）、段落坐标流（`Run`/`Segment`，UTF-16）、`Inline::Field` 与透明字段、`ParagraphFacts`、**表格模型**（`TableBlock / Row / Cell`，穿透 sdt 与修订包裹，声明网格，表格修订，> 64 层 TooDeep，`MOD_TABLE_SHAPE` 诊断；3.2）、跨表格的 `blocks()` / `paragraphs()` / `block_path()`、声明模型（styles / numbering / theme / settings / fontTable / comments / footnotes / endnotes） | `SdtInfo` 完整模型（3.3）、绘图显示模型（M4） |
+| L3 模型 `model/` | 文本 + 表格 + 字段 + 批注 / 注释 | `Document::rebuild`、块分类 R01–R19（含 R09 字段块）、段落坐标流（`Run`/`Segment`，UTF-16）、`Inline::Field` 与透明字段、`ParagraphFacts`、**表格模型**（`TableBlock / Row / Cell`，穿透 sdt 与修订包裹，声明网格，表格修订，> 64 层 TooDeep，`MOD_TABLE_SHAPE` 诊断；3.2）、跨表格的 `blocks()` / `paragraphs()` / `block_path()`、**内容控件**（`SdtInfo`：16 种控件 / 四态锁 / 数据绑定 / docPart / 占位符；3.3）、声明模型（styles / numbering / theme / settings / fontTable / comments / footnotes / endnotes） | 绘图显示模型（M4） |
 | resolve `resolve/` | 首版 | 样式链（basedOn / link）、docDefaults 层叠、每字段 `Provenance`、主题字体与颜色、符号字体解码、heading 级别 | toggle 属性真实规则 + Word 实测 fixture（M5）、补全 Wingdings 2/3 与 Webdings 映射表 |
 | L4 编辑 `edit/` | 段落 / 范围 / 字段操作齐了 | `EditSession`（含范围索引）、`InlinePos` 定位、`MutationPlan` plan/validate/commit、按 part 回滚的事务（DOM + 索引）、`InsertText`、`DeleteRange`（同段）、`SetRunProps`、`SetParaProps`、`ReplaceInlines`、`ReplaceParaProps`、`InsertBlock`/`DeleteBlock`/`MoveBlock`、`SPAN-06/07` 锚点维护、`AddComment`/`RemoveComment`/`SetCommentText`（含 `SAVE-05` 新建 part）、`SplitParagraph`/`MergeWithNext`、`AddBookmark`/`RemoveBookmark`、`InsertField`/`SetLinkTarget`/`ToggleCheckbox`/`SetFormText`/`SetFieldResultProps`/`UpdateBlockField` | 表格操作（M3）、块字段生成器与修订生成（M7） |
 | 保存 `save/` | 六步齐了 | `SAVE-01` 六步编排（含第 3 步 Span 物化）、`SAVE-02` 子集校验（未绑定前缀、`PROP-05` 顺序、`SPAN-09` 范围检查）、`SAVE-05` 新建 part（追加在 zip 末尾）、扩展命名空间声明、`w:t` preserve、`raw_copy_file` 写回、`SaveOptions`（`saved_at`、`remove_personal_info`、`remove_date_and_time`、批注与注释的权威列表） | 节 / 页眉页脚 / 水印 / 图表 / 墨迹等选项（M5 / M6） |
@@ -76,7 +76,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
 | 源码行数 / 文件数 | 34,197 行 / 92 个（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 278（单元 + 集成，18 个集成测试文件） | `cargo test --workspace` |
+| 测试数 | 284（单元 + 集成，19 个集成测试文件） | `cargo test --workspace` |
 | 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 16 份 hostile | `ls corpus/*` |
 | 往返字节保真 | 589 份文档、3,093 个 XML part 全部字节相同 | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
@@ -136,7 +136,7 @@ run 相关 153（批注已归零，剩的是绘图与页眉页脚里的 run）�
 
 ```sh
 cargo fmt --all --check && cargo clippy --workspace --all-targets   # 零告警
-cargo test --workspace && cargo test --workspace --release          # 278 个测试，两种构建
+cargo test --workspace && cargo test --workspace --release          # 284 个测试，两种构建
 cargo run -p diff-parse -- --scope text                             # M1 门第一条：0 未知差异
 cargo run -p diff-parse -- --scope fields                           # M2 门：字段与 Span 域 0 未知差异
 cd fuzz && cargo +nightly fuzz run fuzz_instr -- -max_total_time=600 # M2 门：指令 tokenizer 无崩溃

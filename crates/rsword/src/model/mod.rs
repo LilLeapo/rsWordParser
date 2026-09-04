@@ -9,6 +9,7 @@
 //! | [`inline`] | `Inline` / `Run` / `Segment` 与坐标流（`MOD-06`） |
 //! | [`block`] | `Block` / `TextBlock` / `ProtectedBlock` / `Revision`（`MOD-02/08/09`） |
 //! | [`table`] | `TableBlock` / `Row` / `Cell` 与跨表格的块遍历（`MOD-07`） |
+//! | [`sdt`] | `SdtInfo`：内容控件的种类 / 锁 / 数据绑定（`MOD-08`） |
 //! | [`facts`] | `ParagraphFacts`（`MOD-04`） |
 //! | [`classify`] | 分类规则表与 `TextKind` 判定（`MOD-05/03`） |
 //! | [`build`] | `Document` 与 `rebuild`（`MOD-01/13`） |
@@ -21,6 +22,7 @@ pub mod decl;
 pub mod facts;
 pub mod inline;
 pub mod notes;
+pub mod sdt;
 pub mod table;
 pub mod theme;
 
@@ -43,6 +45,8 @@ pub use inline::{
     RevisionMeta, Run, Segment, SegmentKind,
 };
 pub use notes::{Comment, Comments, Note, NoteKind, Notes, RichRun};
+// `SdtInfo` 从 `block` 一并导出（它是 `Block` 的字段）
+pub use sdt::{DataBinding, DocPart, SdtControl, SdtLock, SdtRefusal, refusing_sdt};
 pub use table::{BlockStep, Blocks, Cell, GridCol, Row};
 pub use theme::{ColorScheme, FontScheme, FontSlots, Theme, ThemeSlot};
 

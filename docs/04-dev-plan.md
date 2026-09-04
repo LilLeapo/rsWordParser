@@ -355,6 +355,7 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `docs/03` §5.4 `Keyword` | 列了 20 个变体 + `…` | `FLD-06` 表里的全部 76 个关键字都是变体，由一张 `macro_rules!` 表同时生成 `parse` / `as_str` / `policy` | 策略表与关键字表必须是同一份数据，否则加关键字时会漏改策略；`FLD-11` 的 `has_page_number` 也要按变体判断 |
 | `FLD-02` 索引的地位 | — | `FieldIndex` 是 DOM 的**投影**（编辑后作废重建），不像 `SpanIndex` 那样是规范状态的一半 | `FieldSpan` 里每条事实都能从节点重新读出来（`docs/03` §5.4："保存真相是 `instr_nodes` 的原字节"），没有 Anchor 那种"标记之外的信息"，增量维护只会多一份可能不同步的状态 |
 | `FLD-13` 缺陷来源判定 | "解析阶段的缺陷为 `PreExistingDamage`；编辑后新出现的为 `EngineInvariantViolation`" | 第一次写某个 part 之前记下按诊断代码的缺陷计数作基线，保存前重建索引比对，多出来的按 `EngineInvariantViolation` 并经 `save::enforce` 在调试构建下报错 | 索引是重建出来的，没有"这条诊断是不是新的"的天然标识；计数比对不需要跨编辑追踪节点身份 |
+| `MOD-08` 读取时机 | `SdtInfo` 是「最近的 `w:sdt` 祖先信息」 | 块 / 行 / 格构建时就地读全（`SdtInfo::read`），不是编辑时按需读 | 投影要能直接回答「这一块能不能编辑」；`sdtPr` 很小，读一遍比每次编辑再扫一遍便宜 |
 | `MOD-09` 表格修订的 `old` | `TablePropsChange` / `RowPropsChange` / `CellPropsChange` 的 `old: NodeId` | `old: Box<TableProps / RowProps / CellProps>`（类型化快照，同 `ParaPropsChange`）；`TableGridChange` 仍是 `NodeId`（网格没有属性表） | 3.1 之后三张表都有类型，快照读出来比留个节点再解析一次更好用；`RevisionMeta.node` 仍指向 `*PrChange` 元素，要原字节随时能取 |
 | `MOD-07` 模型字段 | `props: TableProps` 等按值 | `TableBlock.props` / `Row.props` / `Row.tbl_pr_ex` / `Cell.props` 装箱 | 三张表各几 KB，64 层嵌套时按值搬运的栈帧在 debug 构建下超过 2 MiB 测试线程栈；`Block` 枚举也跟着小了 |
 | `MOD-06` 内联深度上限 | "内联容器嵌套超过 64 层降级" | 上限相对**段落起点**计：`Builder.inline_base` 记段落开始时的容器深度，`build_inlines` 用差值判 | 单一计数器把块嵌套也算进去时，第 64 层表格里的段落会被误判 TooDeep；两个上限各自独立后最深 128 层，栈仍够 |
@@ -662,7 +663,27 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   的行 / 格修订；`MOD_TABLE_SHAPE` 三种形态；`MOD-13` 的遍历与路径。全语料对照 TS `TableModel`：69 份文档、
   83 张表（13 张嵌套，比到第 7 层）、113 行、196 格——每张表行数 = TS `rows.length`，每行物理 `w:tc` 数 = TS 格数
   （去 `gridGap`）+ 折叠的 `hMerge continue`，**0 处不一致、0 份跳过**。
-- [ ] **3.3 `SdtInfo` 完整模型**（`MOD-08`；`EDIT_SDT_LOCKED` / `EDIT_SDT_BOUND`）
+- [x] **3.3 `SdtInfo` 完整模型**（`model/sdt.rs`）：`SdtInfo { node, alias, tag, id, control, lock, data_binding,
+  doc_part, placeholder, showing_placeholder }`，块级与 run 级同一个读取器。控件种类取 `sdtPr` 里第一个可识别的
+  控件元素，**只看局部名**——复选框在 `w14`、重复节在 `w15`，各版本 Word 的前缀不一样（TS 也这么认）；
+  `w:lock` 四态与 `content_locked()` / `sdt_locked()`；`w:dataBinding` 三个属性；`w:docPartObj|docPartList` 的
+  gallery / category / unique；`w:placeholder/w:docPart` 与三态 `w:showingPlcHdr`。两个枚举（16 种控件 + 4 种锁）
+  用本地宏 `sdt_enum!` 生成变体 + `as_str` + `parse` + `ALL`，名字表只写一遍。
+  `EDIT-03` 策略落地：`edit/ops.rs` 的分派入口加 `guard_sdt`——按操作取目标节点（位置类取 `para`，块类取节点或
+  `BlockPos` 的容器，字段类经 `FieldIndex` 取 begin run），沿祖先链找第一个拒绝编辑的 `w:sdt`，
+  `contentLocked` / `sdtContentLocked` → `Err(EDIT_SDT_LOCKED)`，有 `dataBinding` → `Err(EDIT_SDT_BOUND)`；
+  match **不写通配分支**，将来新增操作时编译器会提醒决定要不要守卫。`compat_ts` 的 `sdt_meta` 改成读模型再投影
+  成 TS 的四值 `controlType`（不再自己扫 `sdtPr`）。
+  验收（`tests/sdt.rs`，6 个用例）：`MOD-08` 验收行（`dataBinding` + `sdtContentLocked` 的全部字段）、17 种控件
+  写法（含 `w14:checkbox` / `w15:repeatingSection*` / 无 `sdtPr`）、锁的四态与缺省、`refusing_sdt` 穿过嵌套 sdt
+  找到外层的锁、五个编辑操作在锁定与绑定控件里各自被拒且**投影与保存字节都不变**（`EDIT-05` / 不变式 1）、
+  同形未锁文档能改。语料 589 份里 14 个 `w:sdt` 全部能读，块上挂的信息与直接读一致；语料里没有锁与数据绑定
+  （行为靠合成用例保证）。
+  **顺带修掉一个栈溢出**：`SdtInfo` 从 8 字节长到 216 字节后，64 层嵌套表格的 `Document::rebuild` 在 2 MiB 的
+  测试线程栈上溢出。真正的原因是每层递归的栈帧里躺着 `TableProps`（2,152 字节）、`CellProps`（2,376）与同样大的
+  `*PrChange` 快照元组——debug 构建按帧分配临时值，它们一直活到递归返回。把这些读取收进两个宏生成的
+  `#[inline(never)]` 辅助函数（`boxed_table_props` 一族，返回 `Box<T>`），临时值随辅助函数的帧一起消失，每层只剩
+  一个指针。2,000 层的 `deep-nested-table__001` 与 5,000 层的 hostile 文档现在都在**默认栈**上跑完。
 - [ ] **3.4 `resolve` 表格视图**（`resolve/table.rs`：`tblLook`、条件格式、边框 / 边距回退、`ColumnView` 四条启发式）
 - [ ] **3.5 `compat_ts` 表格投影**（`bind/compat_ts/table.rs`；`COMPAT-10`；`diff-parse --scope tables`）
 - [ ] **3.6 容器级刷新与单元格内编辑**（`MOD-13`；`TEST-04` 扩到单元格；删掉整体重建退路）

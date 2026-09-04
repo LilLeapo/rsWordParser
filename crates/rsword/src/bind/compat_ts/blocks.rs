@@ -16,7 +16,7 @@ use super::decl::{
 use super::utf16::Utf16Index;
 use crate::model::{
     AtomKind, Block, BreakKind, Document, Inline, LinkTarget, ProtectedKind, Revision,
-    RevisionMeta, Run, SegmentKind, StyleType, TextBlock, TextKind,
+    RevisionMeta, Run, SdtControl, SdtInfo, SegmentKind, StyleType, TextBlock, TextKind,
 };
 use crate::package::{RelTarget, Rels};
 use crate::resolve::{Resolver, rgb_hex};
@@ -293,32 +293,17 @@ fn sdt_content_children_of(dom: &Dom, sdt: NodeId, out: &mut Vec<NodeId>) {
     }
 }
 
-/// TS `sdtMeta`。
+/// TS `sdtMeta`：从模型的 [`SdtInfo`]（`MOD-08`）投影出 TS 的三个字段。
+/// TS 的 `controlType` 只有四值，别的控件种类一律 `text`（`COMPAT-02`）。
 fn sdt_meta(ctx: &Ctx<'_>, sdt: NodeId) -> (String, String, &'static str) {
-    let dom = ctx.dom;
-    let Some(pr) = dom.semantic_children(sdt).find(|&n| dom.is(n, w(LocalName::SdtPr))) else {
-        return (String::new(), String::new(), "text");
+    let info = SdtInfo::read(ctx.dom, sdt);
+    let control = match info.control {
+        SdtControl::Date => "date",
+        SdtControl::DropDownList | SdtControl::ComboBox => "dropdown",
+        SdtControl::Checkbox => "checkbox",
+        _ => "text",
     };
-    let val_of = |local: LocalName| -> Option<String> {
-        let n = dom.semantic_children(pr).find(|&n| dom.is(n, w(local)))?;
-        ctx.attr(n, NsId::W, LocalName::Val)
-    };
-    let alias = val_of(LocalName::Alias).unwrap_or_default();
-    let tag = val_of(LocalName::UTag).or_else(|| val_of(LocalName::Tag)).unwrap_or_default();
-    let has = |local: LocalName| dom.semantic_children(pr).any(|n| dom.is(n, w(local)));
-    let control = if has(LocalName::Date) {
-        "date"
-    } else if has(LocalName::DropDownList) || has(LocalName::ComboBox) {
-        "dropdown"
-    } else if dom
-        .semantic_children(pr)
-        .any(|n| dom.name(n).is_some_and(|q| q.local == LocalName::Checkbox))
-    {
-        "checkbox"
-    } else {
-        "text"
-    };
-    (alias, tag, control)
+    (info.alias.unwrap_or_default(), info.tag.unwrap_or_default(), control)
 }
 
 #[allow(clippy::too_many_arguments)]

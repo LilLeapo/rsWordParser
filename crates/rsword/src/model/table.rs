@@ -10,7 +10,7 @@
 //! 另外给 [`Document`] 补跨表格的遍历：[`Document::blocks`] / [`Document::paragraphs`] 深入单元格，
 //! [`Document::block_path`] 给任意块的祖先路径（`MOD-13` 的容器级刷新与 `EDIT-02` 的定位用）。
 
-use crate::diag::DiagCode;
+use crate::diag::{DiagCode, Diagnostic};
 use crate::model::block::{Block, ProtectedBlock, ProtectedKind, Revision, SdtInfo, TextBlock};
 use crate::model::build::{Builder, Document, MAX_CONTAINER_DEPTH};
 use crate::semantic::props::codec::Twips;
@@ -19,7 +19,7 @@ use crate::semantic::props::{
     read_row_props, read_row_props_change, read_table_props, read_table_props_change,
 };
 use crate::span::is_range_marker;
-use crate::xml::{LocalName, NodeId, NsId, QName};
+use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
 /// `w:tbl`（`MOD-07`）。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -130,6 +130,60 @@ fn w(local: LocalName) -> QName {
     QName::w(local)
 }
 
+/// 读容器属性并装箱。**必须**是独立且不内联的函数：`TableProps` 2.1 KB、`CellProps` 2.4 KB，
+/// 快照元组同样大；留在 `build_table` / `build_row` / `build_cell` 的栈帧里，它们会一直活到递归
+/// 返回（debug 构建按帧分配临时值），64 层嵌套就把 2 MiB 的测试线程栈撑爆。装进 `Box` 之后每层
+/// 只留一个指针，2000 层的语料与 5000 层的 hostile 文档都能在默认栈上跑完。
+macro_rules! boxed_reader {
+    ($(#[$m:meta])* $name:ident, $read:path, $props:ty) => {
+        $(#[$m])*
+        #[inline(never)]
+        fn $name(dom: &Dom, container: Option<NodeId>, diags: &mut Vec<Diagnostic>) -> Box<$props> {
+            Box::new($read(dom, container, diags))
+        }
+    };
+}
+
+/// 同上，读 `*PrChange` 的旧值快照。
+macro_rules! boxed_change_reader {
+    ($(#[$m:meta])* $name:ident, $read:path, $props:ty) => {
+        $(#[$m])*
+        #[inline(never)]
+        fn $name(
+            dom: &Dom,
+            container: Option<NodeId>,
+            diags: &mut Vec<Diagnostic>,
+        ) -> Option<(NodeId, Box<$props>)> {
+            $read(dom, container, diags).map(|(n, v)| (n, Box::new(v)))
+        }
+    };
+}
+
+boxed_reader!(
+    /// `w:tblPr`（也用于 `w:tblPrEx`）。
+    boxed_table_props, read_table_props, TableProps
+);
+boxed_reader!(
+    /// `w:trPr`。
+    boxed_row_props, read_row_props, RowProps
+);
+boxed_reader!(
+    /// `w:tcPr`。
+    boxed_cell_props, read_cell_props, CellProps
+);
+boxed_change_reader!(
+    /// `w:tblPrChange`。
+    boxed_table_props_change, read_table_props_change, TableProps
+);
+boxed_change_reader!(
+    /// `w:trPrChange`。
+    boxed_row_props_change, read_row_props_change, RowProps
+);
+boxed_change_reader!(
+    /// `w:tcPrChange`。
+    boxed_cell_props_change, read_cell_props_change, CellProps
+);
+
 /// 行 / 格收集时的包裹上下文：穿透 sdt 与修订包裹要带着它们往下走。
 struct Wrap {
     node: NodeId,
@@ -157,11 +211,10 @@ impl<'a> Builder<'a> {
             });
         }
         let tbl_pr = dom.semantic_children(tbl).find(|&n| dom.is(n, w(LocalName::TblPr)));
-        let props = Box::new(read_table_props(dom, tbl_pr, &mut self.warnings));
+        let props = boxed_table_props(dom, tbl_pr, &mut self.warnings);
         let mut revisions = revs.to_vec();
-        if let Some((change, old)) = read_table_props_change(dom, tbl_pr, &mut self.warnings) {
-            revisions
-                .push(Revision::TablePropsChange { meta: self.meta(change), old: Box::new(old) });
+        if let Some((change, old)) = boxed_table_props_change(dom, tbl_pr, &mut self.warnings) {
+            revisions.push(Revision::TablePropsChange { meta: self.meta(change), old });
         }
         let mut grid = Vec::new();
         if let Some(g) = dom.semantic_children(tbl).find(|&n| dom.is(n, w(LocalName::TblGrid))) {
@@ -270,7 +323,7 @@ impl<'a> Builder<'a> {
                     out.push(Wrap { node: child, sdt: sdt.clone(), revs: revs.to_vec() });
                 }
                 LocalName::Sdt => {
-                    let info = SdtInfo { node: child };
+                    let info = SdtInfo::read(dom, child);
                     if let Some(content) =
                         dom.semantic_children(child).find(|&n| dom.is(n, w(LocalName::SdtContent)))
                     {
@@ -315,11 +368,11 @@ impl<'a> Builder<'a> {
     fn build_row(&mut self, tr: NodeId, sdt: Option<&SdtInfo>, revs: &[Revision]) -> Row {
         let dom = self.dom;
         let tr_pr = dom.semantic_children(tr).find(|&n| dom.is(n, w(LocalName::TrPr)));
-        let props = Box::new(read_row_props(dom, tr_pr, &mut self.warnings));
+        let props = boxed_row_props(dom, tr_pr, &mut self.warnings);
         let tbl_pr_ex = dom
             .semantic_children(tr)
             .find(|&n| dom.is(n, w(LocalName::TblPrEx)))
-            .map(|ex| Box::new(read_table_props(dom, Some(ex), &mut self.warnings)));
+            .map(|ex| boxed_table_props(dom, Some(ex), &mut self.warnings));
         let mut revisions = revs.to_vec();
         if let Some(pr) = tr_pr {
             for n in dom.semantic_children(pr) {
@@ -330,9 +383,8 @@ impl<'a> Builder<'a> {
                 }
             }
         }
-        if let Some((change, old)) = read_row_props_change(dom, tr_pr, &mut self.warnings) {
-            revisions
-                .push(Revision::RowPropsChange { meta: self.meta(change), old: Box::new(old) });
+        if let Some((change, old)) = boxed_row_props_change(dom, tr_pr, &mut self.warnings) {
+            revisions.push(Revision::RowPropsChange { meta: self.meta(change), old });
         }
         let mut cells = Vec::new();
         self.collect_cells(tr, &mut cells);
@@ -345,7 +397,7 @@ impl<'a> Builder<'a> {
     fn build_cell(&mut self, tc: NodeId, sdt: Option<&SdtInfo>, revs: &[Revision]) -> Cell {
         let dom = self.dom;
         let tc_pr = dom.semantic_children(tc).find(|&n| dom.is(n, w(LocalName::TcPr)));
-        let props = Box::new(read_cell_props(dom, tc_pr, &mut self.warnings));
+        let props = boxed_cell_props(dom, tc_pr, &mut self.warnings);
         let mut revisions = revs.to_vec();
         if let Some(pr) = tc_pr {
             for n in dom.semantic_children(pr) {
@@ -361,9 +413,8 @@ impl<'a> Builder<'a> {
                 }
             }
         }
-        if let Some((change, old)) = read_cell_props_change(dom, tc_pr, &mut self.warnings) {
-            revisions
-                .push(Revision::CellPropsChange { meta: self.meta(change), old: Box::new(old) });
+        if let Some((change, old)) = boxed_cell_props_change(dom, tc_pr, &mut self.warnings) {
+            revisions.push(Revision::CellPropsChange { meta: self.meta(change), old });
         }
         // 格内内容：不带外层的 sdt / 修订上下文——它们属于格与行，段落自己的包裹在格里另算
         let mut blocks = Vec::new();
