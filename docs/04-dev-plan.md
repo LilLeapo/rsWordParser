@@ -347,7 +347,7 @@ crate 名 `rsword`；nightly 与 cargo-fuzz 已装）。已决的政策见 §8 �
 
 | # | 事项 | 建议 |
 | --- | --- | --- |
-| 1 | 语料基线：`corpus/` 导出自 genoffice `f105f36` **加 31 处未提交改动**（含 `generate.ts`），`.save.json` 的期望输出受其影响 | M2 之前在干净基线上重跑 `tools/export-golden/run.sh` 并在提交信息里记下 commit；差分数量会有小幅变化 |
+| 1 | ~~语料基线~~ 已决（2026-09-04）：接受当前基线，不重导。`manifest.jsonl` 首行记着 `f105f36` + 32 个脏文件 + 导出时间；复核过影响面：32 个里只有 `packages/docx-engine/src/generate.ts`（三处 hunk 全在 `patchTableCellTexts`）与 `tests/nested-table-edit.test.ts` 在引擎内，其余 29 个在 `apps/docs`，碰不到解析与保存输出 | 后续若改了 genoffice 的 `docx-engine` 再重导；重导前先比对 `manifest.jsonl` 首行与 genoffice 当时状态 |
 | 2 | ~~`m1.15-diff-tools` 何时并入 `main`~~ 已并入（2026-09-04） | M2 直接从 `main` 开分支 |
 | 3 | ~~M2 计划文档~~ 已写：`spec/13-m2-plan.md`（10 个任务 + 从 M1 带过来的债 + 5 条风险提示） | 开工前复核第 1 条（语料基线）对 2.5 / 2.6 差分基准的影响 |
 
