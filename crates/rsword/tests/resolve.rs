@@ -328,3 +328,62 @@ fn res_02_style_display_matches_ts() {
     assert!(st.styles > 1000, "{}", st.styles);
     assert!(st.mismatches.is_empty(), "{} mismatches against TS StyleDisplay", st.mismatches.len());
 }
+
+/// `RES-05` DrawingML 颜色（`spec/15` 任务 4.2）在语料上的普查：正文里每个颜色容器都要能定出 sRGB。
+///
+/// 这是 4.5 / 4.6 的前置保险——形状的填充与描边全靠它，等到那时才发现「某种底色没实现」就太晚了。
+#[test]
+fn res_05_drawingml_colors_resolve_across_the_corpus() {
+    use rsword::model::theme::ColorScheme;
+    use rsword::resolve::drawingml::{color_in, hex};
+    use rsword::xml::{LocalName, NsId};
+
+    /// 恰好包一个颜色元素的容器（`a:noFill` / `a:blipFill` 不算）。
+    fn is_color_container(local: LocalName) -> bool {
+        matches!(
+            local,
+            LocalName::SolidFill
+                | LocalName::Gs
+                | LocalName::FillRef
+                | LocalName::LnRef
+                | LocalName::FgClr
+                | LocalName::BgClr
+        )
+    }
+
+    let mut docs = 0usize;
+    let mut containers = 0usize;
+    let mut by_hex: BTreeMap<String, usize> = BTreeMap::new();
+    let mut unresolved: Vec<String> = Vec::new();
+
+    for path in common::docx_paths("synthetic") {
+        let file = path.file_name().unwrap().to_string_lossy().to_string();
+        let bytes = std::fs::read(&path).unwrap();
+        let Ok(mut pkg) = Package::open(&bytes) else { continue };
+        let Ok(doc) = Document::rebuild(&mut pkg) else { continue };
+        let palette: ColorScheme = Resolver::new(&doc).palette().clone();
+        docs += 1;
+        let main = pkg.main_part();
+        let Ok(Some(dom)) = pkg.dom(main) else { continue };
+        for n in dom.semantic_descendants(dom.root()) {
+            let Some(name) = dom.name(n) else { continue };
+            if name.ns != NsId::A || !is_color_container(name.local) {
+                continue;
+            }
+            let Some(c) = color_in(dom, n) else { continue };
+            containers += 1;
+            match c.to_rgb(&palette) {
+                Some(rgb) => *by_hex.entry(hex(rgb)).or_default() += 1,
+                None => unresolved.push(format!("{file}: {:?}", c.base)),
+            }
+        }
+    }
+
+    println!(
+        "drawingml colors: {docs} 份文档，{containers} 个颜色容器，{} 种取值；未定出 {}",
+        by_hex.len(),
+        unresolved.len()
+    );
+    assert!(containers > 0, "语料里应当有 DrawingML 颜色");
+    assert!(unresolved.is_empty(), "定不出 sRGB 的颜色：\n{}", unresolved.join("\n"));
+}

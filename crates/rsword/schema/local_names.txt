@@ -343,6 +343,7 @@ fromWordArt
 ftr
 func
 funcPr
+g
 gdLst
 gfxdata
 glossaryDocument
@@ -396,6 +397,8 @@ hrnoshade
 hrpct
 hrstd
 hRule
+hslClr
+hue
 hueMod
 hyperlink
 hyphenationZone
@@ -474,6 +477,7 @@ lockedCanvas
 lsdException
 lt1
 lt2
+lum
 lumMod
 lumOff
 lvl
@@ -677,9 +681,11 @@ ruby
 rubyAlign
 rubyBase
 rubyPr
+sat
 satMod
 scene3d
 schemeClr
+scrgbClr
 script
 sdt
 sdtContent

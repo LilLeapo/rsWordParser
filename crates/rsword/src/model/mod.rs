@@ -20,6 +20,7 @@ pub mod decl;
 pub mod facts;
 pub mod inline;
 pub mod theme;
+pub mod units;
 
 pub use block::{
     Block, ImageBlock, ListRef, ProtectedBlock, ProtectedKind, Revision, SdtInfo, TableBlock,
