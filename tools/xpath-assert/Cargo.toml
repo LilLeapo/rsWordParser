@@ -1,0 +1,16 @@
+[package]
+name = "xpath-assert"
+version = "0.0.1"
+description = "TEST-05：对 docx part 求 XPath 子集，或比较两份 part 的一组 XPath 结果"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+rsword = { path = "../../crates/rsword" }
+serde_json = "1"
+
+[lints]
+workspace = true

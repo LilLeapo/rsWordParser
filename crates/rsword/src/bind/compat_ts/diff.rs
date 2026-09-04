@@ -1,4 +1,7 @@
-//! 差分容忍（`COMPAT-09`）：键顺序无关、缺失与 `undefined` 等价、浮点 1e-6、按路径模式跳过已知差异。
+//! 差分容忍（`COMPAT-09`）与差分报告（`TEST-03`）：键顺序无关、缺失与 `undefined` 等价、浮点 1e-6、
+//! 按 `KNOWN_DIFFS.md` 的"文档 glob + 路径 glob"跳过已知差异并单独计数。
+
+use std::collections::BTreeMap;
 
 use serde_json::Value;
 
@@ -44,7 +47,7 @@ fn walk(path: String, e: Option<&Value>, a: Option<&Value>, out: &mut Vec<Diff>)
     }
 }
 
-/// 路径模式：`*` 匹配任意字符序列（含 `.` 与下标），其余逐字匹配。
+/// glob：`*` 匹配任意字符序列（含 `.` 与下标），其余逐字匹配。
 pub fn path_matches(pattern: &str, path: &str) -> bool {
     fn go(p: &[u8], s: &[u8]) -> bool {
         match p.split_first() {
@@ -56,18 +59,200 @@ pub fn path_matches(pattern: &str, path: &str) -> bool {
     go(pattern.as_bytes(), path.as_bytes())
 }
 
-/// 过滤掉命中已知差异模式的条目，返回 `(未知差异, 已知差异数)`。
-pub fn filter_known(diffs: Vec<Diff>, known: &[&str]) -> (Vec<Diff>, usize) {
+/// `KNOWN_DIFFS.md` 的一条机器可读条目：文档名 glob + JSON 路径 glob（`*` 表示整份文档）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KnownDiff {
+    pub doc: String,
+    pub path: String,
+}
+
+impl KnownDiff {
+    pub fn matches(&self, file: &str, path: &str) -> bool {
+        path_matches(&self.doc, file) && path_matches(&self.path, path)
+    }
+}
+
+/// `KNOWN_DIFFS.md` 原文（编进库里，工具与测试共用同一份清单）。
+pub const KNOWN_DIFFS_MD: &str = include_str!("KNOWN_DIFFS.md");
+
+/// 读 markdown 里 ```known-diffs 围栏块：每行 `<文档 glob> <路径 glob>`，`#` 起为注释。
+pub fn parse_known_diffs(md: &str) -> Vec<KnownDiff> {
+    let mut out = Vec::new();
+    let mut in_block = false;
+    for line in md.lines() {
+        let t = line.trim();
+        if t.starts_with("```") {
+            in_block = !in_block && t.starts_with("```known-diffs");
+            continue;
+        }
+        if !in_block {
+            continue;
+        }
+        let body = t.split('#').next().unwrap_or("").trim();
+        if body.is_empty() {
+            continue;
+        }
+        let mut it = body.split_whitespace();
+        let (Some(doc), Some(path)) = (it.next(), it.next()) else { continue };
+        out.push(KnownDiff { doc: doc.to_string(), path: path.to_string() });
+    }
+    out
+}
+
+/// 库内置的已知差异清单。
+pub fn known_diffs() -> Vec<KnownDiff> {
+    parse_known_diffs(KNOWN_DIFFS_MD)
+}
+
+/// 把差异分成 `(未知, 已知数)`。`file` 是文档文件名（`xxx__001.docx`）。
+pub fn split_known(diffs: Vec<Diff>, file: &str, known: &[KnownDiff]) -> (Vec<Diff>, usize) {
     let mut unknown = Vec::new();
     let mut n = 0;
     for d in diffs {
-        if known.iter().any(|k| path_matches(k, &d.path)) {
+        if known.iter().any(|k| k.matches(file, &d.path)) {
             n += 1;
         } else {
             unknown.push(d);
         }
     }
     (unknown, n)
+}
+
+/// 兼容旧调用：只按路径模式过滤。
+pub fn filter_known(diffs: Vec<Diff>, known: &[&str]) -> (Vec<Diff>, usize) {
+    let k: Vec<KnownDiff> =
+        known.iter().map(|p| KnownDiff { doc: "*".into(), path: (*p).to_string() }).collect();
+    split_known(diffs, "", &k)
+}
+
+/// 路径去下标：`blocks[3].runs[0].text` → `blocks[].runs[].text`，用于聚合。
+pub fn path_key(path: &str) -> String {
+    path.chars().filter(|c| !c.is_ascii_digit()).collect()
+}
+
+/// M1 门的"文本段落"用例判定：只有 paragraph / heading / listItem 与允许的 passthrough，
+/// 不含字段 / 图片 / 公式 / ruby / 脚注 / 批注 / 书签 / 文本框 / `w14:textFill` / 参考文献 / 页眉页脚。
+pub fn is_text_case(e: &Value) -> bool {
+    let Some(blocks) = e.get("blocks").and_then(Value::as_array) else { return false };
+    let mut text_blocks = 0;
+    for b in blocks {
+        let ty = b.get("type").and_then(Value::as_str).unwrap_or("");
+        match ty {
+            "paragraph" | "heading" | "listItem" => {
+                text_blocks += 1;
+                let runs = b.get("runs").and_then(Value::as_array).cloned().unwrap_or_default();
+                for r in &runs {
+                    for k in [
+                        "image",
+                        "math",
+                        "ruby",
+                        "noteRef",
+                        "xeTerm",
+                        "refField",
+                        "instrField",
+                        "fldBeginXml",
+                        "commentIds",
+                    ] {
+                        if r.get(k).is_some() {
+                            return false;
+                        }
+                    }
+                }
+                for k in [
+                    "textboxes",
+                    "strayRuns",
+                    "bookmarks",
+                    "hiddenBookmarks",
+                    "commentStarts",
+                    "commentEnds",
+                ] {
+                    if b.get(k).is_some() {
+                        return false;
+                    }
+                }
+                let xml = b.get("originalXml").and_then(Value::as_str).unwrap_or("");
+                if xml.contains("<w:fldChar")
+                    || xml.contains("<w:fldSimple")
+                    || xml.contains("<w:instrText")
+                    || xml.contains("w14:textFill")
+                {
+                    return false;
+                }
+            }
+            "passthrough" => {
+                let label = b.get("label").and_then(Value::as_str).unwrap_or("");
+                let ok = label == "Section properties"
+                    || label == "Section break paragraph"
+                    || label == "Hidden paragraph"
+                    || label == "Page break"
+                    || b.get("invisibleMarker").and_then(Value::as_bool).unwrap_or(false);
+                if !ok {
+                    return false;
+                }
+            }
+            _ => return false,
+        }
+    }
+    let empty_arr = |k: &str| e.get(k).and_then(Value::as_array).is_some_and(Vec::is_empty);
+    text_blocks > 0
+        && empty_arr("comments")
+        && empty_arr("footnotes")
+        && empty_arr("endnotes")
+        && empty_arr("sources")
+        && e.get("headerText").is_none_or(Value::is_null)
+        && e.get("footerText").is_none_or(Value::is_null)
+        && e.get("hfParts").and_then(Value::as_object).is_some_and(|m| m.is_empty())
+}
+
+/// 一类未知差异的聚合：出现次数与首个样例。
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct PathStat {
+    pub count: usize,
+    pub docs: usize,
+    pub sample_doc: String,
+    pub sample_path: String,
+    pub sample_expected: Option<Value>,
+    pub sample_actual: Option<Value>,
+}
+
+/// 多份文档的差分汇总（`TEST-03` 的输出）。
+#[derive(Debug, Clone, Default)]
+pub struct Report {
+    pub docs: usize,
+    pub docs_with_unknown: usize,
+    pub known: usize,
+    pub unknown: usize,
+    /// 按去下标路径聚合。
+    pub by_path: BTreeMap<String, PathStat>,
+}
+
+impl Report {
+    /// 记录一份文档的差分结果。
+    pub fn add(&mut self, file: &str, unknown: Vec<Diff>, known: usize) {
+        self.docs += 1;
+        self.known += known;
+        if unknown.is_empty() {
+            return;
+        }
+        self.docs_with_unknown += 1;
+        let mut seen_keys = Vec::new();
+        for d in unknown {
+            self.unknown += 1;
+            let key = path_key(&d.path);
+            let st = self.by_path.entry(key.clone()).or_default();
+            st.count += 1;
+            if !seen_keys.contains(&key) {
+                st.docs += 1;
+                seen_keys.push(key);
+            }
+            if st.sample_doc.is_empty() {
+                st.sample_doc = file.to_string();
+                st.sample_path = d.path;
+                st.sample_expected = d.expected;
+                st.sample_actual = d.actual;
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -86,7 +271,52 @@ mod tests {
         assert!(path_matches("b.c[*].d", "b.c[2].d"));
         assert!(path_matches("blocks[*].runs[*].rawRPr", "blocks[12].runs[0].rawRPr"));
         assert!(!path_matches("b.c[*].e", "b.c[2].d"));
-        let (unknown, known) = filter_known(out, &["b.c[*].d"]);
+        let (unknown, known) = filter_known(out.clone(), &["b.c[*].d"]);
         assert_eq!((unknown.len(), known), (1, 1));
+        let k = vec![KnownDiff { doc: "doc__0*".into(), path: "b.*".into() }];
+        assert_eq!(split_known(out.clone(), "doc__001.docx", &k).1, 2);
+        assert_eq!(split_known(out, "other.docx", &k).1, 0);
+        assert_eq!(path_key("blocks[3].runs[0].text"), "blocks[].runs[].text");
+    }
+
+    #[test]
+    fn test_03_known_diffs_block_parses() {
+        let md = "# x\n\n```known-diffs\n# comment\nnumbering-defs__012* numbering.*   # why\n* styles.*.tableDisplay*\n```\ntext\n```\nnot known\n```\n";
+        let k = parse_known_diffs(md);
+        assert_eq!(k.len(), 2);
+        assert_eq!(
+            k[0],
+            KnownDiff { doc: "numbering-defs__012*".into(), path: "numbering.*".into() }
+        );
+        assert!(k[1].matches("any.docx", "styles.Foo.tableDisplay.fill"));
+        assert!(!known_diffs().is_empty(), "KNOWN_DIFFS.md 须含机器可读块");
+    }
+
+    #[test]
+    fn test_03_report_aggregates_by_path() {
+        let mut r = Report::default();
+        r.add(
+            "a.docx",
+            vec![Diff {
+                path: "blocks[1].runs[0].text".into(),
+                expected: Some(json!("x")),
+                actual: None,
+            }],
+            1,
+        );
+        r.add(
+            "b.docx",
+            vec![Diff {
+                path: "blocks[7].runs[2].text".into(),
+                expected: None,
+                actual: Some(json!("y")),
+            }],
+            0,
+        );
+        r.add("c.docx", vec![], 3);
+        assert_eq!((r.docs, r.docs_with_unknown, r.known, r.unknown), (3, 2, 4, 2));
+        let st = &r.by_path["blocks[].runs[].text"];
+        assert_eq!((st.count, st.docs), (2, 2));
+        assert_eq!(st.sample_doc, "a.docx");
     }
 }

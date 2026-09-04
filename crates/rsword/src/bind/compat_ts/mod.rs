@@ -17,7 +17,10 @@ mod decl;
 pub mod diff;
 pub mod utf16;
 
-pub use diff::{Diff, diff_json, filter_known, path_matches};
+pub use diff::{
+    Diff, KNOWN_DIFFS_MD, KnownDiff, PathStat, Report, diff_json, filter_known, is_text_case,
+    known_diffs, parse_known_diffs, path_key, path_matches, split_known,
+};
 pub use utf16::Utf16Index;
 
 /// 整份 `ParsedDoc`（含 `extras`），键与 TS 一致；`internal.originalBytes` 不输出（导出脚本也省略）。

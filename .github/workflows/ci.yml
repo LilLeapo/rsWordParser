@@ -20,4 +20,6 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets
       - run: cargo test --workspace
+      # TEST-03 / TEST-10 M1 门：synthetic 文本段落用例与 TS 的差分为 0（KNOWN_DIFFS 除外）
+      - run: cargo run -p diff-parse -- --scope text
   # fuzz 在 .github/workflows/fuzz.yml（手动 / 每周），不挂在每次 push 上。

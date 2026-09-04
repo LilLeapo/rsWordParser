@@ -19,3 +19,18 @@
 
 TS 按固定路径读 `word/theme/theme1.xml`、`word/settings.xml` 等；本引擎按关系（`PKG-05`）。
 语料里若干 TS 构造的文档有 part 而没有对应关系，测试在关系缺失时退回按路径查找以便对照。
+
+## 机器可读清单
+
+`tools/diff-parse` 与 `tests/compat.rs` 读下面这个围栏块：每行 `<文档名 glob> <JSON 路径 glob>`，
+`*` 通配任意字符，路径 `*` 表示整份文档，`#` 后是注释。新增登记须同时更新上表与此块。
+
+```known-diffs
+numbering-defs__012*     numbering.*                              # 未声明前缀的 mc:Choice Requires，本引擎走 Fallback
+symbol-fonts__*          *                                        # 符号字体解码（M2 RES-05）
+char-unit-indents__*     *                                        # *Chars 缩进换算需字体度量（TS withCharIndents）
+extra__strict-minimal*   *                                        # TS 装载时把 Strict 改写为 Transitional
+balance-dbcs-spacing__*  blocks[*].runs[*].charSpacingTwips       # TS 按双字节比例缩放显示值
+*                        styles.*.tableDisplay*                   # 表格样式显示模型（M2）
+*                        blocks[*].format.charIndents*            # 字符单位缩进（显示层）
+```
