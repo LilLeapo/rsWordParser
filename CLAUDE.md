@@ -12,10 +12,10 @@
 
 1. `docs/03-architecture-v3.md` —— v3.2 **冻结架构**，是宪法。分层、六个核心类型、不变式在这里定。
 2. `spec/*.md` —— 可验收的模块规范，每条带 ID（`XML-12`、`PROP-06`、`EDIT-03`…）。实现与测试都引用这些 ID。规范服从设计；冲突时以设计为准并修订规范。
-3. `docs/04-dev-plan.md` —— 执行计划：§5.1 已完成清单、§5.2 M1 门、§8 实现偏差、§9 待决、§10 M2 及以后。
+3. `docs/04-dev-plan.md` —— 执行计划：§5.1 M1 已完成清单、§5.2 M1 门、§8 实现偏差、§9 待决、§10 M2 及以后的排期、§11 M2 逐条进度。
 4. `docs/01-ts-parser-reference.md` 与 genoffice 源码 —— **参考实现，不是验收权威**（见下）。
 
-`spec/12-m0-m1-plan.md`、`spec/13-m2-plan.md` 是里程碑任务分解（# / 任务 / 规范 / DoD）。
+`spec/12-m0-m1-plan.md`、`spec/13-m2-plan.md` 是里程碑任务分解（# / 任务 / 规范 / DoD）。M0–M2 已全部完成并入 `main`；M4（绘图）有并行会话在做，M3（表格）还没有分解文档。
 
 ## TS 不是权威
 
@@ -43,7 +43,7 @@ genoffice 的 TS 引擎是参考实现。目标是**功能等价或更强**，�
 | --- | --- |
 | `crates/rsword/src/package/` | L0 包层（zip、`[Content_Types].xml`、`.rels`、flavor） |
 | `crates/rsword/src/xml/` | L1 无损 DOM（tokenizer、`Dirty`、MCE、命名空间、`plan`、`fragment`、`canon`、`xpath`） |
-| `crates/rsword/src/span/` | L2 范围与字段（M2 建设中） |
+| `crates/rsword/src/span/` | L2 范围与字段（`content` / `index` / `transform` / `materialize` / `field`） |
 | `crates/rsword/src/semantic/props/` | L3 属性表。**生成代码**：`schema/props/*.toml` + `build/props.rs` → `$OUT_DIR/props.rs` |
 | `crates/rsword/src/model/` | L3 文档模型投影（`Document::rebuild`、块分类、坐标流） |
 | `crates/rsword/src/resolve/` | 有效属性只读视图（样式链、主题字体 / 颜色） |
@@ -63,10 +63,11 @@ cargo fmt --all
 cargo clippy --workspace --all-targets      # 必须零告警
 cargo test --workspace                      # 调试构建
 cargo test --workspace --release            # 必须也跑：enforce 只在调试构建报错，发布构建行为不同
-cargo run -p diff-parse -- --scope text     # CI 门：文本用例未知差异必须为 0
+cargo run -p diff-parse -- --scope text     # M1 门：文本用例未知差异必须为 0
+cargo run -p diff-parse -- --scope fields   # M2 门：再加字段 / 范围 / 批注，仍须为 0
 cargo run -p diff-parse -- --scope all --json          # 全域差距排名
 cargo run -p xpath-assert -- a.docx '//w:p[1]/w:r/w:t/text()'
-cd fuzz && cargo +nightly fuzz run fuzz_xml -- -max_total_time=600
+cd fuzz && cargo +nightly fuzz run fuzz_xml -- -max_total_time=600      # 另有 fuzz_zip / fuzz_instr
 GENOFFICE_DIR=~/code/genoffice tools/export-golden/run.sh   # 重导语料（改期望值的唯一合法途径）
 ```
 
