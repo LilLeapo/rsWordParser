@@ -605,11 +605,19 @@ fn gen_struct(out: &mut String, name: &str, decl: &StructDecl, attrs: &[Attr]) {
 
     writeln!(out, "    /// 没有任何属性。").unwrap();
     writeln!(out, "    pub fn is_empty(&self) -> bool {{").unwrap();
-    write!(out, "        true").unwrap();
-    for a in attrs {
-        write!(out, " && self.{}.is_none()", a.name).unwrap();
+    let clauses: Vec<String> = attrs.iter().map(|a| format!("self.{}.is_none()", a.name)).collect();
+    write_and_chain(out, &clauses);
+    writeln!(out, "    }}\n}}\n").unwrap();
+}
+
+/// 把若干条件用 " && " 连成一个布尔表达式并写出（空列表退化为 `true`）。
+/// 不写引导的 `true &&`，否则生成代码会触发 clippy::nonminimal_bool。
+fn write_and_chain(out: &mut impl std::fmt::Write, clauses: &[String]) {
+    if clauses.is_empty() {
+        writeln!(out, "        true").unwrap();
+    } else {
+        writeln!(out, "        {}", clauses.join(" && ")).unwrap();
     }
-    writeln!(out, "\n    }}\n}}\n").unwrap();
 }
 
 // ---- 生成：表 ----------------------------------------------------------------------------------
@@ -701,14 +709,15 @@ fn gen_table(out: &mut String, t: &Table) {
 
     writeln!(out, "impl PartialEq for {name} {{").unwrap();
     writeln!(out, "    fn eq(&self, o: &Self) -> bool {{").unwrap();
-    write!(out, "        true").unwrap();
-    for a in &t.attrs {
-        write!(out, " && self.{n} == o.{n}", n = a.name).unwrap();
-    }
-    for f in &t.fields {
-        write!(out, " && self.{n} == o.{n}", n = f.name).unwrap();
-    }
-    writeln!(out, "\n    }}\n}}\n").unwrap();
+    let clauses: Vec<String> = t
+        .attrs
+        .iter()
+        .map(|a| a.name.as_str())
+        .chain(t.fields.iter().map(|f| f.name.as_str()))
+        .map(|n| format!("self.{n} == o.{n}"))
+        .collect();
+    write_and_chain(out, &clauses);
+    writeln!(out, "    }}\n}}\n").unwrap();
     writeln!(out, "impl Eq for {name} {{}}\n").unwrap();
 
     // 字段枚举
@@ -902,14 +911,17 @@ fn gen_table(out: &mut String, t: &Table) {
 
     writeln!(out, "impl PropsPatch for {patch} {{").unwrap();
     writeln!(out, "    fn is_empty(&self) -> bool {{").unwrap();
-    write!(out, "        true").unwrap();
-    for a in &t.attrs {
-        write!(out, " && self.{}.is_keep()", a.name).unwrap();
-    }
-    for f in &t.fields {
-        write!(out, " && self.{}.is_keep()", f.name).unwrap();
-    }
-    writeln!(out, "\n    }}\n}}\n").unwrap();
+    // 逐项 `is_keep()` 用 " && " 连接；不写引导的 `true &&`，否则生成代码会触发
+    // clippy::nonminimal_bool（表为空时才退化成单独的 `true`）
+    let clauses: Vec<String> = t
+        .attrs
+        .iter()
+        .map(|a| a.name.as_str())
+        .chain(t.fields.iter().map(|f| f.name.as_str()))
+        .map(|n| format!("self.{n}.is_keep()"))
+        .collect();
+    write_and_chain(out, &clauses);
+    writeln!(out, "    }}\n}}\n").unwrap();
 
     writeln!(out, "impl {patch} {{").unwrap();
     writeln!(out, "    pub fn kind(&self, field: {field_enum}) -> ChangeKind {{").unwrap();
