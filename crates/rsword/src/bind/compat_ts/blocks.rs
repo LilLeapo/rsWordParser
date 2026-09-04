@@ -17,6 +17,7 @@ use super::image;
 use super::media::MediaMap;
 use super::textbox;
 use super::utf16::Utf16Index;
+use crate::model::section::Sections;
 use crate::model::vml::vml_display;
 use crate::model::{
     AtomKind, Block, BreakKind, Display, Document, Inline, LinkTarget, ProtectedKind, Revision,
@@ -44,6 +45,8 @@ pub(super) struct Ctx<'a> {
     pub numbering: &'a NumberingOut,
     /// 主 part 的媒体预取表（`bind::compat_ts::media`）。
     pub media: &'a MediaMap,
+    /// 主 part 的节页面几何（锚定绘图定位要用）。
+    pub sections: Sections,
     disp_cache: RefCell<HashMap<(String, StyleType), StyleDisp>>,
 }
 
@@ -65,6 +68,7 @@ impl<'a> Ctx<'a> {
         numbering: &'a NumberingOut,
         media: &'a MediaMap,
     ) -> Ctx<'a> {
+        let sections = Sections::build(dom);
         Ctx {
             dom,
             doc,
@@ -73,6 +77,7 @@ impl<'a> Ctx<'a> {
             rels,
             numbering,
             media,
+            sections,
             disp_cache: RefCell::new(HashMap::new()),
         }
     }
@@ -84,6 +89,12 @@ impl<'a> Ctx<'a> {
     /// 一个节点的原字节（`COMPAT-04`：TS 的各种 `xml` 字段都是原文切片）。
     pub(super) fn node_xml(&self, node: NodeId) -> &'a str {
         self.slice(&self.lex_range(node))
+    }
+
+    /// 管辖某个节点的节几何。
+    pub(super) fn section_at(&self, node: NodeId) -> Option<&crate::model::SectionGeom> {
+        let start = self.lex_range(node).start;
+        self.sections.at(start)
     }
 
     /// `w:instrText` 的文本内容。

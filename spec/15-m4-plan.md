@@ -56,7 +56,15 @@ CI 门（`spec/11` TEST-10 的「M3–M6 对应域 diff 为 0」）：`diff-pars
 
 **进度**：4.1 完成（`package/media.rs` + `tests/media.rs` 语料普查；同时给 L1 补了 `Dom::semantic_descendants`）。4.2 完成（`resolve/drawingml.rs` 颜色 + `model/units.rs` 单位换算；语料 89 个颜色容器全部能定出 sRGB）。4.3 完成（`model/drawing.rs` 挂到 `Segment.display`；112 个绘图、122 项 `wp:extent` 与 TS 一致）。4.4 完成（`bind/compat_ts/{media,image}.rs`：图片块与 run 内图片的 `image*` 投影；全域未知差异 1,925 → 1,560，文档 341 → 300）。4.5 + 4.7 完成（`model/vml.rs` + 细横线与嵌入对象投影；全域 1,560 → 1,517，文档 300 → 291；`oleProgId` 归零）。**4.6a 完成**（`model/drawing.rs` 的 `ShapeDisplay` + `bind/compat_ts/textbox.rs` 分类；全域 1,517 → 704，文档 291 → 279）——`label` / `type` / `previewText` / `runs` / `decorative` / `rule*` 的绘图部分全部归零，剩下的同名差异是字段（M2）与图表（M6）。**4.6b 完成**（`bind/compat_ts/box_json.rs`：框的几何 / 填充 / 描边 / 内边距 / 组仿射 / 锚定偏移 / 框内段落；全域文档 279 → 236，41 份文档彻底对齐）。
 
-**4.6 剩下的**（都有明确出处，不是漏做）：`pageRelX` / `pageRelV` / `pagePinned` / `bandOverflow` / 部分 `offsetXEmu` 要 `resolveAnchorPagePos` 的节页宽页边距与栏数——那是 M5 的节模型，M4 里没有；`pathData` 要 `a:custGeom` 的路径解析；VML WordArt 的 run 字号 / 字体 / 描边要 `vmlWordArtBox` 的一整套合成。这三块连同 4.8 的门一起收尾。
+**4.6c 完成**（`model/section.rs` 的页面几何 + `resolveAnchorPagePos`；全域 799 → 770，文档 236 → 230）。
+节的完整模型（`SectionInfo` + `RES-10` 继承）仍归 M5，这里只读锚定定位真正要的页宽页高、四边页边距、
+栏数，M5 建 `SectionInfo` 时替换即可。顺带修掉两处判错：TS 的 `nested` 指「形状在另一个形状的
+`txbxContent` 里」而不是「在组里」（组内形状照样有保存序号、照样可编辑），以及框里套框时要把各层
+`w:txbxContent` 平铺进同一个 `paras` 并整块标只读。
+
+**4.6 还剩两块**（有明确出处，不是漏做）：`pathData` 要 `a:custGeom` 的路径解析（6 处 / 4 份文档，
+做完这 4 份就整份对齐）；VML WordArt 的 run 字号 / 字体 / 描边与 inset 要 `vmlWordArtBox` 的一整套
+合成（约 40 处 / 9 份文档）。`pagePinned` 还差 TS 的「首页判定」（要块序号与首个分页位置），3 处。
 
 **顺序说明**：4.1 → 4.3 → 4.4 是主链（几何与投影依赖媒体解析）；4.2 是 4.5 / 4.6 的前置（形状颜色）；
 4.5 / 4.7 可与主链并行。4.6 最重，建议在 4.3 的锚定几何稳定之后再动。

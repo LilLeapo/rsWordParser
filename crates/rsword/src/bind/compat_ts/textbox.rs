@@ -106,7 +106,7 @@ pub(super) fn drawing_block(
         return None;
     }
 
-    let boxes = boxes_of(ctx, &drawings, &vmls);
+    let boxes = boxes_of(ctx, p, &drawings, &vmls);
     // 装饰形状 + 真文字的段落按普通段落解析，文字才留得住可编辑（形状留在不再生成的 run 里，
     // 未编辑时字节不变）。有文字的框、以及提取出框的 wps 段落是例外。
     if !stray.trim().is_empty()
@@ -159,7 +159,7 @@ fn vml_block(
     if !stray.trim().is_empty() && has_picture {
         return None;
     }
-    let boxes = boxes_of(ctx, drawings, vmls);
+    let boxes = boxes_of(ctx, p, drawings, vmls);
     let mut o = o;
     if boxes.is_empty() {
         // 既没有框、又不是图 / 细横线 / 隐藏形状（那三种由模型的 R15–R17 分掉）：
@@ -279,7 +279,12 @@ fn invisible_empty_shapes(ctx: &Ctx<'_>, drawings: &[&DrawingDisplay]) -> bool {
 }
 
 /// 段落里能提取出的框（TS `extractTextboxes`，`shapes` 与 `pictures` 都开）。
-fn boxes_of(ctx: &Ctx<'_>, drawings: &[&DrawingDisplay], vmls: &[&VmlDisplay]) -> Vec<BoxInfo> {
+fn boxes_of(
+    ctx: &Ctx<'_>,
+    para_node: NodeId,
+    drawings: &[&DrawingDisplay],
+    vmls: &[&VmlDisplay],
+) -> Vec<BoxInfo> {
     let mut out = Vec::new();
     // `wrapSquare` 这道闸门把「转换器产出的装饰线」留在细横线那条路上：只有既方框绕排、
     // 又用了连线预设的段落，才把连线当成画出来的框（TS `hasLineShapes`）。
@@ -291,6 +296,8 @@ fn boxes_of(ctx: &Ctx<'_>, drawings: &[&DrawingDisplay], vmls: &[&VmlDisplay]) -
     let multi = drawings.len() > 1;
     // 每个 `w:txbxContent` 占一个保存路径序号，不管框最后留没留下来。
     let mut ordinal = 0usize;
+    // 管辖这一段的节：页面 / 页边距对齐的锚定位置要用它解（`model::section`）。
+    let sect = ctx.section_at(para_node);
 
     for d in drawings {
         // 组的填充供组内 `a:grpFill` 继承
@@ -320,15 +327,18 @@ fn boxes_of(ctx: &Ctx<'_>, drawings: &[&DrawingDisplay], vmls: &[&VmlDisplay]) -
                     if let Some(mut b) = picture_box(ctx, d, pic) {
                         if let Some(a) = &d.anchor {
                             let grouped = pic.group.is_some();
-                            box_json::apply_anchor(a, d.extent, multi, grouped, &mut b.json);
+                            box_json::apply_anchor(a, d.extent, sect, multi, grouped, &mut b.json);
                         }
                         out.push(b);
                     }
                     continue;
                 }
             };
-            let nested = s.group.is_some();
-            let index = (!nested && s.txbx.is_some()).then(|| {
+            // TS 的 `nested` 指「这个形状在另一个形状的 `w:txbxContent` 里」，不是「在组里」。
+            // 我们的 `drawing_display` 遍历到 `txbxContent` 就停，所以 `d.shapes` 里根本不会有
+            // 嵌套形状——组内形状照样有自己的保存序号，也照样可编辑。
+            let nested = false;
+            let index = s.txbx.is_some().then(|| {
                 ordinal += 1;
                 ordinal - 1
             });
@@ -338,7 +348,7 @@ fn boxes_of(ctx: &Ctx<'_>, drawings: &[&DrawingDisplay], vmls: &[&VmlDisplay]) -
                     box_json::apply_group_ctm(ctm, s, &mut b.json);
                 }
                 if let Some(a) = &d.anchor {
-                    box_json::apply_anchor(a, d.extent, multi, nested, &mut b.json);
+                    box_json::apply_anchor(a, d.extent, sect, multi, nested, &mut b.json);
                 }
                 out.push(b);
             }

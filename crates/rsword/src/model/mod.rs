@@ -20,6 +20,7 @@ pub mod decl;
 pub mod drawing;
 pub mod facts;
 pub mod inline;
+pub mod section;
 pub mod theme;
 pub mod units;
 pub mod vml;
@@ -46,6 +47,7 @@ pub use inline::{
     AtomKind, BreakKind, Inline, InlineAtom, Link, LinkTarget, OBJECT_REPLACEMENT, RevisionCtx,
     RevisionMeta, Run, Segment, SegmentKind,
 };
+pub use section::{SectionGeom, Sections};
 pub use theme::{ColorScheme, FontScheme, FontSlots, Theme, ThemeSlot};
 pub use vml::{OleInfo, VmlDisplay, VmlKind, VmlShape};
 

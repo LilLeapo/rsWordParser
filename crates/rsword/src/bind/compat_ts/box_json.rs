@@ -14,6 +14,7 @@ use serde_json::{Map, Value};
 use crate::model::drawing::{
     Anchor, AnchorGeom, BodyPr, Extent, FillKind, ShapeDisplay, StyleRef, Wrap,
 };
+use crate::model::section::SectionGeom;
 use crate::model::units::{EMU_PER_PX, emu_to_px};
 use crate::model::vml::VmlShape;
 use crate::model::{Block, Display};
@@ -403,6 +404,19 @@ pub(super) fn apply_group_ctm(ctm: GroupCtm, s: &ShapeDisplay, o: &mut Map<Strin
 
 /// 框里内容流的块 → `paras[]`（TS `txbxContentParas`）。返回 `(段落, 是否只读)`。
 pub(super) fn paras_json(ctx: &Ctx<'_>, content: &[Block]) -> (Vec<Value>, bool) {
+    let (mut out, mut read_only) = own_paras(ctx, content);
+    // 框里还套着框：TS 把所有层的 `w:txbxContent` 平铺进同一个 `paras`，并把整块标只读——
+    // 提交时会重写外层的 `w:p` 列表，套在里面的形状就没了。
+    let nested = nested_paras(ctx, content);
+    if !nested.is_empty() {
+        read_only = true;
+        out.extend(nested);
+    }
+    (out, read_only)
+}
+
+/// 框自己那一层的段落。
+fn own_paras(ctx: &Ctx<'_>, content: &[Block]) -> (Vec<Value>, bool) {
     let mut out = Vec::new();
     let mut read_only = false;
     for b in content {
@@ -442,6 +456,37 @@ pub(super) fn paras_json(ctx: &Ctx<'_>, content: &[Block]) -> (Vec<Value>, bool)
     (out, read_only)
 }
 
+/// 框内段落里再套的框，按文档序平铺出它们的段落。
+fn nested_paras(ctx: &Ctx<'_>, content: &[Block]) -> Vec<Value> {
+    let mut out = Vec::new();
+    for b in content {
+        let Block::Text(tb) = b else { continue };
+        for i in &tb.inlines {
+            let crate::model::Inline::Run(r) = i else { continue };
+            for seg in &r.segments {
+                let inner: Vec<&[Block]> = match seg.display.as_ref() {
+                    Some(Display::Drawing(d)) => {
+                        d.shapes.iter().map(|s| s.content.as_slice()).collect()
+                    }
+                    Some(Display::Vml(v)) => {
+                        v.shapes.iter().map(|s| s.content.as_slice()).collect()
+                    }
+                    None => continue,
+                };
+                for blocks in inner {
+                    if blocks.is_empty() {
+                        continue;
+                    }
+                    let (paras, _) = own_paras(ctx, blocks);
+                    out.extend(paras);
+                    out.extend(nested_paras(ctx, blocks));
+                }
+            }
+        }
+    }
+    out
+}
+
 fn image_run(ctx: &Ctx<'_>, d: &Display) -> Option<Map<String, Value>> {
     let pic = d.as_drawing()?.picture()?;
     let m = ctx.media.pick(pic.embed.as_deref(), pic.link.as_deref())?;
@@ -475,12 +520,87 @@ fn table_rows(ctx: &Ctx<'_>, tbl: NodeId) -> Vec<Value> {
 
 // ---- 锚定 ---------------------------------------------------------------------------------------
 
+/// `wp:anchor` 相对页面 / 页边距对齐时解出来的位置（TS `resolveAnchorPagePos`）。
+#[derive(Debug, Clone, Copy)]
+pub(super) struct PagePos {
+    /// 相对正文左边界的横向位置（EMU）。
+    pub x_emu: i64,
+    /// 同上，纵向；只有纵向也按页面 / 页边距对齐时才有。
+    pub y_emu: Option<i64>,
+    /// 整个框落在正文栏之外（Word 简历式侧边栏）。
+    pub outside_column: bool,
+}
+
+const EMU_PER_TWIP_I: i64 = 635;
+
+/// 解析页面 / 页边距对齐的锚定位置。栏数为 1 时「相对栏」就等于「相对页边距」。
+pub(super) fn resolve_page_pos(
+    a: &AnchorGeom,
+    extent: Option<Extent>,
+    sect: &SectionGeom,
+) -> Option<PagePos> {
+    let rel_h = match a.h.relative_from.as_deref() {
+        Some("column") if sect.columns <= 1 && a.h.pct.is_none() => "margin",
+        Some(other) => other,
+        None => return None,
+    };
+    if rel_h != "page" && rel_h != "margin" {
+        return None;
+    }
+    if a.h.pct.is_none() && a.h.align.is_none() {
+        return None;
+    }
+    let tw = |v: i64| v * EMU_PER_TWIP_I;
+    let (page_w, page_h) = (tw(sect.page_width), tw(sect.page_height));
+    let (mar_l, mar_r) = (tw(sect.margin_left), tw(sect.margin_right));
+    let (mar_t, mar_b) = (tw(sect.margin_top), tw(sect.margin_bottom));
+    let w = extent.map_or(0, |e| e.cx);
+    let ref_w = if rel_h == "page" { page_w } else { page_w - mar_l - mar_r };
+    let rel_x = axis_pos(ref_w, w, a.h.pct, a.h.align.as_deref(), "center", &["right", "outside"]);
+    let page_x = if rel_h == "page" { rel_x } else { mar_l + rel_x };
+    let mut pos = PagePos {
+        x_emu: page_x - mar_l,
+        y_emu: None,
+        outside_column: page_x + w <= mar_l || page_x >= page_w - mar_r,
+    };
+    let rel_v = a.v.relative_from.as_deref();
+    if matches!(rel_v, Some("page") | Some("margin")) && (a.v.pct.is_some() || a.v.align.is_some())
+    {
+        let h = extent.map_or(0, |e| e.cy);
+        let ref_h = if rel_v == Some("page") { page_h } else { page_h - mar_t - mar_b };
+        let rel_y =
+            axis_pos(ref_h, h, a.v.pct, a.v.align.as_deref(), "center", &["bottom", "outside"]);
+        pos.y_emu = Some(if rel_v == Some("page") { rel_y } else { mar_t + rel_y } - mar_t);
+    }
+    Some(pos)
+}
+
+/// 一个轴上的位置：百分比优先，其次居中 / 靠远端对齐，都没有就是 0。
+fn axis_pos(
+    reference: i64,
+    size: i64,
+    pct: Option<i64>,
+    align: Option<&str>,
+    center: &str,
+    far: &[&str],
+) -> i64 {
+    if let Some(p) = pct {
+        return (reference as f64 * p as f64 / 100_000.0).round() as i64;
+    }
+    match align {
+        Some(v) if v == center => ((reference - size) as f64 / 2.0).round() as i64,
+        Some(v) if far.contains(&v) => reference - size,
+        _ => 0,
+    }
+}
+
 /// TS `applyAnchor`：把锚定几何投到框上。`multi_drawing` 是「这一段锚了不止一个绘图」。
 ///
 /// 用到节几何的分支（`resolveAnchorPagePos`、跨栏宽框的 band 推断）留到 M5，见模块文档。
 pub(super) fn apply_anchor(
     a: &AnchorGeom,
     extent: Option<Extent>,
+    sect: Option<&SectionGeom>,
     multi_drawing: bool,
     grouped: bool,
     o: &mut Map<String, Value>,
@@ -495,11 +615,41 @@ pub(super) fn apply_anchor(
         let cur = o.get(key).and_then(Value::as_i64).unwrap_or(0);
         set(o, key, cur + v);
     };
+    // 相对页面 / 页边距的横向位置在 Word 里是页面上的绝对位置：栏平移不能把框带偏。
+    let rel_x_absolute = matches!(a.h.relative_from.as_deref(), Some("page") | Some("margin"));
+    let page_pos = sect.and_then(|s| resolve_page_pos(a, extent, s));
+    // 整个框落在正文栏之外（简历侧边栏）：直接按解出来的位置绝对摆放，不管绕排方式。
+    if let Some(pp) = page_pos.filter(|p| p.outside_column) {
+        add(o, "offsetXEmu", pp.x_emu);
+        add(o, "offsetYEmu", pp.y_emu.or(a.v.offset_emu).unwrap_or(0));
+        set(o, "floating", true);
+        if rel_x_absolute {
+            set(o, "pageRelX", true);
+        }
+        return;
+    }
+    let top_bottom0 = matches!(a.wrap, Wrap::TopAndBottom);
+    let no_wrap0 = matches!(a.wrap, Wrap::None) || a.behind_doc;
     if let Some(x) = a.h.offset_emu {
         add(o, "offsetXEmu", x);
+        if rel_x_absolute {
+            set(o, "pageRelX", true);
+        }
+    } else if let Some(pp) = page_pos.filter(|_| top_bottom0 || no_wrap0 || multi_drawing) {
+        // 页边距对齐的浮动绘图（照片行）：按页边距框解算；随文的方框绕排保持老的排布
+        add(o, "offsetXEmu", pp.x_emu);
+        if rel_x_absolute {
+            set(o, "pageRelX", true);
+        }
     }
     if let Some(y) = a.v.offset_emu {
         add(o, "offsetYEmu", y);
+        // 相对页面 / 页边距的纵向 posOffset 在 Word 里是锚点所在页上的绝对位置
+        if matches!(a.v.relative_from.as_deref(), Some("page") | Some("margin"))
+            && a.v.align.is_none()
+        {
+            set(o, "pageRelV", true);
+        }
     }
     let top_bottom = matches!(a.wrap, Wrap::TopAndBottom);
     let no_wrap = matches!(a.wrap, Wrap::None) || a.behind_doc;
