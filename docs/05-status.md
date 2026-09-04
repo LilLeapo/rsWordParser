@@ -61,7 +61,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
 | 源码行数 / 文件数 | 24,189 行 / 61 个（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 258（单元 + 集成，17 个集成测试文件） | `cargo test --workspace` |
+| 测试数 | 259（单元 + 集成，17 个集成测试文件） | `cargo test --workspace` |
 | 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 16 份 hostile | `ls corpus/*` |
 | 往返字节保真 | 589 份文档、3,093 个 XML part 全部字节相同 | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
@@ -129,7 +129,7 @@ cargo test -p rsword --test save_blocks -- --nocapture              # 保存差�
 - `DeleteRange` 对字段结构段"原地保留"是临时行为，等 M2 的 `FieldSpan`。
 - 表格单元格内段落的投影刷新目前退化为整体重建，M3 做容器级刷新。
 - 语料导出自 genoffice `f105f36` **加 32 个脏文件**（`manifest.jsonl` 首行有记录）。已复核并接受：脏文件里只有 `src/generate.ts`（改动集中在 `patchTableCellTexts`）与 `tests/nested-table-edit.test.ts` 属于 `docx-engine`，`parseDocx` 未被改动，所以 573 份 `.expected.json` 等价于干净基线；`nested-table-edit` 的两份保存用例走 `kind:'xml'` 原样拼接，对 `generate.ts` 不敏感。genoffice 侧再改 `docx-engine` 时需要重导。
-- `TEST-04`「对每个语料做一次单节点编辑」目前分两处覆盖：全语料版是 M0 留下的 L1 `set_text`（`tests/save.rs`，400+ 份，断言到"能重开且改动生效"），L4 `InsertText` 版只跑一份文档（`tests/edit.rs`，但断言到其他条目 CRC 与其他块原字节）。规范里"重解析后其他段落模型相等"这条 oracle 两处都没断言。补一个全语料的 `corpus_edit_fidelity` 才算无争议。
+- ~~`TEST-04` 的全语料 L4 编辑保真~~ 已补（`tests/save.rs::test_04_corpus_edit_fidelity`，400+ 份文档）：每份做一次 `InsertText`，断言投影文本正确、其他 zip 条目的 CRC 与压缩字节不变、重解析后 `compat_ts` 的块投影**只有目标块变了**——规范里"重解析后其他段落模型相等"这条 oracle 现在有了。M0 留下的 L1 `set_text` 全量扫描继续保留（它覆盖到不是正文顶层段落的文档）。
 - toggle 属性（bold / italic 等的层叠语义）用的是占位规则，需要 Word 实测 fixture 校准（M5）。
 - 语料在 Span / 字段这两个域上很薄：573 份里只有 15 份带范围标记（31 个标记、19 个范围）。M2 的行为正确性主要靠 `tests/span.rs` 的单元用例，不能只看差分数字。
 - `compat_ts` 是负担性代码，删除期限定在 M9。
