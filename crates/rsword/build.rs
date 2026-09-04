@@ -1,11 +1,17 @@
-//! 由 `schema/namespaces.tsv` 与 `schema/local_names.txt` 生成 `NsId` / `LocalName`（XML-05，任务 0.6）。
-//! 只用 std，不引入 build 依赖。输出 `$OUT_DIR/names.rs`，由 `src/xml/names.rs` include。
+//! 构建脚本：
+//! - 由 `schema/namespaces.tsv` 与 `schema/local_names.txt` 生成 `NsId` / `LocalName`（XML-05，任务 0.6），
+//!   输出 `$OUT_DIR/names.rs`，由 `src/xml/names.rs` include；
+//! - 由 `schema/props/*.toml` 生成属性表（PROP-07，任务 1.1），输出 `$OUT_DIR/props.rs`，
+//!   由 `src/semantic/props/mod.rs` include（生成器在 `build/props.rs`）。
 
 use std::collections::BTreeMap;
 use std::env;
 use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
+
+#[path = "build/props.rs"]
+mod props;
 
 struct Ns {
     variant: String,
@@ -18,9 +24,12 @@ fn main() {
     let manifest = env::var("CARGO_MANIFEST_DIR").unwrap();
     let ns_path = Path::new(&manifest).join("schema/namespaces.tsv");
     let ln_path = Path::new(&manifest).join("schema/local_names.txt");
+    let props_dir = Path::new(&manifest).join("schema/props");
     println!("cargo:rerun-if-changed={}", ns_path.display());
     println!("cargo:rerun-if-changed={}", ln_path.display());
+    println!("cargo:rerun-if-changed={}", props_dir.display());
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=build/props.rs");
 
     let namespaces = parse_namespaces(&fs::read_to_string(&ns_path).unwrap());
     let locals = parse_local_names(&fs::read_to_string(&ln_path).unwrap());
@@ -29,8 +38,16 @@ fn main() {
     gen_ns(&mut out, &namespaces);
     gen_local(&mut out, &locals);
 
-    let dest = Path::new(&env::var("OUT_DIR").unwrap()).join("names.rs");
-    fs::write(dest, out).unwrap();
+    let out_dir = env::var("OUT_DIR").unwrap();
+    fs::write(Path::new(&out_dir).join("names.rs"), out).unwrap();
+
+    let prefixes: BTreeMap<String, String> = namespaces
+        .iter()
+        .filter_map(|n| n.prefix.clone().map(|p| (p, n.variant.clone())))
+        .collect();
+    let local_map: BTreeMap<String, String> = locals.iter().cloned().collect();
+    let props_src = props::generate(&props_dir, &prefixes, &local_map);
+    fs::write(Path::new(&out_dir).join("props.rs"), props_src).unwrap();
 }
 
 fn parse_namespaces(text: &str) -> Vec<Ns> {

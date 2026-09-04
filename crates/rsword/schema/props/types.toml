@@ -1,0 +1,117 @@
+# 属性表共用的枚举与属性结构体（PROP-01 的 `attrs` 列、PROP-02 的 `Enum<E>`）。格式见 README.md。
+# 枚举字面来自 ECMA-376 Part 1 Transitional XSD（wml.xsd）；只列 schema 字面，
+# 不匹配的值由 codec 保留为 Val::Raw（PROP-09）。
+
+# ---- 枚举 ---------------------------------------------------------------------------------------
+
+[enum.ThemeColor]
+doc = "ST_ThemeColor（§17.18.97）"
+values = [
+  "dark1", "light1", "dark2", "light2",
+  "accent1", "accent2", "accent3", "accent4", "accent5", "accent6",
+  "hyperlink", "followedHyperlink", "none",
+  "background1", "text1", "background2", "text2",
+]
+
+[enum.HighlightColor]
+doc = "ST_HighlightColor（§17.18.40）"
+values = [
+  "black", "blue", "cyan", "green", "magenta", "red", "yellow", "white",
+  "darkBlue", "darkCyan", "darkGreen", "darkMagenta", "darkRed", "darkYellow", "darkGray",
+  "lightGray", "none",
+]
+
+[enum.UnderlineKind]
+doc = "ST_Underline（§17.18.99）"
+values = [
+  "single", "words", "double", "thick", "dotted", "dottedHeavy", "dash", "dashedHeavy",
+  "dashLong", "dashLongHeavy", "dotDash", "dashDotHeavy", "dotDotDash", "dashDotDotHeavy",
+  "wave", "wavyHeavy", "wavyDouble", "none",
+]
+
+[enum.EmphasisMark]
+doc = "ST_Em（§17.18.24）"
+values = ["none", "dot", "comma", "circle", "underDot"]
+
+[enum.VerticalAlignRun]
+doc = "ST_VerticalAlignRun（§22.9.2.17）"
+values = ["baseline", "superscript", "subscript"]
+
+[enum.ShadingPattern]
+doc = "ST_Shd（§17.18.78）"
+values = [
+  "nil", "clear", "solid", "horzStripe", "vertStripe", "reverseDiagStripe", "diagStripe",
+  "horzCross", "diagCross", "thinHorzStripe", "thinVertStripe", "thinReverseDiagStripe",
+  "thinDiagStripe", "thinHorzCross", "thinDiagCross",
+  "pct5", "pct10", "pct12", "pct15", "pct20", "pct25", "pct30", "pct35", "pct37", "pct40",
+  "pct45", "pct50", "pct55", "pct60", "pct62", "pct65", "pct70", "pct75", "pct80", "pct85",
+  "pct87", "pct90", "pct95",
+]
+
+[enum.FontHint]
+doc = "ST_Hint（§17.18.41）"
+values = ["default", "eastAsia", "cs"]
+
+[enum.ThemeFont]
+doc = "ST_Theme（§17.18.96）"
+values = [
+  "majorEastAsia", "majorBidi", "majorAscii", "majorHAnsi",
+  "minorEastAsia", "minorBidi", "minorAscii", "minorHAnsi",
+]
+
+# ---- 属性结构体 ---------------------------------------------------------------------------------
+
+[struct.Fonts]
+doc = "CT_Fonts（`w:rFonts`，§17.3.2.26）：四个脚本槽位的字体名与主题字体槽位。"
+attrs = [
+  { name = "hint", attr = "w:hint", codec = "FontHint" },
+  { name = "ascii", attr = "w:ascii", codec = "Str" },
+  { name = "h_ansi", attr = "w:hAnsi", codec = "Str" },
+  { name = "east_asia", attr = "w:eastAsia", codec = "Str" },
+  { name = "cs", attr = "w:cs", codec = "Str" },
+  { name = "ascii_theme", attr = "w:asciiTheme", codec = "ThemeFont" },
+  { name = "h_ansi_theme", attr = "w:hAnsiTheme", codec = "ThemeFont" },
+  { name = "east_asia_theme", attr = "w:eastAsiaTheme", codec = "ThemeFont" },
+  { name = "cs_theme", attr = "w:cstheme", codec = "ThemeFont" },
+]
+
+[struct.Color]
+doc = "CT_Color（`w:color`，§17.3.2.6）"
+attrs = [
+  { name = "val", attr = "w:val", codec = "HexColorOrAuto" },
+  { name = "theme_color", attr = "w:themeColor", codec = "ThemeColor" },
+  { name = "theme_tint", attr = "w:themeTint", codec = "Hex2" },
+  { name = "theme_shade", attr = "w:themeShade", codec = "Hex2" },
+]
+
+[struct.Underline]
+doc = "CT_Underline（`w:u`，§17.3.2.40）"
+attrs = [
+  { name = "val", attr = "w:val", codec = "UnderlineKind" },
+  { name = "color", attr = "w:color", codec = "HexColorOrAuto" },
+  { name = "theme_color", attr = "w:themeColor", codec = "ThemeColor" },
+  { name = "theme_tint", attr = "w:themeTint", codec = "Hex2" },
+  { name = "theme_shade", attr = "w:themeShade", codec = "Hex2" },
+]
+
+[struct.Shading]
+doc = "CT_Shd（`w:shd`，§17.3.5）"
+attrs = [
+  { name = "val", attr = "w:val", codec = "ShadingPattern" },
+  { name = "color", attr = "w:color", codec = "HexColorOrAuto" },
+  { name = "theme_color", attr = "w:themeColor", codec = "ThemeColor" },
+  { name = "theme_tint", attr = "w:themeTint", codec = "Hex2" },
+  { name = "theme_shade", attr = "w:themeShade", codec = "Hex2" },
+  { name = "fill", attr = "w:fill", codec = "HexColorOrAuto" },
+  { name = "theme_fill", attr = "w:themeFill", codec = "ThemeColor" },
+  { name = "theme_fill_tint", attr = "w:themeFillTint", codec = "Hex2" },
+  { name = "theme_fill_shade", attr = "w:themeFillShade", codec = "Hex2" },
+]
+
+[struct.Language]
+doc = "CT_Language（`w:lang`，§17.3.2.20）：BCP 47 标签原文。"
+attrs = [
+  { name = "val", attr = "w:val", codec = "Str" },
+  { name = "east_asia", attr = "w:eastAsia", codec = "Str" },
+  { name = "bidi", attr = "w:bidi", codec = "Str" },
+]

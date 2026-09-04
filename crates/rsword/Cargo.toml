@@ -16,5 +16,10 @@ zip.workspace = true
 memchr.workspace = true
 thiserror.workspace = true
 
+[build-dependencies]
+# 属性表（schema/props/*.toml，PROP-01）的读取；只在构建脚本里用
+toml = "1.1"
+serde = { version = "1", features = ["derive"] }
+
 [lints]
 workspace = true

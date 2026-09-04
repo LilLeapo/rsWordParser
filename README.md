@@ -31,7 +31,7 @@ GENOFFICE_DIR=~/code/genoffice tools/export-golden/run.sh   # 重新导出语料
 
 ## 状态
 
-架构 v3.2 已冻结（2026-09-03）。**M0 已完成**（2026-09-04）：任意语料 `parse → serialize` 字节相同（含 Strict），无编辑保存字节相同，改一个节点后其他条目原样，两个 fuzz 目标各 10 分钟无崩溃。下一步 M1（`docs/04-dev-plan.md` §5），从任务 1.1 属性表开始。
+架构 v3.2 已冻结（2026-09-03）。**M0 已完成**（2026-09-04）：任意语料 `parse → serialize` 字节相同（含 Strict），无编辑保存字节相同，改一个节点后其他条目原样，两个 fuzz 目标各 10 分钟无崩溃。**M1 进行中**：1.1 属性表格式、生成器与 codec 已完成（2026-09-04，`docs/04-dev-plan.md` §5.1）；下一步 1.2 `ParaProps` 与子表。
 
 ## 与 genoffice 的关系
 

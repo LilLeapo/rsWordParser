@@ -1,0 +1,172 @@
+# RunProps（`w:rPr`）：PROP-05 顺序、PROP-08 第一批字段。格式见 README.md。
+
+[[table]]
+name = "RunProps"
+element = "w:rPr"
+change = "w:rPrChange"
+doc = "CT_RPr。EG_RPrBase 是 choice 组，schema 不强制顺序；这里按 Word 输出顺序（PROP-05）。段落标记 rPr（pPr/rPr）同表，另允许 ins/del/moveFrom/moveTo 在最前。"
+order = [
+  "w:ins", "w:del", "w:moveFrom", "w:moveTo",
+  "w:rStyle", "w:rFonts", "w:b", "w:bCs", "w:i", "w:iCs", "w:caps", "w:smallCaps", "w:strike", "w:dstrike",
+  "w:outline", "w:shadow", "w:emboss", "w:imprint", "w:noProof", "w:snapToGrid", "w:vanish", "w:webHidden",
+  "w:color", "w:spacing", "w:w", "w:kern", "w:position", "w:sz", "w:szCs", "w:highlight", "w:u", "w:effect",
+  "w:bdr", "w:shd", "w:fitText", "w:vertAlign", "w:rtl", "w:cs", "w:em", "w:lang", "w:eastAsianLayout",
+  "w:specVanish", "w:oMath",
+  "w14:glow", "w14:shadow", "w14:reflection", "w14:textOutline", "w14:textFill", "w14:scene3d", "w14:props3d",
+  "w14:ligatures", "w14:numForm", "w14:numSpacing", "w14:stylisticSets", "w14:cntxtAlts",
+  "w:rPrChange",
+]
+
+[[table.field]]
+name = "style"
+element = "w:rStyle"
+codec = "Str"
+doc = "字符样式 styleId"
+
+[[table.field]]
+name = "fonts"
+element = "w:rFonts"
+codec = "Fonts"
+
+[[table.field]]
+name = "bold"
+element = "w:b"
+codec = "OnOff"
+cs_twin = "bold_cs"
+
+[[table.field]]
+name = "bold_cs"
+element = "w:bCs"
+codec = "OnOff"
+cs_twin = "bold"
+
+[[table.field]]
+name = "italic"
+element = "w:i"
+codec = "OnOff"
+cs_twin = "italic_cs"
+
+[[table.field]]
+name = "italic_cs"
+element = "w:iCs"
+codec = "OnOff"
+cs_twin = "italic"
+
+[[table.field]]
+name = "caps"
+element = "w:caps"
+codec = "OnOff"
+
+[[table.field]]
+name = "small_caps"
+element = "w:smallCaps"
+codec = "OnOff"
+
+[[table.field]]
+name = "strike"
+element = "w:strike"
+codec = "OnOff"
+
+[[table.field]]
+name = "dstrike"
+element = "w:dstrike"
+codec = "OnOff"
+
+[[table.field]]
+name = "vanish"
+element = "w:vanish"
+codec = "OnOff"
+
+[[table.field]]
+name = "color"
+element = "w:color"
+codec = "Color"
+
+[[table.field]]
+name = "spacing"
+element = "w:spacing"
+codec = "Twips"
+doc = "字符间距，ST_SignedTwipsMeasure"
+
+[[table.field]]
+name = "scale"
+element = "w:w"
+codec = "Percent"
+doc = "字符横向缩放 ST_TextScale（%）"
+
+[[table.field]]
+name = "kern"
+element = "w:kern"
+codec = "HalfPoints"
+doc = "字距调整起始字号（半点）"
+
+[[table.field]]
+name = "position"
+element = "w:position"
+codec = "SignedHalfPoints"
+doc = "基线升降（半点）"
+
+[[table.field]]
+name = "size"
+element = "w:sz"
+codec = "HalfPoints"
+cs_twin = "size_cs"
+
+[[table.field]]
+name = "size_cs"
+element = "w:szCs"
+codec = "HalfPoints"
+cs_twin = "size"
+
+[[table.field]]
+name = "highlight"
+element = "w:highlight"
+codec = "HighlightColor"
+
+[[table.field]]
+name = "underline"
+element = "w:u"
+codec = "Underline"
+
+[[table.field]]
+name = "shading"
+element = "w:shd"
+codec = "Shading"
+
+[[table.field]]
+name = "vert_align"
+element = "w:vertAlign"
+codec = "VerticalAlignRun"
+
+[[table.field]]
+name = "rtl"
+element = "w:rtl"
+codec = "OnOff"
+
+[[table.field]]
+name = "cs"
+element = "w:cs"
+codec = "OnOff"
+doc = "按复杂文种处理"
+
+[[table.field]]
+name = "em"
+element = "w:em"
+codec = "EmphasisMark"
+
+[[table.field]]
+name = "lang"
+element = "w:lang"
+codec = "Language"
+
+[[table.field]]
+name = "spec_vanish"
+element = "w:specVanish"
+codec = "OnOff"
+
+[[table.field]]
+name = "text_fill"
+element = "w14:textFill"
+codec = "Raw"
+in_change = false
+doc = "只供 resolve 读显示近似色（RES-05）；写回保持原字节"
