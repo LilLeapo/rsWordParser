@@ -5,9 +5,8 @@
 
 ## 结论
 
-**M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖）。分支 `m1.15-diff-tools`（工作树
-`/Users/lilleap/code/rsWordParser-m1.15`）在 `main` 之上 7 个提交；`main` 停在 1.10。下一个里程碑是
-**M2（L2：Span + 字段）**，任务分解见 `spec/13-m2-plan.md`。
+**M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖），**已全部并入 `main`**（2026-09-04）。
+下一个里程碑是 **M2（L2：Span + 字段）**，任务分解见 `spec/13-m2-plan.md`。
 
 现在这套代码能：打开任意语料文档、输出与 TS 兼容的 `ParsedDoc` JSON、在文本段落上做插入 / 删除 / 改
 run 属性 / 改段落属性 / 整段替换、把 TS 的 `SaveBlock[]` 保存请求翻成编辑操作、以字节级局部补丁写回，
@@ -110,5 +109,6 @@ cargo test -p rsword --test save_blocks -- --nocapture              # 保存差�
 - `DeleteRange` 对字段结构段"原地保留"是临时行为，等 M2 的 `FieldSpan`。
 - 表格单元格内段落的投影刷新目前退化为整体重建，M3 做容器级刷新。
 - 语料导出自 genoffice `f105f36` **加 31 处未提交改动**，`.save.json` 期望值受其影响；M2 前应在干净基线上重导（`docs/04` §9）。
+- `TEST-04`「对每个语料做一次单节点编辑」目前分两处覆盖：全语料版是 M0 留下的 L1 `set_text`（`tests/save.rs`，400+ 份，断言到"能重开且改动生效"），L4 `InsertText` 版只跑一份文档（`tests/edit.rs`，但断言到其他条目 CRC 与其他块原字节）。规范里"重解析后其他段落模型相等"这条 oracle 两处都没断言。补一个全语料的 `corpus_edit_fidelity` 才算无争议。
 - toggle 属性（bold / italic 等的层叠语义）用的是占位规则，需要 Word 实测 fixture 校准（M5）。
 - `compat_ts` 是负担性代码，删除期限定在 M9。
