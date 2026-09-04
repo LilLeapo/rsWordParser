@@ -24,8 +24,8 @@ mod textbox;
 pub mod utf16;
 
 pub use diff::{
-    Diff, KNOWN_DIFFS_MD, KnownDiff, PathStat, Report, diff_json, filter_known, is_text_case,
-    known_diffs, parse_known_diffs, path_key, path_matches, split_known,
+    Diff, KNOWN_DIFFS_MD, KnownDiff, PathStat, Report, diff_json, filter_known, is_drawing_path,
+    is_text_case, known_diffs, parse_known_diffs, path_key, path_matches, split_known,
 };
 pub use media::{MediaMap, MediaOut};
 pub use save_blocks::{SaveBlocksOutcome, apply_save_blocks, bookmark_id_of};

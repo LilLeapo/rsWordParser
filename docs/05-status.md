@@ -57,12 +57,12 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
 | 源码行数 / 文件数 | 29,701 行 / 72 个 `src` 文件（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l`；文件数是 `find crates/rsword/src -name '*.rs' \| wc -l` |
-| 测试数 | 198（单元 + 集成，15 个集成测试文件） | `cargo test --workspace` |
+| 测试数 | 202（单元 + 集成，15 个集成测试文件） | `cargo test --workspace` |
 | 媒体解析 | 585 份文档 104 处 `a:blip` / `v:imagedata` 引用：包内 93（89 位图 + 4 metafile）、外链 4、文档本身就坏 7 | `cargo test -p rsword --test media -- --nocapture` |
 | DrawingML 颜色 | 573 份文档正文里 89 个颜色容器、17 种取值，全部能定出 sRGB | `cargo test -p rsword --test resolve -- --nocapture` |
 | 绘图事实 | 112 个 `w:drawing`（85 形状 / 18 图片 / 8 组），锚定 102；122 项 `wp:extent` 与 TS 的 `imageWidthPx/HeightPx` 一致 | `cargo test -p rsword --test drawing -- --nocapture` |
 | VML 与嵌入对象 | 52 个 `w:pict`/`w:object`、64 个形状；细横线 1、带图 15、带文本框 26、嵌入对象 13 | 同上 |
-| 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 16 份 hostile | `ls corpus/*` |
+| 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 20 份 hostile（含 4 份绘图，M4 4.8） | `ls corpus/*` |
 | 往返字节保真 | 589 份文档、3,093 个 XML part 全部字节相同 | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
 | 模型对照 | 445 段类型 / styleId、387 段坐标流文本、22 项列表、9 项级别 | `tests/model.rs` |

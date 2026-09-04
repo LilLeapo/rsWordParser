@@ -63,7 +63,8 @@ cargo fmt --all
 cargo clippy --workspace --all-targets      # 必须零告警
 cargo test --workspace                      # 调试构建
 cargo test --workspace --release            # 必须也跑：enforce 只在调试构建报错，发布构建行为不同
-cargo run -p diff-parse -- --scope text     # CI 门：文本用例未知差异必须为 0
+cargo run -p diff-parse -- --scope text     # CI 门（M1）：文本用例未知差异必须为 0
+cargo run -p diff-parse -- --scope drawing  # CI 门（M4）：绘图域路径未知差异必须为 0
 cargo run -p diff-parse -- --scope all --json          # 全域差距排名
 cargo run -p xpath-assert -- a.docx '//w:p[1]/w:r/w:t/text()'
 cd fuzz && cargo +nightly fuzz run fuzz_xml -- -max_total_time=600

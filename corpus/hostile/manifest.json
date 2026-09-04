@@ -78,5 +78,25 @@
     "name": "mixed-flavor.docx",
     "bytes": 2613,
     "expectation": "PackageFlavor::Mixed; each part keeps its own flavor"
+  },
+  {
+    "name": "drawing-deep-groups.docx",
+    "bytes": 4475,
+    "expectation": "parses; group depth > 64 degrades, no stack overflow"
+  },
+  {
+    "name": "drawing-cyclic-group.docx",
+    "bytes": 2348,
+    "expectation": "parses; degenerate group scale and self-referencing ids do not loop"
+  },
+  {
+    "name": "drawing-missing-rels.docx",
+    "bytes": 2332,
+    "expectation": "parses; every dangling r:id degrades to no media, bytes untouched"
+  },
+  {
+    "name": "drawing-bad-style.docx",
+    "bytes": 2340,
+    "expectation": "parses; unparsable style/coordsize/path values are dropped, not guessed"
   }
 ]

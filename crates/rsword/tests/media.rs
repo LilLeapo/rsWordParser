@@ -25,6 +25,8 @@ const KNOWN_BROKEN: &[(&str, usize)] = &[
     // hostile：`..` 越过包根 / 目标 part 不存在（`TEST-09`）
     ("rels-escape-root.docx", 1),
     ("rels-missing-target.docx", 1),
+    // hostile：绘图里的关系全是悬空的（`a:blip` 与 `v:imagedata` 各一处；`wps:txbx` 不是媒体）
+    ("drawing-missing-rels.docx", 2),
 ];
 
 #[derive(Default)]

@@ -3,31 +3,53 @@
 //! 有未知差异时退出码 1（CI 门 `TEST-10`）。
 //!
 //! ```text
-//! diff-parse [--corpus DIR] [--scope text|all] [--known FILE] [--doc PREFIX] [--show N] [--json]
+//! diff-parse [--corpus DIR] [--scope text|all|drawing] [--known FILE] [--doc PREFIX] [--show N] [--json] [--by-doc]
 //! ```
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use rsword::bind::compat_ts::{
-    Report, diff_json, is_text_case, known_diffs, parse_known_diffs, parsed_doc, split_known,
+    Report, diff_json, is_drawing_path, is_text_case, known_diffs, parse_known_diffs, parsed_doc,
+    split_known,
 };
 use rsword::package::Package;
 use serde_json::{Value, json};
 
+/// 门的范围。`Text` 按**文档**过滤（只跑纯文本用例），`Drawing` 按**路径**过滤
+/// （所有文档照跑，只计绘图域的未知差异），`All` 全都算。
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Scope {
+    Text,
+    All,
+    Drawing,
+}
+
+impl Scope {
+    fn as_str(self) -> &'static str {
+        match self {
+            Scope::Text => "text",
+            Scope::All => "all",
+            Scope::Drawing => "drawing",
+        }
+    }
+}
+
 struct Args {
     corpus: PathBuf,
-    scope_text: bool,
+    scope: Scope,
     known: Option<PathBuf>,
     doc_prefix: Option<String>,
     show: usize,
     json: bool,
+    by_doc: bool,
 }
 
 fn usage() -> ! {
     eprintln!(
-        "用法: diff-parse [--corpus DIR] [--scope text|all] [--known KNOWN_DIFFS.md] [--doc PREFIX] [--show N] [--json]\n\
-         缺省 corpus = <仓库根>/corpus/synthetic，scope = all，known = 编进库里的 KNOWN_DIFFS.md，show = 3"
+        "用法: diff-parse [--corpus DIR] [--scope text|all|drawing] [--known KNOWN_DIFFS.md] [--doc PREFIX] [--show N] [--json] [--by-doc]\n\
+         缺省 corpus = <仓库根>/corpus/synthetic，scope = all，known = 编进库里的 KNOWN_DIFFS.md，show = 3\n\
+         scope text 只跑纯文本用例（M1 门）；scope drawing 跑全部文档、只计绘图域路径（M4 门）"
     );
     std::process::exit(2)
 }
@@ -35,20 +57,22 @@ fn usage() -> ! {
 fn parse_args() -> Args {
     let mut a = Args {
         corpus: repo_root().join("corpus/synthetic"),
-        scope_text: false,
+        scope: Scope::All,
         known: None,
         doc_prefix: None,
         show: 3,
         json: false,
+        by_doc: false,
     };
     let mut it = std::env::args().skip(1);
     while let Some(arg) = it.next() {
         match arg.as_str() {
             "--corpus" => a.corpus = PathBuf::from(it.next().unwrap_or_else(|| usage())),
             "--scope" => {
-                a.scope_text = match it.next().as_deref() {
-                    Some("text") => true,
-                    Some("all") => false,
+                a.scope = match it.next().as_deref() {
+                    Some("text") => Scope::Text,
+                    Some("all") => Scope::All,
+                    Some("drawing") => Scope::Drawing,
                     _ => usage(),
                 }
             }
@@ -56,6 +80,7 @@ fn parse_args() -> Args {
             "--doc" => a.doc_prefix = Some(it.next().unwrap_or_else(|| usage())),
             "--show" => a.show = it.next().and_then(|s| s.parse().ok()).unwrap_or_else(|| usage()),
             "--json" => a.json = true,
+            "--by-doc" => a.by_doc = true,
             "-h" | "--help" => usage(),
             _ => usage(),
         }
@@ -115,6 +140,7 @@ fn main() -> ExitCode {
     let mut no_expected = 0usize;
     let mut failed_open = 0usize;
     let mut samples: Vec<(String, String, String, String)> = Vec::new();
+    let mut by_doc: Vec<(String, usize)> = Vec::new();
     for path in paths {
         let file = path.file_name().unwrap().to_string_lossy().to_string();
         if let Some(p) = &args.doc_prefix
@@ -134,7 +160,7 @@ fn main() -> ExitCode {
                 continue;
             }
         };
-        if args.scope_text && !is_text_case(&expected) {
+        if args.scope == Scope::Text && !is_text_case(&expected) {
             skipped_scope += 1;
             continue;
         }
@@ -149,7 +175,14 @@ fn main() -> ExitCode {
         };
         let mut diffs = Vec::new();
         diff_json(&expected, &actual, &mut diffs);
-        let (unknown, k) = split_known(diffs, &file, &known);
+        let (mut unknown, k) = split_known(diffs, &file, &known);
+        // 绘图门只看绘图域路径；别的域各归各的里程碑，混进来这道门永远关不上。
+        if args.scope == Scope::Drawing {
+            unknown.retain(|d| is_drawing_path(&d.path));
+        }
+        if !unknown.is_empty() {
+            by_doc.push((file.clone(), unknown.len()));
+        }
         for d in unknown.iter().take(args.show) {
             samples.push((file.clone(), d.path.clone(), short(&d.expected), short(&d.actual)));
         }
@@ -166,18 +199,19 @@ fn main() -> ExitCode {
             .collect();
         let out = json!({
             "corpus": args.corpus.to_string_lossy(),
-            "scope": if args.scope_text { "text" } else { "all" },
+            "scope": args.scope.as_str(),
             "docs": report.docs, "docsWithUnknown": report.docs_with_unknown,
             "known": report.known, "unknown": report.unknown,
             "skippedByScope": skipped_scope, "noExpected": no_expected, "failedOpen": failed_open,
             "byPath": by_path,
+            "byDoc": by_doc.iter().map(|(d, n)| json!({ "doc": d, "count": n })).collect::<Vec<_>>(),
         });
         println!("{}", serde_json::to_string_pretty(&out).unwrap());
     } else {
         println!(
             "diff-parse: {} 份文档（scope {}），{} 处已知差异，{} 处未知差异（{} 份文档）；范围外 {}，无 expected {}，打开失败 {}",
             report.docs,
-            if args.scope_text { "text" } else { "all" },
+            args.scope.as_str(),
             report.known,
             report.unknown,
             report.docs_with_unknown,
@@ -196,6 +230,13 @@ fn main() -> ExitCode {
                     short(&st.sample_expected),
                     short(&st.sample_actual)
                 );
+            }
+            if args.by_doc {
+                by_doc.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+                println!("\n按文档（{} 份）：", by_doc.len());
+                for (d, n) in &by_doc {
+                    println!("{n:<8} {d}");
+                }
             }
             if args.show > 0 && !samples.is_empty() {
                 println!("\n每份文档前 {} 处：", args.show);

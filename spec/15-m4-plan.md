@@ -94,6 +94,25 @@ CI 门（`spec/11` TEST-10 的「M3–M6 对应域 diff 为 0」）：`diff-pars
 剩下 3 处登记为已知差异：TS 没给 VML 框里的随文图片预取媒体（缺陷不跟随）、框里字段的
 `instrField`（M2）、外部文本框 part（M5，见被阻塞表）。
 
+**4.8 完成**：`diff-parse` 增加 `--scope drawing`（按**路径**过滤而不是按文档：所有用例照跑，
+只计绘图域的未知差异——绘图文档同时带着 M2/M3/M5/M6 的差异，按文档过滤这道门永远关不上），
+域的定义在 `compat_ts::is_drawing_path`，接进 CI（`.github/workflows/ci.yml`）。另加 `--by-doc`
+列出每份文档的差异数，迭代时按份收。
+
+`corpus/hostile` 补 4 份绘图用例（生成器在 `tools/export-golden/hostile.export.test.ts`，
+跟着 `run.sh` 重生成）：
+
+| 用例 | 病态 | 实测降级 |
+| --- | --- | --- |
+| `drawing-deep-groups` | 3000 层 `wpg:grpSp` 套娃 | 不爆栈；深度上限外的形状认不到，整段成 `Drawing object` |
+| `drawing-cyclic-group` | `coordsize="0,0"`、坐标 `1e400`、`v:group` 与 `v:shapetype` 同 id | 组链靠下标向上走（孩子下标恒大于组），构造不出环；定不出的尺寸不给，框里的字留住 |
+| `drawing-missing-rels` | `a:blip` / `v:imagedata` / `wps:txbx` 的 `r:id` 全悬空 | 一个 dataURL 都不编；原字节原样带出 |
+| `drawing-bad-style` | `width:--3pt`、`margin-left:NaNpt`、`coordsize="not,numbers"`、`path="m0,0c1"`、`fillcolor="#zzzzzz"` | 认不出的值一律不给，不猜；曲线路径整条不给（画错的实心块比不画更糟） |
+
+验收在 `tests/drawing.rs` 的 `test_09_hostile_drawing_trees_degrade_locally`：四份都要解析成功、
+旁边那段正常文字一个不少、投影里没有非有限的数；未编辑保存字节不变由全语料的
+`save_01_no_edit_returns_original_bytes_for_all_corpus` 覆盖。
+
 **顺序说明**：4.1 → 4.3 → 4.4 是主链（几何与投影依赖媒体解析）；4.2 是 4.5 / 4.6 的前置（形状颜色）；
 4.5 / 4.7 可与主链并行。4.6 最重，建议在 4.3 的锚定几何稳定之后再动。
 

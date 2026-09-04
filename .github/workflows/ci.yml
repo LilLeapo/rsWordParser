@@ -22,4 +22,6 @@ jobs:
       - run: cargo test --workspace
       # TEST-03 / TEST-10 M1 门：synthetic 文本段落用例与 TS 的差分为 0（KNOWN_DIFFS 除外）
       - run: cargo run -p diff-parse -- --scope text
+      # TEST-10 M4 门：全部用例里绘图域（image* / textboxes[] / rule* / oleProgId）的差分为 0
+      - run: cargo run -p diff-parse -- --scope drawing
   # fuzz 在 .github/workflows/fuzz.yml（手动 / 每周），不挂在每次 push 上。
