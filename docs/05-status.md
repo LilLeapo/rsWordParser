@@ -6,7 +6,8 @@
 ## 结论
 
 **M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖），**已全部并入 `main`**（2026-09-04）。
-下一个里程碑是 **M2（L2：Span + 字段）**，任务分解见 `spec/13-m2-plan.md`。
+**M2 进行中**（分支 `m2-span-fields`）：2.1 Span 索引已落地；任务分解见 `spec/13-m2-plan.md`，
+进度清单见 `docs/04` §11。
 
 现在这套代码能：打开任意语料文档、输出与 TS 兼容的 `ParsedDoc` JSON、在文本段落上做插入 / 删除 / 改
 run 属性 / 改段落属性 / 整段替换、把 TS 的 `SaveBlock[]` 保存请求翻成编辑操作、以字节级局部补丁写回，
@@ -19,7 +20,7 @@ run 属性 / 改段落属性 / 整段替换、把 TS 的 `SaveBlock[]` 保存请
 | --- | --- | --- | --- |
 | L0 包层 `package/` | 完成 | zip（0x7075 中和、限额、raw copy）、`[Content_Types].xml`、`.rels` 双族、flavor 判定（Strict / Transitional / Mixed）、`NamespaceContext` | 新建 part（`SAVE-05`，M2） |
 | L1 无损 DOM `xml/` | 完成 | tokenizer（区间精确、属性顺序 / 引号 / 重复容忍）、`Dirty` 五态与传播、MCE（含 `ProcessContent`）、命名空间作用域、`NodeEdit` 计划、片段解析、规范化比较、XPath 子集 | — |
-| L2 范围 `span/` | 骨架 | `FlowId` / `FlowMap`、范围标记与属性元素判定 | `RangeSpan`、`Anchor` 变换（M2 2.1–2.3） |
+| L2 范围 `span/` | 索引完成 | `FlowId` / `FlowMap`、内容序列（`SPAN-01`）、`Anchor` / `Affinity`、九种 `RangeKind`、按流构建与配对诊断、文档序 `compare`、按容器倒排 | `Anchor` 变换与物化（M2 2.2 / 2.3） |
 | L2 字段 `span/field/` | 未开始 | `FieldId` 占位 | 整个字段子系统（M2 2.4–2.5、2.9） |
 | L3 属性表 `semantic/props/` | 完成 | 20 张表由 TOML 生成（读 / 写 / diff / patch / merge / `plan_apply_*`）、按 flavor 编解码、`Val::Raw` 降级、`PROP-05` 顺序 | 表格与节的属性表（M3 / M5） |
 | L3 模型 `model/` | 文本完成 | `Document::rebuild`、块分类 R01–R19、段落坐标流（`Run`/`Segment`，UTF-16）、`ParagraphFacts`、声明模型（styles / numbering / theme / settings / fontTable） | 表格模型（M3）、绘图显示模型（M4）、字段 inline（M2） |
@@ -55,7 +56,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
 | 源码行数 / 文件数 | 24,189 行 / 61 个（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 163（单元 + 集成，13 个集成测试文件） | `cargo test --workspace` |
+| 测试数 | 176（单元 + 集成，14 个集成测试文件） | `cargo test --workspace` |
 | 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 16 份 hostile | `ls corpus/*` |
 | 往返字节保真 | 589 份文档、3,093 个 XML part 全部字节相同 | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
@@ -64,6 +65,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 解析差分（文本域） | 223 份用例，165 处已登记差异，**0 处未知差异** | `cargo run -p diff-parse -- --scope text` |
 | 解析差分（全域） | 573 份里 341 份有未知差异、1,925 个差异点（M2–M6 的工作面） | `cargo run -p diff-parse -- --scope all` |
 | 保存差分 | 162 份 TS 保存用例：77 份与 `saveDocx` 等价（其中 41 份逐字节相同）、3 份有意不同、82 份跳过 | `tests/save_blocks.rs` |
+| 范围索引 | 573 份 / 3012 个 part 的 31 个标记全部成对认领 → 19 个范围（书签 7、批注 12）；1 处孤儿终点 | `tests/span.rs` |
 
 全域差异按域聚合（差异点）：绘图与图片约 830、块分类连带项 493、run 相关（字段 / 批注 / 符号字体）220、
 页眉页脚 157、表格 67、字段显示 36。保存侧 82 份跳过按里程碑：M5 约 48、M4/M6 约 20、M2 约 16、M7 2。
@@ -85,7 +87,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 ## 明确未实现
 
-- **Span 与 Anchor**：`DeleteRange` 覆盖范围标记或字段结构段时，标记原地保留并记 `EDIT_ANCHOR_UNMOVED`（M2 2.2 / 2.4 替换）。
+- **Anchor 变换**：范围索引已建（`SpanIndex`），但还没接进 `EditSession`——`DeleteRange` 覆盖范围标记或字段结构段时，标记原地保留并记 `EDIT_ANCHOR_UNMOVED`（M2 2.2 / 2.4 替换）。索引现在只能在 DOM 未被编辑时建立，编辑期的正确性由 2.2 的变换保证。
 - **字段**：`Inline::Field` 不构建，`fieldDisplay` 缺失，`refField` / `xeTerm` / 表单域的 `SaveBlock` 直接 `EditUnsupported`。
 - **新建 part**：缺 `settings.xml` 时清洗标志写不进去（记诊断）；批注 / 脚注 part 不能创建。
 - **表格 / 绘图**：块层面是占位（`Table` / `Image` / `Protected`），单元格与图片属性不进模型。
@@ -111,4 +113,5 @@ cargo test -p rsword --test save_blocks -- --nocapture              # 保存差�
 - 语料导出自 genoffice `f105f36` **加 32 个脏文件**（`manifest.jsonl` 首行有记录）。已复核并接受：脏文件里只有 `src/generate.ts`（改动集中在 `patchTableCellTexts`）与 `tests/nested-table-edit.test.ts` 属于 `docx-engine`，`parseDocx` 未被改动，所以 573 份 `.expected.json` 等价于干净基线；`nested-table-edit` 的两份保存用例走 `kind:'xml'` 原样拼接，对 `generate.ts` 不敏感。genoffice 侧再改 `docx-engine` 时需要重导。
 - `TEST-04`「对每个语料做一次单节点编辑」目前分两处覆盖：全语料版是 M0 留下的 L1 `set_text`（`tests/save.rs`，400+ 份，断言到"能重开且改动生效"），L4 `InsertText` 版只跑一份文档（`tests/edit.rs`，但断言到其他条目 CRC 与其他块原字节）。规范里"重解析后其他段落模型相等"这条 oracle 两处都没断言。补一个全语料的 `corpus_edit_fidelity` 才算无争议。
 - toggle 属性（bold / italic 等的层叠语义）用的是占位规则，需要 Word 实测 fixture 校准（M5）。
+- 语料在 Span / 字段这两个域上很薄：573 份里只有 15 份带范围标记（31 个标记、19 个范围）。M2 的行为正确性主要靠 `tests/span.rs` 的单元用例，不能只看差分数字。
 - `compat_ts` 是负担性代码，删除期限定在 M9。

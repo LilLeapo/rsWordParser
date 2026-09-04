@@ -336,6 +336,11 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `COMPAT-07` `rawRPr` | "`rPr` 节点字节（TS 是重序列化结果）" | 同；TS 构造的语料里两者一致，尚无需登记引号 / 自闭合差异 | — |
 | `MOD-05` R08 | 只看样式链 `vanish` | 模型不变；适配器另按 TS 复现"段落标记 `rPr/vanish` + 无文字 + 无排版内容"与"无 pStyle 时看默认段落样式"两条隐藏规则（`COMPAT-03`） | 分类表保持规范；TS 半解析规则留在适配器 |
 | `SAVE-03` preserve | "`New` 或 `SelfDirty` 的 `w:t` 一律写 preserve" | 文本子节点改了而 `w:t` 只是 `DescendantDirty` 时同样重建开标签补 preserve | `set_text` 只标文本节点；不补的话新文本的首尾空格会在 Word 里丢失 |
+| `docs/03` §5.3 `RangeSpan` | `{id, part, kind, start: Anchor, end: Option<Anchor>}` | `start` 也是 `Option<Anchor>`；另有 `flow: FlowId` 与 `origin: Parsed \| New` | `SPAN-04` 第 2 条要求把孤儿终点表示成 `start: None` 的范围；`flow` 是 `SPAN-01` 强制的同流判定依据（不靠祖先树推断）；`origin` 用来区分"文件里本来没有标记"（只有 `commentReference` 的批注）与"新建范围"，前者物化时**不得**补写标记 |
+| `docs/03` §5.3 `RangeKind` | 七个变体 | 九个：补 `CustomXmlMoveFrom` / `CustomXmlMoveTo` | `SPAN-03` 的表列了这两对标记元素 |
+| `docs/03` §5.2 `Dom::compare -> Ordering` | `Dom` 的方法，返回 `Ordering` | `span::compare(dom, flows, a, b) -> Option<Ordering>`（`SpanIndex::compare` 是便利方法） | 同流判定要 `FlowMap`，而 `FlowMap` 是 L2 的；跨流与畸形容器返回 `None`（调用方按 `SPAN_CROSS_FLOW` 处理），不用 `Result` 是因为它在校验与变换里被逐范围调用，不是错误路径 |
+| `docs/03` §6.3 `RevisionMeta` | L3 类型 | 定义在 `span`（L2），`model::RevisionMeta` 重新导出 | 范围标记（`w:moveFromRangeStart`、`w:customXmlInsRangeStart`）与内容修订元素携带同一组 `w:id/author/date`，L2 不能反向依赖 L3 |
+| `SPAN-05` 步骤 2 | "比较两侧在 `C.children` 中的子序号" | 一侧是另一侧祖先时用内容项下标；两侧都在 `C` 之下分叉时比较分叉节点的**原始**子序号 | 分叉点的原始子序号与内容序列同序，但不需要枚举内容序列；只有"祖先 vs 后代"那一支必须换算成内容项下标才能和 `index` 比 |
 | `PROP-06` 第 1 步 | 新容器"按父容器的 schema 顺序插入" | 顶层容器（`w:pPr` / `w:rPr`）插为父节点第一个语义子节点之前；子表容器按父表 `order` 插入 | `w:p` / `w:r` 不是属性表，没有 order；M2 的 `trPr`（在 `tblPrEx` 之后）到时补规则 |
 
 ## 9. 待决事项（需要项目负责人拍板）
@@ -383,3 +388,37 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
 `edit_05_transaction_rolls_back_every_touched_part`）；投影刷新遇到不在正文顶层的段落改为整体重建，不再留过期投影。
 剩下两条要等对应里程碑：`DeleteRange` 对字段结构段的"原地保留"要 2.4 的 `FieldSpan` 才能真正删对；
 表格单元格的容器级刷新要 M3。等价比较忽略 `xml:space` 的事记在 §8，M7 与 TS 全面差分时复核。
+
+---
+
+## 11. M2 执行进度
+
+任务分解与 DoD 在 `spec/13-m2-plan.md`（§10 有同一张表的摘要）。分支 `m2-span-fields`（从 `main` 开）。
+
+- [x] **2.1 Span 索引**（`span/{content,index}.rs`）：`SPAN-01` 内容序列（`content_children` / `content_len` /
+  `content_index_of` / `item_containing`，只含元素节点，见 §8）在一处实现，索引构建、文档序比较与后续
+  的编辑期变换共用同一份定义；`SPAN-02` 的 `Anchor { container, index, affinity, marker }` 与 `Affinity`；
+  `SPAN-03` 的九种 `RangeKind`（书签含 `hidden` / `colFirst..colLast`，批注含 reference run，权限含
+  `w:ed` / `w:edGrp`，移动与 customXml 四种带 `RevisionMeta`）；`SPAN-04` 构建按 `FlowId` 逐流、按文档序
+  迭代遍历（容器帧 + 子树扫描帧，语料里有几千层嵌套，不能递归），起点入栈、终点就近配对，孤儿终点
+  （`SPAN_ORPHAN_END`）、未闭合起点（`SPAN_UNCLOSED`，part 扫完时统一报告）、重复起点（`SPAN_DUP_START`）、
+  跨流配对（`SPAN_CROSS_FLOW`，不配对）各记诊断，只有 `commentReference` 的批注生成 `marker: None` 的折叠
+  范围（物化不得补标记，靠 `SpanOrigin` 区分）；`SPAN-05` 的 `compare` 三条规则（同容器比 `index` 再比
+  affinity；一侧是另一侧祖先时用内容项下标；否则比分叉子序号）；倒排索引 `by_container` 供 2.2 的变换使用。
+  空范围两端同取 `Right`（`SPAN-02` 例外，否则 `Left < Right` 会判成"起在终后"）。`RevisionMeta` 下移到 L2。
+  测试 `tests/span.rs` 13 个：`SPAN-01` 内容序列（含缩进空白）、`SPAN-04`（跨三段书签的两端坐标与倒排、
+  空书签、只有 reference 的批注、范围批注认领 reference run、孤儿 + 未闭合、重复起点嵌套、跨流拒绝、
+  `w:ins` 里的标记归属 `w:ins`）、`SPAN-03` 权限 / 移动 / customXml 的事实、`SPAN-05` 跨段跨单元格与祖先
+  容器的文档序、`SPAN-09` hostile `span-orphan-end.docx`（`PreExistingDamage` + 保存字节相同）；另有全语料
+  扫描：573 份 / 3012 个 XML part 的 31 个标记全部恰好被一个端点认领（19 个范围：书签 7、批注 12，其中 9 个
+  空范围、1 个缺端点、3 个只有 reference），配对的范围起在终前、`index` 不越界。
+  **语料在 Span 这个域上很薄**（只有 15 份文档带标记），2.2 起的行为正确性主要靠单元测试保证。
+- [ ] 2.2 `Anchor` 变换（`SPAN-06/07`）
+- [ ] 2.3 Span 物化与保存校验（`SPAN-08`、`SPAN-09`）
+- [ ] 2.4 字段子系统（`FLD-01`–`FLD-08`、`FLD-13`）
+- [ ] 2.5 字段进模型与 compat（`MOD-06`、`COMPAT-07`）
+- [ ] 2.6 批注与注释部件、新建 part（`SAVE-05`）
+- [ ] 2.7 符号字体解码（`RES-05`）
+- [ ] 2.8 `EDIT-06` id 分配落地
+- [ ] 2.9 字段与段落操作（`FLD-09`–`FLD-12`）
+- [ ] 2.10 `fuzz_instr` 与 M2 门

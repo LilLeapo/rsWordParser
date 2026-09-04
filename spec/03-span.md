@@ -6,6 +6,8 @@
 
 - **内容序列** `content(container)`：`semantic_children(container)` 去掉属性元素（`w:pPr w:tcPr w:trPr w:tblPr w:tblGrid w:sectPr w:tblPrEx`）与所有范围标记元素后的有序列表。容器包括 `w:body w:p w:tc w:tr w:tbl w:txbxContent w:sdtContent w:hdr w:ftr w:footnote w:endnote w:comment w:ins w:del w:hyperlink w:smartTag w:customXml w:fldSimple`。
 - 边界 `k` 表示 `content[k-1]` 与 `content[k]` 之间，`0 ≤ k ≤ len`。
+- 内容序列**只含元素节点**：容器里的文本与 Opaque（注释 / PI）节点不是内容项。缩进排版产生的空白
+  文本节点若占据边界，同一份文档换个产出工具就会改变锚点坐标；而这些容器的合法内容本来只有元素。
 - **内容流**：body（`w:body` 及其后代容器）、每个 `w:txbxContent`、每个 `w:hdr`/`w:ftr`、每个脚注/尾注/批注条目各为独立流。范围**禁止**跨流。
 - **FlowId**：每个流分配 `FlowId(u32)`；`flow_of(container) -> FlowId` 由"容器 → 流根"的缓存映射给出（流根：`w:body`、`w:txbxContent`、`w:hdr`、`w:ftr`、`w:footnote`、`w:endnote`、`w:comment`）。`flow_of(&Anchor) = flow_of(anchor.container)`。同流判定**必须**比较 `FlowId`，不得靠祖先树临时推断。子树移动跨越流根时，缓存对该子树失效并重建。
 
@@ -17,6 +19,7 @@ Anchor { container: NodeId, index: u32, affinity: Left | Right, marker: Option<N
 
 - `index` 是内容序列边界，**标记自身不计入**。
 - `affinity`：`Left` 吸附左侧内容（在该边界插入的内容落在锚点之后）；`Right` 吸附右侧内容（插入落在锚点之前）。默认：起点 `Right`，终点 `Left`。效果：边界处输入落在范围外，范围内部输入扩展范围。
+- **空范围例外**：两端落在同一 `(container, index)` 时终点也取 `Right`。否则 `SPAN-05` 的 `Left < Right` 会判成"起在终后"，而且边界插入会把空范围拆反（起点右移、终点不动）。空范围整体吸附右侧内容，与"位置书签跟着后面的内容走"一致。
 - `marker` 指向物理标记元素；字段边界的 Anchor 为 `None`（`FLD`）。
 - 解析时由标记位置建立 Anchor；此后 Anchor 是事实，标记是投影（`SPAN-08`）。编辑引擎**禁止**通过移动标记节点来移动范围。
 
@@ -39,11 +42,14 @@ Anchor { container: NodeId, index: u32, affinity: Left | Right, marker: Option<N
 
 1. 遇到标记元素：计算其所在容器与内容序列边界 `k`（其前面的内容子节点数），生成 `Anchor{container, k, 默认 affinity, marker}`。
 2. 起点入 `open[kind][id]`；终点查 `open` 配对，得 `RangeSpan{start, end}`；找不到起点 → `RangeSpan{start: None, end}`，记诊断 `SPAN_ORPHAN_END`。
-3. 流结束仍未闭合的起点 → `RangeSpan{start, end: None}`，记诊断 `SPAN_UNCLOSED`。
-4. 同一 `id` 重复起点：后者视为新范围，记诊断。
+3. 未闭合的起点 → `RangeSpan{start, end: None}`，记诊断 `SPAN_UNCLOSED`。实现在**整个 part 扫完**后统一报告（不是每个流结束时）：这样后面的流里出现同 id 终点还能被识别为跨流配对（`SPAN_CROSS_FLOW`），而不是退化成一对"未闭合 + 孤儿终点"。范围集合与按流报告时相同。
+4. 同一 `id` 重复起点：后者视为新范围，记诊断 `SPAN_DUP_START`。终点就近配对（后开先闭），两个范围因此正确嵌套。
+   终点在别的流里找到同 id 起点：记 `SPAN_CROSS_FLOW`，**不配对**（范围禁止跨流），两端各按损坏处理。
 5. Comment 的 `reference` 在遍历中按 `w:id` 关联；只有 reference 的批注生成折叠范围。
 
 索引：`spans: Vec<RangeSpan>` 平铺；辅助索引 `by_container: Map<NodeId, Vec<(SpanId, End)>>`。
+每个范围另记 `origin: Parsed | New`：`Parsed` 且某端 `marker == None` 表示**文件里本来就没有这个标记**
+（只有 `commentReference` 的批注就是这样），`SPAN-08` 物化**不得**为它补写标记，否则未编辑内容会被改写。
 
 ## SPAN-05 文档序
 
@@ -90,8 +96,9 @@ Anchor { container: NodeId, index: u32, affinity: Left | Right, marker: Option<N
 
 - 有 `marker` 且标记在 DOM 中仍位于 `(container, index)` 对应位置 → 不动（`Clean` 拷字节）。
 - 位置不符 → 旧标记 `Deleted`，在新位置插入 `New` 标记，属性从旧标记复制（`Raw` 值可直接引用旧字节）。
-- 无 `marker`（新建范围）→ 插入 `New` 标记；`w:id` 按 `EDIT-06` 分配。
-- 起点标记插在边界 `index` 处所有 `Left` 锚点标记之后、`Right` 锚点标记之前？——**规定**：同一边界上先输出所有终点标记，再输出所有起点标记（Word 输出习惯，避免空范围反序）。
+- 无 `marker` 且 `origin == New`（本次会话新建的范围）→ 插入 `New` 标记；`w:id` 按 `EDIT-06` 分配。
+- 无 `marker` 且 `origin == Parsed`（文件里本来就没有标记的折叠批注）→ **不插入**，保持原样。
+- 起点标记插在边界 `index` 处所有 `Left` 锚点标记之后、`Right` 锚点标记之前？——**规定**：同一边界上先输出所有终点标记，再输出所有起点标记（Word 输出习惯，避免相邻范围的标记交叉）。**例外**：同一个范围自己的两端落在同一边界（空范围）时按"起点、终点"顺序输出，否则物理上就成了反序的一对。
 
 ## SPAN-09 校验
 
