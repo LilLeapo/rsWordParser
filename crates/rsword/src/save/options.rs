@@ -12,7 +12,7 @@
 //! 日期清洗是独立的一项（OOXML 的 `w:removeDateAndTime`，TS 没有这个能力）：批注元素（带 `w:author` 的
 //! 修订与批注）上的 `w:date` 删除。`remove_personal_info` 单独开启时日期保留，与 TS 一致。
 
-use crate::diag::{DiagCode, Diagnostic};
+use crate::diag::Diagnostic;
 use crate::edit::MutationPlan;
 use crate::error::Result;
 use crate::package::{Package, PartId, RelType};
@@ -230,7 +230,7 @@ pub(crate) fn plan_all(
     scrub_dates: bool,
 ) -> Result<(Vec<MutationPlan>, Vec<Diagnostic>)> {
     let mut plans = Vec::new();
-    let mut diags = Vec::new();
+    let diags = Vec::new();
     let main = pkg.main_part();
 
     if let Some(ts) = &opts.saved_at {
@@ -249,27 +249,21 @@ pub(crate) fn plan_all(
     if opts.remove_personal_info.is_some() || opts.remove_date_and_time.is_some() {
         let settings =
             pkg.related(main, RelType::Settings).next().or_else(|| pkg.find_name(SETTINGS));
-        match settings {
-            Some(id) => {
-                pkg.dom(id)?;
-                if let Some(dom) = pkg.part(id).dom() {
-                    let plan = plan_settings_flags(
-                        dom,
-                        id,
-                        opts.remove_personal_info,
-                        opts.remove_date_and_time,
-                    );
-                    if !plan.is_empty() {
-                        plans.push(plan);
-                    }
+        // 缺 part 时什么都不用做：只有"要写 true"才需要 part，那种情况 `save_with` 已经按
+        // `SAVE-05` 建好了；写 false 时标志缺失本来就等于 false
+        if let Some(id) = settings {
+            pkg.dom(id)?;
+            if let Some(dom) = pkg.part(id).dom() {
+                let plan = plan_settings_flags(
+                    dom,
+                    id,
+                    opts.remove_personal_info,
+                    opts.remove_date_and_time,
+                );
+                if !plan.is_empty() {
+                    plans.push(plan);
                 }
             }
-            None => diags.push(Diagnostic::invariant_violation(
-                main,
-                None,
-                DiagCode::EditUnsupported,
-                "没有 word/settings.xml，清洗标志未写入（新建 part 属 SAVE-05）".to_string(),
-            )),
         }
     }
 

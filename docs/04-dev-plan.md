@@ -503,7 +503,7 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   测试 `tests/field.rs` 新增 6 个（原子字段占 1 个坐标单位、透明 HYPERLINK、R09 保护三段、四种折叠
   run、可转换与不可转换 HYPERLINK、passthrough 的三种 `fieldDisplay`），`tests/edit.rs` 的 REF 用例
   改成断言 `FLD-07` 的整字段删除。
-- [ ] **2.6 批注与注释部件**（进行中）
+- [x] **2.6 批注与注释部件**
   - [x] **读侧**（`model/notes.rs`、`model/build.rs`、`bind/compat_ts/{decl,blocks}.rs`）：`MOD-10` 的
     批注与注释条目——`comments.xml` 的正文 / 作者 / 首字母 / 日期、`commentsExtended.xml` 的回复与
     已解决（按最后一段的 `w14:paraId` 关联）、`commentsIds.xml` 的 durableId、`people.xml` 暂不建模；
@@ -544,7 +544,10 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
     （`comments__001.save.2`：权威列表删掉批注后我们把空掉的 reference run 整个删掉，TS 留下
     一个 `<w:r></w:r>`），登记在 `INTENTIONAL`。测试 `tests/notes.rs` 再加 2 个（脚注列表的
     改 / 建 / 删与结构条目保留、批注列表的权威性）。
-  - [ ] 收尾：`people.xml` 进模型、缺 `settings.xml` 时用同一套 `SAVE-05` 写清洗标志
+  - [x] **收尾**：缺 `word/settings.xml` 时按 `SAVE-05` 建出来再写清洗标志（`SAVE-07`，M1 留下的债）。
+    只在要写 `true` 时建——标志缺失本来就等于 false，为写 `false` 凭空造个 part 只是噪音；
+    `save/options.rs` 的"缺 part 记诊断"那条因此撤掉。`people.xml` 不进模型：TS 的 `ParsedDoc`
+    里没有它，清洗路径直接按 part 删 `w15:person` 就够（`SAVE-07` 已实现）。
 - [x] **2.7 符号字体解码**（`resolve/symbol.rs`、`bind/compat_ts/blocks.rs`）：`RES-05` 的符号字体表与
   `decode` / `decode_pua` / `is_symbol_font`；`w:sym` 按 `w:font` + `w:char` 解码（`0xF000` 偏移与裸码位
   都认），符号字体 run 的 `w:t` **只**解码 PUA 区间（普通 ASCII 字母不动，语料 `symbol-fonts__004`），

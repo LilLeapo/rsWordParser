@@ -7,8 +7,8 @@
 
 **M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖），**已全部并入 `main`**（2026-09-04）。
 **M2 进行中**（分支 `m2-span-fields`）：2.1 Span 索引、2.2 Anchor 变换、2.3 物化与保存校验、
-2.4 字段子系统、2.5 字段进模型与 compat、2.6 批注与注释（读侧 + 编辑操作 + `SAVE-05` 新建 part +
-compat 权威条目列表）、2.7 符号字体解码、
+2.4 字段子系统、2.5 字段进模型与 compat、**2.6 批注与注释**（读侧 + 三个编辑操作 + `SAVE-05` 新建
+part + compat 权威条目列表）、2.7 符号字体解码、
 2.8 的 `rId` 分配已落地；任务分解见
 `spec/13-m2-plan.md`，进度清单见 `docs/04` §11。
 
@@ -104,8 +104,9 @@ M5 约 48（页眉页脚 / 节 / 水印 / 墨迹）、M4/M6 约 20（图片与�
   已经能做的：在字段原子**旁边**的边界插入文字（左邻取 end run、右邻取 begin run，插入点落在原子外，
   格式可从字段结果的最后一个 run 继承）、删除覆盖原子形态字段（`FLD-07`：begin..end 连嵌套一起删）。
   跨段 `Block` 字段的边界仍是 `EditUnsupported`（结果段落只读）。
-- **新建 part**：`SAVE-05` 已落地（批注 / `commentsExtended` / 缺失的 `.rels` 都能建，内容类型与关系
-  同步写）。还没接上的：缺 `word/settings.xml` 时的清洗标志（记诊断）、脚注 / 尾注 part 的创建。
+- **新建 part**：`SAVE-05` 已落地（批注 / `commentsExtended` / 脚注 / 尾注 / `settings.xml` / 缺失的
+  `.rels` 都能建，内容类型 Override 与关系同步写，新 part 追加在 zip 末尾）。还没有的：页眉页脚与
+  图表 part（随 M5 / M6）。
 - **表格 / 绘图**：块层面是占位（`Table` / `Image` / `Protected`），单元格与图片属性不进模型。
 - **保存选项**：节、页眉页脚、水印、页面颜色、编号、样式 upsert、保护、主题、墨迹、图表、`partXml` 全部 `EditUnsupported`。
 - **修订生成**：`EditContext.track_changes` 字段存在但被忽略（M7）。

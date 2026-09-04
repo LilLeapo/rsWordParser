@@ -218,6 +218,23 @@ impl EditSession {
         Ok(id)
     }
 
+    /// `SAVE-05`：`word/settings.xml`，不存在就建（清洗标志要有地方写，`SAVE-07`）。
+    pub(crate) fn ensure_settings_part(&mut self) -> Result<PartId> {
+        let main = self.pkg.main_part();
+        if let Some(id) = self
+            .pkg
+            .related(main, RelType::Settings)
+            .next()
+            .or_else(|| self.pkg.find_name(SETTINGS))
+        {
+            return Ok(id);
+        }
+        let xml = empty_root_xml(self.pkg.flavor_of(main), "settings");
+        let (id, _) = self.add_part(main, RelType::Settings, SETTINGS, CT_SETTINGS, &xml)?;
+        self.rebuild()?;
+        Ok(id)
+    }
+
     /// `SAVE-05`：脚注 / 尾注部件，不存在就建（连 Word 期待的 separator 结构条目一起）。
     pub(crate) fn ensure_notes_part(&mut self, endnote: bool) -> Result<PartId> {
         let existing = if endnote { self.doc.endnotes.part } else { self.doc.footnotes.part };
@@ -583,6 +600,11 @@ impl EditSession {
         if !self.pkg.is_dirty() && !opts.forces_save() && !authors && !dates {
             return Ok(self.pkg.original_bytes().to_vec());
         }
+        // 要写 `true` 的清洗标志得有地方放：缺 `word/settings.xml` 就按 `SAVE-05` 建一个。
+        // 写 `false` 时不建——标志缺失本来就等于 false，凭空造个 part 只是噪音。
+        if opts.remove_personal_info == Some(true) || opts.remove_date_and_time == Some(true) {
+            self.transaction(|s| s.ensure_settings_part().map(|_| ()))?;
+        }
         let (plans, diags) = crate::save::options::plan_all(&mut self.pkg, opts, authors, dates)?;
         let mut touches_main = plans.iter().any(|p| p.part == self.pkg.main_part());
         touches_main |= self.transaction(|s| s.materialize_spans())?;
@@ -739,12 +761,17 @@ impl EditSession {
     }
 }
 
+/// `word/settings.xml` 的约定路径。
+const SETTINGS: &str = "word/settings.xml";
+
 /// `.rels` 的根命名空间。
 const RELS_NS: &str = "http://schemas.openxmlformats.org/package/2006/relationships";
 
 /// `SAVE-05` 的内容类型。
 pub(crate) const CT_COMMENTS: &str =
     "application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml";
+pub(crate) const CT_SETTINGS: &str =
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml";
 pub(crate) const CT_FOOTNOTES: &str =
     "application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml";
 pub(crate) const CT_ENDNOTES: &str =
