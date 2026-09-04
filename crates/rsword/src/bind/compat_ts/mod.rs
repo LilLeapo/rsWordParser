@@ -49,7 +49,10 @@ pub fn parsed_doc_of(pkg: &Package, doc: &Document) -> Value {
 
     let mut o = Map::new();
     o.insert("blocks".into(), Value::Array(blocks));
-    for k in ["comments", "footnotes", "endnotes", "sources", "inks"] {
+    o.insert("comments".into(), decl::comments_json(doc));
+    o.insert("footnotes".into(), decl::notes_json(doc, &resolver, false));
+    o.insert("endnotes".into(), decl::notes_json(doc, &resolver, true));
+    for k in ["sources", "inks"] {
         o.insert(k.into(), Value::Array(Vec::new()));
     }
     o.insert("themeFonts".into(), decl::theme_fonts_json(doc, &resolver));

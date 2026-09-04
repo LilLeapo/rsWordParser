@@ -194,10 +194,8 @@ pub fn is_text_case(e: &Value) -> bool {
         }
     }
     let empty_arr = |k: &str| e.get(k).and_then(Value::as_array).is_some_and(Vec::is_empty);
+    // 批注与脚注 / 尾注在任务 2.6 落地，带它们的文档不再排除在文本域之外
     text_blocks > 0
-        && empty_arr("comments")
-        && empty_arr("footnotes")
-        && empty_arr("endnotes")
         && empty_arr("sources")
         && e.get("headerText").is_none_or(Value::is_null)
         && e.get("footerText").is_none_or(Value::is_null)

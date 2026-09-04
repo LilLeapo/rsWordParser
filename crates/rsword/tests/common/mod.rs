@@ -25,6 +25,31 @@ pub fn docx_paths(kind: &str) -> Vec<PathBuf> {
     v
 }
 
+/// 最小 docx 加任意辅助 part（`name` 是包内路径，`content` 是整份 XML）。
+///
+/// `[Content_Types].xml` 用 `Default Extension="xml"`，所以辅助 part 不必逐个声明 Override；
+/// 关系也不必写——`Document::rebuild` 找不到关系时按约定路径退路（语料里有这种文档）。
+#[allow(dead_code)]
+pub fn docx_with_parts(document_body: &str, extra: &[(&str, &str)]) -> Vec<u8> {
+    use std::io::{Cursor, Write};
+    let base = docx_with_body(document_body);
+    let mut zin = zip::ZipArchive::new(Cursor::new(base)).unwrap();
+    let mut w = zip::ZipWriter::new(Cursor::new(Vec::new()));
+    for i in 0..zin.len() {
+        let mut f = zin.by_index(i).unwrap();
+        let name = f.name().to_string();
+        let mut buf = Vec::new();
+        std::io::Read::read_to_end(&mut f, &mut buf).unwrap();
+        w.start_file(name, zip::write::SimpleFileOptions::default()).unwrap();
+        w.write_all(&buf).unwrap();
+    }
+    for (name, content) in extra {
+        w.start_file(*name, zip::write::SimpleFileOptions::default()).unwrap();
+        w.write_all(content.as_bytes()).unwrap();
+    }
+    w.finish().unwrap().into_inner()
+}
+
 /// 最小 docx：只有 `[Content_Types].xml` / `_rels/.rels` / `word/document.xml`，
 /// `document_body` 是 `w:body` 的内容。集成测试构造精确 XML 用。
 #[allow(dead_code)]

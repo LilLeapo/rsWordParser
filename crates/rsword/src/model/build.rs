@@ -19,13 +19,14 @@ use crate::model::inline::{
     AtomKind, BreakKind, Inline, InlineAtom, Link, LinkTarget, OBJECT_REPLACEMENT, RevisionCtx,
     RevisionMeta, Run, Segment, SegmentKind, utf16_len,
 };
+use crate::model::notes::{Comments, Notes};
 use crate::model::theme::Theme;
 use crate::package::{Package, PartId, RelTarget, RelType, Rels};
 use crate::semantic::props::{
     ParaProps, RunProps, read_para_props, read_run_props, read_run_props_change,
 };
 use crate::span::field::{FieldForm, FieldId, FieldIndex};
-use crate::span::{FlowMap, is_range_marker};
+use crate::span::{FlowMap, RangeClass, SpanId, SpanIndex, is_range_marker};
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
 /// 文档模型（`MOD-01`）：DOM + Span 的语义投影。
@@ -44,6 +45,13 @@ pub struct Document {
     pub flows: FlowMap,
     /// 主 part 的字段索引（`FLD-02`）。与投影同寿命：`rebuild` / `refresh_paragraphs` 都重建它。
     pub fields: FieldIndex,
+    /// 主 part 的范围索引（`SPAN-04`）。**这是投影侧的副本**：编辑期的规范状态在
+    /// `EditSession.spans` 里，由 `SPAN-06` 变换维护；这一份只用来读（`Run.comments` 等）。
+    pub spans: SpanIndex,
+    /// 批注（`comments.xml` + `commentsExtended.xml` + `commentsIds.xml`）。
+    pub comments: Comments,
+    pub footnotes: Notes,
+    pub endnotes: Notes,
     pub warnings: Vec<Diagnostic>,
 }
 
@@ -56,13 +64,32 @@ impl Document {
             pkg.related(main, kind).next().or_else(|| pkg.find_name(name))
         };
         let styles_id = aux(pkg, RelType::Styles, "word/styles.xml");
+        let comments_id = aux(pkg, RelType::Comments, "word/comments.xml");
+        let comments_ex_id = aux(pkg, RelType::CommentsExtended, "word/commentsExtended.xml");
+        let comments_ids_id = aux(pkg, RelType::CommentsIds, "word/commentsIds.xml");
+        let footnotes_id = aux(pkg, RelType::Footnotes, "word/footnotes.xml");
+        let endnotes_id = aux(pkg, RelType::Endnotes, "word/endnotes.xml");
         let numbering_id = aux(pkg, RelType::Numbering, "word/numbering.xml");
         let settings_id = aux(pkg, RelType::Settings, "word/settings.xml");
         let theme_id = aux(pkg, RelType::Theme, "word/theme/theme1.xml");
         let font_id = aux(pkg, RelType::FontTable, "word/fontTable.xml");
         // 先确保都已解析，再同时借出
         pkg.dom(main)?;
-        for id in [styles_id, numbering_id, settings_id, theme_id, font_id].into_iter().flatten() {
+        for id in [
+            styles_id,
+            numbering_id,
+            settings_id,
+            theme_id,
+            font_id,
+            comments_id,
+            comments_ex_id,
+            comments_ids_id,
+            footnotes_id,
+            endnotes_id,
+        ]
+        .into_iter()
+        .flatten()
+        {
             let _ = pkg.dom(id);
         }
         let mut warnings = Vec::new();
@@ -72,13 +99,33 @@ impl Document {
         let settings = dom_of(settings_id).and_then(|d| Settings::from_dom(d, &mut warnings));
         let theme = dom_of(theme_id).and_then(Theme::from_dom);
         let font_table = dom_of(font_id).and_then(|d| FontTable::from_dom(d, &mut warnings));
+        let with_dom = |id: Option<PartId>| id.and_then(|i| pkg.part(i).dom().map(|d| (i, d)));
+        let comments = Comments::from_doms(
+            with_dom(comments_id),
+            with_dom(comments_ex_id),
+            with_dom(comments_ids_id),
+            &mut warnings,
+        );
+        let footnotes = Notes::from_dom(
+            with_dom(footnotes_id),
+            LocalName::Footnote,
+            LocalName::FootnoteRef,
+            &mut warnings,
+        );
+        let endnotes = Notes::from_dom(
+            with_dom(endnotes_id),
+            LocalName::Endnote,
+            LocalName::EndnoteRef,
+            &mut warnings,
+        );
 
         let dom = pkg.part(main).dom().expect("main part parsed above");
         let rels = &pkg.part(main).rels;
         let flows = FlowMap::build(dom);
         let mut fields = FieldIndex::build(dom);
         warnings.extend(fields.take_diagnostics());
-        let mut b = Builder::new(dom, styles.as_ref(), rels, &fields, warnings);
+        let spans = SpanIndex::build(dom);
+        let mut b = Builder::new(dom, styles.as_ref(), rels, &fields, &spans, warnings);
         let body = b.find_body();
         let mut blocks = Vec::new();
         if let Some(body) = body {
@@ -96,6 +143,10 @@ impl Document {
             font_table,
             flows,
             fields,
+            spans,
+            comments,
+            footnotes,
+            endnotes,
             warnings,
         })
     }
@@ -107,7 +158,8 @@ impl Document {
         rels: &Rels,
     ) -> (Vec<Block>, Vec<Diagnostic>) {
         let fields = FieldIndex::build(dom);
-        let mut b = Builder::new(dom, styles, rels, &fields, Vec::new());
+        let spans = SpanIndex::build(dom);
+        let mut b = Builder::new(dom, styles, rels, &fields, &spans, Vec::new());
         let mut blocks = Vec::new();
         if let Some(body) = b.find_body() {
             b.build_container(body, None, &[], &mut blocks);
@@ -132,7 +184,8 @@ impl Document {
         let rels = &pkg.part(main).rels;
         // 字段索引是投影：DOM 变了就重建（M3 的容器级刷新会把这条也做成增量）
         let fields = FieldIndex::build(dom);
-        let mut b = Builder::new(dom, self.styles.as_ref(), rels, &fields, Vec::new());
+        let spans = SpanIndex::build(dom);
+        let mut b = Builder::new(dom, self.styles.as_ref(), rels, &fields, &spans, Vec::new());
         let mut missing = Vec::new();
         for &p in paras {
             match self.main.iter().position(|blk| blk.node() == p) {
@@ -156,6 +209,7 @@ struct Builder<'a> {
     styles: Option<&'a Styles>,
     rels: &'a Rels,
     fields: &'a FieldIndex,
+    spans: &'a SpanIndex,
     /// `FLD-08`：被 `Block` 策略字段覆盖的段落 → 字段 id。
     block_fields: HashMap<NodeId, FieldId>,
     /// 字段起点所在的段落 → 字段 id（`MOD-04` 的 `facts.fields`）。
@@ -170,6 +224,7 @@ impl<'a> Builder<'a> {
         styles: Option<&'a Styles>,
         rels: &'a Rels,
         fields: &'a FieldIndex,
+        spans: &'a SpanIndex,
         warnings: Vec<Diagnostic>,
     ) -> Self {
         let mut fields_by_para: HashMap<NodeId, Vec<FieldId>> = HashMap::new();
@@ -187,6 +242,7 @@ impl<'a> Builder<'a> {
             styles,
             rels,
             fields,
+            spans,
             block_fields: fields.block_result_paragraphs(dom),
             fields_by_para,
             warnings,
@@ -390,6 +446,7 @@ impl<'a> Builder<'a> {
             ParaClass::Text => {
                 let mut inlines = Vec::new();
                 self.build_inlines(p, None, None, &mut inlines);
+                self.attach_comments(p, &mut inlines);
                 Block::Text(Box::new(TextBlock {
                     node: p,
                     kind: text_kind(&facts),
@@ -402,6 +459,115 @@ impl<'a> Builder<'a> {
                 }))
             }
         }
+    }
+
+    /// `COMPAT-07` 的模型侧：给 run 挂批注 id。
+    ///
+    /// 规则同 TS：**起终点都在本段**的批注范围覆盖到的 run 挂它的 id（只有一端在本段的范围
+    /// 由块级 `commentStarts` / `commentEnds` 表达，不挂到 run 上）；文件里只有
+    /// `w:commentReference` 的批注（`implicit`，LibreOffice 风格）挂到最近的有字 run
+    /// ——先往前找，没有再往后找。
+    fn attach_comments(&self, para: NodeId, inlines: &mut [Inline]) {
+        let dom = self.dom;
+        let id_of = |n: NodeId| {
+            dom.attr_value(n, w(LocalName::Id)).map(|v| v.into_owned()).unwrap_or_default()
+        };
+        // 段内的 start / end id：两端都在本段才算覆盖
+        let mut starts: Vec<String> = Vec::new();
+        let mut ends: Vec<String> = Vec::new();
+        let mut has_ref = false;
+        let mut stack = vec![para];
+        while let Some(n) = stack.pop() {
+            let Some(name) = dom.name(n) else { continue };
+            if name == w(LocalName::TxbxContent) {
+                continue; // 独立内容流
+            }
+            if name == w(LocalName::CommentRangeStart) {
+                starts.push(id_of(n));
+            } else if name == w(LocalName::CommentRangeEnd) {
+                ends.push(id_of(n));
+            } else if name == w(LocalName::CommentReference) {
+                has_ref = true;
+            }
+            for &c in dom.children(n).iter().rev() {
+                stack.push(c);
+            }
+        }
+        let both: Vec<&String> = starts.iter().filter(|s| ends.contains(s)).collect();
+        if both.is_empty() && !has_ref {
+            return;
+        }
+        // 文档序一遍：跟踪打开的范围，同时记下承载 reference 的 run
+        let mut open: Vec<String> = Vec::new();
+        let mut cover: HashMap<NodeId, Vec<SpanId>> = HashMap::new();
+        let mut refs: Vec<(String, NodeId)> = Vec::new();
+        let mut stack = vec![para];
+        while let Some(n) = stack.pop() {
+            let Some(name) = dom.name(n) else { continue };
+            if name == w(LocalName::TxbxContent) {
+                continue;
+            }
+            if name == w(LocalName::CommentRangeStart) {
+                let id = id_of(n);
+                if both.iter().any(|b| **b == id) {
+                    open.push(id);
+                }
+            } else if name == w(LocalName::CommentRangeEnd) {
+                let id = id_of(n);
+                open.retain(|x| *x != id);
+            } else if name == w(LocalName::R) {
+                if !open.is_empty() {
+                    let ids: Vec<SpanId> =
+                        open.iter().filter_map(|id| self.comment_span(id)).collect();
+                    if !ids.is_empty() {
+                        cover.insert(n, ids);
+                    }
+                }
+                if let Some(c) =
+                    dom.semantic_children(n).find(|&c| dom.is(c, w(LocalName::CommentReference)))
+                {
+                    refs.push((id_of(c), n));
+                }
+            }
+            for &c in dom.children(n).iter().rev() {
+                stack.push(c);
+            }
+        }
+        for (id, run) in refs {
+            // 只有 reference 的批注（文件里没有范围标记）才挂最近的 run
+            let Some(span) = self.comment_span(&id) else { continue };
+            if !self.spans.get(span).is_some_and(|s| s.implicit) {
+                continue;
+            }
+            let Some(i) = inlines.iter().position(|x| x.node() == Some(run)) else { continue };
+            let has_text = |x: &Inline| matches!(x, Inline::Run(r) if !r.text.is_empty());
+            let target = inlines[..i]
+                .iter()
+                .rposition(has_text)
+                .or_else(|| inlines[i + 1..].iter().position(has_text).map(|k| k + i + 1));
+            if let Some(t) = target
+                && let Inline::Run(r) = &mut inlines[t]
+                && !r.comments.contains(&span)
+            {
+                r.comments.push(span);
+            }
+        }
+        for inline in inlines.iter_mut() {
+            if let Inline::Run(r) = inline
+                && let Some(ids) = cover.get(&r.node)
+            {
+                for id in ids {
+                    if !r.comments.contains(id) {
+                        r.comments.push(*id);
+                    }
+                }
+            }
+        }
+    }
+
+    /// 批注 `w:id` → 范围索引里的 `SpanId`。
+    fn comment_span(&self, id: &str) -> Option<SpanId> {
+        self.spans.find(RangeClass::Comment, id).map(|s| s.id)
     }
 
     /// 可见文本预览：`w:t` 文本拼接，截到 80 个字符。

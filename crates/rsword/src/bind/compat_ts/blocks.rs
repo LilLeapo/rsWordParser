@@ -51,6 +51,16 @@ fn w(local: LocalName) -> QName {
 }
 
 impl<'a> Ctx<'a> {
+    /// TS `noteNumbers`：正文条目按 part 顺序 1..n；查不到写 `*`。
+    pub fn note_number(&self, endnote: bool, id: Option<&str>) -> String {
+        let notes = if endnote { &self.doc.endnotes } else { &self.doc.footnotes };
+        let Some(id) = id else { return "*".to_string() };
+        notes
+            .normal()
+            .position(|n| n.id == id)
+            .map_or_else(|| "*".to_string(), |i| (i + 1).to_string())
+    }
+
     pub fn new(
         dom: &'a Dom,
         doc: &'a Document,
@@ -1691,12 +1701,26 @@ fn symbol_text(ctx: &Ctx<'_>, run: &Run) -> (String, bool) {
 fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Value>> {
     let dom = ctx.dom;
     let r = ctx.resolver;
+    // `COMPAT-07`：脚注 / 尾注引用是原子 run，`text` 是显示编号，其余字段一概不出（TS 行为）
+    if let Some((endnote, id)) = note_ref_of(run) {
+        let mut o = Map::new();
+        set(&mut o, "text", ctx.note_number(endnote, id.as_deref()));
+        let mut nr = Map::new();
+        if let Some(id) = id {
+            set(&mut nr, "id", id);
+        }
+        set(&mut nr, "kind", if endnote { "endnote" } else { "footnote" });
+        set(&mut o, "noteRef", Value::Object(nr));
+        comment_ids(ctx, run, &mut o);
+        return Some(o);
+    }
     let (text, symbol_decoded) = symbol_text(ctx, run);
     if text.is_empty() {
         return None;
     }
     let mut o = Map::new();
     set(&mut o, "text", text);
+    comment_ids(ctx, run, &mut o);
     if let Some(link) = &run.link {
         match link {
             crate::model::Link::Hyperlink { target, tooltip, .. } => {
@@ -1928,6 +1952,32 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
     }
     revision_ctx(run, &mut o);
     Some(o)
+}
+
+/// run 里的脚注 / 尾注引用段（`w:footnoteReference` / `w:endnoteReference`）。
+fn note_ref_of(run: &Run) -> Option<(bool, Option<String>)> {
+    run.segments.iter().find_map(|s| match &s.kind {
+        SegmentKind::FootnoteRef { id } => Some((false, id.clone())),
+        SegmentKind::EndnoteRef { id } => Some((true, id.clone())),
+        _ => None,
+    })
+}
+
+/// `COMPAT-07` `commentIds`：起止都在本段的批注范围覆盖到的 run，加上只有 `commentReference`
+/// 的批注（模型侧已按 TS 规则挂到最近的有字 run，见 `Document` 的 `attach_comments`）。
+fn comment_ids(ctx: &Ctx<'_>, run: &Run, o: &mut Map<String, Value>) {
+    if run.comments.is_empty() {
+        return;
+    }
+    let ids: Vec<Value> = run
+        .comments
+        .iter()
+        .filter_map(|s| ctx.doc.spans.get(*s))
+        .map(|s| Value::String(s.pair_id().to_string()))
+        .collect();
+    if !ids.is_empty() {
+        set(o, "commentIds", Value::Array(ids));
+    }
 }
 
 fn revision_ctx(run: &Run, o: &mut Map<String, Value>) {

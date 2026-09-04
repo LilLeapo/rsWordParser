@@ -239,7 +239,7 @@ impl RangeSpan {
 }
 
 /// 一个 part 的范围索引（`SPAN-04`）。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SpanIndex {
     part: PartId,
     flows: FlowMap,

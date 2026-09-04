@@ -503,7 +503,23 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   测试 `tests/field.rs` 新增 6 个（原子字段占 1 个坐标单位、透明 HYPERLINK、R09 保护三段、四种折叠
   run、可转换与不可转换 HYPERLINK、passthrough 的三种 `fieldDisplay`），`tests/edit.rs` 的 REF 用例
   改成断言 `FLD-07` 的整字段删除。
-- [ ] 2.6 批注与注释部件、新建 part（`SAVE-05`）
+- [ ] **2.6 批注与注释部件**（进行中）
+  - [x] **读侧**（`model/notes.rs`、`model/build.rs`、`bind/compat_ts/{decl,blocks}.rs`）：`MOD-10` 的
+    批注与注释条目——`comments.xml` 的正文 / 作者 / 首字母 / 日期、`commentsExtended.xml` 的回复与
+    已解决（按最后一段的 `w14:paraId` 关联）、`commentsIds.xml` 的 durableId、`people.xml` 暂不建模；
+    `footnotes.xml` / `endnotes.xml` 的条目带 `kind`（`separator` 一类结构条目留在模型里，保存要原样
+    写回），`text` 吃掉首段前导空白与自引用标记，`richParas` 只在有格式时出，`noRefMark` 是"整条没有
+    `w:footnoteRef`"。`Document` 另加**投影侧**的 `spans: SpanIndex`（规范状态在 `EditSession.spans`），
+    `Run.comments` 按 TS 规则填：起终点都在本段的范围覆盖到的 run 挂 id，只有一端在本段的由块级
+    `commentStarts` / `commentEnds` 表达，只有 `commentReference` 的批注挂最近的**有字** run（先往前
+    再往后）。compat 侧补 `comments[]` / `footnotes[]` / `endnotes[]` / run 的 `commentIds`，以及正文里的
+    脚注引用 run（`noteRef` + 按 part 顺序的显示编号）。`commentIds` 要在 `run_json` 的**早退分支之前**
+    发（没有 `w:rPr` 的 run 会提前 return）。解析差分：全域 1709 → 1666 个差异点、311 → 295 份文档，
+    批注 / 注释域归零；`is_text_case` 不再排除带批注与注释的文档，`--scope text` 从 223 升到 **226 份**
+    （仍 0 未知差异）。测试 `tests/notes.rs` 6 个（三部件关联、语料字段、结构条目与首段裁剪、
+    `commentIds` 三种形态、`noteRef` 编号、全语料 id 唯一）。
+  - [ ] 写侧：`AddComment` / `RemoveComment` / `SetCommentText` 与新建 part（`SAVE-05`：关系 + 内容类型）
+  - [ ] compat 的 `comments` / `footnotes` 保存选项（权威列表：重写条目、删掉列表外批注在正文里的标记）
 - [x] **2.7 符号字体解码**（`resolve/symbol.rs`、`bind/compat_ts/blocks.rs`）：`RES-05` 的符号字体表与
   `decode` / `decode_pua` / `is_symbol_font`；`w:sym` 按 `w:font` + `w:char` 解码（`0xF000` 偏移与裸码位
   都认），符号字体 run 的 `w:t` **只**解码 PUA 区间（普通 ASCII 字母不动，语料 `symbol-fonts__004`），
