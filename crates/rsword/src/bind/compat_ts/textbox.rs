@@ -588,6 +588,7 @@ mod tests {
             cnv_id: None,
             prst: prst.map(str::to_string),
             cust_geom: false,
+            geom: None,
             ext: cy.map(|cy| Extent { cx: 5_230_495, cy }),
             off: None,
             ch_off: None,

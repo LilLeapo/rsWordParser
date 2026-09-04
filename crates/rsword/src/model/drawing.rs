@@ -13,6 +13,7 @@
 //! 遍历是迭代的，带深度上限：语料里有几千层嵌套的恶意输入。
 
 use crate::model::block::Block;
+use crate::model::custgeom::{CustomGeom, custom_geom};
 use crate::model::facts::DrawingKind;
 use crate::model::vml::VmlDisplay;
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
@@ -75,6 +76,8 @@ pub struct ShapeDisplay {
     pub prst: Option<String>,
     /// 有 `a:custGeom`：自定义路径几何。
     pub cust_geom: bool,
+    /// `a:custGeom` 的路径；用到公式或圆弧时为 `None`（`model::custgeom`）。
+    pub geom: Option<CustomGeom>,
     /// `a:xfrm/a:ext`（EMU）。
     pub ext: Option<Extent>,
     /// `a:xfrm/a:off`（EMU）。
@@ -396,6 +399,7 @@ fn shape_display(dom: &Dom, node: NodeId, is_group: bool, group: Option<usize>) 
         cnv_id: None,
         prst: None,
         cust_geom: false,
+        geom: None,
         ext: None,
         off: None,
         ch_off: None,
@@ -467,7 +471,10 @@ fn sp_pr(dom: &Dom, sp_pr: NodeId, s: &mut ShapeDisplay) {
                 }
             }
             LocalName::PrstGeom => s.prst = attr(dom, c, NsId::None, LocalName::Prst),
-            LocalName::CustGeom => s.cust_geom = true,
+            LocalName::CustGeom => {
+                s.cust_geom = true;
+                s.geom = custom_geom(dom, c);
+            }
             LocalName::GrpFill if s.fill.is_none() => {
                 s.fill =
                     Some(FillDisplay { node: c, kind: FillKind::Group, blip: None, tile: false })

@@ -62,8 +62,12 @@ CI 门（`spec/11` TEST-10 的「M3–M6 对应域 diff 为 0」）：`diff-pars
 `txbxContent` 里」而不是「在组里」（组内形状照样有保存序号、照样可编辑），以及框里套框时要把各层
 `w:txbxContent` 平铺进同一个 `paras` 并整块标只读。
 
-**4.6 还剩两块**（有明确出处，不是漏做）：`pathData` 要 `a:custGeom` 的路径解析（6 处 / 4 份文档，
-做完这 4 份就整份对齐）；VML WordArt 的 run 字号 / 字体 / 描边与 inset 要 `vmlWordArtBox` 的一整套
+**4.6d 完成**（`model/custgeom.rs` + `pathData` 投影；全域 770 → 764，文档 230 → 226，那 4 份
+`shape-extraction__*` 整份对齐）。只做能如实表达的部分：`moveTo` / `lnTo` / `quadBezTo` /
+`cubicBezTo` / `close` 且坐标是数字；遇到 `a:gd` 公式、引导名坐标或 `a:arcTo` 就整条几何不给
+——宁可不给路径，也不能给一条少了段或坐标当 0 的错路径。公式求值器与弧转贝塞尔要的话是独立一块活。
+
+**4.6 还剩一块**：VML WordArt 的 run 字号 / 字体 / 颜色 / 描边与 inset，要 `vmlWordArtBox` 的一整套
 合成（约 40 处 / 9 份文档）。`pagePinned` 还差 TS 的「首页判定」（要块序号与首个分页位置），3 处。
 
 **顺序说明**：4.1 → 4.3 → 4.4 是主链（几何与投影依赖媒体解析）；4.2 是 4.5 / 4.6 的前置（形状颜色）；

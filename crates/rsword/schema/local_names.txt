@@ -35,6 +35,7 @@ anchorId
 anchorlock
 annotationRef
 Application
+arcTo
 argPr
 argSz
 ascii
@@ -169,6 +170,7 @@ cs
 cstate
 cstheme
 ctrlPr
+cubicBezTo
 custGeom
 customStyle
 customXml
@@ -344,6 +346,7 @@ ftr
 func
 funcPr
 g
+gd
 gdLst
 gfxdata
 glossaryDocument
@@ -632,6 +635,7 @@ ptCount
 ptLst
 qFormat
 qs
+quadBezTo
 r
 rad
 radPr

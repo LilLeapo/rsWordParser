@@ -16,6 +16,7 @@
 pub mod block;
 pub mod build;
 pub mod classify;
+pub mod custgeom;
 pub mod decl;
 pub mod drawing;
 pub mod facts;
@@ -31,6 +32,7 @@ pub use block::{
 };
 pub use build::Document;
 pub use classify::{BodyClass, ParaClass, classify_body_child, classify_paragraph, text_kind};
+pub use custgeom::{CustomGeom, GeomCmd, GeomPath};
 pub use decl::{
     AbstractNum, Compat, CompatFacts, CompatSetting, DocDefaults, Font, FontTable, Level,
     LevelOverride, Num, Numbering, OwnHeadingLevel, Settings, Style, StyleType, Styles,

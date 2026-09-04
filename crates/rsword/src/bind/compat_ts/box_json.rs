@@ -11,6 +11,7 @@
 
 use serde_json::{Map, Value};
 
+use crate::model::CustomGeom;
 use crate::model::drawing::{
     Anchor, AnchorGeom, BodyPr, Extent, FillKind, ShapeDisplay, StyleRef, Wrap,
 };
@@ -109,6 +110,11 @@ pub(super) fn wps_box_json(
     if let Some(prst) = s.prst.as_deref().filter(|p| *p != "rect") {
         set(&mut o, "prst", prst);
     }
+    if let Some(g) = &s.geom
+        && let Some(d) = path_data(g, s.ext)
+    {
+        set(&mut o, "pathData", Value::Object(d));
+    }
     if let Some(rot) = s.rot_60k.filter(|&r| r != 0) {
         set(&mut o, "rotDeg", (rot as f64 / 60_000.0).round() as i64);
     }
@@ -125,6 +131,53 @@ pub(super) fn wps_box_json(
         body_pr(b, &mut o);
     }
     o
+}
+
+/// `a:custGeom` → `pathData`（TS `parseCustGeom` 的输出层）。
+///
+/// 每条 `a:path` 按它自己声明的 `@w` / `@h` 归一化到 0..1（缺省时退到形状的 `a:ext`），
+/// 保留 5 位小数；按 `@fill` / `@stroke` 分进 `path` / `fillPath` / `strokePath` 三层，
+/// 两者都是 none 的路径不画。
+fn path_data(geom: &CustomGeom, ext: Option<Extent>) -> Option<Map<String, Value>> {
+    let (mut fill_only, mut stroke_only, mut both) = (Vec::new(), Vec::new(), Vec::new());
+    for p in &geom.paths {
+        if p.fill_none && p.stroke_none {
+            continue;
+        }
+        let vw = p.w.or(ext.map(|e| e.cx)).filter(|&v| v != 0).unwrap_or(1) as f64;
+        let vh = p.h.or(ext.map(|e| e.cy)).filter(|&v| v != 0).unwrap_or(1) as f64;
+        let mut parts: Vec<String> = Vec::new();
+        for c in &p.cmds {
+            parts.push(c.letter().to_string());
+            for pt in c.points() {
+                parts.push(norm(pt[0] as f64 / vw));
+                parts.push(norm(pt[1] as f64 / vh));
+            }
+        }
+        if parts.is_empty() {
+            continue;
+        }
+        let d = parts.join(" ");
+        match (p.fill_none, p.stroke_none) {
+            (true, _) => stroke_only.push(d),
+            (_, true) => fill_only.push(d),
+            _ => both.push(d),
+        }
+    }
+    let mut o = Map::new();
+    for (key, list) in [("path", both), ("fillPath", fill_only), ("strokePath", stroke_only)] {
+        if !list.is_empty() {
+            set(&mut o, key, list.join(" "));
+        }
+    }
+    (!o.is_empty()).then_some(o)
+}
+
+/// 归一化坐标：5 位小数，去掉 `-0`。
+fn norm(v: f64) -> String {
+    let r = (v * 100_000.0).round() / 100_000.0;
+    let r = if r == 0.0 { 0.0 } else { r };
+    format!("{r}")
 }
 
 fn fill_and_line(
