@@ -260,7 +260,7 @@ fn edit_03_remove_bookmark() {
 
 // ---- 字段操作（`FLD-09`–`FLD-12`，任务 2.9）----------------------------------------------------
 
-use rsword::edit::{NewField, NewInline, NewRun};
+use rsword::edit::{LinkDest, LinkRef, NewField, NewInline, NewRun};
 use rsword::semantic::props::{Change, RunPropsPatch};
 use rsword::span::FieldId;
 use rsword::span::field::{FormData, Keyword, read_form_data};
@@ -325,7 +325,10 @@ fn fld_07_set_link_target_only_rewrites_the_instruction() {
     ));
     let id = field_id(&s, &Keyword::Hyperlink);
     s.apply(
-        EditOp::SetLinkTarget { field: id, target: "https://new.example/".into() },
+        EditOp::SetLinkTarget {
+            link: LinkRef::Field(id),
+            target: LinkDest::Url("https://new.example/".into()),
+        },
         &EditContext::default(),
     )
     .unwrap();
@@ -472,4 +475,53 @@ fn fld_09_update_block_field_and_lock() {
     );
     assert!(xml.contains(r#"w:dirty="true""#), "mark_updated_fields_dirty: {xml}");
     assert_eq!(xml.matches("<w:fldChar").count(), 3, "结构 run 都在: {xml}");
+}
+
+/// `w:hyperlink` 元素的目标：外部 URL 按 `EDIT-06` 分配关系并写 `r:id`，改成书签时
+/// 换成 `w:anchor` 并去掉 `r:id`（两者互斥）。
+#[test]
+fn fld_07_set_link_target_on_a_hyperlink_element() {
+    let mut s = session(
+        r#"<w:p><w:hyperlink w:anchor="bm"><w:r><w:t>去书签</w:t></w:r></w:hyperlink></w:p>"#,
+    );
+    let dom = s.dom();
+    let link = dom
+        .descendants(dom.root())
+        .find(|&n| dom.is(n, rsword::xml::QName::w(rsword::xml::LocalName::Hyperlink)))
+        .unwrap();
+    let ctx = EditContext::default();
+    s.apply(
+        EditOp::SetLinkTarget {
+            link: LinkRef::Element(link),
+            target: LinkDest::Url("https://example.org/".into()),
+        },
+        &ctx,
+    )
+    .unwrap();
+    let xml = saved_xml(&mut s);
+    assert!(xml.contains("r:id="), "写了关系 id: {xml}");
+    assert!(!xml.contains("w:anchor="), "互斥属性去掉: {xml}");
+    let rels = {
+        let bytes = s.save().unwrap();
+        let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes)).unwrap();
+        let mut f = z.by_name("word/_rels/document.xml.rels").unwrap();
+        let mut t = String::new();
+        std::io::Read::read_to_string(&mut f, &mut t).unwrap();
+        t
+    };
+    assert!(
+        rels.contains("https://example.org/") && rels.contains(r#"TargetMode="External""#),
+        "{rels}"
+    );
+    // 再改回书签
+    s.apply(
+        EditOp::SetLinkTarget {
+            link: LinkRef::Element(link),
+            target: LinkDest::Anchor("other".into()),
+        },
+        &ctx,
+    )
+    .unwrap();
+    let xml = saved_xml(&mut s);
+    assert!(xml.contains(r#"w:anchor="other""#) && !xml.contains("r:id="), "{xml}");
 }

@@ -583,8 +583,10 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   - **书签**：`AddBookmark`（`w:id` 按 `EDIT-06` 取 part 最大值 + 1，名字全文档唯一，空区间两端
     同向）、`RemoveBookmark`（按名字删标记并在索引里作废）。
   - **字段**：`InsertField`（`FLD-12` 五组 run，指令前后各一个空格 + `xml:space="preserve"`，
-    结构 run 带插入点的继承格式）、`SetLinkTarget`（`FLD-07`：只重写 `instrText`，第一个参数之后的
-    开关原文保留；指令拆在多个 `w:instrText` 里时首个写全量、其余清空）、`ToggleCheckbox` 与
+    结构 run 带插入点的继承格式）、`SetLinkTarget`（`FLD-07`，两种链接都覆盖：HYPERLINK
+    字段只重写 `instrText`——第一个参数之后的开关原文保留，指令拆在多个 `w:instrText` 里时首个
+    写全量、其余清空；`w:hyperlink` 元素改 `r:id`（外部 URL 先按 `EDIT-06` 分配关系）或
+    `w:anchor`，两个属性互斥所以设一个删另一个）、`ToggleCheckbox` 与
     `SetFormText`（`FLD-10`：改 `w:checked` / 结果 run，`w:ffData` 的 `default` 不动）、
     `SetFieldResultProps`（`FLD-07`：只对结果 run 走 `PROP-06`）、`UpdateBlockField`（`FLD-09`
     机制：`w:fldLock` → `Err(FLD_LOCKED)`；跨段字段按段落级替换、同段字段把新块的 inline 内联进去；
@@ -592,8 +594,8 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   - **compat**：`NewInline::Field` 让 `runsXml` 能重发字段类 run——`xeTerm` 发成没有 separate 的
     `Marker` 字段，`refField` 用 `refInstr` **原文**发指令（`\r` `\h` 逐字保留）。保存语料
     88 → **90 份等价**，跳过 70 → 68（剩下的 `instrField` / `fldBeginXml` 要 begin run 原字节，M7）。
-  - 测试 `tests/para_ops.rs` 16 个：段落拆分（段中 / 边界 / `SPAN-06` 锚点 / 透明字段拒绝）、
+  - 测试 `tests/para_ops.rs` 17 个：段落拆分（段中 / 边界 / `SPAN-06` 锚点 / 透明字段拒绝）、
     合并（保留前段 pPr / 锚点重定位 / 下一个块不是段落）、书签（`EDIT-06` 分配 / 重名拒绝 / 空书签 /
     删除）、字段（`FLD-12` 五组 run 顺序与 `xml:space`、`SetLinkTarget` 保开关、复选框来回切、
-    FORMTEXT 保格式、结果格式只动结果、`UpdateBlockField` 与 `FLD_LOCKED`）。
+    FORMTEXT 保格式、结果格式只动结果、`UpdateBlockField` 与 `FLD_LOCKED`、`w:hyperlink` 元素的目标来回改）。
 - [ ] 2.10 `fuzz_instr` 与 M2 门

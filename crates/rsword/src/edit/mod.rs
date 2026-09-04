@@ -118,8 +118,9 @@ pub enum EditOp {
     RemoveBookmark { name: String },
     /// `FLD-12 InsertField`：生成 begin / instrText / separate / 结果 / end 五组 run。
     InsertField { at: InlinePos, field: NewField },
-    /// `FLD-07 Link`：改 HYPERLINK 字段的目标（只重写 `instrText`，开关原样保留）。
-    SetLinkTarget { field: FieldId, target: String },
+    /// `FLD-07 Link`：改链接目标。HYPERLINK 字段只重写 `instrText`（开关原样保留）；
+    /// `w:hyperlink` 元素改 `r:id`（外部 URL 按 `EDIT-06` 分配关系）或 `w:anchor`。
+    SetLinkTarget { link: LinkRef, target: LinkDest },
     /// `FLD-10`：FORMCHECKBOX 的 `w:checked` 取反。
     ToggleCheckbox { field: FieldId },
     /// `FLD-10`：FORMTEXT 的结果文字。
@@ -128,6 +129,26 @@ pub enum EditOp {
     SetFieldResultProps { field: FieldId, patch: RunPropsPatch },
     /// `FLD-09`：用给定的块替换块字段的 `separate..end`（生成器在 M7；`w:fldLock` 拒绝）。
     UpdateBlockField { field: FieldId, blocks: Vec<NewBlock> },
+}
+
+/// `SetLinkTarget` 要改哪个链接。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LinkRef {
+    /// HYPERLINK 字段。
+    Field(FieldId),
+    /// `w:hyperlink` 元素。
+    Element(NodeId),
+}
+
+/// 链接目标。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LinkDest {
+    /// 外部 URL。`w:hyperlink` 会先按 `EDIT-06` 分配一条外部关系。
+    Url(String),
+    /// 文内书签（字段写 `\l "name"`，元素写 `w:anchor`）。
+    Anchor(String),
+    /// 已有的关系 id（只用于 `w:hyperlink`）。
+    Rel(String),
 }
 
 /// `FLD-12` 的新字段。`instr` 是指令原文（不含首尾空格，生成时补上）。

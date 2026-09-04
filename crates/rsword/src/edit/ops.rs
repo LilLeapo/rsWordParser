@@ -6,6 +6,7 @@ use crate::diag::{DiagCode, Diagnostic};
 use crate::error::{Error, Result};
 use crate::model::block::TextBlock;
 use crate::model::inline::{Inline, Run, Segment, SegmentKind, utf16_len};
+use crate::package::RelType;
 use crate::semantic::props::{
     ParaPropsPatch, RunPropsPatch, emit_run_props, plan_apply_para_props, plan_apply_run_props,
 };
@@ -41,7 +42,7 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::AddBookmark { name, from, to } => add_bookmark(s, &name, from, to),
         EditOp::RemoveBookmark { name } => remove_bookmark(s, &name),
         EditOp::InsertField { at, field } => insert_field(s, at, &field, ctx),
-        EditOp::SetLinkTarget { field, target } => set_link_target(s, field, &target),
+        EditOp::SetLinkTarget { link, target } => set_link_target(s, link, &target),
         EditOp::ToggleCheckbox { field } => toggle_checkbox(s, field),
         EditOp::SetFormText { field, text } => set_form_text(s, field, &text),
         EditOp::SetFieldResultProps { field, patch } => set_field_result_props(s, field, &patch),
@@ -1770,11 +1771,56 @@ fn insert_field(
     Ok(result)
 }
 
-/// `FLD-07 Link`：改 HYPERLINK 字段的目标——只重写 `instrText` 的文本，其他开关原样。
+/// `FLD-07 Link`：改链接目标。
 fn set_link_target(
     s: &mut EditSession,
+    link: super::LinkRef,
+    target: &super::LinkDest,
+) -> Result<MutationResult> {
+    match link {
+        super::LinkRef::Field(id) => set_field_link_target(s, id, target),
+        super::LinkRef::Element(node) => set_hyperlink_target(s, node, target),
+    }
+}
+
+/// `w:hyperlink` 元素：外部 URL 先按 `EDIT-06` 分配关系，再改 `r:id`；书签改 `w:anchor`。
+/// 两个属性互斥（Word 只认一个），所以设一个就删另一个。
+fn set_hyperlink_target(
+    s: &mut EditSession,
+    node: NodeId,
+    target: &super::LinkDest,
+) -> Result<MutationResult> {
+    let part = s.main_part();
+    if !s.dom().is(node, w(LocalName::Hyperlink)) {
+        return Err(Error::edit(DiagCode::EditBadPosition, "节点不是 w:hyperlink"));
+    }
+    let rid_q = QName::new(NsId::R, LocalName::Id);
+    let anchor_q = w(LocalName::Anchor);
+    let (set, remove, value) = match target {
+        super::LinkDest::Url(url) => {
+            let rid = s.add_external_relationship(part, RelType::Hyperlink, url)?;
+            (rid_q, anchor_q, rid)
+        }
+        super::LinkDest::Rel(rid) => (rid_q, anchor_q, rid.clone()),
+        super::LinkDest::Anchor(name) => (anchor_q, rid_q, name.clone()),
+    };
+    let dom = s.dom();
+    let mut plan = MutationPlan::new(part);
+    if let Some(p) = dom.ancestors(node).find(|&a| dom.is(a, w(LocalName::P))) {
+        plan.touch(p);
+    }
+    plan.node_edits.push(NodeEdit::SetAttr { node: Target::Node(node), name: set, value });
+    if dom.attr(node, remove).is_some() {
+        plan.node_edits.push(NodeEdit::RemoveAttr { node: Target::Node(node), name: remove });
+    }
+    s.commit_plan(plan)
+}
+
+/// HYPERLINK 字段：只重写 `instrText` 的文本，第一个参数之后的开关原文保留。
+fn set_field_link_target(
+    s: &mut EditSession,
     id: crate::span::FieldId,
-    target: &str,
+    target: &super::LinkDest,
 ) -> Result<MutationResult> {
     let part = s.main_part();
     let f = field_of(s, id)?;
@@ -1789,11 +1835,21 @@ fn set_link_target(
     let dom = s.dom();
     // 保留除第一个参数之外的全部原文（开关 `\o "tip"` 等）
     let rest = remaining_after_first_argument(&raw);
-    let text = if rest.is_empty() {
-        format!(" HYPERLINK \"{target}\" ")
-    } else {
-        format!(" HYPERLINK \"{target}\" {rest} ")
+    let head = match target {
+        super::LinkDest::Url(url) => format!("HYPERLINK \"{url}\""),
+        // 文内链接：Word 写 `HYPERLINK \l "bookmark"`
+        super::LinkDest::Anchor(name) => format!("HYPERLINK \\l \"{name}\""),
+        super::LinkDest::Rel(_) => {
+            return Err(unsupported("字段形式的链接没有关系 id（用 LinkDest::Url）"));
+        }
     };
+    let rest = if matches!(target, super::LinkDest::Anchor(_)) {
+        // `\l` 自己就是开关，去掉原来的 `\l`
+        rest.split_whitespace().collect::<Vec<_>>().join(" ").replace("\\l ", "")
+    } else {
+        rest
+    };
+    let text = if rest.is_empty() { format!(" {head} ") } else { format!(" {head} {rest} ") };
     let mut plan = MutationPlan::new(part);
     if let Some(p) = dom.ancestors(instr_nodes[0]).find(|&a| dom.is(a, w(LocalName::P))) {
         plan.touch(p);

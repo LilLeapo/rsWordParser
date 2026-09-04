@@ -61,7 +61,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
 | 源码行数 / 文件数 | 24,189 行 / 61 个（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 257（单元 + 集成，17 个集成测试文件） | `cargo test --workspace` |
+| 测试数 | 258（单元 + 集成，17 个集成测试文件） | `cargo test --workspace` |
 | 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 16 份 hostile | `ls corpus/*` |
 | 往返字节保真 | 589 份文档、3,093 个 XML part 全部字节相同 | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
@@ -74,7 +74,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | Span 编辑与物化 | 29 个用例覆盖 `SPAN-01`–`SPAN-09`（含 4 条变换规则、整体删除策略、物化与原字节保真） | `cargo test -p rsword --test span` |
 | 字段索引 | 43 份文档 / 57 个字段（`Atom` 33、`Block` 6、`Picture` 6、`Form` 4、`Link` 3、`Object` 3、`Marker` 1、`Unknown` 1）；3 份 TS 截断夹具本来就缺 `end` | `cargo test -p rsword --test field -- --nocapture` |
 | 字段模型与 compat | 19 个用例（配对 / 指令 / 策略 / 坐标流 / R09 / 折叠 run / `fieldDisplay`） | `cargo test -p rsword --test field` |
-| 段落 / 书签 / 字段操作 | 16 个用例（`SPAN-06` 拆分与合并、`EDIT-06` 书签分配、`FLD-09`/`10`/`12` 各自的验收行） | `cargo test -p rsword --test para_ops` |
+| 段落 / 书签 / 字段操作 | 17 个用例（`SPAN-06` 拆分与合并、`EDIT-06` 书签分配、`FLD-09`/`10`/`12` 各自的验收行） | `cargo test -p rsword --test para_ops` |
 | 批注与注释 | 语料 11 份带批注（17 条）、5 条注释条目；13 个用例（三部件关联、结构条目、`commentIds` 三形态、`noteRef` 编号、`SAVE-05` 新建 part、三个编辑操作、compat 权威列表） | `cargo test -p rsword --test notes` |
 
 全域差异按域聚合（差异点，2.6 读侧之后实测 1,666）：绘图与图片 839、块分类连带项 394、
