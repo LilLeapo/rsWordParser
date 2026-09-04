@@ -13,9 +13,11 @@ use super::decl::{
     NumberingOut, auto_space, i32_of, jc_align, list_kind, parse_int, strip_hash, tab_stops,
     u32_of, val_text,
 };
+use super::image;
+use super::media::MediaMap;
 use super::utf16::Utf16Index;
 use crate::model::{
-    AtomKind, Block, BreakKind, Document, Inline, LinkTarget, ProtectedKind, Revision,
+    AtomKind, Block, BreakKind, Display, Document, Inline, LinkTarget, ProtectedKind, Revision,
     RevisionMeta, Run, SegmentKind, StyleType, TextBlock, TextKind,
 };
 use crate::package::{RelTarget, Rels};
@@ -38,6 +40,8 @@ pub(super) struct Ctx<'a> {
     pub idx: &'a Utf16Index,
     pub rels: &'a Rels,
     pub numbering: &'a NumberingOut,
+    /// 主 part 的媒体预取表（`bind::compat_ts::media`）。
+    pub media: &'a MediaMap,
     disp_cache: RefCell<HashMap<(String, StyleType), StyleDisp>>,
 }
 
@@ -57,12 +61,27 @@ impl<'a> Ctx<'a> {
         idx: &'a Utf16Index,
         rels: &'a Rels,
         numbering: &'a NumberingOut,
+        media: &'a MediaMap,
     ) -> Ctx<'a> {
-        Ctx { dom, doc, resolver, idx, rels, numbering, disp_cache: RefCell::new(HashMap::new()) }
+        Ctx {
+            dom,
+            doc,
+            resolver,
+            idx,
+            rels,
+            numbering,
+            media,
+            disp_cache: RefCell::new(HashMap::new()),
+        }
     }
 
     fn slice(&self, r: &Range<u32>) -> &'a str {
         self.dom.lex_str(r)
+    }
+
+    /// 一个节点的原字节（`COMPAT-04`：TS 的各种 `xml` 字段都是原文切片）。
+    pub(super) fn node_xml(&self, node: NodeId) -> &'a str {
+        self.slice(&self.lex_range(node))
     }
 
     fn u16(&self, byte: u32) -> u32 {
@@ -192,6 +211,7 @@ pub(super) fn body(ctx: &Ctx<'_>) -> (Vec<Value>, Vec<Value>) {
         elements.push(element_json(ctx, &lex_name, &range));
         blocks.push(Value::Object(body_block(ctx, child, name, &lex_name, &range, i, &by_node)));
     }
+    image::normalize_z_orders(&mut blocks);
     (elements, blocks)
 }
 
@@ -538,9 +558,35 @@ fn paragraph_block(
                 o
             }
         },
-        Some(Block::Image(_)) => {
+        Some(Block::Image(b)) => {
             let mut o = o;
-            set(&mut o, "type", "image");
+            let drawing = b.display.as_ref().and_then(Display::as_drawing);
+            let media = drawing
+                .and_then(|d| d.picture.as_ref())
+                .and_then(|p| ctx.media.pick(p.embed.as_deref(), p.link.as_deref()));
+            match media {
+                Some(m) => {
+                    set(&mut o, "type", "image");
+                    set(&mut o, "label", "Image");
+                    set(&mut o, "imageDataUrl", m.url.clone());
+                }
+                // 媒体解析不出来：TS 退成只读的 `Image` 块并标 brokenImage，预览文字取 docPr。
+                // 只对 DrawingML 图片这么做——VML 图片（`w:pict`）的显示模型在 4.5，
+                // 那之前它没有 `display`，不能据此断定媒体坏了。
+                None if drawing.is_some_and(|d| d.picture.is_some()) => {
+                    o = passthrough(o, "Image");
+                    set(&mut o, "brokenImage", true);
+                    let preview = drawing
+                        .map(|d| &d.doc_pr)
+                        .and_then(|d| d.descr.clone().or_else(|| d.name.clone()))
+                        .unwrap_or_default();
+                    set(&mut o, "previewText", preview);
+                }
+                None => set(&mut o, "type", "image"),
+            }
+            if let Some(d) = drawing {
+                image::image_meta(ctx, Some(p), d, &mut o);
+            }
             o
         }
         _ => {
@@ -1161,11 +1207,16 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
             _ => {}
         }
     }
-    if text.is_empty() {
+    // TS `buildRun(withImages)`：run 里的图片成为一个 `text: ""` 的原子 run。
+    let image = run.segments.iter().find_map(|s| image::run_image(ctx, s));
+    if text.is_empty() && image.is_none() {
         return None;
     }
     let mut o = Map::new();
     set(&mut o, "text", text);
+    if let Some(img) = image {
+        set(&mut o, "image", Value::Object(img));
+    }
     if let Some(link) = &run.link {
         match link {
             crate::model::Link::Hyperlink { target, tooltip, .. } => {

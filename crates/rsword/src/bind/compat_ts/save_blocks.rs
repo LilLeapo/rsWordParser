@@ -21,7 +21,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 
 use serde_json::Value;
 
-use crate::bind::compat_ts::{blocks, parsed_doc_of};
+use crate::bind::compat_ts::{MediaMap, blocks, parsed_doc_of};
 use crate::diag::DiagCode;
 use crate::edit::ops::ppr_of;
 use crate::edit::{
@@ -125,7 +125,8 @@ pub fn apply_save_blocks(
     let save_options = save_options_of(options)?;
     let final_blocks =
         final_blocks.as_array().ok_or_else(|| unsupported("finalBlocks 不是数组"))?;
-    let parsed = parsed_doc_of(session.package(), session.document());
+    // 保存路径按 docxIndex / 原字节匹配块，用不到图片 dataURL，给一张空的媒体表即可。
+    let parsed = parsed_doc_of(session.package(), session.document(), &MediaMap::default());
     let body = session
         .document()
         .body

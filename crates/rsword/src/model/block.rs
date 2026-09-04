@@ -1,5 +1,6 @@
 //! 块模型（`MOD-02`、`MOD-03`、`MOD-08`、`MOD-09`，`docs/03` §6.3）。
 
+use crate::model::drawing::Display;
 use crate::model::facts::ParagraphFacts;
 use crate::model::inline::{Inline, RevisionMeta};
 use crate::semantic::props::{ParaProps, RunProps};
@@ -111,10 +112,12 @@ pub struct TableBlock {
     pub revisions: Vec<Revision>,
 }
 
-/// 只含一张图片的段落（`MOD-05` R15）。显示模型在 M3。
+/// 只含一张图片的段落（`MOD-05` R15）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImageBlock {
     pub node: NodeId,
+    /// 该段唯一那个绘图的显示模型（`MOD-11`）。VML 图片（`w:pict`）的显示模型在 4.5。
+    pub display: Option<Display>,
     pub sdt: Option<SdtInfo>,
     pub revisions: Vec<Revision>,
 }

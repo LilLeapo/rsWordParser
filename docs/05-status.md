@@ -28,7 +28,7 @@ run 属性 / 改段落属性 / 整段替换、把 TS 的 `SaveBlock[]` 保存请
 | resolve `resolve/` | 首版 | 样式链（basedOn / link）、docDefaults 层叠、每字段 `Provenance`、主题字体与颜色、heading 级别、DrawingML 颜色算法（M4 4.2） | toggle 属性真实规则 + Word 实测 fixture（M5） |
 | L4 编辑 `edit/` | M1 子集 | `EditSession`、`InlinePos` 定位、`MutationPlan` plan/validate/commit、按 part 回滚的事务、`InsertText`、`DeleteRange`（同段）、`SetRunProps`、`SetParaProps`、`ReplaceInlines`、`ReplaceParaProps`、`InsertBlock`/`DeleteBlock`/`MoveBlock` | Anchor 变换、字段操作、拆分 / 合并段落（M2）、表格操作（M3）、修订生成（M7） |
 | 保存 `save/` | M1 子集 | `SAVE-01` 六步编排、`SAVE-02` 子集校验（未绑定前缀、`PROP-05` 顺序）、扩展命名空间声明、`w:t` preserve、`raw_copy_file` 写回、`SaveOptions`（`saved_at`、`remove_personal_info`、`remove_date_and_time`） | Span 物化（M2）、节 / 页眉页脚 / 水印 / 图表 / 墨迹等选项（M3–M6） |
-| 兼容 `bind/compat_ts/` | 文本完成 | `parsed_doc` 整份 `ParsedDoc`（含 `extras`、UTF-16 索引、sdt 拆分）、`apply_save_blocks`（original / generated / xml 块）、容忍差分 | 表格 / 绘图 / 字段 / 页眉页脚字段（随对应里程碑） |
+| 兼容 `bind/compat_ts/` | 文本 + 图片 | `parsed_doc` 整份 `ParsedDoc`（含 `extras`、UTF-16 索引、sdt 拆分）、`apply_save_blocks`（original / generated / xml 块）、容忍差分、图片段落与 run 内图片的 `image*` 投影（M4 4.4） | 表格 / 文本框 / VML / OLE / 字段 / 页眉页脚字段（随对应里程碑） |
 
 ## 公开 API 边界（今天可用的）
 
@@ -56,8 +56,8 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
-| 源码行数 / 文件数 | 26,172 行 / 65 个 `src` 文件（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l`；文件数是 `find crates/rsword/src -name '*.rs' \| wc -l` |
-| 测试数 | 185（单元 + 集成，15 个集成测试文件） | `cargo test --workspace` |
+| 源码行数 / 文件数 | 26,827 行 / 67 个 `src` 文件（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l`；文件数是 `find crates/rsword/src -name '*.rs' \| wc -l` |
+| 测试数 | 187（单元 + 集成，15 个集成测试文件） | `cargo test --workspace` |
 | 媒体解析 | 585 份文档 104 处 `a:blip` / `v:imagedata` 引用：包内 93（89 位图 + 4 metafile）、外链 4、文档本身就坏 7 | `cargo test -p rsword --test media -- --nocapture` |
 | DrawingML 颜色 | 573 份文档正文里 89 个颜色容器、17 种取值，全部能定出 sRGB | `cargo test -p rsword --test resolve -- --nocapture` |
 | 绘图事实 | 112 个 `w:drawing`（85 形状 / 18 图片 / 8 组），锚定 102；122 项 `wp:extent` 与 TS 的 `imageWidthPx/HeightPx` 一致 | `cargo test -p rsword --test drawing -- --nocapture` |
@@ -67,7 +67,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 模型对照 | 445 段类型 / styleId、387 段坐标流文本、22 项列表、9 项级别 | `tests/model.rs` |
 | resolve 对照 | 86,465 项 `StyleDisplay`、2,326 项 heading 级别、2,897 项 linked shell | `tests/resolve.rs` |
 | 解析差分（文本域） | 223 份用例，165 处已登记差异，**0 处未知差异** | `cargo run -p diff-parse -- --scope text` |
-| 解析差分（全域） | 573 份里 341 份有未知差异、1,925 个差异点（M2–M6 的工作面） | `cargo run -p diff-parse -- --scope all` |
+| 解析差分（全域） | 573 份里 300 份有未知差异、1,560 个差异点（M4 4.1–4.4 落地后，从 341 份 / 1,925 点降下来） | `cargo run -p diff-parse -- --scope all` |
 | 保存差分 | 162 份 TS 保存用例：77 份与 `saveDocx` 等价（其中 41 份逐字节相同）、3 份有意不同、82 份跳过 | `tests/save_blocks.rs` |
 
 全域差异按域聚合（差异点）：绘图与图片约 830、块分类连带项 493、run 相关（字段 / 批注 / 符号字体）220、

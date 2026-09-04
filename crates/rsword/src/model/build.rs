@@ -337,7 +337,14 @@ impl<'a> Builder<'a> {
                 sdt: sdt.cloned(),
                 revisions,
             }),
-            ParaClass::Image => Block::Image(ImageBlock { node: p, sdt: sdt.cloned(), revisions }),
+            ParaClass::Image => {
+                // R15 保证该段恰有一个绘图或一个 VML 图片；取绘图的显示模型（VML 在 4.5）。
+                let display = facts
+                    .drawings
+                    .first()
+                    .map(|d| Display::Drawing(Box::new(drawing_display(dom, d.node))));
+                Block::Image(ImageBlock { node: p, display, sdt: sdt.cloned(), revisions })
+            }
             ParaClass::Text => {
                 let mut inlines = Vec::new();
                 self.build_inlines(p, None, None, &mut inlines);
