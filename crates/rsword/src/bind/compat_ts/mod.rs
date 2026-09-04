@@ -18,6 +18,7 @@ pub mod diff;
 mod image;
 pub mod media;
 pub mod save_blocks;
+mod textbox;
 pub mod utf16;
 
 pub use diff::{

@@ -843,6 +843,7 @@ themeFillTint
 themeFontLang
 themeShade
 themeTint
+tile
 tIns
 tint
 Title=UTitle

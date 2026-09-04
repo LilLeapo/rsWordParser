@@ -57,6 +57,115 @@ pub struct DrawingDisplay {
     pub doc_pr: DocPr,
     /// `pic:pic`（`DrawingKind::Picture`）。图表 / SmartArt 的载荷在 M6。
     pub picture: Option<ImageDisplay>,
+    /// `wps:wsp` 形状与 `wpg` 组，文档序；组内形状排在组之后，`group` 指回组。
+    pub shapes: Vec<ShapeDisplay>,
+}
+
+/// 一个 `wps:wsp` 形状，或一个 `wpg:wgp` / `wpg:grpSp` 组。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShapeDisplay {
+    pub node: NodeId,
+    /// 组本身（`wpg`）不画东西，只提供子坐标系。
+    pub is_group: bool,
+    /// `wps:cNvPr/@id`：保存路径要靠它往形状里塞新的 `wps:txbx`。
+    pub cnv_id: Option<String>,
+    /// `a:prstGeom/@prst`：预设几何名（`rect` / `line` / `straightConnector1` …）。
+    pub prst: Option<String>,
+    /// 有 `a:custGeom`：自定义路径几何。
+    pub cust_geom: bool,
+    /// `a:xfrm/a:ext`（EMU）。
+    pub ext: Option<Extent>,
+    /// `a:xfrm/a:off`（EMU）。
+    pub off: Option<(i64, i64)>,
+    /// 组的子坐标系原点与尺寸（`a:chOff` / `a:chExt`），用来算组内形状的仿射。
+    pub ch_off: Option<(i64, i64)>,
+    pub ch_ext: Option<Extent>,
+    /// `a:xfrm/@rot`，1/60000 度。
+    pub rot_60k: Option<i64>,
+    pub flip_h: bool,
+    pub flip_v: bool,
+    /// `spPr` 的填充。
+    pub fill: Option<FillDisplay>,
+    /// `spPr/a:ln`。
+    pub line: Option<LineDisplay>,
+    /// `wps:style/a:fillRef` / `a:lnRef`：主题引用，`idx > 0` 时补缺省颜色。
+    pub fill_ref: Option<StyleRef>,
+    pub line_ref: Option<StyleRef>,
+    /// `wps:style/a:fontRef`：图库形状的文字颜色出处（缺省蓝形状引用 `lt1`，所以 Word 里
+    /// 不写任何 run 颜色也显示白字）。
+    pub font_ref: Option<StyleRef>,
+    /// `spPr/a:effectLst` 里有内容（阴影等）。空形状判定要看它。
+    pub has_effects: bool,
+    /// `wps:bodyPr`。
+    pub body: Option<BodyPr>,
+    /// `wps:txbx/w:txbxContent`：框里的独立内容流。
+    pub txbx: Option<NodeId>,
+    /// 所属组在 `shapes` 里的下标。
+    pub group: Option<usize>,
+}
+
+impl ShapeDisplay {
+    /// 有可见的填充、描边或图片——空形状据此判断要不要留下（TS `buildWpsBox`）。
+    pub fn has_paint(&self) -> bool {
+        self.fill.as_ref().is_some_and(|f| f.kind != FillKind::None)
+            || self.line.as_ref().is_some_and(|l| !l.no_fill && l.fill.is_some())
+            || self.fill_ref.is_some()
+    }
+}
+
+/// `spPr` 的填充种类。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FillKind {
+    /// `a:noFill`
+    None,
+    Solid,
+    Gradient,
+    Pattern,
+    /// `a:blipFill`：图片填充。
+    Blip,
+    /// `a:grpFill`：继承所在 `wpg` 组的填充。
+    Group,
+}
+
+/// 填充。颜色留原始定义（容器节点），解析成 sRGB 走 [`crate::resolve::drawingml`]。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FillDisplay {
+    pub node: NodeId,
+    pub kind: FillKind,
+    /// `a:blipFill/a:blip/@r:embed`。
+    pub blip: Option<String>,
+    /// `a:blipFill/a:tile`：平铺而非拉伸。
+    pub tile: bool,
+}
+
+/// `a:fillRef` / `a:lnRef`：主题样式引用。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StyleRef {
+    pub node: NodeId,
+    /// `@idx`：0 表示「无」。
+    pub idx: Option<i64>,
+}
+
+/// `wps:bodyPr`：文字框的内边距与对齐。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct BodyPr {
+    /// `@lIns` / `@tIns` / `@rIns` / `@bIns`（EMU）。缺省值由投影层按 OOXML 补。
+    pub l_ins: Option<i64>,
+    pub t_ins: Option<i64>,
+    pub r_ins: Option<i64>,
+    pub b_ins: Option<i64>,
+    /// `@anchor`：`t` / `ctr` / `b`。
+    pub anchor: Option<Anchor>,
+    /// 有 `a:spAutoFit`：框高随文字自适应。
+    pub auto_fit: bool,
+}
+
+/// `wps:bodyPr/@anchor`。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Anchor {
+    Top,
+    Center,
+    Bottom,
 }
 
 /// `wp:extent` / `a:ext`：EMU 宽高。
@@ -200,6 +309,16 @@ pub struct LineDisplay {
     pub fill: Option<NodeId>,
     /// `a:prstDash/@val`。
     pub dash: Option<String>,
+    /// `a:headEnd/@type` / `a:tailEnd/@type`（`none` 视为没有箭头）。
+    pub head_end: Option<String>,
+    pub tail_end: Option<String>,
+}
+
+impl LineDisplay {
+    /// 两端任一有箭头。
+    pub fn arrowed(&self) -> bool {
+        [&self.head_end, &self.tail_end].iter().any(|e| e.as_deref().is_some_and(|t| t != "none"))
+    }
 }
 
 // ---- 解析 ---------------------------------------------------------------------------------------
@@ -213,25 +332,184 @@ pub fn drawing_display(dom: &Dom, drawing: NodeId) -> DrawingDisplay {
         extent: None,
         doc_pr: DocPr::default(),
         picture: None,
+        shapes: Vec::new(),
     };
     let mut pic_node = None;
-    for n in walk(dom, drawing) {
-        let Some(name) = dom.name(n) else { continue };
-        match (name.ns, name.local) {
-            (NsId::Wp, LocalName::Anchor) => d.anchor = Some(anchor_geom(dom, n)),
-            (NsId::Wp, LocalName::Extent) if d.extent.is_none() => d.extent = extent_of(dom, n),
-            (NsId::Wp, LocalName::DocPr) => d.doc_pr = doc_pr(dom, n),
-            (NsId::A, LocalName::GraphicData) if d.kind == DrawingKind::Unknown => {
-                d.kind = crate::model::facts::graphic_data_kind(dom, n);
+    // 组的下标要在遍历时跟着走，所以这里用带父组的显式栈，而不是 `walk`。
+    let mut stack: Vec<(NodeId, u32, Option<usize>)> = vec![(drawing, 0, None)];
+    let mut scratch: Vec<NodeId> = Vec::new();
+    while let Some((n, depth, parent)) = stack.pop() {
+        let mut group = parent;
+        if let Some(name) = dom.name(n) {
+            match (name.ns, name.local) {
+                (NsId::Wp, LocalName::Anchor) => d.anchor = Some(anchor_geom(dom, n)),
+                (NsId::Wp, LocalName::Extent) if d.extent.is_none() => d.extent = extent_of(dom, n),
+                (NsId::Wp, LocalName::DocPr) => d.doc_pr = doc_pr(dom, n),
+                (NsId::A, LocalName::GraphicData) if d.kind == DrawingKind::Unknown => {
+                    d.kind = crate::model::facts::graphic_data_kind(dom, n);
+                }
+                (NsId::Pic, LocalName::Pic) if pic_node.is_none() => pic_node = Some(n),
+                (NsId::Wps, LocalName::Wsp) => d.shapes.push(shape_display(dom, n, false, parent)),
+                (NsId::Wpg, LocalName::Wgp | LocalName::GrpSp) => {
+                    d.shapes.push(shape_display(dom, n, true, parent));
+                    group = Some(d.shapes.len() - 1);
+                }
+                _ => {}
             }
-            (NsId::Pic, LocalName::Pic) if pic_node.is_none() => pic_node = Some(n),
-            _ => {}
+        }
+        if depth < MAX_DEPTH {
+            scratch.clear();
+            scratch.extend(dom.semantic_children(n).filter(|&c| !is_own_flow(dom, c)));
+            stack.extend(scratch.iter().rev().map(|&c| (c, depth + 1, group)));
         }
     }
     if let Some(pic) = pic_node {
         d.picture = Some(image_display(dom, pic));
     }
     d
+}
+
+/// `wps:wsp` / `wpg:wgp` / `wpg:grpSp` → [`ShapeDisplay`]。只看形状自己的属性子树，
+/// 不下钻进 `txbxContent`（框里的内容是独立内容流）。
+fn shape_display(dom: &Dom, node: NodeId, is_group: bool, group: Option<usize>) -> ShapeDisplay {
+    let mut s = ShapeDisplay {
+        node,
+        is_group,
+        cnv_id: None,
+        prst: None,
+        cust_geom: false,
+        ext: None,
+        off: None,
+        ch_off: None,
+        ch_ext: None,
+        rot_60k: None,
+        flip_h: false,
+        flip_v: false,
+        fill: None,
+        line: None,
+        fill_ref: None,
+        line_ref: None,
+        font_ref: None,
+        has_effects: false,
+        body: None,
+        txbx: None,
+        group,
+    };
+    // 只走形状自己的属性容器：`spPr` / `grpSpPr` / `style` / `bodyPr` / `txbx`。
+    for c in dom.semantic_children(node) {
+        let Some(name) = dom.name(c) else { continue };
+        match (name.ns, name.local) {
+            (NsId::Wps, LocalName::SpPr) | (NsId::Wpg, LocalName::GrpSpPr) => sp_pr(dom, c, &mut s),
+            (NsId::Wps, LocalName::Style) => {
+                for r in dom.semantic_children(c) {
+                    let Some(n) = dom.name(r) else { continue };
+                    let sr = StyleRef { node: r, idx: num(dom, r, LocalName::Idx) };
+                    match (n.ns, n.local) {
+                        (NsId::A, LocalName::FillRef) => s.fill_ref = Some(sr),
+                        (NsId::A, LocalName::LnRef) => s.line_ref = Some(sr),
+                        (NsId::A, LocalName::FontRef) => s.font_ref = Some(sr),
+                        _ => {}
+                    }
+                }
+            }
+            (NsId::Wps, LocalName::BodyPr) => s.body = Some(body_pr(dom, c)),
+            (NsId::Wps, LocalName::CNvPr) => s.cnv_id = attr(dom, c, NsId::None, LocalName::Id),
+            (NsId::Wps, LocalName::Txbx) => {
+                s.txbx = dom
+                    .semantic_children(c)
+                    .find(|&t| dom.is(t, QName::new(NsId::W, LocalName::TxbxContent)));
+            }
+            _ => {}
+        }
+    }
+    s
+}
+
+fn sp_pr(dom: &Dom, sp_pr: NodeId, s: &mut ShapeDisplay) {
+    for c in dom.semantic_children(sp_pr) {
+        let Some(name) = dom.name(c) else { continue };
+        if name.ns != NsId::A {
+            continue;
+        }
+        match name.local {
+            LocalName::Xfrm => {
+                s.rot_60k = num(dom, c, LocalName::Rot);
+                s.flip_h = flag(dom, c, LocalName::FlipH).unwrap_or(false);
+                s.flip_v = flag(dom, c, LocalName::FlipV).unwrap_or(false);
+                for g in dom.semantic_children(c) {
+                    let Some(gn) = dom.name(g) else { continue };
+                    match gn.local {
+                        LocalName::Off => s.off = xy(dom, g),
+                        LocalName::Ext => s.ext = extent_of(dom, g),
+                        LocalName::ChOff => s.ch_off = xy(dom, g),
+                        LocalName::ChExt => s.ch_ext = extent_of(dom, g),
+                        _ => {}
+                    }
+                }
+            }
+            LocalName::PrstGeom => s.prst = attr(dom, c, NsId::None, LocalName::Prst),
+            LocalName::CustGeom => s.cust_geom = true,
+            LocalName::GrpFill if s.fill.is_none() => {
+                s.fill =
+                    Some(FillDisplay { node: c, kind: FillKind::Group, blip: None, tile: false })
+            }
+            LocalName::NoFill if s.fill.is_none() => {
+                s.fill =
+                    Some(FillDisplay { node: c, kind: FillKind::None, blip: None, tile: false })
+            }
+            LocalName::SolidFill if s.fill.is_none() => {
+                s.fill =
+                    Some(FillDisplay { node: c, kind: FillKind::Solid, blip: None, tile: false })
+            }
+            LocalName::GradFill if s.fill.is_none() => {
+                s.fill =
+                    Some(FillDisplay { node: c, kind: FillKind::Gradient, blip: None, tile: false })
+            }
+            LocalName::PattFill if s.fill.is_none() => {
+                s.fill =
+                    Some(FillDisplay { node: c, kind: FillKind::Pattern, blip: None, tile: false })
+            }
+            LocalName::BlipFill if s.fill.is_none() => {
+                let mut blip = None;
+                let mut tile = false;
+                for b in dom.semantic_children(c) {
+                    match dom.name(b).map(|n| n.local) {
+                        Some(LocalName::Blip) => blip = attr(dom, b, NsId::R, LocalName::Embed),
+                        Some(LocalName::Tile) => tile = true,
+                        _ => {}
+                    }
+                }
+                s.fill = Some(FillDisplay { node: c, kind: FillKind::Blip, blip, tile });
+            }
+            LocalName::Ln if s.line.is_none() => s.line = Some(line_display(dom, c)),
+            LocalName::EffectLst => {
+                s.has_effects = dom.semantic_children(c).next().is_some();
+            }
+            _ => {}
+        }
+    }
+}
+
+fn body_pr(dom: &Dom, node: NodeId) -> BodyPr {
+    BodyPr {
+        l_ins: num(dom, node, LocalName::LIns),
+        t_ins: num(dom, node, LocalName::TIns),
+        r_ins: num(dom, node, LocalName::RIns),
+        b_ins: num(dom, node, LocalName::BIns),
+        anchor: match attr(dom, node, NsId::None, LocalName::Anchor).as_deref() {
+            Some("t") => Some(Anchor::Top),
+            Some("ctr") => Some(Anchor::Center),
+            Some("b") => Some(Anchor::Bottom),
+            _ => None,
+        },
+        auto_fit: dom
+            .semantic_children(node)
+            .any(|c| dom.is(c, QName::new(NsId::A, LocalName::SpAutoFit))),
+    }
+}
+
+fn xy(dom: &Dom, node: NodeId) -> Option<(i64, i64)> {
+    Some((num(dom, node, LocalName::X)?, num(dom, node, LocalName::Y)?))
 }
 
 /// `pic:pic` → [`ImageDisplay`]。
@@ -275,6 +553,8 @@ pub fn line_display(dom: &Dom, ln: NodeId) -> LineDisplay {
         no_fill: false,
         fill: None,
         dash: None,
+        head_end: None,
+        tail_end: None,
     };
     for c in dom.semantic_children(ln) {
         let Some(name) = dom.name(c) else { continue };
@@ -284,6 +564,9 @@ pub fn line_display(dom: &Dom, ln: NodeId) -> LineDisplay {
         match name.local {
             LocalName::NoFill => l.no_fill = true,
             LocalName::PrstDash => l.dash = attr(dom, c, NsId::None, LocalName::Val),
+            // 注意是小写的 `type`（`LocalName::Type`）；大写 `Type` 是 `UType`
+            LocalName::HeadEnd => l.head_end = attr(dom, c, NsId::None, LocalName::Type),
+            LocalName::TailEnd => l.tail_end = attr(dom, c, NsId::None, LocalName::Type),
             LocalName::SolidFill | LocalName::GradFill | LocalName::PattFill
                 if l.fill.is_none() =>
             {

@@ -15,6 +15,7 @@ use super::decl::{
 };
 use super::image;
 use super::media::MediaMap;
+use super::textbox;
 use super::utf16::Utf16Index;
 use crate::model::vml::vml_display;
 use crate::model::{
@@ -129,7 +130,16 @@ impl<'a> Ctx<'a> {
     }
 
     /// TS `plainText`：`w:t` 文本拼接，`</w:tc>` 边界补一个空格。
-    fn plain_text(&self, node: NodeId) -> String {
+    /// 容器（`w:txbxContent`）里每个 `w:p` 的文字，按文档序。
+    pub(super) fn para_texts(&self, container: NodeId) -> Vec<String> {
+        self.dom
+            .semantic_children(container)
+            .filter(|&c| self.dom.is(c, w(LocalName::P)))
+            .map(|c| self.plain_text(c))
+            .collect()
+    }
+
+    pub(super) fn plain_text(&self, node: NodeId) -> String {
         let dom = self.dom;
         let mut out = String::new();
         let mut pending_gap = false;
@@ -593,7 +603,11 @@ fn paragraph_block(
             image::ole_display(ctx, p, &v, &mut o);
             o
         }
-        Some(Block::Text(tb)) => text_block(ctx, tb, o),
+        // 绘图分支（`spec/15` 4.6）：文本框 / 绘图对象的分类整个在投影层，模型里这仍是可编辑段落。
+        Some(Block::Text(tb)) => match textbox::drawing_block(ctx, p, tb, o.clone()) {
+            Some(o) => o,
+            None => text_block(ctx, tb, o),
+        },
         Some(Block::Protected(pb)) => match &pb.kind {
             ProtectedKind::Invisible => {
                 let mut o = passthrough(o, "Hidden paragraph");
@@ -1223,7 +1237,7 @@ fn empty_para_font(ctx: &Ctx<'_>, p: NodeId, ppr: Option<NodeId>) -> Option<Stri
 
 // ---- Run（TS extractRuns / buildRun / mergeRuns）--------------------------------------------------------
 
-fn runs_json(ctx: &Ctx<'_>, tb: &TextBlock) -> Vec<Map<String, Value>> {
+pub(super) fn runs_json(ctx: &Ctx<'_>, tb: &TextBlock) -> Vec<Map<String, Value>> {
     let mut para_disp =
         tb.style_id.as_deref().map(|s| ctx.style_disp(s, StyleType::Paragraph)).unwrap_or_default();
     if tb.style_id.is_none()

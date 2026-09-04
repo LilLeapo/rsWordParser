@@ -99,6 +99,8 @@ pub struct VmlShape {
     pub hr: bool,
     /// 直接挂着 `v:textbox`。
     pub has_textbox: bool,
+    /// `v:textbox/w:txbxContent`：框里的独立内容流。
+    pub txbx: Option<NodeId>,
     /// 所属 `v:group` 在 `shapes` 里的下标。
     pub parent: Option<usize>,
 }
@@ -195,6 +197,7 @@ fn shape(dom: &Dom, n: NodeId, kind: VmlKind, parent: Option<usize>) -> VmlShape
             attr(dom, n, NsId::O, LocalName::Hr).is_some_and(|v| v == "t" || v == "true")
         }),
         has_textbox: false,
+        txbx: None,
         parent,
     };
     // 直接子节点上的图片 / WordArt 文字 / 文本框
@@ -210,7 +213,12 @@ fn shape(dom: &Dom, n: NodeId, kind: VmlKind, parent: Option<usize>) -> VmlShape
             LocalName::Textpath if s.textpath.is_none() => {
                 s.textpath = attr(dom, c, NsId::None, LocalName::String);
             }
-            LocalName::Textbox => s.has_textbox = true,
+            LocalName::Textbox => {
+                s.has_textbox = true;
+                s.txbx = dom
+                    .semantic_children(c)
+                    .find(|&t| dom.is(t, QName::new(NsId::W, LocalName::TxbxContent)));
+            }
             _ => {}
         }
     }

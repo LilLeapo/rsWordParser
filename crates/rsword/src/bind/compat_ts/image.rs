@@ -205,7 +205,8 @@ pub(super) fn ole_display(
 /// VML 预览图的声明尺寸：`v:shape` 的 `style`（磅）优先，退到 `w:object` 的
 /// `dxaOrig`/`dyaOrig`（缇，1 px = 15 缇）。
 fn vml_px(v: &VmlDisplay) -> (Option<i64>, Option<i64>) {
-    let shape = v.shapes.iter().find(|s| s.imagedata.is_some());
+    // 预览图所在的形状；没有 `v:imagedata` 时退到第一个形状（空 pict 也带 `style` 尺寸）。
+    let shape = v.shapes.iter().find(|s| s.imagedata.is_some()).or_else(|| v.shapes.first());
     let ole = v.ole.as_ref();
     let px = |key: &str, twips: Option<i64>| -> Option<i64> {
         let from_style = shape
@@ -323,7 +324,7 @@ fn rect(c: crate::model::drawing::RectFrac) -> Map<String, Value> {
 }
 
 /// 段落的 `w:jc`：`center` → center，`right` / `end` → right。
-fn jc_align(dom: &Dom, para: NodeId) -> Option<&'static str> {
+pub(super) fn jc_align(dom: &Dom, para: NodeId) -> Option<&'static str> {
     let ppr = dom.semantic_children(para).find(|&n| dom.is(n, QName::w(LocalName::PPr)))?;
     let jc = dom.semantic_children(ppr).find(|&n| dom.is(n, QName::w(LocalName::Jc)))?;
     match dom.attr_value(jc, QName::w(LocalName::Val))?.trim() {
@@ -512,6 +513,7 @@ mod tests {
             extent: Some(Extent { cx, cy: 0 }),
             doc_pr: Default::default(),
             picture: None,
+            shapes: Vec::new(),
         }
     }
 
