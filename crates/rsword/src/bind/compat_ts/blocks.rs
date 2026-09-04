@@ -213,9 +213,53 @@ fn passthrough(mut o: Map<String, Value>, label: &str) -> Map<String, Value> {
     o
 }
 
+/// `docxIndex → 节点`：与 [`body`] 同一套枚举规则（顶层子元素；多段 sdt 拆成每个 `w:p`/`w:tbl`，
+/// 其余 sdt 整体一个元素）。`EDIT-04` 的 `SaveBlock.docxIndex` 用它找回节点。
+pub fn element_nodes(dom: &Dom, body: NodeId) -> Vec<NodeId> {
+    let mut out = Vec::new();
+    for &child in dom.children(body) {
+        if dom.node(child).dirty == crate::xml::Dirty::Deleted || dom.name(child).is_none() {
+            continue;
+        }
+        if dom.is(child, w(LocalName::Sdt)) {
+            let mut kids = Vec::new();
+            sdt_content_children_of(dom, child, &mut kids);
+            let parts: Vec<NodeId> = kids
+                .into_iter()
+                .filter(|&n| dom.is(n, w(LocalName::P)) || dom.is(n, w(LocalName::Tbl)))
+                .collect();
+            if parts.len() >= 2 {
+                out.extend(parts);
+            } else {
+                out.push(child);
+            }
+            continue;
+        }
+        out.push(child);
+    }
+    out
+}
+
+/// 单段 sdt（TS 一个块 + `sdtShell`）里的那个 `w:p`；多段 / 表格 / 空 sdt 返回 `None`。
+pub fn sdt_single_paragraph(dom: &Dom, sdt: NodeId) -> Option<NodeId> {
+    let mut kids = Vec::new();
+    sdt_content_children_of(dom, sdt, &mut kids);
+    let parts: Vec<NodeId> = kids
+        .into_iter()
+        .filter(|&n| dom.is(n, w(LocalName::P)) || dom.is(n, w(LocalName::Tbl)))
+        .collect();
+    match parts.as_slice() {
+        [p] if dom.is(*p, w(LocalName::P)) => Some(*p),
+        _ => None,
+    }
+}
+
 /// sdt 直接内容子元素：`w:sdtContent` 的子元素，嵌套 sdt 透明（TS `splitSdtParts` 跳过 sdt/sdtContent 标签）。
 fn sdt_content_children(ctx: &Ctx<'_>, sdt: NodeId, out: &mut Vec<NodeId>) {
-    let dom = ctx.dom;
+    sdt_content_children_of(ctx.dom, sdt, out);
+}
+
+fn sdt_content_children_of(dom: &Dom, sdt: NodeId, out: &mut Vec<NodeId>) {
     for &c in dom.children(sdt) {
         if dom.is(c, w(LocalName::SdtContent)) {
             for &cc in dom.children(c) {
@@ -226,7 +270,7 @@ fn sdt_content_children(ctx: &Ctx<'_>, sdt: NodeId, out: &mut Vec<NodeId>) {
                     // 嵌套 sdt：sdtPr 也成为"深度 0 子元素"，但只有 p/tbl 参与拆分
                     for &x in dom.children(cc) {
                         if dom.is(x, w(LocalName::SdtContent)) {
-                            sdt_content_children(ctx, cc, out);
+                            sdt_content_children_of(dom, cc, out);
                             break;
                         }
                     }

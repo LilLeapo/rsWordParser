@@ -13,19 +13,28 @@ use crate::xml::plan::NewElement;
 
 /// 解析片段（可含多个顶层元素与文本），返回顶层元素列表；顶层文本忽略。
 pub fn parse_fragment(target: &mut Dom, xml: &str) -> Result<Vec<NewElement>, XmlError> {
+    let (tmp, tops) = parse_fragment_dom(target, xml)?;
+    Ok(tops
+        .into_iter()
+        .filter_map(|c| NewElement::from_dom(&tmp, c, target.interner_mut()))
+        .collect())
+}
+
+/// 解析片段为临时 DOM（可以先用 `read_*` 读取属性表再转换），返回临时 DOM 与顶层元素节点。
+pub fn parse_fragment_dom(
+    target: &Dom,
+    xml: &str,
+) -> Result<(Dom, Vec<crate::xml::NodeId>), XmlError> {
     let wrapped = wrap(target, xml);
     let tmp = Dom::parse(PartId(u32::MAX), wrapped.as_bytes())?;
     let root = tmp.root();
-    let mut out = Vec::new();
-    let kids: Vec<_> = tmp.children(root).to_vec();
-    for c in kids {
-        if let NodeKind::Element(_) = &tmp.node(c).kind
-            && let Some(e) = NewElement::from_dom(&tmp, c, target.interner_mut())
-        {
-            out.push(e);
-        }
-    }
-    Ok(out)
+    let tops: Vec<_> = tmp
+        .children(root)
+        .iter()
+        .copied()
+        .filter(|&c| matches!(tmp.node(c).kind, NodeKind::Element(_)))
+        .collect();
+    Ok((tmp, tops))
 }
 
 /// 用临时根包住片段：先按目标 flavor 声明全部已知规范前缀，再让目标根自己的声明覆盖同名前缀。

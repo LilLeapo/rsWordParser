@@ -46,6 +46,7 @@ pub struct EditContext {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlockPos {
     Start(NodeId),
+    Before(NodeId),
     After(NodeId),
     End(NodeId),
 }
@@ -57,6 +58,8 @@ pub enum NewBlock {
     Paragraph { props: Option<NewElement>, inlines: Vec<NewInline> },
     /// 任意块级片段（`w:p` / `w:tbl` / …），通常来自 [`crate::xml::parse_fragment`]。
     Xml(NewElement),
+    /// 外层包裹（compat 侧显式给出的块级 `w:ins` / `w:del`，属性已填好）里放一个块。
+    Wrapped { wrapper: NewElement, block: Box<NewBlock> },
 }
 
 /// `docs/03` §8.2 的操作枚举（M1 子集）。

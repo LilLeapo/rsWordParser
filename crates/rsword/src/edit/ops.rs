@@ -705,14 +705,16 @@ fn block_site(dom: &Dom, at: BlockPos) -> Result<(NodeId, Option<NodeId>)> {
             }
             Ok((c, dom.children(c).iter().copied().find(|&k| live_elem(k))))
         }
-        BlockPos::After(n) => {
+        BlockPos::Before(n) | BlockPos::After(n) => {
             if !ok(n) {
                 return Err(Error::edit(DiagCode::EditBadPosition, "锚点块无效"));
             }
             let parent = dom
                 .parent(n)
                 .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, "锚点块没有父节点"))?;
-            Ok((parent, next_sibling(dom, n)))
+            let before =
+                if matches!(at, BlockPos::Before(_)) { Some(n) } else { next_sibling(dom, n) };
+            Ok((parent, before))
         }
         BlockPos::End(c) => {
             if !ok(c) {
@@ -725,10 +727,8 @@ fn block_site(dom: &Dom, at: BlockPos) -> Result<(NodeId, Option<NodeId>)> {
     }
 }
 
-fn insert_block(s: &mut EditSession, at: BlockPos, block: NewBlock) -> Result<MutationResult> {
-    let dom = s.dom();
-    let (parent, before) = block_site(dom, at)?;
-    let node = match block {
+fn new_block_element(dom: &Dom, block: NewBlock) -> NewElement {
+    match block {
         NewBlock::Xml(e) => e,
         NewBlock::Paragraph { props, inlines } => {
             let mut p = NewElement::new(w(LocalName::P));
@@ -740,7 +740,24 @@ fn insert_block(s: &mut EditSession, at: BlockPos, block: NewBlock) -> Result<Mu
             }
             p
         }
-    };
+        NewBlock::Wrapped { mut wrapper, block } => {
+            // 块级 w:ins / w:del：空的 w:id 占位 → EDIT-06 分配
+            if let Some(id) =
+                wrapper.attrs.iter_mut().find(|(n, v)| *n == w(LocalName::Id) && v.is_empty())
+            {
+                id.1 = next_revision_id(dom).to_string();
+            }
+            let inner = new_block_element(dom, *block);
+            wrapper.push_child(inner);
+            wrapper
+        }
+    }
+}
+
+fn insert_block(s: &mut EditSession, at: BlockPos, block: NewBlock) -> Result<MutationResult> {
+    let dom = s.dom();
+    let (parent, before) = block_site(dom, at)?;
+    let node = new_block_element(dom, block);
     let mut plan = MutationPlan::new(s.main_part());
     plan.structure_changed = true;
     plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(parent), before, node });

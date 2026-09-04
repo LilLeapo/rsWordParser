@@ -9,6 +9,7 @@
 //! M0 任务：0.6 名字表（`XML-05`）、0.7 tokenizer（`XML-01..08`）、0.8 作用域（`XML-11`）、
 //! 0.9 MCE（`XML-09/10`）、0.10 脏状态（`XML-12`）、0.11 序列化（`XML-13/14`）。
 
+pub mod canon;
 pub mod dom;
 pub mod edit;
 pub mod entities;
@@ -22,8 +23,9 @@ pub mod parse;
 pub mod plan;
 pub mod xpath;
 
+pub use canon::{CanonOptions, canonical};
 pub use dom::{Attr, AttrValue, Dom, Element, Mce, MceRole, Node, NodeId, NodeKind, TextValue};
-pub use fragment::parse_fragment;
+pub use fragment::{parse_fragment, parse_fragment_dom};
 pub use interner::{Interned, Interner};
 pub use lex::Lex;
 pub use mce::{DEFAULT_UNDERSTOOD, SemanticChildren};
