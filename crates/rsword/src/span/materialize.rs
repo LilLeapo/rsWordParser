@@ -376,7 +376,7 @@ fn diag(dom: &Dom, span: &RangeSpan, code: DiagCode, message: String) -> Diagnos
     let range = node.and_then(|n| dom.node(n).lex.as_ref().map(|l| l.range.clone()));
     let origin = match span.origin {
         // 解析时就损坏的是输入的缺陷；本来完好的范围出问题就是引擎干的
-        SpanOrigin::ParsedDamaged => ValidationOrigin::PreExistingDamage,
+        SpanOrigin::Damaged => ValidationOrigin::PreExistingDamage,
         SpanOrigin::Parsed | SpanOrigin::New => ValidationOrigin::EngineInvariantViolation,
     };
     Diagnostic { part: span.part, range, code, origin, message }

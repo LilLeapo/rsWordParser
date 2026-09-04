@@ -347,6 +347,7 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `SPAN-07` MoveFrom / MoveTo / CustomXml 整体删除 | "由修订操作决定" | 当作删除（`Remove`）：范围失去内容后没有意义 | 接受 / 拒绝修订是 M7；在那之前把空的移动范围留着只会写出无意义的标记 |
 | `SPAN-02` "禁止由标记推导 Anchor" | 无例外 | 一个例外：`ReplaceInlines` 整体重写的容器在提交后按新标记重建端点（`SpanIndex::rescan_container`） | compat 的 generated 块把段落内容连批注标记一起按 `commentIds` 重发，那是编辑器的意图；这时容器里标记的位置才是真相。跨容器范围落在被重写容器里的那一端置空，交给 `SPAN-09` 修复 |
 | `SPAN-09` 孤儿端点 | "成对删除并记诊断" | 只在标记已不在、或已被本次会话改写过时删；`Clean` 标记原样写回，只记诊断 | 删一个从未被碰过的标记就是改写未编辑内容；不变式 1 / 2 优先于安全网。语料 `bugfix-regressions__002` 有一个 body 级未闭合书签，删掉它会让 compat 的块数变化 |
+| `SPAN-09` 失败的 `origin` | "解析阶段就存在的缺陷为 `PreExistingDamage`；编辑后新出现的为 `EngineInvariantViolation`" | 再加一类按 `PreExistingDamage` 处理：调用方把容器内容**整体重写**时丢掉的那一端（`SpanOrigin::Damaged`）。引擎自己的变换弄丢 / 弄反的范围仍是 `EngineInvariantViolation`，并按 `SAVE-02` 在调试构建下 `Err(SAVE_INVARIANT)` | compat 的 `ReplaceInlines` 按编辑器的描述重发段落内容，描述里没有那个批注标记时范围就半开了——引擎照做了被要求的事，把它算成引擎缺陷会让这条合法路径在调试构建下保存失败；而不接 `enforce` 又会让"变换漏了锚点"这类真缺陷悄悄写出半开范围 |
 | `SPAN-05` `compare` 的空范围 | `Left < Right` | 两端同位置时 `is_ordered` 直接算有序 | affinity 的次序只用来给同一边界上的**不同**范围排序；变换让一个范围折叠后不该被判成"起在终后" |
 | `SPAN-06` rescan 的落单标记 | — | 重写容器里配不上对的标记先**认领**索引里刚失去这一端的跨容器范围，认领不到才留半开 | compat 会把批注范围的一端重发进被重写的段落，另一端在别的段落里；认领后范围复原，物理输出与 TS 一致（`comments__001.save.1` 因此仍等价） |
 | `PROP-06` 第 1 步 | 新容器"按父容器的 schema 顺序插入" | 顶层容器（`w:pPr` / `w:rPr`）插为父节点第一个语义子节点之前；子表容器按父表 `order` 插入 | `w:p` / `w:r` 不是属性表，没有 order；M2 的 `trPr`（在 `tblPrEx` 之后）到时补规则 |
@@ -444,11 +445,15 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   `implicit` 的范围（文件里只有 `commentReference` 的批注）永远不写标记。`SPAN-09`：物化前检查成对、
   同流、起在终前、`w:id` 在 part 内唯一；半开范围只在标记已不在或已被改写过时成对删除，`Clean` 标记
   原样写回（见 §8——这条比"成对删除"重要）。提交后把新标记的 `NodeId` 回填到锚点，索引与 DOM 保持一致。
-  变换把范围折叠后统一 affinity（`normalize_collapsed`）。测试 `tests/span.rs` 新增 6 个：未编辑保存
+  变换把范围折叠后统一 affinity（`normalize_collapsed`）。校验的 `EngineInvariantViolation` 接进
+  `save::enforce`：调试构建与 CI 下保存返回 `Err(SAVE_INVARIANT)`（`SAVE-02`），发布构建只记诊断；
+  调用方整体重写容器时丢的那一端标成 `SpanOrigin::Damaged` 按 `PreExistingDamage` 处理（见 §8），
+  否则 compat 的合法路径会在调试构建下保存失败。测试 `tests/span.rs` 新增 6 个：未编辑保存
   字节相同 + 直接写 `w:t` 时标记原字节、边界插入后起点标记重发到新 run 之后（重开后索引与物理一致）、
   删段落后折叠书签在 body 里重发且属性照抄、只有 reference 的批注不补标记、hostile 孤儿终点在编辑
   别处后保持原字节且记 `PreExistingDamage`、`ReplaceInlines` 让跨段批注一端消失时另一端原字节保留并记
-  `EngineInvariantViolation`。保存语料等价数不变（77 / 41 逐字节 / 3 有意不同）。
+  `PreExistingDamage`；另有 `edit/session.rs` 的单元用例往索引里注入破坏（抹掉一端），断言调试构建下
+  保存 `Err(SAVE_INVARIANT)`、发布构建 `Ok`。保存语料等价数不变（77 / 41 逐字节 / 3 有意不同）。
 - [ ] 2.4 字段子系统（`FLD-01`–`FLD-08`、`FLD-13`）
 - [ ] 2.5 字段进模型与 compat（`MOD-06`、`COMPAT-07`）
 - [ ] 2.6 批注与注释部件、新建 part（`SAVE-05`）

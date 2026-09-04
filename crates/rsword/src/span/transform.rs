@@ -16,7 +16,9 @@ use crate::xml::{Dirty, Dom, NodeEdit, NodeId, Target};
 use super::content::{
     boundary_before, container_of, content_len, is_content_container, is_content_item,
 };
-use super::index::{Affinity, Anchor, RangeClass, RangeKind, RangeSpan, SpanEnd, SpanIndex};
+use super::index::{
+    Affinity, Anchor, RangeClass, RangeKind, RangeSpan, SpanEnd, SpanIndex, SpanOrigin,
+};
 use super::{SpanId, is_property_element, is_range_marker};
 
 /// 操作对范围的额外要求：编辑列表本身看不出来的那部分语义。
@@ -115,7 +117,13 @@ pub enum SpanAction {
     /// 端点移到新位置（`marker` 已按存活情况修正）。
     Move { span: SpanId, end: SpanEnd, to: Anchor },
     /// 该端连标记一起消失，范围变成半开，交给 `SPAN-09` 在保存前修复。
-    Drop { span: SpanId, end: SpanEnd },
+    ///
+    /// `rewritten` = 这一端是随**调用方整体重写的容器**消失的（compat 的 `ReplaceInlines`
+    /// 按自己的描述重发内容，描述里没有这个标记）：范围随之标成
+    /// [`SpanOrigin::Damaged`](super::SpanOrigin::Damaged)，保存前校验按 `PreExistingDamage`
+    /// 处理，不让调试构建的保存失败。引擎自己弄丢的端点（`rewritten == false`）仍是
+    /// `EngineInvariantViolation`。
+    Drop { span: SpanId, end: SpanEnd, rewritten: bool },
     /// `SPAN-07` 整体删除：`nodes` 是要一并删掉的标记与 reference run。
     Remove { span: SpanId, nodes: Vec<NodeId> },
 }
@@ -185,8 +193,11 @@ pub fn plan_update(
                 update.actions.push(SpanAction::Drop {
                     span: span.id,
                     end: if si { SpanEnd::Start } else { SpanEnd::End },
+                    rewritten: true,
                 });
-                update.diagnostics.push(Diagnostic::invariant_violation(
+                // 调用方的描述丢了这一端，不是引擎的缺陷：按 `PreExistingDamage` 记，
+                // 否则 `SAVE-02` 会让调试构建下这条合法的 compat 路径保存失败
+                update.diagnostics.push(Diagnostic::pre_existing(
                     span.part,
                     None,
                     DiagCode::SpanUnclosed,
@@ -215,7 +226,9 @@ pub fn plan_update(
                     update.actions.push(SpanAction::Move { span: span.id, end, to })
                 }
                 Some(_) => {}
-                None => update.actions.push(SpanAction::Drop { span: span.id, end }),
+                None => {
+                    update.actions.push(SpanAction::Drop { span: span.id, end, rewritten: false })
+                }
             }
         }
     }
@@ -419,11 +432,14 @@ impl SpanIndex {
                         }
                     }
                 }
-                SpanAction::Drop { span, end } => {
+                SpanAction::Drop { span, end, rewritten } => {
                     if let Some(s) = self.get_mut(*span) {
                         match end {
                             SpanEnd::Start => s.start = None,
                             SpanEnd::End => s.end = None,
+                        }
+                        if *rewritten {
+                            s.origin = SpanOrigin::Damaged;
                         }
                     }
                 }

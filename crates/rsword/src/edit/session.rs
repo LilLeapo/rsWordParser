@@ -99,6 +99,12 @@ impl EditSession {
         self.spans.get(&part)
     }
 
+    /// 测试用：直接改索引，往里注入破坏，验证 `SPAN-09` 的自检真的会拦下来。
+    #[cfg(test)]
+    pub(crate) fn spans_mut(&mut self, part: PartId) -> Option<&mut SpanIndex> {
+        self.spans.get_mut(&part)
+    }
+
     /// `SPAN-04`：在第一次写 `part` 之前建立索引。
     ///
     /// 那一刻 DOM 还没被这个会话改过，所以"由标记建立 Anchor"是合法的（`SPAN-02` 只禁止
@@ -253,6 +259,10 @@ impl EditSession {
             if mplan.is_empty() {
                 continue;
             }
+            // `SAVE-02`：范围校验里的 `EngineInvariantViolation`（引擎自己弄丢 / 弄反了端点）
+            // 在调试构建与 CI 下是错误。输入本来就损坏的、以及调用方整体重写容器时丢的那一端
+            // 记成 `PreExistingDamage`（`SpanOrigin::Damaged`），不在这里拦。
+            crate::save::enforce(&mplan.diagnostics)?;
             let mut plan = MutationPlan::new(part);
             plan.node_edits = mplan.edits.clone();
             let dom = self.pkg.dom_mut(part)?.ok_or_else(|| {
@@ -369,6 +379,11 @@ mod tests {
 
     /// 两个 XML part 的最小 docx（主 part + settings）。
     fn docx() -> Vec<u8> {
+        docx_with(r#"<w:p><w:r><w:t>x</w:t></w:r></w:p>"#)
+    }
+
+    /// 同上，正文由调用方给。
+    fn docx_with(body: &str) -> Vec<u8> {
         let ct = concat!(
             r#"<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">"#,
             r#"<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>"#,
@@ -385,7 +400,7 @@ mod tests {
             r#"<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/></Relationships>"#
         );
         let doc = format!(
-            r#"<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="{W}"><w:body><w:p><w:r><w:t>x</w:t></w:r></w:p></w:body></w:document>"#
+            r#"<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="{W}"><w:body>{body}</w:body></w:document>"#
         );
         let settings =
             format!(r#"<?xml version="1.0" encoding="UTF-8"?><w:settings xmlns:w="{W}"/>"#);
@@ -443,5 +458,40 @@ mod tests {
         assert!(!s.package().is_dirty(), "两个 part 都回滚了");
         assert_eq!(s.save_with(&SaveOptions::default()).unwrap(), bytes, "保存回到原字节");
         assert_eq!(s.document().text_blocks().next().unwrap().text(), "x", "投影也回滚");
+    }
+
+    /// `SPAN-09` / `SAVE-02`：引擎自己弄丢一端的范围在调试构建下让保存失败，发布构建只记诊断。
+    ///
+    /// 索引没有对外的可变入口，破坏只能从 crate 内部注入——这条自检就是为了让"变换弄丢锚点"
+    /// 这类缺陷在 CI 里当场暴露，而不是悄悄写出一份半开的范围。
+    #[test]
+    fn span_09_engine_broken_range_fails_the_save_in_debug_builds() {
+        let bytes = docx_with(
+            r#"<w:p><w:bookmarkStart w:id="1" w:name="a"/><w:r><w:t>x</w:t></w:r><w:bookmarkEnd w:id="1"/></w:p>"#,
+        );
+        let mut s = EditSession::open(&bytes).unwrap();
+        let para = s.nth_text_block(0).expect("text block").node;
+        // 一次正常编辑：建立索引并让主 part 变脏（否则保存直接返回原字节）
+        s.apply(
+            EditOp::InsertText { at: InlinePos::new(para, 0), text: "y".into(), props: None },
+            &EditContext::default(),
+        )
+        .expect("插入成功");
+        let main = s.main_part();
+        let index = s.spans_mut(main).expect("索引已建立");
+        let span = index.live().next().expect("书签范围").id;
+        index.get_mut(span).expect("范围还在").end = None; // 注入破坏：终点不见了
+        let saved = s.save();
+        if cfg!(debug_assertions) {
+            match saved {
+                Err(Error::Invariant(d)) => {
+                    assert_eq!(d.code, DiagCode::SpanUnclosed);
+                    assert_eq!(d.origin, crate::diag::ValidationOrigin::EngineInvariantViolation);
+                }
+                other => panic!("调试构建下应 Err(SAVE_INVARIANT)：{other:?}"),
+            }
+        } else {
+            assert!(saved.is_ok(), "发布构建只记诊断");
+        }
     }
 }

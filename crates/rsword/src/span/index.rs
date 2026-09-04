@@ -172,8 +172,10 @@ impl RangeKind {
 pub enum SpanOrigin {
     /// 解析出来的完好范围。
     Parsed,
-    /// 解析时就损坏（孤儿终点 / 未闭合起点 / 跨流）：`SPAN-09` 按 `PreExistingDamage` 处理。
-    ParsedDamaged,
+    /// 已损坏，且不是引擎的缺陷：解析时就孤儿 / 未闭合 / 跨流，或调用方把容器内容整体重写时
+    /// 丢掉了一端（compat 的 `ReplaceInlines`）。`SPAN-09` 按 `PreExistingDamage` 处理，
+    /// 因此不会让调试构建的保存失败——引擎自己弄丢的端点才会（`SAVE-02`）。
+    Damaged,
     /// 本次会话新建。
     New,
 }
@@ -722,7 +724,7 @@ impl<'d> Builder<'d> {
             part: self.part,
             flow,
             kind,
-            origin: SpanOrigin::ParsedDamaged,
+            origin: SpanOrigin::Damaged,
             implicit: false,
             removed: false,
             start: None,
@@ -743,7 +745,7 @@ impl<'d> Builder<'d> {
         }
         pending.sort_by_key(|(_, _, span)| span.0);
         for (class, key, span) in pending {
-            self.spans[span.0 as usize].origin = SpanOrigin::ParsedDamaged;
+            self.spans[span.0 as usize].origin = SpanOrigin::Damaged;
             let marker = self.spans[span.0 as usize].start.and_then(|a| a.marker);
             let node = marker.unwrap_or(self.dom.root());
             self.diag(
@@ -957,7 +959,10 @@ impl SpanIndex {
                     SpanEnd::Start => DiagCode::SpanUnclosed,
                     SpanEnd::End => DiagCode::SpanOrphanEnd,
                 };
-                self.diagnostics.push(Diagnostic::invariant_violation(
+                // 调用方重发的标记配不上对：是那份描述的缺陷，不是引擎的（`SAVE-02` 因此
+                // 不该让调试构建的保存失败）。范围标成 `Damaged`，物化时按半开处理。
+                self.spans[local.0 as usize].origin = SpanOrigin::Damaged;
+                self.diagnostics.push(Diagnostic::pre_existing(
                     self.part,
                     None,
                     code,

@@ -732,9 +732,11 @@ fn span_09_engine_dropped_end_voids_the_range() {
         &EditContext::default(),
     )
     .unwrap();
+    // 调用方的描述丢了这一端，不是引擎的缺陷：记 `PreExistingDamage`，保存照常成功
+    // （若记成 `EngineInvariantViolation`，`SAVE-02` 会让调试构建下这条 compat 路径保存失败）
     assert!(
         s.diagnostics().iter().any(|d| d.code == DiagCode::SpanUnclosed
-            && d.origin == rsword::ValidationOrigin::EngineInvariantViolation),
+            && d.origin == rsword::ValidationOrigin::PreExistingDamage),
         "{:?}",
         s.diagnostics()
     );
