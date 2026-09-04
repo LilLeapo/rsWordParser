@@ -589,6 +589,20 @@ fn gen_struct(out: &mut String, name: &str, decl: &StructDecl, attrs: &[Attr]) {
     }
     writeln!(out, "        e\n    }}\n").unwrap();
 
+    writeln!(out, "    /// 逐属性覆盖：`over` 里 `Some` 的属性覆盖 `self`（resolve 的层叠合并）。")
+        .unwrap();
+    writeln!(out, "    #[allow(clippy::clone_on_copy)]").unwrap();
+    writeln!(out, "    pub fn merge(&mut self, over: &Self) {{").unwrap();
+    for a in attrs {
+        writeln!(
+            out,
+            "        if over.{n}.is_some() {{ self.{n} = over.{n}.clone(); }}",
+            n = a.name
+        )
+        .unwrap();
+    }
+    writeln!(out, "    }}\n").unwrap();
+
     writeln!(out, "    /// 没有任何属性。").unwrap();
     writeln!(out, "    pub fn is_empty(&self) -> bool {{").unwrap();
     write!(out, "        true").unwrap();
@@ -1002,6 +1016,50 @@ fn gen_table(out: &mut String, t: &Table) {
     writeln!(out, "    }}\n}}\n").unwrap();
 
     gen_plan(out, t);
+    gen_merge(out, t);
+}
+
+/// `merge_x(base, over) -> Vec<XField>`：层叠合并（`RES-03` "None 不覆盖"）。标量整字段覆盖；
+/// struct 逐属性合并；嵌套表递归；multi 非空整表覆盖；Raw 覆盖。返回被 `over` 改动的字段。
+fn gen_merge(out: &mut String, t: &Table) {
+    let name = &t.name;
+    let snake = &t.snake;
+    let field_enum = format!("{name}Field");
+    writeln!(out, "/// 层叠合并：`over` 中已声明的字段覆盖 `base`（`None` 不覆盖；struct 逐属性、嵌套表递归、multi 整表）。").unwrap();
+    writeln!(out, "/// 返回 `over` 覆盖到的字段。").unwrap();
+    writeln!(out, "#[allow(clippy::clone_on_copy)]").unwrap();
+    writeln!(out, "pub fn merge_{snake}(base: &mut {name}, over: &{name}) -> Vec<{field_enum}> {{")
+        .unwrap();
+    writeln!(out, "    let mut touched = Vec::new();").unwrap();
+    for a in &t.attrs {
+        writeln!(out, "    if over.{n}.is_some() {{ base.{n} = over.{n}.clone(); }}", n = a.name)
+            .unwrap();
+    }
+    for f in &t.fields {
+        let n = &f.name;
+        let v = &f.variant;
+        match (&f.kind, f.multi) {
+            (_, true) => {
+                writeln!(out, "    if !over.{n}.is_empty() {{ base.{n} = over.{n}.clone(); touched.push({field_enum}::{v}); }}").unwrap();
+            }
+            (Kind::Struct(_), false) => {
+                writeln!(out, "    if let Some(o) = &over.{n} {{").unwrap();
+                writeln!(out, "        match &mut base.{n} {{ Some(b) => b.merge(o), None => base.{n} = Some(o.clone()) }}").unwrap();
+                writeln!(out, "        touched.push({field_enum}::{v});").unwrap();
+                writeln!(out, "    }}").unwrap();
+            }
+            (Kind::Table(t2), false) => {
+                writeln!(out, "    if let Some(o) = &over.{n} {{").unwrap();
+                writeln!(out, "        match &mut base.{n} {{ Some(b) => {{ merge_{}(b, o); }}, None => base.{n} = Some(o.clone()) }}", self::snake(t2)).unwrap();
+                writeln!(out, "        touched.push({field_enum}::{v});").unwrap();
+                writeln!(out, "    }}").unwrap();
+            }
+            _ => {
+                writeln!(out, "    if over.{n}.is_some() {{ base.{n} = over.{n}.clone(); touched.push({field_enum}::{v}); }}").unwrap();
+            }
+        }
+    }
+    writeln!(out, "    touched\n}}\n").unwrap();
 }
 
 /// `apply_*_patch`（patch 施加到值）与 `plan_apply_*`（PROP-06 合并写回，只产出 `NodeEdit`）。

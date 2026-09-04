@@ -31,9 +31,9 @@ impl Styles {
         Some(read_styles(dom, Some(root), diags))
     }
 
-    /// 按 `styleId` 查找（第一个匹配）。
+    /// 按 `styleId` 查找。重复的 styleId（语料里有）取**最后一个**声明，与 TS 的 `Map` 语义一致。
     pub fn get(&self, id: &str) -> Option<&Style> {
-        self.styles.iter().find(|s| s.id() == Some(id))
+        self.styles.iter().rfind(|s| s.id() == Some(id))
     }
 
     /// 某类型的默认样式：该类型最后一个 `w:default="1|true"`；没有声明的 → 该类型中 styleId 或

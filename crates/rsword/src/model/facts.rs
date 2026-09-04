@@ -305,6 +305,12 @@ fn outline_level(props: &ParaProps, chain: &[&Style], style_id: Option<&str>) ->
             _ => None,
         };
     }
+    heading_level_of_chain(chain, style_id)
+}
+
+/// 样式链（叶 → 根）给出的标题级别（`RES-02` heading_level）：叶起第一个 `Level`；`Blocked` 终止；
+/// 链为空时按文档未定义的内建样式 id `^Heading([1-9])$`（忽略大小写）。
+pub fn heading_level_of_chain(chain: &[&Style], style_id: Option<&str>) -> Option<u8> {
     for s in chain {
         match Styles::own_heading_level(s) {
             OwnHeadingLevel::Level(l) => return Some(l),
@@ -313,7 +319,6 @@ fn outline_level(props: &ParaProps, chain: &[&Style], style_id: Option<&str>) ->
         }
     }
     if chain.is_empty() {
-        // 文档未定义的内建样式：`^Heading([1-9])$`（忽略大小写）
         let id = style_id?;
         let rest = id.get(..7).filter(|p| p.eq_ignore_ascii_case("heading")).map(|_| &id[7..])?;
         let mut it = rest.chars();
