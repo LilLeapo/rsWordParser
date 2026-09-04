@@ -1,0 +1,105 @@
+# SPEC 15 · M4 任务分解
+
+对应 `docs/03` 第 12 节 M4 行。格式同 `spec/12` / `spec/13`：每个任务给出产出、依赖的规范条目与完成
+定义（DoD）。顺序即建议的实现顺序；同一编号内的子任务可并行。
+
+M4 与 M2（`spec/13`）并行开发：绘图是读侧最大的一块，且不依赖 Span 与字段（`docs/04` §10）。
+编号 14 预留给 M3（表格）的任务分解。
+
+## M4 · L3 显示模型：绘图、图片、VML、颜色算法
+
+目标：`w:drawing` / `w:pict` / `w:object` 的**文档事实**进入模型（`MOD-11` 显示模型），媒体可解析，
+DrawingML 颜色算法可用；`compat_ts` 把这些事实投影成 TS 的 `image*` / `textboxes` / `rule*` 字段。
+
+CI 门（`spec/11` TEST-10 的「M3–M6 对应域 diff 为 0」）：`diff-parse --scope all` 里绘图域未知差异为 0，
+即下面「实测差距」表的全部路径归零（表格内与页眉页脚内的图片除外，见「被阻塞」）。
+
+### 实测差距（2026-09-04，`cargo run -p diff-parse -- --scope all`）
+
+全域 1,925 处未知差异 / 341 份文档。其中绘图域直接命中 **1,016 处**，涉及 **165 份**文档；
+其中 **155 份**文档的差异全部是绘图域字段与它们的连带项（`label` / `type` / `previewText` / `runs`）。
+
+| 路径 | 差异点 | 归属任务 |
+| --- | --- | --- |
+| `imageWidthPx` / `imageHeightPx` | 129 / 127 | 4.3 |
+| `imageWrap` | 102 | 4.4 |
+| `textboxes` | 99 | 4.6 |
+| `imageOffsetYEmu` / `imageOffsetXEmu` | 76 / 59 | 4.3 |
+| `imageDataUrl` | 48 | 4.1 |
+| `imageWrapDist{Top,Bottom,Left,Right}Emu` | 30 × 4 | 4.3 |
+| `imageZOrderNormalized` / `imageZOrder` | 19 / 8 | 4.4 |
+| `imageAlign` | 17 | 4.4 |
+| `decorative` | 12 | 4.5 |
+| `oleProgId` | 8 | 4.7 |
+| `rule{WidthPx,ColorHex,ThicknessPx}` | 5 / 3 / 3 | 4.5 |
+| `runs[].image` | 6 | 4.3 |
+| `imageLeading*` / `imageParagraphIndentFirstLine` | 3 / 2 / 1 / 1 / 2 | 4.4 |
+| `strayRuns` / `strayStyleId` | 3 / 1 | 4.6 |
+| `brokenImage` / `imageRotDeg` / `imageBorder` | 2 / 2 / 1 | 4.1 / 4.3 |
+
+连带项（分类正确后自动归零）：`label` 155 处（`Text box` 98、`Image` 43、`Drawing object` 12、
+`Embedded object` 2）、`type` 148 处（TS `passthrough` vs 我们的 `paragraph`）、`previewText` 约 130 处、
+`runs` 148 处（TS 的 passthrough 块不带 `runs`，我们输出 `[]`）。
+
+### 任务
+
+| # | 任务 | 规范 | DoD |
+| --- | --- | --- | --- |
+| 4.1 | `MediaStore` 首版：`MediaId → {part, mime, bytes, kind}`；`r:embed` / `r:link` / `v:imagedata r:id` 经**所在 part 自己的 rels** 解析（含 `..` 段归一化）；MIME 判定顺序=扩展名表 → `Override` → `Default`，须以 `image/` 开头；External 与 `http(s)://` 目标直出 URL；EMF/WMF/EMZ/WMZ/TIFF 标 `MediaKind::Metafile` / `Tiff` **不转换**（`docs/03` §3.5）。`compat_ts` 内联 `data:<mime>;base64,…` | PKG-05, MOD-11 | 全语料每个 `a:blip r:embed` / `r:link` / `v:imagedata r:id` 都解析到 part + mime（单测按语料统计，未命中的只有真正缺关系的用例）；dataURL 生成与 metafile 判定有单测。**注意**：`imageDataUrl` / `brokenImage` 这 50 处路径要等 4.4 的分类到位才会输出该字段，归零在 4.4 一并验收；4 份 `emf-image__*` 的 metafile 占位在本任务登记为有意差异 |
+| 4.2 | DrawingML 颜色算法：`srgbClr`/`schemeClr`/`sysClr`/`prstClr`/`scrgbClr`/`hslClr` + `lumMod`/`lumOff`/`tint`/`shade`/`satMod`/`hueMod`/`alpha` 按规范要求的色彩空间变换 → sRGB；`schemeClr` 别名 `tx1→dk1, bg1→lt1, tx2→dk2, bg2→lt2`；`gradFill` 等权平均、`pattFill` fgClr；EMU/px/pt/twips 换算集中一处（px = EMU/9525） | RES-05 | 单测覆盖每种变换与别名；`accent1 + lumMod/lumOff` 与 Word 显示一致（允许 ±1/255）；`gradFillApproxHex` 与 TS 对齐 |
+| 4.3 | Drawing 索引与 `ImageDisplay` / `AnchorGeom`：`wp:inline` / `wp:anchor` → 锚定几何（`relativeFrom`、`align`、`posOffset`、`pct*`、`wrap*`、`behindDoc`、`allowOverlap`、`relativeHeight`、`dist{T,B,L,R}`、`layoutInCell`、`hidden`）；`pic:pic` → `ImageDisplay`（media、`wp:extent` EMU、`a:srcRect` crop、`a:stretch/fillRect`、`a:xfrm` rot/flip、`pic:spPr/a:ln` 边框、`wp:docPr` 的 name/descr/decorative）。挂到 `Segment.display`，遍历写成**迭代** | MOD-06, MOD-11 | `imageWidthPx/HeightPx/OffsetXEmu/OffsetYEmu/WrapDist*Emu/RotDeg/Border` 全部归零；`runs[].image` 6 处归零 |
+| 4.4 | 图片段落分类与 TS 投影：R15 细化（`type: image` / 带图文本段 / `passthrough "Image"`）、`imageWrap` 九种取值的判定、`imageAlign`（宿主段落 `w:jc`）、`imagePosH/V`、`imageNoOverlap`、`imageZOrder` 与 `normalizeImageZOrders`、`imageLeading*`（图前引导文字）与 `imageParagraphIndentFirstLine` | MOD-05, COMPAT-03 | `imageWrap` 102、`imageAlign` 17、`imageZOrder*` 27、`imageLeading*` 9 归零；4.1 挂账的 `imageDataUrl` 48 与 `brokenImage` 2 归零；`type` / `label` / `previewText` / `runs` 的图片相关连带项归零 |
+| 4.5 | VML 显示模型 `VmlDisplay`：`v:shape/rect/roundrect/oval/line/group` 的 `style` 键值原样保留、`fillcolor`/`filled`/`strokecolor`/`stroked`、`v:imagedata`、`v:textpath`、`v:group` 的 `coordsize` 缩放；细横线（`v:rect o:hr`）与 DrawingML 细线（`wp:extent cy ∈ (0,130000]`）→ `decorative` + `rule*`；`vmlImageMeta` | MOD-11, MOD-05 | `decorative` 12、`rule{Width,Color,Thickness}` 11 归零；VML 图片用例的 `image*` 归零 |
+| 4.6 | 文本框：`ShapeDisplay`（`wps:wsp` 的 `spPr` 几何 / fill / line / `bodyPr` insets / `wps:style` 的 `fillRef`/`lnRef`）、`wpg` 组的 CTM 合成、`txbxContent` 作为**独立内容流**复用段落管线、VML 文本框与 WordArt（`v:textpath`）；`strayRuns` / `strayStyleId`；锚定投影（`applyAnchor`：`bandTopPx`/`bandBottomPx`/`floating`）放在 `compat_ts`，不进模型 | MOD-11, COMPAT-03 | `textboxes` 99、`strayRuns` 3、`strayStyleId` 1 归零；`label "Text box"` 98 处归零 |
+| 4.7 | OLE 与 `w:object`：`o:OLEObject/@ProgID` → `oleProgId`；`v:imagedata` 预览图；尺寸取 `v:shape style` 的 pt，缺省 `w:object` 的 `dxaOrig/dyaOrig` twips；`w:jc` | MOD-11, COMPAT-03 | `oleProgId` 8 处与对应 `label "Embedded object"` 归零 |
+| 4.8 | 恶意输入与 M4 门：绘图树深嵌套 / 环状组 / 缺关系 / 畸形 `style` 的降级路径；`corpus/hostile` 补用例；`diff-parse` 绘图域接入 CI | TEST-09, TEST-10 | 绘图域未知差异 0；hostile 语料不 panic 不丢字节；`cargo test --workspace` 与 `--release` 全绿 |
+
+**顺序说明**：4.1 → 4.3 → 4.4 是主链（几何与投影依赖媒体解析）；4.2 是 4.5 / 4.6 的前置（形状颜色）；
+4.5 / 4.7 可与主链并行。4.6 最重，建议在 4.3 的锚定几何稳定之后再动。
+
+## 分层决策（实现前定死）
+
+`MOD-11` 规定显示模型里**禁止**出现由排版决定的字段。TS 的 `textboxes[]` 却带 `bandTopPx` /
+`bandBottomPx` / `floating` / `outsideColumn` 这类值。两者不矛盾，但必须分层：
+
+- **模型层**只放文档事实：EMU 原值、`relativeFrom`、`wrapText`、`behindDoc`、`relativeHeight` 原值、
+  颜色的原始定义 + 解析后的 sRGB。
+- **`compat_ts` 层**做 TS 投影：px 换算、`imageWrap` 的九种取值、`resolveAnchorPagePos`（用节的页宽页边距，
+  仍是文档事实）、`applyAnchor` 的 band 计算、`normalizeImageZOrders`。
+
+也就是说：TS 那些"启发式"绝大多数是 XML + 节属性的确定性函数，放在适配器里可以让绘图域 diff 归零，
+同时不污染规范状态。真正的排版启发式（`extractLockedCanvas` 的溢出文本分栏 `colGeom`）属于 M6，不在 M4。
+
+## 依赖与被阻塞
+
+| 事项 | 状态 |
+| --- | --- |
+| 表格单元格内的图片（4 份语料） | 需要 M3 的表格模型；M4 内只保证事实可解析，`table.richParas[].runs[].image` 留到 M3 |
+| 页眉页脚里的图片（`headerImages`/`footerImages`，15 份） | 需要 M5 的 hf 管线复用；M4 提供 `MediaStore` 与 `ImageDisplay`，投影留到 M5 |
+| `chartDisplay` / `diagramDisplay` / lockedCanvas / 墨迹 | M6 |
+| `formulaDisplay`（4 处） | 公式显示模型未在 `docs/03` §12 分配里程碑，M4 不做，留待 M6 一并定 |
+| 保存侧 `xml.replaceImage`（1 份跳过用例） | 需要 `EDIT-06` 的 rId 分配（M2 的 2.8）；M4 完成读侧后再回头接 |
+
+## 不在 M4
+
+图表 / SmartArt / lockedCanvas / OLE 内容 / 墨迹的**内容**解析（M6，M4 只做 `w:object` 的 ProgID 与预览图）、
+页眉页脚与节（M5）、表格（M3）、绘图的编辑操作与保存改写（M7，含 `applyImageZOrder` 的 `relativeHeight` 回写）。
+
+## 风险提示（实现前确认）
+
+1. **metafile 不转换**：`docs/03` §3.5 定了 EMF/WMF/EMZ/WMZ 与 TIFF 的转换不在 Rust 侧做。语料里
+   4 份 `emf-image__*` 的期望值是导出工具打的占位 `data:image/png;base64,EMFPNG`，我们输出的会是
+   `MediaKind::Metafile` 的原始字节 dataURL。这是**有意差异**，开工时就登记进 `KNOWN_DIFFS.md`，
+   否则 4.1 的 DoD 永远差 4 处。
+2. **递归**：绘图树可以嵌套很深（组里套组、文本框里套 drawing）。按 CLAUDE.md 的硬规则，遍历一律写成
+   迭代；`extractTextboxes` 的组递归改成显式栈 + 深度上限，超限降级并记诊断。
+3. **`topLevelDrawings` 的语义**：TS 是按字符串平衡匹配取顶层 `w:drawing`，文本框内嵌套的 drawing
+   留在父片段里。我们走 DOM，要显式实现"不下钻进 `txbxContent`"这条，否则文本框里的图会被当成
+   段落级图片，分类全错。
+4. **MCE**：绘图是 `mc:AlternateContent` 的重灾区（`wps` vs VML Fallback）。语义遍历已剥 Fallback
+   （M0 的 `xml/mce.rs`），但 TS 的某些分支恰恰读 Fallback 的 VML。逐条对照 `docs/01` §8，
+   哪些走 Choice、哪些走 Fallback 要写在代码注释里。
+5. **与 M2 的合并面**：M2 在 `span/`、`model/inline.rs`、`edit/ops.rs`；M4 在 `model/`（新文件）、
+   `bind/compat_ts/blocks.rs`、`resolve/`、`package/`。重叠只在 `model/build.rs` 与
+   `compat_ts/blocks.rs`。M4 的新代码尽量放新模块（`model/display.rs`、`model/drawing.rs`、
+   `bind/compat_ts/image.rs`），在这两个文件里只留调用点，减少冲突。

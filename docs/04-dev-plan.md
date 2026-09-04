@@ -349,7 +349,7 @@ crate 名 `rsword`；nightly 与 cargo-fuzz 已装）。已决的政策见 §8 �
 | --- | --- | --- |
 | 1 | ~~语料基线~~ 已决（2026-09-04）：接受当前基线，不重导。`manifest.jsonl` 首行记着 `f105f36` + 32 个脏文件 + 导出时间；复核过影响面：32 个里只有 `packages/docx-engine/src/generate.ts`（三处 hunk 全在 `patchTableCellTexts`）与 `tests/nested-table-edit.test.ts` 在引擎内，其余 29 个在 `apps/docs`，碰不到解析与保存输出 | 后续若改了 genoffice 的 `docx-engine` 再重导；重导前先比对 `manifest.jsonl` 首行与 genoffice 当时状态 |
 | 2 | ~~`m1.15-diff-tools` 何时并入 `main`~~ 已并入（2026-09-04） | M2 直接从 `main` 开分支 |
-| 3 | ~~M2 计划文档~~ 已写：`spec/13-m2-plan.md`（10 个任务 + 从 M1 带过来的债 + 5 条风险提示） | 开工前复核第 1 条（语料基线）对 2.5 / 2.6 差分基准的影响 |
+| 3 | ~~M2 计划文档~~ 已写：`spec/13-m2-plan.md`（10 个任务 + 从 M1 带过来的债 + 5 条风险提示）；M4 计划见 `spec/15-m4-plan.md`（8 个任务，与 M2 并行） | 开工前复核第 1 条（语料基线）对 2.5 / 2.6 差分基准的影响 |
 
 ---
 
@@ -362,7 +362,7 @@ crate 名 `rsword`；nightly 与 cargo-fuzz 已装）。已决的政策见 §8 �
 **优先级依据（实测）**：`diff-parse --scope all` 在 573 份文档里有 341 份存在未知差异、1925 个差异点，按域聚合：
 绘图与图片约 830、块分类连带项（label / type / previewText）493、run 相关（字段 / 批注 / 符号字体）220、
 页眉页脚 157、表格 67、字段显示 36。保存侧 `tests/save_blocks.rs` 的 82 份跳过用例里，M5 约 48 份、
-M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的一块且不依赖 Span 与字段，适合并行开发。
+M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的一块且不依赖 Span 与字段，适合并行开发（任务分解见 `spec/15-m4-plan.md`，分支 `m4-drawing`）。
 
 **M2（L2：Span + 字段）任务分解**
 

@@ -15,7 +15,7 @@
 3. `docs/04-dev-plan.md` —— 执行计划：§5.1 已完成清单、§5.2 M1 门、§8 实现偏差、§9 待决、§10 M2 及以后。
 4. `docs/01-ts-parser-reference.md` 与 genoffice 源码 —— **参考实现，不是验收权威**（见下）。
 
-`spec/12-m0-m1-plan.md`、`spec/13-m2-plan.md` 是里程碑任务分解（# / 任务 / 规范 / DoD）。
+`spec/12-m0-m1-plan.md`、`spec/13-m2-plan.md`、`spec/15-m4-plan.md` 是里程碑任务分解（# / 任务 / 规范 / DoD）。
 
 ## TS 不是权威
 
