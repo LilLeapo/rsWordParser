@@ -7,8 +7,8 @@
 
 **M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖），**已全部并入 `main`**（2026-09-04）。
 **M2 进行中**（分支 `m2-span-fields`）：2.1 Span 索引、2.2 Anchor 变换、2.3 物化与保存校验、
-2.4 字段子系统、2.5 字段进模型与 compat 已落地；任务分解见 `spec/13-m2-plan.md`，进度清单见
-`docs/04` §11。
+2.4 字段子系统、2.5 字段进模型与 compat、2.7 符号字体解码已落地；任务分解见
+`spec/13-m2-plan.md`，进度清单见 `docs/04` §11。
 
 现在这套代码能：打开任意语料文档、输出与 TS 兼容的 `ParsedDoc` JSON、在文本段落上做插入 / 删除 / 改
 run 属性 / 改段落属性 / 整段替换、把 TS 的 `SaveBlock[]` 保存请求翻成编辑操作、以字节级局部补丁写回，
@@ -27,7 +27,7 @@ run 属性 / 改段落属性 / 整段替换、把 TS 的 `SaveBlock[]` 保存请
 | L2 字段 `span/field/` | 解析完成 | `FieldSpan` 配对（复杂 / 简单 / 嵌套 / 跨段 / 未闭合诊断）、指令 tokenizer 与 76 个关键字的策略表、`w:ffData` 读侧、`FLD-13` 基线校验 | 字段编辑操作（2.9）、块字段生成器（M7） |
 | L3 属性表 `semantic/props/` | 完成 | 20 张表由 TOML 生成（读 / 写 / diff / patch / merge / `plan_apply_*`）、按 flavor 编解码、`Val::Raw` 降级、`PROP-05` 顺序 | 表格与节的属性表（M3 / M5） |
 | L3 模型 `model/` | 文本 + 字段完成 | `Document::rebuild`、块分类 R01–R19（含 R09 字段块）、段落坐标流（`Run`/`Segment`，UTF-16）、`Inline::Field` 与透明字段、`ParagraphFacts`、声明模型（styles / numbering / theme / settings / fontTable） | 表格模型（M3）、绘图显示模型（M4） |
-| resolve `resolve/` | 首版 | 样式链（basedOn / link）、docDefaults 层叠、每字段 `Provenance`、主题字体与颜色、heading 级别 | toggle 属性真实规则 + Word 实测 fixture（M5） |
+| resolve `resolve/` | 首版 | 样式链（basedOn / link）、docDefaults 层叠、每字段 `Provenance`、主题字体与颜色、符号字体解码、heading 级别 | toggle 属性真实规则 + Word 实测 fixture（M5）、补全 Wingdings 2/3 与 Webdings 映射表 |
 | L4 编辑 `edit/` | M1 子集 + Anchor | `EditSession`（含范围索引）、`InlinePos` 定位、`MutationPlan` plan/validate/commit、按 part 回滚的事务（DOM + 索引）、`InsertText`、`DeleteRange`（同段）、`SetRunProps`、`SetParaProps`、`ReplaceInlines`、`ReplaceParaProps`、`InsertBlock`/`DeleteBlock`/`MoveBlock`、`SPAN-06/07` 锚点维护 | 字段操作、拆分 / 合并段落（M2）、表格操作（M3）、修订生成（M7） |
 | 保存 `save/` | M1 子集 + Span | `SAVE-01` 六步编排（含第 3 步 Span 物化）、`SAVE-02` 子集校验（未绑定前缀、`PROP-05` 顺序、`SPAN-09` 范围检查）、扩展命名空间声明、`w:t` preserve、`raw_copy_file` 写回、`SaveOptions`（`saved_at`、`remove_personal_info`、`remove_date_and_time`） | 节 / 页眉页脚 / 水印 / 图表 / 墨迹等选项（M3–M6） |
 | 兼容 `bind/compat_ts/` | 文本 + 字段完成 | `parsed_doc` 整份 `ParsedDoc`（含 `extras`、UTF-16 索引、sdt 拆分）、字段折叠 run 与 `fieldDisplay` / `fieldLabel`、`apply_save_blocks`（original / generated / xml 块）、容忍差分 | 表格 / 绘图 / 页眉页脚字段（随对应里程碑） |
@@ -59,13 +59,13 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
 | 源码行数 / 文件数 | 24,189 行 / 61 个（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 220（单元 + 集成，15 个集成测试文件） | `cargo test --workspace` |
+| 测试数 | 225（单元 + 集成，15 个集成测试文件） | `cargo test --workspace` |
 | 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 16 份 hostile | `ls corpus/*` |
 | 往返字节保真 | 589 份文档、3,093 个 XML part 全部字节相同 | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
 | 模型对照 | 445 段类型 / styleId、387 段坐标流文本、22 项列表、9 项级别 | `tests/model.rs` |
 | resolve 对照 | 86,465 项 `StyleDisplay`、2,326 项 heading 级别、2,897 项 linked shell | `tests/resolve.rs` |
-| 解析差分（文本域） | 223 份用例，165 处已登记差异，**0 处未知差异** | `cargo run -p diff-parse -- --scope text` |
+| 解析差分（文本域） | 223 份用例，160 处已登记差异，**0 处未知差异** | `cargo run -p diff-parse -- --scope text` |
 | 解析差分（全域） | 573 份里 311 份有未知差异、1,709 个差异点（M3–M6 的工作面） | `cargo run -p diff-parse -- --scope all` |
 | 保存差分 | 162 份 TS 保存用例：77 份与 `saveDocx` 等价（其中 41 份逐字节相同）、3 份有意不同、82 份跳过 | `tests/save_blocks.rs` |
 | 范围索引 | 573 份 / 3012 个 part 的 31 个标记全部成对认领 → 19 个范围（书签 7、批注 12）；1 处孤儿终点 | `tests/span.rs` |

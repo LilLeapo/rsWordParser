@@ -328,3 +328,45 @@ fn res_02_style_display_matches_ts() {
     assert!(st.styles > 1000, "{}", st.styles);
     assert!(st.mismatches.is_empty(), "{} mismatches against TS StyleDisplay", st.mismatches.len());
 }
+
+// ---- RES-05 符号字体（任务 2.7）----
+
+/// `RES-05`：`w:sym` 与符号字体 run 的显示文本经映射表解码，表外码位保留原字符。
+#[test]
+fn res_05_symbol_fonts_decode_for_display() {
+    use rsword::bind::compat_ts::parsed_doc;
+
+    let case = |body: &str| -> Vec<serde_json::Value> {
+        let bytes = common::docx_with_body(body);
+        let mut pkg = rsword::package::Package::open(&bytes).unwrap();
+        let v = parsed_doc(&mut pkg).unwrap();
+        v["blocks"][0]["runs"].as_array().cloned().unwrap_or_default()
+    };
+
+    // w:sym：Wingdings F0FC → ✓、6C → ●（相邻同格式 run 会被合并）
+    let runs = case(
+        r#"<w:p><w:r><w:t>勾:</w:t></w:r><w:r><w:sym w:font="Wingdings" w:char="F0FC"/></w:r>
+           <w:r><w:sym w:font="Wingdings" w:char="6C"/></w:r></w:p>"#,
+    );
+    assert_eq!(runs[0]["text"], "勾:✓●", "{runs:?}");
+
+    // 表外码位保留原字符（U+F000 + 码位）
+    let runs = case(r#"<w:p><w:r><w:sym w:font="Wingdings 2" w:char="F045"/></w:r></w:p>"#);
+    assert_eq!(runs[0]["text"], "\u{F045}", "{runs:?}");
+
+    // 符号字体 run 的 PUA 文本解码，`w:rFonts` 随之摘掉（TS 行为）
+    let runs = case(
+        r#"<w:p><w:r><w:rPr><w:rFonts w:ascii="Symbol" w:hAnsi="Symbol"/></w:rPr><w:t>&#xF0B7;</w:t></w:r></w:p>"#,
+    );
+    assert_eq!(runs[0]["text"], "•");
+    assert_eq!(runs[0]["rawRPr"], "<w:rPr></w:rPr>", "解码后的 run 不再带符号字体");
+    assert!(runs[0].get("font").is_none() && runs[0].get("fontAscii").is_none(), "{runs:?}");
+
+    // 符号字体 run 里的普通 ASCII 不解码，字体键照常
+    let runs = case(
+        r#"<w:p><w:r><w:rPr><w:rFonts w:ascii="Wingdings" w:hAnsi="Wingdings"/></w:rPr><w:t>le</w:t></w:r></w:p>"#,
+    );
+    assert_eq!(runs[0]["text"], "le");
+    assert_eq!(runs[0]["font"], "Wingdings");
+    assert!(runs[0]["rawRPr"].as_str().unwrap().contains("w:rFonts"));
+}

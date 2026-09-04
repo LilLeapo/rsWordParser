@@ -7,8 +7,6 @@
 | --- | --- | --- | --- | --- |
 | `numbering-defs__012` | `numbering[1].levels[0].numFmt` | TS `custom`，本引擎 `decimal` | `mc:Choice Requires="w14"` 但文档没有声明 `w14` 前缀；MCE 规定无法解析的前缀不算理解，本引擎取 `mc:Fallback`（`XML-09`）；TS 用正则直接取 Choice | 本引擎（规范行为；Word 同样走 Fallback） |
 
-| `symbol-fonts__*` | 文本段落 `runs[].text` | TS 把 Symbol / Wingdings 字体的字符解码成 Unicode（`•`），本引擎保持原字符 `U+F0B7` | 符号字体映射表在 `RES-05`（M2）；`MOD-06` 规定 `Run.text` 保持原字符、解码结果放 `Segment.display`，`compat_ts` 再折回 TS 形态 | 暂时放行，M2 接入 `compat_ts` 后删除本条 |
-
 | `extra__strict-minimal` | `internal.documentXml`、`internal.bodyInner*`、`extras.elements[*]` | TS 装载时把 Strict URI 改写为 Transitional（`normalizeOoxmlParts`），偏移随之变化 | 本引擎不归一化（Strict stays Strict） | 本引擎；整份文档在 `tests/compat.rs` 的 `KNOWN_DOCS` 放行 |
 | `balance-dbcs-spacing__*` | `blocks[*].runs[*].charSpacingTwips` | TS 在 `balanceSingleByteDoubleByteWidth` 下按双字节字符比例缩放显示值 | 显示层决定（`MOD-11` 禁止排版字段进模型） | 本引擎；渲染器接管后删除 |
 | 任意 | `blocks[*].format.charIndents*` 及由其换算的 indent* | TS `withCharIndents` 用字号换算字符单位缩进 | 需字体度量，属显示层 | 暂放行（`KNOWN_PATHS`） |
@@ -27,7 +25,6 @@ TS 按固定路径读 `word/theme/theme1.xml`、`word/settings.xml` 等；本引
 
 ```known-diffs
 numbering-defs__012*     numbering.*                              # 未声明前缀的 mc:Choice Requires，本引擎走 Fallback
-symbol-fonts__*          *                                        # 符号字体解码（M2 RES-05）
 char-unit-indents__*     *                                        # *Chars 缩进换算需字体度量（TS withCharIndents）
 extra__strict-minimal*   *                                        # TS 装载时把 Strict 改写为 Transitional
 balance-dbcs-spacing__*  blocks[*].runs[*].charSpacingTwips       # TS 按双字节比例缩放显示值

@@ -18,7 +18,7 @@ CI 门（`spec/11` TEST-10）：字段与 Span 域的 `synthetic` diff 为 0；`
 | 2.4 ✅ | 字段子系统：`FieldSpan` 解析（begin / instr / separate / end 与嵌套）、指令解析器、`FieldForm` 的 Link / Atom / Block 三种策略 | FLD-01–FLD-08, FLD-13 | 验收清单 FLD 对应行；未闭合字段保持原字节；`corpus/hostile/field-unclosed.docx` 记诊断 |
 | 2.5 ✅ | 字段进模型与 compat：`Inline::Field{id,result}`、`Run.field`、透明字段的 `Link`；`fieldDisplay` | MOD-06, COMPAT-07 | `bookmarks-crossref` / XE / 复选框 / PAGE 等用例 diff 为 0（约 36 处字段显示差异归零） |
 | 2.6 | 批注与注释部件：解析 `comments.xml` / `commentsExtended.xml`，`Run.comments` 与块级 `commentStarts/Ends`；`AddComment` / `RemoveComment` / `SetCommentText`；**新建 part**（关系 + 内容类型） | SAVE-05, EDIT-03 | 保存语料 7 份 comments 与 3 份 footnotes 用例通过；首次加批注后其他条目原压缩数据不变 |
-| 2.7 | 符号字体解码（`w:sym` 与符号字体 run 的文本映射） | RES-05 | 删掉 `KNOWN_DIFFS.md` 里整份放行的 `symbol-fonts__*` |
+| 2.7 ✅ | 符号字体解码（`w:sym` 与符号字体 run 的文本映射） | RES-05 | 删掉 `KNOWN_DIFFS.md` 里整份放行的 `symbol-fonts__*` |
 | 2.8 | `EDIT-06` id 分配落地：`rId`（新外链）、书签 `w:id`、批注 `w:id`、修订 `w:id` 预留、`w14:paraId` | EDIT-06 | 验收清单 EDIT-06；`insert-and-layout__001.save.10`（新超链接关系）通过 |
 | 2.9 | 字段与段落操作：`InsertField`、`SetFieldResultProps`、`ToggleCheckbox`、`SetFormText`、`SetLinkTarget`、`UpdateBlockField`、`SplitParagraph`、`MergeWithNext`、`AddBookmark` / `RemoveBookmark` | FLD-09–FLD-12, EDIT-03 | 各操作的验收行；跨段透明字段拆分返回 `Err(EDIT_SPLIT_FIELD)` |
 | 2.10 | `fuzz_instr` 目标与 M2 门接入 CI | TEST-06, TEST-10 | 指令解析 10 分钟无崩溃；`diff-parse` 字段与 Span 域 0 未知差异 |

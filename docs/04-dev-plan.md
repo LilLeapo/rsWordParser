@@ -503,7 +503,18 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   run、可转换与不可转换 HYPERLINK、passthrough 的三种 `fieldDisplay`），`tests/edit.rs` 的 REF 用例
   改成断言 `FLD-07` 的整字段删除。
 - [ ] 2.6 批注与注释部件、新建 part（`SAVE-05`）
-- [ ] 2.7 符号字体解码（`RES-05`）
+- [x] **2.7 符号字体解码**（`resolve/symbol.rs`、`bind/compat_ts/blocks.rs`）：`RES-05` 的符号字体表与
+  `decode` / `decode_pua` / `is_symbol_font`；`w:sym` 按 `w:font` + `w:char` 解码（`0xF000` 偏移与裸码位
+  都认），符号字体 run 的 `w:t` **只**解码 PUA 区间（普通 ASCII 字母不动，语料 `symbol-fonts__004`），
+  表外码位保留原字符（`U+F000 + 码位`，与 TS 一致）。解码过文本的 run 在 compat 侧连 `w:rFonts` 一起
+  摘掉（按节点区间从原字节里剪，不做字符串匹配），`font` / `fontAscii` / `themeRFonts` 也不出——
+  字形已经是真 Unicode，再带符号字体反而显示不出来。
+  表的来源：`symbol-fonts.ts` 不在本仓库，`SYMBOL` 抄 Adobe Symbol 的标准映射，`WINGDINGS` 只收
+  把握得住的常用字形，`Wingdings 2/3` 与 `Webdings` 暂时留空（语料 `symbol-fonts__002` 里 TS 也没解码
+  `Wingdings 2` 的 `F045`）。补表要证据，模块头写了这条。
+  `KNOWN_DIFFS.md` 里整份放行的 `symbol-fonts__*` 已删除：6 份用例现在 0 处未知差异（文本域的已知
+  差异 165 → 160）。测试：`resolve/symbol.rs` 4 个单元用例 + `tests/resolve.rs` 的
+  `res_05_symbol_fonts_decode_for_display`（四种情形）。
 - [ ] 2.8 `EDIT-06` id 分配落地
 - [ ] 2.9 字段与段落操作（`FLD-09`–`FLD-12`）
 - [ ] 2.10 `fuzz_instr` 与 M2 门

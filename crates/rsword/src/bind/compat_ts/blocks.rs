@@ -1586,6 +1586,27 @@ fn break_char(kind: BreakKind) -> &'static str {
     }
 }
 
+/// `rawRPr` 的字节；`drop_fonts` 时把 `w:rFonts` 子元素从原字节里剪掉（`RES-05`：解码过的符号
+/// run 在 TS 那边是 `<w:rPr></w:rPr>`）。按节点区间剪，不做字符串匹配。
+fn raw_rpr(ctx: &Ctx<'_>, rpr: NodeId, drop_fonts: bool) -> String {
+    let dom = ctx.dom;
+    let whole = ctx.lex_range(rpr);
+    if !drop_fonts {
+        return ctx.slice(&whole).to_string();
+    }
+    let Some(fonts) = dom.semantic_children(rpr).find(|&n| dom.is(n, w(LocalName::RFonts))) else {
+        return ctx.slice(&whole).to_string();
+    };
+    let cut = ctx.lex_range(fonts);
+    let src = ctx.dom.src();
+    let (a, b) = (whole.start as usize, whole.end as usize);
+    let (c, d) = (cut.start as usize, cut.end as usize);
+    if c < a || d > b {
+        return ctx.slice(&whole).to_string();
+    }
+    format!("{}{}", &src[a..c], &src[d..b])
+}
+
 /// `COMPAT-07`：run 的坐标流文本按 TS 的控制字符折回（结构段贡献 0）。
 fn run_text(run: &Run) -> String {
     let mut text = String::new();
@@ -1620,11 +1641,57 @@ fn inlines_text(inlines: &[Inline]) -> String {
     s
 }
 
+/// `RES-05`：符号字体 run 的显示文本。
+///
+/// `w:sym` 按字体表解码，表外的保留原字符（`U+F000 + 码位`，与 TS 一致，语料
+/// `symbol-fonts__002`）；符号字体 run 的
+/// `w:t` 只解码 PUA 区间的字符。返回值第二项表示"文本段被解码过"——TS 那边这种 run 的 `w:rFonts`
+/// 会被摘掉（字形已经变成真正的 Unicode，再带符号字体反而显示不出来）。
+fn symbol_text(ctx: &Ctx<'_>, run: &Run) -> (String, bool) {
+    let font = ctx.resolver.fonts(&run.props).display_ascii().map(str::to_string);
+    let symbol_run = font.as_deref().is_some_and(crate::resolve::is_symbol_font);
+    let mut text = String::new();
+    let mut decoded_text = false;
+    for seg in &run.segments {
+        match &seg.kind {
+            SegmentKind::Text | SegmentKind::DelText if symbol_run => {
+                let f = font.as_deref().unwrap_or_default();
+                for c in run.segment_text(seg).chars() {
+                    match crate::resolve::decode_pua(f, c) {
+                        Some(d) => {
+                            text.push(d);
+                            decoded_text = true;
+                        }
+                        None => text.push(c),
+                    }
+                }
+            }
+            SegmentKind::Text | SegmentKind::DelText => text.push_str(run.segment_text(seg)),
+            SegmentKind::Tab | SegmentKind::PTab { .. } => text.push('\t'),
+            SegmentKind::Br { kind, .. } => text.push_str(break_char(*kind)),
+            SegmentKind::Cr => text.push('\n'),
+            SegmentKind::NoBreakHyphen => text.push('\u{2011}'),
+            // 解码失败保留原字符（`RES-05`）：模型里放的就是 `U+F000 + 码位`，TS 也是这样
+            SegmentKind::Sym { font, code: Some(_) } => {
+                match font.as_deref().and_then(|f| {
+                    let SegmentKind::Sym { code: Some(c), .. } = &seg.kind else { return None };
+                    crate::resolve::decode_symbol(f, *c)
+                }) {
+                    Some(d) => text.push(d),
+                    None => text.push_str(run.segment_text(seg)),
+                }
+            }
+            _ => {}
+        }
+    }
+    (text, decoded_text)
+}
+
 /// TS `buildRun`。
 fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Value>> {
     let dom = ctx.dom;
     let r = ctx.resolver;
-    let text = run_text(run);
+    let (text, symbol_decoded) = symbol_text(ctx, run);
     if text.is_empty() {
         return None;
     }
@@ -1685,7 +1752,7 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
         revision_ctx(run, &mut o);
         return Some(o);
     };
-    set(&mut o, "rawRPr", ctx.slice(&ctx.lex_range(rpr_node)));
+    set(&mut o, "rawRPr", raw_rpr(ctx, rpr_node, symbol_decoded));
     let r_style = props.style.as_deref().filter(|s| *s != "Hyperlink");
     if let Some(s) = r_style {
         set(&mut o, "styleId", s);
@@ -1724,6 +1791,8 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
         set(&mut o, "sizeHalfPoints", n);
     }
     let fonts = r.fonts(props);
+    // 解码过的符号 run：TS 连 `w:rFonts` 一起摘掉，`font` / `fontAscii` / `themeRFonts` 都不出
+    let fonts = if symbol_decoded { Default::default() } else { fonts };
     let font = fonts.display().map(str::to_string);
     if let Some(f) = &font {
         set(&mut o, "font", f.clone());
