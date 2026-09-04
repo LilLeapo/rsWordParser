@@ -8,7 +8,8 @@
 
 | 目录 | 内容 |
 | --- | --- |
-| `docs/` | 设计文档。`01` 现有 TS 实现的参考规格；`02` v2（已被取代）；`03` **v3.2 冻结架构**（宪法）；`04` M0/M1 开发计划（环境核查、风险结论、执行顺序、待决事项） |
+| `CLAUDE.md` | 在这个仓库里干活的规则：权威顺序、不变式、命令、硬规则、踩过的坑（人与 AI 同用） |
+| `docs/` | 设计文档。`01` 现有 TS 实现的参考规格；`02` v2（已被取代）；`03` **v3.2 冻结架构**（宪法）；`04` 开发计划（环境核查、执行顺序、实现偏差、待决事项、M2 及以后）；`05` **现状快照**（能力矩阵、实测数字、明确未实现） |
 | `spec/` | 可验收的模块规范，每条规范带 ID（`XML-12`、`FLD-06`…），实现与测试引用这些 ID |
 | `crates/rsword/` | 内核 crate。模块目录与 `docs/03` §2 的分层一一对应；`src/lib.rs` 有模块 ↔ 规范映射表 |
 | `corpus/` | 测试语料：`synthetic/`（由 genoffice 测试导出的 docx + 期望 JSON + `SaveBlock[]` 记录）、`real/`（真实文档，每个带 `case.toml`）、`hostile/`（TEST-09 恶意输入） |
@@ -17,10 +18,11 @@
 
 ## 阅读顺序
 
+0. `CLAUDE.md`（规则）与 `docs/05-status.md`（现在能做什么）
 1. `docs/03-architecture-v3.md` 第 0 节（冻结项）与第 13 节（六个核心类型索引）
 2. `spec/00-overview.md`（规范体系、术语、单位）
 3. `docs/04-dev-plan.md`（当前在做什么、下一步做什么）
-4. 按里程碑阅读对应 spec：M0 → `01-package`、`02-xml-dom`；M1 → `05-properties`、`06-model`、`10-compat-ts`；M2 → `03-span`、`04-field`；M7 → `08-edit`、`09-save`
+4. 按里程碑阅读对应 spec：M0 → `01-package`、`02-xml-dom`；M1 → `05-properties`、`06-model`、`10-compat-ts`；M2 → `03-span`、`04-field`、`13-m2-plan`；M7 → `08-edit`、`09-save`
 
 ## 构建
 
@@ -31,7 +33,14 @@ GENOFFICE_DIR=~/code/genoffice tools/export-golden/run.sh   # 重新导出语料
 
 ## 状态
 
-架构 v3.2 已冻结（2026-09-03）。**M0 已完成**（2026-09-04）：任意语料 `parse → serialize` 字节相同（含 Strict），无编辑保存字节相同，改一个节点后其他条目原样，两个 fuzz 目标各 10 分钟无崩溃。**M1 进行中**：组 P（1.1 属性表格式与 codec、1.2 `RunProps` / `ParaProps`、1.3 `plan_apply_*` 合并写回）、1.4 声明模型、组 M（1.5–1.8 坐标流 / `ParagraphFacts` / 分类 / `Document::rebuild`）、1.9 `resolve` 首版、1.10 `compat_ts` 文本块（193 份文本用例与 TS `ParsedDoc` 零差异）、1.15 `diff-parse` / `xpath-assert` 工具、1.14 第一批（保存校验、扩展命名空间声明、Strict 保存测试）、1.11 `EditSession` / 定位 / `MutationPlan` 事务、1.12 内联操作（`InsertText` / `DeleteRange` / `SetRunProps` / `SetParaProps` / `ReplaceInlines`，M1 门第二条通过）、1.13 `SaveBlock[]` 兼容映射（162 份 TS 保存用例中 77 份与 `saveDocx` 输出等价，其余为后续里程碑能力）、1.14 第二批（`save(session, opts)` 编排与 `SAVE-07` 保存选项）已完成（2026-09-04，`docs/04-dev-plan.md` §5.1），M1 门三条均有测试覆盖（§5.2）。验收政策：TS 是参考实现而非权威，目标是功能等价或更强，有意差异逐条登记（`docs/04` §8）。后续里程碑与 M2 任务分解见 `docs/04-dev-plan.md` §10。
+架构 v3.2 已冻结（2026-09-03）。**M0 与 M1 均已完成**（2026-09-04）：字节保真的读写骨架、属性表、文本段落
+模型、`resolve` 首版、`compat_ts` 文本块、编辑引擎（`EditSession` + 五个内联操作 + 事务）、`SaveBlock[]`
+兼容映射、`SAVE-01` 保存编排与保存选项、差分工具链。M1 门三条均有测试覆盖。
+
+能力矩阵、实测数字、明确未实现的清单在 **`docs/05-status.md`**；任务清单与偏差记录在
+`docs/04-dev-plan.md`；下一步是 M2（Span + 字段），任务分解在 `spec/13-m2-plan.md`。
+
+验收政策：TS 是参考实现而非权威，目标是**功能等价或更强**，有意差异逐条登记（`docs/04` §8）。
 
 ## 与 genoffice 的关系
 
