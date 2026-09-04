@@ -267,3 +267,174 @@ attrs = [
   { name = "leader", attr = "w:leader", codec = "TabLeader" },
   { name = "pos", attr = "w:pos", codec = "Twips" },
 ]
+
+# ---- 声明模型用到的枚举（任务 1.4：styles / numbering / settings / fontTable）-------------------------
+
+[enum.StyleType]
+doc = "ST_StyleType（§17.18.83）"
+values = ["paragraph", "character", "table", "numbering"]
+
+[enum.TblStyleOverrideType]
+doc = "ST_TblStyleOverrideType（§17.18.89）"
+values = [
+  "wholeTable", "firstRow", "lastRow", "firstCol", "lastCol", "band1Vert", "band2Vert",
+  "band1Horz", "band2Horz", "neCell", "nwCell", "seCell", "swCell",
+]
+
+[enum.NumberFormat]
+doc = "ST_NumberFormat（§17.18.59）；`custom` 配 `w:format`"
+values = [
+  "decimal", "upperRoman", "lowerRoman", "upperLetter", "lowerLetter", "ordinal", "cardinalText",
+  "ordinalText", "hex", "chicago", "ideographDigital", "japaneseCounting", "aiueo", "iroha",
+  "decimalFullWidth", "decimalHalfWidth", "japaneseLegal", "japaneseDigitalTenThousand",
+  "decimalEnclosedCircle", "decimalFullWidth2", "aiueoFullWidth", "irohaFullWidth", "decimalZero",
+  "bullet", "ganada", "chosung", "decimalEnclosedFullstop", "decimalEnclosedParen",
+  "decimalEnclosedCircleChinese", "ideographEnclosedCircle", "ideographTraditional", "ideographZodiac",
+  "ideographZodiacTraditional", "taiwaneseCounting", "ideographLegalTraditional",
+  "taiwaneseCountingThousand", "taiwaneseDigital", "chineseCounting", "chineseLegalSimplified",
+  "chineseCountingThousand", "koreanDigital", "koreanCounting", "koreanLegal", "koreanDigital2",
+  "vietnameseCounting", "russianLower", "russianUpper", "none", "numberInDash", "hebrew1", "hebrew2",
+  "arabicAlpha", "arabicAbjad", "hindiVowels", "hindiConsonants", "hindiNumbers", "hindiCounting",
+  "thaiLetters", "thaiNumbers", "thaiCounting", "bahtText", "dollarText", "custom",
+]
+
+[enum.MultiLevelType]
+doc = "ST_MultiLevelType（§17.18.58）"
+values = ["singleLevel", "multilevel", "hybridMultilevel"]
+
+[enum.LevelSuffix]
+doc = "ST_LevelSuffix（§17.18.47）"
+values = ["tab", "space", "nothing"]
+
+[enum.DocProtect]
+doc = "ST_DocProtect（§17.18.18）"
+values = ["none", "readOnly", "comments", "trackedChanges", "forms"]
+
+[enum.FontFamily]
+doc = "ST_FontFamily（§17.18.30）"
+values = ["decorative", "modern", "roman", "script", "swiss", "auto"]
+
+[enum.FontPitch]
+doc = "ST_Pitch（§17.18.71）"
+values = ["fixed", "variable", "default"]
+
+[enum.View]
+doc = "ST_View（§17.18.102）"
+values = ["none", "print", "outline", "masterPages", "normal", "web"]
+
+[enum.Zoom]
+doc = "ST_Zoom（§17.18.105）"
+values = ["none", "fullPage", "bestFit", "textFit"]
+
+[enum.CharacterSpacing]
+doc = "ST_CharacterSpacing（§17.18.7）"
+values = ["doNotCompress", "compressPunctuation", "compressPunctuationAndJapaneseKana"]
+
+# ---- 声明模型用到的结构体 -----------------------------------------------------------------------
+
+[struct.NumFmt]
+doc = "CT_NumFmt（`w:numFmt`，§17.9.17）；`w14` 自定义格式经 mc:AlternateContent 的 Choice 到达这里。"
+attrs = [
+  { name = "val", attr = "w:val", codec = "NumberFormat" },
+  { name = "format", attr = "w:format", codec = "Str", doc = "val=custom 时的格式串" },
+]
+
+[struct.LvlText]
+doc = "CT_LevelText（`w:lvlText`，§17.9.11）"
+attrs = [
+  { name = "val", attr = "w:val", codec = "Str" },
+  { name = "null", attr = "w:null", codec = "OnOff" },
+]
+
+[struct.LvlLegacy]
+doc = "CT_LvlLegacy（`w:legacy`，§17.9.9）"
+attrs = [
+  { name = "legacy", attr = "w:legacy", codec = "OnOff" },
+  { name = "legacy_space", attr = "w:legacySpace", codec = "Twips" },
+  { name = "legacy_indent", attr = "w:legacyIndent", codec = "Twips" },
+]
+
+[struct.WriteProtection]
+doc = "CT_WriteProtection（`w:writeProtection`，§17.15.1.93）：修改密码，非加密。"
+attrs = [
+  { name = "recommended", attr = "w:recommended", codec = "OnOff" },
+  { name = "algorithm_name", attr = "w:algorithmName", codec = "Str" },
+  { name = "hash_value", attr = "w:hashValue", codec = "Str" },
+  { name = "salt_value", attr = "w:saltValue", codec = "Str" },
+  { name = "spin_count", attr = "w:spinCount", codec = "Int" },
+  { name = "crypt_provider_type", attr = "w:cryptProviderType", codec = "Str" },
+  { name = "crypt_algorithm_class", attr = "w:cryptAlgorithmClass", codec = "Str" },
+  { name = "crypt_algorithm_type", attr = "w:cryptAlgorithmType", codec = "Str" },
+  { name = "crypt_algorithm_sid", attr = "w:cryptAlgorithmSid", codec = "Int" },
+  { name = "crypt_spin_count", attr = "w:cryptSpinCount", codec = "Int" },
+  { name = "hash", attr = "w:hash", codec = "Str" },
+  { name = "salt", attr = "w:salt", codec = "Str" },
+]
+
+[struct.DocProtection]
+doc = "CT_DocProtect（`w:documentProtection`，§17.15.1.29）"
+attrs = [
+  { name = "edit", attr = "w:edit", codec = "DocProtect" },
+  { name = "formatting", attr = "w:formatting", codec = "OnOff" },
+  { name = "enforcement", attr = "w:enforcement", codec = "OnOff" },
+  { name = "algorithm_name", attr = "w:algorithmName", codec = "Str" },
+  { name = "hash_value", attr = "w:hashValue", codec = "Str" },
+  { name = "salt_value", attr = "w:saltValue", codec = "Str" },
+  { name = "spin_count", attr = "w:spinCount", codec = "Int" },
+  { name = "crypt_provider_type", attr = "w:cryptProviderType", codec = "Str" },
+  { name = "crypt_algorithm_class", attr = "w:cryptAlgorithmClass", codec = "Str" },
+  { name = "crypt_algorithm_type", attr = "w:cryptAlgorithmType", codec = "Str" },
+  { name = "crypt_algorithm_sid", attr = "w:cryptAlgorithmSid", codec = "Int" },
+  { name = "crypt_spin_count", attr = "w:cryptSpinCount", codec = "Int" },
+  { name = "hash", attr = "w:hash", codec = "Str" },
+  { name = "salt", attr = "w:salt", codec = "Str" },
+]
+
+[struct.ZoomSetting]
+doc = "CT_Zoom（`w:zoom`，§17.15.1.97）"
+attrs = [
+  { name = "val", attr = "w:val", codec = "Zoom" },
+  { name = "percent", attr = "w:percent", codec = "Percent" },
+]
+
+[struct.ThemeFontLang]
+doc = "CT_Language 复用于 `w:themeFontLang`（§17.15.1.88）"
+attrs = [
+  { name = "val", attr = "w:val", codec = "Str" },
+  { name = "east_asia", attr = "w:eastAsia", codec = "Str" },
+  { name = "bidi", attr = "w:bidi", codec = "Str" },
+]
+
+[struct.CompatSetting]
+doc = "CT_CompatSetting（`w:compatSetting`，§17.15.3.1）"
+attrs = [
+  { name = "name", attr = "w:name", codec = "Str" },
+  { name = "uri", attr = "w:uri", codec = "Str" },
+  { name = "val", attr = "w:val", codec = "Str" },
+]
+
+[struct.FontCharset]
+doc = "CT_Charset（`w:charset`，§17.8.3.1）"
+attrs = [
+  { name = "val", attr = "w:val", codec = "Str", doc = "两位 hex 的字符集号，原文保留" },
+  { name = "character_set", attr = "w:characterSet", codec = "Str" },
+]
+
+[struct.FontSig]
+doc = "CT_FontSig（`w:sig`，§17.8.3.16）：Unicode / 代码页位图，原文保留"
+attrs = [
+  { name = "usb0", attr = "w:usb0", codec = "Str" },
+  { name = "usb1", attr = "w:usb1", codec = "Str" },
+  { name = "usb2", attr = "w:usb2", codec = "Str" },
+  { name = "usb3", attr = "w:usb3", codec = "Str" },
+  { name = "csb0", attr = "w:csb0", codec = "Str" },
+  { name = "csb1", attr = "w:csb1", codec = "Str" },
+]
+
+[struct.FontEmbed]
+doc = "CT_FontRel（`w:embedRegular` 等，§17.8.3.9）"
+attrs = [
+  { name = "id", attr = "r:id", codec = "Str" },
+  { name = "font_key", attr = "w:fontKey", codec = "Str" },
+  { name = "subsetted", attr = "w:subsetted", codec = "OnOff" },
+]

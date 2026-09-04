@@ -71,6 +71,9 @@ struct TableDecl {
     doc: String,
     /// 容器全部子元素的 schema 顺序（`PROP-05`），含未建模的；`a|b` 表示同义对占同一序号。
     order: Vec<String>,
+    /// 容器元素自身的属性（`w:lvl/@ilvl`、`w:style/@styleId`），列与 struct 的 attrs 相同。
+    #[serde(default)]
+    attrs: Vec<AttrDecl>,
     #[serde(default)]
     field: Vec<FieldDecl>,
 }
@@ -167,6 +170,7 @@ struct Table {
     change: Option<Qn>,
     doc: String,
     order: Vec<Vec<Qn>>,
+    attrs: Vec<Attr>,
     fields: Vec<Field>,
 }
 
@@ -259,15 +263,16 @@ pub fn generate(
         panic!("{where_}: 未知 codec `{codec}`");
     };
 
-    // 结构体
-    let mut structs: Vec<(String, &StructDecl, Vec<Attr>)> = Vec::new();
-    for (name, decl) in &types.structs {
+    let resolve_attrs = |names: &mut Names<'_>,
+                         decls: &[AttrDecl],
+                         owner: &str,
+                         taken: &mut BTreeSet<String>|
+     -> Vec<Attr> {
         let mut attrs = Vec::new();
-        let mut field_names = BTreeSet::new();
-        for a in &decl.attrs {
-            let where_ = format!("struct {name}.{}", a.name);
+        for a in decls {
+            let where_ = format!("{owner}.{}", a.name);
             check_ident(&a.name, &where_);
-            assert!(field_names.insert(a.name.clone()), "{where_}: 字段名重复");
+            assert!(taken.insert(a.name.clone()), "{where_}: 名字重复");
             let Kind::Scalar { codec, value } = resolve(&a.codec, &where_) else {
                 panic!("{where_}: 属性 codec 只能是标量");
             };
@@ -280,6 +285,14 @@ pub fn generate(
                 doc: a.doc.clone(),
             });
         }
+        attrs
+    };
+
+    // 结构体
+    let mut structs: Vec<(String, &StructDecl, Vec<Attr>)> = Vec::new();
+    for (name, decl) in &types.structs {
+        let mut taken = BTreeSet::new();
+        let attrs = resolve_attrs(&mut names, &decl.attrs, &format!("struct {name}"), &mut taken);
         structs.push((name.clone(), decl, attrs));
     }
 
@@ -307,13 +320,14 @@ pub fn generate(
                 c.text
             );
         }
-        let mut fields = Vec::new();
         let mut field_names = BTreeSet::new();
+        let attrs = resolve_attrs(&mut names, &d.attrs, &where_, &mut field_names);
+        let mut fields = Vec::new();
         let mut elements = BTreeSet::new();
         for f in &d.field {
             let where_ = format!("{where_}.{}", f.name);
             check_ident(&f.name, &where_);
-            assert!(field_names.insert(f.name.clone()), "{where_}: 字段名重复");
+            assert!(field_names.insert(f.name.clone()), "{where_}: 字段名重复（或与属性同名）");
             assert!(f.name != "raw_unmodeled", "{where_}: 字段名保留");
             let element = names.qn(&f.element, &where_);
             let legacy = f.legacy.as_deref().map(|l| names.qn(l, &where_));
@@ -364,6 +378,7 @@ pub fn generate(
             change,
             doc: d.doc,
             order,
+            attrs,
             fields,
         });
     }
@@ -645,6 +660,15 @@ fn gen_table(out: &mut String, t: &Table) {
     doc_attr(out, "", &doc);
     writeln!(out, "#[derive(Debug, Clone, Default)]").unwrap();
     writeln!(out, "pub struct {name} {{").unwrap();
+    for a in &t.attrs {
+        let d = if a.doc.is_empty() {
+            format!("容器属性 `@{}`", a.attr.text)
+        } else {
+            format!("容器属性 `@{}`：{}", a.attr.text, a.doc)
+        };
+        doc_attr(out, "    ", &d);
+        writeln!(out, "    pub {}: Option<{}>,", a.name, a.value).unwrap();
+    }
     for f in &t.fields {
         let mut d = format!("`{}`", f.element.text);
         if let Some(l) = &f.legacy {
@@ -664,6 +688,9 @@ fn gen_table(out: &mut String, t: &Table) {
     writeln!(out, "impl PartialEq for {name} {{").unwrap();
     writeln!(out, "    fn eq(&self, o: &Self) -> bool {{").unwrap();
     write!(out, "        true").unwrap();
+    for a in &t.attrs {
+        write!(out, " && self.{n} == o.{n}", n = a.name).unwrap();
+    }
     for f in &t.fields {
         write!(out, " && self.{n} == o.{n}", n = f.name).unwrap();
     }
@@ -713,11 +740,26 @@ fn gen_table(out: &mut String, t: &Table) {
     }
     writeln!(out, "];\n").unwrap();
 
+    writeln!(out, "/// [`{name}`] 容器元素自身的属性。").unwrap();
+    writeln!(out, "pub const {upper}_ATTRS: &[AttrInfo] = &[").unwrap();
+    for a in &t.attrs {
+        writeln!(
+            out,
+            "    AttrInfo {{ name: {:?}, attr: {}, legacy: {} }},",
+            a.name,
+            a.attr.expr(),
+            opt_qn_expr(a.legacy.as_ref())
+        )
+        .unwrap();
+    }
+    writeln!(out, "];\n").unwrap();
+
     writeln!(out, "/// [`{name}`] 的表信息（容器元素、修订快照元素、字段、顺序）。").unwrap();
     writeln!(out, "pub const {upper}: TableInfo = TableInfo {{").unwrap();
     writeln!(out, "    name: {name:?},").unwrap();
     writeln!(out, "    element: {},", t.element.expr()).unwrap();
     writeln!(out, "    change: {},", opt_qn_expr(t.change.as_ref())).unwrap();
+    writeln!(out, "    attrs: {upper}_ATTRS,").unwrap();
     writeln!(out, "    fields: {upper}_FIELDS,").unwrap();
     writeln!(out, "    order_index: order_index_{snake},").unwrap();
     writeln!(out, "}};\n").unwrap();
@@ -761,6 +803,20 @@ fn gen_table(out: &mut String, t: &Table) {
     writeln!(out, "    let mut out = {name}::default();").unwrap();
     writeln!(out, "    let Some(c) = container else {{ return out }};").unwrap();
     writeln!(out, "    let dom = ctx.dom();").unwrap();
+    if !t.attrs.is_empty() {
+        writeln!(out, "    ctx.enter(c);").unwrap();
+        for a in &t.attrs {
+            writeln!(
+                out,
+                "    out.{} = read_attr::<{}>(c, {}, {}, ctx);",
+                a.name,
+                a.codec,
+                a.attr.expr(),
+                opt_qn_expr(a.legacy.as_ref())
+            )
+            .unwrap();
+        }
+    }
     writeln!(out, "    for child in dom.semantic_children(c) {{").unwrap();
     writeln!(out, "        let Some(name) = dom.name(child) else {{ continue }};").unwrap();
     writeln!(out, "        ctx.enter(child);").unwrap();
@@ -822,6 +878,9 @@ fn gen_table(out: &mut String, t: &Table) {
     .unwrap();
     writeln!(out, "#[derive(Debug, Clone, Default, PartialEq, Eq)]").unwrap();
     writeln!(out, "pub struct {patch} {{").unwrap();
+    for a in &t.attrs {
+        writeln!(out, "    pub {}: Change<{}>,", a.name, a.value).unwrap();
+    }
     for f in &t.fields {
         writeln!(out, "    pub {}: {},", f.name, patch_ty(f)).unwrap();
     }
@@ -830,6 +889,9 @@ fn gen_table(out: &mut String, t: &Table) {
     writeln!(out, "impl PropsPatch for {patch} {{").unwrap();
     writeln!(out, "    fn is_empty(&self) -> bool {{").unwrap();
     write!(out, "        true").unwrap();
+    for a in &t.attrs {
+        write!(out, " && self.{}.is_keep()", a.name).unwrap();
+    }
     for f in &t.fields {
         write!(out, " && self.{}.is_keep()", f.name).unwrap();
     }
@@ -884,6 +946,9 @@ fn gen_table(out: &mut String, t: &Table) {
     writeln!(out, "/// `a` → `b` 的变更集：相等 `Keep`，`b` 缺席 `Unset`，否则 `Set`（嵌套表两侧都有时为 `Patch`）。").unwrap();
     writeln!(out, "pub fn diff_{snake}(a: &{name}, b: &{name}) -> {patch} {{").unwrap();
     writeln!(out, "    {patch} {{").unwrap();
+    for a in &t.attrs {
+        writeln!(out, "        {n}: Change::diff(&a.{n}, &b.{n}),", n = a.name).unwrap();
+    }
     for f in &t.fields {
         let expr = match (&f.kind, f.multi) {
             (Kind::Table(t2), false) => {
@@ -905,6 +970,18 @@ fn gen_table(out: &mut String, t: &Table) {
     .unwrap();
     writeln!(out, "pub fn emit_{snake}(v: &{name}, flavor: PartFlavor) -> NewElement {{").unwrap();
     writeln!(out, "    let mut e = NewElement::new({});", t.element.expr()).unwrap();
+    for a in &t.attrs {
+        writeln!(out, "    if let Some(x) = &v.{} {{", a.name).unwrap();
+        writeln!(
+            out,
+            "        e.push_attr(spell(flavor, {}, {}), <{} as codec::Codec>::write(x, flavor));",
+            a.attr.expr(),
+            opt_qn_expr(a.legacy.as_ref()),
+            a.codec
+        )
+        .unwrap();
+        writeln!(out, "    }}").unwrap();
+    }
     writeln!(out, "    for f in {field_enum}::ALL {{").unwrap();
     writeln!(out, "        for c in emit_{snake}_value(v, *f, flavor) {{").unwrap();
     writeln!(out, "            e.push_child(c);").unwrap();
@@ -941,6 +1018,14 @@ fn gen_plan(out: &mut String, t: &Table) {
     .unwrap();
     writeln!(out, "#[allow(clippy::clone_on_copy)]").unwrap();
     writeln!(out, "pub fn apply_{snake}_patch(v: &mut {name}, p: &{patch}) {{").unwrap();
+    for a in &t.attrs {
+        let n = &a.name;
+        writeln!(
+            out,
+            "    match &p.{n} {{ Change::Keep => {{}}, Change::Unset => v.{n} = None, Change::Set(x) => v.{n} = Some(x.clone()) }}"
+        )
+        .unwrap();
+    }
     for f in &t.fields {
         let n = &f.name;
         let line = match (&f.kind, f.multi) {
@@ -1002,6 +1087,45 @@ fn gen_plan(out: &mut String, t: &Table) {
         }
     }
     writeln!(out, "        return;\n    }};").unwrap();
+    for a in &t.attrs {
+        let n = &a.name;
+        writeln!(out, "    match &eff.{n} {{").unwrap();
+        writeln!(out, "        Change::Keep => {{}}").unwrap();
+        writeln!(out, "        Change::Unset => {{").unwrap();
+        writeln!(
+            out,
+            "            out.push(NodeEdit::RemoveAttr {{ node: Target::Node(c), name: {} }});",
+            a.attr.expr()
+        )
+        .unwrap();
+        if let Some(l) = &a.legacy {
+            writeln!(
+                out,
+                "            out.push(NodeEdit::RemoveAttr {{ node: Target::Node(c), name: {} }});",
+                l.expr()
+            )
+            .unwrap();
+        }
+        writeln!(out, "        }}").unwrap();
+        writeln!(out, "        Change::Set(x) => {{").unwrap();
+        if let Some(l) = &a.legacy {
+            writeln!(out, "            if dom.attr(c, {}).is_some() {{", l.expr()).unwrap();
+            writeln!(out, "                out.push(NodeEdit::RemoveAttr {{ node: Target::Node(c), name: {} }});", l.expr()).unwrap();
+            writeln!(out, "            }}").unwrap();
+            writeln!(out, "            if dom.attr(c, {}).is_some() {{", a.attr.expr()).unwrap();
+            writeln!(out, "                out.push(NodeEdit::RemoveAttr {{ node: Target::Node(c), name: {} }});", a.attr.expr()).unwrap();
+            writeln!(out, "            }}").unwrap();
+        }
+        writeln!(
+            out,
+            "            out.push(NodeEdit::SetAttr {{ node: Target::Node(c), name: spell(flavor, {}, {}), value: <{} as codec::Codec>::write(x, flavor).into_owned() }});",
+            a.attr.expr(),
+            opt_qn_expr(a.legacy.as_ref()),
+            a.codec
+        )
+        .unwrap();
+        writeln!(out, "        }}\n    }}").unwrap();
+    }
     writeln!(out, "    let kids: Vec<(NodeId, QName)> = dom.semantic_children(c).filter_map(|n| dom.name(n).map(|q| (n, q))).collect();").unwrap();
     writeln!(out, "    let anchor = |order: u16| kids.iter().find(|(_, q)| order_index_{snake}(*q).is_some_and(|i| i > order)).map(|(n, _)| *n);").unwrap();
     writeln!(out, "    for f in {field_enum}::ALL {{").unwrap();

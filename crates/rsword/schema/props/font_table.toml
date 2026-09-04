@@ -1,0 +1,78 @@
+# fontTable.xml 的声明模型（MOD-10，任务 1.4）。
+
+[[table]]
+name = "FontTable"
+element = "w:fonts"
+doc = "CT_FontsList（§17.8.3.11）"
+order = ["w:font"]
+
+[[table.field]]
+name = "fonts"
+element = "w:font"
+codec = "Font"
+multi = true
+
+[[table]]
+name = "Font"
+element = "w:font"
+doc = "CT_Font（§17.8.3.10）"
+order = [
+  "w:altName", "w:panose1", "w:charset", "w:family", "w:notTrueType", "w:pitch", "w:sig",
+  "w:embedRegular", "w:embedBold", "w:embedItalic", "w:embedBoldItalic",
+]
+attrs = [{ name = "name", attr = "w:name", codec = "Str" }]
+
+[[table.field]]
+name = "alt_name"
+element = "w:altName"
+codec = "Str"
+
+[[table.field]]
+name = "panose1"
+element = "w:panose1"
+codec = "Str"
+
+[[table.field]]
+name = "charset"
+element = "w:charset"
+codec = "FontCharset"
+
+[[table.field]]
+name = "family"
+element = "w:family"
+codec = "FontFamily"
+
+[[table.field]]
+name = "not_true_type"
+element = "w:notTrueType"
+codec = "OnOff"
+
+[[table.field]]
+name = "pitch"
+element = "w:pitch"
+codec = "FontPitch"
+
+[[table.field]]
+name = "sig"
+element = "w:sig"
+codec = "FontSig"
+
+[[table.field]]
+name = "embed_regular"
+element = "w:embedRegular"
+codec = "FontEmbed"
+
+[[table.field]]
+name = "embed_bold"
+element = "w:embedBold"
+codec = "FontEmbed"
+
+[[table.field]]
+name = "embed_italic"
+element = "w:embedItalic"
+codec = "FontEmbed"
+
+[[table.field]]
+name = "embed_bold_italic"
+element = "w:embedBoldItalic"
+codec = "FontEmbed"

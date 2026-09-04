@@ -16,6 +16,10 @@ zip.workspace = true
 memchr.workspace = true
 thiserror.workspace = true
 
+[dev-dependencies]
+# 语料 .expected.json（TS 解析结果）的读取，只在测试里用
+serde_json = "1"
+
 [build-dependencies]
 # 属性表（schema/props/*.toml，PROP-01）的读取；只在构建脚本里用
 toml = "1.1"

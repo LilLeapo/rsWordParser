@@ -218,6 +218,8 @@ pub struct TableInfo {
     pub element: QName,
     /// 修订快照容器（`w:rPrChange`）。
     pub change: Option<QName>,
+    /// 容器元素自身的属性（`w:lvl/@ilvl`）。
+    pub attrs: &'static [AttrInfo],
     pub fields: &'static [FieldInfo],
     /// 容器任一子元素名 → schema 序号；表外为 `None`。
     pub order_index: fn(QName) -> Option<u16>,

@@ -1,0 +1,246 @@
+# settings.xml 的声明模型（MOD-10、docs/03 §6.5，任务 1.4）。只建模 TS / resolve 需要的字段，
+# 其余子元素原位保留；order 列出 CT_Settings 全部子元素，便于日后插入。
+
+[[table]]
+name = "Settings"
+element = "w:settings"
+doc = "CT_Settings（§17.15.1.78）"
+order = [
+  "w:writeProtection", "w:view", "w:zoom", "w:removePersonalInformation", "w:removeDateAndTime",
+  "w:doNotDisplayPageBoundaries", "w:displayBackgroundShape", "w:printPostScriptOverText",
+  "w:printFractionalCharacterWidth", "w:printFormsData", "w:embedTrueTypeFonts", "w:embedSystemFonts",
+  "w:saveSubsetFonts", "w:saveFormsData", "w:mirrorMargins", "w:alignBordersAndEdges",
+  "w:bordersDoNotSurroundHeader", "w:bordersDoNotSurroundFooter", "w:gutterAtTop", "w:hideSpellingErrors",
+  "w:hideGrammaticalErrors", "w:activeWritingStyle", "w:proofState", "w:formsDesign", "w:attachedTemplate",
+  "w:linkStyles", "w:stylePaneFormatFilter", "w:stylePaneSortMethod", "w:documentType", "w:mailMerge",
+  "w:revisionView", "w:trackRevisions", "w:doNotTrackMoves", "w:doNotTrackFormatting", "w:documentProtection",
+  "w:autoFormatOverride", "w:styleLockTheme", "w:styleLockQFSet", "w:defaultTabStop", "w:autoHyphenation",
+  "w:consecutiveHyphenLimit", "w:hyphenationZone", "w:doNotHyphenateCaps", "w:showEnvelope", "w:summaryLength",
+  "w:clickAndTypeStyle", "w:defaultTableStyle", "w:evenAndOddHeaders", "w:bookFoldRevPrinting",
+  "w:bookFoldPrinting", "w:bookFoldPrintingSheets", "w:drawingGridHorizontalSpacing",
+  "w:drawingGridVerticalSpacing", "w:displayHorizontalDrawingGridEvery", "w:displayVerticalDrawingGridEvery",
+  "w:doNotUseMarginsForDrawingGridOrigin", "w:drawingGridHorizontalOrigin", "w:drawingGridVerticalOrigin",
+  "w:doNotShadeFormData", "w:noPunctuationKerning", "w:characterSpacingControl", "w:printTwoOnOne",
+  "w:strictFirstAndLastChars", "w:noLineBreaksAfter", "w:noLineBreaksBefore", "w:savePreviewPicture",
+  "w:doNotValidateAgainstSchema", "w:saveInvalidXml", "w:ignoreMixedContent", "w:alwaysShowPlaceholderText",
+  "w:doNotDemarcateInvalidXml", "w:saveXmlDataOnly", "w:useXSLTWhenSaving", "w:saveThroughXslt",
+  "w:showXMLTags", "w:alwaysMergeEmptyNamespace", "w:updateFields", "w:hdrShapeDefaults", "w:footnotePr",
+  "w:endnotePr", "w:compat", "w:docVars", "w:rsids", "m:mathPr", "w:attachedSchema", "w:themeFontLang",
+  "w:clrSchemeMapping", "w:doNotIncludeSubdocsInStats", "w:doNotAutoCompressPictures", "w:forceUpgrade",
+  "w:captions", "w:readModeInkLockDown", "w:smartTagType", "sl:schemaLibrary", "w:shapeDefaults",
+  "w:doNotEmbedSmartTags", "w:decimalSymbol", "w:listSeparator",
+  "w14:docId", "w15:chartTrackingRefBased", "w15:docId",
+]
+
+[[table.field]]
+name = "write_protection"
+element = "w:writeProtection"
+codec = "WriteProtection"
+
+[[table.field]]
+name = "view"
+element = "w:view"
+codec = "View"
+
+[[table.field]]
+name = "zoom"
+element = "w:zoom"
+codec = "ZoomSetting"
+
+[[table.field]]
+name = "remove_personal_information"
+element = "w:removePersonalInformation"
+codec = "OnOff"
+
+[[table.field]]
+name = "remove_date_and_time"
+element = "w:removeDateAndTime"
+codec = "OnOff"
+
+[[table.field]]
+name = "display_background_shape"
+element = "w:displayBackgroundShape"
+codec = "OnOff"
+
+[[table.field]]
+name = "mirror_margins"
+element = "w:mirrorMargins"
+codec = "OnOff"
+
+[[table.field]]
+name = "gutter_at_top"
+element = "w:gutterAtTop"
+codec = "OnOff"
+
+[[table.field]]
+name = "hide_spelling_errors"
+element = "w:hideSpellingErrors"
+codec = "OnOff"
+
+[[table.field]]
+name = "hide_grammatical_errors"
+element = "w:hideGrammaticalErrors"
+codec = "OnOff"
+
+[[table.field]]
+name = "attached_template"
+element = "w:attachedTemplate"
+codec = "Raw"
+
+[[table.field]]
+name = "link_styles"
+element = "w:linkStyles"
+codec = "OnOff"
+
+[[table.field]]
+name = "track_revisions"
+element = "w:trackRevisions"
+codec = "OnOff"
+
+[[table.field]]
+name = "do_not_track_moves"
+element = "w:doNotTrackMoves"
+codec = "OnOff"
+
+[[table.field]]
+name = "do_not_track_formatting"
+element = "w:doNotTrackFormatting"
+codec = "OnOff"
+
+[[table.field]]
+name = "document_protection"
+element = "w:documentProtection"
+codec = "DocProtection"
+
+[[table.field]]
+name = "default_tab_stop"
+element = "w:defaultTabStop"
+codec = "Twips"
+doc = "缺省不设（Word 用 720）"
+
+[[table.field]]
+name = "auto_hyphenation"
+element = "w:autoHyphenation"
+codec = "OnOff"
+
+[[table.field]]
+name = "consecutive_hyphen_limit"
+element = "w:consecutiveHyphenLimit"
+codec = "Int"
+
+[[table.field]]
+name = "hyphenation_zone"
+element = "w:hyphenationZone"
+codec = "Twips"
+
+[[table.field]]
+name = "do_not_hyphenate_caps"
+element = "w:doNotHyphenateCaps"
+codec = "OnOff"
+
+[[table.field]]
+name = "default_table_style"
+element = "w:defaultTableStyle"
+codec = "Str"
+
+[[table.field]]
+name = "even_and_odd_headers"
+element = "w:evenAndOddHeaders"
+codec = "OnOff"
+
+[[table.field]]
+name = "book_fold_printing"
+element = "w:bookFoldPrinting"
+codec = "OnOff"
+
+[[table.field]]
+name = "character_spacing_control"
+element = "w:characterSpacingControl"
+codec = "CharacterSpacing"
+
+[[table.field]]
+name = "update_fields"
+element = "w:updateFields"
+codec = "OnOff"
+
+[[table.field]]
+name = "footnote_pr"
+element = "w:footnotePr"
+codec = "Raw"
+
+[[table.field]]
+name = "endnote_pr"
+element = "w:endnotePr"
+codec = "Raw"
+
+[[table.field]]
+name = "compat"
+element = "w:compat"
+codec = "Compat"
+
+[[table.field]]
+name = "rsids"
+element = "w:rsids"
+codec = "Raw"
+
+[[table.field]]
+name = "math_pr"
+element = "m:mathPr"
+codec = "Raw"
+
+[[table.field]]
+name = "theme_font_lang"
+element = "w:themeFontLang"
+codec = "ThemeFontLang"
+
+[[table.field]]
+name = "clr_scheme_mapping"
+element = "w:clrSchemeMapping"
+codec = "Raw"
+
+[[table.field]]
+name = "decimal_symbol"
+element = "w:decimalSymbol"
+codec = "Str"
+
+[[table.field]]
+name = "list_separator"
+element = "w:listSeparator"
+codec = "Str"
+
+[[table.field]]
+name = "chart_tracking_ref_based"
+element = "w15:chartTrackingRefBased"
+codec = "OnOff"
+
+[[table]]
+name = "Compat"
+element = "w:compat"
+doc = "CT_Compat（§17.15.1.21）：布尔开关全部未建模（`CompatFacts::flags` 从 `raw_unmodeled` 收集），只建模 `compatSetting`。"
+order = [
+  "w:useSingleBorderforContiguousCells", "w:wpJustification", "w:noTabHangInd", "w:noLeading", "w:spaceForUL",
+  "w:noColumnBalance", "w:balanceSingleByteDoubleByteWidth", "w:noExtraLineSpacing",
+  "w:doNotLeaveBackslashAlone", "w:ulTrailSpace", "w:doNotExpandShiftReturn", "w:spacingInWholePoints",
+  "w:lineWrapLikeWord6", "w:printBodyTextBeforeHeader", "w:printColBlack", "w:wpSpaceWidth",
+  "w:showBreaksInFrames", "w:subFontBySize", "w:suppressBottomSpacing", "w:suppressTopSpacing",
+  "w:suppressSpacingAtTopOfPage", "w:suppressTopSpacingWP", "w:suppressSpBfAfterPgBrk",
+  "w:swapBordersFacingPages", "w:convMailMergeEsc", "w:truncateFontHeightsLikeWP6", "w:mwSmallCaps",
+  "w:usePrinterMetrics", "w:doNotSuppressParagraphBorders", "w:wrapTrailSpaces", "w:footnoteLayoutLikeWW8",
+  "w:shapeLayoutLikeWW8", "w:alignTablesRowByRow", "w:forgetLastTabAlignment", "w:adjustLineHeightInTable",
+  "w:autoSpaceLikeWord95", "w:noSpaceRaiseLower", "w:doNotUseHTMLParagraphAutoSpacing",
+  "w:layoutRawTableWidth", "w:layoutTableRowsApart", "w:useWord97LineBreakRules",
+  "w:doNotBreakWrappedTables", "w:doNotSnapToGridInCell", "w:selectFldWithFirstOrLastChar",
+  "w:applyBreakingRules", "w:doNotWrapTextWithPunct", "w:doNotUseEastAsianBreakRules",
+  "w:useWord2002TableStyleRules", "w:growAutofit", "w:useFELayout", "w:useNormalStyleForList",
+  "w:doNotUseIndentAsNumberingTabStop", "w:useAltKinsokuLineBreakRules", "w:allowSpaceOfSameStyleInTable",
+  "w:doNotSuppressIndentation", "w:doNotAutofitConstrainedTables", "w:autofitToFirstFixedWidthCell",
+  "w:underlineTabInNumList", "w:displayHangulFixedWidth", "w:splitPgBreakAndParaMark",
+  "w:doNotVertAlignCellWithSp", "w:doNotBreakConstrainedForcedTable", "w:doNotVertAlignInTxbx",
+  "w:useAnsiKerningPairs", "w:cachedColBalance", "w:compatSetting",
+]
+
+[[table.field]]
+name = "settings"
+element = "w:compatSetting"
+codec = "CompatSetting"
+multi = true

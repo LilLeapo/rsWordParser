@@ -551,7 +551,7 @@ fn prop_05_para_order_table() {
     assert_eq!(ParaPropsField::Rpr.info().kind, FieldKind::Table);
     assert_eq!(ParaPropsField::Tabs.info().kind, FieldKind::Table);
     assert!(TabsField::Tab.info().multi);
-    assert_eq!(TABLES.len(), 5);
+    assert_eq!(TABLES.len(), 20, "run/para 5 + numbering 5 + styles 6 + fontTable 2 + settings 2");
     assert!(PARA_PROPS.field("indent").is_some());
 }
 

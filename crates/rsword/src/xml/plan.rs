@@ -112,12 +112,26 @@ pub enum NodeEdit {
         source: NodeId,
     },
     Delete(NodeId),
+    /// 设置属性（同名替换；节点变 `SelfDirty`）。
+    SetAttr {
+        node: Target,
+        name: QName,
+        value: String,
+    },
+    /// 删除全部同名属性。
+    RemoveAttr {
+        node: Target,
+        name: QName,
+    },
 }
 
 impl NodeEdit {
     /// 该编辑是否创建新节点（[`Target::New`] 可以指向它）。
     pub fn creates(&self) -> bool {
-        !matches!(self, NodeEdit::Delete(_))
+        !matches!(
+            self,
+            NodeEdit::Delete(_) | NodeEdit::SetAttr { .. } | NodeEdit::RemoveAttr { .. }
+        )
     }
 }
 
@@ -171,6 +185,16 @@ impl Dom {
                 }
                 NodeEdit::Delete(n) => {
                     self.delete(*n);
+                    None
+                }
+                NodeEdit::SetAttr { node, name, value } => {
+                    let n = resolve(*node, &created);
+                    self.set_attr(n, *name, value.clone());
+                    None
+                }
+                NodeEdit::RemoveAttr { node, name } => {
+                    let n = resolve(*node, &created);
+                    self.remove_attr(n, *name);
                     None
                 }
             };

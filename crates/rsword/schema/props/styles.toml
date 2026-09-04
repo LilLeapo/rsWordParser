@@ -1,0 +1,218 @@
+# styles.xml 的声明模型（MOD-10，任务 1.4）：不做 basedOn 链解析（RES-02）。
+
+[[table]]
+name = "Styles"
+element = "w:styles"
+doc = "CT_Styles（§17.7.4.18）"
+order = ["w:docDefaults", "w:latentStyles", "w:style"]
+
+[[table.field]]
+name = "doc_defaults"
+element = "w:docDefaults"
+codec = "DocDefaults"
+
+[[table.field]]
+name = "latent_styles"
+element = "w:latentStyles"
+codec = "Raw"
+
+[[table.field]]
+name = "styles"
+element = "w:style"
+codec = "Style"
+multi = true
+
+[[table]]
+name = "DocDefaults"
+element = "w:docDefaults"
+doc = "CT_DocDefaults（§17.7.5.1）"
+order = ["w:rPrDefault", "w:pPrDefault"]
+
+[[table.field]]
+name = "rpr_default"
+element = "w:rPrDefault"
+codec = "RPrDefault"
+
+[[table.field]]
+name = "ppr_default"
+element = "w:pPrDefault"
+codec = "PPrDefault"
+
+[[table]]
+name = "RPrDefault"
+element = "w:rPrDefault"
+order = ["w:rPr"]
+
+[[table.field]]
+name = "rpr"
+element = "w:rPr"
+codec = "RunProps"
+
+[[table]]
+name = "PPrDefault"
+element = "w:pPrDefault"
+order = ["w:pPr"]
+
+[[table.field]]
+name = "ppr"
+element = "w:pPr"
+codec = "ParaProps"
+
+[[table]]
+name = "Style"
+element = "w:style"
+doc = "CT_Style（§17.7.4.17）。表格样式的 tblPr / trPr / tcPr 在 M2 建表前先按 Raw 保留。"
+order = [
+  "w:name", "w:aliases", "w:basedOn", "w:next", "w:link", "w:autoRedefine", "w:hidden", "w:uiPriority",
+  "w:semiHidden", "w:unhideWhenUsed", "w:qFormat", "w:locked", "w:personal", "w:personalCompose",
+  "w:personalReply", "w:rsid", "w:pPr", "w:rPr", "w:tblPr", "w:trPr", "w:tcPr", "w:tblStylePr",
+]
+attrs = [
+  { name = "kind", attr = "w:type", codec = "StyleType" },
+  { name = "style_id", attr = "w:styleId", codec = "Str" },
+  { name = "is_default", attr = "w:default", codec = "OnOff" },
+  { name = "custom_style", attr = "w:customStyle", codec = "OnOff" },
+]
+
+[[table.field]]
+name = "name"
+element = "w:name"
+codec = "Str"
+
+[[table.field]]
+name = "aliases"
+element = "w:aliases"
+codec = "Str"
+
+[[table.field]]
+name = "based_on"
+element = "w:basedOn"
+codec = "Str"
+
+[[table.field]]
+name = "next"
+element = "w:next"
+codec = "Str"
+
+[[table.field]]
+name = "link"
+element = "w:link"
+codec = "Str"
+
+[[table.field]]
+name = "auto_redefine"
+element = "w:autoRedefine"
+codec = "OnOff"
+
+[[table.field]]
+name = "hidden"
+element = "w:hidden"
+codec = "OnOff"
+
+[[table.field]]
+name = "ui_priority"
+element = "w:uiPriority"
+codec = "Int"
+
+[[table.field]]
+name = "semi_hidden"
+element = "w:semiHidden"
+codec = "OnOff"
+
+[[table.field]]
+name = "unhide_when_used"
+element = "w:unhideWhenUsed"
+codec = "OnOff"
+
+[[table.field]]
+name = "q_format"
+element = "w:qFormat"
+codec = "OnOff"
+
+[[table.field]]
+name = "locked"
+element = "w:locked"
+codec = "OnOff"
+
+[[table.field]]
+name = "personal"
+element = "w:personal"
+codec = "OnOff"
+
+[[table.field]]
+name = "personal_compose"
+element = "w:personalCompose"
+codec = "OnOff"
+
+[[table.field]]
+name = "personal_reply"
+element = "w:personalReply"
+codec = "OnOff"
+
+[[table.field]]
+name = "rsid"
+element = "w:rsid"
+codec = "Str"
+
+[[table.field]]
+name = "ppr"
+element = "w:pPr"
+codec = "ParaProps"
+
+[[table.field]]
+name = "rpr"
+element = "w:rPr"
+codec = "RunProps"
+
+[[table.field]]
+name = "tbl_pr"
+element = "w:tblPr"
+codec = "Raw"
+
+[[table.field]]
+name = "tr_pr"
+element = "w:trPr"
+codec = "Raw"
+
+[[table.field]]
+name = "tc_pr"
+element = "w:tcPr"
+codec = "Raw"
+
+[[table.field]]
+name = "conditional"
+element = "w:tblStylePr"
+codec = "TableStylePr"
+multi = true
+
+[[table]]
+name = "TableStylePr"
+element = "w:tblStylePr"
+doc = "CT_TblStylePr（§17.7.6.6）：表格样式的条件格式"
+order = ["w:pPr", "w:rPr", "w:tblPr", "w:trPr", "w:tcPr"]
+attrs = [{ name = "kind", attr = "w:type", codec = "TblStyleOverrideType" }]
+
+[[table.field]]
+name = "ppr"
+element = "w:pPr"
+codec = "ParaProps"
+
+[[table.field]]
+name = "rpr"
+element = "w:rPr"
+codec = "RunProps"
+
+[[table.field]]
+name = "tbl_pr"
+element = "w:tblPr"
+codec = "Raw"
+
+[[table.field]]
+name = "tr_pr"
+element = "w:trPr"
+codec = "Raw"
+
+[[table.field]]
+name = "tc_pr"
+element = "w:tcPr"
+codec = "Raw"

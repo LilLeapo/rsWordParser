@@ -1,0 +1,180 @@
+# numbering.xml 的声明模型（MOD-10，任务 1.4）：只读声明值，链解析与覆盖合并在 resolve（RES-09）。
+
+[[table]]
+name = "Numbering"
+element = "w:numbering"
+doc = "CT_Numbering（§17.9.17）。`w:numPicBullet` 未建模，原位保留。"
+order = ["w:numPicBullet", "w:abstractNum", "w:num", "w:numIdMacAtCleanup"]
+
+[[table.field]]
+name = "abstract_nums"
+element = "w:abstractNum"
+codec = "AbstractNum"
+multi = true
+
+[[table.field]]
+name = "nums"
+element = "w:num"
+codec = "Num"
+multi = true
+
+[[table.field]]
+name = "num_id_mac_at_cleanup"
+element = "w:numIdMacAtCleanup"
+codec = "Int"
+
+[[table]]
+name = "AbstractNum"
+element = "w:abstractNum"
+doc = "CT_AbstractNum（§17.9.1）"
+order = ["w:nsid", "w:multiLevelType", "w:tmpl", "w:name", "w:styleLink", "w:numStyleLink", "w:lvl"]
+attrs = [{ name = "abstract_num_id", attr = "w:abstractNumId", codec = "Int" }]
+
+[[table.field]]
+name = "nsid"
+element = "w:nsid"
+codec = "Str"
+doc = "8 位 hex，原文"
+
+[[table.field]]
+name = "multi_level_type"
+element = "w:multiLevelType"
+codec = "MultiLevelType"
+
+[[table.field]]
+name = "tmpl"
+element = "w:tmpl"
+codec = "Str"
+
+[[table.field]]
+name = "name"
+element = "w:name"
+codec = "Str"
+
+[[table.field]]
+name = "style_link"
+element = "w:styleLink"
+codec = "Str"
+doc = "本 abstractNum 是某编号样式的定义"
+
+[[table.field]]
+name = "num_style_link"
+element = "w:numStyleLink"
+codec = "Str"
+doc = "本 abstractNum 只是对编号样式的引用"
+
+[[table.field]]
+name = "levels"
+element = "w:lvl"
+codec = "Level"
+multi = true
+
+[[table]]
+name = "Level"
+element = "w:lvl"
+doc = "CT_Lvl（§17.9.6）"
+order = [
+  "w:start", "w:numFmt", "w:lvlRestart", "w:pStyle", "w:isLgl", "w:suff", "w:lvlText", "w:lvlPicBulletId",
+  "w:legacy", "w:lvlJc", "w:pPr", "w:rPr",
+]
+attrs = [
+  { name = "ilvl", attr = "w:ilvl", codec = "Int" },
+  { name = "tplc", attr = "w:tplc", codec = "Str" },
+  { name = "tentative", attr = "w:tentative", codec = "OnOff" },
+]
+
+[[table.field]]
+name = "start"
+element = "w:start"
+codec = "Int"
+doc = "缺省 0（ECMA；Word 显示 \"0.\"）"
+
+[[table.field]]
+name = "num_fmt"
+element = "w:numFmt"
+codec = "NumFmt"
+
+[[table.field]]
+name = "lvl_restart"
+element = "w:lvlRestart"
+codec = "Int"
+
+[[table.field]]
+name = "p_style"
+element = "w:pStyle"
+codec = "Str"
+
+[[table.field]]
+name = "is_lgl"
+element = "w:isLgl"
+codec = "OnOff"
+
+[[table.field]]
+name = "suff"
+element = "w:suff"
+codec = "LevelSuffix"
+
+[[table.field]]
+name = "lvl_text"
+element = "w:lvlText"
+codec = "LvlText"
+
+[[table.field]]
+name = "lvl_pic_bullet_id"
+element = "w:lvlPicBulletId"
+codec = "Int"
+
+[[table.field]]
+name = "legacy"
+element = "w:legacy"
+codec = "LvlLegacy"
+
+[[table.field]]
+name = "lvl_jc"
+element = "w:lvlJc"
+codec = "Jc"
+
+[[table.field]]
+name = "ppr"
+element = "w:pPr"
+codec = "ParaProps"
+
+[[table.field]]
+name = "rpr"
+element = "w:rPr"
+codec = "RunProps"
+
+[[table]]
+name = "Num"
+element = "w:num"
+doc = "CT_Num（§17.9.15）"
+order = ["w:abstractNumId", "w:lvlOverride"]
+attrs = [{ name = "num_id", attr = "w:numId", codec = "Int" }]
+
+[[table.field]]
+name = "abstract_num_id"
+element = "w:abstractNumId"
+codec = "Int"
+
+[[table.field]]
+name = "overrides"
+element = "w:lvlOverride"
+codec = "LevelOverride"
+multi = true
+
+[[table]]
+name = "LevelOverride"
+element = "w:lvlOverride"
+doc = "CT_NumLvl（§17.9.8）"
+order = ["w:startOverride", "w:lvl"]
+attrs = [{ name = "ilvl", attr = "w:ilvl", codec = "Int" }]
+
+[[table.field]]
+name = "start_override"
+element = "w:startOverride"
+codec = "Int"
+
+[[table.field]]
+name = "lvl"
+element = "w:lvl"
+codec = "Level"

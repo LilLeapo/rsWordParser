@@ -9,7 +9,9 @@
 | 文件 | 内容 |
 | --- | --- |
 | `types.toml` | `[enum.X]` 枚举类型、`[struct.X]` 带属性的元素类型（`w:color`、`w:rFonts` 一类） |
-| 其余 `*.toml` | 若干 `[[table]]`：一个属性容器一张表（`w:rPr`、`w:pPr`、`w:pBdr`……） |
+| `run.toml` / `para.toml` | `w:rPr`、`w:pPr` 及子表（`PROP-08`） |
+| `styles.toml` / `numbering.toml` / `settings.toml` / `font_table.toml` | 声明模型（`MOD-10`）：整份 part 就是一张表 |
+| 其余 `*.toml` | 若干 `[[table]]`：一个属性容器一张表 |
 
 ## `[enum.Name]`
 
@@ -56,6 +58,15 @@ in_change = true           # 默认 true：出现在 *PrChange 快照里
 multi = false              # true → Vec<T>（w:tab、w:headerReference）
 legacy = "w:left"          # 可选，同 struct 的 legacy；须与 element 在 order 里同一格：`"w:start|w:left"`
 ```
+
+容器元素自身的属性用表级 `attrs`（列与 struct 相同）：
+
+```toml
+attrs = [{ name = "ilvl", attr = "w:ilvl", codec = "Int" }]
+```
+
+它们成为结构体字段与 patch 字段，`plan_apply` 用 `NodeEdit::SetAttr / RemoveAttr` 改已有容器的属性。
+表里的字段名与属性名不能重复。
 
 `order` 必须列出容器的**所有** schema 子元素（不只是建模的），这样合并写回时才能把新元素插到
 未建模元素（如 `w:sectPr`）之前的正确位置。同一格里的同义对用 `|` 分隔。
