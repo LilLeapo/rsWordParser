@@ -6,7 +6,7 @@
 use serde_json::{Map, Value};
 
 use crate::model::drawing::{AnchorGeom, DrawingDisplay, Wrap};
-use crate::model::units::{EMU_PER_PT, Length, emu_to_px};
+use crate::model::units::{EMU_PER_PT, EMU_PER_PX, Length, emu_to_px};
 use crate::model::{Segment, SegmentKind, VmlDisplay};
 use crate::resolve::drawingml::{ColorBase, color_in, hex};
 use crate::xml::{Dom, LocalName, NodeId, QName};
@@ -31,6 +31,52 @@ fn deg_360(rot_60k: i64) -> i64 {
     ((rot_60k as f64 / 60_000.0).round() as i64).rem_euclid(360)
 }
 
+/// TS：`allowOverlap="0"` 的锚定图撞上兄弟锚定图时（tdf#134114），Word 把它挪出对方的盒子，
+/// 而不是把两个绕排浮块竖着摞起来。
+///
+/// 近似成「浮在对方底边下面的前置覆盖」——它可能探进页边距，Word 也是这么干的。横向重叠视为
+/// 必然：对齐画廊会把 X 丢掉，所以只比声明的竖向区间。
+pub(super) fn resolve_run_overlap(runs: &mut [Map<String, Value>]) {
+    let img = |r: &Map<String, Value>| -> Option<(bool, f64, f64)> {
+        let i = r.get("image")?.as_object()?;
+        let wrap = i.get("wrap")?.as_str()?;
+        if wrap == "front" || wrap == "behind" {
+            return None;
+        }
+        let top = i.get("offsetYEmu").and_then(Value::as_i64).unwrap_or(0) as f64 / EMU_PER_PX;
+        let h = i.get("heightPx").and_then(Value::as_i64).unwrap_or(0) as f64;
+        Some((i.contains_key("noOverlap"), top, h))
+    };
+    let boxes: Vec<(usize, bool, f64, f64)> = runs
+        .iter()
+        .enumerate()
+        .filter_map(|(i, r)| img(r).map(|(no, top, h)| (i, no, top, h)))
+        .collect();
+    if boxes.len() < 2 {
+        return;
+    }
+    let mut moves: Vec<(usize, i64)> = Vec::new();
+    for &(i, no_overlap, top, h) in &boxes {
+        if !no_overlap {
+            continue;
+        }
+        // 撞上的对方必须是**允许**重叠的那一个：两个都禁止重叠时谁也不让
+        let hit = boxes.iter().find(|&&(j, o_no, o_top, o_h)| {
+            j != i && !o_no && top < o_top + o_h && o_top < top + h
+        });
+        if let Some(&(_, _, _, o_h)) = hit {
+            // 对方是 run 里的浮块，按行顶渲染（run 浮块不吃 posOffset）
+            moves.push((i, ((o_h + 2.0) * EMU_PER_PX).round() as i64));
+        }
+    }
+    for (i, y) in moves {
+        let Some(Value::Object(im)) = runs[i].get_mut("image") else { continue };
+        set(im, "wrap", "front");
+        set(im, "offsetXEmu", 0);
+        set(im, "offsetYEmu", y);
+    }
+}
+
 /// TS `imageMeta(xml)`：把一个绘图的事实投影成 `image*` 字段，写进 `out`。
 ///
 /// `para` 是宿主段落（`w:p`），用来取 `w:jc`、`w:ind` 与图前的引导文字。
@@ -44,7 +90,7 @@ pub(super) fn image_meta(
     if let Some(p) = para {
         leading(dom, p, out);
         paragraph_indent(dom, p, out);
-        set_some!(out, "imageAlign" => jc_align(dom, p));
+        set_some!(out, "imageAlign" => jc_align_any(dom, p));
     }
     set_some!(out,
         "imageWidthPx" => d.extent.map(|e| e.cx).filter(|&cx| cx > 0).map(px),
@@ -299,6 +345,28 @@ pub(super) fn jc_align(dom: &Dom, para: NodeId) -> Option<&'static str> {
         "right" | "end" => Some("right"),
         _ => None,
     }
+}
+
+/// 段落里**任意位置**的第一个 `w:jc`（TS `imageMeta` 的正则是整段扫的）。
+///
+/// 文本框里的 `w:jc` 也算数——这不是笔误：`w:drawing` 那条路的 `imageMeta` 拿整段 XML 跑正则，
+/// 框里的对齐会漏上来。`w:pict` 那条路不一样，它先剥掉文本框，用的是 [`jc_align`]。
+pub(super) fn jc_align_any(dom: &Dom, para: NodeId) -> Option<&'static str> {
+    let mut stack = vec![para];
+    let mut scratch = Vec::new();
+    while let Some(n) = stack.pop() {
+        if dom.is(n, QName::w(LocalName::Jc)) {
+            return match dom.attr_value(n, QName::w(LocalName::Val))?.trim() {
+                "center" => Some("center"),
+                "right" | "end" => Some("right"),
+                _ => None,
+            };
+        }
+        scratch.clear();
+        scratch.extend(dom.semantic_children(n));
+        stack.extend(scratch.iter().rev().copied());
+    }
+    None
 }
 
 fn paragraph_indent(dom: &Dom, para: NodeId, out: &mut Map<String, Value>) {

@@ -452,8 +452,12 @@ fn graphic_child_kind(dom: &Dom, child: NodeId) -> DrawingKind {
     }
 }
 
+/// 一个 `w:pict` 是哪一类（`MOD-05` 的 R15–R18 要用）。
+///
+/// 优先级照抄 TS 的 `w:pict` 决策树，**不是**文档序：文本框 / WordArt → 图片 → 隐藏形状 →
+/// 细横线。一个画布里既有 `v:imagedata` 又有 `v:textbox` 时（`wordart-vml__015`），它是文本框
+/// 而不是图片——按文档序谁先谁赢的话，同一份文档换个形状顺序就换一种分类。
 fn pict_kind(dom: &Dom, pict: NodeId) -> PictKind {
-    let mut kind = PictKind::Other;
     let mut only_shapetype = true;
     for c in dom.semantic_children(pict) {
         let Some(name) = dom.name(c) else { continue };
@@ -464,20 +468,22 @@ fn pict_kind(dom: &Dom, pict: NodeId) -> PictKind {
     if only_shapetype && dom.semantic_children(pict).next().is_some() {
         return PictKind::ShapeTypeOnly;
     }
+    let (mut textbox, mut wordart, mut image, mut hidden, mut hr) =
+        (false, false, false, false, false);
     for n in dom.descendants(pict) {
         let Some(name) = dom.name(n) else { continue };
         match (name.ns, name.local) {
-            (NsId::V, LocalName::Imagedata) => return PictKind::ImageData,
-            (NsId::V, LocalName::Textbox) => kind = PictKind::TextBox,
+            (NsId::V, LocalName::Imagedata) => image = true,
+            (NsId::V, LocalName::Textbox) => textbox = true,
             (NsId::V, LocalName::Textpath)
                 if attr(dom, n, NsId::None, LocalName::String).is_some() =>
             {
-                return PictKind::WordArt;
+                wordart = true;
             }
             (NsId::V, LocalName::Rect)
                 if dom.attr(n, QName::new(NsId::O, LocalName::Hr)).is_some() =>
             {
-                return PictKind::Hr;
+                hr = true;
             }
             (
                 NsId::V,
@@ -486,16 +492,22 @@ fn pict_kind(dom: &Dom, pict: NodeId) -> PictKind {
                 | LocalName::Oval
                 | LocalName::Roundrect
                 | LocalName::Line,
-            ) if kind == PictKind::Other
-                && attr(dom, n, NsId::None, LocalName::Style)
-                    .is_some_and(|s| s.contains("visibility:hidden")) =>
+            ) if attr(dom, n, NsId::None, LocalName::Style)
+                .is_some_and(|s| s.contains("visibility:hidden")) =>
             {
-                kind = PictKind::Hidden;
+                hidden = true;
             }
             _ => {}
         }
     }
-    kind
+    match (textbox, wordart, image, hidden, hr) {
+        (true, ..) => PictKind::TextBox,
+        (_, true, ..) => PictKind::WordArt,
+        (_, _, true, ..) => PictKind::ImageData,
+        (_, _, _, true, _) => PictKind::Hidden,
+        (.., true) => PictKind::Hr,
+        _ => PictKind::Other,
+    }
 }
 
 impl Styles {

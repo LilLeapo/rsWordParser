@@ -94,6 +94,14 @@ pub struct VmlShape {
     pub stroked: Option<bool>,
     /// `@coordsize`：组的子坐标系尺寸（整数对）。
     pub coordsize: Option<(i64, i64)>,
+    /// `@coordorigin`：组子坐标系的原点（整数对）。画布里的孩子从它量起，不是从 0,0。
+    pub coordorigin: Option<(i64, i64)>,
+    /// `@path`：VML 自定义路径，坐标在 `coordsize` 定的空间里。
+    pub path: Option<String>,
+    /// `@type`：引用 `v:shapetype` 的 id（`#_x0000_t202` 是文本框、`t75` 是图片）。
+    pub shape_type: Option<String>,
+    /// `@o:spt`：形状类型号。`75` 同样是图片。
+    pub spt: Option<String>,
     /// `v:imagedata/@r:id`。
     pub imagedata: Option<String>,
     /// `v:textpath/@string`（WordArt 文字）。
@@ -114,6 +122,9 @@ pub struct VmlShape {
     pub content: Vec<Block>,
     /// 所属 `v:group` 在 `shapes` 里的下标。
     pub parent: Option<usize>,
+    /// 这个形状躺在别的形状的 `w:txbxContent` 里：它不是页面上的兄弟框，
+    /// 也不占保存路径的序号。
+    pub nested: bool,
 }
 
 impl VmlShape {
@@ -135,6 +146,12 @@ impl VmlShape {
     /// `visibility:hidden`。
     pub fn is_hidden(&self) -> bool {
         self.style_get("visibility").is_some_and(|v| v.eq_ignore_ascii_case("hidden"))
+    }
+
+    /// 图片形状类型（`o:spt="75"` 或 `type="#_x0000_t75"`）。图解析不出来时它什么都不画。
+    pub fn is_picture_type(&self) -> bool {
+        self.spt.as_deref() == Some("75")
+            || self.shape_type.as_deref().is_some_and(|t| t.contains("_x0000_t75"))
     }
 }
 
@@ -163,16 +180,16 @@ pub struct OleInfo {
 pub fn vml_display(dom: &Dom, node: NodeId) -> VmlDisplay {
     let mut shapes: Vec<VmlShape> = Vec::new();
     let mut ole = None;
-    // (节点, 深度, 所属组下标)
-    let mut stack: Vec<(NodeId, u32, Option<usize>)> = vec![(node, 0, None)];
+    // (节点, 深度, 所属组下标, 是否在别人的 txbxContent 里)
+    let mut stack: Vec<(NodeId, u32, Option<usize>, bool)> = vec![(node, 0, None, false)];
     let mut scratch: Vec<NodeId> = Vec::new();
-    while let Some((n, depth, parent)) = stack.pop() {
+    while let Some((n, depth, parent, nested)) = stack.pop() {
         let mut group = parent;
         if let Some(name) = dom.name(n) {
             if dom.is_ns(n, NsId::V, "v")
                 && let Some(kind) = VmlKind::from_local(name.local)
             {
-                shapes.push(shape(dom, n, kind, parent));
+                shapes.push(shape(dom, n, kind, parent, nested));
                 if kind == VmlKind::Group {
                     group = Some(shapes.len() - 1);
                 }
@@ -190,14 +207,15 @@ pub fn vml_display(dom: &Dom, node: NodeId) -> VmlDisplay {
         if depth >= MAX_DEPTH {
             continue;
         }
+        let nested = nested || dom.is(n, QName::new(NsId::W, LocalName::TxbxContent));
         scratch.clear();
         scratch.extend(dom.semantic_children(n));
-        stack.extend(scratch.iter().rev().map(|&c| (c, depth + 1, group)));
+        stack.extend(scratch.iter().rev().map(|&c| (c, depth + 1, group, nested)));
     }
     VmlDisplay { node, shapes, ole }
 }
 
-fn shape(dom: &Dom, n: NodeId, kind: VmlKind, parent: Option<usize>) -> VmlShape {
+fn shape(dom: &Dom, n: NodeId, kind: VmlKind, parent: Option<usize>, nested: bool) -> VmlShape {
     let mut s = VmlShape {
         node: n,
         kind,
@@ -209,6 +227,10 @@ fn shape(dom: &Dom, n: NodeId, kind: VmlKind, parent: Option<usize>) -> VmlShape
         stroke_color: attr(dom, n, NsId::None, LocalName::Strokecolor).and_then(|v| vml_color(&v)),
         stroked: flag(dom, n, NsId::None, LocalName::Stroked),
         coordsize: attr(dom, n, NsId::None, LocalName::Coordsize).and_then(|v| pair(&v)),
+        coordorigin: attr(dom, n, NsId::None, LocalName::Coordorigin).and_then(|v| pair(&v)),
+        path: attr(dom, n, NsId::None, LocalName::Path),
+        shape_type: attr(dom, n, NsId::None, LocalName::Type),
+        spt: attr(dom, n, NsId::O, LocalName::Spt),
         imagedata: None,
         textpath: None,
         textpath_style: None,
@@ -221,6 +243,7 @@ fn shape(dom: &Dom, n: NodeId, kind: VmlKind, parent: Option<usize>) -> VmlShape
         txbx: None,
         content: Vec::new(),
         parent,
+        nested,
     };
     // 直接子节点上的图片 / WordArt 文字 / 文本框
     for c in dom.semantic_children(n) {

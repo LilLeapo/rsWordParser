@@ -47,6 +47,8 @@ pub(super) struct Ctx<'a> {
     pub media: &'a MediaMap,
     /// 主 part 的节页面几何（锚定绘图定位要用）。
     pub sections: Sections,
+    /// 文档里第一处分页的字节位置（`None` = 整篇都在首页）。
+    first_page_break: Option<u32>,
     disp_cache: RefCell<HashMap<(String, StyleType), StyleDisp>>,
 }
 
@@ -69,6 +71,7 @@ impl<'a> Ctx<'a> {
         media: &'a MediaMap,
     ) -> Ctx<'a> {
         let sections = Sections::build(dom);
+        let first_page_break = first_page_break_at(dom.src());
         Ctx {
             dom,
             doc,
@@ -78,6 +81,7 @@ impl<'a> Ctx<'a> {
             numbering,
             media,
             sections,
+            first_page_break,
             disp_cache: RefCell::new(HashMap::new()),
         }
     }
@@ -95,6 +99,14 @@ impl<'a> Ctx<'a> {
     pub(super) fn section_at(&self, node: NodeId) -> Option<&crate::model::SectionGeom> {
         let start = self.lex_range(node).start;
         self.sections.at(start)
+    }
+
+    /// TS `opts.firstPage`：这个块的锚定绘图能不能按页面原始坐标钉住。
+    ///
+    /// 要求块**不是**第一个——首个块的锚点本来就在正文顶上，按段落原点算已经准了——
+    /// 且块起点在首个分页之前。
+    pub(super) fn first_page(&self, node: NodeId, docx_index: usize) -> bool {
+        docx_index > 0 && self.first_page_break.is_none_or(|b| self.lex_range(node).start < b)
     }
 
     /// `w:instrText` 的文本内容。
@@ -237,6 +249,36 @@ pub(super) fn body(ctx: &Ctx<'_>) -> (Vec<Value>, Vec<Value>) {
     }
     image::normalize_z_orders(&mut blocks);
     (elements, blocks)
+}
+
+/// TS `ctx.firstPageBreakAt`：第一处分页的字节位置。显式分页符、`w:pageBreakBefore`、
+/// Word 记录的渲染分页提示，以及第一个节的结束，取最靠前的那个。
+///
+/// 误报只会把「钉页」关掉，是保守方向；漏报会把第二页的封面图钉到第一页上。
+fn first_page_break_at(src: &str) -> Option<u32> {
+    /// `open` 开头的标签里，第一个满足 `ok` 的标签起点。
+    fn scan(src: &str, open: &str, ok: impl Fn(&str) -> bool) -> Option<usize> {
+        let mut from = 0;
+        while let Some(rel) = src[from..].find(open) {
+            let at = from + rel;
+            let end = src[at..].find('>').map_or(src.len(), |e| at + e + 1);
+            if ok(&src[at..end]) {
+                return Some(at);
+            }
+            from = end;
+        }
+        None
+    }
+    [
+        scan(src, "<w:br ", |t| t.contains("w:type=\"page\"")),
+        scan(src, "<w:pageBreakBefore", |t| t.ends_with("/>")),
+        scan(src, "<w:lastRenderedPageBreak", |t| t.ends_with("/>")),
+        src.find("</w:sectPr>"),
+    ]
+    .into_iter()
+    .flatten()
+    .min()
+    .map(|i| i as u32)
 }
 
 fn element_json(ctx: &Ctx<'_>, name: &str, range: &Range<u32>) -> Value {
@@ -753,7 +795,8 @@ fn text_block(ctx: &Ctx<'_>, tb: &TextBlock, mut o: Map<String, Value>) -> Map<S
     if let Some(ppr) = ppr {
         set(&mut o, "rawPPr", ctx.slice(&ctx.lex_range(ppr)));
     }
-    let runs = runs_json(ctx, tb);
+    let mut runs = runs_json(ctx, tb);
+    image::resolve_run_overlap(&mut runs);
     if let Some(f) = para_format(ctx, tb, ppr, runs.is_empty()) {
         set(&mut o, "format", f);
     }
@@ -1246,15 +1289,50 @@ fn empty_para_font(ctx: &Ctx<'_>, p: NodeId, ppr: Option<NodeId>) -> Option<Stri
 
 // ---- Run（TS extractRuns / buildRun / mergeRuns）--------------------------------------------------------
 
-pub(super) fn runs_json(ctx: &Ctx<'_>, tb: &TextBlock) -> Vec<Map<String, Value>> {
-    let mut para_disp =
+/// TS `strayParaRuns`：形状之外的那些 run。
+///
+/// `with_images` 打开时保留**随文**图片的 run；锚定的绘图不给图——它已经作为框画出来了，
+/// 再当 run 里的图给一遍就是画两遍。关掉时一张图都不给。空 run 一律丢掉。
+pub(super) fn stray_runs_json(
+    ctx: &Ctx<'_>,
+    tb: &TextBlock,
+    with_images: bool,
+) -> Vec<Map<String, Value>> {
+    let anchored = |run: &Run| {
+        run.segments.iter().any(|seg| {
+            seg.display.as_ref().and_then(Display::as_drawing).is_some_and(|d| d.anchor.is_some())
+        })
+    };
+    let mut out = Vec::new();
+    for inline in &tb.inlines {
+        let Inline::Run(run) = inline else { continue };
+        let Some(mut r) = run_json(ctx, run, para_disp(ctx, tb)) else { continue };
+        if !with_images || anchored(run) {
+            r.remove("image");
+        }
+        let has_text = r.get("text").and_then(Value::as_str).is_some_and(|t| !t.is_empty());
+        if has_text || r.contains_key("image") {
+            out.push(r);
+        }
+    }
+    merge_runs(out)
+}
+
+/// 段落级的显示属性（`vanish` / `rtl` / 自动间距），run 投影要用。
+fn para_disp(ctx: &Ctx<'_>, tb: &TextBlock) -> StyleDisp {
+    let mut d =
         tb.style_id.as_deref().map(|s| ctx.style_disp(s, StyleType::Paragraph)).unwrap_or_default();
     if tb.style_id.is_none()
         && let Some(def) = ctx.resolver.default_style(StyleType::Paragraph).and_then(|s| s.id())
     {
         // TS `defaultParaVanish`：只有 vanish 走默认样式
-        para_disp.vanish = ctx.style_disp(def, StyleType::Paragraph).vanish.filter(|&v| v);
+        d.vanish = ctx.style_disp(def, StyleType::Paragraph).vanish.filter(|&v| v);
     }
+    d
+}
+
+pub(super) fn runs_json(ctx: &Ctx<'_>, tb: &TextBlock) -> Vec<Map<String, Value>> {
+    let para_disp = para_disp(ctx, tb);
     let mut runs: Vec<Map<String, Value>> = Vec::new();
     for inline in &tb.inlines {
         match inline {
@@ -1608,4 +1686,27 @@ fn same_style(a: &Map<String, Value>, b: &Map<String, Value>) -> bool {
 
 fn s_of(v: &Value, k: &str) -> Option<String> {
     v.get(k).and_then(Value::as_str).map(str::to_string)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::first_page_break_at;
+
+    /// 首页判定：谁在最前面就是分页点，找不到就整篇算首页。
+    #[test]
+    fn compat_03_first_page_break_takes_the_earliest_marker() {
+        let at = |x: &str| first_page_break_at(x);
+        assert_eq!(at("<w:p/><w:p/>"), None);
+        assert_eq!(at(r#"<w:p><w:r><w:br w:type="page"/></w:r></w:p>"#), Some(10));
+        // 节结束也算分页
+        assert_eq!(at("<w:p/></w:sectPr>"), Some(6));
+        // 取最靠前的那个：这里 br 在 sectPr 之前
+        let both = r#"<w:br w:type="page"/><w:p/></w:sectPr>"#;
+        assert_eq!(at(both), Some(0));
+        // Word 记录的渲染分页提示；不自闭合的标签不算
+        assert_eq!(at("<w:p/><w:lastRenderedPageBreak/>"), Some(6));
+        assert_eq!(at("<w:p/><w:lastRenderedPageBreak></w:lastRenderedPageBreak>"), None);
+        // `<w:br/>` 没有 w:type="page" 就不是分页
+        assert_eq!(at(r#"<w:br w:type="textWrapping"/>"#), None);
+    }
 }

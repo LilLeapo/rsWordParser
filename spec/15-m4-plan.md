@@ -67,8 +67,32 @@ CI 门（`spec/11` TEST-10 的「M3–M6 对应域 diff 为 0」）：`diff-pars
 `cubicBezTo` / `close` 且坐标是数字；遇到 `a:gd` 公式、引导名坐标或 `a:arcTo` 就整条几何不给
 ——宁可不给路径，也不能给一条少了段或坐标当 0 的错路径。公式求值器与弧转贝塞尔要的话是独立一块活。
 
-**4.6 还剩一块**：VML WordArt 的 run 字号 / 字体 / 颜色 / 描边与 inset，要 `vmlWordArtBox` 的一整套
-合成（约 40 处 / 9 份文档）。`pagePinned` 还差 TS 的「首页判定」（要块序号与首个分页位置），3 处。
+**4.6e 完成**（VML WordArt 框 + 投影层重复样板的声明宏）。
+
+**4.6f 完成**：绘图域清零（166 → 0）。补齐的是「放置」这一层——它不是新字段，而是同一批字段
+在整段尺度上的解算：
+
+- **锚定上下文**（`box_json::AnchorCtx`）：`posOffset` 归一化（相对页面的偏移减掉页边距，换到栏
+  原点空间，否则页边距算两遍）、`pinAll` 首页钉页（`pagePinned`，靠新的 `Ctx::first_page`：块不是
+  第一个、且在首个分页之前）、并集铺满栏（并排两个半宽框时缝里排不下字）。
+- **wrapSquare 成带**：框（或多绘图段落的并集）几乎铺满整栏时按 `wrapTopAndBottom` 处理，
+  `bandTopPx` / `bandBottomPx` / `bandOverflow`。
+- **照片框**：组内图片走 `pushPic`（要 `a:xfrm/a:ext`），顶层「图片独占一个绘图」走 `wp:extent`；
+  锚定绘图段落里的**随文**图片反过来不成框，作为 `strayRuns` 随行走。
+- **VML 画布**：`v:group` 的缩放 / 原点 / `coordorigin`、随文画布的流内占位框、画布孩子的缺省黑
+  描边、`vmlPicBox` / `vmlGeomBox`（含 `@path` → 归一化 SVG 路径）、空框丢弃、共享的 `txbxIndex`
+  序号、`paragraphStrayBox`（`w:pict` 这条路把框外文字也做成只读框）。
+- **嵌套形状**：形状文本框里再嵌的绘图照样成框（只读、不占序号），锚定用外层绘图的。
+- **两处分类修正**：`pict_kind` 的优先级按 TS 决策树（文本框 / WordArt → 图片 → 隐藏 → 细横线）
+  而不是文档序；`drawing_display` 加了 `eff_ns`，`wps` / `wpg` 前缀没声明时按字面量认
+  （`field-display__015`）。
+- **两处 TS 细节**：`imageMeta` 的每个字段取整段第一处匹配（多绘图段落里后面的不覆盖前面的），
+  `w:jc` 在 `w:drawing` 这条路上是整段扫的（框里的对齐会漏上来），`w:pict` 那条才剥框。
+- 另外补了 `allowOverlap="0"` 撞车时的 run 图片位移、框内表格的行 / 格 / 段落分隔（TS
+  `txbxTableParas`），以及框里直接放 `w:sdt` 时整块只读。
+
+剩下 3 处登记为已知差异：TS 没给 VML 框里的随文图片预取媒体（缺陷不跟随）、框里字段的
+`instrField`（M2）、外部文本框 part（M5，见被阻塞表）。
 
 **顺序说明**：4.1 → 4.3 → 4.4 是主链（几何与投影依赖媒体解析）；4.2 是 4.5 / 4.6 的前置（形状颜色）；
 4.5 / 4.7 可与主链并行。4.6 最重，建议在 4.3 的锚定几何稳定之后再动。
@@ -94,6 +118,7 @@ CI 门（`spec/11` TEST-10 的「M3–M6 对应域 diff 为 0」）：`diff-pars
 | 页眉页脚里的图片（`headerImages`/`footerImages`，15 份） | 需要 M5 的 hf 管线复用；M4 提供 `MediaStore` 与 `ImageDisplay`，投影留到 M5 |
 | `chartDisplay` / `diagramDisplay` / lockedCanvas / 墨迹 | M6 |
 | `formulaDisplay`（4 处） | 公式显示模型未在 `docs/03` §12 分配里程碑，M4 不做，留待 M6 一并定 |
+| 外部文本框 part（`wps:txbx/@r:txbx` → `word/txbx1.xml`，1 份） | 框的内容在另一个 part 里，`Block` 的 `NodeId` 是相对单个 DOM 的；跨 part 内容流随 M5 的页眉页脚管线一起做 |
 | 保存侧 `xml.replaceImage`（1 份跳过用例） | 需要 `EDIT-06` 的 rId 分配（M2 的 2.8）；M4 完成读侧后再回头接 |
 
 ## 不在 M4

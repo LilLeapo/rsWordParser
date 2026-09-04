@@ -300,6 +300,7 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `PKG-05` `Relationship` | `{id, kind, target, raw_type}` | 另有 `family: Option<PartFlavor>`、`node: NodeId` | flavor 判定要用关系类型的族别；写回要定位 `.rels` 节点 |
 | `docs/03` §3.5 `MediaStore` | `MediaId → {part, mime, bytes}` | `Media { part, uri, mime, kind }`，字节惰性读取并缓存 | `kind`（Raster/Svg/Metafile/Tiff/Other）把「要不要送去外部转换」收敛成一个判断；`uri` 供诊断与按 part 去重；一张图被多处引用只解压一次 |
 | `RES-05` DrawingML 颜色 | 「按 `oox::drawingml::Color` 的变换顺序在**规范要求的色彩空间**实现」 | `lumMod`/`lumOff`/`shade`/`tint` 用 sRGB 逐通道，`satMod`/`hueMod` 用 HSL；变换按文档顺序施加 | 比过两处（语料 `bugfix-regressions__025` 与 Office 调色板的「淡色 80%」）：逐通道与 HSL 结果相同，与 Word 公布值差 ≤ 1/255，正是 `RES-05` 验收允许的误差；逐通道又与 TS 一致，绘图域差分才能为 0。按线性空间重做要先有 Word 实测 fixture |
+| `MOD-11` 绘图元素名 | 按 `QName`（URI + local）匹配 | `model/drawing.rs` 的 `eff_ns`：前缀**绑不上**时按字面量认（`wps` / `wpg` / `wp` / `pic` / `a`），能绑上的一律按 URI | TS 用字符串匹配 `<wps:wsp`，压根不看声明；语料里有文档只在根上声明了 `w`/`wp`/`a`/`pic`，`wps` 一个都没声明（`field-display__015`），按 URI 匹配会把整个形状看丢，段落分类全错。只对绑不上的前缀放宽，正常文档行为不变 |
 | `XML-09` `mc:Choice/@Requires` | 前缀按作用域解析 | 作用域里解析不到时，退一步看**分支子树内**有没有声明这个前缀 | 合成语料常把 `xmlns:wps` 写在 `wps:wsp` 元素自己身上，`Requires="wps"` 于是在 `mc:Choice` 处解析不出来、整段退到 VML Fallback（16 份文档）。意图毫无歧义，按分支内的声明认；前缀在**任何地方**都没声明的情况（`numbering-defs__012`）行为不变，仍是已知差异 |
 | `PKG-06` | 唯一路径函数 | `uri::resolve` 唯一；`parse_rels` 在目标不存在且写法为 `../` 时按 `_rels/` 目录再解析一次 | 兼容相对 `_rels/` 写目标的生成器（验收清单要求三种写法解析到同一 part） |
 | `XML-01` 转码 part | "Clean 拷贝的是转码后的字节" | 同；被改写时 XML 声明的 `encoding` 改为 `UTF-8` | 否则声明与字节不一致 |

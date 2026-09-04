@@ -360,7 +360,7 @@ pub fn drawing_display(dom: &Dom, drawing: NodeId) -> DrawingDisplay {
     while let Some((n, depth, parent)) = stack.pop() {
         let mut group = parent;
         if let Some(name) = dom.name(n) {
-            match (name.ns, name.local) {
+            match (eff_ns(dom, n), name.local) {
                 (NsId::Wp, LocalName::Anchor) => d.anchor = Some(anchor_geom(dom, n)),
                 (NsId::Wp, LocalName::Extent) if d.extent.is_none() => d.extent = extent_of(dom, n),
                 (NsId::Wp, LocalName::DocPr) => d.doc_pr = doc_pr(dom, n),
@@ -421,7 +421,7 @@ fn shape_display(dom: &Dom, node: NodeId, is_group: bool, group: Option<usize>) 
     // 只走形状自己的属性容器：`spPr` / `grpSpPr` / `style` / `bodyPr` / `txbx`。
     for c in dom.semantic_children(node) {
         let Some(name) = dom.name(c) else { continue };
-        match (name.ns, name.local) {
+        match (eff_ns(dom, c), name.local) {
             (NsId::Wps, LocalName::SpPr) | (NsId::Wpg, LocalName::GrpSpPr) => sp_pr(dom, c, &mut s),
             (NsId::Wps, LocalName::Style) => {
                 for r in dom.semantic_children(c) {
@@ -544,7 +544,7 @@ pub fn image_display(dom: &Dom, pic: NodeId) -> ImageDisplay {
     let mut in_sp_pr = false;
     for n in walk(dom, pic) {
         let Some(name) = dom.name(n) else { continue };
-        match (name.ns, name.local) {
+        match (eff_ns(dom, n), name.local) {
             (NsId::Pic, LocalName::SpPr) => in_sp_pr = true,
             (NsId::A, LocalName::Blip) if img.embed.is_none() && img.link.is_none() => {
                 img.embed = attr(dom, n, NsId::R, LocalName::Embed);
@@ -753,6 +753,26 @@ impl Iterator for Walk<'_> {
 }
 
 /// 该节点是否开启了一条独立内容流（不属于当前 drawing 的几何）。
+/// 节点的**有效**命名空间：前缀绑不上时按字面量认。
+///
+/// 语料里有一批合成文档只在根上声明了 `w` / `wp` / `a` / `pic`，`wps` 与 `wpg` 一个都没声明
+/// （`field-display__015`）。TS 用字符串匹配 `<wps:wsp`，压根不看声明；我们走 DOM，就得在
+/// 这里补一条：绑不上的前缀按字面量认，其余照旧按 URI。
+fn eff_ns(dom: &Dom, node: NodeId) -> NsId {
+    let Some(name) = dom.name(node) else { return NsId::None };
+    if !matches!(name.ns, NsId::Unbound(_)) {
+        return name.ns;
+    }
+    match dom.lex_name(node).and_then(|q| q.split_once(':')).map(|(p, _)| p) {
+        Some("wps") => NsId::Wps,
+        Some("wpg") => NsId::Wpg,
+        Some("wp") => NsId::Wp,
+        Some("pic") => NsId::Pic,
+        Some("a") => NsId::A,
+        _ => name.ns,
+    }
+}
+
 fn is_own_flow(dom: &Dom, node: NodeId) -> bool {
     dom.name(node).is_some_and(|n| {
         n.ns == NsId::W && matches!(n.local, LocalName::TxbxContent | LocalName::Drawing)
