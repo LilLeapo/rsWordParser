@@ -61,6 +61,10 @@ Strict 下 `ST_OnOff` 只接受 `true/false/1/0`；解析时两族都接受，�
 
 **CT_TrPr**（choice 组；按 Word 顺序）：`cnfStyle, divId, gridBefore, gridAfter, wBefore, wAfter, cantSplit, trHeight, tblHeader, tblCellSpacing, jc, hidden, ins, del, trPrChange`
 
+**CT_TblPrEx**（`w:tr` 的第一个子元素，行级表格属性例外；复用 `TableProps` 表读取，缺的字段为 `None`）：`tblW, jc, tblCellSpacing, tblInd, tblBorders, shd, tblLayout, tblCellMar, tblLook, tblPrExChange`
+
+**`w:tr` / `w:tc` / `w:tbl` 子元素顺序**（不是属性容器，但新建容器时要按它插入）：`w:tbl`: `tblPr, tblGrid, tr*`；`w:tr`: `tblPrEx?, trPr?, tc*`；`w:tc`: `tcPr?, (p | tbl | sdt | …)+`，末尾必须是 `w:p`。
+
 **CT_SectPr**：`headerReference/footerReference`（0–6 个，顺序任意），然后 `footnotePr, endnotePr, type, pgSz, pgMar, paperSrc, pgBorders, lnNumType, pgNumType, cols, formProt, vAlign, noEndnote, titlePg, textDirection, bidi, rtlGutter, docGrid, printerSettings, sectPrChange`
 
 **边框容器**：`CT_TblBorders`: `top, start|left, bottom, end|right, insideH, insideV`；`CT_TcBorders`: 同上加 `tl2br, tr2bl`；`CT_PBdr`: `top, left, bottom, right, between, bar`。

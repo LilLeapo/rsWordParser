@@ -43,7 +43,7 @@
 | `rawPPr` | `pPr` 节点 `lex.range` 字节 |
 | `runs[]` | `COMPAT-07` |
 | `bookmarks/hiddenBookmarks/commentStarts/commentEnds` | 由 `SpanIndex` 按 TS 规则：起点在本段的书签名（`_` 前缀分流）；只有一端在本段的批注 id |
-| `table` | `TableBlock` → TS `TableModel`（`paras/richParas/rawTcPr/rawTrPrs/colWidthsPct/colWidthsTwips/widthPct/autoLayout/…`；样式条件填充按 TS `applyTableStyleDisplay` 烘进 `cell.fill/bold/color`；`hMerge` 折叠；`tcW` 校正按 `RES-08`） |
+| `table` | `TableBlock` + `RES-08` 的 `TableView` → TS `TableModel`，逐字段规则见 `COMPAT-10` |
 | `sdtShell` | `SdtInfo` → `{alias, tag, controlType, openXml, closeXml, group}`：`openXml` = sdt 开标签到 `sdtContent` 开标签结束的字节，`closeXml` = `</w:sdtContent></w:sdt>`；多子块 sdt 按 TS `splitSdtParts` 规则分配 `group` 与首末块的 open/close |
 | `moveRevision/pPrChangeInfo/blockRevision/paraMarkDel` | `revisions` |
 | `textboxes/strayRuns/strayStyleId/formulaDisplay/chartDisplay/diagramDisplay/image*` | `COMPAT-03` |
@@ -133,6 +133,61 @@ TS 的碰撞位移（`allowOverlap=0`）在适配器中复现于 `image.wrap/off
 
 差分工具（`TEST-03`）比较规则：键顺序无关；`undefined` 与缺失等价；浮点按 1e-6；`KNOWN_DIFFS.md` 中列出的路径模式跳过并计数。
 
+## COMPAT-10 表格模型复现
+
+TS `extractTable` 一族（`docs/01` §7；权威定义是 genoffice `src/types.ts` 的 `TableModel` / `TableCell`，`docs/01`
+§3.5 少了基线之后加的 `autoFit / fixedLayout / cellSpacingTwips / fill / tableLook / repeatHeaderRows / gridGap /
+anchoredBoxAnchors`）在新模型中的来源。输入是 `TableBlock` 与 `resolve` 的 `TableView`（`RES-08`），**不重新解析
+XML**；只有深度 ≥ 8 的扁平化允许直接读 DOM 文本（模型在 64 层截断，TS 的扁平表要全部段落）。
+
+**表级**
+
+| TS 字段 | 来源 |
+| --- | --- |
+| `rows` | `TableView` 折叠 `hMerge continue` 后的行列（并入左格的 `colSpan`，`tcW` 相加）；没有格的行不计；`gridBefore / gridAfter > 0` 的行在首 / 尾补 `{ paras: [], gridGap: true, colSpan? }` 占位——在样式条件格式**之后**补，不参与条带计数 |
+| `colWidthsPct` / `colWidthsTwips` | `ColumnView.widths_twips`：`Pct` 按总和归一；`Twips` 仅当 `source ≠ Grid` 或 grid 全部 > 0 |
+| `widthPct` | `tblW type=pct`：`w / 50`，字面 `NN%` 直取；(0, 100] 有效 |
+| `autoLayout` / `autoFit` / `fixedLayout` | `fixed = tblLayout type=fixed`；`autoWidth = 无 tblW ∨ type=auto ∨ (dxa 且 w ≤ 0)`；`autoLayout = !fixed ∧ (autoWidth ∨ widthPct)`（为 true 才给）；`autoFit = fixed ∨ (!autoWidth ∧ !widthPct) ? fixed : widthPct == 100 ? window : contents`（总是给）；`fixedLayout = fixed`（为 true 才给） |
+| `cellMarTwips` | 文档 `tblCellMar` → 表格样式链的 `tblCellMar`（`RES-08` 回退）；`start / end` 归到 `left / right`，type 缺省或 dxa，每边首个有效值 |
+| `cellSpacingTwips` | `tblPr/tblCellSpacing`（dxa，> 0）→ 第一行 `trPr/tblCellSpacing` |
+| `fill` | `tblPr/shd` 的显示填充（`fill` 非 auto；图案底纹按 TS 混色近似） |
+| `borders` | `tblBorders`（含 inside）重复容器按边合并后者胜、`w:val` 必须存在、`szEighths / color`；缺 → 样式链 `tblBorders` |
+| `align` | `jc`：`center` → center；`right / end` → right；其他不给 |
+| `indentTwips` | `tblInd`（type 缺省或 dxa，非 0） |
+| `floatSide` / `floatPos` | 有 `tblpPr` 才给：`floatSide = tblpXSpec ∈ {right, outside} ∨ (无 xSpec ∧ tblpX > 4680) ? right : left`；`floatPos = { xTwips（缺省 right → 9360 / left → 0）, yTwips（缺省 0）, horzAnchor / vertAnchor ∈ {page, margin, text}, distanceTwips 四边 ≥ 0 }`（显示启发式，只在此处） |
+| `rowHeightsTwips` / `rowHeightRules` | 每行 `trHeight`：`val > 0` → `min(val, 31680)`，`hRule = exact ? exact : atLeast`；否则 `null`；全 `null` 两项都不给 |
+| `repeatHeaderRows` | 每行 `trPr/tblHeader`（无 `trPr` 为 false）；**总是**给 |
+| `rawTrPrs` | 每行 `trPr` 节点原字节，无则 `null`；全 `null` 不给 |
+| `rowRevisions` | 每行 `trPr/ins\|del` → `{ kind, author, date?, id? }`；全 `null` 不给 |
+| `tblStyleId` / `bidiVisual` | `tblStyle/@val`；`bidiVisual` 为 true 才给 |
+| `tableLook` | 六个布尔**总是**给：`firstRow / lastRow / firstColumn / lastColumn`，`bandedRows = !noHBand`，`bandedColumns = !noVBand`；属性 > `w:val` 十六进制位（`0x20 0x40 0x80 0x100 0x200 0x400`）> 缺省（firstRow / firstColumn / bandedColumns 开） |
+
+**格级**
+
+| TS 字段 | 来源 |
+| --- | --- |
+| `paras` | 每个直接段落（穿透 sdt）的坐标流文本按 `COMPAT-07` 折回控制字符 |
+| `richParas` | 每段 `ParaFormat`（与 `COMPAT-02` 的 `format` 同一函数）+ `runs`（`COMPAT-07`）+ `styleId` + `list` + `emptyRunSizeHalfPoints / emptyRunFontFamily` |
+| `rawTcPr` | `tcPr` 节点原字节（TS `attachRawTablePr` 的"数不对就放弃"在新模型不需要：节点一一对应） |
+| `colSpan` | `gridSpan > 1`，再加折叠进来的 `hMerge continue` 格的跨度 |
+| `vMerge` / `hMerge` | `vMerge`：`restart` → restart，其他 → continue；`hMerge` 同（只在没被折叠掉的格上出现） |
+| `fill` / `bold` / `color` | 自身：`tcPr/shd` 显示填充；`bold` = 有文字的 run 全部 `w:b`（且至少一个）；`color` = 有文字的 run 颜色恰一种（非 none）。自身未设时按 `TableView.cell(r, c)` 的条件格式补（TS `applyTableStyleDisplay`：firstRow > lastRow > firstCol > lastCol > 条带（行号从 firstRow 之后起算，偶 band1 奇 band2，`noHBand` 关）> 整表 `fill` / `wholeTable.bold / color`） |
+| `align` | 有文字的段落的 `jc` 集合大小为 1 且 ∈ {center, right, left, justify}（视觉值，`RES-07`） |
+| `vAlign` / `textDirection` / `cellMarTwips` / `borders` | `tcPr`：`vAlign ∈ {top, center, bottom}`；`tbRl / tbRlV → tbRl`，`btLr / btLrV → btLr`；`tcMar`；`tcBorders` 合并规则同表级（不含 inside） |
+| `nestedTables` / `nestedTableAnchors` | `Cell.blocks` 中的 `Block::Table` 递归；锚点 = 该表之前的段落数；深度 ≥ 8 → TS `flattenedTableModel`：`{ rows: [[{ paras, richParas: 每段一个纯文本 run（空段无 run） }]], autoLayout: true }`，段落文本按文档序直读 DOM（迭代） |
+| `cellRevision` | `tcPr/cellIns\|cellDel` → `{ kind, author, date?, id? }` |
+| `anchoredBoxes` / `anchoredBoxAnchors`、格内 run 的 `image` | M4（`spec/15` 4.6）：TS 在 `extractCell` 里剥掉锚定 drawing 再重解析段落；含它们的文档不进 `--scope tables` |
+
+**`styles.*.tableDisplay`**（TS `tableStyleDisplayOf` + `mergeTableDisplay`）：`fill`（样式级 `tcPr/shd`）、`wholeTable
+{ color, bold, italic, sizeHalfPoints }`（样式级 `rPr`）、`firstRow / firstCol / lastCol / lastRow { fill, bold, color,
+sizeHalfPoints }`（对应 `tblStylePr`）、`band1Fill / band2Fill`（`band1Horz / band2Horz` 的 `tcPr/shd`）、`borders`、
+`cellMarTwips`（样式级 `tblPr`）、`paraSpacing { beforeTwips, afterTwips, lineRawTwips, lineRule, lineSpacing }` 与 `paraJc`
+（样式级 `pPr`）；basedOn 链**深合并**（`wholeTable / firstRow / firstCol / lastCol / lastRow / paraSpacing` 逐字段，
+子样式有值才覆盖）。空对象不输出。
+
+`label` 仍是 `Table R×C`（R = 整段 XML 里 `w:tr` 个数——含嵌套表，C = 第一个 `w:tr` 里 `w:tc` 个数），
+`previewText` 为纯文本前 120 字；两者 M1 已有。
+
 ## 验收清单
 
 | ID | 用例 |
@@ -141,3 +196,4 @@ TS 的碰撞位移（`allowOverlap=0`）在适配器中复现于 `image.wrap/off
 | COMPAT-04 | 多段 sdt 的 `docxIndex` 与 `elements` 与 TS 一致 |
 | COMPAT-06 | 含 emoji 的 `document.xml` 的 `bodyInnerStart` 与 TS 相同 |
 | COMPAT-08 | 用 TS 测试中的 `SaveBlock[]` 驱动 → 输出 `document.xml` 与 TS `saveDocx` 的输出经 XPath 等价（`TEST-05`） |
+| COMPAT-10 | 全部含表格块的语料（M4 域除外）的 `blocks[*].table` 与 `styles.*.tableDisplay` diff 为空；`deep-nested-table__001` 第 8 层为 1×1 扁平表且含其下全部段落文本；`table-grid-reconcile__*` 的 `colWidthsTwips` 与 `colSpan` 与 TS 一致 |

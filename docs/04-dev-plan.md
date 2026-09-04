@@ -415,8 +415,8 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
 
 任务分解与 DoD 在 `spec/13-m2-plan.md`（§10 有同一张表的摘要）。分支 `m2-span-fields`（从 `main` 开），
 **2026-09-05 以 fast-forward 并入 `main`**（21 条提交），M2 门两条都跑过：`diff-parse --scope fields`
-253 份 0 未知差异、`fuzz_instr` 13,572,886 次执行无崩溃。下一个里程碑是 M3（表格），任务分解待写
-（`spec/14`）。
+253 份 0 未知差异、`fuzz_instr` 13,572,886 次执行无崩溃。下一个里程碑是 M3（表格），任务分解在
+`spec/14-m3-plan.md`，逐条进度见 §12。
 
 - [x] **2.1 Span 索引**（`span/{content,index}.rs`）：`SPAN-01` 内容序列（`content_children` / `content_len` /
   `content_index_of` / `item_containing`，只含元素节点，见 §8）在一处实现，索引构建、文档序比较与后续
@@ -612,3 +612,23 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   再放开字段、范围标记、批注与注释引用，仍排除后续里程碑的图片 / 公式 / ruby / 文本框 / 表格 /
   页眉页脚 / 参考文献。当前 **253 份文档 0 未知差异**（文本域 226 份）。CI 加一步
   `--scope fields`，fuzz workflow 的 matrix 加 `fuzz_instr`。
+
+---
+
+## 12. M3 执行进度
+
+任务分解与 DoD 在 `spec/14-m3-plan.md`（9 个任务、M3 门四条、从 M1 / M2 带过来的六项债、实现约定与七条风险）。
+分支 `m3-tables`（从 `main` 624d4f0 开，工作树 `../rsWordParser-m3`），与 `m4-drawing` 并行；两边共享的文件与
+合并顺序见 `spec/14` 「实现约定」第 2 条与「风险提示」第 1 条。实测差距（2026-09-05）：`blocks[*].table` 67 处 /
+67 份文档整对象缺失，语料 85 张表 / 15 张嵌套 / 199 格。
+
+- [ ] **3.1 表格属性表**（`schema/props/{table,row,cell}.toml`，`styles.toml` 的三个 `Raw` 改类型）
+- [ ] **3.2 表格模型**（`model/table.rs`：`TableBlock / Row / Cell`、穿透 sdt、TooDeep、`paragraphs()` / `block_path()`、表格修订）
+- [ ] **3.3 `SdtInfo` 完整模型**（`MOD-08`；`EDIT_SDT_LOCKED` / `EDIT_SDT_BOUND`）
+- [ ] **3.4 `resolve` 表格视图**（`resolve/table.rs`：`tblLook`、条件格式、边框 / 边距回退、`ColumnView` 四条启发式）
+- [ ] **3.5 `compat_ts` 表格投影**（`bind/compat_ts/table.rs`；`COMPAT-10`；`diff-parse --scope tables`）
+- [ ] **3.6 容器级刷新与单元格内编辑**（`MOD-13`；`TEST-04` 扩到单元格；删掉整体重建退路）
+- [ ] **3.7 表格属性操作**（`SetTableProps / SetRowProps / SetCellProps`；`trPr` 位置规则）
+- [ ] **3.8 行列结构操作**（`InsertRow / DeleteRow / InsertColumn / DeleteColumn / MergeCells / NewBlock::Table`；`SAVE_TABLE_GRID`）
+- [ ] **3.9 随机序列、恶意输入与 M3 门**（`tests/table_ops.rs` 200 × 10；两份 hostile；CI）
+

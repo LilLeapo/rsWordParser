@@ -31,6 +31,10 @@ fixtures/resolve/<area>/<case>/    # RES-12
 
 `tools/diff-parse`：对每个 `synthetic/*.docx` 运行 Rust `compat_ts` → JSON，与 `expected.json` 按 `COMPAT-09` 规则 diff；输出按 JSON path 聚合的差异计数与首个样例。`KNOWN_DIFFS.md` 中的路径模式（glob）跳过并单独计数；CI 断言"非已知差异为 0"。
 
+`--scope`（各里程碑门的取样范围，按 `expected.json` 的内容判定）：`text` = 纯文本段落用例；`fields` = `text` ∪
+字段 / 范围标记 / 批注 / 注释；`tables` = `fields` ∪ 含 `type: table` 块的文档，剔除单元格内含 `anchoredBoxes` 或
+run `image / math / ruby` 的文档（M4 域）；`all` = 全部。每个 scope 是前一个的超集。
+
 ## TEST-04 保真测试
 
 - **往返**：对全部语料 `open → save` → 字节相同（不变式 1）。
@@ -86,6 +90,8 @@ fixtures/resolve/<area>/<case>/    # RES-12
 | `encoding-utf16-part` | UTF-16 编码的 styles.xml | 转码 + 诊断 |
 | `mixed-flavor` | Strict 主 part + Transitional header | `Mixed`；各 part 按自身 flavor |
 | `dup-ids` | 重复修订 `w:id` | 诊断；保存成功 |
+| `table-grid-mismatch` | 行 gridSpan 总和 ≠ `tblGrid` 列数 | 解析成功；`SAVE_TABLE_GRID` PreExisting 诊断；列操作 `Err(EDIT_TABLE_GRID_INCONSISTENT)`；保存字节相同 |
+| `table-cell-no-paragraph` | `w:tc` 内没有 `w:p` | 解析成功；诊断；保存字节相同；格内 `InsertBlock` 后格尾有 `w:p` |
 
 ## TEST-10 CI 门
 
@@ -94,6 +100,7 @@ fixtures/resolve/<area>/<case>/    # RES-12
 | M0 | 全部语料 `parse → serialize` 字节相同；`fuzz_zip`/`fuzz_xml` 各 10 分钟无崩溃 |
 | M1 | `synthetic` 文本段落用例 diff 为 0；单节点编辑保真；Strict 编辑保持 Strict |
 | M2 | 字段与 Span 用例 diff 为 0；`fuzz_instr` |
-| M3–M6 | 对应域的 `synthetic` diff 为 0 |
+| M3 | `diff-parse --scope tables` 0 未知差异；单元格段落的单节点编辑保真（`TEST-04` 扩展）；`xml-deep-table` 通过；表格操作随机序列 200 步 × 10 份无失败（`spec/14`） |
+| M4–M6 | 对应域的 `synthetic` diff 为 0 |
 | M7 | `COMPAT-08` XPath 等价全部通过；`TEST-07` 1,000 序列无失败；`fuzz_edit` |
 | M8 | genoffice e2e 通过 |

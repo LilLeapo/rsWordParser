@@ -129,10 +129,16 @@ Link = Hyperlink { node: NodeId /* w:hyperlink */, target: Internal{anchor} | Ex
 ## MOD-07 表格
 
 ```
-TableBlock { node, props: TableProps, grid: Vec<i32 /* twips */>, rows: Vec<Row>, style_id, revisions }
-Row { node, props: RowProps, cells: Vec<Cell>, revisions }
-Cell { node, props: CellProps, blocks: Vec<Block>, revisions }
+TableBlock { node, props: TableProps, grid: Vec<GridCol { node, w: Option<Val<i32>> /* 声明值，允许 0 与缺失 */ }>, rows: Vec<Row>, style_id, sdt, revisions }
+Row { node, props: RowProps, tbl_pr_ex: Option<TableProps> /* w:tblPrEx，行级表格属性例外 */, cells: Vec<Cell>, sdt, revisions }
+Cell { node, props: CellProps, blocks: Vec<Block>, sdt, revisions }
 ```
+
+- `Cell.blocks` 由与正文同一构建器产生（段落 / 嵌套表 / sdt / 修订包裹递归分类）。单元格最后一个块**必须**是
+  `w:p`（Word 约束）；编辑操作负责维持它（`EDIT-03` 表格通则）。
+- `Document::paragraphs()` 迭代全部段落（含单元格内任意深度、sdt 内）；`Document::block_path(node)` 给出从顶层块到
+  该节点的路径，供 `MOD-13` 的容器级刷新与 `EDIT-02` 的定位使用。`text_blocks()` 仍只给顶层文本块。
+- 构建**迭代**实现：语料有 2000 层嵌套、hostile 有 5000 层。
 
 - 行与单元格通过 `semantic_children` 加"穿透 `w:sdt`"取得（研究报告模板把 tr/tc 包在 sdt 里）；被包裹的 tr/tc 附 `SdtInfo`。
 - `w:hMerge` 不在模型层折叠（保持声明值）；`resolve` 提供折叠后的网格视图。
@@ -208,7 +214,7 @@ SdtInfo { node, alias, tag, id, control: RichText|PlainText|Picture|ComboBox|Dro
 | MOD-03 | `outlineLvl=9` 且样式为 Heading1 → Paragraph；样式 `numId 0` 取消继承编号 |
 | MOD-05 | `docs/01` 第 6.2 节决策树中的每个分支各一个用例，标 △ 的用例断言新行为（含 REF 的段落为 Text；含锚定文本框的段落为 Text 且 Drawing 段带 ShapeDisplay） |
 | MOD-06 | `"Hello" + <w:tab/> + "World"` 坐标流为 `Hello\tWorld`；含图片 run 的段落坐标流含 1 个 U+FFFC；PAGE 字段结果 `12` 只占 1 单位；无 preserve 的 `<w:t> x </w:t>` 文本为 `x` |
-| MOD-07 | sdt 包裹的 tr/tc 解析出行列；65 层嵌套第 65 层为 TooDeep |
+| MOD-07 | sdt 包裹的 tr/tc 解析出行列；65 层嵌套第 65 层为 TooDeep；hostile `xml-deep-table` 无编辑保存字节相同；`w:tblPrEx` 读入 `Row.tbl_pr_ex`；全语料每张表行数、每行物理 `w:tc` 数与 TS 对得上（折叠 `hMerge` 与 `gridGap` 占位换算后） |
 | MOD-08 | 带 `w:dataBinding` 与 `w:lock w:val="sdtContentLocked"` 的 sdt 字段正确 |
 | MOD-09 | 每种修订至少一个语料用例，附着位置正确 |
 | MOD-13 | 随机编辑后 `refresh == rebuild` |

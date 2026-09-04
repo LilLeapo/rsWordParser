@@ -27,6 +27,7 @@ save(session, opts):
 | 所有使用的前缀在其作用域内已绑定（`XML-11`） | 记诊断（输入本就如此） | 同上 |
 | 属性容器子元素顺序符合 `PROP-05`（仅检查 `New/SelfDirty` 节点） | 不适用 | 同上 |
 | 修订 `w:id` 全局唯一 | 记诊断 | 同上 |
+| `New` / 脏 `w:tbl` 的每行网格宽度（`gridBefore + Σ gridSpan + gridAfter`）= `tblGrid` 列数（`SAVE_TABLE_GRID`，M3） | 记诊断，保留（输入本就如此） | 同上 |
 | 段落至少含 `w:pPr` 之外的合法结构（空段允许） | — | — |
 
 来源判定：解析阶段记录的缺陷集合为 `PreExisting`；保存时新出现且不在该集合中的为 `EngineInvariantViolation`。

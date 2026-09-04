@@ -73,7 +73,8 @@ run 的 `cs` 状态 = 直接 `w:rtl` ?? 字符样式链 `rtl` ?? 段落样式链
 - 条件格式优先级（Word）：`firstRow > lastRow > firstCol > lastCol > 条带（band1Horz/band2Horz，行号从 firstRow 之后起算）> 整表`；单元格自身声明优先于一切。
 - 表格样式链：`tblStyle` 的 basedOn 链；`tblPr/tblBorders`、`tblCellMar` 文档未声明时回退样式。
 - 单元格边距缺省：上下 0、左右 108 twips。
-- **列宽视图**：`grid = tblGrid`；`tcW` 全部为 dxa 且每列都有值时以 tcW 为准（TS `tcwColumnWidths` 规则，含 fixed 布局下总宽差异判定）；`tblW pct` 优先于绝对宽。
+- **列宽视图** `ColumnView { widths_twips: Vec<i32>, source: Grid | TcW | Stretched | Reconciled, spans: Vec<Vec<u16>> /* 每行每格占的列数 */, gaps: Vec<(u16, u16)> /* 每行 gridBefore / gridAfter */ }`：按 TS 顺序应用四条启发式并标 `source`——① `grid = tblGrid`（总和 > 0 才有；全部 > 0 才有 twips）；② `tcwColumnWidths`（每行从 `gridBefore` 起算，未跨列格的**最后一个** dxa `tcW` 每列取最大，须每列都有值）与 grid 不一致（列数不同 / 任一列相差 > 2 个百分点 / fixed 布局且总和差 > 列数）→ 以 tcW 为准；③ 非 fixed 且 grid 总和 < `tblW dxa` − 列数 → 按比例拉伸到 `tblW`；④ 各行 gridSpan 总和不等 → `reconcileGridColumns`（每行累计右边界取并集、容差内吸附、> 96 个边界放弃）重算列数与各格跨度。`tblW pct` 优先于绝对宽。全部是显示层规则，**不改模型、不写回**。
+- `Resolver::table(&TableBlock) -> TableView`；`TableView::cell(r, c) -> EffectiveCellProps`（底纹、8 边边框、边距、`vAlign`、`textDirection`、条件 rPr / pPr 叠加），每项带 `Provenance::TableStyle{style, cond}`；`Row.tbl_pr_ex` 在该行优先于 `tblPr`。
 - `hMerge continue` 折叠到左侧单元格的 `colSpan`。
 - `trHeight` 上限 31680。
 
