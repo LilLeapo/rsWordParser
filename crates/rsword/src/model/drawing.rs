@@ -1,0 +1,555 @@
+//! 绘图显示模型（`MOD-11`；`spec/15` 任务 4.3）。
+//!
+//! 一个 `w:drawing` 的**文档事实**：锚定几何、`wp:extent`、`wp:docPr`，以及 `pic:pic` 的图片信息。
+//! 这里**没有**任何由排版决定的字段（px、band、猜出来的浮动方向）——那些是 `bind/compat_ts` 的
+//! 投影（`spec/15` 分层决策）。长度一律 EMU 原值，角度一律 1/60000 度原值。
+//!
+//! ## 遍历边界
+//!
+//! `w:txbxContent` 是**独立内容流**：文本框里的段落有自己的 run 与自己的图。所以扫一个 drawing 时
+//! 不下钻进 `txbxContent`，也不下钻进嵌套的 `w:drawing`——否则文本框里的图会被当成段落级图片，
+//! 分类全错（`spec/15` 风险 3，对应 TS `topLevelDrawings` 的平衡匹配）。
+//!
+//! 遍历是迭代的，带深度上限：语料里有几千层嵌套的恶意输入。
+
+use crate::model::facts::DrawingKind;
+use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
+
+/// 绘图子树的深度上限，与 `MOD-07` 的块嵌套上限同值。
+const MAX_DEPTH: u32 = 64;
+
+/// `Segment.display`：段在显示上的载荷（`MOD-11`）。VML 与 OLE 的变体在 4.5 / 4.7 补。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Display {
+    Drawing(Box<DrawingDisplay>),
+}
+
+impl Display {
+    pub fn as_drawing(&self) -> Option<&DrawingDisplay> {
+        match self {
+            Display::Drawing(d) => Some(d),
+        }
+    }
+}
+
+/// 一个 `w:drawing`。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DrawingDisplay {
+    /// `w:drawing` 节点。
+    pub node: NodeId,
+    pub kind: DrawingKind,
+    /// `wp:anchor` 的锚定几何；`wp:inline` → `None`（随文）。
+    pub anchor: Option<AnchorGeom>,
+    /// `wp:extent`（EMU）。
+    pub extent: Option<Extent>,
+    pub doc_pr: DocPr,
+    /// `pic:pic`（`DrawingKind::Picture`）。图表 / SmartArt 的载荷在 M6。
+    pub picture: Option<ImageDisplay>,
+}
+
+/// `wp:extent` / `a:ext`：EMU 宽高。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Extent {
+    pub cx: i64,
+    pub cy: i64,
+}
+
+/// `wp:docPr`：无障碍与标识信息。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct DocPr {
+    pub id: Option<String>,
+    pub name: Option<String>,
+    /// `@descr`：替代文字。
+    pub descr: Option<String>,
+    pub title: Option<String>,
+    pub hidden: bool,
+}
+
+/// `wp:anchor` 的锚定几何。布尔属性的缺省值按 ECMA-376。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AnchorGeom {
+    pub node: NodeId,
+    /// 绘在正文文字下面（只影响绘制次序，不等于不绕排）。
+    pub behind_doc: bool,
+    /// `@allowOverlap`，缺省 `true`。
+    pub allow_overlap: bool,
+    pub locked: bool,
+    /// `@layoutInCell`，缺省 `true`。
+    pub layout_in_cell: bool,
+    pub simple_pos: bool,
+    /// `@relativeHeight` 原值。z 序是它减去 Word 的基数，换算在投影层。
+    pub relative_height: Option<i64>,
+    /// `@distT/@distB/@distL/@distR`（EMU）。
+    pub dist: Dist,
+    pub h: Position,
+    pub v: Position,
+    pub wrap: Wrap,
+}
+
+/// 绕排边距（EMU）。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Dist {
+    pub top: Option<i64>,
+    pub bottom: Option<i64>,
+    pub left: Option<i64>,
+    pub right: Option<i64>,
+}
+
+/// `wp:positionH` / `wp:positionV`。三种定位写法互斥，但畸形文档可能都写，全都记下来。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Position {
+    /// `@relativeFrom`（`margin` / `page` / `column` / `paragraph` / `line` …）。
+    pub relative_from: Option<String>,
+    /// `wp:align` 的文本（`left` / `center` / `right` / `top` / `bottom` / `inside` / `outside`）。
+    pub align: Option<String>,
+    /// `wp:posOffset`（EMU）。
+    pub offset_emu: Option<i64>,
+    /// `wp14:pctPosHOffset` / `wp14:pctPosVOffset`（千分之一百分比原值）。
+    pub pct: Option<i64>,
+}
+
+/// 绕排方式（`wp:wrap*`）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Wrap {
+    /// `wp:wrapNone`：不绕排，浮在文字上/下。
+    None,
+    /// `wp:wrapSquare`，`@wrapText` 说文字走哪一侧。
+    Square {
+        text: Option<String>,
+    },
+    Tight {
+        text: Option<String>,
+    },
+    Through {
+        text: Option<String>,
+    },
+    TopAndBottom,
+    /// 随文（`wp:inline`），或 anchor 里没写绕排元素。
+    Unspecified,
+}
+
+impl Wrap {
+    /// `@wrapText`（`bothSides` / `left` / `right` / `largest`）。
+    pub fn text(&self) -> Option<&str> {
+        match self {
+            Wrap::Square { text } | Wrap::Tight { text } | Wrap::Through { text } => {
+                text.as_deref()
+            }
+            _ => None,
+        }
+    }
+}
+
+/// `pic:pic`：一张图片。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ImageDisplay {
+    /// `pic:pic` 节点。
+    pub node: Option<NodeId>,
+    /// `a:blip/@r:embed`：包内媒体的关系 id。
+    pub embed: Option<String>,
+    /// `a:blip/@r:link`：外链媒体的关系 id。
+    pub link: Option<String>,
+    /// `a:srcRect`：源图裁剪，四边各千分之一百分比。
+    pub crop: Option<RectFrac>,
+    /// `a:stretch/a:fillRect`：填充矩形。
+    pub fill_rect: Option<RectFrac>,
+    /// `pic:spPr/a:xfrm/@rot`，1/60000 度原值。
+    pub rot_60k: Option<i64>,
+    pub flip_h: bool,
+    pub flip_v: bool,
+    /// `pic:spPr/a:ln`：图片边框。
+    pub border: Option<LineDisplay>,
+}
+
+/// `a:srcRect` / `a:fillRect` 的四边，千分之一百分比原值（`10000` = 10%）。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct RectFrac {
+    pub l: i64,
+    pub t: i64,
+    pub r: i64,
+    pub b: i64,
+}
+
+impl RectFrac {
+    pub fn is_zero(&self) -> bool {
+        self.l == 0 && self.t == 0 && self.r == 0 && self.b == 0
+    }
+}
+
+/// `a:ln`：线条。颜色留原始定义，解析成 sRGB 走 [`crate::resolve::drawingml`]。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LineDisplay {
+    pub node: NodeId,
+    /// `@w`（EMU）。
+    pub width_emu: Option<i64>,
+    /// `a:noFill` → 没有线。
+    pub no_fill: bool,
+    /// 颜色容器节点（`a:solidFill` 等），供 `resolve::drawingml::color_in`。
+    pub fill: Option<NodeId>,
+    /// `a:prstDash/@val`。
+    pub dash: Option<String>,
+}
+
+// ---- 解析 ---------------------------------------------------------------------------------------
+
+/// 建一个 `w:drawing` 的显示模型。
+pub fn drawing_display(dom: &Dom, drawing: NodeId) -> DrawingDisplay {
+    let mut d = DrawingDisplay {
+        node: drawing,
+        kind: DrawingKind::Unknown,
+        anchor: None,
+        extent: None,
+        doc_pr: DocPr::default(),
+        picture: None,
+    };
+    let mut pic_node = None;
+    for n in walk(dom, drawing) {
+        let Some(name) = dom.name(n) else { continue };
+        match (name.ns, name.local) {
+            (NsId::Wp, LocalName::Anchor) => d.anchor = Some(anchor_geom(dom, n)),
+            (NsId::Wp, LocalName::Extent) if d.extent.is_none() => d.extent = extent_of(dom, n),
+            (NsId::Wp, LocalName::DocPr) => d.doc_pr = doc_pr(dom, n),
+            (NsId::A, LocalName::GraphicData) if d.kind == DrawingKind::Unknown => {
+                d.kind = crate::model::facts::graphic_data_kind(dom, n);
+            }
+            (NsId::Pic, LocalName::Pic) if pic_node.is_none() => pic_node = Some(n),
+            _ => {}
+        }
+    }
+    if let Some(pic) = pic_node {
+        d.picture = Some(image_display(dom, pic));
+    }
+    d
+}
+
+/// `pic:pic` → [`ImageDisplay`]。
+pub fn image_display(dom: &Dom, pic: NodeId) -> ImageDisplay {
+    let mut img = ImageDisplay { node: Some(pic), ..ImageDisplay::default() };
+    let mut in_sp_pr = false;
+    for n in walk(dom, pic) {
+        let Some(name) = dom.name(n) else { continue };
+        match (name.ns, name.local) {
+            (NsId::Pic, LocalName::SpPr) => in_sp_pr = true,
+            (NsId::A, LocalName::Blip) if img.embed.is_none() && img.link.is_none() => {
+                img.embed = attr(dom, n, NsId::R, LocalName::Embed);
+                img.link = attr(dom, n, NsId::R, LocalName::Link);
+            }
+            (NsId::A, LocalName::SrcRect) if img.crop.is_none() => {
+                img.crop = Some(rect_frac(dom, n));
+            }
+            (NsId::A, LocalName::FillRect) if img.fill_rect.is_none() => {
+                img.fill_rect = Some(rect_frac(dom, n));
+            }
+            // 旋转与翻转只认 `pic:spPr` 自己的 `a:xfrm`：锚定文本框兄弟有它自己的 `wps` xfrm。
+            (NsId::A, LocalName::Xfrm) if in_sp_pr && img.rot_60k.is_none() => {
+                img.rot_60k = num(dom, n, LocalName::Rot);
+                img.flip_h = flag(dom, n, LocalName::FlipH).unwrap_or(false);
+                img.flip_v = flag(dom, n, LocalName::FlipV).unwrap_or(false);
+            }
+            (NsId::A, LocalName::Ln) if in_sp_pr && img.border.is_none() => {
+                img.border = Some(line_display(dom, n));
+            }
+            _ => {}
+        }
+    }
+    img
+}
+
+/// `a:ln` → [`LineDisplay`]。
+pub fn line_display(dom: &Dom, ln: NodeId) -> LineDisplay {
+    let mut l = LineDisplay {
+        node: ln,
+        width_emu: num(dom, ln, LocalName::W),
+        no_fill: false,
+        fill: None,
+        dash: None,
+    };
+    for c in dom.semantic_children(ln) {
+        let Some(name) = dom.name(c) else { continue };
+        if name.ns != NsId::A {
+            continue;
+        }
+        match name.local {
+            LocalName::NoFill => l.no_fill = true,
+            LocalName::PrstDash => l.dash = attr(dom, c, NsId::None, LocalName::Val),
+            LocalName::SolidFill | LocalName::GradFill | LocalName::PattFill
+                if l.fill.is_none() =>
+            {
+                l.fill = Some(c);
+            }
+            _ => {}
+        }
+    }
+    l
+}
+
+fn anchor_geom(dom: &Dom, anchor: NodeId) -> AnchorGeom {
+    let mut g = AnchorGeom {
+        node: anchor,
+        behind_doc: flag(dom, anchor, LocalName::BehindDoc).unwrap_or(false),
+        allow_overlap: flag(dom, anchor, LocalName::AllowOverlap).unwrap_or(true),
+        locked: flag(dom, anchor, LocalName::Locked).unwrap_or(false),
+        layout_in_cell: flag(dom, anchor, LocalName::LayoutInCell).unwrap_or(true),
+        simple_pos: flag(dom, anchor, LocalName::SimplePos).unwrap_or(false),
+        relative_height: num(dom, anchor, LocalName::RelativeHeight),
+        dist: Dist {
+            top: num(dom, anchor, LocalName::DistT),
+            bottom: num(dom, anchor, LocalName::DistB),
+            left: num(dom, anchor, LocalName::DistL),
+            right: num(dom, anchor, LocalName::DistR),
+        },
+        h: Position::default(),
+        v: Position::default(),
+        wrap: Wrap::Unspecified,
+    };
+    // 只看 anchor 的直接子节点：位置与绕排是 anchor 自己的属性，图形内部的同名元素不算。
+    for c in dom.semantic_children(anchor) {
+        let Some(name) = dom.name(c) else { continue };
+        if name.ns != NsId::Wp {
+            continue;
+        }
+        match name.local {
+            LocalName::PositionH => g.h = position(dom, c, LocalName::PctPosHOffset),
+            LocalName::PositionV => g.v = position(dom, c, LocalName::PctPosVOffset),
+            LocalName::WrapNone => g.wrap = Wrap::None,
+            LocalName::WrapSquare => g.wrap = Wrap::Square { text: wrap_text(dom, c) },
+            LocalName::WrapTight => g.wrap = Wrap::Tight { text: wrap_text(dom, c) },
+            LocalName::WrapThrough => g.wrap = Wrap::Through { text: wrap_text(dom, c) },
+            LocalName::WrapTopAndBottom => g.wrap = Wrap::TopAndBottom,
+            _ => {}
+        }
+    }
+    g
+}
+
+fn wrap_text(dom: &Dom, node: NodeId) -> Option<String> {
+    attr(dom, node, NsId::None, LocalName::WrapText)
+}
+
+fn position(dom: &Dom, node: NodeId, pct: LocalName) -> Position {
+    let mut p = Position {
+        relative_from: attr(dom, node, NsId::None, LocalName::RelativeFrom),
+        ..Position::default()
+    };
+    for c in dom.semantic_children(node) {
+        let Some(name) = dom.name(c) else { continue };
+        match (name.ns, name.local) {
+            (NsId::Wp, LocalName::Align) => p.align = text_of(dom, c),
+            (NsId::Wp, LocalName::PosOffset) => {
+                p.offset_emu = text_of(dom, c).and_then(|s| s.trim().parse().ok());
+            }
+            (NsId::Wp14, l) if l == pct => {
+                p.pct = text_of(dom, c).and_then(|s| s.trim().parse().ok());
+            }
+            _ => {}
+        }
+    }
+    p
+}
+
+fn doc_pr(dom: &Dom, node: NodeId) -> DocPr {
+    DocPr {
+        id: attr(dom, node, NsId::None, LocalName::Id),
+        name: attr(dom, node, NsId::None, LocalName::Name),
+        descr: attr(dom, node, NsId::None, LocalName::Descr),
+        title: attr(dom, node, NsId::None, LocalName::Title),
+        hidden: flag(dom, node, LocalName::Hidden).unwrap_or(false),
+    }
+}
+
+fn extent_of(dom: &Dom, node: NodeId) -> Option<Extent> {
+    Some(Extent { cx: num(dom, node, LocalName::Cx)?, cy: num(dom, node, LocalName::Cy)? })
+}
+
+fn rect_frac(dom: &Dom, node: NodeId) -> RectFrac {
+    let side = |l: LocalName| num(dom, node, l).unwrap_or(0);
+    RectFrac {
+        l: side(LocalName::L),
+        t: side(LocalName::T),
+        r: side(LocalName::R),
+        b: side(LocalName::B),
+    }
+}
+
+fn attr(dom: &Dom, node: NodeId, ns: NsId, local: LocalName) -> Option<String> {
+    dom.attr_value(node, QName::new(ns, local)).map(|s| s.trim().to_string())
+}
+
+fn num(dom: &Dom, node: NodeId, local: LocalName) -> Option<i64> {
+    attr(dom, node, NsId::None, local)?.parse().ok()
+}
+
+/// OOXML 布尔属性：`1` / `true` / `on` 为真，`0` / `false` / `off` 为假。
+fn flag(dom: &Dom, node: NodeId, local: LocalName) -> Option<bool> {
+    match attr(dom, node, NsId::None, local)?.to_ascii_lowercase().as_str() {
+        "1" | "true" | "on" => Some(true),
+        "0" | "false" | "off" => Some(false),
+        _ => None,
+    }
+}
+
+fn text_of(dom: &Dom, node: NodeId) -> Option<String> {
+    let mut s = String::new();
+    for c in dom.semantic_children(node) {
+        if let Some(t) = dom.text(c) {
+            s.push_str(&t);
+        }
+    }
+    (!s.is_empty()).then_some(s)
+}
+
+/// 绘图子树的语义前序遍历，遇到独立内容流（`w:txbxContent`）与嵌套 `w:drawing` 就不再下钻。
+fn walk(dom: &Dom, root: NodeId) -> Walk<'_> {
+    Walk { dom, stack: vec![(root, 0)], scratch: Vec::new() }
+}
+
+struct Walk<'a> {
+    dom: &'a Dom,
+    stack: Vec<(NodeId, u32)>,
+    scratch: Vec<NodeId>,
+}
+
+impl Iterator for Walk<'_> {
+    type Item = NodeId;
+
+    fn next(&mut self) -> Option<NodeId> {
+        let (id, depth) = self.stack.pop()?;
+        if depth < MAX_DEPTH {
+            let dom = self.dom;
+            self.scratch.clear();
+            self.scratch.extend(dom.semantic_children(id).filter(|&c| !is_own_flow(dom, c)));
+            self.stack.extend(self.scratch.iter().rev().map(|&c| (c, depth + 1)));
+        }
+        Some(id)
+    }
+}
+
+/// 该节点是否开启了一条独立内容流（不属于当前 drawing 的几何）。
+fn is_own_flow(dom: &Dom, node: NodeId) -> bool {
+    dom.name(node).is_some_and(|n| {
+        n.ns == NsId::W && matches!(n.local, LocalName::TxbxContent | LocalName::Drawing)
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::package::PartId;
+
+    const NS: &str = concat!(
+        r#" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main""#,
+        r#" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships""#,
+        r#" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing""#,
+        r#" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing""#,
+        r#" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main""#,
+        r#" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture""#,
+    );
+
+    fn parse(inner: &str) -> (Dom, DrawingDisplay) {
+        let src = format!("<w:drawing{NS}>{inner}</w:drawing>");
+        let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
+        let root = dom.root();
+        let d = drawing_display(&dom, root);
+        (dom, d)
+    }
+
+    const PIC: &str = concat!(
+        r#"<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">"#,
+        r#"<pic:pic><pic:blipFill><a:blip r:embed="rId7"/></pic:blipFill></pic:pic>"#,
+        r#"</a:graphicData></a:graphic>"#,
+    );
+
+    #[test]
+    fn mod_11_inline_picture_facts() {
+        let (_, d) = parse(&format!(
+            r#"<wp:inline distT="0" distB="0"><wp:extent cx="914400" cy="457200"/><wp:docPr id="1" name="Logo" descr="a photo"/>{PIC}</wp:inline>"#
+        ));
+        assert_eq!(d.kind, DrawingKind::Picture);
+        assert!(d.anchor.is_none(), "wp:inline 是随文，没有锚定几何");
+        assert_eq!(d.extent, Some(Extent { cx: 914_400, cy: 457_200 }));
+        assert_eq!(d.doc_pr.name.as_deref(), Some("Logo"));
+        assert_eq!(d.doc_pr.descr.as_deref(), Some("a photo"));
+        let p = d.picture.expect("picture");
+        assert_eq!(p.embed.as_deref(), Some("rId7"));
+        assert!(p.link.is_none());
+    }
+
+    #[test]
+    fn mod_11_anchor_geometry_defaults_and_values() {
+        let (_, d) = parse(concat!(
+            r#"<wp:anchor behindDoc="1" allowOverlap="0" distT="10" distB="20" distL="30" distR="40" relativeHeight="251658242">"#,
+            r#"<wp:positionH relativeFrom="page"><wp:posOffset>-1270</wp:posOffset></wp:positionH>"#,
+            r#"<wp:positionV relativeFrom="margin"><wp:align>center</wp:align><wp14:pctPosVOffset>25000</wp14:pctPosVOffset></wp:positionV>"#,
+            r#"<wp:wrapSquare wrapText="left"/>"#,
+            r#"<wp:extent cx="100" cy="200"/>"#,
+            r#"</wp:anchor>"#,
+        ));
+        let a = d.anchor.expect("anchor");
+        assert!(a.behind_doc);
+        assert!(!a.allow_overlap, "allowOverlap=0");
+        assert!(a.layout_in_cell, "没写 layoutInCell 时缺省为 true");
+        assert!(!a.locked);
+        assert_eq!(a.relative_height, Some(251_658_242));
+        assert_eq!(
+            a.dist,
+            Dist { top: Some(10), bottom: Some(20), left: Some(30), right: Some(40) }
+        );
+        assert_eq!(a.h.relative_from.as_deref(), Some("page"));
+        assert_eq!(a.h.offset_emu, Some(-1270));
+        assert_eq!(a.v.relative_from.as_deref(), Some("margin"));
+        assert_eq!(a.v.align.as_deref(), Some("center"));
+        assert_eq!(a.v.pct, Some(25000));
+        assert_eq!(a.wrap, Wrap::Square { text: Some("left".into()) });
+        assert_eq!(a.wrap.text(), Some("left"));
+    }
+
+    #[test]
+    fn mod_11_picture_crop_rotation_and_border() {
+        let (_, d) = parse(concat!(
+            r#"<wp:inline><wp:extent cx="100" cy="100"/>"#,
+            r#"<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic>"#,
+            r#"<pic:blipFill><a:blip r:link="rId9"/><a:srcRect l="5000" b="10000"/>"#,
+            r#"<a:stretch><a:fillRect t="1000"/></a:stretch></pic:blipFill>"#,
+            r#"<pic:spPr><a:xfrm rot="5400000" flipH="1"><a:off x="0" y="0"/></a:xfrm>"#,
+            r#"<a:ln w="12700"><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill><a:prstDash val="dash"/></a:ln>"#,
+            r#"</pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline>"#,
+        ));
+        let p = d.picture.expect("picture");
+        assert_eq!(p.link.as_deref(), Some("rId9"));
+        assert!(p.embed.is_none());
+        assert_eq!(p.crop, Some(RectFrac { l: 5000, t: 0, r: 0, b: 10000 }));
+        assert_eq!(p.fill_rect, Some(RectFrac { l: 0, t: 1000, r: 0, b: 0 }));
+        assert_eq!(p.rot_60k, Some(5_400_000));
+        assert!(p.flip_h && !p.flip_v);
+        let b = p.border.expect("border");
+        assert_eq!(b.width_emu, Some(12700));
+        assert!(!b.no_fill);
+        assert_eq!(b.dash.as_deref(), Some("dash"));
+        assert!(b.fill.is_some(), "颜色容器节点要留给 resolve::drawingml");
+    }
+
+    #[test]
+    fn mod_11_textbox_content_is_not_this_drawings_geometry() {
+        // 文本框里的图属于框内段落，不能被宿主 drawing 认领（`spec/15` 风险 3）。
+        let (_, d) = parse(concat!(
+            r#"<wp:anchor><wp:extent cx="100" cy="100"/><wp:docPr id="1" name="Box"/>"#,
+            r#"<a:graphic><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">"#,
+            r#"<w:txbxContent><w:p><w:r><w:drawing><wp:inline><wp:extent cx="999" cy="888"/>"#,
+            r#"<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">"#,
+            r#"<pic:pic><pic:blipFill><a:blip r:embed="rIdInner"/></pic:blipFill></pic:pic>"#,
+            r#"</a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p></w:txbxContent>"#,
+            r#"</a:graphicData></a:graphic></wp:anchor>"#,
+        ));
+        assert_eq!(d.extent, Some(Extent { cx: 100, cy: 100 }), "取宿主的 extent");
+        assert_eq!(d.kind, DrawingKind::Shape);
+        assert!(d.picture.is_none(), "框里的 pic:pic 不属于宿主 drawing");
+    }
+
+    #[test]
+    fn mod_11_deep_nesting_terminates() {
+        // 恶意输入：深嵌套不能栈溢出，也不能死循环。
+        let deep = format!("{}{}", "<a:grpSp>".repeat(500), "</a:grpSp>".repeat(500));
+        let (_, d) = parse(&format!(r#"<wp:inline><wp:extent cx="1" cy="2"/>{deep}</wp:inline>"#));
+        assert_eq!(d.extent, Some(Extent { cx: 1, cy: 2 }));
+    }
+}

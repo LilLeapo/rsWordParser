@@ -12,6 +12,7 @@ use crate::model::classify::{
     BodyClass, ParaClass, classify_body_child, classify_paragraph, text_kind,
 };
 use crate::model::decl::{FontTable, Numbering, Settings, Styles};
+use crate::model::drawing::{Display, drawing_display};
 use crate::model::facts::ParagraphFacts;
 use crate::model::inline::{
     AtomKind, BreakKind, Inline, InlineAtom, Link, LinkTarget, OBJECT_REPLACEMENT, RevisionCtx,
@@ -513,7 +514,10 @@ impl<'a> Builder<'a> {
             let kind = self.segment(c, name, &mut text);
             let end = text.len() as u32;
             let len = utf16_len(&text[start as usize..end as usize]);
-            segments.push(Segment { node: c, kind, text: start..end, utf16_len: len });
+            // `MOD-11` 显示模型：绘图段带 `DrawingDisplay`（VML / OLE 在 4.5 / 4.7）。
+            let display = matches!(kind, SegmentKind::Drawing { .. })
+                .then(|| Display::Drawing(Box::new(drawing_display(dom, c))));
+            segments.push(Segment { node: c, kind, text: start..end, utf16_len: len, display });
         }
         let mut ctx = rev.cloned().unwrap_or_default();
         if let Some(rpr) = rpr_node

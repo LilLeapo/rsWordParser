@@ -575,6 +575,7 @@ pattFill
 pBdr
 pctPosH
 pctPosHOffset
+pctPosVOffset
 people
 percent
 permEnd
@@ -622,6 +623,7 @@ providerId
 prSet
 prst
 prstClr
+prstDash
 prstGeom
 pStyle
 pt

@@ -24,7 +24,7 @@ run 属性 / 改段落属性 / 整段替换、把 TS 的 `SaveBlock[]` 保存请
 | L2 范围 `span/` | 骨架 | `FlowId` / `FlowMap`、范围标记与属性元素判定 | `RangeSpan`、`Anchor` 变换（M2 2.1–2.3） |
 | L2 字段 `span/field/` | 未开始 | `FieldId` 占位 | 整个字段子系统（M2 2.4–2.5、2.9） |
 | L3 属性表 `semantic/props/` | 完成 | 20 张表由 TOML 生成（读 / 写 / diff / patch / merge / `plan_apply_*`）、按 flavor 编解码、`Val::Raw` 降级、`PROP-05` 顺序 | 表格与节的属性表（M3 / M5） |
-| L3 模型 `model/` | 文本完成 | `Document::rebuild`、块分类 R01–R19、段落坐标流（`Run`/`Segment`，UTF-16）、`ParagraphFacts`、声明模型（styles / numbering / theme / settings / fontTable） | 表格模型（M3）、绘图显示模型（M4）、字段 inline（M2） |
+| L3 模型 `model/` | 文本完成 | `Document::rebuild`、块分类 R01–R19、段落坐标流（`Run`/`Segment`，UTF-16）、`ParagraphFacts`、声明模型（styles / numbering / theme / settings / fontTable）、绘图显示模型（`Segment.display`，M4 4.3） | 表格模型（M3）、VML / 文本框 / OLE 显示模型（M4 4.5–4.7）、字段 inline（M2） |
 | resolve `resolve/` | 首版 | 样式链（basedOn / link）、docDefaults 层叠、每字段 `Provenance`、主题字体与颜色、heading 级别、DrawingML 颜色算法（M4 4.2） | toggle 属性真实规则 + Word 实测 fixture（M5） |
 | L4 编辑 `edit/` | M1 子集 | `EditSession`、`InlinePos` 定位、`MutationPlan` plan/validate/commit、按 part 回滚的事务、`InsertText`、`DeleteRange`（同段）、`SetRunProps`、`SetParaProps`、`ReplaceInlines`、`ReplaceParaProps`、`InsertBlock`/`DeleteBlock`/`MoveBlock` | Anchor 变换、字段操作、拆分 / 合并段落（M2）、表格操作（M3）、修订生成（M7） |
 | 保存 `save/` | M1 子集 | `SAVE-01` 六步编排、`SAVE-02` 子集校验（未绑定前缀、`PROP-05` 顺序）、扩展命名空间声明、`w:t` preserve、`raw_copy_file` 写回、`SaveOptions`（`saved_at`、`remove_personal_info`、`remove_date_and_time`） | Span 物化（M2）、节 / 页眉页脚 / 水印 / 图表 / 墨迹等选项（M3–M6） |
@@ -56,10 +56,11 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
-| 源码行数 / 文件数 | 25,406 行 / 64 个 `src` 文件（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l`；文件数是 `find crates/rsword/src -name '*.rs' \| wc -l` |
-| 测试数 | 179（单元 + 集成，14 个集成测试文件） | `cargo test --workspace` |
+| 源码行数 / 文件数 | 26,172 行 / 65 个 `src` 文件（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l`；文件数是 `find crates/rsword/src -name '*.rs' \| wc -l` |
+| 测试数 | 185（单元 + 集成，15 个集成测试文件） | `cargo test --workspace` |
 | 媒体解析 | 585 份文档 104 处 `a:blip` / `v:imagedata` 引用：包内 93（89 位图 + 4 metafile）、外链 4、文档本身就坏 7 | `cargo test -p rsword --test media -- --nocapture` |
 | DrawingML 颜色 | 573 份文档正文里 89 个颜色容器、17 种取值，全部能定出 sRGB | `cargo test -p rsword --test resolve -- --nocapture` |
+| 绘图事实 | 112 个 `w:drawing`（85 形状 / 18 图片 / 8 组），锚定 102；122 项 `wp:extent` 与 TS 的 `imageWidthPx/HeightPx` 一致 | `cargo test -p rsword --test drawing -- --nocapture` |
 | 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 16 份 hostile | `ls corpus/*` |
 | 往返字节保真 | 589 份文档、3,093 个 XML part 全部字节相同 | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |

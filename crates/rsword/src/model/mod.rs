@@ -17,6 +17,7 @@ pub mod block;
 pub mod build;
 pub mod classify;
 pub mod decl;
+pub mod drawing;
 pub mod facts;
 pub mod inline;
 pub mod theme;
@@ -32,6 +33,10 @@ pub use decl::{
     AbstractNum, Compat, CompatFacts, CompatSetting, DocDefaults, Font, FontTable, Level,
     LevelOverride, Num, Numbering, OwnHeadingLevel, Settings, Style, StyleType, Styles,
     TableStylePr,
+};
+pub use drawing::{
+    AnchorGeom, Display, Dist, DocPr, DrawingDisplay, Extent, ImageDisplay, LineDisplay, Position,
+    RectFrac, Wrap,
 };
 pub use facts::{
     DrawingFacts, DrawingKind, MathFacts, ParagraphFacts, PictFacts, PictKind, RevisionFacts,

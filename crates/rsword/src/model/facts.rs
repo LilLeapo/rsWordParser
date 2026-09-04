@@ -52,7 +52,7 @@ pub struct DrawingFacts {
     pub is_ink: bool,
 }
 
-/// 按 `a:graphicData/@uri` 判定。
+/// 按 `a:graphicData/@uri` 判定；`@uri` 缺失时退回看 `a:graphicData` 的子元素命名空间。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DrawingKind {
     Picture,
@@ -82,6 +82,24 @@ impl DrawingKind {
             "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" => {
                 DrawingKind::Group
             }
+            _ => DrawingKind::Unknown,
+        }
+    }
+
+    /// `@uri` 缺失或不认识时的退路：看 `a:graphicData` 里放的是什么。
+    ///
+    /// 语料里有 `<a:graphicData><c:chart r:id=.../></a:graphicData>`（`resource-cleanup__008`）
+    /// 这种不写 `@uri` 的写法；TS 是按 XML 里出现的 `<c:chart` / `r:dm=` / `<dgm:` 等标记判的，
+    /// 所以它认得出来。只看命名空间，不看具体元素名。
+    pub fn from_graphic_child_ns(ns: NsId) -> DrawingKind {
+        match ns {
+            NsId::Pic => DrawingKind::Picture,
+            NsId::C => DrawingKind::Chart,
+            NsId::Cx => DrawingKind::ChartEx,
+            NsId::Dgm => DrawingKind::Diagram,
+            NsId::Lc => DrawingKind::LockedCanvas,
+            NsId::Wps => DrawingKind::Shape,
+            NsId::Wpg => DrawingKind::Group,
             _ => DrawingKind::Unknown,
         }
     }
@@ -383,9 +401,7 @@ fn drawing_facts(dom: &Dom, drawing: NodeId) -> DrawingFacts {
                 }
             }
             (NsId::A, LocalName::GraphicData) if f.kind == DrawingKind::Unknown => {
-                if let Some(uri) = attr(dom, n, NsId::None, LocalName::Uri) {
-                    f.kind = DrawingKind::from_uri(&uri);
-                }
+                f.kind = graphic_data_kind(dom, n);
             }
             (NsId::A, LocalName::Blip) => f.has_blip = true,
             (NsId::W, LocalName::T) if has_visible_text(dom, n) => f.has_txbx_text = true,
@@ -393,6 +409,45 @@ fn drawing_facts(dom: &Dom, drawing: NodeId) -> DrawingFacts {
         }
     }
     f
+}
+
+/// `a:graphicData` 的种类：`@uri` 优先，缺失或不认识时看第一个子元素的命名空间。
+pub(crate) fn graphic_data_kind(dom: &Dom, graphic_data: NodeId) -> DrawingKind {
+    if let Some(uri) = attr(dom, graphic_data, NsId::None, LocalName::Uri) {
+        let kind = DrawingKind::from_uri(&uri);
+        if kind != DrawingKind::Unknown {
+            return kind;
+        }
+    }
+    dom.semantic_children(graphic_data)
+        .map(|c| graphic_child_kind(dom, c))
+        .find(|&k| k != DrawingKind::Unknown)
+        .unwrap_or(DrawingKind::Unknown)
+}
+
+/// `a:graphicData` 的一个子元素说明这是什么图。
+fn graphic_child_kind(dom: &Dom, child: NodeId) -> DrawingKind {
+    let Some(name) = dom.name(child) else { return DrawingKind::Unknown };
+    let kind = DrawingKind::from_graphic_child_ns(name.ns);
+    if kind != DrawingKind::Unknown {
+        return kind;
+    }
+    // 前缀未绑定（已记 `XML_UNBOUND_PREFIX`）时按前缀字面量兜底。语料里有既不写 `@uri`
+    // 也不声明 `c` / `dgm` / `wps` 前缀的文档（`resource-cleanup__008`、`field-display__015`），
+    // 这时字面量是唯一还剩的信息；宁可按它分类，也好过整段降级成"认不出的绘图"。
+    if !matches!(name.ns, NsId::Unbound(_)) {
+        return DrawingKind::Unknown;
+    }
+    match dom.lex_name(child).and_then(|q| q.split_once(':')).map(|(p, _)| p) {
+        Some("pic") => DrawingKind::Picture,
+        Some("c") => DrawingKind::Chart,
+        Some("cx") => DrawingKind::ChartEx,
+        Some("dgm") => DrawingKind::Diagram,
+        Some("lc") => DrawingKind::LockedCanvas,
+        Some("wps") => DrawingKind::Shape,
+        Some("wpg") => DrawingKind::Group,
+        _ => DrawingKind::Unknown,
+    }
 }
 
 fn pict_kind(dom: &Dom, pict: NodeId) -> PictKind {
