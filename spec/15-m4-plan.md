@@ -54,6 +54,8 @@ CI 门（`spec/11` TEST-10 的「M3–M6 对应域 diff 为 0」）：`diff-pars
 | 4.7 | OLE 与 `w:object`：`o:OLEObject/@ProgID` → `oleProgId`；`v:imagedata` 预览图；尺寸取 `v:shape style` 的 pt，缺省 `w:object` 的 `dxaOrig/dyaOrig` twips；`w:jc` | MOD-11, COMPAT-03 | `oleProgId` 8 处与对应 `label "Embedded object"` 归零 |
 | 4.8 | 恶意输入与 M4 门：绘图树深嵌套 / 环状组 / 缺关系 / 畸形 `style` 的降级路径；`corpus/hostile` 补用例；`diff-parse` 绘图域接入 CI | TEST-09, TEST-10 | 绘图域未知差异 0；hostile 语料不 panic 不丢字节；`cargo test --workspace` 与 `--release` 全绿 |
 
+**进度**：4.1 完成（`package/media.rs` + `tests/media.rs` 语料普查；同时给 L1 补了 `Dom::semantic_descendants`）。
+
 **顺序说明**：4.1 → 4.3 → 4.4 是主链（几何与投影依赖媒体解析）；4.2 是 4.5 / 4.6 的前置（形状颜色）；
 4.5 / 4.7 可与主链并行。4.6 最重，建议在 4.3 的锚定几何稳定之后再动。
 

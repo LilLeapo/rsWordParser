@@ -4,6 +4,7 @@
 //! 本层不理解 WordprocessingML 语义。XML part 的 DOM 惰性构建（[`Package::dom`]），主 part 在打开时解析。
 
 pub mod content_types;
+pub mod media;
 pub mod ns_context;
 pub mod rels;
 pub mod uri;
@@ -13,6 +14,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 pub use content_types::ContentTypes;
+pub use media::{Media, MediaId, MediaKind, MediaMiss, MediaRef, MediaStore};
 pub use ns_context::{NamespaceContext, UNDERSTOOD};
 pub use rels::{RelTarget, RelType, Relationship, Rels, parse_rels};
 pub use uri::{PartUri, UriError, resolve};

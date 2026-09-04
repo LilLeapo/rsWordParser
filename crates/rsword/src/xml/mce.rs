@@ -201,6 +201,35 @@ impl Dom {
     pub fn semantic_children(&self, node: NodeId) -> SemanticChildren<'_> {
         SemanticChildren { dom: self, stack: vec![(self.children(node), 0)] }
     }
+
+    /// `XML-10`：语义前序遍历（含 `node` 自身），逐层走 [`Dom::semantic_children`]。
+    ///
+    /// 与 [`Dom::descendants`] 的区别是这里看不见非 active 的 `mc:Choice` / `mc:Fallback`
+    /// 分支。凡是要按语义读子树的地方（绘图、VML、文本框）都用这个，否则会读到未生效的分支——
+    /// 语料里有 `mc:Choice Requires="ma"`（未知前缀）里写着坏 `r:embed`、Fallback 里才是真图的文档。
+    pub fn semantic_descendants(&self, node: NodeId) -> SemanticDescendants<'_> {
+        SemanticDescendants { dom: self, stack: vec![node], scratch: Vec::new() }
+    }
+}
+
+/// [`Dom::semantic_descendants`] 的迭代器。显式栈，不递归（语料里有几千层嵌套）。
+pub struct SemanticDescendants<'a> {
+    dom: &'a Dom,
+    stack: Vec<NodeId>,
+    scratch: Vec<NodeId>,
+}
+
+impl Iterator for SemanticDescendants<'_> {
+    type Item = NodeId;
+
+    fn next(&mut self) -> Option<NodeId> {
+        let id = self.stack.pop()?;
+        let dom = self.dom;
+        self.scratch.clear();
+        self.scratch.extend(dom.semantic_children(id));
+        self.stack.extend(self.scratch.iter().rev().copied());
+        Some(id)
+    }
 }
 
 pub struct SemanticChildren<'a> {

@@ -19,7 +19,7 @@ run 属性 / 改段落属性 / 整段替换、把 TS 的 `SaveBlock[]` 保存请
 
 | 层 | 状态 | 已实现 | 缺口（里程碑） |
 | --- | --- | --- | --- |
-| L0 包层 `package/` | 完成 | zip（0x7075 中和、限额、raw copy）、`[Content_Types].xml`、`.rels` 双族、flavor 判定（Strict / Transitional / Mixed）、`NamespaceContext` | 新建 part（`SAVE-05`，M2） |
+| L0 包层 `package/` | 完成 | zip（0x7075 中和、限额、raw copy）、`[Content_Types].xml`、`.rels` 双族、flavor 判定（Strict / Transitional / Mixed）、`NamespaceContext`、`MediaStore`（按 part rels 解析媒体、MIME、dataURL，M4 4.1） | 新建 part（`SAVE-05`，M2） |
 | L1 无损 DOM `xml/` | 完成 | tokenizer（区间精确、属性顺序 / 引号 / 重复容忍）、`Dirty` 五态与传播、MCE（含 `ProcessContent`）、命名空间作用域、`NodeEdit` 计划、片段解析、规范化比较、XPath 子集 | — |
 | L2 范围 `span/` | 骨架 | `FlowId` / `FlowMap`、范围标记与属性元素判定 | `RangeSpan`、`Anchor` 变换（M2 2.1–2.3） |
 | L2 字段 `span/field/` | 未开始 | `FieldId` 占位 | 整个字段子系统（M2 2.4–2.5、2.9） |
@@ -56,8 +56,9 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
-| 源码行数 / 文件数 | 24,189 行 / 61 个（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 163（单元 + 集成，13 个集成测试文件） | `cargo test --workspace` |
+| 源码行数 / 文件数 | 24,694 行 / 62 个 `src` 文件（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l`；文件数是 `find crates/rsword/src -name '*.rs' \| wc -l` |
+| 测试数 | 168（单元 + 集成，14 个集成测试文件） | `cargo test --workspace` |
+| 媒体解析 | 585 份文档 104 处 `a:blip` / `v:imagedata` 引用：包内 93（89 位图 + 4 metafile）、外链 4、文档本身就坏 7 | `cargo test -p rsword --test media -- --nocapture` |
 | 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 16 份 hostile | `ls corpus/*` |
 | 往返字节保真 | 589 份文档、3,093 个 XML part 全部字节相同 | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
@@ -80,6 +81,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | `saved_at` 单独设置 | 不触发保存 | 否则"打开→保存字节相同"的不变式被时间戳打破 |
 | `remove_date_and_time` | 独立开关，删批注 / 修订的 `w:date` | OOXML 本来就有 `w:removeDateAndTime`；TS 没有这个能力（**超过 TS**） |
 | 新建 `w:t` 的 `xml:space` | 一律写 `preserve` | Word 不再 trim，语义更安全 |
+| EMF / WMF / TIFF | 不在 Rust 侧转换，输出原字节 dataURL 并标 `MediaKind::Metafile` / `Tiff` | `docs/03` §3.5 冻结：转换是可插拔服务，由 TS / 渲染端做（4 份 `emf-image__*` 因此登记为已知差异） |
 | 段落 `w14:paraId` / `w:rsid*` | 编辑时复用原段落节点，属性保留 | TS 重建成裸 `<w:p>` 会丢（**超过 TS**） |
 | `rawRPr` | 取原文字节区间 | TS 重新序列化，我们的是字节等价，对合并更友好 |
 
