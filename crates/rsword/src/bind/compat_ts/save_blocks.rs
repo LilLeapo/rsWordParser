@@ -30,10 +30,11 @@ use crate::edit::{
     NewMarker, NewRevision, NewRun,
 };
 use crate::error::{Error, Result};
+use crate::model::{HfKind, HfVariant};
 use crate::package::{PartFlavor, RelType};
 use crate::save::SaveOptions;
 use crate::save::options::{
-    PgNumTypeOption, ProtectionOption, SectionSaveSettings, WriteProtectionOption,
+    PgNumTypeOption, ProtectionOption, SectionHfSave, SectionSaveSettings, WriteProtectionOption,
 };
 use crate::semantic::props::{
     Border, BorderStyle, Color, DropCap, FontHint, Fonts, FrameAnchor, FramePr, FrameWrap,
@@ -115,10 +116,21 @@ struct EntryLists {
     endnotes: Option<Vec<Value>>,
 }
 
-fn save_options_of(options: &Value) -> Result<(SaveOptions, EntryLists)> {
+/// 页眉页脚选项的原始 JSON：内容要用 `Planner`（借着主 part 的 DOM）才能翻成 `NewBlock`，
+/// 所以先原样收着，等 `Planner` 建好再翻（见 [`apply_save_blocks`]）。
+#[derive(Debug, Clone, Default)]
+struct HfOptionJson {
+    /// `(TS 键名, HeaderFooter)`。
+    slots: Vec<(String, Value)>,
+    /// `sectionHf[]` 原样。
+    section_hf: Vec<Value>,
+}
+
+fn save_options_of(options: &Value) -> Result<(SaveOptions, EntryLists, HfOptionJson)> {
     let mut out = SaveOptions::default();
     let mut lists = EntryLists::default();
-    let Some(map) = options.as_object() else { return Ok((out, lists)) };
+    let mut hfs = HfOptionJson::default();
+    let Some(map) = options.as_object() else { return Ok((out, lists, hfs)) };
     let arr = |v: &Value, k: &str| -> Result<Vec<Value>> {
         v.as_array().cloned().ok_or_else(|| unsupported(format!("SaveOptions {k:?} 不是数组")))
     };
@@ -138,13 +150,34 @@ fn save_options_of(options: &Value) -> Result<(SaveOptions, EntryLists)> {
             "evenAndOddHeaders" => out.even_and_odd_headers = v.as_bool(),
             "protection" => out.protection = Some(protection_of(v)?),
             "writeProtection" => out.write_protection = Some(write_protection_of(v)?),
+            // ---- 5.6b：页眉页脚 ----
+            "watermark" => {
+                out.watermark = Some(match v {
+                    Value::Null => None,
+                    Value::String(t) if t.is_empty() => None,
+                    Value::String(t) => Some(t.clone()),
+                    other => return Err(unsupported(format!("watermark 不是字符串: {other}"))),
+                })
+            }
+            "hfAllSections" => out.hf_all_sections = v.as_bool().unwrap_or(false),
+            "sectionHf" => hfs.section_hf = arr(v, "sectionHf")?,
+            k if HF_SLOT_KEYS.contains(&k) => {
+                if !v.is_object() {
+                    return Err(unsupported(format!("SaveOptions {k:?} 不是对象")));
+                }
+                hfs.slots.push((k.to_string(), v.clone()));
+            }
             other => {
                 return Err(unsupported(format!("SaveOptions {other:?} 在后续里程碑（SAVE-07）")));
             }
         }
     }
-    Ok((out, lists))
+    Ok((out, lists, hfs))
 }
+
+/// 六个槽的 TS 键名（`HfSlots::by_ts_key` 认的那些）。
+const HF_SLOT_KEYS: &[&str] =
+    &["header", "footer", "headerFirst", "footerFirst", "headerEven", "footerEven"];
 
 /// 六位十六进制的页面底色；`null` = 删除。
 fn page_color_of(v: &Value) -> Result<Option<String>> {
@@ -364,7 +397,7 @@ pub fn apply_save_blocks(
     final_blocks: &Value,
     options: &Value,
 ) -> Result<SaveBlocksOutcome> {
-    let (save_options, lists) = save_options_of(options)?;
+    let (mut save_options, lists, hf_json) = save_options_of(options)?;
     let final_blocks =
         final_blocks.as_array().ok_or_else(|| unsupported("finalBlocks 不是数组"))?;
     // 保存路径按 docxIndex / 原字节匹配块，用不到图片 dataURL，给一张空的媒体表即可。
@@ -390,6 +423,33 @@ pub fn apply_save_blocks(
         })
         .unwrap_or_default();
     let list_style = parsed["listParagraphStyleId"].as_str().map(str::to_string);
+
+    // 页眉页脚选项的内容（TS `headerFooterPartXml` 的规则）要借主 part 的 DOM 翻，而且必须在
+    // isUnchanged 短路**之前**——这些用例的正文块本来就没动，改的只有页眉页脚
+    let mut pending_section_hf = Vec::new();
+    if !hf_json.slots.is_empty() || !hf_json.section_hf.is_empty() {
+        let flavor = session.flavor();
+        let main = session.main_part();
+        let no_rels = HashMap::new();
+        let dom = session.package_mut().dom_mut(main)?.expect("main part parsed");
+        let mut planner = Planner {
+            dom,
+            flavor,
+            body,
+            nodes: &nodes,
+            heading_ids: &heading_ids,
+            list_style: list_style.as_deref(),
+            link_rels: &no_rels,
+        };
+        for (key, hf) in &hf_json.slots {
+            let blocks = planner.hf_blocks(hf)?;
+            let slot = save_options.hf.by_ts_key(key).expect("键已经过滤过");
+            *slot = Some(blocks);
+        }
+        for e in &hf_json.section_hf {
+            pending_section_hf.push(planner.section_hf_of(e)?);
+        }
+    }
 
     // SaveBlock → Item
     let mut items: Vec<Item<'_>> = Vec::with_capacity(final_blocks.len());
@@ -435,7 +495,9 @@ pub fn apply_save_blocks(
     if all_original_in_order {
         // 块没动，但权威条目列表可能要删 / 改条目
         let extra = apply_entry_lists(session, &lists)?;
-        return Ok(SaveBlocksOutcome { unchanged: extra == 0, ops: extra, save_options });
+        save_options.section_hf = resolve_section_hf(session, pending_section_hf)?;
+        let unchanged = extra == 0 && !save_options.forces_save();
+        return Ok(SaveBlocksOutcome { unchanged, ops: extra, save_options });
     }
 
     let main = session.main_part();
@@ -463,6 +525,7 @@ pub fn apply_save_blocks(
     session.apply_all(ops, &EditContext::default())?;
     // 条目列表在块之后应用：删掉的批注要连"块重发出来的"标记一起清掉
     let extra = apply_entry_lists(session, &lists)?;
+    save_options.section_hf = resolve_section_hf(session, pending_section_hf)?;
     Ok(SaveBlocksOutcome { unchanged: false, ops: n + extra, save_options })
 }
 
@@ -1521,6 +1584,218 @@ fn format_into(f: &Value, p: &mut ParaProps) {
 // 让未使用的导入在功能面变化时报错而不是静默
 #[allow(dead_code)]
 fn _types(_: FontHint, _: NsId) {}
+// ---------------------------------------------------------------------------
+// 页眉页脚保存选项：TS `HeaderFooter` → `Vec<NewBlock>`（`spec/16` 任务 5.6b）
+// ---------------------------------------------------------------------------
+
+/// TS `headerFooterPartXml` 的 PAGE / NUMPAGES 字段：五个 run，结果缓存写 `1`。
+fn page_field(keyword: &str) -> NewInline {
+    NewInline::Field {
+        instr: keyword.to_string(),
+        result: vec![NewInline::Run(NewRun::text("1"))],
+        separate: true,
+        dirty: false,
+        props: None,
+    }
+}
+
+/// 一段文本按 `TOTAL_PAGES_MARK` 切开，段间插 NUMPAGES 字段（TS `textWithTotal`）。
+fn text_with_total(text: &str, props: Option<&NewElement>, out: &mut Vec<NewInline>) {
+    for (i, seg) in text.split(super::hf::TOTAL_PAGES_MARK).enumerate() {
+        if i > 0 {
+            out.push(page_field("NUMPAGES"));
+        }
+        if !seg.is_empty() {
+            out.push(NewInline::Run(NewRun { text: seg.to_string(), props: props.cloned() }));
+        }
+    }
+}
+
+/// 居中的一段（TS 的 `<w:p><w:pPr><w:jc w:val="center"/></w:pPr>…</w:p>`）。
+fn centered_para(inlines: Vec<NewInline>) -> NewBlock {
+    let props = NewElement::new(w(LocalName::PPr))
+        .with_child(NewElement::new(w(LocalName::Jc)).with_attr(w(LocalName::Val), "center"));
+    NewBlock::Paragraph { props: Some(props), inlines }
+}
+
+/// `HeaderFooter` 里有没有真的页码标记（含表格行的段落，TS `hasPageMark`）。
+fn has_page_mark(paras: &[Value]) -> bool {
+    let run_has = |runs: Option<&Vec<Value>>| {
+        runs.into_iter()
+            .flatten()
+            .any(|r| s_of(r, "text").is_some_and(|t| t.contains(super::hf::PAGE_MARK)))
+    };
+    paras.iter().any(|p| {
+        run_has(p.get("runs").and_then(Value::as_array))
+            || p.get("cells").and_then(Value::as_array).into_iter().flatten().any(|c| {
+                c.get("paras")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                    .any(|cp| run_has(cp.get("runs").and_then(Value::as_array)))
+            })
+    })
+}
+
+impl Planner<'_> {
+    /// TS `headerFooterPartXml` 的内容部分 → `Vec<NewBlock>`（外层的 part 合并在 `save/options/hf.rs`）。
+    ///
+    /// 两个分支与 TS 同：给了 `paras` 就逐条发（带 `cells` 的**跳过**——那是表格行的显示形态，
+    /// 原 `w:tbl` 字节由外科合并保留），没给就一段居中的 `text` + 可选页码。
+    fn hf_blocks(&mut self, hf: &Value) -> Result<Vec<NewBlock>> {
+        let text = s_of(hf, "text").unwrap_or_default().to_string();
+        let page_number = truthy(hf, "pageNumber");
+        let Some(paras) = hf.get("paras").and_then(Value::as_array) else {
+            let mut inlines = Vec::new();
+            if text.contains(super::hf::PAGE_MARK) {
+                for (i, seg) in text.split(super::hf::PAGE_MARK).enumerate() {
+                    if i > 0 {
+                        inlines.push(page_field("PAGE"));
+                    }
+                    text_with_total(seg, None, &mut inlines);
+                }
+            } else if page_number && text.contains('#') {
+                let (before, rest) = text.split_once('#').expect("含 #");
+                text_with_total(before, None, &mut inlines);
+                inlines.push(page_field("PAGE"));
+                text_with_total(rest, None, &mut inlines);
+            } else {
+                if !text.is_empty() {
+                    // TS：有页码时正文后补一个空格再接字段
+                    let t = if page_number { format!("{text} ") } else { text };
+                    text_with_total(&t, None, &mut inlines);
+                }
+                if page_number {
+                    inlines.push(page_field("PAGE"));
+                }
+            }
+            return Ok(vec![centered_para(inlines)]);
+        };
+
+        // `pageNumber` 且一个真标记都没有时，第一个字面 `#` 顶替页码（只顶替第一个）
+        let mut page_emitted = !page_number || has_page_mark(paras);
+        let mut out = Vec::new();
+        for para in paras.iter().filter(|p| p.get("cells").is_none_or(Value::is_null)) {
+            let mut p = ParaProps::default();
+            format_into(para, &mut p);
+            let props = (p != ParaProps::default()).then(|| emit_para_props(&p, self.flavor));
+            let mut inlines = Vec::new();
+            for run in para.get("runs").and_then(Value::as_array).into_iter().flatten() {
+                let t = s_of(run, "text").unwrap_or_default();
+                let marked =
+                    t.contains(super::hf::TOTAL_PAGES_MARK) || t.contains(super::hf::PAGE_MARK);
+                if !marked && !(!page_emitted && t.contains('#')) {
+                    self.runs_to_inlines(std::slice::from_ref(run), &mut inlines)?;
+                    continue;
+                }
+                let rpr = rich_run_props(run);
+                for (k, seg) in t.split(super::hf::TOTAL_PAGES_MARK).enumerate() {
+                    if k > 0 {
+                        inlines.push(page_field("NUMPAGES"));
+                    }
+                    if seg.contains(super::hf::PAGE_MARK) {
+                        for (j, piece) in seg.split(super::hf::PAGE_MARK).enumerate() {
+                            if j > 0 {
+                                inlines.push(page_field("PAGE"));
+                            }
+                            if !piece.is_empty() {
+                                inlines.push(NewInline::Run(NewRun {
+                                    text: piece.to_string(),
+                                    props: rpr.clone(),
+                                }));
+                            }
+                        }
+                    } else if !page_emitted && seg.contains('#') {
+                        let (before, rest) = seg.split_once('#').expect("含 #");
+                        if !before.is_empty() {
+                            inlines.push(NewInline::Run(NewRun {
+                                text: before.to_string(),
+                                props: rpr.clone(),
+                            }));
+                        }
+                        inlines.push(page_field("PAGE"));
+                        if !rest.is_empty() {
+                            inlines.push(NewInline::Run(NewRun {
+                                text: rest.to_string(),
+                                props: rpr.clone(),
+                            }));
+                        }
+                        page_emitted = true;
+                    } else if !seg.is_empty() {
+                        inlines.push(NewInline::Run(NewRun {
+                            text: seg.to_string(),
+                            props: rpr.clone(),
+                        }));
+                    }
+                }
+            }
+            out.push(NewBlock::Paragraph { props, inlines });
+        }
+        // 一条都没发出页码：补一段居中的纯页码（同 TS）
+        if !page_emitted {
+            out.push(centered_para(vec![page_field("PAGE")]));
+        }
+        Ok(out)
+    }
+}
+
+impl Planner<'_> {
+    /// TS `sectionHf[]` 的一条：内容 + 它落在第几个块（`lastBlockIndex`）。
+    ///
+    /// 节点**不在这里**解析：块操作可能整段重发，那时早先算出的 `w:sectPr` 节点已经在一棵
+    /// 删掉的子树里了。索引 → 节点留到所有块操作之后（见 [`resolve_section_hf`]）。
+    ///
+    /// 变体固定是 default——TS 找引用时也只认 `default` / 非 schema 的 `odd` / 无 `w:type`
+    /// （`sectionHf` 表达不了 first / even）。
+    fn section_hf_of(&mut self, e: &Value) -> Result<(usize, HfKind, Vec<NewBlock>)> {
+        let idx = e
+            .get("lastBlockIndex")
+            .and_then(Value::as_u64)
+            .ok_or_else(|| unsupported("sectionHf 条目缺 lastBlockIndex"))?
+            as usize;
+        let kind = match s_of(e, "kind") {
+            Some("footer") => HfKind::Footer,
+            _ => HfKind::Header,
+        };
+        let hf = e.get("hf").ok_or_else(|| unsupported("sectionHf 条目缺 hf"))?;
+        Ok((idx, kind, self.hf_blocks(hf)?))
+    }
+}
+
+/// 块操作之后把 `lastBlockIndex` 解析成 `w:sectPr` 节点。
+fn resolve_section_hf(
+    session: &EditSession,
+    pending: Vec<(usize, HfKind, Vec<NewBlock>)>,
+) -> Result<Vec<SectionHfSave>> {
+    if pending.is_empty() {
+        return Ok(Vec::new());
+    }
+    let body = session
+        .document()
+        .body
+        .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, "文档没有 w:body"))?;
+    let nodes = blocks::element_nodes(session.dom(), body);
+    pending
+        .into_iter()
+        .map(|(idx, kind, blocks)| {
+            let node = *nodes
+                .get(idx)
+                .ok_or_else(|| unsupported(format!("sectionHf.lastBlockIndex {idx} 越界")))?;
+            let sect = sect_pr_in(session.dom(), node)
+                .ok_or_else(|| unsupported(format!("第 {idx} 块里没有 w:sectPr")))?;
+            Ok(SectionHfSave { sect, kind, variant: HfVariant::Default, blocks })
+        })
+        .collect()
+}
+
+/// 一个块级元素里的 `w:sectPr`：自己就是，或者在 `w:pPr` 里。
+fn sect_pr_in(dom: &Dom, node: NodeId) -> Option<NodeId> {
+    if dom.is(node, w(LocalName::SectPr)) {
+        return Some(node);
+    }
+    let ppr = dom.semantic_children(node).find(|&c| dom.is(c, w(LocalName::PPr)))?;
+    dom.semantic_children(ppr).find(|&c| dom.is(c, w(LocalName::SectPr)))
+}
 
 #[cfg(test)]
 mod tests {

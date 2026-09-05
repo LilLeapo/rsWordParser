@@ -657,9 +657,14 @@ impl EditSession {
         }
         // `SAVE-07` 的内容类选项（节 / 页眉页脚 / 水印 / 底色 / 保护 / 奇偶页眉）先翻成 5.5 的
         // 编辑操作走一遍 `apply_all`：与手写这些操作完全同一条路（同一套校验、脏标记与新建 part）。
-        let ops = crate::save::options::edit_ops(self.document(), opts);
+        let (ops, created) = crate::save::options::edit_ops(self, opts);
         if !ops.is_empty() {
             self.apply_all(ops, &EditContext::default())?;
+        }
+        // `hfAllSections` 要等上一轮把 part 建出来才知道挂哪个，所以分两轮
+        let links = crate::save::options::link_ops(self, opts, &created);
+        if !links.is_empty() {
+            self.apply_all(links, &EditContext::default())?;
         }
         let (plans, diags) = crate::save::options::plan_all(&mut self.pkg, opts, authors, dates)?;
         let mut touches_main = plans.iter().any(|p| p.part == self.pkg.main_part());

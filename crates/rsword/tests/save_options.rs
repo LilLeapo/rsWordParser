@@ -533,3 +533,190 @@ fn save_07_even_and_odd_headers_round_trips_through_the_projection() {
     let json2 = rsword::bind::compat_ts::parsed_doc(&mut pkg2).unwrap();
     assert_eq!(json2["evenAndOddHeaders"], false);
 }
+
+// ---------------------------------------------------------------------------
+// 5.6b：页眉页脚保存选项（`SAVE-07` / `SAVE-05`，`spec/16` 任务 5.6b）
+// ---------------------------------------------------------------------------
+
+use rsword::edit::{NewBlock, NewInline, NewRun};
+use rsword::model::{HfKind, HfVariant};
+use rsword::save::options::SectionHfSave;
+
+fn para(text: &str) -> NewBlock {
+    NewBlock::Paragraph { props: None, inlines: vec![NewInline::Run(NewRun::text(text))] }
+}
+
+/// 六个槽的表：字段、kind / variant、TS 键名一一对应（`hf_slots!` 展开的那张表）。
+#[test]
+fn save_07_hf_slots_cover_all_six_variants() {
+    let mut slots = rsword::save::options::HfSlots::default();
+    assert!(slots.is_empty());
+    for key in ["header", "footer", "headerFirst", "footerFirst", "headerEven", "footerEven"] {
+        *slots.by_ts_key(key).unwrap_or_else(|| panic!("{key} 不在表里")) = Some(vec![para(key)]);
+    }
+    assert!(slots.by_ts_key("headerOdd").is_none(), "非法键要返回 None");
+    let seen: Vec<(HfKind, HfVariant)> = slots.iter().map(|(k, v, _)| (k, v)).collect();
+    assert_eq!(seen.len(), 6, "六个槽都能迭代到");
+    assert_eq!(seen[0], (HfKind::Header, HfVariant::Default), "default 在最前（同 TS 的调用顺序）");
+    for (i, a) in seen.iter().enumerate() {
+        assert!(!seen[..i].contains(a), "六个 kind × variant 组合互不重复: {a:?}");
+    }
+}
+
+/// 没声明变体 → 按 `SAVE-05` 新建 part；引用是 `sectPr` 第一个子元素。
+#[test]
+fn save_07_header_option_creates_the_part() {
+    let bytes = sect_docx(r#"<w:sectPr><w:pgSz w:w="1" w:h="2"/></w:sectPr>"#);
+    let mut s = EditSession::open(&bytes).unwrap();
+    let mut opts = SaveOptions::default();
+    *opts.hf.by_ts_key("header").unwrap() = Some(vec![para("新页眉")]);
+    *opts.hf.by_ts_key("footerFirst").unwrap() = Some(vec![para("首页页脚")]);
+    let saved = s.save_with(&opts).unwrap();
+    let hdr = part_text(&saved, "word/header1.xml");
+    assert!(hdr.contains("新页眉"), "{hdr}");
+    let ftr = part_text(&saved, "word/footer1.xml");
+    assert!(ftr.contains("首页页脚"), "{ftr}");
+    let xml = part_text(&saved, "word/document.xml");
+    assert_eq!(xpath_on(&xml, "//w:sectPr/w:headerReference/@w:type"), ["default"], "{xml}");
+    assert_eq!(xpath_on(&xml, "//w:sectPr/w:footerReference/@w:type"), ["first"], "{xml}");
+    // 引用组在其他子元素之前（`PROP-05` 第 0 格）
+    let (i_ref, i_sz) = (xml.find("Reference").unwrap(), xml.find("<w:pgSz").unwrap());
+    assert!(i_ref < i_sz, "引用要在 w:pgSz 之前\n{xml}");
+    // 重解析：投影里读得出来
+    let mut pkg = Package::open(&saved).unwrap();
+    let json = rsword::bind::compat_ts::parsed_doc(&mut pkg).unwrap();
+    assert_eq!(json["headerText"], "新页眉");
+    assert_eq!(json["footerFirst"]["text"], "首页页脚");
+}
+
+/// 外科合并：part 里的表格与带图的段落原字节保留，只有文本段落整体替换。
+#[test]
+fn save_07_header_option_merges_surgically() {
+    let hdr = concat!(
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>"#,
+        r#"<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">"#,
+        r#"<w:p><w:r><w:t>旧文字一</w:t></w:r></w:p>"#,
+        r#"<w:tbl><w:tr><w:tc><w:p><w:r><w:t>格</w:t></w:r></w:p></w:tc></w:tr></w:tbl>"#,
+        r#"<w:p><w:r><w:pict><v:rect xmlns:v="urn:schemas-microsoft-com:vml" id="logo"/></w:pict></w:r></w:p>"#,
+        r#"<w:p><w:r><w:t>旧文字二</w:t></w:r></w:p>"#,
+        r#"</w:hdr>"#
+    );
+    let doc_rels = concat!(
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>"#,
+        r#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">"#,
+        r#"<Relationship Id="rIdH" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>"#,
+        r#"</Relationships>"#
+    );
+    let body = concat!(
+        r#"<w:p><w:r><w:t>正文</w:t></w:r></w:p>"#,
+        r#"<w:sectPr><w:headerReference xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" w:type="default" r:id="rIdH"/><w:pgSz w:w="1" w:h="2"/></w:sectPr>"#
+    );
+    let bytes = common::docx_with_parts(
+        body,
+        &[("word/_rels/document.xml.rels", doc_rels), ("word/header1.xml", hdr)],
+    );
+    let mut s = EditSession::open(&bytes).unwrap();
+    let mut opts = SaveOptions::default();
+    *opts.hf.by_ts_key("header").unwrap() = Some(vec![para("新文字")]);
+    let saved = s.save_with(&opts).unwrap();
+    let out = part_text(&saved, "word/header1.xml");
+    assert!(out.contains("新文字"), "{out}");
+    assert!(!out.contains("旧文字一") && !out.contains("旧文字二"), "文本段落整体替换\n{out}");
+    assert!(out.contains("<w:tbl>") && out.contains("格"), "表格原样保留\n{out}");
+    assert!(out.contains(r#"id="logo""#), "带图的段落原样保留\n{out}");
+    // 新内容落在第一个文本段落的位置：表格之前
+    let (i_new, i_tbl) = (out.find("新文字").unwrap(), out.find("<w:tbl>").unwrap());
+    assert!(i_new < i_tbl, "新内容要落在第一个文本段落的位置\n{out}");
+    assert_eq!(xpath_on(&out, "count(/w:hdr/w:p)"), ["2"], "一段新文字 + 一段图\n{out}");
+}
+
+/// `sectionHf`：指定某一节的页脚；只碰那一节的 `sectPr`。
+#[test]
+fn save_07_section_hf_targets_one_section() {
+    let body = concat!(
+        r#"<w:p><w:pPr><w:sectPr><w:pgSz w:w="1" w:h="1"/></w:sectPr></w:pPr><w:r><w:t>一</w:t></w:r></w:p>"#,
+        r#"<w:p><w:r><w:t>二</w:t></w:r></w:p>"#,
+        r#"<w:sectPr><w:pgSz w:w="2" w:h="2"/></w:sectPr>"#
+    );
+    let bytes = common::docx_with_body(body);
+    let mut s = EditSession::open(&bytes).unwrap();
+    let sect = s.document().sections[0].node.unwrap();
+    let opts = SaveOptions {
+        section_hf: vec![SectionHfSave {
+            sect,
+            kind: HfKind::Footer,
+            variant: HfVariant::Default,
+            blocks: vec![para("第一节页脚")],
+        }],
+        ..Default::default()
+    };
+    let saved = s.save_with(&opts).unwrap();
+    let ftr = part_text(&saved, "word/footer1.xml");
+    assert!(ftr.contains("第一节页脚"), "{ftr}");
+    let xml = part_text(&saved, "word/document.xml");
+    assert_eq!(
+        xpath_on(&xml, "count(//w:p/w:pPr/w:sectPr/w:footerReference)"),
+        ["1"],
+        "引用落在第一节\n{xml}"
+    );
+    assert_eq!(
+        xpath_on(&xml, "count(/w:document/w:body/w:sectPr/w:footerReference)"),
+        ["0"],
+        "最后一节不受影响\n{xml}"
+    );
+}
+
+/// `hfAllSections`：新建的 part 挂到每个自己不带引用的 `sectPr` 上；带引用的那节不碰。
+#[test]
+fn save_07_hf_all_sections_propagates_only_new_parts() {
+    let body = concat!(
+        r#"<w:p><w:pPr><w:sectPr><w:pgSz w:w="1" w:h="1"/></w:sectPr></w:pPr><w:r><w:t>一</w:t></w:r></w:p>"#,
+        r#"<w:p><w:r><w:t>二</w:t></w:r></w:p>"#,
+        r#"<w:sectPr><w:pgSz w:w="2" w:h="2"/></w:sectPr>"#
+    );
+    let bytes = common::docx_with_body(body);
+    let mut s = EditSession::open(&bytes).unwrap();
+    let mut opts = SaveOptions { hf_all_sections: true, ..Default::default() };
+    *opts.hf.by_ts_key("header").unwrap() = Some(vec![para("重复页眉")]);
+    let saved = s.save_with(&opts).unwrap();
+    let xml = part_text(&saved, "word/document.xml");
+    assert_eq!(xpath_on(&xml, "count(//w:headerReference)"), ["2"], "两节各一条\n{xml}");
+    let ids = xpath_on(&xml, "//w:headerReference/@r:id");
+    assert_eq!(ids[0], ids[1], "两节指向同一个 part\n{xml}");
+    assert!(part_text(&saved, "word/header1.xml").contains("重复页眉"));
+    // 没开 hfAllSections：只有最后一节拿到引用
+    let mut s2 = EditSession::open(&bytes).unwrap();
+    let mut only_last = SaveOptions::default();
+    *only_last.hf.by_ts_key("header").unwrap() = Some(vec![para("只最后一节")]);
+    let x2 = part_text(&s2.save_with(&only_last).unwrap(), "word/document.xml");
+    assert_eq!(xpath_on(&x2, "count(//w:headerReference)"), ["1"], "{x2}");
+}
+
+/// `watermark` 单独出现 → 只动水印段落；与 `header` 同出现 → 先内容后水印。
+#[test]
+fn save_07_watermark_option_alone_and_with_content() {
+    let bytes = sect_docx(r#"<w:sectPr><w:pgSz w:w="1" w:h="2"/></w:sectPr>"#);
+    let mut s = EditSession::open(&bytes).unwrap();
+    let mut opts = SaveOptions { watermark: Some(Some("草稿".into())), ..Default::default() };
+    *opts.hf.by_ts_key("header").unwrap() = Some(vec![para("页眉文字")]);
+    let saved = s.save_with(&opts).unwrap();
+    let hdr = part_text(&saved, "word/header1.xml");
+    assert!(hdr.contains("<v:textpath") && hdr.contains("页眉文字"), "{hdr}");
+    let (i_wm, i_text) = (hdr.find("<v:textpath").unwrap(), hdr.find("页眉文字").unwrap());
+    assert!(i_wm < i_text, "水印段落在最前\n{hdr}");
+
+    // 只给水印：页眉文字不动
+    let mut s2 = EditSession::open(&saved).unwrap();
+    let only = SaveOptions { watermark: Some(Some("机密".into())), ..Default::default() };
+    let x2 = part_text(&s2.save_with(&only).unwrap(), "word/header1.xml");
+    assert!(x2.contains(r#"string="机密""#), "{x2}");
+    assert!(x2.contains("页眉文字"), "内容不动\n{x2}");
+    assert_eq!(xpath_on(&x2, "count(//v:shape)"), ["1"], "只有一个水印形状\n{x2}");
+
+    // 删水印：只有水印段落走
+    let mut s3 = EditSession::open(&saved).unwrap();
+    let clear = SaveOptions { watermark: Some(None), ..Default::default() };
+    let x3 = part_text(&s3.save_with(&clear).unwrap(), "word/header1.xml");
+    assert_eq!(xpath_on(&x3, "count(//v:textpath)"), ["0"], "{x3}");
+    assert!(x3.contains("页眉文字"), "内容不动\n{x3}");
+}

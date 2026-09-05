@@ -15,15 +15,17 @@
 //! 日期清洗是独立的一项（OOXML 的 `w:removeDateAndTime`，TS 没有这个能力）：批注元素（带 `w:author` 的
 //! 修订与批注）上的 `w:date` 删除。`remove_personal_info` 单独开启时日期保留，与 TS 一致。
 
+pub mod hf;
 pub mod section;
 pub mod settings;
 
+pub use hf::{HfSlots, SectionHfSave};
 pub use section::{PgNumTypeOption, ProtectionOption, SectionSaveSettings, WriteProtectionOption};
 
 use crate::diag::Diagnostic;
 use crate::edit::{EditOp, MutationPlan};
 use crate::error::Result;
-use crate::model::{Document, SectionOwner};
+use crate::model::SectionOwner;
 use crate::package::{Package, PartId, RelType};
 use crate::semantic::props::{PropsPatch, SectType, SettingsPatch};
 use crate::xml::{Dirty, Dom, LocalName, NodeEdit, NodeId, NodeKind, NsId, QName, Target};
@@ -63,6 +65,16 @@ pub struct SaveOptions {
     pub write_protection: Option<Option<WriteProtectionOption>>,
     /// `w:evenAndOddHeaders`。
     pub even_and_odd_headers: Option<bool>,
+
+    // ---- 5.6b：页眉页脚 ----
+    /// 六个槽的内容（kind × variant）。内容按 TS `headerFooterPartXml` 的规则由适配器算好。
+    pub hf: HfSlots,
+    /// 文字水印（default 页眉）；`Some(None)` 删除，`None` 不动。
+    pub watermark: Option<Option<String>>,
+    /// 逐节的页眉页脚（TS `sectionHf[]`）。
+    pub section_hf: Vec<SectionHfSave>,
+    /// 把新建的页眉页脚 part 挂到每个自己不带引用的 `w:sectPr` 上（TS `hfAllSections`）。
+    pub hf_all_sections: bool,
 }
 
 impl SaveOptions {
@@ -85,6 +97,7 @@ impl SaveOptions {
             || self.protection.is_some()
             || self.write_protection.is_some()
             || self.even_and_odd_headers.is_some()
+            || !hf::is_empty(self)
     }
 }
 
@@ -96,7 +109,11 @@ impl SaveOptions {
 /// 节的四项只作用在**最后一节且它是 body 级的** `w:sectPr` 上（TS 的 trailing hidden sectPr）：
 /// 文档里连一个 `w:sectPr` 都没有时 TS 什么都不做，我们也不凭空造一个（新建分节属性容器
 /// 就是新建分节符，见 `docs/04` §8）。
-pub(crate) fn edit_ops(doc: &Document, opts: &SaveOptions) -> Vec<EditOp> {
+pub(crate) fn edit_ops(
+    s: &crate::edit::EditSession,
+    opts: &SaveOptions,
+) -> (Vec<EditOp>, Vec<(crate::model::HfKind, crate::model::HfVariant)>) {
+    let doc = s.document();
     let mut ops = Vec::new();
     if let Some(last) = doc.sections.last()
         && last.owner == SectionOwner::Body
@@ -107,6 +124,8 @@ pub(crate) fn edit_ops(doc: &Document, opts: &SaveOptions) -> Vec<EditOp> {
             ops.push(EditOp::SetSectionProps { sect, patch });
         }
     }
+    let (mut hf_ops, created) = hf::content_ops(s, opts);
+    ops.append(&mut hf_ops);
     if let Some(color) = &opts.page_color {
         ops.push(EditOp::SetPageColor { color: color.clone() });
     }
@@ -114,7 +133,16 @@ pub(crate) fn edit_ops(doc: &Document, opts: &SaveOptions) -> Vec<EditOp> {
     if !patch.is_empty() {
         ops.push(EditOp::SetDocumentSettings { patch });
     }
-    ops
+    (ops, created)
+}
+
+/// `SAVE-07` 第二轮：`hfAllSections` 要等第一轮把 part 建出来才知道挂哪个。
+pub(crate) fn link_ops(
+    s: &crate::edit::EditSession,
+    opts: &SaveOptions,
+    created: &[(crate::model::HfKind, crate::model::HfVariant)],
+) -> Vec<EditOp> {
+    hf::link_ops(s, opts, created)
 }
 
 /// 节的四项合成一个补丁（它们碰的字段互不相交）。

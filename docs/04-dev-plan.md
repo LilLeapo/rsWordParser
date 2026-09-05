@@ -377,6 +377,7 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `PROP-05` CT_SectPr | `headerReference/footerReference`（0–6 个，顺序任意），然后 sequence | 两者共用 `order` 的第 0 格（`"a\|b"` 写法），因此 `order_index` 对两者都返回 0 | 它们是 schema 里的一个可重复组（EG_HdrFtrReferences），**组内顺序自由**，Word 按 default / first / even 的逻辑顺序写、两种元素会交错。分别编号会让 `SAVE-02` 的 PROP-05 单调性检查把合法的 `<ftr/><hdr/>` 判成乱序；同一格表达的正是"彼此之间无序、整组在其他子元素之前"，新引用也就插在已有引用之后、`w:footnotePr` 之前 |
 | `PROP-08` `SectionProps` 清单 | `headerReference*, footerReference*, footnotePr, endnotePr, type, pgSz, pgMar, pgBorders, lnNumType, pgNumType, cols, formProt, vAlign, titlePg, textDirection, bidi, rtlGutter, docGrid` | 另建模 `noEndnote`（同类 OnOff，写回要用）；**不**建模 `paperSrc` 与 `printerSettings` | 前者是清单的遗漏（它就夹在 `vAlign` 与 `titlePg` 之间）；后两个是打印机硬件配置，编辑器与 resolve 都不用，不建模就原字节留在原位（`PROP-06`），需要时补一行即可 |
 | `PROP-09` 枚举容错 | 字面不匹配 → `Val::Raw` + 诊断 | `ST_HdrFtr` 额外收非 schema 的 `odd` | Word 之外的生成器用 `w:type="odd"` 表示"缺省页"，TS 与 Word 都当 default（`docs/01` §12）。当成 `Raw` 只会白记一条 `PROP_BAD_VALUE`，而 `RES-10` 照样得把它当 default |
+| `SAVE-07` `header` 选项（TS `headerFooterPartXml`） | 重新生成整个页眉 part，把解析出来的水印文字重写成一棵新的 `watermarkParagraphXml` 子树 | 选项没有给 `watermark` 时原水印段落一个字节都不动 | 改页眉文字不是改水印。TS 因为整份重建 part 才顺带重写它，代价是水印原有的字号 / 颜色 / 位置被替换成生成器的字面值。保存语料只比 `documentXml`，这条差异不产生任何不等价 |
 | `SAVE-07` `section` 选项 | TS `applySectionSettings` 整个替换 `w:pgSz` 与 `w:pgMar` | `w:pgMar` 里选项没给出的属性（`w:gutter`、未给 `headerDist` 时的 `w:header`）与 `w:pgSz/@w:code` 沿用原值 | 选项只表达"页面设置"，装订线与打印机纸型不在其中。TS 的正则式重建整个标签会顺手丢掉它们；不变式 1 的精神是"没让改的不动"。语料里没有带 `w:code` 的用例，所以这条差异目前不产生任何不等价 |
 | `EDIT-03 SetSectionProps`（`spec/16` 5.5） | 新容器的位置：body 级 → `w:body` 最后一个子元素；段落级 → `pPr` 内 `rPr` 之后 `pPrChange` 之前 | 只合并**已有**的活 `w:sectPr`，否则 `Err(EDIT_BAD_POSITION)` | "新建 `sectPr`"就是**新建分节符**：要在某段之后断开节、把后续块划给新节、六个页眉页脚槽的继承随之改变——那是块级结构操作，不是属性合并。M5 的三条节操作（`SetSectionProps` / `SetHeaderFooter` / `LinkHeaderFooter`）都作用于已有的节；分节符的增删留到 M7 与段落结构操作一起做 |
 | `spec/16` 5.5 的宏计划 | `SetSectionProps` 由 `table_props_op!` 泛化成 `props_container_op!` 一起生成 | 手写一个 `set_section_props` | 泛化后只有一个新客户（节表），而三张表格属性表的宏形状是"容器在 `w:tbl` / `w:tr` / `w:tc` 里按 order 新建"，节表要的是"容器已在，只合并"。够不上"同一形状三次"，5.6 的保存选项若再来两个容器操作再收 |
@@ -944,7 +945,7 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
     每个改主 part 的操作一条 `MOD-13` oracle（`refresh == rebuild`，节序列一起比）。
     两处与 `spec/16` 措辞不同，记在 §8：`SetSectionProps` 只合并**已有**的 `w:sectPr`；
     `table_props_op!` 没有泛化成 `props_container_op!`（只有一个新客户，等 5.6 的保存选项再看）。
-- [ ] **5.6 保存选项**（a 已上，b 是页眉页脚那半）
+- [x] **5.6 保存选项**（分 a / b 两个提交上）
   - **a 节与包级选项**：`save/options.rs` 拆成目录（`mod` / `section` / `settings`），`SaveOptions`
     加八项——`section`（TS `SectionSettings` 的写侧子集）、`section_start_type`、`pg_num_type`、
     `title_pg`、`page_color`、`protection`、`write_protection`、`even_and_odd_headers`。它们全部翻成
@@ -957,8 +958,22 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
     保存语料 90 → **103 份等价**（新关掉 13 份：`section` 4、`protection` 3、`sectionStartType` 2、
     `pgNumType` / `pageColor` / `writeProtection` / `evenAndOddHeaders` 各 1），`tests/save_options.rs`
     加 7 个用例（含"没有 `w:sectPr` 就不凭空造分节符 → 原字节"与 `evenAndOddHeaders` 的重解析 oracle）。
-  - **b 页眉页脚选项**（下一步）：`header` / `footer` / 三变体 / `sectionHf` / `hfAllSections` /
-    `watermark` + compat 的 `headerFooterPartXml` 外科合并，还剩 26 份用例。
+  - **b 页眉页脚选项**：`SaveOptions` 加 `hf`（六个槽，`hf_slots!` 一张表同时展开字段 / 迭代 /
+    TS 键名）、`watermark`、`section_hf`、`hf_all_sections`。内容（`Vec<NewBlock>`）由
+    `compat_ts` 按 TS `headerFooterPartXml` 算好（`#` 顶替页码、`PAGE` / `NUMPAGES` 标记换
+    `NewInline::Field`、`pageNumber` 时正文后补空格、带 `cells` 的条目跳过、一条页码都没发出时
+    补一段居中的纯页码），落点由 `save/options/hf.rs` 决定：没声明该变体 → `SetHeaderFooter`
+    （新建 part）；声明了且 part 里全是文本段落 → `SetHeaderFooter`（整体替换）；还有别的东西 →
+    **外科合并**（`DeleteBlock` 文本段落 + `InsertBlock` 新内容落在第一个文本段落的位置，表格 /
+    `w:sdt` / 带图段落原字节保留）。`hfAllSections` 分第二轮做（要等第一轮把 part 建出来才知道
+    挂哪个），只传播**新建**的 part、跳过自己就带引用的节，与 TS 同。
+    修掉两处真问题：（1）`compat_ts` 原来在块操作**之前**把 `sectionHf.lastBlockIndex` 解析成
+    `w:sectPr` 节点，块操作若整段重发那个节点就在一棵删掉的子树里了——现在索引留到所有块操作
+    之后再解析；（2）`require_sect_pr` 只看节点自己的 `Dirty`，删掉的段落里的 `sectPr` 自身仍是
+    `Clean`，于是插入静默落进死子树——现在要求**整条祖先链**都不是 `Deleted`。
+    保存语料 103 → **129 份等价**，`spec/16` 预计的 39 份全部关掉；剩下 29 份跳过全属 5.7（9）
+    与 M6 / M7（20）。`tests/save_options.rs` 再加 6 个用例（六槽表、新建 part 的引用位置与
+    重解析、外科合并、`sectionHf` 只碰一节、`hfAllSections` 的传播与不传播、水印单独 / 同出现）。
 - [ ] **5.7 声明 part 的读写**：参考文献（读 + 写）、编号追加、主题、样式 upsert。
 - [ ] **5.8 resolve 校准**：toggle 与节继承 fixture（文档我们生成，观察值来自 Word）；`RES-04` 占位规则替换。
 - [ ] **5.9 恶意输入、随机序列与 M5 门**：4 份 hostile、100 × 10 随机序列、CI。

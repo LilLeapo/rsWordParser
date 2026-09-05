@@ -33,11 +33,16 @@ fn w(local: LocalName) -> QName {
 }
 
 /// 目标是主 part 里活着的 `w:sectPr`。
+///
+/// "活着"要看**整条祖先链**：删掉一个段落时它的 `pPr/sectPr` 自己的 `Dirty` 不变，只有段落是
+/// `Deleted`。放过这种节点的话，后面的插入会落进一棵已经死掉的子树里，静默地什么都不发生
+/// （`compat_ts` 把 `sectionHf` 的 `lastBlockIndex` 在块操作之前解析成节点时踩到过）。
 fn require_sect_pr(dom: &Dom, sect: NodeId) -> Result<()> {
-    if (sect.0 as usize) < dom.node_count()
-        && dom.node(sect).dirty != Dirty::Deleted
+    let live = (sect.0 as usize) < dom.node_count()
         && dom.is(sect, w(LocalName::SectPr))
-    {
+        && dom.node(sect).dirty != Dirty::Deleted
+        && dom.ancestors(sect).all(|a| dom.node(a).dirty != Dirty::Deleted);
+    if live {
         Ok(())
     } else {
         Err(Error::edit(DiagCode::EditBadPosition, format!("节点 {} 不是活的 w:sectPr", sect.0)))
