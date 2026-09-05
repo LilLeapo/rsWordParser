@@ -118,6 +118,19 @@ async function mutate(bytes: Uint8Array, f: (zip: JSZip) => Promise<void> | void
   return zip.generateAsync({ type: 'uint8array' })
 }
 
+/** 3000 层 `w:txbxContent` 套娃（页眉里的深树，MOD_TOO_DEEP）。 */
+function nestedTxbx(depth: number): string {
+  const open =
+    '<w:txbxContent><w:p><w:r><w:pict>' +
+    `<v:shape xmlns:v="${V}" id="n" type="#_x0000_t202" style="width:10pt;height:10pt"><v:textbox>`
+  const close = '</v:textbox></v:shape></w:pict></w:r></w:p></w:txbxContent>'
+  return (
+    open.repeat(depth) +
+    '<w:txbxContent><w:p><w:r><w:t>bottom</w:t></w:r></w:p></w:txbxContent>' +
+    close.repeat(depth)
+  )
+}
+
 function nestedTables(depth: number): string {
   return (
     '<w:tbl><w:tblGrid><w:gridCol w:w="4000"/></w:tblGrid><w:tr><w:tc>'.repeat(depth) +
@@ -353,8 +366,82 @@ describe('TEST-09 hostile corpus', () => {
     )
   })
 
+  it('header/footer and section damage (TEST-09, MOD-10, PROP-09)', async () => {
+    // 引用了 rels 里根本不存在的 rId：节的槽必须当"没声明"，hfParts 不能出现悬空条目
+    emit(
+      'hf-dangling-reference',
+      await real.buildDocx({
+        bodyXml: PLAIN,
+        sectPrExtra:
+          '<w:headerReference w:type="default" r:id="rIdGoneHdr"/>' +
+          '<w:footerReference w:type="first" r:id="rIdGoneFtr"/>',
+      }),
+      'PKG_REL_MISSING; the slot reads as undeclared and hfParts has no dangling entry',
+    )
+
+    // header part 是二进制垃圾：整 part 降级为 Opaque，正文照旧可编辑
+    const binaryHeader = await real.buildDocx({
+      bodyXml: PLAIN,
+      sectPrExtra: '<w:headerReference w:type="default" r:id="rIdHdrBin"/>',
+      extraRels: `<Relationship Id="rIdHdrBin" Type="${REL_T}/header" Target="header1.xml"/>`,
+      extraParts: [
+        { path: 'word/header1.xml', xml: '\u0000\u0001\u0002 not xml at all \u00ff', contentType: CT_HDR },
+      ],
+    })
+    emit(
+      'hf-part-binary',
+      binaryHeader,
+      'PKG_OPAQUE_PART; the header part is Opaque, SetHeaderFooter on it is Err, body still editable',
+    )
+
+    // sectPr 的每个值都不合法：几何回退缺省，每处记一条 PROP_BAD_VALUE。
+    // 这一份手搭 zip——`buildDocx` 会在 `sectPrExtra` 之后补一个合法的 `w:pgSz`，
+    // 那就测不到"尺寸不可解析时怎么办"了
+    const badSect =
+      XML_DECL +
+      `<w:document xmlns:w="${W}" xmlns:r="${R}"><w:body>` +
+      PLAIN +
+      '<w:sectPr><w:type w:val="weird"/><w:pgSz w:w="abc" w:h="-1"/>' +
+      '<w:pgNumType w:start="x"/><w:cols w:num="0"/><w:titlePg w:val="maybe"/>' +
+      '</w:sectPr></w:body></w:document>'
+    emit(
+      'sectpr-bad-values',
+      await zipOf({
+        '[Content_Types].xml': contentTypes([['/word/document.xml', CT_MAIN]]),
+        '_rels/.rels': rels([['rId1', `${REL_T}/officeDocument`, 'word/document.xml']]),
+        'word/document.xml': badSect,
+        'word/_rels/document.xml.rels': rels([]),
+      }),
+      'PROP_BAD_VALUE per bad value; page geometry falls back to defaults; unedited save byte-identical',
+    )
+
+    // 页眉里 3000 层文本框套娃：投影必须是迭代的
+    const deepTxbx =
+      '<w:p><w:r><w:pict>' +
+      `<v:shape xmlns:v="${V}" id="deep" type="#_x0000_t202" style="width:100pt;height:100pt">` +
+      `<v:textbox>${nestedTxbx(3000)}</v:textbox>` +
+      '</v:shape></w:pict></w:r></w:p>'
+    const deepHeader = await real.buildDocx({
+      bodyXml: PLAIN,
+      sectPrExtra: '<w:headerReference w:type="default" r:id="rIdHdrDeep"/>',
+      extraRels: `<Relationship Id="rIdHdrDeep" Type="${REL_T}/header" Target="header1.xml"/>`,
+      extraParts: [
+        {
+          path: 'word/header1.xml',
+          xml: `${XML_DECL}<w:hdr xmlns:w="${W}" xmlns:r="${R}">${deepTxbx}</w:hdr>`,
+          contentType: CT_HDR,
+        },
+      ],
+    })
+    emit(
+      'hf-deep-txbx',
+      deepHeader,
+      'MOD_TOO_DEEP; the header projection stays iterative and does not overflow the stack',
+    )
+  })
+
   it('writes hostile manifest', () => {
     writeFileSync(join(HOSTILE!, 'manifest.json'), JSON.stringify(manifest, null, 2))
-    expect(manifest.length).toBeGreaterThanOrEqual(20)
+    expect(manifest.length).toBeGreaterThanOrEqual(24)
   })
 })

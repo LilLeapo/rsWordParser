@@ -82,7 +82,7 @@
   {
     "name": "table-grid-mismatch.docx",
     "bytes": 1043,
-    "expectation": "parses; MOD_TABLE_SHAPE + SAVE_TABLE_GRID是PreExisting; column ops Err(EDIT_TABLE_GRID_INCONSISTENT); unedited save byte-identical"
+    "expectation": "parses; MOD_TABLE_SHAPE + SAVE_TABLE_GRID\u662fPreExisting; column ops Err(EDIT_TABLE_GRID_INCONSISTENT); unedited save byte-identical"
   },
   {
     "name": "table-cell-no-paragraph.docx",
@@ -108,5 +108,25 @@
     "name": "drawing-bad-style.docx",
     "bytes": 2340,
     "expectation": "parses; unparsable style/coordsize/path values are dropped, not guessed"
+  },
+  {
+    "name": "hf-dangling-reference.docx",
+    "bytes": 2138,
+    "expectation": "PKG_REL_MISSING; the slot reads as undeclared and hfParts has no dangling entry"
+  },
+  {
+    "name": "hf-part-binary.docx",
+    "bytes": 2288,
+    "expectation": "PKG_OPAQUE_PART; the header part is Opaque, SetHeaderFooter on it is Err, body still editable"
+  },
+  {
+    "name": "sectpr-bad-values.docx",
+    "bytes": 2064,
+    "expectation": "PROP_BAD_VALUE per bad value; page geometry falls back to defaults; unedited save byte-identical"
+  },
+  {
+    "name": "hf-deep-txbx.docx",
+    "bytes": 4952,
+    "expectation": "MOD_TOO_DEEP; the header projection stays iterative and does not overflow the stack"
   }
 ]

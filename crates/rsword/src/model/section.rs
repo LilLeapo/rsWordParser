@@ -220,10 +220,20 @@ fn end_offset(dom: &Dom, node: NodeId) -> u32 {
 
 fn geom_of(node: Option<NodeId>, p: &SectionProps) -> SectionGeom {
     let (sz, mar) = (p.page_size.as_ref(), p.page_margins.as_ref());
+    // 纸张尺寸必须是正数（`ST_TwipsMeasure` 是无符号的）。`w:h="-1"` 这种畸形值解析成 -1
+    // 是对的（DOM 是真相，写回时原字节不动），但**几何**不能用它——回退到缺省纸张，
+    // 不然所有按页宽算的东西（列宽启发式、图片缩放）都跟着变成负数
+    let positive = |v: i64, fallback: i64| if v > 0 { v } else { fallback };
     SectionGeom {
         node,
-        page_width: twips(sz.and_then(|s| s.w.as_ref()), DEFAULT_PAGE_WIDTH),
-        page_height: twips(sz.and_then(|s| s.h.as_ref()), DEFAULT_PAGE_HEIGHT),
+        page_width: positive(
+            twips(sz.and_then(|s| s.w.as_ref()), DEFAULT_PAGE_WIDTH),
+            DEFAULT_PAGE_WIDTH,
+        ),
+        page_height: positive(
+            twips(sz.and_then(|s| s.h.as_ref()), DEFAULT_PAGE_HEIGHT),
+            DEFAULT_PAGE_HEIGHT,
+        ),
         margin_top: twips(mar.and_then(|m| m.top.as_ref()), DEFAULT_MARGIN),
         margin_right: twips(mar.and_then(|m| m.right.as_ref()), DEFAULT_MARGIN),
         margin_bottom: twips(mar.and_then(|m| m.bottom.as_ref()), DEFAULT_MARGIN),
@@ -366,8 +376,12 @@ mod tests {
         assert_eq!(last.columns, 1);
     }
 
-    /// 任务 5.1：几何走属性表之后，认不出的字面（`Val::Raw`）与缺失一样退到缺省，
-    /// 不会变成 0 或者让 `body_width` 变成负数（`PROP-09` + hostile `sectpr-bad-values`）。
+    /// 任务 5.1 / 5.9：几何走属性表之后，认不出的字面（`Val::Raw`）、缺失、以及**不是正数的
+    /// 尺寸**都退到缺省，不会让 `body_width` 变成负数（`PROP-09` + hostile `sectpr-bad-values`）。
+    ///
+    /// 5.1 时 `w:h="-1"` 是照原值给的（"能解析的数就照给"）；5.9 改成也退缺省：`ST_TwipsMeasure`
+    /// 本来就是无符号的，而 `SectionGeom` 的每个消费者都拿它做版面算术。声明值仍是 -1
+    /// （`props` 里原样保留，写回不受影响），只有几何视图回退（`docs/04` §8）。
     #[test]
     fn prop_09_bad_section_values_fall_back_to_defaults() {
         let src = format!(
@@ -383,7 +397,7 @@ mod tests {
         let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
         let g = *Sections::build(&dom).at(0).expect("section");
         assert_eq!(g.page_width, DEFAULT_PAGE_WIDTH, "w=\"abc\" 退到缺省");
-        assert_eq!(g.page_height, -1, "-1 是能解析的数，照原值给");
+        assert_eq!(g.page_height, DEFAULT_PAGE_HEIGHT, "h=\"-1\" 不是正数，退到缺省");
         assert_eq!(g.margin_top, DEFAULT_MARGIN);
         assert_eq!(g.margin_right, 200);
         assert_eq!(g.margin_bottom, DEFAULT_MARGIN);

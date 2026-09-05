@@ -233,6 +233,23 @@ impl Document {
                 hf_parts.insert(id, hf);
             }
         }
+        // 悬空的 `w:headerReference` / `w:footerReference`：`.rels` 里没有那个 `r:id`。
+        // 那个槽读成"没声明"（`RES-10` 会继续往上一节继承），但要留一条诊断——
+        // 编辑器据此能告诉用户"这一节的页眉丢了"，而不是默默显示上一节的
+        for info in &sections {
+            for (kind, variant, rid) in info.declared_refs() {
+                if !hf_by_rel.contains_key(rid) {
+                    let range =
+                        info.node.and_then(|n| dom.node(n).lex.as_ref().map(|l| l.range.clone()));
+                    warnings.push(Diagnostic::pre_existing(
+                        main,
+                        range,
+                        DiagCode::PkgRelMissing,
+                        format!("{kind}/{variant} 引用的关系 {rid} 不存在"),
+                    ));
+                }
+            }
+        }
         Ok(Document {
             main_part: main,
             body,
@@ -371,6 +388,19 @@ pub(super) struct Builder<'a> {
     /// 当前嵌套的容器层数（body / sdtContent / 修订包裹 / 单元格都算一层，段落内的内联容器也算）；
     /// 块容器超过 [`MAX_CONTAINER_DEPTH`] 层的子树降级为 `TooDeep`（`MOD-07`）。
     pub(super) depth: u32,
+    /// 当前嵌在第几层框里（`w:txbxContent`）。
+    ///
+    /// 框里的段落走的是"容器 → 段落 → 内联 → 框内容 → 容器"这条**递归**，每一层都在栈上压一组
+    /// 属性结构体（`ParaProps` / `RunProps` 几 KB）。块容器的 64 层预算换算成框大约 33 层，
+    /// 那已经够把测试线程的 2 MiB 栈用光（同 M3 在嵌套表格上踩过的那一条）。框套框在真实文档里
+    /// 最多两层，所以给框单独一个小预算，超过就整段降级为 `TooDeep`。
+    box_depth: u32,
+    /// `w:txbxContent` → 它的块（每个 part 一份，随 `Builder` 同寿命）。
+    ///
+    /// `vml_display` 会把整棵 `w:pict` 里的形状**摊平**成一张表，别人框里的形状也在表里
+    /// （compat 要按 TS 的形态把它们当只读的兄弟框输出）。于是同一段 `w:txbxContent` 会被
+    /// 摊平表里的每个外层形状各建一次——套娃 n 层就是 2^n 次。记忆化让每段内容只建一次。
+    box_content: HashMap<NodeId, Vec<Block>>,
     /// 当前段落开始时的 `depth`：内联容器的深度上限相对它计，块的嵌套不占内联的额度
     /// （第 64 层表格里的段落照样要能建 inlines）。
     inline_base: u32,
@@ -406,6 +436,8 @@ impl<'a> Builder<'a> {
             fields_by_para,
             warnings,
             depth: 0,
+            box_depth: 0,
+            box_content: HashMap::new(),
             inline_base: 0,
         }
     }
@@ -991,7 +1023,15 @@ impl<'a> Builder<'a> {
                 }
                 SegmentKind::Pict | SegmentKind::Object => {
                     let mut v = vml_display(dom, c);
-                    self.fill_box_content(v.shapes.iter_mut().map(|s| (s.txbx, &mut s.content)));
+                    if v.too_deep {
+                        self.warn(c, DiagCode::ModTooDeep, "VML 框套得过深，摊平表已截断");
+                    }
+                    // 只给**最外层**的框建内容：别人框里的形状在那个框自己的投影里已经建过一遍
+                    // （摊平表见 `vml_display`）。给它们各建一份会让内容树的规模随嵌套层数指数增长
+                    // ——`corpus/hostile/hf-deep-txbx.docx` 就是这么把投影卡死的
+                    self.fill_box_content(
+                        v.shapes.iter_mut().filter(|s| !s.nested).map(|s| (s.txbx, &mut s.content)),
+                    );
                     Some(Display::Vml(Box::new(v)))
                 }
                 _ => None,
@@ -1034,10 +1074,32 @@ impl<'a> Builder<'a> {
     ) {
         for (txbx, content) in boxes {
             let Some(txbx) = txbx else { continue };
-            let mut blocks = Vec::new();
-            self.build_container(txbx, None, &[], &mut blocks);
-            *content = blocks;
+            *content = self.box_blocks(txbx);
         }
+    }
+
+    /// 一段 `w:txbxContent` 的块，记忆化（见 [`Builder::box_content`]）。
+    fn box_blocks(&mut self, txbx: NodeId) -> Vec<Block> {
+        if let Some(hit) = self.box_content.get(&txbx) {
+            return hit.clone();
+        }
+        if self.box_depth >= crate::model::vml::MAX_BOX_NESTING {
+            self.warn(txbx, DiagCode::ModTooDeep, "框套得过深");
+            return vec![Block::Protected(ProtectedBlock {
+                node: txbx,
+                kind: ProtectedKind::TooDeep,
+                preview: String::new(),
+                display: None,
+                sdt: None,
+                revisions: Vec::new(),
+            })];
+        }
+        let mut blocks = Vec::new();
+        self.box_depth += 1;
+        self.build_container(txbx, None, &[], &mut blocks);
+        self.box_depth -= 1;
+        self.box_content.insert(txbx, blocks.clone());
+        blocks
     }
 
     /// DrawingML 形状的内容流：本 part 的 `w:txbxContent`，或**外部文本框 part**
@@ -1049,9 +1111,7 @@ impl<'a> Builder<'a> {
     fn fill_shape_content(&mut self, shapes: &mut [crate::model::drawing::ShapeDisplay]) {
         for s in shapes {
             if let Some(txbx) = s.txbx {
-                let mut blocks = Vec::new();
-                self.build_container(txbx, None, &[], &mut blocks);
-                s.content = blocks;
+                s.content = self.box_blocks(txbx);
                 continue;
             }
             let Some(rid) = s.txbx_rel.as_deref() else { continue };

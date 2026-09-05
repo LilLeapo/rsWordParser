@@ -5,9 +5,9 @@ mod common;
 use common::xpath_asserts;
 
 use rsword::edit::{
-    BlockAt, BlockPos, EditContext, EditOp, EditSession, NewBlock, NewInline, NewRun,
+    BlockAt, BlockPos, EditContext, EditOp, EditSession, InlinePos, NewBlock, NewInline, NewRun,
 };
-use rsword::model::{Document, HfKind, HfVariant};
+use rsword::model::{Document, HfKind, HfVariant, SectionOwner};
 use rsword::package::Package;
 use rsword::semantic::props::{Change, SectionPropsPatch, SettingsPatch, Val};
 use rsword::xml::{LocalName, NodeId, QName};
@@ -479,4 +479,300 @@ fn edit_03_block_operations_inside_a_header_part() {
         raw_entries(&saved)["word/document.xml"],
         "正文不该动"
     );
+}
+
+// ---------------------------------------------------------------------------
+// 5.9：恶意输入与随机序列（`TEST-07` / `TEST-09`，`spec/16` 任务 5.9）
+// ---------------------------------------------------------------------------
+
+fn hostile(name: &str) -> Vec<u8> {
+    let path = common::corpus_dir("hostile").join(name);
+    std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
+}
+
+fn codes(diags: &[rsword::diag::Diagnostic]) -> Vec<&'static str> {
+    let mut out: Vec<&'static str> = diags.iter().map(|d| d.code.as_str()).collect();
+    out.sort_unstable();
+    out.dedup();
+    out
+}
+
+/// 悬空的 `w:headerReference`：那个槽读成"没声明"，`hfParts` 不含悬空条目，留一条 `PKG_REL_MISSING`。
+#[test]
+fn test_09_dangling_header_reference() {
+    let bytes = hostile("hf-dangling-reference.docx");
+    let mut s = EditSession::open(&bytes).expect("open");
+    {
+        let doc = s.document();
+        assert!(doc.hf_parts.is_empty(), "没有真的 part");
+        assert!(doc.hf_by_rel.is_empty(), "悬空的 rId 不该进表");
+        assert_eq!(doc.sections.len(), 1);
+        // 声明还在（DOM 是真相），但查不到 part
+        assert!(doc.sections[0].hf_ref(HfKind::Header, HfVariant::Default).is_some());
+        assert!(codes(&doc.warnings).contains(&"PKG_REL_MISSING"), "{:?}", codes(&doc.warnings));
+    }
+    // 无编辑保存字节相同（不变式 1）
+    assert_eq!(s.save().expect("save"), bytes);
+    // 往这一节写页眉：引用在但 part 不在 → 按 `SAVE-05` 新建一个，引用换成新的
+    let sect = body_sect_pr(&s);
+    s.apply(
+        EditOp::SetHeaderFooter {
+            sect,
+            kind: HfKind::Header,
+            variant: HfVariant::Default,
+            content: vec![NewBlock::Paragraph {
+                props: None,
+                inlines: vec![NewInline::Run(NewRun::text("修好了"))],
+            }],
+        },
+        &EditContext::default(),
+    )
+    .expect("apply");
+    let saved = s.save().expect("save");
+    let hdr = part_xml(&saved, "word/header1.xml").expect("header1.xml");
+    assert!(hdr.contains("修好了"), "{hdr}");
+}
+
+/// 页眉 part 是二进制垃圾：整 part 降级 `Opaque`，正文照旧可编辑，写这个 part 被拒。
+#[test]
+fn test_09_binary_header_part_is_opaque() {
+    let bytes = hostile("hf-part-binary.docx");
+    // `PKG_OPAQUE_PART` 是**包级**诊断（part 打开时就记下了），在 `Package` 的表里
+    let mut probe = Package::open(&bytes).expect("open");
+    let _ = Document::rebuild(&mut probe).expect("rebuild");
+    assert!(
+        codes(probe.diagnostics()).contains(&"PKG_OPAQUE_PART"),
+        "{:?}",
+        codes(probe.diagnostics())
+    );
+    let mut s = EditSession::open(&bytes).expect("open");
+    assert!(s.document().hf_parts.is_empty(), "Opaque part 不进 hf_parts");
+    assert_eq!(s.save().expect("save"), bytes, "无编辑保存字节相同");
+
+    // 写这个 part 的页眉 → Err，且 DOM / 模型不变
+    let sect = body_sect_pr(&s);
+    let before = s.save().expect("save");
+    let err = s
+        .apply(
+            EditOp::SetHeaderFooter {
+                sect,
+                kind: HfKind::Header,
+                variant: HfVariant::Default,
+                content: vec![NewBlock::Paragraph { props: None, inlines: Vec::new() }],
+            },
+            &EditContext::default(),
+        )
+        .expect_err("Opaque part 不能写");
+    assert!(matches!(err, rsword::Error::Edit { .. }), "{err}");
+    assert_eq!(s.save().expect("save"), before, "拒绝后一个字节都不该动");
+
+    // 正文仍然可编辑
+    let para = s.document().text_blocks().next().expect("正文段").node;
+    s.apply(
+        EditOp::InsertText { at: InlinePos::new(para, 0), text: "X".into(), props: None },
+        &EditContext::default(),
+    )
+    .expect("正文照旧可编辑");
+}
+
+/// `w:sectPr` 里每个值都不合法：几何回退缺省，每处记 `PROP_BAD_VALUE`，无编辑保存字节相同。
+#[test]
+fn test_09_section_properties_with_bad_values() {
+    let bytes = hostile("sectpr-bad-values.docx");
+    let mut s = EditSession::open(&bytes).expect("open");
+    {
+        let doc = s.document();
+        assert!(codes(&doc.warnings).contains(&"PROP_BAD_VALUE"), "{:?}", codes(&doc.warnings));
+        let sect = &doc.sections[0];
+        // 不可解析的值降级为 `Val::Raw`（原字面保留），几何按缺省算
+        let sz = sect.props.page_size.as_ref().expect("w:pgSz");
+        assert!(matches!(sz.w, Some(rsword::semantic::props::Val::Raw(_))), "{sz:?}");
+        let geom = sect.geom();
+        assert!(geom.page_width > 0 && geom.page_height > 0, "几何要回退到正数缺省: {geom:?}");
+    }
+    assert_eq!(s.save().expect("save"), bytes, "无编辑保存字节相同");
+    // 在这个 sectPr 上改属性：坏值原位保留，新值照 `PROP-06` 落
+    let sect = body_sect_pr(&s);
+    s.apply(
+        EditOp::SetSectionProps {
+            sect,
+            patch: SectionPropsPatch { title_pg: Change::Unset, ..Default::default() },
+        },
+        &EditContext::default(),
+    )
+    .expect("apply");
+    let xml = part_xml(&s.save().expect("save"), "word/document.xml").expect("document.xml");
+    assert!(xml.contains(r#"w:w="abc""#), "没碰的坏值原字节保留\n{xml}");
+    assert!(!xml.contains("<w:titlePg"), "{xml}");
+}
+
+/// 页眉里 3000 层文本框套娃：投影不爆栈、不卡死，深处降级为 `MOD_TOO_DEEP`。
+#[test]
+fn test_09_deeply_nested_textboxes_in_a_header() {
+    let bytes = hostile("hf-deep-txbx.docx");
+    let mut s = EditSession::open(&bytes).expect("open");
+    {
+        let doc = s.document();
+        assert_eq!(doc.hf_parts.len(), 1, "页眉 part 建出来了");
+        assert!(codes(&doc.warnings).contains(&"MOD_TOO_DEEP"), "{:?}", codes(&doc.warnings));
+    }
+    assert_eq!(s.save().expect("save"), bytes, "无编辑保存字节相同");
+    // 投影也要能跑完（`hfParts` 的文本取到最里层那句）
+    let mut pkg = Package::open(&bytes).expect("reopen");
+    let json = rsword::bind::compat_ts::parsed_doc(&mut pkg).expect("parsed_doc");
+    assert!(json["headerText"].is_string(), "{}", json["headerText"]);
+}
+
+/// 确定性伪随机（xorshift64*）：失败可复现。
+struct Rng(u64);
+
+impl Rng {
+    fn next(&mut self) -> u64 {
+        let mut x = self.0;
+        x ^= x >> 12;
+        x ^= x << 25;
+        x ^= x >> 27;
+        self.0 = x;
+        x.wrapping_mul(0x2545_F491_4F6C_DD1D)
+    }
+
+    fn below(&mut self, n: usize) -> usize {
+        if n == 0 { 0 } else { (self.next() % n as u64) as usize }
+    }
+}
+
+/// 页眉页脚域的随机操作：页眉段落里的内联编辑 + 五个节 / 页眉页脚操作。
+fn random_hf_op(s: &EditSession, rng: &mut Rng) -> Option<EditOp> {
+    let doc = s.document();
+    let sect = doc.sections.last().filter(|x| x.owner == SectionOwner::Body)?.node?;
+    // 页眉页脚 part 里的段落（带 part 的位置，5.5a）
+    let paras: Vec<(rsword::package::PartId, NodeId, u32)> = doc
+        .hf_parts
+        .iter()
+        .flat_map(|(&p, hf)| {
+            hf.text_blocks().map(move |b| (p, b.node, b.text().chars().count() as u32))
+        })
+        .collect();
+    match rng.below(8) {
+        0 | 1 if !paras.is_empty() => {
+            let (part, para, len) = paras[rng.below(paras.len())];
+            Some(EditOp::InsertText {
+                at: InlinePos::in_part(part, para, rng.below(len as usize + 1) as u32),
+                text: "随".into(),
+                props: None,
+            })
+        }
+        2 if !paras.is_empty() => {
+            let (part, para, len) = paras[rng.below(paras.len())];
+            if len == 0 {
+                return None;
+            }
+            let a = rng.below(len as usize) as u32;
+            Some(EditOp::DeleteRange {
+                from: InlinePos::in_part(part, para, a),
+                to: InlinePos::in_part(part, para, (a + 1).min(len)),
+            })
+        }
+        3 => Some(EditOp::SetSectionProps {
+            sect,
+            patch: SectionPropsPatch {
+                title_pg: if rng.below(2) == 0 { Change::Set(true) } else { Change::Unset },
+                ..Default::default()
+            },
+        }),
+        4 => {
+            let kind = if rng.below(2) == 0 { HfKind::Header } else { HfKind::Footer };
+            let variant = match rng.below(3) {
+                0 => HfVariant::Default,
+                1 => HfVariant::First,
+                _ => HfVariant::Even,
+            };
+            Some(EditOp::SetHeaderFooter {
+                sect,
+                kind,
+                variant,
+                content: vec![NewBlock::Paragraph {
+                    props: None,
+                    inlines: vec![NewInline::Run(NewRun::text(format!("hf{}", rng.below(100))))],
+                }],
+            })
+        }
+        5 => Some(EditOp::SetWatermark {
+            sect,
+            text: (rng.below(2) == 0).then(|| format!("水{}", rng.below(10))),
+        }),
+        6 => {
+            Some(EditOp::SetPageColor { color: (rng.below(2) == 0).then(|| "FFEEDD".to_string()) })
+        }
+        _ => {
+            let part = *doc.hf_parts.keys().nth(rng.below(doc.hf_parts.len().max(1)))?;
+            let kind = if rng.below(2) == 0 { HfKind::Header } else { HfKind::Footer };
+            Some(EditOp::LinkHeaderFooter { sect, kind, variant: HfVariant::Default, part })
+        }
+    }
+}
+
+/// `TEST-07` 的页眉页脚子集：10 份带页眉页脚的语料各 100 步随机操作。
+///
+/// 每步断言 `MOD-13`（投影 == 重建）与"没有引擎不变式破坏"；每 20 步保存 + 重解析接着跑。
+#[test]
+fn test_07_random_header_footer_sequences() {
+    const STEPS: usize = 100;
+    let docs: Vec<_> = common::docx_paths("synthetic")
+        .into_iter()
+        .filter(|p| {
+            let Ok(bytes) = std::fs::read(p) else { return false };
+            let Ok(mut pkg) = Package::open(&bytes) else { return false };
+            Document::rebuild(&mut pkg).is_ok_and(|d| !d.hf_parts.is_empty())
+        })
+        .take(10)
+        .collect();
+    assert_eq!(docs.len(), 10, "语料里应有至少 10 份带页眉页脚的文档");
+
+    let mut applied = 0usize;
+    let mut rejected = 0usize;
+    for (di, path) in docs.iter().enumerate() {
+        let bytes = std::fs::read(path).unwrap();
+        let mut s = EditSession::open(&bytes).unwrap();
+        let mut rng = Rng(0x5DEE_CE66_D3B1_1EAD ^ di as u64);
+        for step in 0..STEPS {
+            let Some(op) = random_hf_op(&s, &mut rng) else { continue };
+            let what = format!("{}: step {step}", path.display());
+            match s.apply(op, &EditContext::default()) {
+                Ok(_) => applied += 1,
+                Err(rsword::Error::Edit { .. }) => {
+                    rejected += 1;
+                    continue; // 拒绝是合法结果；`EDIT-05` 保证状态没动
+                }
+                Err(e) => panic!("{what}: 非编辑错误 {e}"),
+            }
+            assert_refresh_matches_rebuild(&mut s, &what);
+            assert!(
+                !s.diagnostics()
+                    .iter()
+                    .any(|d| d.origin == rsword::ValidationOrigin::EngineInvariantViolation),
+                "{what}: {:?}",
+                s.diagnostics()
+            );
+            if step % 20 == 19 {
+                let saved = s.save().unwrap_or_else(|e| panic!("{what}: save {e}"));
+                let before = hf_shapes(s.document());
+                let re = EditSession::open(&saved).unwrap_or_else(|e| panic!("{what}: reopen {e}"));
+                assert_eq!(hf_shapes(re.document()), before, "{what}: 保存往返后页眉形状变了");
+                s = re;
+            }
+        }
+    }
+    eprintln!("random hf ops: {applied} 次生效，{rejected} 次被拒");
+    assert!(applied > 300, "有效操作太少：{applied}");
+}
+
+/// 页眉页脚的可比较快照：每个 part 的（种类, 各文本块的文本）。
+fn hf_shapes(doc: &Document) -> Vec<(HfKind, Vec<String>)> {
+    doc.hf_parts
+        .values()
+        .map(|hf| {
+            (hf.kind, hf.text_blocks().map(rsword::model::TextBlock::text).collect::<Vec<_>>())
+        })
+        .collect()
 }

@@ -17,6 +17,15 @@ use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 /// VML 子树的深度上限，与绘图同值。
 const MAX_DEPTH: u32 = 64;
 
+/// 摊平表最多穿几层**框**（`w:txbxContent`）。
+///
+/// `vml_display` 把整棵 `w:pict` 里的形状摊平成一张表，别人框里的形状也在表里（compat 要按
+/// TS 的形态把它们当只读的兄弟框输出）。表里每一层都会重复列出更深的层，所以**表的规模**随
+/// 嵌套层数是 O(n²)；语料里框套框最多 2 层（`textbox-edit__012`），Word 的界面根本做不出更深的。
+/// 超过这个数的层不进表（内容仍在 DOM 里，`too_deep` 记 `MOD_TOO_DEEP`），
+/// 这样 `corpus/hostile/hf-deep-txbx.docx` 那种 3000 层套娃不会把投影拖死。
+pub(crate) const MAX_BOX_NESTING: u32 = 8;
+
 /// 一个 `w:pict` / `w:object` 的 VML 内容。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VmlDisplay {
@@ -26,6 +35,8 @@ pub struct VmlDisplay {
     pub shapes: Vec<VmlShape>,
     /// `w:object` 的嵌入对象信息。
     pub ole: Option<OleInfo>,
+    /// 框套得比 [`MAX_BOX_NESTING`] 还深，摊平表在那一层截断（`MOD_TOO_DEEP`）。
+    pub too_deep: bool,
 }
 
 impl VmlDisplay {
@@ -180,10 +191,12 @@ pub struct OleInfo {
 pub fn vml_display(dom: &Dom, node: NodeId) -> VmlDisplay {
     let mut shapes: Vec<VmlShape> = Vec::new();
     let mut ole = None;
-    // (节点, 深度, 所属组下标, 是否在别人的 txbxContent 里)
-    let mut stack: Vec<(NodeId, u32, Option<usize>, bool)> = vec![(node, 0, None, false)];
+    // (节点, 深度, 所属组下标, 穿过了几层别人的 txbxContent)
+    let mut stack: Vec<(NodeId, u32, Option<usize>, u32)> = vec![(node, 0, None, 0)];
     let mut scratch: Vec<NodeId> = Vec::new();
-    while let Some((n, depth, parent, nested)) = stack.pop() {
+    let mut too_deep = false;
+    while let Some((n, depth, parent, boxes)) = stack.pop() {
+        let nested = boxes > 0;
         let mut group = parent;
         if let Some(name) = dom.name(n) {
             if dom.is_ns(n, NsId::V, "v")
@@ -207,12 +220,16 @@ pub fn vml_display(dom: &Dom, node: NodeId) -> VmlDisplay {
         if depth >= MAX_DEPTH {
             continue;
         }
-        let nested = nested || dom.is(n, QName::new(NsId::W, LocalName::TxbxContent));
+        let boxes = boxes + u32::from(dom.is(n, QName::new(NsId::W, LocalName::TxbxContent)));
+        if boxes > MAX_BOX_NESTING {
+            too_deep = true;
+            continue;
+        }
         scratch.clear();
         scratch.extend(dom.semantic_children(n));
-        stack.extend(scratch.iter().rev().map(|&c| (c, depth + 1, group, nested)));
+        stack.extend(scratch.iter().rev().map(|&c| (c, depth + 1, group, boxes)));
     }
-    VmlDisplay { node, shapes, ole }
+    VmlDisplay { node, shapes, ole, too_deep }
 }
 
 fn shape(dom: &Dom, n: NodeId, kind: VmlKind, parent: Option<usize>, nested: bool) -> VmlShape {

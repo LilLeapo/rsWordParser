@@ -377,6 +377,8 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `PROP-05` CT_SectPr | `headerReference/footerReference`（0–6 个，顺序任意），然后 sequence | 两者共用 `order` 的第 0 格（`"a\|b"` 写法），因此 `order_index` 对两者都返回 0 | 它们是 schema 里的一个可重复组（EG_HdrFtrReferences），**组内顺序自由**，Word 按 default / first / even 的逻辑顺序写、两种元素会交错。分别编号会让 `SAVE-02` 的 PROP-05 单调性检查把合法的 `<ftr/><hdr/>` 判成乱序；同一格表达的正是"彼此之间无序、整组在其他子元素之前"，新引用也就插在已有引用之后、`w:footnotePr` 之前 |
 | `PROP-08` `SectionProps` 清单 | `headerReference*, footerReference*, footnotePr, endnotePr, type, pgSz, pgMar, pgBorders, lnNumType, pgNumType, cols, formProt, vAlign, titlePg, textDirection, bidi, rtlGutter, docGrid` | 另建模 `noEndnote`（同类 OnOff，写回要用）；**不**建模 `paperSrc` 与 `printerSettings` | 前者是清单的遗漏（它就夹在 `vAlign` 与 `titlePg` 之间）；后两个是打印机硬件配置，编辑器与 resolve 都不用，不建模就原字节留在原位（`PROP-06`），需要时补一行即可 |
 | `PROP-09` 枚举容错 | 字面不匹配 → `Val::Raw` + 诊断 | `ST_HdrFtr` 额外收非 schema 的 `odd` | Word 之外的生成器用 `w:type="odd"` 表示"缺省页"，TS 与 Word 都当 default（`docs/01` §12）。当成 `Raw` 只会白记一条 `PROP_BAD_VALUE`，而 `RES-10` 照样得把它当 default |
+| `MOD-10` `SectionGeom`（5.1 的决定） | 能解析的尺寸照原值给（`w:h="-1"` → `-1`） | 尺寸不是正数时回退缺省纸张 | `ST_TwipsMeasure` 是无符号的，`-1` 本来就不合法；而 `SectionGeom` 的每个消费者（列宽启发式、图片缩放、`body_width`）都拿它做版面算术，负数会一路传下去。声明值仍原样留在 `props` 里，写回不受影响——回退只发生在几何视图。hostile `sectpr-bad-values` 是这条的验收 |
+| `MOD-11` VML 框的摊平表 | 未规定深度 | `vml_display` 穿过的 `w:txbxContent` 超过 8 层就截断（`too_deep` → `MOD_TOO_DEEP`）；`Builder` 建框内容也是 8 层预算 | 摊平表把更深的层重复列出，规模 O(n²)；建内容那条递归每层压几 KB 属性结构体，33 层就把 2 MiB 测试栈用光。语料里框套框最多 2 层（`textbox-edit__012`），Word 的界面根本做不出更深的。hostile `hf-deep-txbx` 套了 3000 层 |
 | `SAVE-07` `sources` 选项（TS `buildSourcesXml`） | 新建的 `b:Sources` 同时声明 `xmlns:b` 与一个同 URI 的默认命名空间 | 只声明 `xmlns:b` | 两个绑定指同一个命名空间，但默认绑定会让新加的子元素序列化成不带前缀的 `<Source>`。语义完全相同（Word 与本引擎都按命名空间认），带前缀的形态更好读，也和 Word 自己写出来的一致 |
 | `SAVE-07` `themeColors` 选项 | `applyThemeColors` 只替换 `a:srgbClr/@val`，槽里原来是 `a:sysClr` 的就整条跳过 | 槽里的颜色元素一律换成 `a:srgbClr` | 跳过等于把请求静默丢掉。`dk1` / `lt1` 那两个常见的 `sysClr` 槽本来就不在可写的八个里，所以这条只在文档把 `accentN` 写成 `sysClr` 时才生效——那时用户明确要求换色，换掉才对 |
 | `SAVE-07` `header` 选项（TS `headerFooterPartXml`） | 重新生成整个页眉 part，把解析出来的水印文字重写成一棵新的 `watermarkParagraphXml` 子树 | 选项没有给 `watermark` 时原水印段落一个字节都不动 | 改页眉文字不是改水印。TS 因为整份重建 part 才顺带重写它，代价是水印原有的字号 / 颜色 / 位置被替换成生成器的字面值。保存语料只比 `documentXml`，这条差异不产生任何不等价 |
@@ -1002,4 +1004,26 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
     `themeColors` / `styles[styleId]` 等于请求值（这是这些 part 唯一的 oracle），
     两种新建 part 之后其他条目的原压缩数据不变。
 - [ ] **5.8 resolve 校准**：toggle 与节继承 fixture（文档我们生成，观察值来自 Word）；`RES-04` 占位规则替换。
-- [ ] **5.9 恶意输入、随机序列与 M5 门**：4 份 hostile、100 × 10 随机序列、CI。
+- [x] **5.9 恶意输入、随机序列与 M5 门**
+  - `corpus/hostile` 加 4 份（生成器进 `tools/export-golden/hostile.export.test.ts`）：
+    `hf-dangling-reference`（引用不存在的 `r:id` → 新增 `PKG_REL_MISSING` 诊断，槽读成"没声明"，
+    `hfParts` 不含悬空条目）、`hf-part-binary`（页眉 part 是二进制垃圾 → `PKG_OPAQUE_PART`，
+    写它 `Err` 且状态不变，正文照旧可编辑）、`sectpr-bad-values`（`w:w="abc"` / `w:h="-1"` /
+    `cols num="0"` / `pgNumType start="x"` / `titlePg val="maybe"` → `PROP_BAD_VALUE`，几何回退缺省）、
+    `hf-deep-txbx`（页眉里 3000 层 `w:txbxContent`）。四份都：解析成功、无编辑保存字节相同。
+  - **两个真错是这批 hostile 逼出来的**：
+    1. `vml_display` 把整棵 `w:pict` 里的形状**摊平**成一张表（compat 要按 TS 的形态把别人框里
+       的形状当只读兄弟框输出），而 `fill_box_content` 给**表里每个**形状都建一份内容——套 n 层
+       就有 2^n 份内容树，50 层就已经跑不完了。现在只给最外层的框建内容（里层的在它自己那个
+       框的投影里已经建过），另加一层 `w:txbxContent` 的记忆化。摊平表本身仍是 O(n²)，
+       所以 `vml_display` 也给"穿过几层框"设了上限 8（语料里最多 2 层）。
+    2. 框内容那条递归（容器 → 段落 → 内联 → 框内容 → 容器）每层在栈上压一组几 KB 的属性
+       结构体，块容器的 64 层预算换算成框大约 33 层，正好把测试线程的 2 MiB 栈用光
+       （M3 在嵌套表格上踩过同一条）。`Builder` 因此给框单独一个 8 层预算，超过整段 `TooDeep`。
+  - **一处行为改动**：`SectionGeom` 的纸张尺寸不是正数时回退缺省（5.1 时 `w:h="-1"` 照原值给）。
+    声明值仍原样保留在 `props` 里、写回不受影响，只有几何视图回退——`ST_TwipsMeasure` 是无符号的，
+    而几何的每个消费者都拿它做版面算术。§8 有记录，`section.rs` 的单测按新规则改写并注明原因。
+  - `tests/hf_ops.rs` 加 5 个用例：四份 hostile 各一个，外加 `TEST-07` 的随机序列——10 份带页眉
+    页脚的语料各 100 步（页眉段落 `InsertText` / `DeleteRange` + 五个节 / 页眉页脚操作），
+    每步断言 `MOD-13`（投影 == 重建）与"无引擎不变式破坏"，每 20 步保存 + 重解析接着跑
+    （实测 986 次生效、10 次被拒）。`--scope hf` 早在 5.4 就进了 CI。

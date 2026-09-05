@@ -43,6 +43,8 @@ pub enum DiagCode {
     PkgMixedFlavor,
     /// `PKG-11`：非主 XML part 解析失败，标记为 `Opaque`。
     PkgOpaquePart,
+    /// `PKG-05`：引用了一个 `.rels` 里不存在的 `r:id`（如 `w:headerReference` 指向已删的关系）。
+    PkgRelMissing,
 
     // ---- XML（spec/02）----
     /// `XML-01`：part 非 UTF-8，已转码，无法逐字节保真。
@@ -154,6 +156,7 @@ impl DiagCode {
             Self::PkgCaseInsensitiveMatch => "PKG_CASE_INSENSITIVE_MATCH",
             Self::PkgMixedFlavor => "PKG_MIXED_FLAVOR",
             Self::PkgOpaquePart => "PKG_OPAQUE_PART",
+            Self::PkgRelMissing => "PKG_REL_MISSING",
             Self::XmlTranscoded => "XML_TRANSCODED",
             Self::XmlDupAttr => "XML_DUP_ATTR",
             Self::XmlUnboundPrefix => "XML_UNBOUND_PREFIX",

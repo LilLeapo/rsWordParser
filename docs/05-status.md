@@ -28,9 +28,10 @@ Span 索引与 Anchor 变换 / 物化（2.1–2.3）、字段子系统与它的�
 19 处差异），**已合进 `m5-hf`**（c437564）；全域未知差异因此从 82 降到 63 处 / 30 份。
 **M5 进行中**（分支 `m5-hf`，
 工作树 `../rsWordParser-m4`）：5.1 节属性表、5.2 节模型与 `RES-10` 节视图、5.3 页眉页脚 / 注释 / 批注的
-内容流、5.4 compat 页眉页脚投影、5.5 页眉页脚与节的编辑操作、5.6 保存选项、5.7 声明 part 的读写**已落地**——**页眉页脚域清零**，
+内容流、5.4 compat 页眉页脚投影、5.5 页眉页脚与节的编辑操作、5.6 保存选项、5.7 声明 part 的读写、
+5.9 恶意输入与随机序列**已落地**——**页眉页脚域清零**，
 `diff-parse --scope hf` 是第五道门（573 份 0 未知差异，已接 CI）；编辑位置带 `PartId`，
-页眉页脚 part 可读可改可新建。下一步 5.8（resolve 校准，要在真 Word 里观察结果）。任务分解见
+页眉页脚 part 可读可改可新建。只剩 5.8（resolve 校准）——它的观察值必须来自真实 Word，需要项目负责人参与。任务分解见
 `spec/16-m5-plan.md`，逐条进度见 `docs/04` §14。
 
 现在这套代码能：打开任意语料文档、输出与 TS 兼容的 `ParsedDoc` JSON（含整个绘图域：图片、文本框
@@ -97,10 +98,10 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
-| 源码行数 / 文件数 | 55,772 行 / 132 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 418（单元 + 集成，28 个集成测试文件） | `cargo test --workspace` |
-| 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 22 份 hostile（含 4 份绘图与 2 份表格） | `ls corpus/*` |
-| 往返字节保真 | 589 份文档、3,093 个 XML part 全部字节相同 | `tests/xml_roundtrip.rs` |
+| 源码行数 / 文件数 | 56,164 行 / 132 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
+| 测试数 | 423（单元 + 集成，28 个集成测试文件） | `cargo test --workspace` |
+| 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 26 份 hostile（含 4 份绘图、2 份表格、4 份页眉页脚 / 节） | `ls corpus/*` |
+| 往返字节保真 | 593 份文档、3,140 个 XML part 全部字节相同（3 个 part 按预期解析失败：两份不闭合 XML + 二进制页眉） | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
 | 模型对照 | 445 段类型 / styleId、387 段坐标流文本、22 项列表、9 项级别 | `tests/model.rs` |
 | resolve 对照 | 86,465 项 `StyleDisplay`、2,326 项 heading 级别、2,897 项 linked shell | `tests/resolve.rs` |
@@ -109,9 +110,10 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 解析差分（表格域，M3 门） | 320 份用例（字段域 + 表格，含单元格里的锚定形状与图片），**0 处未知差异** | `cargo run -p diff-parse -- --scope tables` |
 | 解析差分（页眉页脚域，M5 门） | 573 份用例，**0 处未知差异**（按**路径**筛） | `cargo run -p diff-parse -- --scope hf` |
 | 解析差分（全域） | 573 份里 29 份有未知差异、62 个差异点（M6 的工作面） | `cargo run -p diff-parse -- --scope all` |
+| 页眉页脚 / 节的随机序列 | 10 份语料 × 100 步（页眉段落内联编辑 + 五个节 / 页眉页脚操作）：986 次生效、10 次被拒，每步 `refresh == rebuild`、无引擎不变式破坏 | `cargo test -p rsword --test hf_ops -- --nocapture` |
 | 保存差分 | 162 份 TS 保存用例：138 份与 `saveDocx` 等价（其中 41 份逐字节相同）、4 份有意不同、20 份跳过 | `tests/save_blocks.rs` |
 | 节与页眉页脚 | 573 份 588 个节（与 TS `readSections` 逐份一致）；43 份带页眉页脚 part（47 个 part / 63 个块，`rId` 集合与 `hasPageNumber` 与 TS 一致）；26 个注释 / 批注条目 32 个块 | `cargo test -p rsword --test section --test hf --test notes -- --nocapture` |
-| 节与页眉页脚的编辑操作 | 9 个用例（`SAVE-05` 页眉版、已有 part 只重写该 part、`PROP-05/06` 插入位置与原字节、Strict 水印拒绝、六个操作各一组 XPath 断言、`MOD-13` oracle） | `cargo test -p rsword --test hf_ops` |
+| 节与页眉页脚的编辑操作 | 14 个用例（`SAVE-05` 页眉版、已有 part 只重写该 part、`PROP-05/06` 插入位置与原字节、Strict 水印拒绝、六个操作各一组 XPath 断言、`MOD-13` oracle；另加 4 份 hostile 与 `TEST-07` 的 10 × 100 步随机序列） | `cargo test -p rsword --test hf_ops` |
 | 跨 part 编辑 | 34 份带页眉的语料上页眉段落 `InsertText` 往返（M5 门第 3 条）：只重写该 part，其他条目 CRC 与压缩字节不变 | `cargo test -p rsword --test hf` |
 | 节属性往返 | 604 个 `w:sectPr`：0 处 `PROP_BAD_VALUE`、596 个符合 schema 顺序 | `cargo test -p rsword --test props -- --nocapture` |
 | 范围索引 | 573 份 / 3012 个 part 的 31 个标记全部成对认领 → 19 个范围（书签 7、批注 12）；1 处孤儿终点 | `tests/span.rs` |
@@ -183,7 +185,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 ```sh
 cargo fmt --all --check && cargo clippy --workspace --all-targets   # 零告警
-cargo test --workspace && cargo test --workspace --release          # 418 个测试，两种构建
+cargo test --workspace && cargo test --workspace --release          # 423 个测试，两种构建
 cargo run -p diff-parse -- --scope text                             # M1 门第一条：0 未知差异
 cargo run -p diff-parse -- --scope fields                           # M2 门：字段与 Span 域 0 未知差异
 cargo run -p diff-parse -- --scope tables                           # M3 门：表格域 0 未知差异
