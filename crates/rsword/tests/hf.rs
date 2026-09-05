@@ -684,3 +684,123 @@ fn compat_05_hf_parts_match_ts_on_corpus() {
     eprintln!("hf: {docs} 份文档、{parts} 个 part、{blocks} 个块");
     assert!(docs >= 43, "语料缺失？{docs}");
 }
+
+// ---- 编辑（任务 5.5）--------------------------------------------------------------------------
+
+/// M5 门第 3 条：在页眉段落里 `InsertText` 后保存——`document.xml` 与其他 zip 条目的 CRC 与
+/// 压缩字节都不变，只有那个 `header*.xml` 重写；重解析后只有该 part 的段落变了（`TEST-04`）。
+#[test]
+fn test_04_editing_a_header_paragraph_touches_only_that_part() {
+    use rsword::edit::{EditContext, EditOp, EditSession, InlinePos};
+
+    let mut edited = 0usize;
+    for path in common::docx_paths("synthetic") {
+        let bytes = std::fs::read(&path).unwrap();
+        let Ok(mut probe) = Package::open(&bytes) else { continue };
+        let Ok(doc) = Document::rebuild(&mut probe) else { continue };
+        // 找一个有文本段落的页眉页脚 part
+        let Some((part, para)) = doc.hf_parts.iter().find_map(|(&p, hf)| {
+            hf.text_blocks().find(|tb| !tb.inlines.is_empty()).map(|tb| (p, tb.node))
+        }) else {
+            continue;
+        };
+        let before = zip_entries(&bytes);
+
+        let mut s = EditSession::open(&bytes).expect("open");
+        s.apply(
+            EditOp::InsertText {
+                at: InlinePos::in_part(part, para, 0),
+                text: "Z".into(),
+                props: None,
+            },
+            &EditContext::default(),
+        )
+        .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        let saved = s.save().unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        let after = zip_entries(&saved);
+        edited += 1;
+
+        // 只有那个 part 变了
+        let name = {
+            let mut pkg = Package::open(&saved).expect("reopen");
+            let _ = pkg.dom(part);
+            pkg.part(part).uri.to_string()
+        };
+        for (n, crc, data) in &before {
+            let Some((_, crc2, data2)) = after.iter().find(|(m, ..)| m == n) else {
+                panic!("{}: 条目 {n} 不见了", path.display());
+            };
+            if n == &name {
+                assert_ne!(crc, crc2, "{}: 被编辑的 {n} 应该变了", path.display());
+            } else {
+                assert_eq!(
+                    (crc, data),
+                    (crc2, data2),
+                    "{}: 条目 {n} 的 CRC 或压缩字节变了",
+                    path.display()
+                );
+            }
+        }
+
+        // 重解析：该段落多了字，别的 part 的文字不变
+        let mut re = Package::open(&saved).expect("reopen");
+        let doc2 = Document::rebuild(&mut re).expect("rebuild");
+        let hf2 = &doc2.hf_parts[&part];
+        assert!(
+            hf2.text_blocks().any(|tb| tb.text().starts_with('Z')),
+            "{}: 插入的字没进页眉",
+            path.display()
+        );
+        assert_eq!(
+            doc2.text_blocks().map(|b| b.text()).collect::<Vec<_>>(),
+            doc.text_blocks().map(|b| b.text()).collect::<Vec<_>>(),
+            "{}: 正文不该动",
+            path.display()
+        );
+    }
+    eprintln!("hf edit: {edited} 份文档在页眉里插字后只重写了那个 part");
+    assert!(edited >= 30, "语料缺失？{edited}");
+}
+
+/// 书签 / 批注 / 字段的索引只对主 part 建过：位置带别的 part 时明确拒绝，状态不变（`EDIT-05`）。
+#[test]
+fn edit_05_main_part_only_operations_reject_a_foreign_part() {
+    use rsword::edit::{EditContext, EditOp, EditSession, InlinePos};
+
+    let header = hdr(r#"<w:p><w:r><w:t>页眉</w:t></w:r></w:p>"#);
+    let bytes = common::docx_with_parts(
+        r#"<w:p><w:r><w:t>正文</w:t></w:r></w:p>"#,
+        &[
+            ("word/_rels/document.xml.rels", &rels(&[("rIdH", HDR_REL, "header1.xml")])),
+            ("word/header1.xml", &header),
+        ],
+    );
+    let mut s = EditSession::open(&bytes).expect("open");
+    let (part, para) = {
+        let doc = s.document();
+        let (&p, hf) = doc.hf_parts.iter().next().expect("页眉");
+        (p, hf.text_blocks().next().expect("段落").node)
+    };
+    let at = InlinePos::in_part(part, para, 0);
+    let err = s
+        .apply(EditOp::AddBookmark { name: "bm".into(), from: at, to: at }, &EditContext::default())
+        .expect_err("应拒绝");
+    assert!(format!("{err}").contains("只支持主 part"), "{err}");
+    // 状态不变
+    assert_eq!(s.save().expect("save"), bytes, "拒绝后不该有任何改动");
+}
+
+/// zip 条目的 `(名字, CRC, 压缩字节)`。
+fn zip_entries(bytes: &[u8]) -> Vec<(String, u32, Vec<u8>)> {
+    let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes.to_vec())).unwrap();
+    let mut out = Vec::new();
+    for i in 0..z.len() {
+        let f = z.by_index_raw(i).unwrap();
+        let name = f.name().to_string();
+        let crc = f.crc32();
+        let mut data = Vec::new();
+        std::io::Read::read_to_end(&mut { f }, &mut data).unwrap();
+        out.push((name, crc, data));
+    }
+    out
+}

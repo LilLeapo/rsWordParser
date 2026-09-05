@@ -343,9 +343,9 @@ fn edit_03_set_para_props_creates_or_extends_ppr() {
     let heading = para(&s, 0);
     let ctx = EditContext::default();
     let center = ParaPropsPatch { jc: Change::Set(Val::Value(Jc::Center)), ..Default::default() };
-    s.apply(EditOp::SetParaProps { para: plain, patch: center }, &ctx).unwrap();
+    s.apply(EditOp::SetParaProps { part: None, para: plain, patch: center }, &ctx).unwrap();
     let keep = ParaPropsPatch { keep_next: Change::Set(true), ..Default::default() };
-    s.apply(EditOp::SetParaProps { para: heading, patch: keep }, &ctx).unwrap();
+    s.apply(EditOp::SetParaProps { part: None, para: heading, patch: keep }, &ctx).unwrap();
     assert_eq!(s.nth_text_block(1).unwrap().props.jc, Some(Val::Value(Jc::Center)));
     assert_eq!(s.nth_text_block(0).unwrap().props.keep_next, Some(true));
     let xml = saved_xml(&mut s);
@@ -373,7 +373,8 @@ fn edit_03_replace_inlines_keeps_ppr_and_reemits_markers() {
         }),
         NewInline::Marker(NewMarker::BookmarkEnd { id: "1".into() }),
     ];
-    s.apply(EditOp::ReplaceInlines { para: p, inlines }, &EditContext::default()).unwrap();
+    s.apply(EditOp::ReplaceInlines { part: None, para: p, inlines }, &EditContext::default())
+        .unwrap();
     assert_eq!(para_text(&s, 0), "new text");
     let dom = s.dom();
     let ppr =

@@ -13,6 +13,7 @@
 use crate::diag::{DiagCode, Diagnostic};
 use crate::model::block::{Block, ProtectedBlock, ProtectedKind, Revision, SdtInfo, TextBlock};
 use crate::model::build::{Builder, Document, MAX_CONTAINER_DEPTH};
+use crate::package::PartId;
 use crate::semantic::props::codec::Twips;
 use crate::semantic::props::{
     CellProps, Ctx, RowProps, TableProps, Val, read_attr, read_cell_props, read_cell_props_change,
@@ -476,10 +477,70 @@ impl<'a> Iterator for Blocks<'a> {
     }
 }
 
+impl<'a> Blocks<'a> {
+    /// 任意块列表的深度遍历（页眉页脚 part、注释 / 批注条目、文本框内容流都用它）。
+    pub fn over(blocks: &'a [Block]) -> Blocks<'a> {
+        Blocks { stack: blocks.iter().rev().collect() }
+    }
+}
+
 impl Document {
     /// 全部块，文档序，深入单元格（嵌套表也算）。
     pub fn blocks(&self) -> Blocks<'_> {
-        Blocks { stack: self.main.iter().rev().collect() }
+        Blocks::over(&self.main)
+    }
+
+    /// 某个 part 的顶层块列表：主 part 是正文，其余是页眉页脚 part 或注释 / 批注条目
+    /// （一个 part 里所有条目的块按文档序接起来）。找不到这个 part → `None`。
+    pub fn blocks_of_part(&self, part: PartId) -> Option<Vec<&Block>> {
+        if part == self.main_part {
+            return Some(self.main.iter().collect());
+        }
+        if let Some(hf) = self.hf_parts.get(&part) {
+            return Some(hf.blocks.iter().collect());
+        }
+        for notes in [&self.footnotes, &self.endnotes] {
+            if notes.part == Some(part) {
+                return Some(notes.items.iter().flat_map(|n| n.blocks.iter()).collect());
+            }
+        }
+        if self.comments.part == Some(part) {
+            return Some(self.comments.items.iter().flat_map(|c| c.blocks.iter()).collect());
+        }
+        None
+    }
+
+    /// 某个 part 的字段索引（`FLD-02`）：主 part 是 `fields`，辅助 part 在它自己的
+    /// `AuxFlows` 里（页眉页脚 / 注释 / 批注 / 外部文本框 part）。找不到 → `None`。
+    pub fn fields_in(&self, part: PartId) -> Option<&crate::span::field::FieldIndex> {
+        if part == self.main_part {
+            return Some(&self.fields);
+        }
+        if let Some(hf) = self.hf_parts.get(&part) {
+            return Some(&hf.idx.fields);
+        }
+        for notes in [&self.footnotes, &self.endnotes] {
+            if notes.part == Some(part) {
+                return notes.idx.as_ref().map(|i| &i.fields);
+            }
+        }
+        if self.comments.part == Some(part) {
+            return self.comments.idx.as_ref().map(|i| &i.fields);
+        }
+        self.aux_flows.get(&part).map(|i| &i.fields)
+    }
+
+    /// 任意 part 里的文本段落（含单元格内任意深度），按 part + 节点找（`EDIT-02`）。
+    pub fn text_block_in(&self, part: PartId, para: NodeId) -> Option<&TextBlock> {
+        if part == self.main_part {
+            return self.text_block(para);
+        }
+        let tops = self.blocks_of_part(part)?;
+        tops.into_iter().find_map(|b| {
+            Blocks::over(std::slice::from_ref(b))
+                .find(|x| x.node() == para)
+                .and_then(Block::as_text)
+        })
     }
 
     /// 全部可编辑段落，含单元格内任意深度的。`text_blocks()` 仍只给顶层的。

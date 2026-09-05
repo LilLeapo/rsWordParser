@@ -1,4 +1,9 @@
-//! `EDIT-02` 位置与定位：`InlinePos { para, offset }`，偏移是段坐标流（`MOD-06`）中的 UTF-16 code unit。
+//! `EDIT-02` 位置与定位：`InlinePos { part, para, offset }`，偏移是段坐标流（`MOD-06`）中的
+//! UTF-16 code unit。
+//!
+//! `part` 是**哪个 XML part**（任务 5.5）：`None` = 主 part（正文），`Some` = 页眉页脚 part、
+//! 注释 / 批注条目所在的 part。`NodeId` 只在自己 part 的 DOM 里有意义，所以位置必须带上它——
+//! 不带的话页眉里的段落节点会被当成正文里的另一个节点（同 `spec/16` 分层决策第 1 条）。
 
 use std::ops::Range;
 
@@ -6,22 +11,36 @@ use crate::diag::DiagCode;
 use crate::error::{Error, Result};
 use crate::model::block::TextBlock;
 use crate::model::inline::{Inline, SegmentKind};
+use crate::package::PartId;
 use crate::xml::NodeId;
 
 /// UTF-16 code unit 偏移。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Utf16Offset(pub u32);
 
-/// 段内位置：`para` 是 `w:p`，`0 ≤ offset ≤ len`。
+/// 段内位置：`para` 是 `w:p`，`0 ≤ offset ≤ len`；`part` 为 `None` 表示主 part。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InlinePos {
+    /// 段落所在的 part；`None` = 主 part。
+    pub part: Option<PartId>,
     pub para: NodeId,
     pub offset: Utf16Offset,
 }
 
 impl InlinePos {
+    /// 主 part（正文）里的位置。
     pub fn new(para: NodeId, offset: u32) -> Self {
-        Self { para, offset: Utf16Offset(offset) }
+        Self { part: None, para, offset: Utf16Offset(offset) }
+    }
+
+    /// 指定 part 里的位置（页眉页脚 / 注释 / 批注条目）。
+    pub fn in_part(part: PartId, para: NodeId, offset: u32) -> Self {
+        Self { part: Some(part), para, offset: Utf16Offset(offset) }
+    }
+
+    /// 同一个 part 里的另一个偏移。
+    pub fn with_offset(self, offset: u32) -> Self {
+        Self { offset: Utf16Offset(offset), ..self }
     }
 }
 

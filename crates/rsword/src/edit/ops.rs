@@ -7,7 +7,7 @@ use crate::error::{Error, Result};
 use crate::model::block::TextBlock;
 use crate::model::inline::{Inline, Run, Segment, SegmentKind, utf16_len};
 use crate::model::{SdtRefusal, refusing_sdt};
-use crate::package::RelType;
+use crate::package::{PartId, RelType};
 use crate::semantic::props::{
     CellPropsPatch, ParaPropsPatch, RowPropsPatch, RunPropsPatch, TablePropsPatch, emit_run_props,
     plan_apply_para_props, plan_apply_run_props,
@@ -23,17 +23,20 @@ use crate::xml::{
 use super::inline::{Emitter, has_control_chars, sanitize_text, text_segments};
 use super::plan::{MutationPlan, MutationResult};
 use super::pos::{InlinePos, Loc, inline_spans, locate, utf16_to_byte};
-use super::{BlockPos, EditContext, EditOp, EditSession, LinkRef, NewBlock, NewInline, NewRun};
+use super::{
+    BlockAt, BlockPos, EditContext, EditOp, EditSession, LinkRef, NewBlock, NewInline, NewRun,
+};
 
 pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<MutationResult> {
     guard_sdt(s, &op)?;
+    guard_main_only(s, &op)?;
     match op {
         EditOp::InsertText { at, text, props } => insert_text(s, at, &text, props, ctx),
         EditOp::DeleteRange { from, to } => delete_range(s, from, to, ctx),
         EditOp::SetRunProps { from, to, patch } => set_run_props(s, from, to, &patch),
-        EditOp::ReplaceInlines { para, inlines } => replace_inlines(s, para, &inlines),
-        EditOp::SetParaProps { para, patch } => set_para_props(s, para, &patch),
-        EditOp::ReplaceParaProps { para, props } => replace_para_props(s, para, props),
+        EditOp::ReplaceInlines { part, para, inlines } => replace_inlines(s, part, para, &inlines),
+        EditOp::SetParaProps { part, para, patch } => set_para_props(s, part, para, &patch),
+        EditOp::ReplaceParaProps { part, para, props } => replace_para_props(s, part, para, props),
         EditOp::InsertRow { table, at, template } => {
             super::table_ops::insert_row(s, table, at, template)
         }
@@ -47,13 +50,13 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::SetRowProps { row, patch } => set_row_props(s, row, &patch),
         EditOp::SetCellProps { cell, patch } => set_cell_props(s, cell, &patch),
         EditOp::InsertBlock { at, block } => insert_block(s, at, block),
-        EditOp::DeleteBlock { node } => delete_block(s, node),
+        EditOp::DeleteBlock { part, node } => delete_block(s, part, node),
         EditOp::MoveBlock { node, to } => move_block(s, node, to),
         EditOp::AddComment { from, to, comment } => add_comment(s, from, to, &comment),
         EditOp::RemoveComment { id } => remove_comment(s, &id),
         EditOp::SetCommentText { id, text, done } => set_comment_text(s, &id, &text, done),
         EditOp::SplitParagraph { at } => split_paragraph(s, at),
-        EditOp::MergeWithNext { para } => merge_with_next(s, para),
+        EditOp::MergeWithNext { part, para } => merge_with_next(s, part, para),
         EditOp::AddBookmark { name, from, to } => add_bookmark(s, &name, from, to),
         EditOp::RemoveBookmark { name } => remove_bookmark(s, &name),
         EditOp::InsertField { at, field } => insert_field(s, at, &field, ctx),
@@ -65,20 +68,38 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
     }
 }
 
+/// 只支持主 part 的操作（书签 / 批注 / 字段：它们的索引与 id 都只对主 part 建过）。位置带别的
+/// part 时明确拒绝，而不是悄悄去改主 part 的同号节点（任务 5.5）。
+fn guard_main_only(s: &EditSession, op: &EditOp) -> Result<()> {
+    let main = s.main_part();
+    let foreign = |p: &Option<PartId>| p.is_some_and(|x| x != main);
+    let bad = match op {
+        EditOp::AddBookmark { from, to, .. } | EditOp::AddComment { from, to, .. } => {
+            foreign(&from.part) || foreign(&to.part)
+        }
+        EditOp::InsertField { at, .. } => foreign(&at.part),
+        _ => false,
+    };
+    if bad {
+        return Err(Error::edit(
+            DiagCode::EditUnsupported,
+            "该操作暂只支持主 part（书签 / 批注 / 字段的索引只对正文建）",
+        ));
+    }
+    Ok(())
+}
+
 /// `EDIT-03` / `MOD-08`：编辑目标落在只读（`contentLocked` / `sdtContentLocked`）或数据绑定的内容
 /// 控件里 → 整体拒绝，状态不变（`EDIT-05`）。第一阶段绑定控件一律只读：显示文字只是 customXml 的
 /// 缓存，改了 Word 重开会刷回去。
 ///
-/// 只看主 part：位置类操作都在正文（批注 / 注释条目按 id 定位，条目里不会有内容控件）。
+/// 目标节点连它所在的 part 一起收集（任务 5.5）：`NodeId` 只在自己 part 的 DOM 里有意义，
+/// 拿页眉的节点去主 part 的树上走祖先会越界。
 fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
-    let dom = s.dom();
-    let pos = |p: &InlinePos| p.para;
-    let block_pos = |p: &BlockPos| match p {
-        BlockPos::Start(c) | BlockPos::End(c) => *c,
-        BlockPos::After(n) | BlockPos::Before(n) => *n,
-    };
-    let field = |id: FieldId| s.document().fields.get(id).map(|f| f.form.head());
-    let targets: Vec<NodeId> = match op {
+    let pos = |p: &InlinePos| (p.part, p.para);
+    let block_pos = |p: &BlockPos| (p.part, p.node());
+    let field = |id: FieldId| s.document().fields.get(id).map(|f| (None, f.form.head()));
+    let targets: Vec<(Option<PartId>, NodeId)> = match op {
         EditOp::InsertText { at, .. }
         | EditOp::SplitParagraph { at }
         | EditOp::InsertField { at, .. } => vec![pos(at)],
@@ -86,10 +107,10 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
         | EditOp::SetRunProps { from, to, .. }
         | EditOp::AddComment { from, to, .. }
         | EditOp::AddBookmark { from, to, .. } => vec![pos(from), pos(to)],
-        EditOp::ReplaceInlines { para, .. }
-        | EditOp::SetParaProps { para, .. }
-        | EditOp::ReplaceParaProps { para, .. }
-        | EditOp::MergeWithNext { para } => vec![*para],
+        EditOp::ReplaceInlines { part, para, .. }
+        | EditOp::SetParaProps { part, para, .. }
+        | EditOp::ReplaceParaProps { part, para, .. }
+        | EditOp::MergeWithNext { part, para } => vec![(*part, *para)],
         EditOp::SetTableProps { table: n, .. }
         | EditOp::SetRowProps { row: n, .. }
         | EditOp::SetCellProps { cell: n, .. }
@@ -97,13 +118,13 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
         | EditOp::DeleteRow { table: n, .. }
         | EditOp::InsertColumn { table: n, .. }
         | EditOp::DeleteColumn { table: n, .. }
-        | EditOp::MergeCells { table: n, .. } => vec![*n],
+        | EditOp::MergeCells { table: n, .. } => vec![(None, *n)],
         EditOp::InsertBlock { at, .. } => vec![block_pos(at)],
-        EditOp::DeleteBlock { node } => vec![*node],
-        EditOp::MoveBlock { node, to } => vec![*node, block_pos(to)],
+        EditOp::DeleteBlock { part, node } => vec![(*part, *node)],
+        EditOp::MoveBlock { node, to } => vec![(to.part, *node), block_pos(to)],
         EditOp::SetLinkTarget { link, .. } => match link {
             LinkRef::Field(id) => field(*id).into_iter().collect(),
-            LinkRef::Element(node) => vec![*node],
+            LinkRef::Element(node) => vec![(None, *node)],
         },
         EditOp::ToggleCheckbox { field: id }
         | EditOp::SetFormText { field: id, .. }
@@ -115,7 +136,8 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
         | EditOp::SetCommentText { .. }
         | EditOp::RemoveBookmark { .. } => Vec::new(),
     };
-    for node in targets {
+    for (part, node) in targets {
+        let dom = s.dom_in(part)?;
         let Some((info, why)) = refusing_sdt(dom, node) else { continue };
         let what = info
             .alias
@@ -146,9 +168,13 @@ fn unsupported(msg: &str) -> Error {
     Error::edit(DiagCode::EditUnsupported, msg)
 }
 
-fn text_block(s: &EditSession, para: NodeId) -> Result<&TextBlock> {
-    s.text_block(para).ok_or_else(|| {
-        Error::edit(DiagCode::EditBadPosition, format!("节点 {} 不是正文文本段落", para.0))
+/// 某个 part 里的文本段落投影（`None` = 主 part，任务 5.5）。
+fn text_block(s: &EditSession, part: Option<PartId>, para: NodeId) -> Result<&TextBlock> {
+    s.text_block_in(part, para).ok_or_else(|| {
+        Error::edit(
+            DiagCode::EditBadPosition,
+            format!("节点 {} 在 part {} 里不是文本段落", para.0, s.part_or_main(part).0),
+        )
     })
 }
 
@@ -313,9 +339,16 @@ pub(crate) fn next_revision_id(dom: &Dom) -> u32 {
 /// 在 `run.segments[seg]` 的 `byte` 处拆分：左半留在原 run（文本 `Owned` 截断），右半为 `New` run，
 /// `rPr` 为字节克隆（`XML-12` 规则 F），其后的段整段克隆过去、原节点 `Deleted`。
 /// `byte == 0` → 段 `seg` 整段归右；`byte ≥ len` → 归左。新 run 是 `created[0]`。
-fn split_run(s: &EditSession, para: NodeId, run: &Run, seg: usize, byte: usize) -> MutationPlan {
-    let dom = s.dom();
-    let mut plan = MutationPlan::new(s.main_part());
+fn split_run(
+    s: &EditSession,
+    part: Option<PartId>,
+    para: NodeId,
+    run: &Run,
+    seg: usize,
+    byte: usize,
+) -> MutationPlan {
+    let dom = s.dom_in(part).expect("caller resolved the part");
+    let mut plan = MutationPlan::new(s.part_or_main(part));
     plan.touch(para);
     // 后半是原 run 的延续：该边界上的 `Left` 锚点也要右移（`SPAN-06` 的补充，见 `SpanPolicy`）
     plan.span.split_items.push(run.node);
@@ -365,7 +398,7 @@ fn split_run(s: &EditSession, para: NodeId, run: &Run, seg: usize, byte: usize) 
 /// 位置若在某个 run 内部（段间或文本段内），先拆分；返回 `(左 run, 右 run)`。边界位置返回 `None`。
 fn split_at(
     s: &mut EditSession,
-    para: NodeId,
+    at: InlinePos,
     loc: Loc,
     result: &mut MutationResult,
 ) -> Result<Option<(NodeId, NodeId)>> {
@@ -374,13 +407,14 @@ fn split_at(
         Loc::InRun { inline, segment } => (inline, segment, 0),
         Loc::InText { inline, segment, byte } => (inline, segment, byte),
     };
-    let tb = text_block(s, para)?;
+    let para = at.para;
+    let tb = text_block(s, at.part, para)?;
     let Inline::Run(run) = &tb.inlines[inline] else { unreachable!("InRun/InText point at runs") };
     if in_deleted_run(run) || run.segments[segment].kind == SegmentKind::DelText {
         return Err(unsupported("位置在已删除文本内（修订编辑在 M7）"));
     }
     let run_node = run.node;
-    let plan = split_run(s, para, run, segment, byte);
+    let plan = split_run(s, at.part, para, run, segment, byte);
     let r = s.commit_plan(plan)?;
     let right = r.created[0].expect("split creates the right run");
     result.absorb(r);
@@ -466,21 +500,31 @@ enum Side {
 /// 字段原子（`Inline::Field`）自己没有单一节点，取它靠着边界的那一端：左邻取 `tail`
 /// （end run / `w:fldSimple`）、右邻取 `head`（begin run）。插入点因此落在原子**之外**，
 /// 与 `SPAN-10`"端点落在字段原子内部时移到原子边界"是同一条道理。
-fn boundary_node(s: &EditSession, tb: &TextBlock, i: &Inline, side: Side) -> Result<NodeId> {
+fn boundary_node(
+    s: &EditSession,
+    part: Option<PartId>,
+    tb: &TextBlock,
+    i: &Inline,
+    side: Side,
+) -> Result<NodeId> {
     if let Some(n) = i.node() {
         return Ok(n);
     }
     let Inline::Field { id, .. } = i else {
         return Err(unsupported("inline 没有对应节点"));
     };
-    let f =
-        s.document().fields.get(*id).ok_or_else(|| unsupported("字段不在索引里（投影过期）"))?;
+    // 字段索引是**按 part** 的（`FLD-02`）：页眉里的字段在那个 part 自己的索引里
+    let f = s
+        .document()
+        .fields_in(s.part_or_main(part))
+        .and_then(|idx| idx.get(*id))
+        .ok_or_else(|| unsupported("字段不在索引里（投影过期）"))?;
     let n = match side {
         Side::Left => f.form.tail(),
         Side::Right => f.form.head(),
     };
     // 跨段字段（`FLD-06` 的 `Block`）另一端在别的段落里，结果段落只读
-    if !s.dom().ancestors(n).any(|a| a == tb.node) {
+    if !s.dom_in(part)?.ancestors(n).any(|a| a == tb.node) {
         return Err(unsupported("跨段字段的边界（Block 字段的结果段落只读）"));
     }
     Ok(n)
@@ -489,16 +533,17 @@ fn boundary_node(s: &EditSession, tb: &TextBlock, i: &Inline, side: Side) -> Res
 /// 边界插入点：`(parent, before, 继承格式的 run)`。
 fn boundary_site(
     s: &EditSession,
+    part: Option<PartId>,
     tb: &TextBlock,
     index: usize,
 ) -> Result<(NodeId, Option<NodeId>, Option<NodeId>)> {
-    let dom = s.dom();
+    let dom = s.dom_in(part)?;
     let para = tb.node;
     let left = (index > 0)
-        .then(|| boundary_node(s, tb, &tb.inlines[index - 1], Side::Left))
+        .then(|| boundary_node(s, part, tb, &tb.inlines[index - 1], Side::Left))
         .transpose()?;
     let right = (index < tb.inlines.len())
-        .then(|| boundary_node(s, tb, &tb.inlines[index], Side::Right))
+        .then(|| boundary_node(s, part, tb, &tb.inlines[index], Side::Right))
         .transpose()?;
     // 继承格式的 run：先看平铺的 run，再看字段结果里的 run（紧邻字段插字沿用结果的格式）
     let run_node = |i: &Inline| match i {
@@ -529,14 +574,14 @@ fn insert_text(
     props: Option<RunPropsPatch>,
     ctx: &EditContext,
 ) -> Result<MutationResult> {
-    let part = s.main_part();
+    let part = s.part_or_main(at.part);
     let mut diags = Vec::new();
     let text = sanitize_text(text, part, &mut diags);
     if text.is_empty() {
         return Err(Error::edit(DiagCode::EditBadText, "插入文本为空"));
     }
     let delta = utf16_len(&text) as i32;
-    let tb = text_block(s, at.para)?;
+    let tb = text_block(s, at.part, at.para)?;
     let loc = locate(tb, at.offset)?;
 
     // 路径 1：紧邻 / 落在 Text 段 → 直接写该 w:t 的文本节点
@@ -548,24 +593,24 @@ fn insert_text(
         let mut plan = MutationPlan::new(part);
         plan.touch(at.para);
         plan.diagnostics = diags;
-        set_segment_text(s.dom(), seg_node, &new_text, &mut plan);
+        set_segment_text(s.dom_in(at.part)?, seg_node, &new_text, &mut plan);
         plan.offset_delta.push((at.para, at.offset, delta));
         return s.commit_plan(plan);
     }
 
     // 路径 2：边界插入 New run（继承左侧 rPr 或 default_run_props）
     let mut result = MutationResult::default();
-    let (parent, before, inherit) = match split_at(s, at.para, loc, &mut result)? {
+    let (parent, before, inherit) = match split_at(s, at, loc, &mut result)? {
         Some((left, right)) => {
-            (s.dom().parent(left).expect("run has a parent"), Some(right), Some(left))
+            (s.dom_in(at.part)?.parent(left).expect("run has a parent"), Some(right), Some(left))
         }
         None => {
             let Loc::Boundary { index } = loc else { unreachable!("split_at handles the rest") };
-            boundary_site(s, text_block(s, at.para)?, index)?
+            boundary_site(s, at.part, text_block(s, at.part, at.para)?, index)?
         }
     };
-    let dom = s.dom();
-    let flavor = s.flavor();
+    let dom = s.dom_in(at.part)?;
+    let flavor = s.flavor_in(at.part);
     let mut plan = MutationPlan::new(part);
     plan.touch(at.para);
     plan.diagnostics = diags;
@@ -601,7 +646,7 @@ fn insert_text(
 
     // 路径 2c：合并 props
     if let Some(patch) = props {
-        let dom = s.dom();
+        let dom = s.dom_in(at.part)?;
         let edits = plan_apply_run_props(dom, new_run, rpr_of(dom, new_run), &patch, flavor);
         if !edits.is_empty() {
             let mut plan = MutationPlan::new(part);
@@ -621,6 +666,9 @@ fn delete_range(
     to: InlinePos,
     ctx: &EditContext,
 ) -> Result<MutationResult> {
+    if from.part != to.part {
+        return Err(Error::edit(DiagCode::EditBadPosition, "DeleteRange 两端不在同一个 part"));
+    }
     if from.para != to.para {
         return Err(Error::edit(
             DiagCode::EditCrossParagraph,
@@ -631,8 +679,8 @@ fn delete_range(
     if a > b {
         return Err(Error::edit(DiagCode::EditBadPosition, "from 在 to 之后"));
     }
-    let part = s.main_part();
-    let tb = text_block(s, from.para)?;
+    let part = s.part_or_main(from.part);
+    let tb = text_block(s, from.part, from.para)?;
     locate(tb, from.offset)?;
     locate(tb, to.offset)?;
     let mut plan = MutationPlan::new(part);
@@ -641,7 +689,7 @@ fn delete_range(
     if a == b {
         return s.commit_plan(plan);
     }
-    let dom = s.dom();
+    let dom = s.dom_in(from.part)?;
     let fields = &s.document().fields;
     let spans = inline_spans(tb);
     let mut kept_structure = 0usize;
@@ -729,6 +777,9 @@ fn set_run_props(
     to: InlinePos,
     patch: &RunPropsPatch,
 ) -> Result<MutationResult> {
+    if from.part != to.part {
+        return Err(Error::edit(DiagCode::EditBadPosition, "SetRunProps 两端不在同一个 part"));
+    }
     if from.para != to.para {
         return Err(Error::edit(DiagCode::EditCrossParagraph, "SetRunProps 两端不在同一段落"));
     }
@@ -736,18 +787,18 @@ fn set_run_props(
     if a > b {
         return Err(Error::edit(DiagCode::EditBadPosition, "from 在 to 之后"));
     }
-    let part = s.main_part();
+    let part = s.part_or_main(from.part);
     let mut result = MutationResult::default();
     // 阶段 A/B：先在 to、再在 from 处拆分（拆分不改变坐标）
     for off in [to.offset, from.offset] {
-        let loc = locate(text_block(s, from.para)?, off)?;
-        split_at(s, from.para, loc, &mut result)?;
+        let loc = locate(text_block(s, from.part, from.para)?, off)?;
+        split_at(s, from, loc, &mut result)?;
     }
     // 阶段 C：范围内的每个非零宽 run 按 PROP-06 计划 rPr 变更
-    let tb = text_block(s, from.para)?;
+    let tb = text_block(s, from.part, from.para)?;
     let spans = inline_spans(tb);
-    let dom = s.dom();
-    let flavor = s.flavor();
+    let dom = s.dom_in(from.part)?;
+    let flavor = s.flavor_in(from.part);
     let mut plan = MutationPlan::new(part);
     plan.touch(from.para);
     for (inline, span) in tb.inlines.iter().zip(&spans) {
@@ -778,14 +829,15 @@ fn require_paragraph(dom: &Dom, para: NodeId) -> Result<()> {
 
 fn set_para_props(
     s: &mut EditSession,
+    part: Option<PartId>,
     para: NodeId,
     patch: &ParaPropsPatch,
 ) -> Result<MutationResult> {
-    let dom = s.dom();
+    let dom = s.dom_in(part)?;
     require_paragraph(dom, para)?;
-    let mut plan = MutationPlan::new(s.main_part());
+    let mut plan = MutationPlan::new(s.part_or_main(part));
     plan.touch(para);
-    plan.node_edits = plan_apply_para_props(dom, para, ppr_of(dom, para), patch, s.flavor());
+    plan.node_edits = plan_apply_para_props(dom, para, ppr_of(dom, para), patch, s.flavor_in(part));
     s.commit_plan(plan)
 }
 
@@ -800,12 +852,13 @@ fn emit_inlines(dom: &Dom, inlines: &[NewInline]) -> Vec<NewElement> {
 
 fn replace_inlines(
     s: &mut EditSession,
+    part: Option<PartId>,
     para: NodeId,
     inlines: &[NewInline],
 ) -> Result<MutationResult> {
-    let dom = s.dom();
+    let dom = s.dom_in(part)?;
     require_paragraph(dom, para)?;
-    let mut plan = MutationPlan::new(s.main_part());
+    let mut plan = MutationPlan::new(s.part_or_main(part));
     plan.touch(para);
     // 内容（含范围标记）被外部描述整体重写：提交后按新标记重建这个容器的端点（`SPAN-06` rescan）
     plan.span.rescan.push(para);
@@ -826,12 +879,13 @@ fn replace_inlines(
 
 fn replace_para_props(
     s: &mut EditSession,
+    part: Option<PartId>,
     para: NodeId,
     props: Option<NewElement>,
 ) -> Result<MutationResult> {
-    let dom = s.dom();
+    let dom = s.dom_in(part)?;
     require_paragraph(dom, para)?;
-    let mut plan = MutationPlan::new(s.main_part());
+    let mut plan = MutationPlan::new(s.part_or_main(part));
     plan.touch(para);
     let first = live_children(dom, para).next();
     for c in live_children(dom, para) {
@@ -851,18 +905,18 @@ fn replace_para_props(
 
 // ---- 块级 -------------------------------------------------------------------------------------
 
-/// `BlockPos` → `(parent, before)`。`End(c)` 落在尾部 `w:sectPr` 之前。
-fn block_site(dom: &Dom, at: BlockPos) -> Result<(NodeId, Option<NodeId>)> {
+/// `BlockPos` 的落点 → `(parent, before)`。`End(c)` 落在尾部 `w:sectPr` 之前。
+fn block_site(dom: &Dom, at: BlockAt) -> Result<(NodeId, Option<NodeId>)> {
     let live_elem = |c: NodeId| dom.node(c).dirty != Dirty::Deleted && dom.element(c).is_some();
     let ok = |n: NodeId| (n.0 as usize) < dom.node_count() && live_elem(n);
     match at {
-        BlockPos::Start(c) => {
+        BlockAt::Start(c) => {
             if !ok(c) {
                 return Err(Error::edit(DiagCode::EditBadPosition, "容器无效"));
             }
             Ok((c, dom.children(c).iter().copied().find(|&k| live_elem(k))))
         }
-        BlockPos::Before(n) | BlockPos::After(n) => {
+        BlockAt::Before(n) | BlockAt::After(n) => {
             if !ok(n) {
                 return Err(Error::edit(DiagCode::EditBadPosition, "锚点块无效"));
             }
@@ -870,10 +924,10 @@ fn block_site(dom: &Dom, at: BlockPos) -> Result<(NodeId, Option<NodeId>)> {
                 .parent(n)
                 .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, "锚点块没有父节点"))?;
             let before =
-                if matches!(at, BlockPos::Before(_)) { Some(n) } else { next_sibling(dom, n) };
+                if matches!(at, BlockAt::Before(_)) { Some(n) } else { next_sibling(dom, n) };
             Ok((parent, before))
         }
-        BlockPos::End(c) => {
+        BlockAt::End(c) => {
             if !ok(c) {
                 return Err(Error::edit(DiagCode::EditBadPosition, "容器无效"));
             }
@@ -995,11 +1049,12 @@ table_props_op!(
 );
 
 fn insert_block(s: &mut EditSession, at: BlockPos, block: NewBlock) -> Result<MutationResult> {
-    let dom = s.dom();
-    let (parent, before) = block_site(dom, at)?;
+    let part = s.part_or_main(at.part);
+    let dom = s.dom_in(at.part)?;
+    let (parent, before) = block_site(dom, at.at)?;
     let is_para = matches!(block, NewBlock::Paragraph { .. });
     let node = new_block_element(dom, block);
-    let mut plan = MutationPlan::new(s.main_part());
+    let mut plan = MutationPlan::new(part);
     plan.structure_changed = true;
     plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(parent), before, node });
     // 插在格尾的非段落块（表格等）后面要补一个空段落
@@ -1009,12 +1064,12 @@ fn insert_block(s: &mut EditSession, at: BlockPos, block: NewBlock) -> Result<Mu
     s.commit_plan(plan)
 }
 
-fn delete_block(s: &mut EditSession, node: NodeId) -> Result<MutationResult> {
-    let dom = s.dom();
+fn delete_block(s: &mut EditSession, part: Option<PartId>, node: NodeId) -> Result<MutationResult> {
+    let dom = s.dom_in(part)?;
     if (node.0 as usize) >= dom.node_count() || dom.node(node).dirty == Dirty::Deleted {
         return Err(Error::edit(DiagCode::EditBadPosition, "块不存在或已删除"));
     }
-    let mut plan = MutationPlan::new(s.main_part());
+    let mut plan = MutationPlan::new(s.part_or_main(part));
     plan.structure_changed = true;
     plan.node_edits.push(NodeEdit::Delete(node));
     if let Some(parent) = dom.parent(node) {
@@ -1024,9 +1079,9 @@ fn delete_block(s: &mut EditSession, node: NodeId) -> Result<MutationResult> {
 }
 
 fn move_block(s: &mut EditSession, node: NodeId, to: BlockPos) -> Result<MutationResult> {
-    let dom = s.dom();
-    let (parent, before) = block_site(dom, to)?;
-    let mut plan = MutationPlan::new(s.main_part());
+    let dom = s.dom_in(to.part)?;
+    let (parent, before) = block_site(dom, to.at)?;
+    let mut plan = MutationPlan::new(s.part_or_main(to.part));
     if before == Some(node) {
         return s.commit_plan(plan); // 已在目标位置
     }
@@ -1080,8 +1135,8 @@ fn content_site(dom: &Dom, para: NodeId, boundary: u32) -> Option<NodeId> {
 
 /// `InlinePos` → 段落内容序列的边界。位置必须已经在 inline 边界上（先 `split_at`）。
 fn content_boundary(s: &EditSession, para: NodeId, at: InlinePos) -> Result<u32> {
-    let tb = text_block(s, para)?;
-    let dom = s.dom();
+    let tb = text_block(s, at.part, para)?;
+    let dom = s.dom_in(at.part)?;
     match locate(tb, at.offset)? {
         Loc::Boundary { index } => {
             let len = crate::span::content_len(dom, para);
@@ -1206,12 +1261,12 @@ fn add_comment(
     let part = s.main_part();
     // 位置先落到 inline 边界（拆 run 是独立阶段，失败由事务回滚）
     let mut result = MutationResult::default();
-    let tb = text_block(s, from.para)?;
+    let tb = text_block(s, from.part, from.para)?;
     let loc_to = locate(tb, to.offset)?;
-    split_at(s, to.para, loc_to, &mut result)?;
-    let tb = text_block(s, from.para)?;
+    split_at(s, to, loc_to, &mut result)?;
+    let tb = text_block(s, from.part, from.para)?;
     let loc_from = locate(tb, from.offset)?;
-    split_at(s, from.para, loc_from, &mut result)?;
+    split_at(s, from, loc_from, &mut result)?;
 
     // 批注部件与条目（`SAVE-05` + `EDIT-06`）
     let comments_part = s.ensure_comments_part()?;
@@ -1677,21 +1732,27 @@ fn refuse_block_field_result(s: &EditSession, para: NodeId) -> Result<()> {
 }
 
 fn split_paragraph(s: &mut EditSession, at: InlinePos) -> Result<MutationResult> {
-    let part = s.main_part();
-    refuse_block_field_result(s, at.para)?;
-    let tb = text_block(s, at.para)?;
+    let part = s.part_or_main(at.part);
+    // 块字段与它的结果段落只在主 part 有索引（`FLD-08`）
+    if at.part.is_none() {
+        refuse_block_field_result(s, at.para)?;
+    }
+    let tb = text_block(s, at.part, at.para)?;
     let loc = locate(tb, at.offset)?;
     // 位置落在 run 内部 → 先拆 run（原子内部的位置 `locate` 已经拒了）
     let mut result = MutationResult::default();
-    split_at(s, at.para, loc, &mut result)?;
+    split_at(s, at, loc, &mut result)?;
+    // `k` 是内容序列里的边界下标（`SPAN-06` 的拆分规则要用）；字段跨段的检查只在主 part
     let k = content_boundary(s, at.para, at)?;
-    if let Some(id) = field_across(s, at.para, k) {
+    if at.part.is_none()
+        && let Some(id) = field_across(s, at.para, k)
+    {
         return Err(Error::edit(
             DiagCode::EditSplitField,
             format!("拆分会让字段 {} 跨段（FLD-08）", id.0),
         ));
     }
-    let dom = s.dom();
+    let dom = s.dom_in(at.part)?;
     let parent = dom.parent(at.para).ok_or_else(|| unsupported("段落没有父节点"))?;
     let ppr = ppr_of(dom, at.para);
     let after = next_sibling(dom, at.para);
@@ -1715,7 +1776,7 @@ fn split_paragraph(s: &mut EditSession, at: InlinePos) -> Result<MutationResult>
     result.absorb(r);
 
     // 阶段 2：把边界之后的内容项与范围标记搬进新段落（`SPAN-06` 拆分规则由 `SpanPolicy` 表达）
-    let dom = s.dom();
+    let dom = s.dom_in(at.part)?;
     let mut plan = MutationPlan::new(part);
     plan.structure_changed = true;
     plan.span.splits.push(crate::span::ContainerSplit { source: at.para, boundary: k, tail });
@@ -1751,15 +1812,24 @@ fn split_paragraph(s: &mut EditSession, at: InlinePos) -> Result<MutationResult>
     Ok(result)
 }
 
-fn merge_with_next(s: &mut EditSession, para: NodeId) -> Result<MutationResult> {
-    let part = s.main_part();
-    require_paragraph(s.dom(), para)?;
-    refuse_block_field_result(s, para)?;
-    let dom = s.dom();
+fn merge_with_next(
+    s: &mut EditSession,
+    at: Option<PartId>,
+    para: NodeId,
+) -> Result<MutationResult> {
+    let part = s.part_or_main(at);
+    require_paragraph(s.dom_in(at)?, para)?;
+    // 块字段的结果段落只读（`FLD-08`）；字段索引只对主 part 建了，别的 part 里没有块字段的概念
+    if at.is_none() {
+        refuse_block_field_result(s, para)?;
+    }
+    let dom = s.dom_in(at)?;
     let next = next_element_sibling(dom, para)
         .filter(|&n| dom.is(n, w(LocalName::P)))
         .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, "下一个块不是段落"))?;
-    refuse_block_field_result(s, next)?;
+    if at.is_none() {
+        refuse_block_field_result(s, next)?;
+    }
     let offset = crate::span::content_len(dom, para);
     let mut plan = MutationPlan::new(part);
     plan.structure_changed = true;
@@ -1826,12 +1896,12 @@ fn add_bookmark(
     }
     // 两端落到 inline 边界
     let mut result = MutationResult::default();
-    let tb = text_block(s, from.para)?;
+    let tb = text_block(s, from.part, from.para)?;
     let loc_to = locate(tb, to.offset)?;
-    split_at(s, to.para, loc_to, &mut result)?;
-    let tb = text_block(s, from.para)?;
+    split_at(s, to, loc_to, &mut result)?;
+    let tb = text_block(s, from.part, from.para)?;
     let loc_from = locate(tb, from.offset)?;
-    split_at(s, from.para, loc_from, &mut result)?;
+    split_at(s, from, loc_from, &mut result)?;
 
     let id = next_bookmark_id(s).to_string();
     let a = content_boundary(s, from.para, from)?;
@@ -1949,15 +2019,15 @@ fn insert_field(
     refuse_block_field_result(s, at.para)?;
     let part = s.main_part();
     let mut result = MutationResult::default();
-    let tb = text_block(s, at.para)?;
+    let tb = text_block(s, at.part, at.para)?;
     let loc = locate(tb, at.offset)?;
-    let (parent, before, inherit) = match split_at(s, at.para, loc, &mut result)? {
+    let (parent, before, inherit) = match split_at(s, at, loc, &mut result)? {
         Some((left, right)) => {
             (s.dom().parent(left).expect("run has a parent"), Some(right), Some(left))
         }
         None => {
             let Loc::Boundary { index } = loc else { unreachable!("split_at handles the rest") };
-            boundary_site(s, text_block(s, at.para)?, index)?
+            boundary_site(s, at.part, text_block(s, at.part, at.para)?, index)?
         }
     };
     let flavor = s.flavor();

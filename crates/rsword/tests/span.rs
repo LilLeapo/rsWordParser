@@ -513,7 +513,7 @@ fn span_06_deleting_a_paragraph_moves_its_bookmark_out_to_the_body() {
            <w:p><w:r><w:t>three</w:t></w:r></w:p>"#,
     );
     let second = s.document().text_blocks().nth(1).unwrap().node;
-    s.apply(EditOp::DeleteBlock { node: second }, &EditContext::default()).unwrap();
+    s.apply(EditOp::DeleteBlock { part: None, node: second }, &EditContext::default()).unwrap();
     let idx = s.spans().unwrap();
     let bm = idx.find(RangeClass::Bookmark, "1").expect("书签折叠到段落原位");
     let start = bm.start.unwrap();
@@ -534,7 +534,7 @@ fn span_06_inserting_a_block_shifts_body_anchors() {
     // 段落内锚点不动
     s.apply(
         EditOp::InsertBlock {
-            at: BlockPos::Before(first),
+            at: BlockPos::before(first),
             block: NewBlock::Paragraph {
                 props: None,
                 inlines: vec![NewInline::Run(NewRun::text("zero"))],
@@ -555,6 +555,7 @@ fn span_06_replace_inlines_rescans_the_container() {
     // compat 路径整体重写段落内容：旧标记全删，新标记（这里重发一个书签）成为真相
     s.apply(
         EditOp::ReplaceInlines {
+            part: None,
             para: p,
             inlines: vec![
                 NewInline::Marker(NewMarker::BookmarkStart {
@@ -661,7 +662,7 @@ fn span_08_marker_reappears_where_the_anchor_moved() {
            <w:p><w:r><w:t>three</w:t></w:r></w:p>"#,
     );
     let second = s.document().text_blocks().nth(1).unwrap().node;
-    s.apply(EditOp::DeleteBlock { node: second }, &EditContext::default()).unwrap();
+    s.apply(EditOp::DeleteBlock { part: None, node: second }, &EditContext::default()).unwrap();
     let xml = document_xml(&mut s);
     assert!(!xml.contains("two"), "段落删除: {xml}");
     assert!(
@@ -728,7 +729,11 @@ fn span_09_engine_dropped_end_voids_the_range() {
     );
     let p = first_para(&s);
     s.apply(
-        EditOp::ReplaceInlines { para: p, inlines: vec![NewInline::Run(NewRun::text("new"))] },
+        EditOp::ReplaceInlines {
+            part: None,
+            para: p,
+            inlines: vec![NewInline::Run(NewRun::text("new"))],
+        },
         &EditContext::default(),
     )
     .unwrap();

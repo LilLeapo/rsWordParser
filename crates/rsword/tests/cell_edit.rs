@@ -122,7 +122,7 @@ fn edit_03_inline_ops_inside_a_cell() {
     // SetParaProps
     let a2 = cell_para(s.document(), 1, 0, 0);
     let patch = ParaPropsPatch { keep_next: Change::Set(true), ..Default::default() };
-    s.apply(EditOp::SetParaProps { para: a2, patch }, &ctx).unwrap();
+    s.apply(EditOp::SetParaProps { part: None, para: a2, patch }, &ctx).unwrap();
     assert_eq!(s.text_block(a2).unwrap().props.keep_next, Some(true));
     assert_refresh_matches_rebuild(&mut s, "SetParaProps");
 }
@@ -141,7 +141,7 @@ fn edit_03_paragraph_structure_ops_inside_a_cell() {
 
     // MergeWithNext：合回去
     let first = cell_para(s.document(), 1, 0, 0);
-    s.apply(EditOp::MergeWithNext { para: first }, &ctx).unwrap();
+    s.apply(EditOp::MergeWithNext { part: None, para: first }, &ctx).unwrap();
     assert_eq!(cell_texts(s.document())[1][0], ["A2", "A2b"]);
     assert_refresh_matches_rebuild(&mut s, "MergeWithNext");
 
@@ -179,14 +179,14 @@ fn edit_03_block_ops_keep_the_cell_ending_in_a_paragraph() {
 
     // DeleteBlock 删掉格里唯一的段落 → 自动补一个空段落
     let a1 = cell_para(s.document(), 0, 0, 0);
-    s.apply(EditOp::DeleteBlock { node: a1 }, &ctx).unwrap();
+    s.apply(EditOp::DeleteBlock { part: None, node: a1 }, &ctx).unwrap();
     assert!(dom_ends_with_p(&s, 0, 0), "删空的格要补 w:p");
     assert_eq!(cell_texts(s.document())[0][0], [""], "补的是空段落");
     assert_refresh_matches_rebuild(&mut s, "DeleteBlock");
 
     // DeleteBlock 删掉两段中的一段：不补
     let a2b = cell_para(s.document(), 1, 0, 1);
-    s.apply(EditOp::DeleteBlock { node: a2b }, &ctx).unwrap();
+    s.apply(EditOp::DeleteBlock { part: None, node: a2b }, &ctx).unwrap();
     assert_eq!(cell_texts(s.document())[1][0], ["A2"]);
     assert!(dom_ends_with_p(&s, 1, 0));
     assert_refresh_matches_rebuild(&mut s, "DeleteBlock(2)");
@@ -195,7 +195,7 @@ fn edit_03_block_ops_keep_the_cell_ending_in_a_paragraph() {
     let b2 = s.document().tables().next().unwrap().rows[1].cells[1].node;
     s.apply(
         EditOp::InsertBlock {
-            at: rsword::edit::BlockPos::End(b2),
+            at: rsword::edit::BlockPos::end(b2),
             block: rsword::edit::NewBlock::Paragraph {
                 props: None,
                 inlines: vec![rsword::edit::NewInline::Run(rsword::edit::NewRun::text("新段"))],

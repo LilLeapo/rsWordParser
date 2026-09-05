@@ -22,6 +22,7 @@ pub use plan::{MutationPlan, MutationResult};
 pub use pos::{InlinePos, Loc, Utf16Offset, inline_spans, locate};
 pub use session::EditSession;
 
+use crate::package::PartId;
 use crate::semantic::props::{
     CellPropsPatch, ParaPropsPatch, RowPropsPatch, RunProps, RunPropsPatch, TablePropsPatch,
 };
@@ -46,13 +47,56 @@ pub struct EditContext {
     pub mark_updated_fields_dirty: bool,
 }
 
-/// `EDIT-02`：块位置。`End(body)` 落在尾部 `w:sectPr` 之前。
+/// `EDIT-02`：块位置在容器里的落点。`End(body)` 落在尾部 `w:sectPr` 之前。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BlockPos {
+pub enum BlockAt {
     Start(NodeId),
     Before(NodeId),
     After(NodeId),
     End(NodeId),
+}
+
+/// `EDIT-02`：块位置 = 哪个 part + 落点。`part` 为 `None` 表示主 part（任务 5.5）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BlockPos {
+    pub part: Option<PartId>,
+    pub at: BlockAt,
+}
+
+impl BlockPos {
+    /// 主 part 里的落点。
+    pub fn main(at: BlockAt) -> Self {
+        Self { part: None, at }
+    }
+
+    /// 指定 part 里的落点（页眉页脚 part 等）。
+    pub fn in_part(part: PartId, at: BlockAt) -> Self {
+        Self { part: Some(part), at }
+    }
+
+    pub fn start(container: NodeId) -> Self {
+        Self::main(BlockAt::Start(container))
+    }
+
+    pub fn before(block: NodeId) -> Self {
+        Self::main(BlockAt::Before(block))
+    }
+
+    pub fn after(block: NodeId) -> Self {
+        Self::main(BlockAt::After(block))
+    }
+
+    pub fn end(container: NodeId) -> Self {
+        Self::main(BlockAt::End(container))
+    }
+
+    /// 落点涉及的节点（容器或参照块）。
+    pub fn node(&self) -> NodeId {
+        match self.at {
+            BlockAt::Start(c) | BlockAt::End(c) => c,
+            BlockAt::Before(n) | BlockAt::After(n) => n,
+        }
+    }
 }
 
 /// `InsertBlock` 的内容。
@@ -95,11 +139,11 @@ pub enum EditOp {
     /// `EDIT-03 SetRunProps`：两端拆分 run，范围内每个 run 按 `PROP-06` 计划 `rPr` 变更。
     SetRunProps { from: InlinePos, to: InlinePos, patch: RunPropsPatch },
     /// `EDIT-03 ReplaceInlines`（compat 路径）：段落全部内容子节点 `Deleted`，新内容为 `New`；`pPr` 不动。
-    ReplaceInlines { para: NodeId, inlines: Vec<NewInline> },
+    ReplaceInlines { part: Option<PartId>, para: NodeId, inlines: Vec<NewInline> },
     /// `EDIT-03 SetParaProps`：`PROP-06` 计划 `pPr` 变更（无 `pPr` → `New` 插为第一子）。
-    SetParaProps { para: NodeId, patch: ParaPropsPatch },
+    SetParaProps { part: Option<PartId>, para: NodeId, patch: ParaPropsPatch },
     /// compat 路径：整个 `w:pPr` 替换为给定片段（`None` = 删除 `pPr`）。`EDIT-04` 的 `rawPPr` 语义。
-    ReplaceParaProps { para: NodeId, props: Option<NewElement> },
+    ReplaceParaProps { part: Option<PartId>, para: NodeId, props: Option<NewElement> },
     /// `EDIT-03 SetTableProps`：`w:tblPr` 按 `PROP-06` 合并（容器缺失时插为 `w:tbl` 第一个子元素）。
     SetTableProps { table: NodeId, patch: TablePropsPatch },
     /// `EDIT-03 SetRowProps`：`w:trPr` 按 `PROP-06` 合并（容器缺失时插在 `w:tblPrEx` 之后、首个 `w:tc` 之前）。
@@ -119,8 +163,8 @@ pub enum EditOp {
     MergeCells { table: NodeId, from: (u32, u32), to: (u32, u32) },
     /// `EDIT-03 InsertBlock`：`New` 子树。
     InsertBlock { at: BlockPos, block: NewBlock },
-    /// `EDIT-03 DeleteBlock`：`Deleted`。
-    DeleteBlock { node: NodeId },
+    /// `EDIT-03 DeleteBlock`：`Deleted`。`part` 为 `None` 表示主 part（任务 5.5）。
+    DeleteBlock { part: Option<PartId>, node: NodeId },
     /// `EDIT-03 MoveBlock`：同 part `move_within_part`。
     MoveBlock { node: NodeId, to: BlockPos },
     /// `EDIT-03 AddComment`（同段）：`comments.xml` 不存在则新建 part（`SAVE-05`），
@@ -134,7 +178,7 @@ pub enum EditOp {
     /// 透明字段会因此跨段 → `Err(EDIT_SPLIT_FIELD)`。
     SplitParagraph { at: InlinePos },
     /// `EDIT-03 MergeWithNext`：下一段内容接到本段末尾，下一段删除（保留**前**段的 `pPr`）。
-    MergeWithNext { para: NodeId },
+    MergeWithNext { part: Option<PartId>, para: NodeId },
     /// `EDIT-03 AddBookmark`（同段）：`w:id` 按 `EDIT-06` 取最大值 + 1；名字全文档唯一。
     AddBookmark { name: String, from: InlinePos, to: InlinePos },
     /// `EDIT-03 RemoveBookmark`：按名字删（标记 `Deleted`，索引里作废）。

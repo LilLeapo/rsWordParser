@@ -337,7 +337,7 @@ fn edit_03_insert_new_table() {
     let body = s.document().body.unwrap();
     s.apply(
         EditOp::InsertBlock {
-            at: BlockPos::End(body),
+            at: BlockPos::end(body),
             block: NewBlock::Table {
                 rows: 2,
                 cols: 3,
@@ -463,7 +463,7 @@ fn test_09_hostile_cell_without_paragraph() {
     let cell = table_of(&s).rows[0].cells[0].node;
     s.apply(
         EditOp::InsertBlock {
-            at: BlockPos::End(cell),
+            at: BlockPos::end(cell),
             block: NewBlock::Paragraph {
                 props: None,
                 inlines: vec![rsword::edit::NewInline::Run(rsword::edit::NewRun::text("补"))],
@@ -478,7 +478,7 @@ fn test_09_hostile_cell_without_paragraph() {
     let cell2 = table_of(&s).rows[0].cells[1].node;
     s.apply(
         EditOp::InsertBlock {
-            at: BlockPos::End(cell2),
+            at: BlockPos::end(cell2),
             block: NewBlock::Table { rows: 1, cols: 1, widths: None, style: None, header: false },
         },
         &EditContext::default(),

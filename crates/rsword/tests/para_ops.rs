@@ -118,7 +118,8 @@ fn edit_03_merge_with_next_keeps_the_first_paragraph_props() {
            <w:p><w:pPr><w:jc w:val="right"/></w:pPr><w:r><w:t>cd</w:t></w:r></w:p>"#,
     );
     let p = para(&s, 0);
-    let r = s.apply(EditOp::MergeWithNext { para: p }, &EditContext::default()).unwrap();
+    let r =
+        s.apply(EditOp::MergeWithNext { part: None, para: p }, &EditContext::default()).unwrap();
     assert!(r.structure_changed);
     assert_eq!(texts(&s), ["abcd"]);
     let xml = saved_xml(&mut s);
@@ -134,7 +135,7 @@ fn span_06_merge_relocates_anchors_from_the_second_paragraph() {
            <w:p><w:bookmarkStart w:id="1" w:name="bm"/><w:r><w:t>ef</w:t></w:r><w:bookmarkEnd w:id="1"/></w:p>"#,
     );
     let p = para(&s, 0);
-    s.apply(EditOp::MergeWithNext { para: p }, &EditContext::default()).unwrap();
+    s.apply(EditOp::MergeWithNext { part: None, para: p }, &EditContext::default()).unwrap();
     assert_eq!(texts(&s), ["abcdef"]);
     let idx = s.spans().unwrap();
     let bm = idx.find(RangeClass::Bookmark, "1").expect("书签还在");
@@ -158,7 +159,7 @@ fn edit_03_merge_with_next_needs_a_following_paragraph() {
     );
     let p = para(&s, 0);
     let err = s
-        .apply(EditOp::MergeWithNext { para: p }, &EditContext::default())
+        .apply(EditOp::MergeWithNext { part: None, para: p }, &EditContext::default())
         .expect_err("下一个块是表格");
     assert_eq!(code(&err), Some(DiagCode::EditBadPosition));
 }

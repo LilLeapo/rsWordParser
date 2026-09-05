@@ -177,8 +177,8 @@ fn edit_03_locked_and_bound_sdt_refuse_edits_without_touching_state() {
             EditOp::InsertText { at: InlinePos::new(para, 1), text: "y".into(), props: None },
             EditOp::DeleteRange { from: InlinePos::new(para, 0), to: InlinePos::new(para, 1) },
             EditOp::SplitParagraph { at: InlinePos::new(para, 1) },
-            EditOp::DeleteBlock { node: para },
-            EditOp::ReplaceInlines { para, inlines: Vec::new() },
+            EditOp::DeleteBlock { part: None, node: para },
+            EditOp::ReplaceInlines { part: None, para, inlines: Vec::new() },
         ];
         for op in ops {
             let name = format!("{op:?}");

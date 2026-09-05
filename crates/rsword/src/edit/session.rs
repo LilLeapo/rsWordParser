@@ -96,6 +96,31 @@ impl EditSession {
         self.pkg.flavor_of(self.pkg.main_part())
     }
 
+    // ---- 按 part 的位置（`EDIT-02`，任务 5.5）--------------------------------------------------
+
+    /// 位置里的 part：`None` → 主 part。
+    pub fn part_or_main(&self, part: Option<PartId>) -> PartId {
+        part.unwrap_or_else(|| self.pkg.main_part())
+    }
+
+    /// 某个 part 的 DOM。part 不存在或不是 XML（二进制 / `Opaque`）→ `EDIT_BAD_POSITION`。
+    pub fn dom_in(&self, part: Option<PartId>) -> Result<&Dom> {
+        let id = self.part_or_main(part);
+        self.pkg.part(id).dom().ok_or_else(|| {
+            Error::edit(DiagCode::EditBadPosition, format!("part {} 没有可编辑的 XML", id.0))
+        })
+    }
+
+    /// 某个 part 的 flavor（Strict / Transitional 的写法按 part 定，`PKG-08`）。
+    pub fn flavor_in(&self, part: Option<PartId>) -> PartFlavor {
+        self.pkg.flavor_of(self.part_or_main(part))
+    }
+
+    /// 某个 part 里的文本段落投影（页眉页脚 / 注释 / 批注条目 / 正文）。
+    pub fn text_block_in(&self, part: Option<PartId>, para: NodeId) -> Option<&TextBlock> {
+        self.doc.text_block_in(self.part_or_main(part), para)
+    }
+
     /// 主 part 的范围索引（`SPAN-04`）。第一次调用时建立。
     pub fn spans(&mut self) -> Result<&SpanIndex> {
         let part = self.pkg.main_part();
@@ -756,6 +781,11 @@ impl EditSession {
                     self.rebuild()?;
                 }
             }
+        } else if !result.affected_blocks.is_empty() || result.structure_changed {
+            // 辅助 part（页眉页脚 / 注释 / 批注，任务 5.5）：整体重建投影。
+            // 这些 part 很小（几 KB），容器级增量不值得；`MOD-13` 的 oracle 照样成立
+            // （`refresh` 的结果等于 `rebuild`——这里就是 `rebuild`）。
+            self.rebuild()?;
         }
         Ok(result)
     }

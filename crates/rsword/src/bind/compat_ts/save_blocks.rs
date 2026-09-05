@@ -449,8 +449,8 @@ impl Planner<'_> {
                     return Err(unsupported("重排 sdt 内的段落"));
                 }
                 let to = match k.checked_sub(1).map(|p| &items[p]) {
-                    Some(Item::Original(pd)) => BlockPos::After(self.nodes[*pd]),
-                    _ => BlockPos::Start(self.body),
+                    Some(Item::Original(pd)) => BlockPos::after(self.nodes[*pd]),
+                    _ => BlockPos::start(self.body),
                 };
                 ops.push(EditOp::MoveBlock { node, to });
             }
@@ -480,8 +480,8 @@ impl Planner<'_> {
                 .filter(|&m| lo.is_none_or(|l| m > l) && hi.is_none_or(|h| m < h))
                 .collect();
             let anchor = match hi {
-                Some(h) => BlockPos::Before(self.insert_anchor(self.nodes[h])),
-                None => BlockPos::End(self.body),
+                Some(h) => BlockPos::before(self.insert_anchor(self.nodes[h])),
+                None => BlockPos::end(self.body),
             };
             for it in &items[i..j] {
                 match it {
@@ -521,11 +521,11 @@ impl Planner<'_> {
                                 let old = self.nodes[*d];
                                 for frag in frags {
                                     ops.push(EditOp::InsertBlock {
-                                        at: BlockPos::Before(old),
+                                        at: BlockPos::before(old),
                                         block: wrap_revision(NewBlock::Xml(frag), *revision),
                                     });
                                 }
-                                ops.push(EditOp::DeleteBlock { node: old });
+                                ops.push(EditOp::DeleteBlock { part: None, node: old });
                                 handled.insert(*d);
                                 candidates.retain(|&c| c != *d);
                             }
@@ -543,13 +543,13 @@ impl Planner<'_> {
             }
             for c in candidates {
                 handled.insert(c);
-                ops.push(EditOp::DeleteBlock { node: self.nodes[c] });
+                ops.push(EditOp::DeleteBlock { part: None, node: self.nodes[c] });
             }
             i = j;
         }
         for m in missing {
             if !handled.contains(&m) {
-                ops.push(EditOp::DeleteBlock { node: self.nodes[m] });
+                ops.push(EditOp::DeleteBlock { part: None, node: self.nodes[m] });
             }
         }
         Ok(ops)
@@ -606,9 +606,9 @@ impl Planner<'_> {
         let skip =
             same_raw || (blk.get("rawPPr").is_none() && props.is_none() && current.is_none());
         if !skip {
-            ops.push(EditOp::ReplaceParaProps { para, props });
+            ops.push(EditOp::ReplaceParaProps { part: None, para, props });
         }
-        ops.push(EditOp::ReplaceInlines { para, inlines });
+        ops.push(EditOp::ReplaceInlines { part: None, para, inlines });
         Ok(())
     }
 
