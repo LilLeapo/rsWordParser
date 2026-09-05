@@ -16,7 +16,7 @@
 4. `docs/01-ts-parser-reference.md` 与 genoffice 源码 —— **参考实现，不是验收权威**（见下）。
 
 `spec/12-m0-m1-plan.md`、`spec/13-m2-plan.md`、`spec/14-m3-plan.md`、`spec/15-m4-plan.md`、`spec/16-m5-plan.md` 是里程碑任务分解（# / 任务 / 规范 / DoD）。
-M0–M4 已全部并入 `main`（9181eae）；M5（页眉页脚 / 节 / 声明 part / resolve 校准）在 `m5-hf` 分支进行中，逐条进度见 `docs/04` §14。
+M0–M4 已全部并入 `main`（`dcd653d`）；M5（页眉页脚 / 节 / 声明 part / resolve 校准）在 `m5-hf` 分支上**九个任务全部完成**，门 4/5 条通过——第 4 条等在真实 Word 里看一次 `fixtures/resolve` 的六份文档。逐条进度与门的实测见 `docs/04` §14。
 
 ## TS 不是权威
 
@@ -52,9 +52,10 @@ genoffice 的 TS 引擎是参考实现。目标是**功能等价或更强**，�
 | `crates/rsword/src/save/` | 校验、序列化、包写回、保存选项 |
 | `crates/rsword/src/bind/compat_ts/` | 兼容适配器：`ParsedDoc` JSON、`SaveBlock[]` 映射、差分 |
 | `crates/rsword/schema/` | `local_names.txt`（名字表）、`props/*.toml`（属性表） |
-| `tools/diff-parse`、`tools/xpath-assert` | 差分与 XPath 断言工具（workspace 成员） |
+| `tools/diff-parse`、`tools/xpath-assert`、`tools/gen-fixtures` | 差分、XPath 断言、`fixtures/resolve` 生成（workspace 成员） |
+| `fixtures/resolve` | `RES-12` 校准 fixture：文档我们生成，**观察值来自真实 Word**（见那里的 README） |
 | `corpus/synthetic` | 573 份 docx + `*.expected.json`（TS `ParsedDoc`）+ 162 份 `*.save.<k>.json`（`SaveBlock[]` + 期望 `documentXml`） |
-| `corpus/hostile` | 16 份恶意 / 畸形输入（`TEST-09`） |
+| `corpus/hostile` | 26 份恶意 / 畸形输入（`TEST-09`） |
 | `fuzz/` | `fuzz_xml`、`fuzz_zip`（不在 workspace 内） |
 
 ## 命令
