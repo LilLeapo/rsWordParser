@@ -6,6 +6,7 @@
 | 用例 | 字段 | 差异 | 原因 | 以谁为准 |
 | --- | --- | --- | --- | --- |
 | `numbering-defs__012` | `numbering[1].levels[0].numFmt` | TS `custom`，本引擎 `decimal` | `mc:Choice Requires="w14"` 但文档没有声明 `w14` 前缀；MCE 规定无法解析的前缀不算理解，本引擎取 `mc:Fallback`（`XML-09`）；TS 用正则直接取 Choice | 本引擎（规范行为；Word 同样走 Fallback） |
+| `cell-anchored-boxes__002` / `__003` | `blocks[*].table.rows[*][*].anchoredBoxes*` | TS 给 `mc:Choice` 里的三角形，本引擎给 `mc:Fallback` 里的 VML 文本框 | 同上：`mc:Choice Requires="wps"` 但整份文档没有声明 `wps` 前缀（TS 的构造器漏了，真实 Word 输出总会声明），所以 Choice 不算能理解，走 Fallback；TS 用正则把 `mc:Fallback` 删掉直接取 Choice | 本引擎（`XML-09`） |
 
 | `extra__strict-minimal` | `internal.documentXml`、`internal.bodyInner*`、`extras.elements[*]` | TS 装载时把 Strict URI 改写为 Transitional（`normalizeOoxmlParts`），偏移随之变化 | 本引擎不归一化（Strict stays Strict） | 本引擎；整份文档在 `tests/compat.rs` 的 `KNOWN_DOCS` 放行 |
 | `balance-dbcs-spacing__*` | `blocks[*].runs[*].charSpacingTwips` | TS 在 `balanceSingleByteDoubleByteWidth` 下按双字节字符比例缩放显示值 | 显示层决定（`MOD-11` 禁止排版字段进模型） | 本引擎；渲染器接管后删除 |
@@ -29,6 +30,8 @@ TS 按固定路径读 `word/theme/theme1.xml`、`word/settings.xml` 等；本引
 
 ```known-diffs
 numbering-defs__012*     numbering.*                              # 未声明前缀的 mc:Choice Requires，本引擎走 Fallback
+cell-anchored-boxes__002* blocks[*].table.rows[*][*].anchoredBoxes*   # 同上：Requires="wps" 但没声明 wps，走 Fallback
+cell-anchored-boxes__003* blocks[*].table.rows[*][*].anchoredBoxes*   # 同上
 char-unit-indents__*     *                                        # *Chars 缩进换算需字体度量（TS withCharIndents）
 extra__strict-minimal*   *                                        # TS 装载时把 Strict 改写为 Transitional
 balance-dbcs-spacing__*  blocks[*].runs[*].charSpacingTwips       # TS 按双字节比例缩放显示值

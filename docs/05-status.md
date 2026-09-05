@@ -94,7 +94,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
 | 源码行数 / 文件数 | 51,325 行 / 125 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 384（单元 + 集成，27 个集成测试文件） | `cargo test --workspace` |
+| 测试数 | 386（单元 + 集成，27 个集成测试文件） | `cargo test --workspace` |
 | 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 22 份 hostile（含 4 份绘图与 2 份表格） | `ls corpus/*` |
 | 往返字节保真 | 589 份文档、3,093 个 XML part 全部字节相同 | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
@@ -102,9 +102,9 @@ let bytes = s.save_with(&outcome.save_options)?;
 | resolve 对照 | 86,465 项 `StyleDisplay`、2,326 项 heading 级别、2,897 项 linked shell | `tests/resolve.rs` |
 | 解析差分（文本域） | 226 份用例（2.6 起含带批注 / 注释的文档），156 处已登记差异，**0 处未知差异** | `cargo run -p diff-parse -- --scope text` |
 | 解析差分（字段与 Span 域，M2 门） | 253 份用例（文本域 + 字段 / 标记 / 批注 / 注释），**0 处未知差异** | `cargo run -p diff-parse -- --scope fields` |
-| 解析差分（表格域，M3 门） | 311 份用例（字段域 + 表格；单元格里的绘图归 M4 剔除），**0 处未知差异** | `cargo run -p diff-parse -- --scope tables` |
+| 解析差分（表格域，M3 门） | 320 份用例（字段域 + 表格，含单元格里的锚定形状与图片），**0 处未知差异** | `cargo run -p diff-parse -- --scope tables` |
 | 解析差分（页眉页脚域，M5 门） | 573 份用例，**0 处未知差异**（按**路径**筛） | `cargo run -p diff-parse -- --scope hf` |
-| 解析差分（全域） | 573 份里 39 份有未知差异、82 个差异点（M6 的工作面 + M3×M4 的交叉地带） | `cargo run -p diff-parse -- --scope all` |
+| 解析差分（全域） | 573 份里 30 份有未知差异、63 个差异点（M6 的工作面） | `cargo run -p diff-parse -- --scope all` |
 | 保存差分 | 162 份 TS 保存用例：90 份与 `saveDocx` 等价（其中 41 份逐字节相同）、4 份有意不同、68 份跳过 | `tests/save_blocks.rs` |
 | 节与页眉页脚 | 573 份 588 个节（与 TS `readSections` 逐份一致）；43 份带页眉页脚 part（47 个 part / 63 个块，`rId` 集合与 `hasPageNumber` 与 TS 一致）；26 个注释 / 批注条目 32 个块 | `cargo test -p rsword --test section --test hf --test notes -- --nocapture` |
 | 节属性往返 | 604 个 `w:sectPr`：0 处 `PROP_BAD_VALUE`、596 个符合 schema 顺序 | `cargo test -p rsword --test props -- --nocapture` |
@@ -115,12 +115,13 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 段落 / 书签 / 字段操作 | 17 个用例（`SPAN-06` 拆分与合并、`EDIT-06` 书签分配、`FLD-09`/`10`/`12` 各自的验收行） | `cargo test -p rsword --test para_ops` |
 | 批注与注释 | 语料 11 份带批注（17 条）、5 条注释条目；13 个用例（三部件关联、结构条目、`commentIds` 三形态、`noteRef` 编号、`SAVE-05` 新建 part、三个编辑操作、compat 权威列表） | `cargo test -p rsword --test notes` |
 
-全域差异按域聚合（差异点，5.4 之后实测 82）：**单元格里的锚定形状 19**（M3 与 M4 的交叉地带：
-`anchoredBoxes` / `anchoredBoxAnchors` / 被剥掉框文字后的 `paras[]` / 格内 run 的图）、
-**块分类连带项与 run 约 40**（`previewText` 13、`runs[]` 11、`label` 4、`type` 2 …；多半是图表与
-公式段落的连带）、**公式 4 与图表 3**（M6）、`extra__mixed-flavor` 的 `internal.*` 与
-`extras.elements[*]` 7（TS 装载时把 Strict 改写为 Transitional，同 `extra__strict-minimal`，
-按路径登记）。文本域、字段与 Span 域、表格域、绘图域、**页眉页脚域**五道门都是 0。
+全域差异按域聚合（差异点，5.4 与单元格锚定形状之后实测 63）：**块分类连带项与 run 44**
+（`previewText` 12、`runs[]` 11、`runs[].text` 5、`label` 4 …；多半是图表与公式段落的连带，
+分类对了就跟着归零）、**Strict 改写 12**（`extra__mixed-flavor` 与 `extra__strict-minimal` 的
+`internal.*` 与 `extras.elements[*]`：TS 装载时把 Strict 改写为 Transitional，已按路径登记）、
+**公式 4 与图表 2**（M6）、参考文献 1（5.7）。
+**表格域**（单元格里的锚定形状与图片，M3 与 M4 的交叉地带）与**页眉页脚域**都已归零。
+文本域、字段与 Span 域、表格域、绘图域、页眉页脚域五道门都是 0。
 保存侧 68 份跳过按里程碑（实测，按选项分组去重）：**M5 48 份**（页眉页脚六变体与每节页眉 22 +
 水印 7（其中 2 份与页眉同用例）+ 节 7 + 保护 4 + 编号 3 + 参考文献 3 + 主题 2 + 样式 upsert 1 +
 页面颜色 1；明细见 `spec/16` 的保存侧表）、M6 / M7 20 份（图表 6 + 图片 4 + 墨迹 8 +
@@ -176,7 +177,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 ```sh
 cargo fmt --all --check && cargo clippy --workspace --all-targets   # 零告警
-cargo test --workspace && cargo test --workspace --release          # 384 个测试，两种构建
+cargo test --workspace && cargo test --workspace --release          # 386 个测试，两种构建
 cargo run -p diff-parse -- --scope text                             # M1 门第一条：0 未知差异
 cargo run -p diff-parse -- --scope fields                           # M2 门：字段与 Span 域 0 未知差异
 cargo run -p diff-parse -- --scope tables                           # M3 门：表格域 0 未知差异

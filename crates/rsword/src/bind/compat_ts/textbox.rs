@@ -76,6 +76,46 @@ fn graphics(tb: &TextBlock) -> (Vec<&DrawingDisplay>, Vec<&VmlDisplay>) {
     (drawings, vmls)
 }
 
+/// TS `extractCell` 的锚定框分支：**只取框，不做块分类**——单元格里的锚定形状 Word 是画在格里的
+/// （行会长高来容纳它们），所以它们不像正文段落那样把整块降级成 `Text box`，而是作为
+/// `cell.anchoredBoxes` 挂在格上（`COMPAT-10`）。
+///
+/// 返回框，以及**计算格内文字时要剥掉的子树**：TS 会把锚定的非图片绘图与带 `txbxContent` 的
+/// `w:pict` 从段落里删掉再重新解析，否则框里的文字与 `wp:posOffset` 的数字会漏进单元格文本。
+pub(super) fn anchored_boxes_in_cell(
+    ctx: &Ctx<'_>,
+    p: NodeId,
+    tb: &TextBlock,
+    docx_index: usize,
+) -> (Vec<BoxInfo>, Vec<NodeId>) {
+    let (drawings, vmls) = graphics(tb);
+    if drawings.is_empty() && vmls.is_empty() {
+        return (Vec::new(), Vec::new());
+    }
+    // TS 的闸门：段落里有锚定绘图，或者有任何 `w:pict`
+    if !drawings.iter().any(|d| d.anchor.is_some()) && vmls.is_empty() {
+        return (Vec::new(), Vec::new());
+    }
+    let boxes = boxes_of(ctx, p, ctx.first_page(p, docx_index), &drawings, &vmls);
+    if boxes.is_empty() {
+        return (Vec::new(), Vec::new());
+    }
+    // 剥掉：锚定且整棵里没有 `pic:pic` 的绘图（锚定的图片留着走 run 图片那条路）、
+    // 带 `txbxContent` 的 `w:pict`
+    let dom = ctx.dom;
+    let mut stripped: Vec<NodeId> = drawings
+        .iter()
+        .filter(|d| d.anchor.is_some() && d.pictures.is_empty())
+        .map(|d| d.node)
+        .collect();
+    stripped.extend(
+        vmls.iter()
+            .map(|v| v.node)
+            .filter(|&n| dom.descendants(n).any(|c| dom.is(c, QName::w(LocalName::TxbxContent)))),
+    );
+    (boxes, stripped)
+}
+
 /// 绘图分支的块投影。返回 `None` 表示这一段按普通文本段落走。
 pub(super) fn drawing_block(
     ctx: &Ctx<'_>,

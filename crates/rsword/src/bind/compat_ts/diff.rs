@@ -187,17 +187,17 @@ impl Scope {
     }
 }
 
-/// 表格块本身是否在 M3 的域内：单元格里没有绘图（`anchoredBoxes` / run `image`）、公式与 ruby。
+/// 表格块本身是否在 M3 的域内。
+///
+/// 单元格里的锚定形状与图片随 M4 的显示模型一起接上了（`COMPAT-10`），所以它们在域内；
+/// 公式与 ruby 仍不在（M6 / 后续里程碑）。
 fn table_in_scope(table: &Value) -> bool {
     let Some(rows) = table.get("rows").and_then(Value::as_array) else { return true };
     for row in rows {
         for cell in row.as_array().into_iter().flatten() {
-            if cell.get("anchoredBoxes").is_some() || cell.get("anchoredBoxAnchors").is_some() {
-                return false;
-            }
             for rp in cell.get("richParas").and_then(Value::as_array).into_iter().flatten() {
                 for r in rp.get("runs").and_then(Value::as_array).into_iter().flatten() {
-                    for k in ["image", "math", "ruby"] {
+                    for k in ["math", "ruby"] {
                         if r.get(k).is_some() {
                             return false;
                         }

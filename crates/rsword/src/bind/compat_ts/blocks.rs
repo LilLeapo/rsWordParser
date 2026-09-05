@@ -560,8 +560,9 @@ fn table_block(
     set(&mut o, "type", "table");
     set(&mut o, "label", format!("Table {rows}×{cols}"));
     set(&mut o, "previewText", ctx.plain_text(tbl).chars().take(120).collect::<String>());
+    let docx_index = o.get("docxIndex").and_then(Value::as_u64).unwrap_or(0) as usize;
     if let Some(Block::Table(t)) = block
-        && let Some(model) = super::table::table_json(ctx, t, 1)
+        && let Some(model) = super::table::table_json(ctx, t, 1, docx_index)
     {
         set(&mut o, "table", model);
     }

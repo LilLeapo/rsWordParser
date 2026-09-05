@@ -176,7 +176,8 @@ XML**；只有深度 ≥ 8 的扁平化允许直接读 DOM 文本（模型在 64
 | `vAlign` / `textDirection` / `cellMarTwips` / `borders` | `tcPr`：`vAlign ∈ {top, center, bottom}`；`tbRl / tbRlV → tbRl`，`btLr / btLrV → btLr`；`tcMar`；`tcBorders` 合并规则同表级（不含 inside） |
 | `nestedTables` / `nestedTableAnchors` | `Cell.blocks` 中的 `Block::Table` 递归；锚点 = 该表之前的段落数；深度 ≥ 8 → TS `flattenedTableModel`：`{ rows: [[{ paras, richParas: 每段一个纯文本 run（空段无 run） }]], autoLayout: true }`，段落文本按文档序直读 DOM（迭代） |
 | `cellRevision` | `tcPr/cellIns\|cellDel` → `{ kind, author, date?, id? }` |
-| `anchoredBoxes` / `anchoredBoxAnchors`、格内 run 的 `image` | M4（`spec/15` 4.6）：TS 在 `extractCell` 里剥掉锚定 drawing 再重解析段落；含它们的文档不进 `--scope tables` |
+| `anchoredBoxes` / `anchoredBoxAnchors` | 格内段落里的锚定形状（M4 的 `ShapeDisplay` / `VmlDisplay`）做成只读展示框挂在**格**上——Word 把它们画在格里并把行撑高，所以不像正文段落那样把整块降级成 `Text box`；`anchoredBoxAnchors` 是框所在段落的下标。取框之后要把「锚定且整棵没有 `pic:pic` 的绘图」与「带 `txbxContent` 的 `w:pict`」从段落里剥掉再取 `paras` / `richParas`，否则框里的文字与 `wp:posOffset` 的数字会漏进单元格文本 |
+| 格内 run 的 `image` | 与正文同一条路（`COMPAT-07`）。只有一张图的格内段落被 `MOD-05` R15 分成图片块，TS 在格里一律当普通段落，所以按块上的显示模型补一个 `text: ""` 的图片 run |
 
 **`styles.*.tableDisplay`**（TS `tableStyleDisplayOf` + `mergeTableDisplay`）：`fill`（样式级 `tcPr/shd`）、`wholeTable
 { color, bold, italic, sizeHalfPoints }`（样式级 `rPr`）、`firstRow / firstCol / lastCol / lastRow { fill, bold, color,

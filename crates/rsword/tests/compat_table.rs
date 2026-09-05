@@ -109,3 +109,43 @@ fn compat_10_table_summary_counts_nested_rows() {
     assert_eq!(b["label"], Value::from("Table 2×3"), "外层 1 行 2 格 + 嵌套 1 行 2 格");
     assert!(b["previewText"].as_str().unwrap().contains("外层"));
 }
+
+/// 单元格里的锚定形状：挂在格上（不像正文段落那样把整块降级成 `Text box`），锚点记它前面有几段，
+/// 格内文字要把框的内容与 `wp:posOffset` 的数字剥掉（`COMPAT-10`；M3 与 M4 的交叉点）。
+#[test]
+fn compat_10_cell_anchored_boxes() {
+    let d = doc("cell-anchored-boxes__001");
+    let t = tables(&d)[0];
+    let cell = &t["rows"][0][0];
+    let boxes = cell["anchoredBoxes"].as_array().expect("格里的锚定框");
+    assert_eq!(boxes.len(), 1);
+    assert_eq!(boxes[0]["prst"], Value::from("triangle"));
+    assert_eq!(boxes[0]["floating"], Value::Bool(true));
+    assert_eq!(cell["anchoredBoxAnchors"], serde_json::json!([0]), "锚在第 0 段");
+    assert_eq!(cell["paras"], serde_json::json!(["cell text"]), "框与偏移量不进格内文字");
+    // 块本身仍是表格，没有被降级
+    let b = d["blocks"].as_array().unwrap().iter().find(|b| b["type"] == "table").unwrap();
+    assert!(b.get("textboxes").is_none(), "格里的框不该冒到块上");
+
+    // 多段的格：锚点是框所在段落的下标
+    let d = doc("cell-anchored-boxes__004");
+    let cell = &tables(&d)[0]["rows"][0][0];
+    assert_eq!(cell["anchoredBoxAnchors"], serde_json::json!([1]));
+    assert_eq!(cell["anchoredBoxes"].as_array().unwrap().len(), 1);
+}
+
+/// 格里只有一张图的段落：`MOD-05` R15 把它分成图片块，但 TS 在格里一律当普通段落，
+/// `richParas` 要给出那个图片 run。
+#[test]
+fn compat_10_cell_image_paragraph_still_has_a_run() {
+    let d = doc("bugfix-regressions__006");
+    let cell = &tables(&d)[0]["rows"][0][0];
+    let runs = cell["richParas"][0]["runs"].as_array().expect("图片段落的 runs");
+    assert_eq!(runs.len(), 1);
+    assert_eq!(runs[0]["text"], Value::from(""));
+    assert!(
+        runs[0]["image"]["dataUrl"].as_str().is_some_and(|u| u.starts_with("data:image/")),
+        "{}",
+        runs[0]
+    );
+}

@@ -125,17 +125,22 @@ pub(super) fn run_image(ctx: &Ctx<'_>, seg: &Segment) -> Option<Map<String, Valu
     }
 }
 
-/// 显示模型 → 图片 run。段落被分类成 `Image` / `Protected` 时显示模型挂在**块**上而不是段上
-/// （页眉页脚的单元格里就有这种纯图段落，`COMPAT-05`），所以入口取 `Display` 而不是 `Segment`。
-pub(super) fn display_image_run(ctx: &Ctx<'_>, d: &Display) -> Option<Map<String, Value>> {
-    match d {
-        Display::Drawing(_) => drawing_run_image(ctx, d),
-        Display::Vml(_) => vml_run_image(ctx, d),
-    }
+/// 挂在**块**上的显示模型（`ImageBlock.display`）也能出图片 run：表格单元格里只有一张图的段落
+/// 被 `MOD-05` R15 分成了图片块，但 TS 在格里一律当普通段落，`richParas` 要有这个 run
+/// （`COMPAT-10`）。
+pub(super) fn block_image_run(ctx: &Ctx<'_>, display: &Display) -> Option<Map<String, Value>> {
+    let img = match display {
+        Display::Drawing(_) => drawing_run_image(ctx, display)?,
+        Display::Vml(_) => vml_run_image(ctx, display)?,
+    };
+    let mut o = Map::new();
+    set(&mut o, "text", "");
+    set(&mut o, "image", Value::Object(img));
+    Some(o)
 }
 
-fn vml_run_image(ctx: &Ctx<'_>, d: &Display) -> Option<Map<String, Value>> {
-    let v = d.as_vml()?;
+fn vml_run_image(ctx: &Ctx<'_>, display: &Display) -> Option<Map<String, Value>> {
+    let v = display.as_vml()?;
     let m = ctx.media.get(v.image()?.imagedata.as_deref()?)?;
     let mut o = Map::new();
     set(&mut o, "dataUrl", m.url.clone());
@@ -150,8 +155,8 @@ fn vml_run_image(ctx: &Ctx<'_>, d: &Display) -> Option<Map<String, Value>> {
     Some(o)
 }
 
-fn drawing_run_image(ctx: &Ctx<'_>, disp: &Display) -> Option<Map<String, Value>> {
-    let d = disp.as_drawing()?;
+fn drawing_run_image(ctx: &Ctx<'_>, display: &Display) -> Option<Map<String, Value>> {
+    let d = display.as_drawing()?;
     let pic = d.picture()?;
     let m = ctx.media.pick(pic.embed.as_deref(), pic.link.as_deref())?;
     let mut o = Map::new();

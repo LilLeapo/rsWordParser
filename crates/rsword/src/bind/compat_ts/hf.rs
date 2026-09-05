@@ -615,7 +615,7 @@ fn cell_content(ctx: &Ctx<'_>, cell: &Cell) -> Map<String, Value> {
                 }
             }
             // 纯图段落（`Block::Image`）与保护块：TS 的 `extractRuns(withImages)` 给出一个
-            // `text: ""` 的图片 run，显示模型挂在块上（不是段上），所以走 `display_image_run`
+            // `text: ""` 的图片 run，显示模型挂在块上（不是段上），所以走 `block_image_run`
             Block::Image(ib) => paras.push(image_para(ctx, ib.display.as_ref())),
             Block::Protected(pb) => paras.push(image_para(ctx, pb.display.as_ref())),
         }
@@ -761,13 +761,11 @@ fn pg_num_text(dom: &Dom, run: &crate::model::Run) -> String {
 }
 
 /// 纯图段落在单元格里的投影：一个 `text: ""` 带 `image` 的 run（没有可解析的图就是空段落）。
+///
+/// 与 `compat_ts/table.rs` 的格投影同一条路（`image::block_image_run`）：段落被 `MOD-05` R15
+/// 分成图片块，但 TS 在格里一律当普通段落，`paras` 里要有这个 run。
 fn image_para(ctx: &Ctx<'_>, display: Option<&Display>) -> Value {
-    let run = display.and_then(|d| super::image::display_image_run(ctx, d)).map(|img| {
-        let mut r = Map::new();
-        set(&mut r, "text", "");
-        set(&mut r, "image", Value::Object(img));
-        Value::Object(r)
-    });
+    let run = display.and_then(|d| super::image::block_image_run(ctx, d)).map(Value::Object);
     Value::Array(run.into_iter().collect())
 }
 
