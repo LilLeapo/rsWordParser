@@ -19,6 +19,7 @@ use crate::model::inline::{
     RevisionMeta, Run, Segment, SegmentKind, utf16_len,
 };
 use crate::model::notes::{Comments, Notes};
+use crate::model::table::{BlockStep, block_at_mut_in};
 use crate::model::theme::Theme;
 use crate::package::{Package, PartId, RelTarget, RelType, Rels};
 use crate::semantic::props::{
@@ -170,8 +171,12 @@ impl Document {
         self.main.iter().filter_map(Block::as_text)
     }
 
-    /// 局部刷新（`MOD-13` 的 `refresh`，M1 版本）：重建给定 `w:p` 在正文块表里的投影，
-    /// 保留其 sdt / 修订上下文；返回不在正文顶层的段落（表格内等，M1 不投影）。
+    /// 容器级刷新（`MOD-13` 的 `refresh`，任务 3.6）：按 [`Document::block_path`] 就地重建给定
+    /// `w:p` 的投影——**正文顶层与任意深度的单元格内一视同仁**，保留它的 sdt / 修订上下文。
+    /// 返回在投影里找不到的段落（调用方据此退回整体重建）。
+    ///
+    /// 字段与范围索引是整个 part 的投影，跟着一起重建（只重建主 part；容器级的增量在 M7 随
+    /// `TEST-07` 的随机序列一起评估）。
     pub fn refresh_paragraphs(
         &mut self,
         pkg: &mut Package,
@@ -181,25 +186,40 @@ impl Document {
         pkg.dom(main)?;
         let dom = pkg.part(main).dom().expect("main part parsed above");
         let rels = &pkg.part(main).rels;
-        // 字段索引是投影：DOM 变了就重建（M3 的容器级刷新会把这条也做成增量）
         let fields = FieldIndex::build(dom);
         let spans = SpanIndex::build(dom);
-        let mut b = Builder::new(dom, self.styles.as_ref(), rels, &fields, &spans, Vec::new());
         let mut missing = Vec::new();
+        // 先把路径与上下文取齐，再借出块表——构建器借着 `self.styles`
+        let mut work: Vec<RefreshItem> = Vec::new();
         for &p in paras {
-            match self.main.iter().position(|blk| blk.node() == p) {
-                Some(i) => {
-                    let sdt = self.main[i].sdt().cloned();
-                    let revs = self.main[i].revisions().to_vec();
-                    self.main[i] = b.build_paragraph(p, sdt.as_ref(), &revs);
-                }
+            match self.block_path(p).and_then(|path| {
+                let blk = self.block_at(&path)?;
+                Some((path, blk.sdt().cloned(), blk.revisions().to_vec()))
+            }) {
+                Some((path, sdt, revs)) => work.push((p, path, sdt, revs)),
                 None => missing.push(p),
             }
         }
+        let mut b = Builder::new(dom, self.styles.as_ref(), rels, &fields, &spans, Vec::new());
+        let mut main = std::mem::take(&mut self.main);
+        for (p, path, sdt, revs) in work {
+            let rebuilt = b.build_paragraph(p, sdt.as_ref(), &revs);
+            match block_at_mut_in(&mut main, &path) {
+                Some(slot) => *slot = rebuilt,
+                None => missing.push(p),
+            }
+        }
+        self.main = main;
         let warnings = b.warnings;
         self.warnings.extend(warnings);
         self.fields = fields;
+        self.spans = spans;
         Ok(missing)
+    }
+
+    /// 任意深度的文本段落（含单元格内），按节点找。
+    pub fn text_block(&self, para: NodeId) -> Option<&TextBlock> {
+        self.blocks().find(|b| b.node() == para).and_then(Block::as_text)
     }
 }
 
@@ -258,6 +278,9 @@ impl<'a> Builder<'a> {
 }
 
 pub(super) const MAX_CONTAINER_DEPTH: u32 = 64;
+
+/// 一次刷新里要重建的一段：节点、它在块表里的路径、以及要保留的 sdt / 修订上下文。
+type RefreshItem = (NodeId, Vec<BlockStep>, Option<SdtInfo>, Vec<Revision>);
 
 fn w(local: LocalName) -> QName {
     QName::w(local)
@@ -405,7 +428,12 @@ impl<'a> Builder<'a> {
         self.depth -= 1;
     }
 
-    fn build_paragraph(&mut self, p: NodeId, sdt: Option<&SdtInfo>, revs: &[Revision]) -> Block {
+    pub(super) fn build_paragraph(
+        &mut self,
+        p: NodeId,
+        sdt: Option<&SdtInfo>,
+        revs: &[Revision],
+    ) -> Block {
         let dom = self.dom;
         self.inline_base = self.depth;
         let ppr = dom.semantic_children(p).find(|&n| dom.is(n, w(LocalName::PPr)));

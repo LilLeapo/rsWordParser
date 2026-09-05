@@ -523,9 +523,9 @@ impl EditSession {
         &self.diagnostics
     }
 
-    /// 正文顶层的文本段落块。
+    /// 主 part 里的文本段落块，**含表格单元格内任意深度的**（任务 3.6）。
     pub fn text_block(&self, para: NodeId) -> Option<&TextBlock> {
-        self.doc.main.iter().find(|b| b.node() == para).and_then(|b| b.as_text())
+        self.doc.text_block(para)
     }
 
     /// 正文第 `i` 个文本段落（测试便利）。
@@ -749,7 +749,8 @@ impl EditSession {
             if result.structure_changed {
                 self.rebuild()?;
             } else if !result.affected_paragraphs.is_empty() {
-                // 投影里找不到的段落（表格单元格内的，M3 前不投影）→ 整体重建，不留过期投影
+                // 容器级刷新（`MOD-13`）：单元格内的段落也就地重建。真找不到（投影与 DOM 不同步）
+                // 才整体重建——那是兜底，不是正常路径
                 let missing =
                     self.doc.refresh_paragraphs(&mut self.pkg, &result.affected_paragraphs)?;
                 if !missing.is_empty() {

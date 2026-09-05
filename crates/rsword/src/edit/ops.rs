@@ -893,10 +893,15 @@ fn new_block_element(dom: &Dom, block: NewBlock) -> NewElement {
 fn insert_block(s: &mut EditSession, at: BlockPos, block: NewBlock) -> Result<MutationResult> {
     let dom = s.dom();
     let (parent, before) = block_site(dom, at)?;
+    let is_para = matches!(block, NewBlock::Paragraph { .. });
     let node = new_block_element(dom, block);
     let mut plan = MutationPlan::new(s.main_part());
     plan.structure_changed = true;
     plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(parent), before, node });
+    // 插在格尾的非段落块（表格等）后面要补一个空段落
+    if before.is_none() && !is_para {
+        keep_cell_paragraph(dom, parent, None, &mut plan);
+    }
     s.commit_plan(plan)
 }
 
@@ -908,6 +913,9 @@ fn delete_block(s: &mut EditSession, node: NodeId) -> Result<MutationResult> {
     let mut plan = MutationPlan::new(s.main_part());
     plan.structure_changed = true;
     plan.node_edits.push(NodeEdit::Delete(node));
+    if let Some(parent) = dom.parent(node) {
+        keep_cell_paragraph(dom, parent, Some(node), &mut plan);
+    }
     s.commit_plan(plan)
 }
 
@@ -920,7 +928,43 @@ fn move_block(s: &mut EditSession, node: NodeId, to: BlockPos) -> Result<Mutatio
     }
     plan.structure_changed = true;
     plan.node_edits.push(NodeEdit::Move { node, parent: Target::Node(parent), before });
+    // 搬出单元格后原格可能空了；搬进格尾的非段落块后面要补段落
+    if let Some(from) = dom.parent(node).filter(|&f| f != parent) {
+        keep_cell_paragraph(dom, from, Some(node), &mut plan);
+    }
+    if before.is_none() && !dom.is(node, w(LocalName::P)) {
+        keep_cell_paragraph(dom, parent, None, &mut plan);
+    }
     s.commit_plan(plan)
+}
+
+/// `EDIT-03` 表格通则：**单元格最后一个块必须是 `w:p`**（Word 的约束）。计划生效后 `container`
+/// （只管 `w:tc`）的末尾不是段落时，追加一个 `New` 空 `w:p`。`removed` 是这次计划里要删除 / 搬走的节点。
+fn keep_cell_paragraph(
+    dom: &Dom,
+    container: NodeId,
+    removed: Option<NodeId>,
+    plan: &mut MutationPlan,
+) {
+    if !dom.is(container, w(LocalName::Tc)) {
+        return;
+    }
+    let last = dom
+        .children(container)
+        .iter()
+        .copied()
+        .rev()
+        .filter(|&c| dom.node(c).dirty != Dirty::Deleted && dom.element(c).is_some())
+        .find(|&c| Some(c) != removed);
+    if last.is_some_and(|n| dom.is(n, w(LocalName::P))) {
+        return;
+    }
+    plan.structure_changed = true;
+    plan.node_edits.push(NodeEdit::Insert {
+        parent: Target::Node(container),
+        before: None,
+        node: NewElement::new(w(LocalName::P)),
+    });
 }
 
 // ---- 批注（`EDIT-03` AddComment / RemoveComment / SetCommentText，任务 2.6）--------------------

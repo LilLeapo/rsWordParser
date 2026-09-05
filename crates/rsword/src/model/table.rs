@@ -432,6 +432,19 @@ impl<'a> Builder<'a> {
 
 // ---- 跨表格的块遍历（MOD-13 / EDIT-02 用）--------------------------------------------------------
 
+/// [`Document::block_at_mut`] 的实现：只借块表，不借整个 `Document`（刷新时构建器同时借着样式）。
+pub fn block_at_mut_in<'a>(main: &'a mut [Block], path: &[BlockStep]) -> Option<&'a mut Block> {
+    let (first, rest) = path.split_first()?;
+    let BlockStep::Main(i) = first else { return None };
+    let mut cur = main.get_mut(*i)?;
+    for step in rest {
+        let BlockStep::Cell { row, cell, block } = step else { return None };
+        let Block::Table(t) = cur else { return None };
+        cur = t.rows.get_mut(*row)?.cells.get_mut(*cell)?.blocks.get_mut(*block)?;
+    }
+    Some(cur)
+}
+
 /// 从顶层块到某个块的一步（`Document::block_path`）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BlockStep {
@@ -524,14 +537,6 @@ impl Document {
 
     /// 按路径取块（可变）。
     pub fn block_at_mut(&mut self, path: &[BlockStep]) -> Option<&mut Block> {
-        let (first, rest) = path.split_first()?;
-        let BlockStep::Main(i) = first else { return None };
-        let mut cur = self.main.get_mut(*i)?;
-        for step in rest {
-            let BlockStep::Cell { row, cell, block } = step else { return None };
-            let Block::Table(t) = cur else { return None };
-            cur = t.rows.get_mut(*row)?.cells.get_mut(*cell)?.blocks.get_mut(*block)?;
-        }
-        Some(cur)
+        block_at_mut_in(&mut self.main, path)
     }
 }

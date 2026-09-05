@@ -727,7 +727,21 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   `cell-anchored-boxes__*`（5 份）与格内图片 / OLE（4 份），归 M4 / M6。
   定点用例 `tests/compat_table.rs`（5 个）：第 9 层扁平化且带下方全部 3,983 段、折叠过的行不挂 `rawTcPr`、
   `gridGap` 占位的形状、`tableDisplay` 的条件层与 basedOn 继承、`tableSummary` 的行列数。
-- [ ] **3.6 容器级刷新与单元格内编辑**（`MOD-13`；`TEST-04` 扩到单元格；删掉整体重建退路）
+- [x] **3.6 容器级刷新与单元格内编辑**（`model/build.rs`、`model/table.rs`、`edit/{session,ops}.rs`）：
+  `Document::refresh_paragraphs` 改成按 `block_path` **就地重建**——正文顶层与任意深度的单元格一视同仁，
+  保留该块的 sdt / 修订上下文；`block_at_mut_in` 抽成自由函数，刷新时构建器借着 `styles`、块表另外借。
+  新增 `Document::text_block(node)`（走 `blocks()`，含格内），`EditSession::text_block` 转调它——
+  于是 `InlinePos.para` 可以是任意深度的 `w:p`，`locate` / 九个既有操作在格内直接可用。
+  `EDIT-03` 表格通则落地：`keep_cell_paragraph` 在 `DeleteBlock` / `InsertBlock` / `MoveBlock` 之后检查
+  `w:tc` 的末尾，不是 `w:p` 就补一个 `New` 空段落（删掉格里最后一段、往格尾插表格、把块搬出格都会触发）。
+  `edit/session.rs` 里「投影里找不到的段落（表格内的）→ 整体重建」那条退路删掉，只留"投影与 DOM 不同步"
+  的兜底。
+  验收（`tests/cell_edit.rs`，6 个用例）：格内定位、`InsertText` / `DeleteRange` / `SetRunProps` /
+  `SetParaProps` / `SplitParagraph` / `MergeWithNext` / `AddBookmark` / `DeleteBlock` / `InsertBlock`
+  各一条，**每条之后都断言 `refresh` 的块表与 `Document::rebuild` 相等**（`MOD-13` 的 oracle）；
+  格内编辑保存后重开、其他格与顶层段落原字节不变。**M3 门第 2 条达成**：
+  `test_04_corpus_cell_edit_fidelity` 在 **67 份**含表格的语料上各改一个格内段落，保存后其他 zip 条目的
+  CRC 与压缩字节不变、重解析后 `compat_ts` 的块投影**只有那张表变了**。
 - [ ] **3.7 表格属性操作**（`SetTableProps / SetRowProps / SetCellProps`；`trPr` 位置规则）
 - [ ] **3.8 行列结构操作**（`InsertRow / DeleteRow / InsertColumn / DeleteColumn / MergeCells / NewBlock::Table`；`SAVE_TABLE_GRID`）
 - [ ] **3.9 随机序列、恶意输入与 M3 门**（`tests/table_ops.rs` 200 × 10；两份 hostile；CI）
