@@ -32,6 +32,9 @@ use crate::edit::{
 use crate::error::{Error, Result};
 use crate::package::{PartFlavor, RelType};
 use crate::save::SaveOptions;
+use crate::save::options::{
+    PgNumTypeOption, ProtectionOption, SectionSaveSettings, WriteProtectionOption,
+};
 use crate::semantic::props::{
     Border, BorderStyle, Color, DropCap, FontHint, Fonts, FrameAnchor, FramePr, FrameWrap,
     HeightRule, HexColorOrAuto, HighlightColor, Indent, Jc, LineSpacingRule, NumPr, ParaBorders,
@@ -39,6 +42,7 @@ use crate::semantic::props::{
     UnderlineKind, Val, VerticalAlignRun, emit_para_props, emit_run_props, order_index_run_props,
     read_run_props,
 };
+use crate::semantic::props::{DocProtect, NumberFormat, SectType};
 use crate::xml::{
     Dirty, Dom, LocalName, NewElement, NodeId, NsId, QName, parse_fragment, parse_fragment_dom,
 };
@@ -125,12 +129,110 @@ fn save_options_of(options: &Value) -> Result<(SaveOptions, EntryLists)> {
             "comments" => lists.comments = Some(arr(v, "comments")?),
             "footnotes" => lists.footnotes = Some(arr(v, "footnotes")?),
             "endnotes" => lists.endnotes = Some(arr(v, "endnotes")?),
+            // ---- 5.6：节与包级选项 ----
+            "section" => out.section = Some(section_settings_of(v)?),
+            "sectionStartType" => out.section_start_type = Some(sect_type_of(v)?),
+            "pgNumType" => out.pg_num_type = Some(pg_num_type_of(v)?),
+            "titlePg" => out.title_pg = v.as_bool(),
+            "pageColor" => out.page_color = Some(page_color_of(v)?),
+            "evenAndOddHeaders" => out.even_and_odd_headers = v.as_bool(),
+            "protection" => out.protection = Some(protection_of(v)?),
+            "writeProtection" => out.write_protection = Some(write_protection_of(v)?),
             other => {
                 return Err(unsupported(format!("SaveOptions {other:?} 在后续里程碑（SAVE-07）")));
             }
         }
     }
     Ok((out, lists))
+}
+
+/// 六位十六进制的页面底色；`null` = 删除。
+fn page_color_of(v: &Value) -> Result<Option<String>> {
+    match v {
+        Value::Null => Ok(None),
+        Value::String(s) if s.len() == 6 && s.bytes().all(|b| b.is_ascii_hexdigit()) => {
+            Ok(Some(s.clone()))
+        }
+        other => Err(unsupported(format!("pageColor 不是六位十六进制: {other}"))),
+    }
+}
+
+fn i32_of(v: &Value, k: &str) -> Result<i32> {
+    v.get(k)
+        .and_then(Value::as_i64)
+        .map(|n| n as i32)
+        .ok_or_else(|| unsupported(format!("SectionSettings 缺 {k:?}")))
+}
+
+/// TS `SectionSettings` → 写侧子集（读侧的只读字段不参与保存）。
+fn section_settings_of(v: &Value) -> Result<SectionSaveSettings> {
+    let opt_i32 = |k: &str| v.get(k).and_then(Value::as_i64).map(|n| n as i32);
+    let widths = v
+        .get("colWidths")
+        .and_then(Value::as_array)
+        .map(|a| a.iter().filter_map(Value::as_i64).map(|n| n as i32).collect::<Vec<_>>());
+    Ok(SectionSaveSettings {
+        page_width: i32_of(v, "pageWidth")?,
+        page_height: i32_of(v, "pageHeight")?,
+        landscape: v.get("orientation").and_then(Value::as_str) == Some("landscape"),
+        margin_top: i32_of(v, "marginTop")?,
+        margin_right: i32_of(v, "marginRight")?,
+        margin_bottom: i32_of(v, "marginBottom")?,
+        margin_left: i32_of(v, "marginLeft")?,
+        header_dist: opt_i32("headerDist"),
+        footer_dist: opt_i32("footerDist"),
+        page_border: v.get("pageBorder").and_then(Value::as_bool).unwrap_or(false),
+        columns: opt_i32("columns").unwrap_or(1),
+        col_space: opt_i32("colSpace"),
+        col_widths: widths,
+        bidi: v.get("bidi").and_then(Value::as_bool),
+    })
+}
+
+fn sect_type_of(v: &Value) -> Result<SectType> {
+    let s = v.as_str().ok_or_else(|| unsupported("sectionStartType 不是字符串"))?;
+    SectType::parse(s).ok_or_else(|| unsupported(format!("sectionStartType {s:?} 不是合法值")))
+}
+
+fn pg_num_type_of(v: &Value) -> Result<PgNumTypeOption> {
+    let fmt = match v.get("fmt").and_then(Value::as_str) {
+        None => None,
+        Some(s) => Some(
+            NumberFormat::parse(s)
+                .ok_or_else(|| unsupported(format!("pgNumType.fmt {s:?} 不是合法值")))?,
+        ),
+    };
+    Ok(PgNumTypeOption { fmt, start: v.get("start").and_then(Value::as_i64).map(|n| n as i32) })
+}
+
+fn protection_of(v: &Value) -> Result<Option<ProtectionOption>> {
+    if v.is_null() {
+        return Ok(None);
+    }
+    let edit = v.get("edit").and_then(Value::as_str).unwrap_or("none");
+    let edit = DocProtect::parse(edit)
+        .ok_or_else(|| unsupported(format!("protection.edit {edit:?} 不是合法值")))?;
+    Ok(Some(ProtectionOption {
+        edit,
+        enforced: v.get("enforced").and_then(Value::as_bool).unwrap_or(false),
+        hash: v.get("hash").and_then(Value::as_str).map(str::to_string),
+        salt: v.get("salt").and_then(Value::as_str).map(str::to_string),
+        spin_count: v.get("spinCount").and_then(Value::as_i64).map(|n| n as i32),
+        algorithm_sid: v.get("algorithmSid").and_then(Value::as_i64).map(|n| n as i32),
+    }))
+}
+
+fn write_protection_of(v: &Value) -> Result<Option<WriteProtectionOption>> {
+    if v.is_null() {
+        return Ok(None);
+    }
+    Ok(Some(WriteProtectionOption {
+        recommended: v.get("recommended").and_then(Value::as_bool).unwrap_or(false),
+        hash: v.get("hash").and_then(Value::as_str).map(str::to_string),
+        salt: v.get("salt").and_then(Value::as_str).map(str::to_string),
+        spin_count: v.get("spinCount").and_then(Value::as_i64).map(|n| n as i32),
+        algorithm_sid: v.get("algorithmSid").and_then(Value::as_i64).map(|n| n as i32),
+    }))
 }
 
 /// `richParas` 的一个 run → `w:rPr`（TS 的八个字段）。

@@ -655,6 +655,12 @@ impl EditSession {
         if opts.remove_personal_info == Some(true) || opts.remove_date_and_time == Some(true) {
             self.transaction(|s| s.ensure_settings_part().map(|_| ()))?;
         }
+        // `SAVE-07` 的内容类选项（节 / 页眉页脚 / 水印 / 底色 / 保护 / 奇偶页眉）先翻成 5.5 的
+        // 编辑操作走一遍 `apply_all`：与手写这些操作完全同一条路（同一套校验、脏标记与新建 part）。
+        let ops = crate::save::options::edit_ops(self.document(), opts);
+        if !ops.is_empty() {
+            self.apply_all(ops, &EditContext::default())?;
+        }
         let (plans, diags) = crate::save::options::plan_all(&mut self.pkg, opts, authors, dates)?;
         let mut touches_main = plans.iter().any(|p| p.part == self.pkg.main_part());
         touches_main |= self.transaction(|s| s.materialize_spans())?;

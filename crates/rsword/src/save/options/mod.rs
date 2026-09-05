@@ -1,9 +1,12 @@
 //! `SAVE-07` 保存选项与 `SAVE-01` 第 4 步 `apply_save_options`。
 //!
-//! 每项选项都翻译成普通 DOM 变更（经 [`MutationPlan`]，脏标记规则与编辑操作完全一致），没有旁路。
-//! M1 实现 `saved_at`（`docProps/core.xml` 的 `dcterms:modified` 与 `cp:revision`）与
-//! `remove_personal_info`（`word/settings.xml` 的标志 + 全包清洗）；节 / 页眉页脚 / 页面颜色等
-//! 需要新建 part 或 `sectPr` 属性表，属 M5（`SAVE-05`）。
+//! 每项选项都翻译成普通 DOM 变更，没有旁路。两条路：
+//!
+//! - **元数据与清洗**（`saved_at` / `remove_personal_info` / `remove_date_and_time`）走
+//!   [`plan_all`]，直接产出各 part 的 [`MutationPlan`]。它们不是"编辑"，没有对应的 `EditOp`。
+//! - **文档内容**（节 / 页眉页脚 / 水印 / 页面底色 / 保护 / 奇偶页眉）走 [`edit_ops`]，翻成
+//!   5.5 的编辑操作再由 `EditSession::apply_all` 执行。同一条路意味着同一套校验、同一套脏标记、
+//!   同一套 `SAVE-05` 新建 part（`spec/16` 任务 5.6 的"没有旁路"）。
 //!
 //! 作者清洗规则与 TS `scrubPersonalMetadata` 对齐：除 `customXml/*` 与 `docProps/custom.xml` 外的每个 XML part 里
 //! `w:author`（含无前缀的 `author`）改为 `Author`、`w:initials` 改为 `A`；`core.xml` 的 `dc:creator` 与
@@ -12,10 +15,17 @@
 //! 日期清洗是独立的一项（OOXML 的 `w:removeDateAndTime`，TS 没有这个能力）：批注元素（带 `w:author` 的
 //! 修订与批注）上的 `w:date` 删除。`remove_personal_info` 单独开启时日期保留，与 TS 一致。
 
+pub mod section;
+pub mod settings;
+
+pub use section::{PgNumTypeOption, ProtectionOption, SectionSaveSettings, WriteProtectionOption};
+
 use crate::diag::Diagnostic;
-use crate::edit::MutationPlan;
+use crate::edit::{EditOp, MutationPlan};
 use crate::error::Result;
+use crate::model::{Document, SectionOwner};
 use crate::package::{Package, PartId, RelType};
+use crate::semantic::props::{PropsPatch, SectType, SettingsPatch};
 use crate::xml::{Dirty, Dom, LocalName, NodeEdit, NodeId, NodeKind, NsId, QName, Target};
 
 /// `SAVE-07`：与 TS `SaveOptions` 对齐的保存选项（M1 子集）。
@@ -32,6 +42,27 @@ pub struct SaveOptions {
     /// `word/settings.xml` 的 `w:removeDateAndTime`：`Some` 写入该值并按该值决定是否删除批注 / 修订上的
     /// `w:date`；`None` 沿用文档已有的标志。TS `SaveOptions` 没有这一项（`docs/04` §8）。
     pub remove_date_and_time: Option<bool>,
+
+    // ---- 5.6：落在**最后一节**（body 级 `w:sectPr`）的四项 ----
+    /// 页面设置（`w:pgSz` / `w:pgMar` / `w:pgBorders` / `w:cols` / `w:bidi`）。
+    pub section: Option<SectionSaveSettings>,
+    /// 本节相对上一节的起始方式（`w:type`）。
+    pub section_start_type: Option<SectType>,
+    /// 页码格式与起始值（`w:pgNumType`）；两个字段都缺表示删掉该元素。
+    pub pg_num_type: Option<PgNumTypeOption>,
+    /// 首页页眉页脚不同（`w:titlePg`）。
+    pub title_pg: Option<bool>,
+
+    // ---- 5.6：包级 ----
+    /// `w:document/w:background` 的页面底色（六位十六进制）；`Some(None)` 删除，`None` 不动。
+    /// 写颜色时一并打开 `w:displayBackgroundShape`（Word 只在那时才画背景）。
+    pub page_color: Option<Option<String>>,
+    /// `w:documentProtection`；`Some(None)` 删除，`None` 不动。
+    pub protection: Option<Option<ProtectionOption>>,
+    /// `w:writeProtection`；`Some(None)` 删除，`None` 不动。
+    pub write_protection: Option<Option<WriteProtectionOption>>,
+    /// `w:evenAndOddHeaders`。
+    pub even_and_odd_headers: Option<bool>,
 }
 
 impl SaveOptions {
@@ -40,9 +71,85 @@ impl SaveOptions {
     }
 
     /// 是否要求保存必须进入序列化路径（即使没有脏节点）。
+    ///
+    /// `saved_at` **不算**（单独设置它不该让一份未编辑的文档产生输出，同 TS `isUnchanged`）；
+    /// 其余每一项都是对文档的修改请求，即使最终算出来是空补丁也要走完流程。
     pub fn forces_save(&self) -> bool {
-        self.remove_personal_info.is_some() || self.remove_date_and_time.is_some()
+        self.remove_personal_info.is_some()
+            || self.remove_date_and_time.is_some()
+            || self.section.is_some()
+            || self.section_start_type.is_some()
+            || self.pg_num_type.is_some()
+            || self.title_pg.is_some()
+            || self.page_color.is_some()
+            || self.protection.is_some()
+            || self.write_protection.is_some()
+            || self.even_and_odd_headers.is_some()
     }
+}
+
+/// `SAVE-07` 第二条路：内容类选项 → 5.5 的编辑操作（`spec/16` 任务 5.6）。
+///
+/// 顺序有意义：节属性先落，再是页面底色，最后是 `settings.xml`（后两者互不相干，但把包级的放在
+/// 后面让失败时的诊断更好读）。返回空表示这批选项对这份文档没有要改的东西。
+///
+/// 节的四项只作用在**最后一节且它是 body 级的** `w:sectPr` 上（TS 的 trailing hidden sectPr）：
+/// 文档里连一个 `w:sectPr` 都没有时 TS 什么都不做，我们也不凭空造一个（新建分节属性容器
+/// 就是新建分节符，见 `docs/04` §8）。
+pub(crate) fn edit_ops(doc: &Document, opts: &SaveOptions) -> Vec<EditOp> {
+    let mut ops = Vec::new();
+    if let Some(last) = doc.sections.last()
+        && last.owner == SectionOwner::Body
+        && let Some(sect) = last.node
+    {
+        let patch = section_patch(&last.props, opts);
+        if !patch.is_empty() {
+            ops.push(EditOp::SetSectionProps { sect, patch });
+        }
+    }
+    if let Some(color) = &opts.page_color {
+        ops.push(EditOp::SetPageColor { color: color.clone() });
+    }
+    let patch = settings_patch(opts);
+    if !patch.is_empty() {
+        ops.push(EditOp::SetDocumentSettings { patch });
+    }
+    ops
+}
+
+/// 节的四项合成一个补丁（它们碰的字段互不相交）。
+fn section_patch(
+    current: &crate::semantic::props::SectionProps,
+    opts: &SaveOptions,
+) -> crate::semantic::props::SectionPropsPatch {
+    let mut patch = match &opts.section {
+        Some(s) => section::settings_patch(current, s),
+        None => Default::default(),
+    };
+    if let Some(kind) = opts.section_start_type {
+        patch.kind = section::start_type_patch(kind).kind;
+    }
+    if let Some(p) = &opts.pg_num_type {
+        patch.page_numbers = section::pg_num_type_patch(p).page_numbers;
+    }
+    if let Some(on) = opts.title_pg {
+        patch.title_pg = section::title_pg_patch(on).title_pg;
+    }
+    patch
+}
+
+/// `settings.xml` 的三项合成一个补丁。页面底色写值时顺带打开 `w:displayBackgroundShape`
+/// （Word 只在这个开关打开时才画 `w:background`；删底色时不去关它，同 TS）。
+fn settings_patch(opts: &SaveOptions) -> SettingsPatch {
+    let background = matches!(&opts.page_color, Some(Some(_))).then_some(true);
+    let mut patch = settings::flags_patch(opts.even_and_odd_headers, background);
+    if let Some(p) = &opts.protection {
+        patch.document_protection = settings::protection_patch(p.as_ref()).document_protection;
+    }
+    if let Some(p) = &opts.write_protection {
+        patch.write_protection = settings::write_protection_patch(p.as_ref()).write_protection;
+    }
+    patch
 }
 
 const CORE_PROPS: &str = "docProps/core.xml";

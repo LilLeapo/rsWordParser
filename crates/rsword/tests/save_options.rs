@@ -287,3 +287,249 @@ fn save_07_personal_info_alone_keeps_dates() {
     assert_eq!(xpath_on(&out, "//w:ins/@w:date"), ["2026-01-01T00:00:00Z"]);
     assert_eq!(xpath_on(&out, "//w:ins/@w:author"), ["Author"]);
 }
+
+// ---------------------------------------------------------------------------
+// 5.6a：节与包级保存选项（`SAVE-07`，`spec/16` 任务 5.6）
+// ---------------------------------------------------------------------------
+
+use rsword::save::options::{
+    PgNumTypeOption, ProtectionOption, SectionSaveSettings, WriteProtectionOption,
+};
+use rsword::semantic::props::{DocProtect, NumberFormat, SectType};
+
+/// 一份带 body 级 `w:sectPr` 的最小文档。
+fn sect_docx(sect_pr: &str) -> Vec<u8> {
+    common::docx_with_body(&format!(r#"<w:p><w:r><w:t>正文</w:t></w:r></w:p>{sect_pr}"#))
+}
+
+fn a4() -> SectionSaveSettings {
+    SectionSaveSettings {
+        page_width: 11906,
+        page_height: 16838,
+        margin_top: 1440,
+        margin_right: 1440,
+        margin_bottom: 1440,
+        margin_left: 1440,
+        columns: 1,
+        ..Default::default()
+    }
+}
+
+/// `section`：页面尺寸 / 边距整体重写，`w:gutter` 这类没给出的属性沿用原值。
+#[test]
+fn save_07_section_settings_rewrite_page_setup() {
+    let bytes = sect_docx(concat!(
+        r#"<w:sectPr><w:pgSz w:w="12240" w:h="15840"/>"#,
+        r#"<w:pgMar w:top="1" w:right="2" w:bottom="3" w:left="4" w:header="55" w:footer="66" w:gutter="77"/>"#,
+        r#"</w:sectPr>"#
+    ));
+    let mut s = EditSession::open(&bytes).unwrap();
+    let opts = SaveOptions {
+        section: Some(SectionSaveSettings { landscape: true, ..a4() }),
+        ..Default::default()
+    };
+    let saved = s.save_with(&opts).unwrap();
+    let xml = part_text(&saved, "word/document.xml");
+    assert_eq!(xpath_on(&xml, "//w:pgSz/@w:w"), ["11906"], "{xml}");
+    assert_eq!(xpath_on(&xml, "//w:pgSz/@w:orient"), ["landscape"], "{xml}");
+    assert_eq!(xpath_on(&xml, "//w:pgMar/@w:top"), ["1440"], "{xml}");
+    assert_eq!(xpath_on(&xml, "//w:pgMar/@w:gutter"), ["77"], "没给出的属性沿用原值\n{xml}");
+    assert_eq!(xpath_on(&xml, "//w:pgMar/@w:header"), ["55"], "headerDist 缺省沿用\n{xml}");
+    // 纵向不写 w:orient（同 TS）
+    let mut s2 = EditSession::open(&bytes).unwrap();
+    let portrait = SaveOptions { section: Some(a4()), ..Default::default() };
+    let xml2 = part_text(&s2.save_with(&portrait).unwrap(), "word/document.xml");
+    assert_eq!(xpath_on(&xml2, "count(//w:pgSz/@w:orient)"), ["0"], "{xml2}");
+}
+
+/// `section.pageBorder` / `columns`：一圈单线边框；多栏与不等宽。
+#[test]
+fn save_07_section_settings_borders_and_columns() {
+    let bytes = sect_docx(r#"<w:sectPr><w:pgSz w:w="1" w:h="2"/></w:sectPr>"#);
+    let mut s = EditSession::open(&bytes).unwrap();
+    let opts = SaveOptions {
+        section: Some(SectionSaveSettings {
+            page_border: true,
+            columns: 3,
+            col_space: Some(360),
+            ..a4()
+        }),
+        ..Default::default()
+    };
+    let xml = part_text(&s.save_with(&opts).unwrap(), "word/document.xml");
+    assert_eq!(xpath_on(&xml, "count(//w:pgBorders/*)"), ["4"], "{xml}");
+    assert_eq!(xpath_on(&xml, "//w:pgBorders/@w:offsetFrom"), ["page"], "{xml}");
+    assert_eq!(xpath_on(&xml, "//w:pgBorders/w:top/@w:sz"), ["4"], "{xml}");
+    assert_eq!(xpath_on(&xml, "//w:pgBorders/w:top/@w:space"), ["24"], "{xml}");
+    assert_eq!(xpath_on(&xml, "//w:cols/@w:num"), ["3"], "{xml}");
+    assert_eq!(xpath_on(&xml, "//w:cols/@w:space"), ["360"], "{xml}");
+    // 不等宽：最后一栏不带 w:space
+    let mut s2 = EditSession::open(&bytes).unwrap();
+    let uneven = SaveOptions {
+        section: Some(SectionSaveSettings {
+            columns: 2,
+            col_widths: Some(vec![4000, 5000]),
+            ..a4()
+        }),
+        ..Default::default()
+    };
+    let x2 = part_text(&s2.save_with(&uneven).unwrap(), "word/document.xml");
+    assert_eq!(xpath_on(&x2, "//w:cols/@w:equalWidth"), ["0"], "{x2}");
+    assert_eq!(xpath_on(&x2, "//w:cols/w:col/@w:w"), ["4000", "5000"], "{x2}");
+    assert_eq!(xpath_on(&x2, "count(//w:cols/w:col/@w:space)"), ["1"], "{x2}");
+    // 关掉边框：元素删掉
+    let bordered = s.save_with(&opts).unwrap();
+    let mut s3 = EditSession::open(&bordered).unwrap();
+    let off = SaveOptions { section: Some(a4()), ..Default::default() };
+    let x3 = part_text(&s3.save_with(&off).unwrap(), "word/document.xml");
+    assert_eq!(xpath_on(&x3, "count(//w:pgBorders)"), ["0"], "{x3}");
+}
+
+/// `sectionStartType` / `pgNumType` / `titlePg`：三项都落在最后一节，位置按 `PROP-05`。
+#[test]
+fn save_07_section_start_type_page_numbers_and_title_page() {
+    let bytes = sect_docx(concat!(
+        r#"<w:sectPr><w:type w:val="oddPage"/><w:pgSz w:w="1" w:h="2"/>"#,
+        r#"<w:cols w:num="1"/><w:docGrid w:linePitch="312"/></w:sectPr>"#
+    ));
+    let mut s = EditSession::open(&bytes).unwrap();
+    let opts = SaveOptions {
+        section_start_type: Some(SectType::Continuous),
+        pg_num_type: Some(PgNumTypeOption { fmt: Some(NumberFormat::UpperRoman), start: Some(5) }),
+        title_pg: Some(true),
+        ..Default::default()
+    };
+    let xml = part_text(&s.save_with(&opts).unwrap(), "word/document.xml");
+    assert_eq!(xpath_on(&xml, "//w:sectPr/w:type/@w:val"), ["continuous"], "{xml}");
+    assert_eq!(xpath_on(&xml, "//w:pgNumType/@w:fmt"), ["upperRoman"], "{xml}");
+    assert_eq!(xpath_on(&xml, "//w:pgNumType/@w:start"), ["5"], "{xml}");
+    assert_eq!(xpath_on(&xml, "count(//w:titlePg)"), ["1"], "{xml}");
+    // `w:pgNumType` 在 `w:cols` 之前（CT_SectPr 顺序），`w:titlePg` 在 `w:docGrid` 之前
+    let (i_num, i_cols) = (xml.find("<w:pgNumType").unwrap(), xml.find("<w:cols").unwrap());
+    assert!(i_num < i_cols, "w:pgNumType 要在 w:cols 之前\n{xml}");
+    let (i_title, i_grid) = (xml.find("<w:titlePg").unwrap(), xml.find("<w:docGrid").unwrap());
+    assert!(i_title < i_grid, "w:titlePg 要在 w:docGrid 之前\n{xml}");
+
+    // `nextPage` 是缺省 → 删掉 `w:type`；两个字段都缺 → 删掉 `w:pgNumType`；`titlePg: false` → 删掉
+    let mut s2 = EditSession::open(&s.save_with(&opts).unwrap()).unwrap();
+    let clear = SaveOptions {
+        section_start_type: Some(SectType::NextPage),
+        pg_num_type: Some(PgNumTypeOption::default()),
+        title_pg: Some(false),
+        ..Default::default()
+    };
+    let x2 = part_text(&s2.save_with(&clear).unwrap(), "word/document.xml");
+    assert_eq!(xpath_on(&x2, "count(//w:sectPr/w:type)"), ["0"], "{x2}");
+    assert_eq!(xpath_on(&x2, "count(//w:pgNumType)"), ["0"], "{x2}");
+    assert_eq!(xpath_on(&x2, "count(//w:titlePg)"), ["0"], "{x2}");
+}
+
+/// 一个 `w:sectPr` 都没有的文档：四项都无处可落，不凭空造分节符（`docs/04` §8）。
+#[test]
+fn save_07_section_options_need_an_existing_sect_pr() {
+    let bytes = common::docx_with_body(r#"<w:p><w:r><w:t>只有一段</w:t></w:r></w:p>"#);
+    let mut s = EditSession::open(&bytes).unwrap();
+    let opts = SaveOptions { section: Some(a4()), title_pg: Some(true), ..Default::default() };
+    let saved = s.save_with(&opts).unwrap();
+    let xml = part_text(&saved, "word/document.xml");
+    assert_eq!(xpath_on(&xml, "count(//w:sectPr)"), ["0"], "{xml}");
+    assert_eq!(saved, bytes, "没有可改的东西 → 原字节");
+}
+
+/// `pageColor`：`w:background` + `settings.xml` 的 `w:displayBackgroundShape`。
+#[test]
+fn save_07_page_color_also_opts_in_via_settings() {
+    let bytes = sect_docx(r#"<w:sectPr/>"#);
+    let mut s = EditSession::open(&bytes).unwrap();
+    let opts = SaveOptions { page_color: Some(Some("FFF2CC".into())), ..Default::default() };
+    let saved = s.save_with(&opts).unwrap();
+    let xml = part_text(&saved, "word/document.xml");
+    assert_eq!(xpath_on(&xml, "/w:document/w:background/@w:color"), ["FFF2CC"], "{xml}");
+    let settings = part_text(&saved, "word/settings.xml");
+    assert_eq!(xpath_on(&settings, "count(//w:displayBackgroundShape)"), ["1"], "{settings}");
+    // 删底色：`w:background` 走了，开关留着（同 TS）
+    let mut s2 = EditSession::open(&saved).unwrap();
+    let clear = SaveOptions { page_color: Some(None), ..Default::default() };
+    let cleared = s2.save_with(&clear).unwrap();
+    let x2 = part_text(&cleared, "word/document.xml");
+    assert_eq!(xpath_on(&x2, "count(//w:background)"), ["0"], "{x2}");
+}
+
+/// `protection` / `writeProtection`：口令散列的七个属性只在有 `hash` 时写，缺省 sid 14 /
+/// spinCount 100000；`None` 删除。
+#[test]
+fn save_07_protection_options() {
+    let bytes = sect_docx(r#"<w:sectPr/>"#);
+    let mut s = EditSession::open(&bytes).unwrap();
+    let opts = SaveOptions {
+        protection: Some(Some(ProtectionOption {
+            edit: DocProtect::ReadOnly,
+            enforced: true,
+            hash: None,
+            salt: None,
+            spin_count: None,
+            algorithm_sid: None,
+        })),
+        write_protection: Some(Some(WriteProtectionOption {
+            recommended: false,
+            hash: Some("aGFzaA==".into()),
+            salt: Some("c2FsdA==".into()),
+            spin_count: None,
+            algorithm_sid: None,
+        })),
+        ..Default::default()
+    };
+    let settings = part_text(&s.save_with(&opts).unwrap(), "word/settings.xml");
+    assert_eq!(xpath_on(&settings, "//w:documentProtection/@w:edit"), ["readOnly"], "{settings}");
+    assert_eq!(xpath_on(&settings, "//w:documentProtection/@w:enforcement"), ["1"], "{settings}");
+    assert_eq!(
+        xpath_on(&settings, "count(//w:documentProtection/@w:hash)"),
+        ["0"],
+        "没有口令就不写 crypt 属性\n{settings}"
+    );
+    assert_eq!(
+        xpath_on(&settings, "//w:writeProtection/@w:cryptAlgorithmSid"),
+        ["14"],
+        "{settings}"
+    );
+    assert_eq!(
+        xpath_on(&settings, "//w:writeProtection/@w:cryptSpinCount"),
+        ["100000"],
+        "{settings}"
+    );
+    assert_eq!(xpath_on(&settings, "//w:writeProtection/@w:hash"), ["aGFzaA=="], "{settings}");
+
+    // 删除
+    let mut s2 = EditSession::open(&s.save_with(&opts).unwrap()).unwrap();
+    let clear =
+        SaveOptions { protection: Some(None), write_protection: Some(None), ..Default::default() };
+    let x2 = part_text(&s2.save_with(&clear).unwrap(), "word/settings.xml");
+    assert_eq!(xpath_on(&x2, "count(//w:documentProtection)"), ["0"], "{x2}");
+    assert_eq!(xpath_on(&x2, "count(//w:writeProtection)"), ["0"], "{x2}");
+    // 既不 recommended 也没有口令 → 等于删除（同 TS）
+    let mut s3 = EditSession::open(&bytes).unwrap();
+    let empty = SaveOptions {
+        write_protection: Some(Some(WriteProtectionOption::default())),
+        ..Default::default()
+    };
+    let x3 = part_text(&s3.save_with(&empty).unwrap(), "word/settings.xml");
+    assert_eq!(xpath_on(&x3, "count(//w:writeProtection)"), ["0"], "{x3}");
+}
+
+/// `evenAndOddHeaders`：写入后重解析，投影里读得出来（重解析 oracle）。
+#[test]
+fn save_07_even_and_odd_headers_round_trips_through_the_projection() {
+    let bytes = sect_docx(r#"<w:sectPr/>"#);
+    let mut s = EditSession::open(&bytes).unwrap();
+    let opts = SaveOptions { even_and_odd_headers: Some(true), ..Default::default() };
+    let saved = s.save_with(&opts).unwrap();
+    let mut pkg = Package::open(&saved).unwrap();
+    let json = rsword::bind::compat_ts::parsed_doc(&mut pkg).unwrap();
+    assert_eq!(json["evenAndOddHeaders"], true);
+    let mut s2 = EditSession::open(&saved).unwrap();
+    let off = SaveOptions { even_and_odd_headers: Some(false), ..Default::default() };
+    let cleared = s2.save_with(&off).unwrap();
+    let mut pkg2 = Package::open(&cleared).unwrap();
+    let json2 = rsword::bind::compat_ts::parsed_doc(&mut pkg2).unwrap();
+    assert_eq!(json2["evenAndOddHeaders"], false);
+}
