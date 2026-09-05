@@ -97,7 +97,7 @@ fn mod_01_header_content_uses_the_body_pipeline() {
     let sdt_block = hf.blocks.iter().find(|b| b.sdt().is_some()).expect("sdt 块");
     assert_eq!(sdt_block.sdt().unwrap().alias.as_deref(), Some("a"));
     // 内容流：`w:hdr` 是流根，框外段落都在同一个流里
-    assert!(hf.flows.flow_of(hf.root).is_some());
+    assert!(hf.idx.flows.flow_of(hf.root).is_some());
 }
 
 /// `FLD-11`：`has_page_number` / `has_num_pages` 由本 part 的字段索引推导；
@@ -139,7 +139,7 @@ fn fld_11_page_number_comes_from_the_parts_own_field_index() {
     let h = &doc.hf_parts[&doc.hf_by_rel["rIdH"]];
     assert!(h.has_page_number);
     assert!(!h.has_num_pages);
-    assert_eq!(h.fields.fields().len(), 1, "页眉的字段索引只看自己的 part");
+    assert_eq!(h.idx.fields.fields().len(), 1, "页眉的字段索引只看自己的 part");
 
     let f = &doc.hf_parts[&doc.hf_by_rel["rIdF"]];
     assert!(!f.has_page_number);
@@ -147,7 +147,7 @@ fn fld_11_page_number_comes_from_the_parts_own_field_index() {
 
     let f2 = &doc.hf_parts[&doc.hf_by_rel["rIdF2"]];
     assert!(f2.has_page_number, "w:pgNum 是旧式页码");
-    assert!(f2.fields.fields().is_empty(), "它不是字段");
+    assert!(f2.idx.fields.fields().is_empty(), "它不是字段");
 }
 
 /// 文字水印：页眉里的 VML `v:textpath/@string`（Word 的水印实现）。
@@ -199,7 +199,11 @@ fn span_01_header_part_has_its_own_span_index() {
         ],
     );
     let h = &doc.hf_parts[&doc.hf_by_rel["rIdH"]];
-    assert_eq!(bookmark_names(h.spans.spans()), vec!["hdrMark"], "页眉的范围索引里只有页眉的书签");
+    assert_eq!(
+        bookmark_names(h.idx.spans.spans()),
+        vec!["hdrMark"],
+        "页眉的范围索引里只有页眉的书签"
+    );
     assert_eq!(bookmark_names(doc.spans.spans()), vec!["bodyMark"]);
 }
 

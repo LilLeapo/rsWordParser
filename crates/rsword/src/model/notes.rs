@@ -5,12 +5,17 @@
 //! `commentsIds.xml` 给 durableId。注释部件里带 `w:type` 的条目（`separator` /
 //! `continuationSeparator`）是结构条目，不是正文——保存时要原样留着（`spec/13` 2.6）。
 //!
-//! 这里只做**声明值**：文字、格式与节点位置。正文管线（把注释内容当成 `Vec<Block>` 建模）在 M5。
+//! 声明值（文字、格式、节点位置）与**内容块**（`Note.blocks` / `Comment.blocks`）都在这里：
+//! 条目的内容与页眉页脚、正文同一个构建器（`docs/03` §6.7，任务 5.3）。`text` / `rich` 是 TS 形态的
+//! 投影（`COMPAT-02` 的 `footnotes[].richParas`），与 `blocks` 并存——它们随 `compat_ts` 在 M9 一起删。
 
 use std::collections::HashMap;
 
 use crate::diag::Diagnostic;
-use crate::package::PartId;
+use crate::model::aux::AuxFlows;
+use crate::model::block::Block;
+use crate::model::decl::Styles;
+use crate::package::{PartId, Rels};
 use crate::semantic::props::{RunProps, read_run_props};
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
@@ -56,6 +61,8 @@ pub struct Comment {
     /// 条目里的 `w:p`（保存时的手术式补丁用）。
     pub paragraphs: Vec<NodeId>,
     pub rich: Vec<Vec<RichRun>>,
+    /// 条目内容，与正文同一构建器（`MOD-01`，任务 5.3）。
+    pub blocks: Vec<Block>,
 }
 
 /// `comments.xml`（+ `commentsExtended.xml` / `commentsIds.xml`）。
@@ -65,6 +72,8 @@ pub struct Comments {
     pub extended_part: Option<PartId>,
     pub ids_part: Option<PartId>,
     pub items: Vec<Comment>,
+    /// `comments.xml` 的三份索引（`SPAN-01`：每条批注是一个独立内容流）。part 缺失时 `None`。
+    pub idx: Option<AuxFlows>,
 }
 
 impl Comments {
@@ -73,6 +82,8 @@ impl Comments {
         comments: Option<(PartId, &Dom)>,
         extended: Option<(PartId, &Dom)>,
         ids: Option<(PartId, &Dom)>,
+        rels: Option<&Rels>,
+        styles: Option<&Styles>,
         diags: &mut Vec<Diagnostic>,
     ) -> Comments {
         let mut out = Comments {
@@ -80,12 +91,19 @@ impl Comments {
             extended_part: extended.map(|(p, _)| p),
             ids_part: ids.map(|(p, _)| p),
             items: Vec::new(),
+            idx: None,
         };
-        if let Some((_, dom)) = comments {
+        if let Some((part, dom)) = comments {
             let root = dom.root();
+            let idx = AuxFlows::build(part, dom, diags);
             for c in dom.semantic_children(root).filter(|&n| dom.is(n, w(LocalName::Comment))) {
-                out.items.push(read_comment(dom, c, diags));
+                let mut item = read_comment(dom, c, diags);
+                if let Some(rels) = rels {
+                    item.blocks = idx.blocks_of(dom, rels, styles, c, diags);
+                }
+                out.items.push(item);
             }
+            out.idx = Some(idx);
         }
         out.link_extended(extended.map(|(_, d)| d), ids.map(|(_, d)| d));
         out
@@ -167,6 +185,7 @@ fn read_comment(dom: &Dom, node: NodeId, diags: &mut Vec<Diagnostic>) -> Comment
         durable_id: None,
         paragraphs,
         rich,
+        blocks: Vec::new(),
     }
 }
 
@@ -200,6 +219,8 @@ pub struct Note {
     /// 条目里没有任何 `w:footnoteRef` / `w:endnoteRef` run。
     pub no_ref_mark: bool,
     pub paragraphs: Vec<NodeId>,
+    /// 条目内容，与正文同一构建器（`MOD-01`，任务 5.3）。
+    pub blocks: Vec<Block>,
 }
 
 /// `footnotes.xml` 或 `endnotes.xml`。
@@ -208,6 +229,8 @@ pub struct Notes {
     pub part: Option<PartId>,
     /// 全部条目，含 separator 一类结构条目（保存时要原样保留）。
     pub items: Vec<Note>,
+    /// 该 part 的三份索引（`SPAN-01`：每个条目是一个独立内容流）。part 缺失时 `None`。
+    pub idx: Option<AuxFlows>,
 }
 
 impl Notes {
@@ -215,15 +238,23 @@ impl Notes {
         part: Option<(PartId, &Dom)>,
         entry: LocalName,
         ref_mark: LocalName,
+        rels: Option<&Rels>,
+        styles: Option<&Styles>,
         diags: &mut Vec<Diagnostic>,
     ) -> Notes {
         let Some((id, dom)) = part else { return Notes::default() };
-        let items = dom
-            .semantic_children(dom.root())
-            .filter(|&n| dom.is(n, w(entry)))
-            .map(|n| read_note(dom, n, ref_mark, diags))
-            .collect();
-        Notes { part: Some(id), items }
+        let idx = AuxFlows::build(id, dom, diags);
+        let entries: Vec<NodeId> =
+            dom.semantic_children(dom.root()).filter(|&n| dom.is(n, w(entry))).collect();
+        let mut items = Vec::with_capacity(entries.len());
+        for n in entries {
+            let mut item = read_note(dom, n, ref_mark, diags);
+            if let Some(rels) = rels {
+                item.blocks = idx.blocks_of(dom, rels, styles, n, diags);
+            }
+            items.push(item);
+        }
+        Notes { part: Some(id), items, idx: Some(idx) }
     }
 
     /// 正文条目（`separator` / `continuationSeparator` 不算）。
@@ -262,6 +293,7 @@ fn read_note(dom: &Dom, node: NodeId, ref_mark: LocalName, diags: &mut Vec<Diagn
         rich,
         no_ref_mark,
         paragraphs,
+        blocks: Vec::new(),
     }
 }
 

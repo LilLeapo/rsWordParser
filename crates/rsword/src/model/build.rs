@@ -129,22 +129,30 @@ impl Document {
         let theme = dom_of(theme_id).and_then(Theme::from_dom);
         let font_table = dom_of(font_id).and_then(|d| FontTable::from_dom(d, &mut warnings));
         let with_dom = |id: Option<PartId>| id.and_then(|i| pkg.part(i).dom().map(|d| (i, d)));
+        // 条目内容复用正文管线（任务 5.3）：要那个 part 自己的 rels（条目里的图片 / 链接按 part 解析）
+        let rels_of = |id: Option<PartId>| id.map(|i| &pkg.part(i).rels);
         let comments = Comments::from_doms(
             with_dom(comments_id),
             with_dom(comments_ex_id),
             with_dom(comments_ids_id),
+            rels_of(comments_id),
+            styles.as_ref(),
             &mut warnings,
         );
         let footnotes = Notes::from_dom(
             with_dom(footnotes_id),
             LocalName::Footnote,
             LocalName::FootnoteRef,
+            rels_of(footnotes_id),
+            styles.as_ref(),
             &mut warnings,
         );
         let endnotes = Notes::from_dom(
             with_dom(endnotes_id),
             LocalName::Endnote,
             LocalName::EndnoteRef,
+            rels_of(endnotes_id),
+            styles.as_ref(),
             &mut warnings,
         );
 

@@ -20,6 +20,7 @@ pub mod build;
 pub mod classify;
 mod macros;
 
+pub mod aux;
 pub mod custgeom;
 pub mod decl;
 pub mod drawing;
@@ -59,6 +60,7 @@ pub use inline::{
 };
 pub use notes::{Comment, Comments, Note, NoteKind, Notes, RichRun};
 // `SdtInfo` 从 `block` 一并导出（它是 `Block` 的字段）
+pub use aux::AuxFlows;
 pub use hf::HfPart;
 pub use sdt::{DataBinding, DocPart, SdtControl, SdtLock, SdtRefusal, refusing_sdt};
 pub use section::{HfKind, HfVariant, SectionGeom, SectionInfo, SectionOwner, Sections};

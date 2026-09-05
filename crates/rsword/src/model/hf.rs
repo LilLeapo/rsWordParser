@@ -13,13 +13,12 @@
 //! （`docs/03` §5.4 末段——所以模型里没有 `PAGE_MARK` 这类占位符，那只存在于 `compat_ts`）。
 
 use crate::diag::{DiagCode, Diagnostic};
+use crate::model::aux::AuxFlows;
 use crate::model::block::Block;
-use crate::model::build::Builder;
 use crate::model::decl::Styles;
 use crate::model::section::HfKind;
 use crate::package::{PartId, Rels};
-use crate::span::field::{FieldIndex, Keyword};
-use crate::span::{FlowMap, SpanIndex};
+use crate::span::field::Keyword;
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
 /// 一个页眉或页脚 part。
@@ -31,12 +30,8 @@ pub struct HfPart {
     pub root: NodeId,
     /// 内容，与正文同一构建器（`docs/03` §6.7）。
     pub blocks: Vec<Block>,
-    /// 本 part 的内容流映射（`SPAN-01`）。
-    pub flows: FlowMap,
-    /// 本 part 的字段索引（`FLD-02`）。
-    pub fields: FieldIndex,
-    /// 本 part 的范围索引（`SPAN-04`）：页眉里的书签与批注标记也要成对认领。
-    pub spans: SpanIndex,
+    /// 本 part 的三份索引（`SPAN-01` / `FLD-02` / `SPAN-04`）。
+    pub idx: AuxFlows,
     /// 含 `PAGE` 字段（`FLD-11`）或旧式 `w:pgNum` 元素。
     pub has_page_number: bool,
     /// 含 `NUMPAGES` 字段。
@@ -71,18 +66,9 @@ impl HfPart {
             ));
             return None;
         }
-        let flows = FlowMap::build(dom);
-        let mut fields = FieldIndex::build(dom);
-        warnings.extend(fields.take_diagnostics());
-        let mut spans = SpanIndex::build(dom);
-        warnings.extend(spans.take_diagnostics());
-
-        let mut b = Builder::new(dom, styles, rels, &fields, &spans, Vec::new());
-        let mut blocks = Vec::new();
-        b.build_container(root, None, &[], &mut blocks);
-        warnings.append(&mut b.warnings);
-
-        let has = |k: &Keyword| fields.fields().iter().any(|f| f.keyword() == k);
+        let idx = AuxFlows::build(part, dom, warnings);
+        let blocks = idx.blocks_of(dom, rels, styles, root, warnings);
+        let has = |k: &Keyword| idx.fields.fields().iter().any(|f| f.keyword() == k);
         // `w:pgNum` 是 Word 6.0/95 的旧式页码：一个 run 子元素，不是字段，但语义就是"这里放页码"
         // （TS `hfContentFromXml` 把它换成 `PAGE_MARK` 并置 `hasPageNumber`）。
         // 坐标流里它是 `SegmentKind::Other`，与原子字段一样占 1 个单位，所以偏移不受影响。
@@ -93,12 +79,10 @@ impl HfPart {
             kind,
             root,
             blocks,
-            flows,
             has_page_number: has(&Keyword::Page) || legacy_pg_num,
             has_num_pages: has(&Keyword::NumPages),
             watermark: watermark_of(dom),
-            fields,
-            spans,
+            idx,
         })
     }
 

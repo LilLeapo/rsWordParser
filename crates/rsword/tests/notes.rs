@@ -482,3 +482,68 @@ fn compat_04_comment_list_is_authoritative() {
     assert!(!doc.contains(r#"w:id="2""#), "被删批注的标记与 reference 一起清掉: {doc}");
     assert!(doc.contains("甲") && doc.contains("乙"), "正文文字不动: {doc}");
 }
+
+/// 任务 5.3：注释与批注条目的内容也是 `Vec<Block>`，与正文同一构建器（`MOD-01`）。
+/// `text` / `rich` 是 TS 形态的投影，与 `blocks` 并存。
+#[test]
+fn mod_01_note_and_comment_entries_carry_blocks() {
+    let doc = corpus_doc("text-patch__002.docx");
+    // separator 条目：内容是一个 `w:separator` run 的段落，照样成块（保存要原样留）
+    let sep = &doc.footnotes.items[0];
+    assert_eq!(sep.kind, NoteKind::Separator);
+    assert_eq!(sep.blocks.len(), sep.paragraphs.len());
+
+    let n = doc.footnotes.normal().next().expect("正文条目");
+    assert_eq!(n.blocks.len(), 1);
+    let b = n.blocks[0].as_text().expect("文本块");
+    assert_eq!(b.node, n.paragraphs[0], "块就是条目里那个 w:p");
+    // 坐标流含自引用标记（长度 0）与文字
+    assert!(b.text().contains("斜体脚注"));
+    assert!(doc.footnotes.idx.is_some(), "part 的索引建了");
+
+    let c = corpus_doc("comments__001.docx");
+    let first = c.comments.items.first().expect("批注");
+    assert!(!first.blocks.is_empty());
+    assert_eq!(
+        first.blocks.iter().filter_map(rsword::model::Block::as_text).count(),
+        first.paragraphs.len()
+    );
+    assert!(c.comments.idx.is_some());
+}
+
+/// 全语料：每个条目的块与它的 `w:p` 列表对得上（`MOD-01`）。
+#[test]
+fn mod_01_note_and_comment_blocks_across_the_corpus() {
+    let mut entries = 0usize;
+    let mut blocks = 0usize;
+    for path in common::docx_paths("synthetic") {
+        let bytes = std::fs::read(&path).unwrap();
+        let Ok(mut pkg) = Package::open(&bytes) else { continue };
+        let Ok(doc) = Document::rebuild(&mut pkg) else { continue };
+        let notes = doc.footnotes.items.iter().chain(doc.endnotes.items.iter());
+        for n in notes {
+            entries += 1;
+            blocks += n.blocks.len();
+            if !n.paragraphs.is_empty() {
+                assert!(!n.blocks.is_empty(), "{}: 条目 {} 没有块", path.display(), n.id);
+            }
+            for b in n.blocks.iter().filter_map(rsword::model::Block::as_text) {
+                assert!(
+                    n.paragraphs.contains(&b.node),
+                    "{}: 条目 {} 的文本块不在 paragraphs 里",
+                    path.display(),
+                    n.id
+                );
+            }
+        }
+        for c in &doc.comments.items {
+            entries += 1;
+            blocks += c.blocks.len();
+            if !c.paragraphs.is_empty() {
+                assert!(!c.blocks.is_empty(), "{}: 批注 {} 没有块", path.display(), c.id);
+            }
+        }
+    }
+    eprintln!("notes/comments: {entries} 个条目、{blocks} 个块");
+    assert!(entries > 20, "语料缺失？{entries}");
+}
