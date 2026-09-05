@@ -15,6 +15,7 @@ pub mod ops;
 pub mod plan;
 pub mod pos;
 pub mod session;
+pub mod table_ops;
 
 pub use inline::{NewInline, NewLinkTarget, NewMarker, NewRevision, NewRun};
 pub use plan::{MutationPlan, MutationResult};
@@ -59,6 +60,9 @@ pub enum BlockPos {
 pub enum NewBlock {
     /// 新段落：`props` 为完整的 `w:pPr`（`None` = 无 `pPr`）。
     Paragraph { props: Option<NewElement>, inlines: Vec<NewInline> },
+    /// 新表格：`rows` × `cols`，`widths` 是各列宽（twips；缺省等分 9360），`style` 是 `tblStyle`，
+    /// `header` 为真时首行带 `w:tblHeader`。每格一个空 `w:p`。
+    Table { rows: u32, cols: u32, widths: Option<Vec<i32>>, style: Option<String>, header: bool },
     /// 任意块级片段（`w:p` / `w:tbl` / …），通常来自 [`crate::xml::parse_fragment`]。
     Xml(NewElement),
     /// 外层包裹（compat 侧显式给出的块级 `w:ins` / `w:del`，属性已填好）里放一个块。
@@ -102,6 +106,17 @@ pub enum EditOp {
     SetRowProps { row: NodeId, patch: RowPropsPatch },
     /// `EDIT-03 SetCellProps`：`w:tcPr` 按 `PROP-06` 合并（容器缺失时插为 `w:tc` 第一个子元素）。
     SetCellProps { cell: NodeId, patch: CellPropsPatch },
+    /// `EDIT-03 InsertRow`：在第 `at` 行前插入一行；`template` 缺省取 `at` 的前一行（`at == 0` 取第 0 行），
+    /// `trPr` / `tblPrEx` / 各 `tcPr` 字节克隆，内容为一个空 `w:p`（克隆模板格首段的 `pPr`）。
+    InsertRow { table: NodeId, at: u32, template: Option<NodeId> },
+    /// `EDIT-03 DeleteRow`：删第 `at` 行；被删行的 `vMerge restart` 会把下一行的 continue 提升为 restart。
+    DeleteRow { table: NodeId, at: u32 },
+    /// `EDIT-03 InsertColumn`：在第 `at` 列前插入一列（`width` 是新列宽，twips）。
+    InsertColumn { table: NodeId, at: u32, width: i32 },
+    /// `EDIT-03 DeleteColumn`：删第 `at` 列。
+    DeleteColumn { table: NodeId, at: u32 },
+    /// `EDIT-03 MergeCells`：合并网格坐标闭区间 `from..=to`（行, 列）。
+    MergeCells { table: NodeId, from: (u32, u32), to: (u32, u32) },
     /// `EDIT-03 InsertBlock`：`New` 子树。
     InsertBlock { at: BlockPos, block: NewBlock },
     /// `EDIT-03 DeleteBlock`：`Deleted`。

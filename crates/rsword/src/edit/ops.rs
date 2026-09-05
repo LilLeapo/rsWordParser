@@ -34,6 +34,15 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::ReplaceInlines { para, inlines } => replace_inlines(s, para, &inlines),
         EditOp::SetParaProps { para, patch } => set_para_props(s, para, &patch),
         EditOp::ReplaceParaProps { para, props } => replace_para_props(s, para, props),
+        EditOp::InsertRow { table, at, template } => {
+            super::table_ops::insert_row(s, table, at, template)
+        }
+        EditOp::DeleteRow { table, at } => super::table_ops::delete_row(s, table, at),
+        EditOp::InsertColumn { table, at, width } => {
+            super::table_ops::insert_column(s, table, at, width)
+        }
+        EditOp::DeleteColumn { table, at } => super::table_ops::delete_column(s, table, at),
+        EditOp::MergeCells { table, from, to } => super::table_ops::merge_cells(s, table, from, to),
         EditOp::SetTableProps { table, patch } => set_table_props(s, table, &patch),
         EditOp::SetRowProps { row, patch } => set_row_props(s, row, &patch),
         EditOp::SetCellProps { cell, patch } => set_cell_props(s, cell, &patch),
@@ -83,7 +92,12 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
         | EditOp::MergeWithNext { para } => vec![*para],
         EditOp::SetTableProps { table: n, .. }
         | EditOp::SetRowProps { row: n, .. }
-        | EditOp::SetCellProps { cell: n, .. } => vec![*n],
+        | EditOp::SetCellProps { cell: n, .. }
+        | EditOp::InsertRow { table: n, .. }
+        | EditOp::DeleteRow { table: n, .. }
+        | EditOp::InsertColumn { table: n, .. }
+        | EditOp::DeleteColumn { table: n, .. }
+        | EditOp::MergeCells { table: n, .. } => vec![*n],
         EditOp::InsertBlock { at, .. } => vec![block_pos(at)],
         EditOp::DeleteBlock { node } => vec![*node],
         EditOp::MoveBlock { node, to } => vec![*node, block_pos(to)],
@@ -873,6 +887,9 @@ fn block_site(dom: &Dom, at: BlockPos) -> Result<(NodeId, Option<NodeId>)> {
 fn new_block_element(dom: &Dom, block: NewBlock) -> NewElement {
     match block {
         NewBlock::Xml(e) => e,
+        NewBlock::Table { rows, cols, widths, style, header } => {
+            super::table_ops::new_table(rows, cols, widths, style, header)
+        }
         NewBlock::Paragraph { props, inlines } => {
             let mut p = NewElement::new(w(LocalName::P));
             if let Some(pp) = props {

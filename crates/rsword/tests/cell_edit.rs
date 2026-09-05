@@ -343,7 +343,7 @@ fn edit_03_table_row_cell_props() {
     .unwrap();
     let t = s.document().tables().next().unwrap();
     assert_eq!(t.style_id.as_deref(), Some("TableGrid"));
-    assert_eq!(t.props.width.as_ref().unwrap().kind.is_some(), true, "原有 tblW 保留");
+    assert!(t.props.width.as_ref().unwrap().kind.is_some(), "原有 tblW 保留");
     let dom = s.dom();
     let tbl_pr =
         dom.semantic_children(tbl).find(|&n| dom.is(n, QName::w(LocalName::TblPr))).unwrap();

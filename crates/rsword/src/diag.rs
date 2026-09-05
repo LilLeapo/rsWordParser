@@ -126,12 +126,18 @@ pub enum DiagCode {
     EditPlanInvalid,
     /// `EDIT-03`：该操作或输入形态在当前阶段不支持。
     EditUnsupported,
+    /// `EDIT-03`：表格各行的网格宽度与 `tblGrid` 列数不一致，列操作拒绝执行（**不**偷偷修网格）。
+    EditTableGridInconsistent,
+    /// `EDIT-03`：请求的表格几何非法（合并区不是矩形 / 与既有合并交叠 / 会把行掏空）。
+    EditTableGeometry,
 
     // ---- SAVE（spec/09）----
     /// `SAVE-02`：调试构建与 CI 下的 `EngineInvariantViolation`。
     SaveInvariant,
     /// `SAVE-03`：Strict part 中禁止生成 VML。
     SaveStrictNoVml,
+    /// `SAVE-02`：`New` / 脏 `w:tbl` 的行网格宽度与 `tblGrid` 列数不一致。
+    SaveTableGrid,
 }
 
 impl DiagCode {
@@ -178,12 +184,15 @@ impl DiagCode {
             Self::EditAnchorUnmoved => "EDIT_ANCHOR_UNMOVED",
             Self::EditPlanInvalid => "EDIT_PLAN_INVALID",
             Self::EditUnsupported => "EDIT_UNSUPPORTED",
+            Self::EditTableGridInconsistent => "EDIT_TABLE_GRID_INCONSISTENT",
+            Self::EditTableGeometry => "EDIT_TABLE_GEOMETRY",
             Self::EditSplitField => "EDIT_SPLIT_FIELD",
             Self::EditUnsupportedTrackedMove => "EDIT_UNSUPPORTED_TRACKED_MOVE",
             Self::EditSdtLocked => "EDIT_SDT_LOCKED",
             Self::EditSdtBound => "EDIT_SDT_BOUND",
             Self::SaveInvariant => "SAVE_INVARIANT",
             Self::SaveStrictNoVml => "SAVE_STRICT_NO_VML",
+            Self::SaveTableGrid => "SAVE_TABLE_GRID",
         }
     }
 }

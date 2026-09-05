@@ -753,6 +753,24 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   验收（`tests/cell_edit.rs` 新增 3 个用例）：新元素按 schema 序号插入且原有属性与未建模子元素保留、
   `trPr` 排在 `tblPrEx` 之后（另造一份带行级例外的文档）、目标节点类型不对时 `Err(EDIT_BAD_POSITION)`
   且投影与保存字节都不变；每步之后 `refresh == rebuild`。
-- [ ] **3.8 行列结构操作**（`InsertRow / DeleteRow / InsertColumn / DeleteColumn / MergeCells / NewBlock::Table`；`SAVE_TABLE_GRID`）
+- [x] **3.8 行列结构操作**（`edit/table_ops.rs`）：`InsertRow` / `DeleteRow` / `InsertColumn` /
+  `DeleteColumn` / `MergeCells` 与 `InsertBlock{NewBlock::Table}`。几何以**声明网格**为准：`Geometry`
+  按 `gridBefore + Σ gridSpan + gridAfter` 算出每行每格覆盖的列区间，任一行与 `tblGrid` 列数不符时
+  列操作与合并直接 `Err(EDIT_TABLE_GRID_INCONSISTENT)`——不偷偷修网格。
+  `InsertRow` 克隆模板行的 `tblPrEx` / `trPr` / 各 `tcPr` 与首段 `pPr`（`EDIT-03` 验收行：新行 `tcPr`
+  与模板逐字节相同），只有需要改 `vMerge` 时才按模型重新生成 `tcPr`（克隆的子树没法就地改）：模板是
+  continue → 新行不带，插进合并区中间 → 新行是 continue。`DeleteRow` 会把下一行的 continue 提升为
+  restart（合并区收缩，不留无头的 continue）。`InsertColumn` 分三种落点——跨列格中间 → `gridSpan + 1`
+  且 `tcW` 加新列宽、格边界 → 插 `New` `w:tc`（克隆左邻 `tcPr` 但去掉 `gridSpan` / `vMerge` / `hMerge`）、
+  `gridBefore` / `gridAfter` 区间 → 那个值 +1；`DeleteColumn` 对称，删到只剩一格的行会 `Err`。
+  两者都按 `SPAN-03` 移动书签 / 权限范围的 `w:colFirst` / `w:colLast`。`MergeCells` 校验合并区是整格
+  组成的矩形且不与既有纵向合并交叠，横向删掉多余格、纵向保留 continue 格并把内容按文档序并到左上格、
+  被并空的格补一个空 `w:p`。`SAVE-02` 增加 `SAVE_TABLE_GRID`：**只在这次编辑动过表格结构时**检查
+  （`DescendantDirty` 不算——格里改字不是结构变化），语料里本来就不一致的网格是 `PreExistingDamage`，
+  解析时已记 `MOD_TABLE_SHAPE`。
+  验收（`tests/table_ops.rs`，10 个用例）：语料在这个域上是空的，所以每条都按 ECMA-376 §17.4 与 Word 的
+  实际形态断言——克隆的字节、`vMerge` 的四种变化、`gridSpan` 的增减与元素消失、书签列区间右移、
+  2×2 合并后的四格文字顺序与 `vMerge restart`/`continue`、三种拒绝路径（网格不一致 / 合并区不齐 /
+  掏空行）之后投影与保存字节都不变、新表格的形状与 `tblLook`；每步之后 `refresh == rebuild`。
 - [ ] **3.9 随机序列、恶意输入与 M3 门**（`tests/table_ops.rs` 200 × 10；两份 hostile；CI）
 
