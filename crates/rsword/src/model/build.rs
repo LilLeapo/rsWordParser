@@ -20,6 +20,7 @@ use crate::model::inline::{
     RevisionMeta, Run, Segment, SegmentKind, utf16_len,
 };
 use crate::model::notes::{Comments, Notes};
+use crate::model::section::SectionInfo;
 use crate::model::table::{BlockStep, block_at_mut_in};
 use crate::model::theme::Theme;
 use crate::model::vml::vml_display;
@@ -43,6 +44,8 @@ pub struct Document {
     pub theme: Option<Theme>,
     pub settings: Option<Settings>,
     pub font_table: Option<FontTable>,
+    /// 正文的节序列（`MOD-10`，任务 5.2）。至少一个（没有 `w:sectPr` 时是隐式节）。
+    pub sections: Vec<SectionInfo>,
     /// 主 part 的内容流映射（`SPAN-01`）。
     pub flows: FlowMap,
     /// 主 part 的字段索引（`FLD-02`）。与投影同寿命：`rebuild` / `refresh_blocks` 都重建它。
@@ -133,11 +136,13 @@ impl Document {
         if let Some(body) = body {
             b.build_container(body, None, &[], &mut blocks);
         }
-        let warnings = b.warnings;
+        let mut warnings = b.warnings;
+        let sections = crate::model::section::build_sections(dom, &blocks, &mut warnings);
         Ok(Document {
             main_part: main,
             body,
             main: blocks,
+            sections,
             styles,
             numbering,
             theme,
@@ -212,11 +217,19 @@ impl Document {
             }
         }
         self.main = main;
-        let warnings = b.warnings;
+        let mut warnings = b.warnings;
+        // 节是块序的投影：刷新一个段落可能加上或去掉它的 `pPr/sectPr`，所以一起重算
+        // （块数不变，`block_range` 的下标还有效；块增删走 `structure_changed` 的整体重建）
+        self.sections = crate::model::section::build_sections(dom, &self.main, &mut warnings);
         self.warnings.extend(warnings);
         self.fields = fields;
         self.spans = spans;
         Ok(missing)
+    }
+
+    /// 管辖某个节点的节下标（`RES-10` 的 `section_of`）。
+    pub fn section_of(&self, dom: &Dom, node: NodeId) -> Option<usize> {
+        crate::model::section::section_of(dom, &self.sections, node)
     }
 
     /// 任意深度的文本段落（含单元格内），按节点找。

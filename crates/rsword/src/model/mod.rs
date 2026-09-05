@@ -59,7 +59,7 @@ pub use inline::{
 pub use notes::{Comment, Comments, Note, NoteKind, Notes, RichRun};
 // `SdtInfo` 从 `block` 一并导出（它是 `Block` 的字段）
 pub use sdt::{DataBinding, DocPart, SdtControl, SdtLock, SdtRefusal, refusing_sdt};
-pub use section::{SectionGeom, Sections};
+pub use section::{HfKind, HfVariant, SectionGeom, SectionInfo, SectionOwner, Sections};
 pub use table::{BlockStep, Blocks, Cell, GridCol, Row};
 pub use theme::{ColorScheme, FontScheme, FontSlots, Theme, ThemeSlot};
 pub use vml::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};

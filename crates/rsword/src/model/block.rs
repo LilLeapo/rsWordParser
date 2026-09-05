@@ -193,6 +193,15 @@ pub enum Revision {
         meta: RevisionMeta,
         old: Box<TableProps>,
     },
+    /// `sectPr/sectPrChange`：旧值快照（`SectionInfo.revisions`，任务 5.2）。
+    ///
+    /// 与 `TablePropsChange` 一族同形（typed + `Box`）而不是 `spec/06` 早先写的 `old: NodeId`：
+    /// 四个 `*PrChange` 同一形状，M7 的 Accept / Reject 就能共用一条 `plan_apply_*` 路径。
+    /// 快照元素本身仍能从 `meta.node`（`w:sectPrChange`）一步走到，信息没丢。
+    SectPropsChange {
+        meta: RevisionMeta,
+        old: Box<crate::semantic::props::SectionProps>,
+    },
     /// `tblGrid/tblGridChange`：旧网格；`old` 是快照里的 `w:tblGrid`（没有就是 change 元素本身）。
     TableGridChange {
         meta: RevisionMeta,

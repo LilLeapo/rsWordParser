@@ -18,6 +18,7 @@ use crate::semantic::props::{
 pub mod color;
 pub mod drawingml;
 pub mod fonts;
+pub mod section;
 pub mod symbol;
 pub mod table;
 

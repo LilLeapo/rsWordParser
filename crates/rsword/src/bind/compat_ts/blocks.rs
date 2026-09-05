@@ -81,7 +81,13 @@ impl<'a> Ctx<'a> {
         numbering: &'a NumberingOut,
         media: &'a MediaMap,
     ) -> Ctx<'a> {
-        let sections = Sections::build(dom);
+        // 节几何取自 `doc.sections`（任务 5.2 起是唯一来源）；`Document::build_main` 之类没建节的
+        // 路径退回直接扫 DOM
+        let sections = if doc.sections.is_empty() {
+            Sections::build(dom)
+        } else {
+            Sections::from_sections(&doc.sections)
+        };
         let first_page_break = first_page_break_at(dom.src());
         Ctx {
             dom,

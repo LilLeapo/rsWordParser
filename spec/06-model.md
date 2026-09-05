@@ -166,8 +166,8 @@ SdtInfo { node, alias, tag, id, control: RichText|PlainText|Picture|ComboBox|Dro
 | `ParaMarkInsert`/`ParaMarkDelete`（`pPr/rPr/ins|del`） | `TextBlock.revisions` |
 | `RunPropsChange` | `Run.rev`（`old: RunProps` 由 `PROP-06` 读 `rPrChange/rPr`） |
 | `ParaPropsChange` | `TextBlock.revisions`（`old: ParaProps + old_style + old_list`） |
-| `SectPropsChange`/`TableGridChange` | 对应对象的 `revisions`，`old: NodeId`（快照里的 `sectPr` / `tblGrid` 节点） |
-| `TablePropsChange`/`RowPropsChange`/`CellPropsChange` | `TableBlock` / `Row` / `Cell` 的 `revisions`，`old` 是类型化快照（`Box<TableProps>` 等，由属性表的 `read_*_change` 读出） |
+| `TableGridChange` | `TableBlock.revisions`，`old: NodeId`（快照里的 `w:tblGrid` 节点；网格没有属性表） |
+| `SectPropsChange`/`TablePropsChange`/`RowPropsChange`/`CellPropsChange` | `SectionInfo` / `TableBlock` / `Row` / `Cell` 的 `revisions`，`old` 是类型化快照（`Box<SectionProps>` / `Box<TableProps>` 等，由属性表的 `read_*_change` 读出）。四个同形，M7 的 Accept / Reject 共用一条 `plan_apply_*`；快照元素本身仍能从 `meta.node` 一步走到 |
 | `NumberingChange` | `TextBlock.revisions` |
 | `CellInsert`/`CellDelete`/`CellMerge` | `Cell.revisions`；`Row.revisions` 承接 `trPr/ins|del` |
 | `FieldInstrDelete` | 字段所在 `Run.rev` 与 `FieldSpan` |
@@ -184,7 +184,11 @@ SdtInfo { node, alias, tag, id, control: RichText|PlainText|Picture|ComboBox|Dro
 - **Notes**：条目带 `w:type`（separator 等）为结构条目，`kind` 非 `Normal`。
 - **Sources**：`b:Sources` 的 `b:Source` 建模字段与 TS 一致，其余 `Raw`。
 - **FontTable**：`name, altName, panose1, family, pitch, charset, sig, embed*`。
-- **Sections**：`SectionInfo { node /* sectPr */, props: SectionProps, owner: Body|Paragraph(NodeId), block_range }`；继承在 `RES-10`。
+- **Sections**：`SectionInfo { node: Option<NodeId> /* sectPr */, props: Box<SectionProps>, owner: Body|Paragraph(NodeId)|Implicit, block_range: Range<usize> /* Document.main 的下标 */, revisions }`；
+  `start_type` / `title_pg` / `hf_ref(kind, variant)` 由 `props` 派生，**继承在 `RES-10`**（模型只存声明值）。
+  每个 `w:sectPr` **结束**它所在的节（分节段落自己算本节最后一块），所以「管辖某位置的节」= 第一个结束位置在它之后的 `sectPr`（`section_of`）。
+  一个 `w:sectPr` 都没有 → 一个隐式节（`node: None`、`owner: Implicit`、全缺省，同 TS `DEFAULT_SECTION`）；最后一个 `sectPr` 之后还有块（畸形文档）→ 并进最后一节。
+  节的判定**不下钻**表格与文本框：别的内容流里的 `sectPr` 不结束正文的节。
 
 ## MOD-11 显示模型（只含文档事实）
 

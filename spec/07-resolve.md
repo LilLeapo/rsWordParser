@@ -87,8 +87,9 @@ run 的 `cs` 状态 = 直接 `w:rtl` ?? 字符样式链 `rtl` ?? 段落样式链
 
 ## RES-10 节
 
-- 节序列由 `SectionInfo` 顺序给出；每节 `headerReference/footerReference` 缺失的 `type`（default/first/even）**继承上一节**的同类型引用（Word "链接到前一节"）；第一节缺失 → 无。
-- `titlePg` 为该节属性；`evenAndOddHeaders` 为文档属性；有效页眉选择：首页且 `titlePg` → first；偶数页且 `evenAndOddHeaders` → even；否则 default。
+- 节序列由 `SectionInfo` 顺序给出；每节 `headerReference/footerReference` 缺失的 `type`（default/first/even）**继承上一节**的同类型引用（Word "链接到前一节"）；第一节缺失 → 无。三个变体**各自**继承（不是整组继承）。
+- `Resolver::section(sections, idx) -> EffectiveSection`：六个槽（kind × variant）各是 `HfSlot::Absent | Declared(rId) | Inherited { from, id }`。`Declared` 与 `Inherited` 的区别是 `SetHeaderFooter`（`EDIT-03`）改写 part 还是新建 part 的分界。
+- `titlePg` 为该节属性；`evenAndOddHeaders` 为文档属性；有效页眉选择：首页且 `titlePg` → first；偶数页且 `evenAndOddHeaders` → even；否则 default。选中的变体为空时**禁止**回退 default——Word 里"首页不同"而没有首页页眉就是首页没有页眉。
 - `w:type` 缺省 `nextPage`；第一节的 type 无意义。
 - `section_of(node) -> SectionIdx`：节点所属节 = 第一个 `sectPr` 在其之后（文档序）的节。
 
