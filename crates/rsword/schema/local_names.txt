@@ -35,6 +35,7 @@ anchorId
 anchorlock
 annotationRef
 Application
+arcTo
 argPr
 argSz
 ascii
@@ -169,6 +170,7 @@ cs
 cstate
 cstheme
 ctrlPr
+cubicBezTo
 custGeom
 customStyle
 customXml
@@ -347,6 +349,8 @@ fromWordArt
 ftr
 func
 funcPr
+g
+gd
 gdLst
 gfxdata
 glossaryDocument
@@ -400,6 +404,8 @@ hrnoshade
 hrpct
 hrstd
 hRule
+hslClr
+hue
 hueMod
 hyperlink
 hyphenationZone
@@ -480,6 +486,7 @@ lockedCanvas
 lsdException
 lt1
 lt2
+lum
 lumMod
 lumOff
 lvl
@@ -579,6 +586,7 @@ pattFill
 pBdr
 pctPosH
 pctPosHOffset
+pctPosVOffset
 people
 percent
 permEnd
@@ -626,6 +634,7 @@ providerId
 prSet
 prst
 prstClr
+prstDash
 prstGeom
 pStyle
 pt
@@ -634,6 +643,7 @@ ptCount
 ptLst
 qFormat
 qs
+quadBezTo
 r
 rad
 radPr
@@ -685,9 +695,11 @@ ruby
 rubyAlign
 rubyBase
 rubyPr
+sat
 satMod
 scene3d
 schemeClr
+scrgbClr
 script
 sdt
 sdtContent
@@ -844,6 +856,7 @@ themeFillTint
 themeFontLang
 themeShade
 themeTint
+tile
 tIns
 tint
 Title=UTitle

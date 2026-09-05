@@ -11,6 +11,11 @@
 | `balance-dbcs-spacing__*` | `blocks[*].runs[*].charSpacingTwips` | TS 在 `balanceSingleByteDoubleByteWidth` 下按双字节字符比例缩放显示值 | 显示层决定（`MOD-11` 禁止排版字段进模型） | 本引擎；渲染器接管后删除 |
 | 任意 | `blocks[*].format.charIndents*` 及由其换算的 indent* | TS `withCharIndents` 用字号换算字符单位缩进 | 需字体度量，属显示层 | 暂放行（`KNOWN_PATHS`） |
 | 含字段 / `w14:textFill` 的段落 | 整段 | 字段折叠、`w14:textFill` 取色在 M2 | — | `tests/compat.rs` 的文本用例过滤排除 |
+| `inline-image-mixed__009` | `blocks[*].runs[*].rawRPr` | 源文件写的是 `<w:rPr></w:rPr>`，TS 输出 `<w:rPr/>` | TS 把 `w:rPr` 重新序列化，空元素折成自闭合；本引擎按 `COMPAT-04` 给原字节切片 | 本引擎（原字节才是真相） |
+| `field-display__015` | 框内段落 `runs[*].link` | 目标带反斜杠的 `HYPERLINK` 字段：TS 不给链接，本引擎给 | TS 的 `convertibleHyperlink` 正则是 `"([^"\\]+)"`，目标里有反斜杠就整个不认（Windows 路径 `file:///C:\Users\…`）。引号里的反斜杠是字面量、开关只在引号外有意义，所以本引擎照常折出链接，地址原样保留 | 本引擎（功能更强；TS 那条正则是保守回避） |
+| `wordart-vml__004` | `blocks[*].textboxes[*].paras[*].runs[*]` | VML 文本框里的随文图片：TS 输出空 run，本引擎给出图片 run | TS 只在**宿主**段落上预取媒体（`stripTextboxes` 之后），框里的 `a:blip` 拿不到 dataURL 就把整个 run 丢了；Word 是画得出这张图的 | 本引擎（TS 的缺陷不跟随） |
+| `themeless-shapes-external-txbx__003` | `blocks[*].textboxes[*].paras[*]` | 外部文本框 part（`wps:txbx/@r:txbx` → `word/txbx1.xml`）的段落 | 框的内容在**另一个 part** 里；`Block` 的 `NodeId` 是相对单个 DOM 的，跨 part 的内容流要等 M5 的页眉页脚管线（`spec/15` 被阻塞表） | 暂放行，M5 接跨 part 内容流后删除 |
+| `emf-image__*`（4 份） | 任何 `dataUrl` | TS 把 EMF 渲染成 PNG（导出工具打的占位 `data:image/png;base64,EMFPNG`），本引擎输出 EMF 原字节的 dataURL 并标 `MediaKind::Metafile` | `docs/03` §3.5 冻结：EMF/WMF/EMZ/WMZ 与 TIFF 的转换是可插拔服务，不在 Rust 侧做，由 TS / 渲染端继续转 | 本引擎（有意不同）；语料里 4 份 metafile 媒体全在这些文档 |
 
 ## 定位辅助 part 的差别（不算差异，测试里已对齐）
 
@@ -28,4 +33,10 @@ char-unit-indents__*     *                                        # *Chars 缩�
 extra__strict-minimal*   *                                        # TS 装载时把 Strict 改写为 Transitional
 balance-dbcs-spacing__*  blocks[*].runs[*].charSpacingTwips       # TS 按双字节比例缩放显示值
 *                        blocks[*].format.charIndents*            # 字符单位缩进（显示层）
+inline-image-mixed__009* blocks[*].runs[*].rawRPr                 # 源文件写 <w:rPr></w:rPr>，TS 重序列化成 <w:rPr/>
+emf-image__*             blocks[*].imageDataUrl                   # EMF 不在 Rust 侧渲染（docs/03 §3.5）
+emf-image__*             *image.dataUrl                           # 同上，表格 / run 内的图片
+field-display__015*      *paras[*].runs[*].link                   # 目标带反斜杠的 HYPERLINK，TS 的正则不认，本引擎照折
+wordart-vml__004*        blocks[*].textboxes[*].paras[*].runs[*]  # TS 没给框里的随文图片预取媒体，整个 run 丢了
+themeless-shapes-external-txbx__003* blocks[*].textboxes[*].paras[*]  # 外部文本框 part 要等 M5 的跨 part 内容流
 ```

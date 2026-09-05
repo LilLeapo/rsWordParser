@@ -13,6 +13,7 @@ use crate::model::classify::{
     BodyClass, ParaClass, classify_body_child, classify_paragraph, text_kind,
 };
 use crate::model::decl::{FontTable, Numbering, Settings, Styles};
+use crate::model::drawing::{Display, drawing_display};
 use crate::model::facts::ParagraphFacts;
 use crate::model::inline::{
     AtomKind, BreakKind, Inline, InlineAtom, Link, LinkTarget, OBJECT_REPLACEMENT, RevisionCtx,
@@ -21,6 +22,7 @@ use crate::model::inline::{
 use crate::model::notes::{Comments, Notes};
 use crate::model::table::{BlockStep, block_at_mut_in};
 use crate::model::theme::Theme;
+use crate::model::vml::vml_display;
 use crate::package::{Package, PartId, RelTarget, RelType, Rels};
 use crate::semantic::props::{
     ParaProps, RunProps, read_para_props, read_run_props, read_run_props_change,
@@ -336,6 +338,7 @@ impl<'a> Builder<'a> {
                 node: container,
                 kind: ProtectedKind::TooDeep,
                 preview: String::new(),
+                display: None,
                 sdt: sdt.cloned(),
                 revisions: revs.to_vec(),
             }));
@@ -356,6 +359,7 @@ impl<'a> Builder<'a> {
                     node,
                     kind: ProtectedKind::SectionProps,
                     preview: String::new(),
+                    display: None,
                     sdt: sdt.cloned(),
                     revisions: revs.to_vec(),
                 })),
@@ -376,6 +380,7 @@ impl<'a> Builder<'a> {
                             node,
                             kind: ProtectedKind::Invisible,
                             preview: String::new(),
+                            display: None,
                             sdt: Some(info),
                             revisions: revs.to_vec(),
                         }));
@@ -386,6 +391,7 @@ impl<'a> Builder<'a> {
                     node,
                     kind: ProtectedKind::BodyBreak { page },
                     preview: String::new(),
+                    display: None,
                     sdt: sdt.cloned(),
                     revisions: revs.to_vec(),
                 })),
@@ -415,6 +421,7 @@ impl<'a> Builder<'a> {
                         node,
                         kind: ProtectedKind::Unknown(name),
                         preview: self.preview(node),
+                        display: None,
                         sdt: sdt.cloned(),
                         revisions: revs.to_vec(),
                     }));
@@ -435,6 +442,9 @@ impl<'a> Builder<'a> {
         revs: &[Revision],
     ) -> Block {
         let dom = self.dom;
+        // 内联深度上限相对本段起点计；退出时还原——文本框里的段落会在外层段落的 `build_inlines`
+        // 中途嵌套进来（M4 的 `txbxContent` 走同一套段落管线），不还原的话外层会拿到更深的基线
+        let outer_inline_base = self.inline_base;
         self.inline_base = self.depth;
         let ppr = dom.semantic_children(p).find(|&n| dom.is(n, w(LocalName::PPr)));
         let props: ParaProps = read_para_props(dom, ppr, &mut self.warnings);
@@ -471,15 +481,22 @@ impl<'a> Builder<'a> {
                 }
             }
         }
-        match class {
+        let block = match class {
             ParaClass::Protected(kind) => Block::Protected(ProtectedBlock {
                 node: p,
                 kind,
                 preview: self.preview(p),
+                display: graphic_display(dom, &facts),
                 sdt: sdt.cloned(),
                 revisions,
             }),
-            ParaClass::Image => Block::Image(ImageBlock { node: p, sdt: sdt.cloned(), revisions }),
+            // R15 保证该段恰有一个绘图或一个 VML 图片。
+            ParaClass::Image => Block::Image(ImageBlock {
+                node: p,
+                display: graphic_display(dom, &facts),
+                sdt: sdt.cloned(),
+                revisions,
+            }),
             ParaClass::Text => {
                 let mut inlines = Vec::new();
                 self.build_inlines(p, None, None, &mut inlines);
@@ -495,7 +512,9 @@ impl<'a> Builder<'a> {
                     facts,
                 }))
             }
-        }
+        };
+        self.inline_base = outer_inline_base;
+        block
     }
 
     /// `COMPAT-07` 的模型侧：给 run 挂批注 id。
@@ -640,7 +659,7 @@ impl<'a> Builder<'a> {
         out: &mut Vec<Inline>,
     ) {
         let dom = self.dom;
-        if self.depth - self.inline_base > MAX_CONTAINER_DEPTH {
+        if self.depth.saturating_sub(self.inline_base) > MAX_CONTAINER_DEPTH {
             self.warn(container, DiagCode::ModTooDeep, "内联容器嵌套过深");
             let name = dom.name(container).expect("container is an element");
             out.push(Inline::Atom(InlineAtom {
@@ -829,7 +848,21 @@ impl<'a> Builder<'a> {
             let kind = self.segment(c, name, &mut text);
             let end = text.len() as u32;
             let len = utf16_len(&text[start as usize..end as usize]);
-            segments.push(Segment { node: c, kind, text: start..end, utf16_len: len });
+            // `MOD-11` 显示模型：绘图段带 `DrawingDisplay`，`w:pict` / `w:object` 段带 `VmlDisplay`。
+            let display = match kind {
+                SegmentKind::Drawing { .. } => {
+                    let mut d = drawing_display(dom, c);
+                    self.fill_box_content(d.shapes.iter_mut().map(|s| (s.txbx, &mut s.content)));
+                    Some(Display::Drawing(Box::new(d)))
+                }
+                SegmentKind::Pict | SegmentKind::Object => {
+                    let mut v = vml_display(dom, c);
+                    self.fill_box_content(v.shapes.iter_mut().map(|s| (s.txbx, &mut s.content)));
+                    Some(Display::Vml(Box::new(v)))
+                }
+                _ => None,
+            };
+            segments.push(Segment { node: c, kind, text: start..end, utf16_len: len, display });
         }
         let mut ctx = rev.cloned().unwrap_or_default();
         if let Some(rpr) = rpr_node
@@ -855,6 +888,21 @@ impl<'a> Builder<'a> {
             field: transparent.map(|f| f.id),
             rev: (!ctx.is_empty()).then_some(ctx),
             comments: Vec::new(),
+        }
+    }
+
+    /// 文本框内容流（`w:txbxContent`）复用段落管线建块（`MOD-11` 的 `content`）。
+    ///
+    /// 框里是**独立内容流**：它的段落有自己的 run、自己的图，和宿主段落的坐标流无关。
+    fn fill_box_content<'b>(
+        &mut self,
+        boxes: impl Iterator<Item = (Option<NodeId>, &'b mut Vec<Block>)>,
+    ) {
+        for (txbx, content) in boxes {
+            let Some(txbx) = txbx else { continue };
+            let mut blocks = Vec::new();
+            self.build_container(txbx, None, &[], &mut blocks);
+            *content = blocks;
         }
     }
 
@@ -977,6 +1025,16 @@ impl<'a> Builder<'a> {
 }
 
 /// `xml:space` 的有效值（XML 规范：沿祖先继承，最近的声明生效）；没有声明 → Word 行为，trim。
+/// 段落唯一那个图形的显示模型（`MOD-11`）。同时有多种时按 drawing → pict → object 取第一个：
+/// 只有 R15 / R17 / R18 这些「段里就一个图形」的分类会用到它。
+fn graphic_display(dom: &Dom, facts: &ParagraphFacts) -> Option<Display> {
+    if let Some(d) = facts.drawings.first() {
+        return Some(Display::Drawing(Box::new(drawing_display(dom, d.node))));
+    }
+    let vml = facts.picts.first().map(|p| p.node).or_else(|| facts.objects.first().copied())?;
+    Some(Display::Vml(Box::new(vml_display(dom, vml))))
+}
+
 fn xml_space_preserved(dom: &Dom, node: NodeId) -> bool {
     let space = QName::new(NsId::Xml, LocalName::Space);
     let mut cur = Some(node);

@@ -206,10 +206,14 @@ fn test_04_corpus_edit_fidelity() {
             .unwrap_or_else(|| (fallback_idx, InlinePos::new(fallback_node, 0), fallback_text));
 
         let before_text_block_count = s.document().text_blocks().count();
-        let before_compat_blocks = compat_ts::parsed_doc_of(s.package(), s.document())["blocks"]
-            .as_array()
-            .unwrap()
-            .clone();
+        // 空的媒体表：这个 oracle 比的是「编辑前后哪些块变了」，两侧用同一张表就够；
+        // 真正读字节的 `MediaMap::build` 要 `&mut Package`，这里只有不可变借用。
+        let media = compat_ts::MediaMap::default();
+        let before_compat_blocks =
+            compat_ts::parsed_doc_of(s.package(), s.document(), &media)["blocks"]
+                .as_array()
+                .unwrap()
+                .clone();
         let main_name = s.package().part(s.main_part()).uri.to_string();
 
         let result = s
@@ -262,11 +266,11 @@ fn test_04_corpus_edit_fidelity() {
 
         // TEST-04 的补缺 oracle：compat_ts 的 blocks[] 是正文块投影（paragraph 类型含
         // style/format/runs/bookmarks），不含 arena NodeId；重解析后应只有被插字的块发生变化。
-        let after_compat_blocks = compat_ts::parsed_doc_of(reopened.package(), reopened.document())
-            ["blocks"]
-            .as_array()
-            .unwrap()
-            .clone();
+        let after_compat_blocks =
+            compat_ts::parsed_doc_of(reopened.package(), reopened.document(), &media)["blocks"]
+                .as_array()
+                .unwrap()
+                .clone();
         assert_eq!(
             before_compat_blocks.len(),
             after_compat_blocks.len(),

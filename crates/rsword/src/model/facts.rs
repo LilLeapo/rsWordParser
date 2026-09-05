@@ -6,6 +6,7 @@
 
 use crate::model::block::{ListRef, SdtInfo};
 use crate::model::decl::{OwnHeadingLevel, Styles};
+use crate::model::macros::named_enum;
 use crate::semantic::props::{ParaProps, Style, StyleType, Val};
 use crate::span::FieldId;
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
@@ -21,8 +22,8 @@ pub struct ParagraphFacts {
     pub inside_field_result: Option<FieldId>,
     pub drawings: Vec<DrawingFacts>,
     pub picts: Vec<PictFacts>,
-    /// `w:object` 数量。
-    pub objects: u32,
+    /// `w:object` 节点（文档序）。
+    pub objects: Vec<NodeId>,
     pub math: MathFacts,
     pub revision: RevisionFacts,
     pub style_id: Option<String>,
@@ -52,18 +53,19 @@ pub struct DrawingFacts {
     pub is_ink: bool,
 }
 
-/// 按 `a:graphicData/@uri` 判定。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DrawingKind {
-    Picture,
-    Chart,
-    ChartEx,
-    Diagram,
-    LockedCanvas,
-    Shape,
-    Group,
-    Line,
-    Unknown,
+named_enum! {
+    /// 按 `a:graphicData/@uri` 判定；`@uri` 缺失时退回看 `a:graphicData` 的子元素命名空间。
+    pub enum DrawingKind {
+        Picture = "picture",
+        Chart = "chart",
+        ChartEx = "chartEx",
+        Diagram = "diagram",
+        LockedCanvas = "lockedCanvas",
+        Shape = "shape",
+        Group = "group",
+        Line = "line",
+        Unknown = "unknown",
+    }
 }
 
 impl DrawingKind {
@@ -82,6 +84,24 @@ impl DrawingKind {
             "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" => {
                 DrawingKind::Group
             }
+            _ => DrawingKind::Unknown,
+        }
+    }
+
+    /// `@uri` 缺失或不认识时的退路：看 `a:graphicData` 里放的是什么。
+    ///
+    /// 语料里有 `<a:graphicData><c:chart r:id=.../></a:graphicData>`（`resource-cleanup__008`）
+    /// 这种不写 `@uri` 的写法；TS 是按 XML 里出现的 `<c:chart` / `r:dm=` / `<dgm:` 等标记判的，
+    /// 所以它认得出来。只看命名空间，不看具体元素名。
+    pub fn from_graphic_child_ns(ns: NsId) -> DrawingKind {
+        match ns {
+            NsId::Pic => DrawingKind::Picture,
+            NsId::C => DrawingKind::Chart,
+            NsId::Cx => DrawingKind::ChartEx,
+            NsId::Dgm => DrawingKind::Diagram,
+            NsId::Lc => DrawingKind::LockedCanvas,
+            NsId::Wps => DrawingKind::Shape,
+            NsId::Wpg => DrawingKind::Group,
             _ => DrawingKind::Unknown,
         }
     }
@@ -214,7 +234,7 @@ impl ParagraphFacts {
                     gfx = true;
                 }
                 (NsId::W, LocalName::Object) if !in_gfx => {
-                    f.objects += 1;
+                    f.objects.push(node);
                     gfx = true;
                 }
                 (NsId::M, LocalName::OMath) if !in_gfx && !in_txbx => f.math.count += 1,
@@ -277,7 +297,7 @@ impl ParagraphFacts {
             && !has_marker
             && f.drawings.is_empty()
             && f.picts.is_empty()
-            && f.objects == 0
+            && f.objects.is_empty()
             && !f.has_sect_pr
             && props.num.is_none();
         f
@@ -393,9 +413,7 @@ fn drawing_facts(dom: &Dom, drawing: NodeId) -> DrawingFacts {
                 }
             }
             (NsId::A, LocalName::GraphicData) if f.kind == DrawingKind::Unknown => {
-                if let Some(uri) = attr(dom, n, NsId::None, LocalName::Uri) {
-                    f.kind = DrawingKind::from_uri(&uri);
-                }
+                f.kind = graphic_data_kind(dom, n);
             }
             (NsId::A, LocalName::Blip) => f.has_blip = true,
             (NsId::W, LocalName::T) if has_visible_text(dom, n) => f.has_txbx_text = true,
@@ -405,8 +423,51 @@ fn drawing_facts(dom: &Dom, drawing: NodeId) -> DrawingFacts {
     f
 }
 
+/// `a:graphicData` 的种类：`@uri` 优先，缺失或不认识时看第一个子元素的命名空间。
+pub(crate) fn graphic_data_kind(dom: &Dom, graphic_data: NodeId) -> DrawingKind {
+    if let Some(uri) = attr(dom, graphic_data, NsId::None, LocalName::Uri) {
+        let kind = DrawingKind::from_uri(&uri);
+        if kind != DrawingKind::Unknown {
+            return kind;
+        }
+    }
+    dom.semantic_children(graphic_data)
+        .map(|c| graphic_child_kind(dom, c))
+        .find(|&k| k != DrawingKind::Unknown)
+        .unwrap_or(DrawingKind::Unknown)
+}
+
+/// `a:graphicData` 的一个子元素说明这是什么图。
+fn graphic_child_kind(dom: &Dom, child: NodeId) -> DrawingKind {
+    let Some(name) = dom.name(child) else { return DrawingKind::Unknown };
+    let kind = DrawingKind::from_graphic_child_ns(name.ns);
+    if kind != DrawingKind::Unknown {
+        return kind;
+    }
+    // 前缀未绑定（已记 `XML_UNBOUND_PREFIX`）时按前缀字面量兜底。语料里有既不写 `@uri`
+    // 也不声明 `c` / `dgm` / `wps` 前缀的文档（`resource-cleanup__008`、`field-display__015`），
+    // 这时字面量是唯一还剩的信息；宁可按它分类，也好过整段降级成"认不出的绘图"。
+    if !matches!(name.ns, NsId::Unbound(_)) {
+        return DrawingKind::Unknown;
+    }
+    match dom.lex_name(child).and_then(|q| q.split_once(':')).map(|(p, _)| p) {
+        Some("pic") => DrawingKind::Picture,
+        Some("c") => DrawingKind::Chart,
+        Some("cx") => DrawingKind::ChartEx,
+        Some("dgm") => DrawingKind::Diagram,
+        Some("lc") => DrawingKind::LockedCanvas,
+        Some("wps") => DrawingKind::Shape,
+        Some("wpg") => DrawingKind::Group,
+        _ => DrawingKind::Unknown,
+    }
+}
+
+/// 一个 `w:pict` 是哪一类（`MOD-05` 的 R15–R18 要用）。
+///
+/// 优先级照抄 TS 的 `w:pict` 决策树，**不是**文档序：文本框 / WordArt → 图片 → 隐藏形状 →
+/// 细横线。一个画布里既有 `v:imagedata` 又有 `v:textbox` 时（`wordart-vml__015`），它是文本框
+/// 而不是图片——按文档序谁先谁赢的话，同一份文档换个形状顺序就换一种分类。
 fn pict_kind(dom: &Dom, pict: NodeId) -> PictKind {
-    let mut kind = PictKind::Other;
     let mut only_shapetype = true;
     for c in dom.semantic_children(pict) {
         let Some(name) = dom.name(c) else { continue };
@@ -417,20 +478,22 @@ fn pict_kind(dom: &Dom, pict: NodeId) -> PictKind {
     if only_shapetype && dom.semantic_children(pict).next().is_some() {
         return PictKind::ShapeTypeOnly;
     }
+    let (mut textbox, mut wordart, mut image, mut hidden, mut hr) =
+        (false, false, false, false, false);
     for n in dom.descendants(pict) {
         let Some(name) = dom.name(n) else { continue };
         match (name.ns, name.local) {
-            (NsId::V, LocalName::Imagedata) => return PictKind::ImageData,
-            (NsId::V, LocalName::Textbox) => kind = PictKind::TextBox,
+            (NsId::V, LocalName::Imagedata) => image = true,
+            (NsId::V, LocalName::Textbox) => textbox = true,
             (NsId::V, LocalName::Textpath)
                 if attr(dom, n, NsId::None, LocalName::String).is_some() =>
             {
-                return PictKind::WordArt;
+                wordart = true;
             }
             (NsId::V, LocalName::Rect)
                 if dom.attr(n, QName::new(NsId::O, LocalName::Hr)).is_some() =>
             {
-                return PictKind::Hr;
+                hr = true;
             }
             (
                 NsId::V,
@@ -439,16 +502,22 @@ fn pict_kind(dom: &Dom, pict: NodeId) -> PictKind {
                 | LocalName::Oval
                 | LocalName::Roundrect
                 | LocalName::Line,
-            ) if kind == PictKind::Other
-                && attr(dom, n, NsId::None, LocalName::Style)
-                    .is_some_and(|s| s.contains("visibility:hidden")) =>
+            ) if attr(dom, n, NsId::None, LocalName::Style)
+                .is_some_and(|s| s.contains("visibility:hidden")) =>
             {
-                kind = PictKind::Hidden;
+                hidden = true;
             }
             _ => {}
         }
     }
-    kind
+    match (textbox, wordart, image, hidden, hr) {
+        (true, ..) => PictKind::TextBox,
+        (_, true, ..) => PictKind::WordArt,
+        (_, _, true, ..) => PictKind::ImageData,
+        (_, _, _, true, _) => PictKind::Hidden,
+        (.., true) => PictKind::Hr,
+        _ => PictKind::Other,
+    }
 }
 
 impl Styles {

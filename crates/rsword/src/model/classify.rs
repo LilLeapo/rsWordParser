@@ -141,7 +141,7 @@ pub fn r14_locked_canvas(f: &ParagraphFacts) -> Option<ParaClass> {
 }
 
 pub fn r15_image(f: &ParagraphFacts) -> Option<ParaClass> {
-    if f.visible_text || f.objects != 0 || f.math.count != 0 {
+    if f.visible_text || !f.objects.is_empty() || f.math.count != 0 {
         return None;
     }
     let single_picture =
@@ -152,7 +152,7 @@ pub fn r15_image(f: &ParagraphFacts) -> Option<ParaClass> {
 }
 
 pub fn r16_invisible_shapes(f: &ParagraphFacts) -> Option<ParaClass> {
-    if f.visible_text || f.picts.is_empty() || !f.drawings.is_empty() || f.objects != 0 {
+    if f.visible_text || f.picts.is_empty() || !f.drawings.is_empty() || !f.objects.is_empty() {
         return None;
     }
     f.picts
@@ -162,7 +162,7 @@ pub fn r16_invisible_shapes(f: &ParagraphFacts) -> Option<ParaClass> {
 }
 
 pub fn r17_rule(f: &ParagraphFacts) -> Option<ParaClass> {
-    if f.visible_text || f.picts.is_empty() || !f.drawings.is_empty() || f.objects != 0 {
+    if f.visible_text || f.picts.is_empty() || !f.drawings.is_empty() || !f.objects.is_empty() {
         return None;
     }
     f.picts
@@ -172,7 +172,7 @@ pub fn r17_rule(f: &ParagraphFacts) -> Option<ParaClass> {
 }
 
 pub fn r18_ole(f: &ParagraphFacts) -> Option<ParaClass> {
-    (!f.visible_text && f.objects > 0 && f.drawings.is_empty() && f.picts.is_empty())
+    (!f.visible_text && !f.objects.is_empty() && f.drawings.is_empty() && f.picts.is_empty())
         .then_some(ParaClass::Protected(ProtectedKind::Ole))
 }
 

@@ -13,28 +13,36 @@ use crate::package::{Package, RelType};
 use crate::resolve::Resolver;
 
 mod blocks;
+mod box_json;
 mod decl;
 pub mod diff;
+mod image;
+mod json;
+pub mod media;
 pub mod save_blocks;
 mod table;
+mod textbox;
 pub mod utf16;
 
 pub use diff::{
     Diff, KNOWN_DIFFS_MD, KnownDiff, PathStat, Report, Scope, diff_json, filter_known,
-    is_span_field_case, is_table_case, is_text_case, known_diffs, parse_known_diffs, path_key,
-    path_matches, split_known,
+    is_drawing_path, is_span_field_case, is_table_case, is_text_case, known_diffs,
+    parse_known_diffs, path_key, path_matches, split_known,
 };
+pub use media::{MediaMap, MediaOut};
 pub use save_blocks::{SaveBlocksOutcome, apply_save_blocks, bookmark_id_of};
 pub use utf16::Utf16Index;
 
 /// 整份 `ParsedDoc`（含 `extras`），键与 TS 一致；`internal.originalBytes` 不输出（导出脚本也省略）。
 pub fn parsed_doc(pkg: &mut Package) -> Result<Value> {
     let doc = Document::rebuild(pkg)?;
-    Ok(parsed_doc_of(pkg, &doc))
+    // 先把媒体读出来：之后整条投影链路只有 DOM 的不可变借用（`bind::compat_ts::media`）。
+    let media = MediaMap::build(pkg, doc.main_part);
+    Ok(parsed_doc_of(pkg, &doc, &media))
 }
 
 /// 用已构建的模型投影（`pkg` 里的 part 已解析）。
-pub fn parsed_doc_of(pkg: &Package, doc: &Document) -> Value {
+pub fn parsed_doc_of(pkg: &Package, doc: &Document, media: &MediaMap) -> Value {
     let main = doc.main_part;
     let dom = pkg.part(main).dom().expect("main part parsed by rebuild");
     let rels = &pkg.part(main).rels;
@@ -46,7 +54,7 @@ pub fn parsed_doc_of(pkg: &Package, doc: &Document) -> Value {
     let resolver = Resolver::new(doc);
     let idx = Utf16Index::new(dom.src());
     let numbering = decl::numbering_json(doc);
-    let ctx = blocks::Ctx::new(dom, doc, &resolver, &idx, rels, &numbering);
+    let ctx = blocks::Ctx::new(dom, doc, &resolver, &idx, rels, &numbering, media);
     let (elements, blocks) = blocks::body(&ctx);
 
     let mut o = Map::new();

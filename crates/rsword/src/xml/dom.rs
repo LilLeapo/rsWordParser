@@ -13,7 +13,7 @@ use crate::xml::Dirty;
 use crate::xml::entities;
 use crate::xml::interner::Interner;
 use crate::xml::lex::{Lex, urange};
-use crate::xml::names::QName;
+use crate::xml::names::{NsId, QName};
 
 /// arena 索引，会话内稳定且永不复用；`Deleted` 节点保留在 arena 中。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -268,6 +268,21 @@ impl Dom {
     /// 从 `id` 到根的祖先链（不含自身）。
     pub fn ancestors(&self, id: NodeId) -> impl Iterator<Item = NodeId> + '_ {
         std::iter::successors(self.parent(id), move |&p| self.parent(p))
+    }
+
+    /// 元素是否属于 `want` 命名空间；前缀未绑定时按前缀字面量兜底。
+    ///
+    /// `XML-05` 下未绑定的前缀会记 `XML_UNBOUND_PREFIX` 并原样保留，语义上不属于任何命名空间。
+    /// 但语料里有既写 `<v:shape>` / `<o:OLEObject>` 又不声明 `xmlns:v` / `xmlns:o` 的文档
+    /// （`resource-cleanup__008`），这时前缀字面量是判断「这是什么」的唯一线索，宁可按它认，
+    /// 也好过整段内容认不出来。只用在语义识别上，不影响写回。
+    pub fn is_ns(&self, id: NodeId, want: NsId, prefix: &str) -> bool {
+        let Some(name) = self.name(id) else { return false };
+        if name.ns == want {
+            return true;
+        }
+        matches!(name.ns, NsId::Unbound(_))
+            && self.lex_name(id).and_then(|q| q.split_once(':')).is_some_and(|(p, _)| p == prefix)
     }
 
     /// 深度优先前序遍历（含 `Deleted`），迭代实现。

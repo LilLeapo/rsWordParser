@@ -298,6 +298,10 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `docs/03` §4.1 `Lex.name` | 原始限定名在 `Lex` | `Element::lex_name: Option<Range<u32>>`，与 `Attr::lex_name` 对称 | `None` 直接表达"改名 / New，需按作用域生成前缀"；`Lex` 只管位置 |
 | `docs/03` §4.4 `Mce` | 四个字段 | 多一个 `ignorable: bool` | 语义遍历需要按节点缓存"属于可忽略且未理解的命名空间"，否则每次重算作用域 |
 | `PKG-05` `Relationship` | `{id, kind, target, raw_type}` | 另有 `family: Option<PartFlavor>`、`node: NodeId` | flavor 判定要用关系类型的族别；写回要定位 `.rels` 节点 |
+| `docs/03` §3.5 `MediaStore` | `MediaId → {part, mime, bytes}` | `Media { part, uri, mime, kind }`，字节惰性读取并缓存 | `kind`（Raster/Svg/Metafile/Tiff/Other）把「要不要送去外部转换」收敛成一个判断；`uri` 供诊断与按 part 去重；一张图被多处引用只解压一次 |
+| `RES-05` DrawingML 颜色 | 「按 `oox::drawingml::Color` 的变换顺序在**规范要求的色彩空间**实现」 | `lumMod`/`lumOff`/`shade`/`tint` 用 sRGB 逐通道，`satMod`/`hueMod` 用 HSL；变换按文档顺序施加 | 比过两处（语料 `bugfix-regressions__025` 与 Office 调色板的「淡色 80%」）：逐通道与 HSL 结果相同，与 Word 公布值差 ≤ 1/255，正是 `RES-05` 验收允许的误差；逐通道又与 TS 一致，绘图域差分才能为 0。按线性空间重做要先有 Word 实测 fixture |
+| `MOD-11` 绘图元素名 | 按 `QName`（URI + local）匹配 | `model/drawing.rs` 的 `eff_ns`：前缀**绑不上**时按字面量认（`wps` / `wpg` / `wp` / `pic` / `a`），能绑上的一律按 URI | TS 用字符串匹配 `<wps:wsp`，压根不看声明；语料里有文档只在根上声明了 `w`/`wp`/`a`/`pic`，`wps` 一个都没声明（`field-display__015`），按 URI 匹配会把整个形状看丢，段落分类全错。只对绑不上的前缀放宽，正常文档行为不变 |
+| `XML-09` `mc:Choice/@Requires` | 前缀按作用域解析 | 作用域里解析不到时，退一步看**分支子树内**有没有声明这个前缀 | 合成语料常把 `xmlns:wps` 写在 `wps:wsp` 元素自己身上，`Requires="wps"` 于是在 `mc:Choice` 处解析不出来、整段退到 VML Fallback（16 份文档）。意图毫无歧义，按分支内的声明认；前缀在**任何地方**都没声明的情况（`numbering-defs__012`）行为不变，仍是已知差异 |
 | `PKG-06` | 唯一路径函数 | `uri::resolve` 唯一；`parse_rels` 在目标不存在且写法为 `../` 时按 `_rels/` 目录再解析一次 | 兼容相对 `_rels/` 写目标的生成器（验收清单要求三种写法解析到同一 part） |
 | `XML-01` 转码 part | "Clean 拷贝的是转码后的字节" | 同；被改写时 XML 声明的 `encoding` 改为 `UTF-8` | 否则声明与字节不一致 |
 | `XML-14` | 声明补在新子树根 | 序列化器在 `New` 子树根预声明全部所需命名空间；漏网的在首次使用处内联声明；`Dom::declare_for_new_subtree` 供编辑引擎把声明写进 DOM | 序列化不改 DOM，但 DOM 侧显式声明能让 `namespace_scope` 看到 |
@@ -382,7 +386,7 @@ crate 名 `rsword`；nightly 与 cargo-fuzz 已装）。已决的政策见 §8 �
 | --- | --- | --- |
 | 1 | ~~语料基线~~ 已决（2026-09-04）：接受当前基线，不重导。`manifest.jsonl` 首行记着 `f105f36` + 32 个脏文件 + 导出时间；复核过影响面：32 个里只有 `packages/docx-engine/src/generate.ts`（三处 hunk 全在 `patchTableCellTexts`）与 `tests/nested-table-edit.test.ts` 在引擎内，其余 29 个在 `apps/docs`，碰不到解析与保存输出 | 后续若改了 genoffice 的 `docx-engine` 再重导；重导前先比对 `manifest.jsonl` 首行与 genoffice 当时状态 |
 | 2 | ~~`m1.15-diff-tools` 何时并入 `main`~~ 已并入（2026-09-04） | M2 直接从 `main` 开分支 |
-| 3 | ~~M2 计划文档~~ 已写：`spec/13-m2-plan.md`（10 个任务 + 从 M1 带过来的债 + 5 条风险提示） | 开工前复核第 1 条（语料基线）对 2.5 / 2.6 差分基准的影响 |
+| 3 | ~~M2 计划文档~~ 已写：`spec/13-m2-plan.md`（10 个任务 + 从 M1 带过来的债 + 5 条风险提示）；M4 计划见 `spec/15-m4-plan.md`（8 个任务，与 M2 并行） | 开工前复核第 1 条（语料基线）对 2.5 / 2.6 差分基准的影响 |
 
 ---
 
@@ -395,7 +399,7 @@ crate 名 `rsword`；nightly 与 cargo-fuzz 已装）。已决的政策见 §8 �
 **优先级依据（实测）**：`diff-parse --scope all` 在 573 份文档里有 341 份存在未知差异、1925 个差异点，按域聚合：
 绘图与图片约 830、块分类连带项（label / type / previewText）493、run 相关（字段 / 批注 / 符号字体）220、
 页眉页脚 157、表格 67、字段显示 36。保存侧 `tests/save_blocks.rs` 的 82 份跳过用例里，M5 约 48 份、
-M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的一块且不依赖 Span 与字段，适合并行开发。
+M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的一块且不依赖 Span 与字段，适合并行开发（任务分解见 `spec/15-m4-plan.md`，分支 `m4-drawing`）。
 
 **M2（L2：Span + 字段）任务分解**
 
@@ -423,8 +427,9 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
 
 任务分解与 DoD 在 `spec/13-m2-plan.md`（§10 有同一张表的摘要）。分支 `m2-span-fields`（从 `main` 开），
 **2026-09-05 以 fast-forward 并入 `main`**（21 条提交），M2 门两条都跑过：`diff-parse --scope fields`
-253 份 0 未知差异、`fuzz_instr` 13,572,886 次执行无崩溃。下一个里程碑是 M3（表格），任务分解在
-`spec/14-m3-plan.md`，逐条进度见 §12。
+253 份 0 未知差异、`fuzz_instr` 13,572,886 次执行无崩溃。
+
+M3（表格）的进度记在 §12，M4（绘图）在 §13。
 
 - [x] **2.1 Span 索引**（`span/{content,index}.rs`）：`SPAN-01` 内容序列（`content_children` / `content_len` /
   `content_index_of` / `item_containing`，只含元素节点，见 §8）在一处实现，索引构建、文档序比较与后续
@@ -792,3 +797,57 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   **M3 门四条全部达成**：`--scope tables` 311 份 0 未知差异；单元格文本编辑保真 67 份；
   `xml-deep-table` 5,000 层通过；随机序列 200 × 10 无失败。
 
+---
+
+## 13. M4 执行进度
+
+任务分解与 DoD 在 `spec/15-m4-plan.md`。分支 `m4-drawing`（从 M2 之前的 `main` 开，所以是**真合并**
+不是 fast-forward），2026-09-05 完成，M4 门跑过：`diff-parse --scope drawing` 573 份 0 未知差异。
+
+- [x] **4.1 `MediaStore`**（`package/media.rs`）：`MediaId → {part, mime, bytes, kind}`，`r:embed` /
+  `r:link` / `v:imagedata r:id` 都经**所在 part 自己的 rels** 解析（含 `..` 归一化与越根拒绝）；
+  MIME 判定顺序=扩展名表 → `Override` → `Default`；External 与 `http(s)://` 直出 URL；EMF/WMF/EMZ/WMZ
+  与 TIFF 标 `MediaKind::Metafile` / `Tiff` **不转换**（`docs/03` §3.5 冻结，4 份 `emf-image__*` 因此
+  登记为有意差异）。字节惰性读取并缓存，base64 手写。顺带给 L1 补了 `Dom::semantic_descendants`。
+- [x] **4.2 DrawingML 颜色**（`resolve/drawingml.rs`、`model/units.rs`）：六种颜色基（`srgbClr` /
+  `schemeClr` / `sysClr` / `prstClr` / `scrgbClr` / `hslClr`）+ 七种变换（`lumMod` / `lumOff` /
+  `tint` / `shade` 按 sRGB 分量，`satMod` / `hueMod` 过 HSL，`alpha`），按文档序施加、`f64` 留到最后
+  一步（`gradFill` 要等权平均）；`schemeClr` 的 `tx1→dk1` 四条别名；EMU/px/pt/twips 换算集中在
+  `units.rs`。语料 89 个颜色容器全部定得出 sRGB。
+- [x] **4.3 绘图显示模型**（`model/drawing.rs`）：`wp:inline` / `wp:anchor` 的锚定几何、`pic:pic` 的
+  `ImageDisplay`（媒体、`wp:extent`、`a:srcRect` 裁剪、`a:xfrm` 旋转翻转、`a:ln` 边框、`wp:docPr`），
+  挂到 `Segment.display`。遍历**迭代**、带深度上限，且**不下钻** `w:txbxContent` 与嵌套 `w:drawing`
+  ——文本框是独立内容流，下钻会把框里的图当成段落级图片，分类全错。
+- [x] **4.4 图片段落投影**（`bind/compat_ts/{media,image}.rs`）：`MediaMap` 预取（读字节要
+  `&mut Package`，投影拿的是 DOM 不可变借用，所以先扫一遍）；`imageWrap` 九种取值、`imageAlign`、
+  `imagePosH/V`、`imageZOrder` 与 z 序归一化、图前引导文字与段落缩进。
+- [x] **4.5 + 4.7 VML 与嵌入对象**（`model/vml.rs`）：`style` 键值原样保留（`MOD-11` 不做语义解释）、
+  `fillcolor` / `stroked` / `coordsize` / `coordorigin` / `v:imagedata` / `v:textpath`；细横线
+  （`v:rect o:hr` 与 `wp:extent cy ≤ 130000`）→ `decorative` + `rule*`；`o:OLEObject/@ProgID` →
+  `oleProgId`，预览图尺寸取 `v:shape` 的 style、缺省退到 `w:object` 的 `dxaOrig`/`dyaOrig`。
+- [x] **4.6 文本框与形状**（`bind/compat_ts/{textbox,box_json}.rs`，分 a–f 六步上）：
+  a 分类（`Text box` / `Drawing object` / 隐藏形状）、b `textboxes[]` 载荷（几何 / 填充 / 内边距 /
+  组仿射 / 框内段落）、c 节页面几何与页面锚定（`model/section.rs`，只取锚定真正要的页宽页边距栏数，
+  M5 建 `SectionInfo` 时替换）、d `a:custGeom` 路径（`model/custgeom.rs`，遇到 `a:gd` 公式 / 引导名
+  坐标 / `a:arcTo` 就整条不给——宁可不给路径也不能给一条错的）、e VML WordArt + 投影层的声明宏、
+  f 放置（见下）。
+- [x] **4.6f 放置**：`AnchorCtx` 把三件只有在**整段**尺度上才定得下来的事收在一处——`posOffset`
+  归一化、`pinAll` 首页钉页、并集是否铺满栏；wrapSquare 铺满整栏时按 `wrapTopAndBottom` 成带；
+  VML 画布的缩放 / 原点 / `coordorigin` 沿组链下传，随文画布先占住流内位置；嵌套形状照样成框
+  （只读、不占保存序号）。顺带修了两处分类错误：`pict_kind` 的优先级按 TS 决策树而不是文档序，
+  `drawing_display` 的 `eff_ns` 在 `wps` / `wpg` 前缀没声明时按字面量认（见 §8）。
+- [x] **4.8 恶意输入与门**（`tools/diff-parse`、`corpus/hostile`、`tests/drawing.rs`）：
+  `--scope drawing` 按**路径**筛而不是按文档——绘图文档同时背着 M2/M3/M5/M6 的差异，按文档筛这道门
+  永远关不上；域的定义在 `compat_ts::is_drawing_path`，接进 CI。`corpus/hostile` 补 4 份绘图用例
+  （3000 层组套娃、退化画布、全悬空的 `r:id`、畸形 `style`），生成器进
+  `tools/export-golden/hostile.export.test.ts` 跟着 `run.sh` 重生成。
+
+**并入 `main` 时的三处整合**（2026-09-05）：
+
+1. `body_block` 的分派顺序按 TS 的决策树定死：**字段段落在绘图之前**。文本框里的字段不算数
+   （TS 的 `fieldDetect` 先剥掉文本框，我们的 `para_fields` / `has_stray_field_chars` 只看宿主段落
+   自己的 inline），所以带字段的文本框段落照样走得到绘图分支。
+2. `--scope` 合成四档：`text` / `fields` 按文档筛，`drawing` 按路径筛，`all` 全算。
+3. 修掉 M2 指令词法的一处转义：引号里只有 `\"` 与 `\\` 是转义，别的 `\x` 原样留着——Windows 路径
+   `"file:///C:\Users\u\x"` 被吃成 `C:Usersux` 了（`field-display__015`）。修完地址是对的，但
+   TS 的 `convertibleHyperlink` 正则遇到反斜杠干脆不认，所以那一处仍是有意差异（登记在册）。

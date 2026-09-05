@@ -18,13 +18,20 @@
 pub mod block;
 pub mod build;
 pub mod classify;
+mod macros;
+
+pub mod custgeom;
 pub mod decl;
+pub mod drawing;
 pub mod facts;
 pub mod inline;
 pub mod notes;
 pub mod sdt;
+pub mod section;
 pub mod table;
 pub mod theme;
+pub mod units;
+pub mod vml;
 
 pub use block::{
     Block, ImageBlock, ListRef, ProtectedBlock, ProtectedKind, Revision, SdtInfo, TableBlock,
@@ -32,10 +39,15 @@ pub use block::{
 };
 pub use build::Document;
 pub use classify::{BodyClass, ParaClass, classify_body_child, classify_paragraph, text_kind};
+pub use custgeom::{CustomGeom, GeomCmd, GeomPath};
 pub use decl::{
     AbstractNum, Compat, CompatFacts, CompatSetting, DocDefaults, Font, FontTable, Level,
     LevelOverride, Num, Numbering, OwnHeadingLevel, Settings, Style, StyleType, Styles,
     TableStylePr,
+};
+pub use drawing::{
+    AnchorGeom, Display, Dist, DocPr, DrawingDisplay, Extent, ImageDisplay, LineDisplay, Position,
+    RectFrac, Wrap,
 };
 pub use facts::{
     DrawingFacts, DrawingKind, MathFacts, ParagraphFacts, PictFacts, PictKind, RevisionFacts,
@@ -47,8 +59,10 @@ pub use inline::{
 pub use notes::{Comment, Comments, Note, NoteKind, Notes, RichRun};
 // `SdtInfo` 从 `block` 一并导出（它是 `Block` 的字段）
 pub use sdt::{DataBinding, DocPart, SdtControl, SdtLock, SdtRefusal, refusing_sdt};
+pub use section::{SectionGeom, Sections};
 pub use table::{BlockStep, Blocks, Cell, GridCol, Row};
 pub use theme::{ColorScheme, FontScheme, FontSlots, Theme, ThemeSlot};
+pub use vml::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};
 
 #[cfg(test)]
 mod tests;

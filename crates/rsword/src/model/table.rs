@@ -206,6 +206,7 @@ impl<'a> Builder<'a> {
                 node: tbl,
                 kind: ProtectedKind::TooDeep,
                 preview: String::new(),
+                display: None,
                 sdt: sdt.cloned(),
                 revisions: revs.to_vec(),
             });

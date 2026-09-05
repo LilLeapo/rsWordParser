@@ -15,7 +15,8 @@
 3. `docs/04-dev-plan.md` —— 执行计划：§5.1 M1 已完成清单、§5.2 M1 门、§8 实现偏差、§9 待决、§10 M2 及以后的排期、§11 M2 逐条进度、§12 M3 逐条进度。
 4. `docs/01-ts-parser-reference.md` 与 genoffice 源码 —— **参考实现，不是验收权威**（见下）。
 
-`spec/12-m0-m1-plan.md`、`spec/13-m2-plan.md`、`spec/14-m3-plan.md` 是里程碑任务分解（# / 任务 / 规范 / DoD）；`spec/15-m4-plan.md` 在 `m4-drawing` 分支上。M0–M2 已全部完成并入 `main`；M3（表格，分支 `m3-tables`）与 M4（绘图，分支 `m4-drawing`）并行开发，共享文件的合并注意事项见 `spec/14` 「实现约定」与「风险提示」。
+`spec/12-m0-m1-plan.md`、`spec/13-m2-plan.md`、`spec/14-m3-plan.md`、`spec/15-m4-plan.md` 是里程碑任务分解（# / 任务 / 规范 / DoD）。
+M0–M2 与 M4（绘图）已并入 `main`；M3（表格）在 `m3-tables` 分支完成，逐条进度见 `docs/04` §12（M4 在 §13）。
 
 ## TS 不是权威
 
@@ -65,6 +66,7 @@ cargo test --workspace                      # 调试构建
 cargo test --workspace --release            # 必须也跑：enforce 只在调试构建报错，发布构建行为不同
 cargo run -p diff-parse -- --scope text     # M1 门：文本用例未知差异必须为 0
 cargo run -p diff-parse -- --scope fields   # M2 门：再加字段 / 范围 / 批注，仍须为 0
+cargo run -p diff-parse -- --scope drawing  # M4 门：绘图域**路径**（不是按文档筛），仍须为 0
 cargo run -p diff-parse -- --scope all --json          # 全域差距排名
 cargo run -p xpath-assert -- a.docx '//w:p[1]/w:r/w:t/text()'
 cd fuzz && cargo +nightly fuzz run fuzz_xml -- -max_total_time=600      # 另有 fuzz_zip / fuzz_instr
@@ -85,6 +87,7 @@ GENOFFICE_DIR=~/code/genoffice tools/export-golden/run.sh   # 重导语料（改
 - 新的元素名 / 属性名要先加进 `crates/rsword/schema/local_names.txt`（生成器会造 `LocalName` 变体）。表外名字会 intern 成 `LocalName::Other`，可用但不能用于常量匹配。
 - 树遍历写成**迭代**的。语料里有几千层嵌套的文档，递归会栈溢出，表现为测试 SIGABRT。
 - 编辑操作的事务边界是 `EditSession::apply` / `apply_all`：`plan`（只读）→ `validate`（只读）→ `commit`（机械写入，不可失败）。任一步 `Err` 必须不留半修改状态。`commit_plan` 会为事务碰过的每个 part 记写前镜像。
+- **同一形状重复三次以上就上声明宏**。已有的：`bind/compat_ts/json.rs` 的 `set_some!`（有值才写）与 `set_if!`（为真才写 `true`）——投影层新写字段用它们，别再手写 `if let Some`；`model/macros.rs` 的 `named_enum!`（无字段枚举 + `as_str` + `Display`），测试里就不用再抄名字表。跨模块用 `macro_rules!` + `pub(super) use`，展开里写 `$crate::…` 全路径。会把函数定义藏起来、让人跳不到声明处的，用共享模块而不是宏。
 - 用 python 脚本改 Rust 源码时：先 `cargo fmt`，按**精确字符串**匹配，并逐步打印是否命中（rustfmt 会重排你以为的那一行）。
 - 串联多条检查再提交时，逐条捕获退出码；`grep | head` 这类管道会吞掉失败。
 

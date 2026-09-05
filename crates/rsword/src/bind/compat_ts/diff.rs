@@ -301,6 +301,27 @@ fn case_in_scope(e: &Value, scope: Scope) -> bool {
         && e.get("hfParts").and_then(Value::as_object).is_some_and(|m| m.is_empty())
 }
 
+/// M4 绘图域的 JSON 路径（`TEST-10` 的 M4 门）：块上的图片 / 文本框 / 细横线 / 嵌入对象字段，
+/// 以及 run 内的图片。表格内的图片（M3）、页眉页脚的图片（M5）、图表与公式（M6）不算绘图域——
+/// 它们各自归后续里程碑，混进来会让 M4 的门永远关不上。
+pub fn is_drawing_path(path: &str) -> bool {
+    /// 块上的绘图域字段前缀。
+    const FIELDS: [&str; 8] = [
+        "image",       // imageDataUrl / imageWidthPx / imageWrap / imageZOrder…
+        "textboxes",   // 文本框数组及其全部载荷
+        "rule",        // 细横线 ruleWidthPx / ruleColorHex / ruleThicknessPx
+        "decorative",  // 细横线与装饰性形状
+        "oleProgId",   // 嵌入对象
+        "brokenImage", //
+        "strayRuns",   // 形状外的游离文字（4.6）
+        "strayStyleId",
+    ];
+    let key = path_key(path);
+    let Some(rest) = key.strip_prefix("blocks[].") else { return false };
+    FIELDS.iter().any(|f| rest.starts_with(f))
+        || rest.strip_prefix("runs[].").is_some_and(|r| r.starts_with("image"))
+}
+
 /// 一类未知差异的聚合：出现次数与首个样例。
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct PathStat {
@@ -387,6 +408,32 @@ mod tests {
         );
         assert!(k[1].matches("any.docx", "styles.Foo.tableDisplay.fill"));
         assert!(!known_diffs().is_empty(), "KNOWN_DIFFS.md 须含机器可读块");
+    }
+
+    #[test]
+    fn test_10_drawing_domain_paths() {
+        for p in [
+            "blocks[3].imageWidthPx",
+            "blocks[0].textboxes[1].paras[0].runs[0].text",
+            "blocks[2].ruleColorHex",
+            "blocks[2].decorative",
+            "blocks[9].oleProgId",
+            "blocks[1].runs[0].image.wrap",
+            "blocks[1].strayRuns[0].text",
+        ] {
+            assert!(is_drawing_path(p), "{p} 应属绘图域");
+        }
+        // 表格里的图片归 M3、页眉页脚的图片归 M5、图表与公式归 M6
+        for p in [
+            "blocks[3].table.richParas[0].runs[0].image.dataUrl",
+            "headerImages[0].dataUrl",
+            "blocks[3].chartDisplay.kind",
+            "blocks[3].formulaDisplay",
+            "blocks[3].runs[0].text",
+            "internal.documentXml",
+        ] {
+            assert!(!is_drawing_path(p), "{p} 不该算绘图域");
+        }
     }
 
     #[test]

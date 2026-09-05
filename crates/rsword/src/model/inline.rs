@@ -6,6 +6,7 @@
 
 use std::ops::Range;
 
+use crate::model::drawing::Display;
 use crate::semantic::props::RunProps;
 use crate::span::{FieldId, SpanId};
 use crate::xml::{NodeId, QName};
@@ -89,6 +90,8 @@ pub struct Segment {
     /// 在 `Run.text` 中的字节区间（长度 0 的段也有位置）。
     pub text: Range<u32>,
     pub utf16_len: u32,
+    /// 显示模型（`MOD-11`）：绘图 / VML / OLE 段才有。
+    pub display: Option<Display>,
 }
 
 /// `w:br/@w:type`。

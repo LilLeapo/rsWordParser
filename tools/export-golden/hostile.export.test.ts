@@ -126,6 +126,35 @@ function nestedTables(depth: number): string {
   )
 }
 
+
+const WPS = 'http://schemas.microsoft.com/office/word/2010/wordprocessingShape'
+const WPG = 'http://schemas.microsoft.com/office/word/2010/wordprocessingGroup'
+const A = 'http://schemas.openxmlformats.org/drawingml/2006/main'
+const WP = 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing'
+const V = 'urn:schemas-microsoft-com:vml'
+
+/** 深度 depth 的 wpg 组套娃，最里面放一个带字的形状。 */
+function nestedGroups(depth: number): string {
+  const open =
+    '<wpg:grpSp><wpg:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="914400" cy="914400"/>' +
+    '<a:chOff x="0" y="0"/><a:chExt cx="914400" cy="914400"/></a:xfrm></wpg:grpSpPr>'
+  const shape =
+    '<wps:wsp><wps:cNvPr id="9" name="deep"/><wps:spPr><a:xfrm><a:off x="0" y="0"/>' +
+    '<a:ext cx="100000" cy="100000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom>' +
+    '<a:solidFill><a:srgbClr val="4472C4"/></a:solidFill></wps:spPr>' +
+    '<wps:txbx><w:txbxContent><w:p><w:r><w:t>deep</w:t></w:r></w:p></w:txbxContent></wps:txbx>' +
+    '</wps:wsp>'
+  return (
+    `<w:p><w:r><w:drawing><wp:inline xmlns:wp="${WP}"><wp:extent cx="914400" cy="914400"/>` +
+    `<a:graphic xmlns:a="${A}"><a:graphicData uri="${WPG}">` +
+    `<wpg:wgp xmlns:wpg="${WPG}" xmlns:wps="${WPS}">` +
+    open.repeat(depth) +
+    shape +
+    '</wpg:grpSp>'.repeat(depth) +
+    '</wpg:wgp></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>'
+  )
+}
+
 describe('TEST-09 hostile corpus', () => {
   it('zip limits (PKG-02)', async () => {
     const base = await real.buildDocx({ bodyXml: PLAIN })
@@ -273,8 +302,59 @@ describe('TEST-09 hostile corpus', () => {
     await record(mixed, 'hostile.export', 'extra__mixed-flavor')
   })
 
+  it('drawing trees (TEST-09, MOD-11)', async () => {
+    // 组套娃 3000 层：遍历必须是迭代的，深度上限之外降级而不是爆栈
+    emit(
+      'drawing-deep-groups',
+      await real.buildDocx({ bodyXml: nestedGroups(3000) + PLAIN }),
+      'parses; group depth > 64 degrades, no stack overflow',
+    )
+    // VML 画布退化：coordsize 为 0 / 非数字，孩子坐标离谱，组还引用自己的 shapetype
+    const canvas =
+      `<w:p><w:r><w:pict><v:group xmlns:v="${V}" xmlns:o="urn:schemas-microsoft-com:office:office"` +
+      ' id="g1" editas="canvas" style="width:150pt;height:75pt" coordsize="0,0" coordorigin="-2147483648,-2147483648">' +
+      '<v:shapetype id="g1" o:spt="75" coordsize="21600,21600"/>' +
+      '<v:shape id="c1" type="#g1" style="position:absolute;left:99999999999;top:-99999999999;width:1e400;height:0">' +
+      '<v:textbox><w:txbxContent><w:p><w:r><w:t>canvas child</w:t></w:r></w:p></w:txbxContent></v:textbox>' +
+      '</v:shape>' +
+      `<v:group id="g1" style="width:0;height:0" coordsize="1,1"><v:shape id="c2" type="#g1" style="width:10;height:10"/></v:group>` +
+      '</v:group></w:pict></w:r></w:p>'
+    emit(
+      'drawing-cyclic-group',
+      await real.buildDocx({ bodyXml: canvas + PLAIN }),
+      'parses; degenerate group scale and self-referencing ids do not loop',
+    )
+    // 绘图里的关系全是悬空的：图、VML 预览图、外部文本框 part
+    const dangling =
+      '<w:p><w:r><w:drawing><wp:inline xmlns:wp="' + WP + '"><wp:extent cx="914400" cy="914400"/>' +
+      `<a:graphic xmlns:a="${A}"><a:graphicData uri="${WPS}">` +
+      `<wps:wsp xmlns:wps="${WPS}"><wps:spPr><a:blipFill><a:blip r:embed="rIdGone1"/></a:blipFill></wps:spPr>` +
+      '<wps:txbx r:txbx="rIdGone2"/></wps:wsp>' +
+      '</a:graphicData></a:graphic></wp:inline></w:drawing></w:r>' +
+      `<w:r><w:pict><v:shape xmlns:v="${V}" id="s1" type="#_x0000_t75" style="width:50pt;height:50pt">` +
+      '<v:imagedata r:id="rIdGone3"/></v:shape></w:pict></w:r></w:p>'
+    emit(
+      'drawing-missing-rels',
+      await real.buildDocx({ bodyXml: dangling + PLAIN }),
+      'parses; every dangling r:id degrades to no media, bytes untouched',
+    )
+    // 畸形 style / coordsize / path / 颜色：一个都不能让投影 panic
+    const junk =
+      `<w:p><w:r><w:pict><v:group xmlns:v="${V}" style="width:abc;height:;left:1e999" coordsize="not,numbers">` +
+      '<v:shape id="j1" style=";;;width:--3pt;height:0pt;margin-left:NaNpt;position:ABSOLUTE"' +
+      ' fillcolor="#zzzzzz" strokecolor="" strokeweight="-1pt" path="m0,0c1">' +
+      '<v:textbox><w:txbxContent><w:p><w:r><w:t>junk</w:t></w:r></w:p></w:txbxContent></v:textbox></v:shape>' +
+      `<v:rect id="j2" style="width:10;height:10" path="m,l21600,,21600,21600,,21600nfxe" coordsize="-1,-1"/>` +
+      '</v:group></w:pict></w:r></w:p>'
+    emit(
+      'drawing-bad-style',
+      await real.buildDocx({ bodyXml: junk + PLAIN }),
+      'parses; unparsable style/coordsize/path values are dropped, not guessed',
+    )
+  })
+
   it('writes hostile manifest', () => {
     writeFileSync(join(HOSTILE!, 'manifest.json'), JSON.stringify(manifest, null, 2))
-    expect(manifest.length).toBeGreaterThanOrEqual(16)
+    expect(manifest.length).toBeGreaterThanOrEqual(20)
   })
 })

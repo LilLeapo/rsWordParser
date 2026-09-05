@@ -155,6 +155,23 @@ impl Dom {
             .unwrap_or_default()
     }
 
+    /// 子树里任意元素声明了 `xmlns:<prefix>` 时给出它的命名空间。只在作用域查找失败后当退路用。
+    fn prefix_declared_in(&self, node: NodeId, prefix: &str) -> Option<NsId> {
+        let want = self.interner().get(prefix)?;
+        for n in self.descendants(node) {
+            let Some(e) = self.element(n) else { continue };
+            for a in &e.attrs {
+                if a.name.ns == NsId::Xmlns
+                    && a.name.local == LocalName::Other(want)
+                    && let Some((ns, _)) = NsId::from_uri(&self.attr_str(a))
+                {
+                    return Some(ns);
+                }
+            }
+        }
+        None
+    }
+
     fn resolve_prefix_in(&self, scope: &Scope, prefix: &str) -> Option<NsId> {
         if prefix == "xml" {
             return Some(NsId::Xml);
@@ -183,7 +200,12 @@ impl Dom {
                     let requires =
                         self.attr_value(c, requires_q).map(|v| v.into_owned()).unwrap_or_default();
                     let satisfied = requires.split_ascii_whitespace().all(|p| {
-                        self.resolve_prefix_in(scope, p).is_some_and(|ns| understood.contains(&ns))
+                        self.resolve_prefix_in(scope, p)
+                            // 前缀在 `mc:Choice` 处不在作用域，但分支**里面**声明了它：合成
+                            // 语料常把 `xmlns:wps` 写在 `wps:wsp` 自己身上，`Requires="wps"`
+                            // 于是解析不出来。意图毫无歧义，按分支内的声明认（`docs/04` §8）。
+                            .or_else(|| self.prefix_declared_in(c, p))
+                            .is_some_and(|ns| understood.contains(&ns))
                     });
                     if satisfied {
                         return Some(c);
@@ -200,6 +222,35 @@ impl Dom {
     /// `ProcessContent` 命中的元素产出其子节点而非自身。模型层禁止直接读 `children`。
     pub fn semantic_children(&self, node: NodeId) -> SemanticChildren<'_> {
         SemanticChildren { dom: self, stack: vec![(self.children(node), 0)] }
+    }
+
+    /// `XML-10`：语义前序遍历（含 `node` 自身），逐层走 [`Dom::semantic_children`]。
+    ///
+    /// 与 [`Dom::descendants`] 的区别是这里看不见非 active 的 `mc:Choice` / `mc:Fallback`
+    /// 分支。凡是要按语义读子树的地方（绘图、VML、文本框）都用这个，否则会读到未生效的分支——
+    /// 语料里有 `mc:Choice Requires="ma"`（未知前缀）里写着坏 `r:embed`、Fallback 里才是真图的文档。
+    pub fn semantic_descendants(&self, node: NodeId) -> SemanticDescendants<'_> {
+        SemanticDescendants { dom: self, stack: vec![node], scratch: Vec::new() }
+    }
+}
+
+/// [`Dom::semantic_descendants`] 的迭代器。显式栈，不递归（语料里有几千层嵌套）。
+pub struct SemanticDescendants<'a> {
+    dom: &'a Dom,
+    stack: Vec<NodeId>,
+    scratch: Vec<NodeId>,
+}
+
+impl Iterator for SemanticDescendants<'_> {
+    type Item = NodeId;
+
+    fn next(&mut self) -> Option<NodeId> {
+        let id = self.stack.pop()?;
+        let dom = self.dom;
+        self.scratch.clear();
+        self.scratch.extend(dom.semantic_children(id));
+        self.stack.extend(self.scratch.iter().rev().copied());
+        Some(id)
     }
 }
 

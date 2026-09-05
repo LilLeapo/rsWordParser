@@ -13,9 +13,14 @@ use super::decl::{
     NumberingOut, auto_space, i32_of, jc_align, list_kind, parse_int, strip_hash, tab_stops,
     u32_of, val_text,
 };
+use super::image;
+use super::media::MediaMap;
+use super::textbox;
 use super::utf16::Utf16Index;
+use crate::model::section::Sections;
+use crate::model::vml::vml_display;
 use crate::model::{
-    AtomKind, Block, BreakKind, Document, Inline, LinkTarget, ProtectedKind, Revision,
+    AtomKind, Block, BreakKind, Display, Document, Inline, LinkTarget, ProtectedKind, Revision,
     RevisionMeta, Run, SdtControl, SdtInfo, SegmentKind, StyleType, TextBlock, TextKind,
 };
 use crate::package::{RelTarget, Rels};
@@ -39,6 +44,12 @@ pub(super) struct Ctx<'a> {
     pub idx: &'a Utf16Index,
     pub rels: &'a Rels,
     pub numbering: &'a NumberingOut,
+    /// 主 part 的媒体预取表（`bind::compat_ts::media`）。
+    pub media: &'a MediaMap,
+    /// 主 part 的节页面几何（锚定绘图定位要用）。
+    pub sections: Sections,
+    /// 文档里第一处分页的字节位置（`None` = 整篇都在首页）。
+    first_page_break: Option<u32>,
     disp_cache: RefCell<HashMap<(String, StyleType), StyleDisp>>,
 }
 
@@ -68,12 +79,56 @@ impl<'a> Ctx<'a> {
         idx: &'a Utf16Index,
         rels: &'a Rels,
         numbering: &'a NumberingOut,
+        media: &'a MediaMap,
     ) -> Ctx<'a> {
-        Ctx { dom, doc, resolver, idx, rels, numbering, disp_cache: RefCell::new(HashMap::new()) }
+        let sections = Sections::build(dom);
+        let first_page_break = first_page_break_at(dom.src());
+        Ctx {
+            dom,
+            doc,
+            resolver,
+            idx,
+            rels,
+            numbering,
+            media,
+            sections,
+            first_page_break,
+            disp_cache: RefCell::new(HashMap::new()),
+        }
     }
 
     pub(super) fn slice(&self, r: &Range<u32>) -> &'a str {
         self.dom.lex_str(r)
+    }
+
+    /// 一个节点的原字节（`COMPAT-04`：TS 的各种 `xml` 字段都是原文切片）。
+    pub(super) fn node_xml(&self, node: NodeId) -> &'a str {
+        self.slice(&self.lex_range(node))
+    }
+
+    /// 管辖某个节点的节几何。
+    pub(super) fn section_at(&self, node: NodeId) -> Option<&crate::model::SectionGeom> {
+        let start = self.lex_range(node).start;
+        self.sections.at(start)
+    }
+
+    /// TS `opts.firstPage`：这个块的锚定绘图能不能按页面原始坐标钉住。
+    ///
+    /// 要求块**不是**第一个——首个块的锚点本来就在正文顶上，按段落原点算已经准了——
+    /// 且块起点在首个分页之前。
+    pub(super) fn first_page(&self, node: NodeId, docx_index: usize) -> bool {
+        docx_index > 0 && self.first_page_break.is_none_or(|b| self.lex_range(node).start < b)
+    }
+
+    /// `w:instrText` 的文本内容。
+    fn plain_instr(&self, node: NodeId) -> String {
+        let mut s = String::new();
+        for c in self.dom.semantic_children(node) {
+            if let Some(t) = self.dom.text(c) {
+                s.push_str(&t);
+            }
+        }
+        s
     }
 
     fn u16(&self, byte: u32) -> u32 {
@@ -109,7 +164,7 @@ impl<'a> Ctx<'a> {
     }
 
     /// TS `plainText`：`w:t` 文本拼接，`</w:tc>` 边界补一个空格。
-    fn plain_text(&self, node: NodeId) -> String {
+    pub(super) fn plain_text(&self, node: NodeId) -> String {
         let dom = self.dom;
         let mut out = String::new();
         let mut pending_gap = false;
@@ -203,7 +258,38 @@ pub(super) fn body(ctx: &Ctx<'_>) -> (Vec<Value>, Vec<Value>) {
         elements.push(element_json(ctx, &lex_name, &range));
         blocks.push(Value::Object(body_block(ctx, child, name, &lex_name, &range, i, &by_node)));
     }
+    image::normalize_z_orders(&mut blocks);
     (elements, blocks)
+}
+
+/// TS `ctx.firstPageBreakAt`：第一处分页的字节位置。显式分页符、`w:pageBreakBefore`、
+/// Word 记录的渲染分页提示，以及第一个节的结束，取最靠前的那个。
+///
+/// 误报只会把「钉页」关掉，是保守方向；漏报会把第二页的封面图钉到第一页上。
+fn first_page_break_at(src: &str) -> Option<u32> {
+    /// `open` 开头的标签里，第一个满足 `ok` 的标签起点。
+    fn scan(src: &str, open: &str, ok: impl Fn(&str) -> bool) -> Option<usize> {
+        let mut from = 0;
+        while let Some(rel) = src[from..].find(open) {
+            let at = from + rel;
+            let end = src[at..].find('>').map_or(src.len(), |e| at + e + 1);
+            if ok(&src[at..end]) {
+                return Some(at);
+            }
+            from = end;
+        }
+        None
+    }
+    [
+        scan(src, "<w:br ", |t| t.contains("w:type=\"page\"")),
+        scan(src, "<w:pageBreakBefore", |t| t.ends_with("/>")),
+        scan(src, "<w:lastRenderedPageBreak", |t| t.ends_with("/>")),
+        src.find("</w:sectPr>"),
+    ]
+    .into_iter()
+    .flatten()
+    .min()
+    .map(|i| i as u32)
 }
 
 fn element_json(ctx: &Ctx<'_>, name: &str, range: &Range<u32>) -> Value {
@@ -523,6 +609,69 @@ fn body_block(
     }
 }
 
+/// 嵌入对象的显示信息该不该输出（TS `onlyOleFields`，`docs/01` §6.2.2）。
+///
+/// TS 的决策树里字段分支在 `w:object` 之前：段落里只要还有别的字段，这一段就归字段管
+/// （`smartart-ole__013` 的 `EMBED` 后面跟了个 `TOC`，标签是 `Field (EMBED)`）。只有当段落
+/// 没有字段、或者所有指令都是 `EMBED` / `LINK` 时，才走嵌入对象这条路。
+fn ole_display_applies(ctx: &Ctx<'_>, p: NodeId) -> bool {
+    let dom = ctx.dom;
+    let mut instrs = 0usize;
+    let mut all_ole = true;
+    for n in dom.semantic_descendants(p) {
+        // 文本框里的字段不算（TS 的 `fieldDetect` 先剥掉文本框）
+        if dom.is(n, w(LocalName::TxbxContent)) {
+            continue;
+        }
+        if dom.is(n, w(LocalName::FldSimple)) {
+            return false;
+        }
+        if dom.is(n, w(LocalName::InstrText)) {
+            instrs += 1;
+            let text = ctx.plain_instr(n);
+            let head = text.trim_start();
+            if !(head.starts_with("EMBED") || head.starts_with("LINK")) {
+                all_ole = false;
+            }
+        }
+    }
+    instrs == 0 || all_ole
+}
+
+/// 段落里每个 `w:object` 的 `v:imagedata` 预览图都能解析。
+fn ole_previews_resolve(ctx: &Ctx<'_>, tb: &TextBlock) -> bool {
+    tb.facts.objects.iter().all(|&n| {
+        vml_display(ctx.dom, n)
+            .image()
+            .and_then(|s| s.imagedata.as_deref())
+            .is_some_and(|r| ctx.media.get(r).is_some())
+    })
+}
+
+/// 绘图分支（`spec/15` 4.6），落空就是普通文本段落。
+fn drawing_or_text_block(
+    ctx: &Ctx<'_>,
+    p: NodeId,
+    tb: &TextBlock,
+    o: Map<String, Value>,
+) -> Map<String, Value> {
+    // 段落里既有文字又有 `w:object`，但预览图解析不出来：TS 退成 `Embedded object`
+    // 只读块（否则整段会只画一张画不出来的预览图，把文字吃掉）。预览图都解析得出来时
+    // 留在带图的文本段落路径上，`w:object` 的原字节照样往返（`docs/01` §6.2.6）。
+    if !tb.facts.objects.is_empty() && !ole_previews_resolve(ctx, tb) {
+        let mut o = passthrough(o, "Embedded object");
+        set(&mut o, "previewText", ctx.plain_text(p));
+        let v = vml_display(ctx.dom, tb.facts.objects[0]);
+        image::ole_display(ctx, p, &v, &mut o);
+        return o;
+    }
+    // 文本框 / 绘图对象的分类整个在投影层，模型里这仍是可编辑段落。
+    match textbox::drawing_block(ctx, p, tb, o.clone()) {
+        Some(o) => o,
+        None => text_block(ctx, tb, o),
+    }
+}
+
 fn paragraph_block(
     ctx: &Ctx<'_>,
     p: NodeId,
@@ -535,7 +684,10 @@ fn paragraph_block(
             set(&mut o, "invisibleMarker", true);
             o
         }
-        // TS `buildBlock` 规则 2 / 3：字段段落与 TOC 行是只读的 passthrough，不出 runs / format
+        // TS `buildBlock` 规则 2 / 3：字段段落与 TOC 行是只读的 passthrough，不出 runs / format。
+        // 顺序照 TS 的决策树：**字段在绘图之前**——文本框里的字段不算数（`para_fields` /
+        // `has_stray_field_chars` 都只看宿主段落自己的 inline），所以带字段的文本框段落照样
+        // 走得到下面的绘图分支（`vml-textbox__007`）。
         Some(Block::Text(tb)) => match ts_field_passthrough(ctx, tb) {
             Some(label) => {
                 let mut o = passthrough(o, &label);
@@ -548,7 +700,7 @@ fn paragraph_block(
                 }
                 o
             }
-            None => text_block(ctx, tb, o),
+            None => drawing_or_text_block(ctx, p, tb, o),
         },
         Some(Block::Protected(pb)) => match &pb.kind {
             ProtectedKind::Invisible => {
@@ -597,12 +749,48 @@ fn paragraph_block(
                 };
                 let mut o = passthrough(o, label);
                 set(&mut o, "previewText", ctx.plain_text(p));
+                let vml = pb.display.as_ref().and_then(Display::as_vml);
+                match (kind, vml) {
+                    // HTML `<hr>` 导入的细横线：Word 按声明高度画一条线，画成绘图对象芯片会
+                    // 既画错又白吃掉一行版面（`docs/01` §6.2.6）。
+                    (ProtectedKind::Rule, Some(v)) => image::vml_rule(v, &mut o),
+                    (ProtectedKind::Ole, Some(v)) if ole_display_applies(ctx, p) => {
+                        image::ole_display(ctx, p, v, &mut o);
+                    }
+                    _ => {}
+                }
                 o
             }
         },
-        Some(Block::Image(_)) => {
+        Some(Block::Image(b)) => {
             let mut o = o;
-            set(&mut o, "type", "image");
+            let drawing = b.display.as_ref().and_then(Display::as_drawing);
+            let media = drawing
+                .and_then(|d| d.picture())
+                .and_then(|p| ctx.media.pick(p.embed.as_deref(), p.link.as_deref()));
+            match media {
+                Some(m) => {
+                    set(&mut o, "type", "image");
+                    set(&mut o, "label", "Image");
+                    set(&mut o, "imageDataUrl", m.url.clone());
+                }
+                // 媒体解析不出来：TS 退成只读的 `Image` 块并标 brokenImage，预览文字取 docPr。
+                // 只对 DrawingML 图片这么做——VML 图片（`w:pict`）的显示模型在 4.5，
+                // 那之前它没有 `display`，不能据此断定媒体坏了。
+                None if drawing.is_some_and(|d| d.picture().is_some()) => {
+                    o = passthrough(o, "Image");
+                    set(&mut o, "brokenImage", true);
+                    let preview = drawing
+                        .map(|d| &d.doc_pr)
+                        .and_then(|d| d.descr.clone().or_else(|| d.name.clone()))
+                        .unwrap_or_default();
+                    set(&mut o, "previewText", preview);
+                }
+                None => set(&mut o, "type", "image"),
+            }
+            if let Some(d) = drawing {
+                image::image_meta(ctx, Some(p), d, &mut o);
+            }
             o
         }
         _ => {
@@ -929,7 +1117,7 @@ fn mark_vanish_hidden(ctx: &Ctx<'_>, tb: &TextBlock) -> bool {
         || f.has_range_marker
         || !f.drawings.is_empty()
         || !f.picts.is_empty()
-        || f.objects > 0
+        || !f.objects.is_empty()
         || f.has_sect_pr
         || tb.props.num.is_some()
     {
@@ -985,7 +1173,8 @@ fn text_block(ctx: &Ctx<'_>, tb: &TextBlock, mut o: Map<String, Value>) -> Map<S
     if let Some(ppr) = ppr {
         set(&mut o, "rawPPr", ctx.slice(&ctx.lex_range(ppr)));
     }
-    let runs = runs_json(ctx, tb);
+    let mut runs = runs_json(ctx, tb);
+    image::resolve_run_overlap(&mut runs);
     if let Some(f) = para_format(ctx, tb, ppr, runs.is_empty()) {
         set(&mut o, "format", f);
     }
@@ -1172,6 +1361,13 @@ pub(super) fn para_format(
 }
 
 /// TS `extractParaFormat(pPr)`：`props` 是声明值；`ppr` 节点用于重复 `w:pBdr` 容器。
+/// 文本框段落用的扁平 `format`（TS `txbxContentParas` 把 `extractParaFormat` 的字段直接摊在
+/// 段落对象上，而不是包进 `format`）。
+pub(super) fn para_format_json(ctx: &Ctx<'_>, tb: &TextBlock) -> Option<Value> {
+    let ppr = ctx.dom.semantic_children(tb.node).find(|&n| ctx.dom.is(n, w(LocalName::PPr)));
+    para_format_of_props(ctx, &tb.props, ppr, tb.node, true)
+}
+
 fn para_format_of_props(
     ctx: &Ctx<'_>,
     props: &ParaProps,
@@ -1471,15 +1667,50 @@ pub(super) fn empty_para_font(ctx: &Ctx<'_>, p: NodeId, ppr: Option<NodeId>) -> 
 
 // ---- Run（TS extractRuns / buildRun / mergeRuns）--------------------------------------------------------
 
-pub(super) fn runs_json(ctx: &Ctx<'_>, tb: &TextBlock) -> Vec<Map<String, Value>> {
-    let mut para_disp =
+/// TS `strayParaRuns`：形状之外的那些 run。
+///
+/// `with_images` 打开时保留**随文**图片的 run；锚定的绘图不给图——它已经作为框画出来了，
+/// 再当 run 里的图给一遍就是画两遍。关掉时一张图都不给。空 run 一律丢掉。
+pub(super) fn stray_runs_json(
+    ctx: &Ctx<'_>,
+    tb: &TextBlock,
+    with_images: bool,
+) -> Vec<Map<String, Value>> {
+    let anchored = |run: &Run| {
+        run.segments.iter().any(|seg| {
+            seg.display.as_ref().and_then(Display::as_drawing).is_some_and(|d| d.anchor.is_some())
+        })
+    };
+    let mut out = Vec::new();
+    for inline in &tb.inlines {
+        let Inline::Run(run) = inline else { continue };
+        let Some(mut r) = run_json(ctx, run, para_disp(ctx, tb)) else { continue };
+        if !with_images || anchored(run) {
+            r.remove("image");
+        }
+        let has_text = r.get("text").and_then(Value::as_str).is_some_and(|t| !t.is_empty());
+        if has_text || r.contains_key("image") {
+            out.push(r);
+        }
+    }
+    merge_runs(out)
+}
+
+/// 段落级的显示属性（`vanish` / `rtl` / 自动间距），run 投影要用。
+fn para_disp(ctx: &Ctx<'_>, tb: &TextBlock) -> StyleDisp {
+    let mut d =
         tb.style_id.as_deref().map(|s| ctx.style_disp(s, StyleType::Paragraph)).unwrap_or_default();
     if tb.style_id.is_none()
         && let Some(def) = ctx.resolver.default_style(StyleType::Paragraph).and_then(|s| s.id())
     {
         // TS `defaultParaVanish`：只有 vanish 走默认样式
-        para_disp.vanish = ctx.style_disp(def, StyleType::Paragraph).vanish.filter(|&v| v);
+        d.vanish = ctx.style_disp(def, StyleType::Paragraph).vanish.filter(|&v| v);
     }
+    d
+}
+
+pub(super) fn runs_json(ctx: &Ctx<'_>, tb: &TextBlock) -> Vec<Map<String, Value>> {
+    let para_disp = para_disp(ctx, tb);
     let mut runs: Vec<Map<String, Value>> = Vec::new();
     for inline in &tb.inlines {
         match inline {
@@ -1727,11 +1958,16 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
         return Some(o);
     }
     let (text, symbol_decoded) = symbol_text(ctx, run);
-    if text.is_empty() {
+    // TS `buildRun(withImages)`：run 里的图片成为一个 `text: ""` 的原子 run。
+    let image = run.segments.iter().find_map(|s| image::run_image(ctx, s));
+    if text.is_empty() && image.is_none() {
         return None;
     }
     let mut o = Map::new();
     set(&mut o, "text", text);
+    if let Some(img) = image {
+        set(&mut o, "image", Value::Object(img));
+    }
     comment_ids(ctx, run, &mut o);
     if let Some(link) = &run.link {
         match link {
@@ -2070,4 +2306,27 @@ fn same_style(a: &Map<String, Value>, b: &Map<String, Value>) -> bool {
 
 fn s_of(v: &Value, k: &str) -> Option<String> {
     v.get(k).and_then(Value::as_str).map(str::to_string)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::first_page_break_at;
+
+    /// 首页判定：谁在最前面就是分页点，找不到就整篇算首页。
+    #[test]
+    fn compat_03_first_page_break_takes_the_earliest_marker() {
+        let at = |x: &str| first_page_break_at(x);
+        assert_eq!(at("<w:p/><w:p/>"), None);
+        assert_eq!(at(r#"<w:p><w:r><w:br w:type="page"/></w:r></w:p>"#), Some(10));
+        // 节结束也算分页
+        assert_eq!(at("<w:p/></w:sectPr>"), Some(6));
+        // 取最靠前的那个：这里 br 在 sectPr 之前
+        let both = r#"<w:br w:type="page"/><w:p/></w:sectPr>"#;
+        assert_eq!(at(both), Some(0));
+        // Word 记录的渲染分页提示；不自闭合的标签不算
+        assert_eq!(at("<w:p/><w:lastRenderedPageBreak/>"), Some(6));
+        assert_eq!(at("<w:p/><w:lastRenderedPageBreak></w:lastRenderedPageBreak>"), None);
+        // `<w:br/>` 没有 w:type="page" 就不是分页
+        assert_eq!(at(r#"<w:br w:type="textWrapping"/>"#), None);
+    }
 }

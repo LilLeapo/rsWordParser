@@ -367,12 +367,15 @@ impl Parser<'_> {
             self.i += 1;
             match c {
                 '"' => return InstrToken::Quoted(s),
+                // 只有 `\"` 与 `\\` 是转义；别的 `\x` 原样留着——引号里的反斜杠是字面量
+                // （Windows 路径 `"file:///C:\Users\u\x"`，吃掉就成了 `C:Usersux`）。
+                // 开关只在引号**外**有意义。
                 '\\' => match self.peek() {
-                    Some(esc) => {
+                    Some(esc @ ('"' | '\\')) => {
                         self.i += 1;
                         s.push(esc);
                     }
-                    None => s.push('\\'),
+                    Some(_) | None => s.push('\\'),
                 },
                 _ => s.push(c),
             }
