@@ -12,11 +12,11 @@
 
 1. `docs/03-architecture-v3.md` —— v3.2 **冻结架构**，是宪法。分层、六个核心类型、不变式在这里定。
 2. `spec/*.md` —— 可验收的模块规范，每条带 ID（`XML-12`、`PROP-06`、`EDIT-03`…）。实现与测试都引用这些 ID。规范服从设计；冲突时以设计为准并修订规范。
-3. `docs/04-dev-plan.md` —— 执行计划：§5.1 M1 已完成清单、§5.2 M1 门、§8 实现偏差、§9 待决、§10 M2 及以后的排期、§11 M2 逐条进度、§12 M3 逐条进度。
+3. `docs/04-dev-plan.md` —— 执行计划：§5.1 M1 已完成清单、§5.2 M1 门、§8 实现偏差、§9 待决、§10 M2 及以后的排期、§11 M2 逐条进度、§12 M3 逐条进度、§13 M4 逐条进度、§14 M5 逐条进度。
 4. `docs/01-ts-parser-reference.md` 与 genoffice 源码 —— **参考实现，不是验收权威**（见下）。
 
-`spec/12-m0-m1-plan.md`、`spec/13-m2-plan.md`、`spec/14-m3-plan.md`、`spec/15-m4-plan.md` 是里程碑任务分解（# / 任务 / 规范 / DoD）。
-M0–M2 与 M4（绘图）已并入 `main`；M3（表格）在 `m3-tables` 分支完成，逐条进度见 `docs/04` §12（M4 在 §13）。
+`spec/12-m0-m1-plan.md`、`spec/13-m2-plan.md`、`spec/14-m3-plan.md`、`spec/15-m4-plan.md`、`spec/16-m5-plan.md` 是里程碑任务分解（# / 任务 / 规范 / DoD）。
+M0–M4 已全部并入 `main`（9181eae）；M5（页眉页脚 / 节 / 声明 part / resolve 校准）在 `m5-hf` 分支进行中，逐条进度见 `docs/04` §14。
 
 ## TS 不是权威
 
@@ -66,6 +66,7 @@ cargo test --workspace                      # 调试构建
 cargo test --workspace --release            # 必须也跑：enforce 只在调试构建报错，发布构建行为不同
 cargo run -p diff-parse -- --scope text     # M1 门：文本用例未知差异必须为 0
 cargo run -p diff-parse -- --scope fields   # M2 门：再加字段 / 范围 / 批注，仍须为 0
+cargo run -p diff-parse -- --scope tables   # M3 门：再加含表格的文档（按文档筛），仍须为 0
 cargo run -p diff-parse -- --scope drawing  # M4 门：绘图域**路径**（不是按文档筛），仍须为 0
 cargo run -p diff-parse -- --scope all --json          # 全域差距排名
 cargo run -p xpath-assert -- a.docx '//w:p[1]/w:r/w:t/text()'

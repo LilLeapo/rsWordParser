@@ -23,8 +23,9 @@ Span 索引与 Anchor 变换 / 物化（2.1–2.3）、字段子系统与它的�
 `diff-parse --scope drawing` 573 份 0 未知差异，已接进 CI。任务分解见 `spec/15-m4-plan.md`，
 逐条进度见 `docs/04` §13。
 
-`m3-tables` 已把 `main`（含 M4）合并进来；下一个没人认领的里程碑是 **M5**（页眉页脚 / 节 / 脚注尾注 /
-保护 / `CompatFacts` / toggle 校准 fixture）。
+**M3 已并入 `main`**（9181eae，2026-09-05；M0–M4 至此全部在 `main` 上）。下一个里程碑 **M5**（页眉页脚 / 节 /
+声明 part / toggle 校准 fixture）在分支 `m5-hf`（工作树 `../rsWordParser-m4`）开工：任务分解见
+`spec/16-m5-plan.md`，逐条进度见 `docs/04` §14。
 
 现在这套代码能：打开任意语料文档、输出与 TS 兼容的 `ParsedDoc` JSON（含整个绘图域：图片、文本框
 与形状、细横线、嵌入对象）、以字节级局部补丁写回并保证未编辑内容零改动；在文本段落上插入 / 删除 / 改 run 与段落属性 / 整段替换 / 拆分 / 合并；维护范围
@@ -105,15 +106,15 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 段落 / 书签 / 字段操作 | 17 个用例（`SPAN-06` 拆分与合并、`EDIT-06` 书签分配、`FLD-09`/`10`/`12` 各自的验收行） | `cargo test -p rsword --test para_ops` |
 | 批注与注释 | 语料 11 份带批注（17 条）、5 条注释条目；13 个用例（三部件关联、结构条目、`commentIds` 三形态、`noteRef` 编号、`SAVE-05` 新建 part、三个编辑操作、compat 权威列表） | `cargo test -p rsword --test notes` |
 
-全域差异按域聚合（差异点，M3 + M4 合并后实测 244）：**页眉页脚 157**（M5：`hfParts.rId` 46、
+全域差异按域聚合（差异点，M3 + M4 合并后实测 244）：**页眉页脚 161**（M5：`hfParts.rId` 46 + `hfParts.rIdHdr` 1、
 `headerParas`/`headerText` 各 34、`headerImages` 15、`footerParas`/`footerText` 各 11、
-`footerHasPageNumber` 6）、**单元格里的锚定形状 15**（M3 与 M4 的交叉地带：`anchoredBoxes` /
+`footerHasPageNumber` 6、`headerEven` 2、`headerHasPageNumber` 1）、**单元格里的锚定形状 15**（M3 与 M4 的交叉地带：`anchoredBoxes` /
 `anchoredBoxAnchors` / 被剥掉框文字后的 `paras[]` 各 5；两边的模型都在了，把 M4 的框提取接到
 `compat_ts/table.rs` 的格投影上就能归零，留给接手的人）、块分类连带项与 run 约 29（多半是页眉页脚
 里的段落）、公式 4（M6），其余零散。文本域、字段与 Span 域、表格域、绘图域四道门都是 0。
-保存侧 68 份跳过按里程碑（实测）：M5 43 份（页眉页脚 13 + 节 9 + 水印 5 + 参考文献 3 + 编号 3 +
-保护 3 + 主题 2 + 页码 1 + 奇偶页眉 2 + 页面颜色 1 + 写保护 1）、M4/M6 11 份（图表 6 + 图片 4 +
-`partXml` 1）、墨迹 8 份、`replaceImage` 1 份、样式 upsert 1 份、其余 4 份。
+保存侧 68 份跳过按里程碑（实测，按选项分组去重）：**M5 48 份**（页眉页脚六变体与每节页眉 22 + 水印 7（其中
+2 份与页眉同用例）+ 节 7 + 保护 4 + 编号 3 + 参考文献 3 + 主题 2 + 样式 upsert 1 + 页面颜色 1；明细见
+`spec/16` 的保存侧表）、M6 / M7 20 份（图表 6 + 图片 4 + 墨迹 8 + `partXml` 1 + `replaceImage` 1）。
 
 ## 与 TS 有意不同的地方
 

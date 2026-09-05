@@ -387,6 +387,7 @@ crate 名 `rsword`；nightly 与 cargo-fuzz 已装）。已决的政策见 §8 �
 | 1 | ~~语料基线~~ 已决（2026-09-04）：接受当前基线，不重导。`manifest.jsonl` 首行记着 `f105f36` + 32 个脏文件 + 导出时间；复核过影响面：32 个里只有 `packages/docx-engine/src/generate.ts`（三处 hunk 全在 `patchTableCellTexts`）与 `tests/nested-table-edit.test.ts` 在引擎内，其余 29 个在 `apps/docs`，碰不到解析与保存输出 | 后续若改了 genoffice 的 `docx-engine` 再重导；重导前先比对 `manifest.jsonl` 首行与 genoffice 当时状态 |
 | 2 | ~~`m1.15-diff-tools` 何时并入 `main`~~ 已并入（2026-09-04） | M2 直接从 `main` 开分支 |
 | 3 | ~~M2 计划文档~~ 已写：`spec/13-m2-plan.md`（10 个任务 + 从 M1 带过来的债 + 5 条风险提示）；M4 计划见 `spec/15-m4-plan.md`（8 个任务，与 M2 并行） | 开工前复核第 1 条（语料基线）对 2.5 / 2.6 差分基准的影响 |
+| 4 | **M5 计划文档**已写：`spec/16-m5-plan.md`（9 个任务 + 5 条门 + 债务表 + 8 条风险）。两件事要项目负责人出手：① `RES-04` toggle 与 `RES-10` 节继承的 fixture **观察值必须来自真实 Word**——5.8 会生成 6 份最小 docx，请在 Word 里打开并记录显示结果与 Word 版本（`fixtures/resolve/*/README.md`）；② `pageColor` 是否要同时写 settings 的 `w:displayBackgroundShape`（TS 不写；Word 可能不写就不显示）待 Word 实测 | 5.8 的文档生成放在第一周，观察值回来前 M5 门第 4 条挂起；② 实测需要就写并登记「超过 TS」 |
 
 ---
 
@@ -851,3 +852,21 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
 3. 修掉 M2 指令词法的一处转义：引号里只有 `\"` 与 `\\` 是转义，别的 `\x` 原样留着——Windows 路径
    `"file:///C:\Users\u\x"` 被吃成 `C:Usersux` 了（`field-display__015`）。修完地址是对的，但
    TS 的 `convertibleHyperlink` 正则遇到反斜杠干脆不认，所以那一处仍是有意差异（登记在册）。
+
+---
+
+## 14. M5 执行进度
+
+任务分解与 DoD 在 `spec/16-m5-plan.md`。分支 `m5-hf`（从 9181eae 开，M0–M4 全部已并入，所以 M5 不再有并行分支），
+工作树 `../rsWordParser-m4`。开工基线（2026-09-05 实测）：`diff-parse --scope all` 244 处 / 81 份，其中页眉页脚域
+161 处 / 43 份；保存语料 90 / 162 等价，48 份被 M5 选项阻塞。M5 门五条见 `spec/16`。
+
+- [ ] **5.1 节属性表**（`schema/props/section.toml`）：`SectionProps` 全字段 + `sectPrChange`；`para.toml` 的 `sect_pr` 接表；`SectionGeom` 改由属性表读出。
+- [ ] **5.2 节模型与 resolve 节视图**（`model/section.rs`）：`SectionInfo` / `Document.sections` / `section_of`；`Resolver::section` 的 `RES-10` 继承与有效变体。
+- [ ] **5.3 页眉页脚 part 与跨 part 内容流**（`model/hf.rs`）：`HfPart` 复用 `build_container`，每 part 一套 `FlowMap` / `FieldIndex` / `SpanIndex`；外部文本框 part；`Note` / `Comment` 的 `blocks`。
+- [ ] **5.4 compat 页眉页脚投影**（`bind/compat_ts/hf.rs`）：`hfParts` / 六变体 / `hfParagraphs` / `hfImages` / 水印；`--scope hf` 接 CI。
+- [ ] **5.5 页眉页脚与节的编辑操作**：位置带 `PartId`；`SetSectionProps` / `SetHeaderFooter` / `LinkHeaderFooter` / `SetWatermark` / `SetPageColor` / `SetDocumentSettings`。
+- [ ] **5.6 保存选项**：节 / 页眉页脚 / 水印 / 页面颜色 / 保护 / 奇偶页眉 → `EditOp`；compat 的 `headerFooterPartXml` 外科合并。
+- [ ] **5.7 声明 part 的读写**：参考文献（读 + 写）、编号追加、主题、样式 upsert。
+- [ ] **5.8 resolve 校准**：toggle 与节继承 fixture（文档我们生成，观察值来自 Word）；`RES-04` 占位规则替换。
+- [ ] **5.9 恶意输入、随机序列与 M5 门**：4 份 hostile、100 × 10 随机序列、CI。
