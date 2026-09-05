@@ -355,6 +355,7 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `docs/03` §5.4 `Keyword` | 列了 20 个变体 + `…` | `FLD-06` 表里的全部 76 个关键字都是变体，由一张 `macro_rules!` 表同时生成 `parse` / `as_str` / `policy` | 策略表与关键字表必须是同一份数据，否则加关键字时会漏改策略；`FLD-11` 的 `has_page_number` 也要按变体判断 |
 | `FLD-02` 索引的地位 | — | `FieldIndex` 是 DOM 的**投影**（编辑后作废重建），不像 `SpanIndex` 那样是规范状态的一半 | `FieldSpan` 里每条事实都能从节点重新读出来（`docs/03` §5.4："保存真相是 `instr_nodes` 的原字节"），没有 Anchor 那种"标记之外的信息"，增量维护只会多一份可能不同步的状态 |
 | `FLD-13` 缺陷来源判定 | "解析阶段的缺陷为 `PreExistingDamage`；编辑后新出现的为 `EngineInvariantViolation`" | 第一次写某个 part 之前记下按诊断代码的缺陷计数作基线，保存前重建索引比对，多出来的按 `EngineInvariantViolation` 并经 `save::enforce` 在调试构建下报错 | 索引是重建出来的，没有"这条诊断是不是新的"的天然标识；计数比对不需要跨编辑追踪节点身份 |
+| `TEST-09` hostile 语料 | 全部由 `tools/export-golden/hostile.export.test.ts` 生成 | `table-grid-mismatch` / `table-cell-no-paragraph` 两份手工构造（脚本见提交记录），登记在 `corpus/hostile/manifest.json` | genoffice 的 `buildDocx` 造不出这两种形状（它总会给单元格补段落）；而且重导会重写整份语料，与"接受当前基线不重导"的决定冲突。语料文件是**输入**不是期望值，与 TS 输出无关 |
 | `EDIT-03` 表格操作集 | `docs/03` §8.2 只有 `SetCellProps` / `SetTableProps` | 另加 `SetRowProps` | `w:trPr` 的 `tblHeader` / `trHeight` / `cantSplit` / `gridBefore` 没有别的入口；行是表格的一等结构，属性操作不该缺它 |
 | `RES-08` 视图入口 | `resolve::table_cell` 无参数 | `Resolver::table(&Dom, &TableBlock) -> TableView` 要多传一个 `Dom` | 重复声明的取舍（`w:tcW` 取最后一个、边框容器按边合并）要看模型按属性表通则去重时留在 `raw_unmodeled` 里的元素，只有 DOM 能拿到 |
 | `RES-08` 列宽 | 一组列宽 | `ColumnView` 里绝对宽与百分比宽**分开**存 | TS 的拉伸只改绝对宽、百分比仍是拉伸前的比例；`tblGrid` 有 0 宽列时也只有百分比可用。合成一个数组就对不上 TS |
@@ -772,5 +773,22 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   实际形态断言——克隆的字节、`vMerge` 的四种变化、`gridSpan` 的增减与元素消失、书签列区间右移、
   2×2 合并后的四格文字顺序与 `vMerge restart`/`continue`、三种拒绝路径（网格不一致 / 合并区不齐 /
   掏空行）之后投影与保存字节都不变、新表格的形状与 `tblLook`；每步之后 `refresh == rebuild`。
-- [ ] **3.9 随机序列、恶意输入与 M3 门**（`tests/table_ops.rs` 200 × 10；两份 hostile；CI）
+- [x] **3.9 随机序列、恶意输入与 M3 门**：`tests/table_ops.rs` 加确定性随机序列（xorshift64\*，种子固定
+  所以失败可复现）——10 份表格语料 × 200 步，操作从格内 `InsertText` / `DeleteRange` / `SetCellProps` 与
+  `InsertRow` / `DeleteRow` / `InsertColumn` / `DeleteColumn` / `MergeCells` 里随机取；每步之后断言
+  `refresh == rebuild` 且诊断里没有 `EngineInvariantViolation`，每 20 步保存 + 重解析并比对表格形状。
+  实跑 **1,645 次生效、27 次被拒**（拒绝是合法结果，`EDIT-05` 保证状态没动），100 次保存往返。
+  它当场抓到两个真 bug：① 行 / 格被 `w:sdt` 包着时，`InsertRow` / `InsertColumn` 的插入锚点用了内层节点，
+  不是容器的直接子节点（`direct_child` 修正）；② `MergeCells` 把属性编辑排在内容搬移之后，
+  `plan_apply_*` 的插入锚点已经被搬走 → 改成属性先行、跨度与 `vMerge` 合成一个 patch（顺带修掉"同一格
+  插出两个 `tcPr`"的隐患，并让合并后的 `tcW` 取区内之和）。
+  `corpus/hostile` 补两份手工构造的文档（TS 的 `buildDocx` 造不出这种畸形，见 §8）：
+  `table-grid-mismatch.docx`（行 gridSpan 总和 ≠ `tblGrid` 列数）与 `table-cell-no-paragraph.docx`
+  （`w:tc` 里没有 `w:p`、另一格以嵌套表结尾）。两份都：解析成功、`MOD_TABLE_SHAPE` 是
+  `PreExistingDamage`、无编辑保存字节相同；前者的列操作返回 `EDIT_TABLE_GRID_INCONSISTENT` 而行操作照常，
+  后者往格里插块之后格尾补上 `w:p`。
+  `SAVE_TABLE_GRID` 的判定也在这一步收紧：整行 `New` 的不查（它是模板行的克隆），其余行只在这次编辑
+  动过它的格 / 跨度 / 行首尾空档或动过 `tblGrid` 时才查——不一致才是引擎自己造成的。
+  **M3 门四条全部达成**：`--scope tables` 311 份 0 未知差异；单元格文本编辑保真 67 份；
+  `xml-deep-table` 5,000 层通过；随机序列 200 × 10 无失败。
 

@@ -22,33 +22,21 @@ fn is_dirty_self(d: Dirty) -> bool {
     matches!(d, Dirty::New | Dirty::SelfDirty)
 }
 
-/// 这次编辑动过表格的**结构**（列、格、跨度、行首尾空档）——只有动过才谈得上是我们把网格弄坏的。
-/// 语料里本来就有网格不一致的文档（`table-grid-reconcile__*`），那是 `PreExistingDamage`，
-/// 解析时已记 `MOD_TABLE_SHAPE`，保存时不该再拦。
-fn grid_structure_touched(dom: &Dom, tbl: NodeId) -> bool {
-    dom.descendants(tbl).any(|n| {
-        // `DescendantDirty` 只说明"里面有东西变了"（格里改了字），结构没动
+/// 这次编辑动过网格结构的元素（`DescendantDirty` 不算——格里改了字不是结构变化）。
+fn touched_structure(dom: &Dom, root: NodeId, names: &[LocalName]) -> bool {
+    dom.descendants(root).any(|n| {
         matches!(dom.node(n).dirty, Dirty::New | Dirty::Deleted | Dirty::SelfDirty)
-            && dom.name(n).is_some_and(|q| {
-                q.ns == NsId::W
-                    && matches!(
-                        q.local,
-                        LocalName::GridCol
-                            | LocalName::Tc
-                            | LocalName::GridSpan
-                            | LocalName::GridBefore
-                            | LocalName::GridAfter
-                    )
-            })
+            && dom.name(n).is_some_and(|q| q.ns == NsId::W && names.contains(&q.local))
     })
 }
 
 /// `SAVE-02`：`w:tbl` 各行的网格宽度（`gridBefore + Σ gridSpan + gridAfter`）应等于 `tblGrid` 的列数。
-/// 只在这次编辑动过表格结构时检查。
+///
+/// **只查我们可能弄坏的行**：整行 `New` 的不查（它是模板行的克隆，模板本来什么样它就什么样，
+/// 语料里确实有网格不一致的文档，那是 `PreExistingDamage`，解析时已记 `MOD_TABLE_SHAPE`）；
+/// 其余行在这次编辑动过它的格 / 跨度 / 行首尾空档，或者动过 `tblGrid` 时才查——那时不一致就是
+/// 引擎自己造成的。
 fn table_grid_mismatch(dom: &Dom, tbl: NodeId) -> Option<String> {
-    if !grid_structure_touched(dom, tbl) {
-        return None;
-    }
     let live = |n: NodeId| dom.element(n).is_some() && dom.node(n).dirty != Dirty::Deleted;
     let kids = |n: NodeId| dom.children(n).iter().copied().filter(|&c| live(c));
     let num = |n: NodeId, name: LocalName| -> u32 {
@@ -65,8 +53,18 @@ fn table_grid_mismatch(dom: &Dom, tbl: NodeId) -> Option<String> {
     if cols == 0 {
         return None;
     }
+    let grid_changed = kids(tbl)
+        .find(|&c| dom.is(c, QName::w(LocalName::TblGrid)))
+        .is_some_and(|g| touched_structure(dom, g, &[LocalName::GridCol]));
+    const ROW_STRUCTURE: &[LocalName] =
+        &[LocalName::Tc, LocalName::GridSpan, LocalName::GridBefore, LocalName::GridAfter];
     let mut bad = Vec::new();
     for (i, tr) in kids(tbl).filter(|&c| dom.is(c, QName::w(LocalName::Tr))).enumerate() {
+        if dom.node(tr).dirty == Dirty::New
+            || !(grid_changed || touched_structure(dom, tr, ROW_STRUCTURE))
+        {
+            continue;
+        }
         let tr_pr = kids(tr).find(|&c| dom.is(c, QName::w(LocalName::TrPr)));
         let (before, after) = tr_pr
             .map(|pr| (num(pr, LocalName::GridBefore), num(pr, LocalName::GridAfter)))

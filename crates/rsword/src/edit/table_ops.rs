@@ -133,6 +133,18 @@ fn element_children(dom: &Dom, node: NodeId) -> Vec<NodeId> {
         .collect()
 }
 
+/// `node` 所在的、`parent` 的那个直接子节点（行 / 格可能被 `w:sdt` 包着，插入锚点要用外层的）。
+fn direct_child(dom: &Dom, parent: NodeId, node: NodeId) -> Option<NodeId> {
+    let mut x = node;
+    loop {
+        let p = dom.parent(x)?;
+        if p == parent {
+            return Some(x);
+        }
+        x = p;
+    }
+}
+
 fn child_named(dom: &Dom, parent: NodeId, local: LocalName) -> Option<NodeId> {
     element_children(dom, parent).into_iter().find(|&c| dom.is(c, w(local)))
 }
@@ -207,7 +219,7 @@ pub(crate) fn insert_row(
         .collect();
     let tr_pr = child_named(s.dom(), tpl.node, LocalName::TrPr);
     let tbl_pr_ex = child_named(s.dom(), tpl.node, LocalName::TblPrEx);
-    let before = rows.get(at as usize).copied();
+    let before = rows.get(at as usize).and_then(|&r| direct_child(s.dom(), table, r));
 
     let mut plan = MutationPlan::new(s.main_part());
     plan.structure_changed = true;
@@ -468,7 +480,7 @@ pub(crate) fn insert_column(
                         None => row.cells.last(),
                     };
                     Where::NewCell {
-                        before: idx.map(|i| row.cells[i].0),
+                        before: idx.and_then(|i| direct_child(dom, row.node, row.cells[i].0)),
                         template: template_idx.map(|&(n, _, _)| {
                             let tc_pr = child_named(dom, n, LocalName::TcPr);
                             let para = element_children(dom, n)
@@ -653,9 +665,44 @@ pub(crate) fn merge_cells(
 
     for (idx, (_, inside)) in regions.iter().enumerate() {
         let keeper = inside[0].0;
-        // 内容的去处：纵向合并全都并到左上格，纯横向合并并到本行首格
+        // ① 先改属性：`plan_apply_*` 的插入锚点是改动前的第一个子元素，内容一搬走它就不在了，
+        //    所以属性编辑必须排在搬移之前；跨度与 vMerge 合成一个 patch，免得插出两个 tcPr
+        let mut patch = CellPropsPatch::default();
+        if span > 1 {
+            patch.grid_span = Change::Set(Val::Value(span as i32));
+            // 合并后的宽度是区内各格宽度之和（都声明了 dxa 才算）
+            let widths: Option<i32> = inside
+                .iter()
+                .map(|&(n, _, _)| {
+                    let pr = child_named(dom, n, LocalName::TcPr);
+                    crate::semantic::props::read_cell_props(dom, pr, &mut Vec::new())
+                        .width
+                        .as_ref()
+                        .and_then(TblWidth::twips)
+                })
+                .sum();
+            if let Some(total) = widths {
+                patch.width = Change::Set(TblWidth::dxa(total));
+            }
+        }
+        if vertical {
+            patch.v_merge = Change::Set(if idx == 0 { Merge::restart() } else { Merge::cont() });
+        }
+        if patch != CellPropsPatch::default() {
+            let tc_pr = child_named(dom, keeper, LocalName::TcPr);
+            let before = element_children(dom, keeper).first().copied();
+            plan_apply_cell_props_at(
+                dom,
+                Target::Node(keeper),
+                tc_pr,
+                before,
+                &patch,
+                s.flavor(),
+                &mut plan.node_edits,
+            );
+        }
+        // ② 再搬内容：纵向合并全都并到左上格，纯横向合并并到本行首格；按文档序
         let target = if vertical { top } else { keeper };
-        // 按文档序搬：本行首格先（它自己就是目标时不用搬），再区内其余格
         for (j, &(node, _, _)) in inside.iter().enumerate() {
             if j == 0 && node == target {
                 continue;
@@ -665,27 +712,8 @@ pub(crate) fn merge_cells(
                 plan.node_edits.push(NodeEdit::Delete(node));
             }
         }
-        if span > 1 {
-            patch_cell_span(s, keeper, Some(span), 0, &mut plan);
-        }
-        if !vertical {
-            continue;
-        }
-        // 纵向：首行 restart，其余行 continue（元素保留，内容搬走后留一个空段落）
-        let merge = if idx == 0 { Merge::restart() } else { Merge::cont() };
-        let tc_pr = child_named(dom, keeper, LocalName::TcPr);
-        let patch = CellPropsPatch { v_merge: Change::Set(merge), ..Default::default() };
-        let before = element_children(dom, keeper).first().copied();
-        plan_apply_cell_props_at(
-            dom,
-            Target::Node(keeper),
-            tc_pr,
-            before,
-            &patch,
-            s.flavor(),
-            &mut plan.node_edits,
-        );
-        if idx > 0 {
+        // ③ 被搬空的 continue 格留一个空段落
+        if vertical && idx > 0 {
             empty_paragraph(dom, &mut plan, Target::Node(keeper), None);
         }
     }

@@ -404,3 +404,267 @@ fn document_xml(bytes: &[u8]) -> String {
     std::io::Read::read_to_string(&mut f, &mut s).unwrap();
     s
 }
+
+// ---- 恶意输入与随机序列（`TEST-09` / `TEST-07` 的表格子集，任务 3.9）--------------------------
+
+/// `TEST-09`：网格不一致的输入解析成功、诊断是 PreExisting、无编辑保存字节相同、列操作被拒。
+#[test]
+fn test_09_hostile_table_grid_mismatch() {
+    let path = common::corpus_dir("hostile").join("table-grid-mismatch.docx");
+    let bytes = std::fs::read(&path).unwrap();
+    let mut s = EditSession::open(&bytes).unwrap();
+    let t = table_of(&s);
+    assert_eq!(t.rows.len(), 2);
+    assert!(!t.grid_consistent(), "语料就是不一致的");
+    let shape = s
+        .document()
+        .warnings
+        .iter()
+        .find(|d| d.code == DiagCode::ModTableShape)
+        .expect("解析时记 MOD_TABLE_SHAPE");
+    assert_eq!(shape.origin, rsword::ValidationOrigin::PreExistingDamage);
+    assert_eq!(s.save().unwrap(), bytes, "无编辑保存字节相同");
+
+    // 列操作拒绝，状态不变
+    let tbl = table_of(&s).node;
+    for op in [
+        EditOp::InsertColumn { table: tbl, at: 0, width: 100 },
+        EditOp::DeleteColumn { table: tbl, at: 0 },
+        EditOp::MergeCells { table: tbl, from: (0, 0), to: (1, 0) },
+    ] {
+        let err = s.apply(op, &EditContext::default()).expect_err("网格不一致");
+        assert!(
+            matches!(err, rsword::Error::Edit { code, .. } if code == DiagCode::EditTableGridInconsistent)
+        );
+    }
+    // 行操作与格内编辑不受影响（它们不依赖列几何）
+    s.apply(EditOp::InsertRow { table: tbl, at: 1, template: None }, &EditContext::default())
+        .unwrap();
+    assert_eq!(table_of(&s).rows.len(), 3);
+    assert!(s.save().is_ok(), "网格本来就坏，保存不该被 SAVE_TABLE_GRID 拦");
+}
+
+/// `TEST-09`：单元格里没有 `w:p` 的输入解析成功、记诊断、保存字节相同；往格里插块会补上段落。
+#[test]
+fn test_09_hostile_cell_without_paragraph() {
+    let path = common::corpus_dir("hostile").join("table-cell-no-paragraph.docx");
+    let bytes = std::fs::read(&path).unwrap();
+    let mut s = EditSession::open(&bytes).unwrap();
+    let t = table_of(&s);
+    assert_eq!(t.rows[0].cells.len(), 2);
+    assert!(t.rows[0].cells[0].blocks.is_empty(), "第一格是空的");
+    assert!(
+        s.document().warnings.iter().any(|d| d.code == DiagCode::ModTableShape),
+        "记 MOD_TABLE_SHAPE"
+    );
+    assert_eq!(s.save().unwrap(), bytes, "无编辑保存字节相同");
+
+    // 往第一格插一个段落：格尾仍是 w:p
+    let cell = table_of(&s).rows[0].cells[0].node;
+    s.apply(
+        EditOp::InsertBlock {
+            at: BlockPos::End(cell),
+            block: NewBlock::Paragraph {
+                props: None,
+                inlines: vec![rsword::edit::NewInline::Run(rsword::edit::NewRun::text("补"))],
+            },
+        },
+        &EditContext::default(),
+    )
+    .unwrap();
+    assert_eq!(cell_text(&s, 0, 0), "补");
+    assert_eq!(*child_names(&s, cell).last().unwrap(), "p");
+    // 第二格以嵌套表结尾：往里插表格后应补空段落
+    let cell2 = table_of(&s).rows[0].cells[1].node;
+    s.apply(
+        EditOp::InsertBlock {
+            at: BlockPos::End(cell2),
+            block: NewBlock::Table { rows: 1, cols: 1, widths: None, style: None, header: false },
+        },
+        &EditContext::default(),
+    )
+    .unwrap();
+    assert_eq!(*child_names(&s, cell2).last().unwrap(), "p", "格尾补上 w:p");
+    assert_refresh_matches_rebuild(&mut s, "hostile InsertBlock");
+}
+
+/// 确定性伪随机（xorshift64*）：失败可复现。
+struct Rng(u64);
+
+impl Rng {
+    fn next(&mut self) -> u64 {
+        let mut x = self.0;
+        x ^= x >> 12;
+        x ^= x << 25;
+        x ^= x >> 27;
+        self.0 = x;
+        x.wrapping_mul(0x2545_F491_4F6C_DD1D)
+    }
+
+    fn below(&mut self, n: usize) -> usize {
+        if n == 0 { 0 } else { (self.next() % n as u64) as usize }
+    }
+}
+
+/// `TEST-07` 的表格子集：随机操作序列，每步断言投影一致、无引擎不变式破坏，定期保存重解析。
+#[test]
+fn test_07_random_table_edit_sequences() {
+    const STEPS: usize = 200;
+    let docs: Vec<_> = common::docx_paths("synthetic")
+        .into_iter()
+        .filter(|p| {
+            let n = p.file_name().unwrap().to_str().unwrap();
+            n.starts_with("table-display__")
+                || n.starts_with("table-edit__")
+                || n.starts_with("table-grid-reconcile__")
+        })
+        .take(10)
+        .collect();
+    assert!(docs.len() >= 10, "语料里应有足够的表格文档，实得 {}", docs.len());
+
+    let mut applied = 0usize;
+    let mut rejected = 0usize;
+    for (di, path) in docs.iter().enumerate() {
+        let bytes = std::fs::read(path).unwrap();
+        let mut s = EditSession::open(&bytes).unwrap();
+        let mut rng = Rng(0x9E37_79B9_7F4A_7C15 ^ di as u64);
+        for step in 0..STEPS {
+            let Some(op) = random_table_op(&s, &mut rng) else { continue };
+            let what = format!("{}: step {step} {op:?}", path.display());
+            match s.apply(op, &EditContext::default()) {
+                Ok(_) => applied += 1,
+                Err(rsword::Error::Edit { .. }) => {
+                    rejected += 1;
+                    continue; // 拒绝是合法结果；EDIT-05 保证状态没动
+                }
+                Err(e) => panic!("{what}: 非编辑错误 {e}"),
+            }
+            // MOD-13：投影 == 重建
+            let refreshed = s.document().clone();
+            let rebuilt = Document::rebuild(s.package_mut()).unwrap();
+            assert_eq!(refreshed.main, rebuilt.main, "{what}: refresh != rebuild");
+            // SAVE-02：不能出现引擎不变式破坏
+            assert!(
+                !s.diagnostics()
+                    .iter()
+                    .any(|d| d.origin == rsword::ValidationOrigin::EngineInvariantViolation),
+                "{what}: {:?}",
+                s.diagnostics()
+            );
+            if step % 20 == 19 {
+                let saved = s.save().unwrap_or_else(|e| panic!("{what}: save {e}"));
+                let re = EditSession::open(&saved).unwrap_or_else(|e| panic!("{what}: reopen {e}"));
+                // 重解析后的块投影与保存前一致（忽略 NodeId：比较文本形状）
+                assert_eq!(
+                    table_shapes(re.document()),
+                    table_shapes(s.document()),
+                    "{what}: 保存往返后表格形状变了"
+                );
+                s = re;
+            }
+        }
+    }
+    eprintln!("random table ops: {applied} 次生效，{rejected} 次被拒");
+    assert!(applied > 200, "有效操作太少：{applied}");
+}
+
+/// 表格形状的可比较快照：每张表的 (行数, 每行各格跨度, 每格文本)。
+fn table_shapes(doc: &Document) -> Vec<Vec<(Vec<u32>, Vec<String>)>> {
+    doc.tables()
+        .map(|t| {
+            t.rows
+                .iter()
+                .map(|r| {
+                    (
+                        r.cells.iter().map(rsword::model::Cell::grid_span).collect(),
+                        r.cells
+                            .iter()
+                            .map(|c| {
+                                c.text_blocks().map(TextBlock::text).collect::<Vec<_>>().join("|")
+                            })
+                            .collect(),
+                    )
+                })
+                .collect()
+        })
+        .collect()
+}
+
+/// 随机挑一个表格相关的操作；文档里没有表格时 `None`。
+fn random_table_op(s: &EditSession, rng: &mut Rng) -> Option<EditOp> {
+    let tables: Vec<&TableBlock> = s.document().tables().collect();
+    if tables.is_empty() {
+        return None;
+    }
+    let t = tables[rng.below(tables.len())];
+    let table = t.node;
+    let rows = t.rows.len() as u32;
+    let cols = t.grid.len().max(1) as u32;
+    Some(match rng.below(8) {
+        0 => EditOp::InsertRow { table, at: rng.below(rows as usize + 1) as u32, template: None },
+        1 if rows > 1 => EditOp::DeleteRow { table, at: rng.below(rows as usize) as u32 },
+        2 => EditOp::InsertColumn {
+            table,
+            at: rng.below(cols as usize + 1) as u32,
+            width: 500 + rng.below(1500) as i32,
+        },
+        3 if cols > 1 => EditOp::DeleteColumn { table, at: rng.below(cols as usize) as u32 },
+        4 if rows > 1 && cols > 1 => {
+            let r0 = rng.below(rows as usize) as u32;
+            let c0 = rng.below(cols as usize) as u32;
+            EditOp::MergeCells {
+                table,
+                from: (r0, c0),
+                to: (
+                    (r0 + rng.below(2) as u32).min(rows - 1),
+                    (c0 + rng.below(2) as u32).min(cols - 1),
+                ),
+            }
+        }
+        5 => {
+            let cell = pick_cell(t, rng)?;
+            EditOp::SetCellProps {
+                cell,
+                patch: rsword::semantic::props::CellPropsPatch {
+                    no_wrap: rsword::semantic::props::Change::Set(rng.below(2) == 0),
+                    ..Default::default()
+                },
+            }
+        }
+        6 => {
+            let para = pick_cell_paragraph(t, rng)?;
+            EditOp::InsertText {
+                at: rsword::edit::InlinePos::new(para, 0),
+                text: "字".into(),
+                props: None,
+            }
+        }
+        _ => {
+            let (para, len) = pick_cell_paragraph_len(t, rng)?;
+            if len == 0 {
+                return None;
+            }
+            EditOp::DeleteRange {
+                from: rsword::edit::InlinePos::new(para, 0),
+                to: rsword::edit::InlinePos::new(para, 1.min(len)),
+            }
+        }
+    })
+}
+
+fn pick_cell(t: &TableBlock, rng: &mut Rng) -> Option<NodeId> {
+    let row = t.rows.get(rng.below(t.rows.len()))?;
+    row.cells.get(rng.below(row.cells.len())).map(|c| c.node)
+}
+
+fn pick_cell_paragraph(t: &TableBlock, rng: &mut Rng) -> Option<NodeId> {
+    pick_cell_paragraph_len(t, rng).map(|(n, _)| n)
+}
+
+fn pick_cell_paragraph_len(t: &TableBlock, rng: &mut Rng) -> Option<(NodeId, u32)> {
+    let row = t.rows.get(rng.below(t.rows.len()))?;
+    let cell = row.cells.get(rng.below(row.cells.len()))?;
+    let paras: Vec<&TextBlock> = cell.text_blocks().collect();
+    let tb = paras.get(rng.below(paras.len()))?;
+    Some((tb.node, tb.utf16_len()))
+}

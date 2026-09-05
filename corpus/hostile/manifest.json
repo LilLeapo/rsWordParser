@@ -78,5 +78,15 @@
     "name": "mixed-flavor.docx",
     "bytes": 2613,
     "expectation": "PackageFlavor::Mixed; each part keeps its own flavor"
+  },
+  {
+    "name": "table-grid-mismatch.docx",
+    "bytes": 1043,
+    "expectation": "parses; MOD_TABLE_SHAPE + SAVE_TABLE_GRID是PreExisting; column ops Err(EDIT_TABLE_GRID_INCONSISTENT); unedited save byte-identical"
+  },
+  {
+    "name": "table-cell-no-paragraph.docx",
+    "bytes": 987,
+    "expectation": "parses; MOD_TABLE_SHAPE; unedited save byte-identical; InsertBlock in the cell appends a w:p"
   }
 ]
