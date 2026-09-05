@@ -9,6 +9,7 @@ use rsword::package::Package;
 
 const W: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const V: &str = "urn:schemas-microsoft-com:vml";
+const R: &str = r#"xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships""#;
 const HDR_REL: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header";
 const FTR_REL: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer";
 
@@ -264,6 +265,115 @@ fn test_09_unbalanced_header_part_is_opaque() {
     assert!(doc.text_blocks().count() > 0, "正文照常");
 }
 
+/// `COMPAT-05` 的 `text`：只取 `w:t`、不按 `xml:space` 去空白、`</w:tc>` 后补空格、
+/// PAGE / NUMPAGES 换成私用区标记（连缓存结果一起丢）、其他字段只留缓存结果、旧式 `w:pgNum` 也算页码。
+#[test]
+fn compat_05_hf_text_uses_the_ts_plain_text_rules() {
+    const PAGE_MARK: char = '\u{E001}';
+    const TOTAL: char = '\u{E000}';
+    let field = |kw: &str, result: &str| {
+        format!(
+            concat!(
+                r#"<w:r><w:fldChar w:fldCharType="begin"/></w:r>"#,
+                r#"<w:r><w:instrText xml:space="preserve"> {} </w:instrText></w:r>"#,
+                r#"<w:r><w:fldChar w:fldCharType="separate"/></w:r>"#,
+                r#"<w:r><w:t>{}</w:t></w:r>"#,
+                r#"<w:r><w:fldChar w:fldCharType="end"/></w:r>"#
+            ),
+            kw, result
+        )
+    };
+    let header = hdr(&format!(
+        concat!(
+            // 不带 preserve 的首尾空格：坐标流会去掉，`text` 不去
+            r#"<w:p><w:r><w:t>  第  </w:t></w:r>{page}<w:r><w:t> 页，共 </w:t></w:r>{total}</w:p>"#,
+            // 其他字段：指令丢掉、缓存结果留着
+            r#"<w:p>{date}</w:p>"#,
+            // 表格：`</w:tc>` 之后还有文字就补一个空格
+            r#"<w:tbl><w:tblPr/><w:tblGrid><w:gridCol w:w="1"/><w:gridCol w:w="1"/></w:tblGrid>"#,
+            r#"<w:tr><w:tc><w:p><w:r><w:t>甲</w:t></w:r></w:p></w:tc>"#,
+            r#"<w:tc><w:p><w:r><w:t>乙</w:t></w:r></w:p></w:tc></w:tr></w:tbl>"#,
+            // 旧式页码
+            r#"<w:p><w:r><w:pgNum/></w:r></w:p>"#,
+            // 删除的文字不算（`w:delText` 不是 `w:t`）
+            r#"<w:p><w:del w:id="1" w:author="x"><w:r><w:delText>删了</w:delText></w:r></w:del></w:p>"#
+        ),
+        page = field("PAGE", "7"),
+        total = field("NUMPAGES", "9"),
+        date = field("DATE", "2026-09-05")
+    ));
+    // 顶层 `headerText` 要有引用才有值（TS `readHeaderFooterPart` 从 `document.xml` 找引用）
+    let body = format!(
+        r#"<w:p/><w:sectPr><w:headerReference {R} w:type="default" r:id="rIdH"/></w:sectPr>"#
+    );
+    let (pkg, doc) = doc_with_hf(
+        &body,
+        &[
+            ("word/_rels/document.xml.rels", &rels(&[("rIdH", HDR_REL, "header1.xml")])),
+            ("word/header1.xml", &header),
+        ],
+    );
+    let json = rsword::bind::compat_ts::parsed_doc_of(
+        &pkg,
+        &doc,
+        &rsword::bind::compat_ts::MediaMap::default(),
+    );
+    // 表格之后的 `pgNum`：TS 把标记也写成 `<w:t>`，所以 `</w:tc>` 的补空格同样作用在它前面
+    let want = format!("  第  {PAGE_MARK} 页，共 {TOTAL}2026-09-05甲 乙 {PAGE_MARK}");
+    assert_eq!(json["headerText"], serde_json::Value::String(want.clone()));
+    assert_eq!(json["hfParts"]["rIdH"]["text"], serde_json::Value::String(want));
+    assert_eq!(json["headerHasPageNumber"], serde_json::Value::Bool(true));
+    assert_eq!(json["footerHasPageNumber"], serde_json::Value::Bool(false));
+    assert_eq!(json["footerText"], serde_json::Value::Null);
+}
+
+/// default 变体的选法（TS `readHeaderFooterPart`）：全文第一个 `w:type="default"` →
+/// 否则非 schema 的 `odd` → 否则没有 `w:type` 的。**不是**按节选。
+#[test]
+fn compat_05_default_variant_picks_the_first_reference_in_the_document() {
+    let mk = |t: &str| format!(r#"<w:headerReference {} w:type="{t}" r:id="rId{t}"/>"#, R);
+    // 第一节声明 odd，第二节声明 default：TS 的顶层 `headerText` 取 default 那个
+    let body = format!(
+        concat!(
+            r#"<w:p><w:pPr><w:sectPr>{odd}</w:sectPr></w:pPr><w:r><w:t>一</w:t></w:r></w:p>"#,
+            r#"<w:sectPr>{def}</w:sectPr>"#
+        ),
+        odd = mk("odd"),
+        def = mk("default")
+    );
+    let (pkg, doc) = doc_with_hf(
+        &body,
+        &[
+            (
+                "word/_rels/document.xml.rels",
+                &rels(&[("rIdodd", HDR_REL, "h1.xml"), ("rIddefault", HDR_REL, "h2.xml")]),
+            ),
+            ("word/h1.xml", &hdr(r#"<w:p><w:r><w:t>ODD</w:t></w:r></w:p>"#)),
+            ("word/h2.xml", &hdr(r#"<w:p><w:r><w:t>DEF</w:t></w:r></w:p>"#)),
+        ],
+    );
+    let json = rsword::bind::compat_ts::parsed_doc_of(
+        &pkg,
+        &doc,
+        &rsword::bind::compat_ts::MediaMap::default(),
+    );
+    assert_eq!(json["headerText"], "DEF");
+    // 只有 odd 时它就是缺省页
+    let (pkg2, doc2) = doc_with_hf(
+        &format!("<w:p/><w:sectPr>{}</w:sectPr>", mk("odd")),
+        &[
+            ("word/_rels/document.xml.rels", &rels(&[("rIdodd", HDR_REL, "h1.xml")])),
+            ("word/h1.xml", &hdr(r#"<w:p><w:r><w:t>ODD</w:t></w:r></w:p>"#)),
+        ],
+    );
+    let json2 = rsword::bind::compat_ts::parsed_doc_of(
+        &pkg2,
+        &doc2,
+        &rsword::bind::compat_ts::MediaMap::default(),
+    );
+    assert_eq!(json2["headerText"], "ODD");
+}
+
 /// 全语料：页眉页脚 part 的 `rId` 集合与 `hasPageNumber` 与 TS 逐份一致。
 #[test]
 fn compat_05_hf_parts_match_ts_on_corpus() {
@@ -287,6 +397,7 @@ fn compat_05_hf_parts_match_ts_on_corpus() {
         let ours: BTreeSet<&str> = doc.hf_by_rel.keys().map(String::as_str).collect();
         let theirs: BTreeSet<&str> = ts.keys().map(String::as_str).collect();
         assert_eq!(ours, theirs, "{}: hfParts 的 rId 集合不一致", path.display());
+        let json = rsword::bind::compat_ts::parsed_doc(&mut pkg).expect("parsed_doc");
         for (rid, v) in &ts {
             let hf = &doc.hf_parts[&doc.hf_by_rel[rid]];
             assert_eq!(
@@ -295,9 +406,18 @@ fn compat_05_hf_parts_match_ts_on_corpus() {
                 "{}: {rid} 的 hasPageNumber",
                 path.display()
             );
+            assert_eq!(
+                json["hfParts"][rid]["text"],
+                v["text"],
+                "{}: {rid} 的 text",
+                path.display()
+            );
             if v["paras"].as_array().is_some_and(|a| !a.is_empty()) {
                 assert!(!hf.blocks.is_empty(), "{}: {rid} TS 有段落我们没块", path.display());
             }
+        }
+        for k in ["headerText", "footerText", "headerHasPageNumber", "footerHasPageNumber"] {
+            assert_eq!(json[k], j[k], "{}: {k}", path.display());
         }
     }
     eprintln!("hf: {docs} 份文档、{parts} 个 part、{blocks} 个块");

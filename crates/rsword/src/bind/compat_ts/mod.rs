@@ -9,13 +9,17 @@ use serde_json::{Map, Value, json};
 
 use crate::error::Result;
 use crate::model::Document;
-use crate::package::{Package, RelType};
+use std::collections::BTreeMap;
+
+use crate::package::{Package, PartId, RelType};
 use crate::resolve::Resolver;
+use crate::xml::Dom;
 
 mod blocks;
 mod box_json;
 mod decl;
 pub mod diff;
+mod hf;
 mod image;
 mod json;
 pub mod media;
@@ -72,25 +76,10 @@ pub fn parsed_doc_of(pkg: &Package, doc: &Document, media: &MediaMap) -> Value {
     }
     o.insert("protection".into(), decl::protection_json(doc));
     o.insert("writeProtection".into(), decl::write_protection_json(doc));
-    // 页眉页脚（COMPAT-05，M5）：缺省值
-    for k in [
-        "headerText",
-        "headerParas",
-        "footerParas",
-        "headerImages",
-        "footerImages",
-        "watermarkText",
-        "footerText",
-        "headerFirst",
-        "footerFirst",
-        "headerEven",
-        "footerEven",
-    ] {
-        o.insert(k.into(), Value::Null);
-    }
-    o.insert("footerHasPageNumber".into(), Value::Bool(false));
-    o.insert("headerHasPageNumber".into(), Value::Bool(false));
-    o.insert("hfParts".into(), Value::Object(Map::new()));
+    // 页眉页脚（`COMPAT-05`，任务 5.4）
+    let hf_doms: BTreeMap<PartId, &Dom> =
+        doc.hf_parts.keys().filter_map(|&id| pkg.part(id).dom().map(|d| (id, d))).collect();
+    hf::hf_json(dom, doc, &hf_doms, &mut o);
     o.insert("titlePg".into(), Value::Bool(decl::title_pg(dom)));
     decl::settings_json(doc, settings_dom, &mut o);
     let styles = decl::styles_json(doc, &resolver);
