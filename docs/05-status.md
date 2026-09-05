@@ -23,7 +23,11 @@ Span 索引与 Anchor 变换 / 物化（2.1–2.3）、字段子系统与它的�
 `diff-parse --scope drawing` 573 份 0 未知差异，已接进 CI。任务分解见 `spec/15-m4-plan.md`，
 逐条进度见 `docs/04` §13。
 
-**M3 已并入 `main`**（9181eae，2026-09-05；M0–M4 至此全部在 `main` 上）。**M5 进行中**（分支 `m5-hf`，
+**M3 已并入 `main`**（9181eae，2026-09-05；M0–M4 至此全部在 `main` 上）。`main` 之后又前进了一格
+（`dcd653d` "compat: cell-anchored shapes and cell image runs"，另一个会话关掉了单元格锚定形状那
+19 处差异）；**`m5-hf` 还没合它**，下次接手先 `git merge main`——重叠文件是
+`compat_ts/{blocks,diff,image,textbox}.rs`、`KNOWN_DIFFS.md` 与本文件，合完全域差异数会从 82 再降。
+**M5 进行中**（分支 `m5-hf`，
 工作树 `../rsWordParser-m4`）：5.1 节属性表、5.2 节模型与 `RES-10` 节视图、5.3 页眉页脚 / 注释 / 批注的
 内容流、5.4 compat 页眉页脚投影**已落地**——**页眉页脚域清零**，`diff-parse --scope hf` 是第五道门
 （573 份 0 未知差异，已接 CI）。下一步 5.5（页眉页脚与节的编辑操作）。任务分解见
