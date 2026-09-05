@@ -94,7 +94,7 @@ GENOFFICE_DIR=~/code/genoffice tools/export-golden/run.sh   # 重导语料（改
 
 ## 踩过的坑（别重复）
 
-- `w:type` 的 `LocalName` 是 `UType`（大写 Type），小写 `Type` 是另一个名字。
+- `w:type`（小写 `type`）的 `LocalName` 是 `Type`；`[Content_Types].xml` 里大写的 `Type` 才是 `UType`。名字表里同名不同大小写的，大写那个加 `U` 前缀。
 - 重复 `styleId` 取**最后一个**（TS 的 `Map` 语义）；默认样式取最后一个 `w:default`，没有则取 ID / 名为 `Normal` 的，不是 ECMA 的 first-of-type。
 - `xml:space="preserve"` 会从祖先继承，判定要走祖先链。
 - 辅助 part 先按关系找，找不到再按约定路径（`word/settings.xml` 等）——语料里有缺关系的文档。

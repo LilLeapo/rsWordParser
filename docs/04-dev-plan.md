@@ -374,6 +374,12 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `COMPAT-07` 折叠 run 的格式 | 未规定 | 取第一个非空结果 run 的格式；没有结果 run（未选中的复选框、无结果的 PAGE）时不带格式键 | 语料里这些字段的 begin run 都没有 `w:rPr`，TS 输出也没有格式键；等有反例再从 begin run 取（`FLD-07` 说原子字段的 `props` 取 begin run 的 rPr，那是给"新输入继承格式"用的） |
 | `EDIT-06` 书签 `w:id` | part 内 `max+1` | compat 保存路径按 TS 的 `bookmarkIdOf`（名字的 31 进制哈希）给号 | 那条路径要复现 TS 的输出；引擎自己的 `AddBookmark`（2.9）按规范给号 |
 | `PROP-06` 第 1 步 | 新容器"按父容器的 schema 顺序插入" | 顶层容器（`w:pPr` / `w:rPr`）插为父节点第一个语义子节点之前；子表容器按父表 `order` 插入 | `w:p` / `w:r` 不是属性表，没有 order；M2 的 `trPr`（在 `tblPrEx` 之后）到时补规则 |
+| `PROP-05` CT_SectPr | `headerReference/footerReference`（0–6 个，顺序任意），然后 sequence | 两者共用 `order` 的第 0 格（`"a\|b"` 写法），因此 `order_index` 对两者都返回 0 | 它们是 schema 里的一个可重复组（EG_HdrFtrReferences），**组内顺序自由**，Word 按 default / first / even 的逻辑顺序写、两种元素会交错。分别编号会让 `SAVE-02` 的 PROP-05 单调性检查把合法的 `<ftr/><hdr/>` 判成乱序；同一格表达的正是"彼此之间无序、整组在其他子元素之前"，新引用也就插在已有引用之后、`w:footnotePr` 之前 |
+| `PROP-08` `SectionProps` 清单 | `headerReference*, footerReference*, footnotePr, endnotePr, type, pgSz, pgMar, pgBorders, lnNumType, pgNumType, cols, formProt, vAlign, titlePg, textDirection, bidi, rtlGutter, docGrid` | 另建模 `noEndnote`（同类 OnOff，写回要用）；**不**建模 `paperSrc` 与 `printerSettings` | 前者是清单的遗漏（它就夹在 `vAlign` 与 `titlePg` 之间）；后两个是打印机硬件配置，编辑器与 resolve 都不用，不建模就原字节留在原位（`PROP-06`），需要时补一行即可 |
+| `PROP-09` 枚举容错 | 字面不匹配 → `Val::Raw` + 诊断 | `ST_HdrFtr` 额外收非 schema 的 `odd` | Word 之外的生成器用 `w:type="odd"` 表示"缺省页"，TS 与 Word 都当 default（`docs/01` §12）。当成 `Raw` 只会白记一条 `PROP_BAD_VALUE`，而 `RES-10` 照样得把它当 default |
+| `MOD-10` `SectionGeom` | — | `node` 从 `NodeId` 改为 `Option<NodeId>` | 隐式节（文档里没有任何 `w:sectPr`）也要有几何 |
+| `MOD-10` `Notes` / `Comments` | 只有条目列表 | 各多一个 `idx: Option<AuxFlows>`（该 part 的三份索引） | 条目内容成块之后，`SPAN-01` 的流映射与该 part 的字段 / 范围索引得有地方放；5.5 的按 part 编辑要用 |
+| `FLD-11` `has_page_number` | 由字段列表推导 | 另认旧式 `w:pgNum` 元素 | Word 6.0/95 的页码是一个 run 子元素而不是字段，语义相同（TS `hfContentFromXml` 把它换成 `PAGE_MARK` 并置 `hasPageNumber`）。坐标流里它占 1 个单位，与原子字段一致 |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -861,9 +867,33 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
 工作树 `../rsWordParser-m4`。开工基线（2026-09-05 实测）：`diff-parse --scope all` 244 处 / 81 份，其中页眉页脚域
 161 处 / 43 份；保存语料 90 / 162 等价，48 份被 M5 选项阻塞。M5 门五条见 `spec/16`。
 
-- [ ] **5.1 节属性表**（`schema/props/section.toml`）：`SectionProps` 全字段 + `sectPrChange`；`para.toml` 的 `sect_pr` 接表；`SectionGeom` 改由属性表读出。
-- [ ] **5.2 节模型与 resolve 节视图**（`model/section.rs`）：`SectionInfo` / `Document.sections` / `section_of`；`Resolver::section` 的 `RES-10` 继承与有效变体。
-- [ ] **5.3 页眉页脚 part 与跨 part 内容流**（`model/hf.rs`）：`HfPart` 复用 `build_container`，每 part 一套 `FlowMap` / `FieldIndex` / `SpanIndex`；外部文本框 part；`Note` / `Comment` 的 `blocks`。
+- [x] **5.1 节属性表**（`schema/props/section.toml`，`types.toml` + 12 枚举 / 8 结构体）：`SectionProps`
+  （`change = w:sectPrChange`）+ 四张子表 `FootnoteProps` / `EndnoteProps` / `PageBorders` / `Columns`；
+  `para.toml` 的 `sect_pr` 从 `Raw` 接到这张表（分节段落的属性因此建模了）；`model/section.rs` 的几何
+  改由属性表读出（单位与 `Val::Raw` 降级共用一份 codec）。两处决定：`w:headerReference` 与
+  `w:footerReference` **共用 order 第 0 格**（它们是一个组内无序的可重复组，分别编号会让 `SAVE-02`
+  的 PROP-05 单调性检查把合法的 `<ftr/><hdr/>` 判成乱序）；`w:paperSrc` / `w:printerSettings` 与
+  `sectPr` 的 rsid 属性不建模（打印机硬件配置，原字节留在原位）。语料 604 个 `w:sectPr` 往返相等、
+  0 处 `PROP_BAD_VALUE`、596 个符合 schema 顺序（8 个不符的是 TS 夹具自己写乱的）。
+- [x] **5.2 节模型与 resolve 节视图**（`model/section.rs`、`resolve/section.rs`）：`SectionInfo { node,
+  props, owner, block_range, revisions }` 与 `Document.sections`（`rebuild` 建、`refresh_blocks` 重算——
+  刷新一个段落可能加上或去掉它的 `pPr/sectPr`）；`section_of` 按"第一个结束位置在它之后的 sectPr"。
+  没有任何 `w:sectPr` → 一个隐式节（全缺省，同 TS `DEFAULT_SECTION`）。`Resolver::section` 做 `RES-10`：
+  六个槽各自继承，`HfSlot::{Absent, Declared, Inherited{from}}`——`Declared` 与 `Inherited` 的区别正是
+  `SetHeaderFooter` 改写 part 还是新建 part 的分界；`for_page` 选变体且**不回退** default。
+  `Revision::SectPropsChange` 归入 typed `*PrChange` 一族。全语料 573 份的节数与 TS `readSections`
+  逐份一致（588 个节），块区间处处连续覆盖。
+- [x] **5.3a 页眉页脚 part**（`model/hf.rs`）：`HfPart` 复用 `Builder::build_container`，所以页眉里的段落 /
+  表格（M3 的 `TableBlock`）/ sdt / 修订包裹 / 文本框与正文同形；`Document.hf_parts` + `hf_by_rel`
+  收下**全部** header / footer 关系（含没被 `sectPr` 引用的孤儿 part，TS `parseAllHfParts` 同样输出）；
+  `has_page_number` / `has_num_pages` 由本 part 的字段索引推导，另认旧式 `w:pgNum`；`watermark` 取
+  第一个 `v:textpath/@string`。43 份带页眉页脚的语料上 `rId` 集合与每个 `hasPageNumber` 与 TS 一致
+  （47 个 part、63 个块）。
+- [x] **5.3b 注释与批注条目的内容流**（`model/aux.rs`、`model/notes.rs`）：per-part 机制抽成
+  `AuxFlows`（三份索引建一次、块按容器建），`Note.blocks` / `Comment.blocks` 是它的第二、第三个客户；
+  `text` / `rich` 保留（TS 形态，随 `compat_ts` 在 M9 删）。5.5 的"位置带 PartId"要靠这些块定位段落。
+  **外部文本框 part**（`wps:txbx/@r:txbx`）挪到 5.4：它的模型与投影是同一件事，都要"拿另一个 part
+  的 DOM 投影段落"，跟 `hfParagraphs` 是同一套机制，分两个提交只会把一件小事切碎。
 - [ ] **5.4 compat 页眉页脚投影**（`bind/compat_ts/hf.rs`）：`hfParts` / 六变体 / `hfParagraphs` / `hfImages` / 水印；`--scope hf` 接 CI。
 - [ ] **5.5 页眉页脚与节的编辑操作**：位置带 `PartId`；`SetSectionProps` / `SetHeaderFooter` / `LinkHeaderFooter` / `SetWatermark` / `SetPageColor` / `SetDocumentSettings`。
 - [ ] **5.6 保存选项**：节 / 页眉页脚 / 水印 / 页面颜色 / 保护 / 奇偶页眉 → `EditOp`；compat 的 `headerFooterPartXml` 外科合并。
