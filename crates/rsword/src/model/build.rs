@@ -2,7 +2,7 @@
 //! 完整构建投影。M1 只建正文流：段落 → inlines → run 坐标流；表格 / 图片块占位；
 //! `refresh` 在 M2 随编辑引擎加入。
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::diag::{DiagCode, Diagnostic};
 use crate::error::Result;
@@ -15,12 +15,13 @@ use crate::model::classify::{
 use crate::model::decl::{FontTable, Numbering, Settings, Styles};
 use crate::model::drawing::{Display, drawing_display};
 use crate::model::facts::ParagraphFacts;
+use crate::model::hf::HfPart;
 use crate::model::inline::{
     AtomKind, BreakKind, Inline, InlineAtom, Link, LinkTarget, OBJECT_REPLACEMENT, RevisionCtx,
     RevisionMeta, Run, Segment, SegmentKind, utf16_len,
 };
 use crate::model::notes::{Comments, Notes};
-use crate::model::section::SectionInfo;
+use crate::model::section::{HfKind, SectionInfo};
 use crate::model::table::{BlockStep, block_at_mut_in};
 use crate::model::theme::Theme;
 use crate::model::vml::vml_display;
@@ -46,6 +47,11 @@ pub struct Document {
     pub font_table: Option<FontTable>,
     /// 正文的节序列（`MOD-10`，任务 5.2）。至少一个（没有 `w:sectPr` 时是隐式节）。
     pub sections: Vec<SectionInfo>,
+    /// 页眉页脚 part（`MOD-01`，任务 5.3）：主 part 关系里 type 以 `/header` / `/footer` 结尾的**全部**
+    /// part，含没被任何 `sectPr` 引用的孤儿（TS `parseAllHfParts` 也输出它们）。
+    pub hf_parts: BTreeMap<PartId, HfPart>,
+    /// 关系 id → 页眉页脚 part。`sectPr` 的引用与 `SectionInfo.hf_ref` 都是 `rId`，查 part 走这里。
+    pub hf_by_rel: BTreeMap<String, PartId>,
     /// 主 part 的内容流映射（`SPAN-01`）。
     pub flows: FlowMap,
     /// 主 part 的字段索引（`FLD-02`）。与投影同寿命：`rebuild` / `refresh_blocks` 都重建它。
@@ -97,6 +103,24 @@ impl Document {
         {
             let _ = pkg.dom(id);
         }
+        // 页眉页脚 part：先把 (rId, PartId, kind) 抄出来（关系表的借用要在 `pkg.dom` 之前结束），
+        // 再逐个解析。type 以 `/header` / `/footer` 结尾的关系**全都**要，包括没被任何 `sectPr`
+        // 引用的孤儿 part（TS `parseAllHfParts` 同样输出它们）
+        let hf_rels: Vec<(String, PartId, HfKind)> =
+            [(RelType::Header, HfKind::Header), (RelType::Footer, HfKind::Footer)]
+                .into_iter()
+                .flat_map(|(rel, kind)| {
+                    pkg.part(main).rels.of_kind(rel).filter_map(move |r| {
+                        let RelTarget::Internal(u) = &r.target else { return None };
+                        Some((r.id.clone(), u.clone(), kind))
+                    })
+                })
+                .filter_map(|(id, uri, kind)| pkg.find(&uri).map(|p| (id, p, kind)))
+                .collect();
+        for (_, id, _) in &hf_rels {
+            let _ = pkg.dom(*id);
+        }
+
         let mut warnings = Vec::new();
         let dom_of = |id: Option<PartId>| id.and_then(|id| pkg.part(id).dom());
         let styles = dom_of(styles_id).and_then(|d| Styles::from_dom(d, &mut warnings));
@@ -138,11 +162,28 @@ impl Document {
         }
         let mut warnings = b.warnings;
         let sections = crate::model::section::build_sections(dom, &blocks, &mut warnings);
+        // 页眉页脚 part：同一个构建器，各自的 DOM 与 rels（`SPAN-01` 独立内容流）
+        let mut hf_parts = BTreeMap::new();
+        let mut hf_by_rel = BTreeMap::new();
+        for (rel_id, id, kind) in hf_rels {
+            hf_by_rel.insert(rel_id, id);
+            if hf_parts.contains_key(&id) {
+                continue; // 多个 rId 指向同一个 part（Word 的"同前"）
+            }
+            let Some(hf_dom) = pkg.part(id).dom() else { continue };
+            if let Some(hf) =
+                HfPart::build(id, hf_dom, kind, styles.as_ref(), &pkg.part(id).rels, &mut warnings)
+            {
+                hf_parts.insert(id, hf);
+            }
+        }
         Ok(Document {
             main_part: main,
             body,
             main: blocks,
             sections,
+            hf_parts,
+            hf_by_rel,
             styles,
             numbering,
             theme,
@@ -259,7 +300,7 @@ pub(super) struct Builder<'a> {
 }
 
 impl<'a> Builder<'a> {
-    fn new(
+    pub(super) fn new(
         dom: &'a Dom,
         styles: Option<&'a Styles>,
         rels: &'a Rels,

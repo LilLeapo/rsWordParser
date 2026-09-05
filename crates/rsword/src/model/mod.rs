@@ -24,6 +24,7 @@ pub mod custgeom;
 pub mod decl;
 pub mod drawing;
 pub mod facts;
+pub mod hf;
 pub mod inline;
 pub mod notes;
 pub mod sdt;
@@ -58,6 +59,7 @@ pub use inline::{
 };
 pub use notes::{Comment, Comments, Note, NoteKind, Notes, RichRun};
 // `SdtInfo` 从 `block` 一并导出（它是 `Block` 的字段）
+pub use hf::HfPart;
 pub use sdt::{DataBinding, DocPart, SdtControl, SdtLock, SdtRefusal, refusing_sdt};
 pub use section::{HfKind, HfVariant, SectionGeom, SectionInfo, SectionOwner, Sections};
 pub use table::{BlockStep, Blocks, Cell, GridCol, Row};
