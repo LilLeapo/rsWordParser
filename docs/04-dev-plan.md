@@ -894,7 +894,27 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   `text` / `rich` 保留（TS 形态，随 `compat_ts` 在 M9 删）。5.5 的"位置带 PartId"要靠这些块定位段落。
   **外部文本框 part**（`wps:txbx/@r:txbx`）挪到 5.4：它的模型与投影是同一件事，都要"拿另一个 part
   的 DOM 投影段落"，跟 `hfParagraphs` 是同一套机制，分两个提交只会把一件小事切碎。
-- [ ] **5.4 compat 页眉页脚投影**（`bind/compat_ts/hf.rs`）：`hfParts` / 六变体 / `hfParagraphs` / `hfImages` / 水印；`--scope hf` 接 CI。
+- [x] **5.4 compat 页眉页脚投影**（`bind/compat_ts/hf.rs`，分 a–d 四步上）：**页眉页脚域清零**
+  （161 → 0），`diff-parse --scope hf` 573 份 0 未知差异并接进 CI（第五道门）。全域 244 → 82 / 39 份。
+  - **a 文本与变体选择**：`hfParts{rId}` / `headerText` / `*HasPageNumber` / `watermarkText` /
+    `headerFirst` 一族。变体选法照 TS `readHeaderFooterPart`（全文第一个 `w:type="default"` →
+    非 schema 的 `odd` → 无 `w:type`，**不是按节**）；`text` 走 part 的 DOM 而不是坐标流
+    （只取 `w:t`、不按 `xml:space` 去空白、`</w:tc>` 补空格、PAGE / NUMPAGES 换标记并丢缓存结果、
+    其他字段只留 `separate` 之后、旧式 `w:pgNum` 也算页码）。
+  - **b `paras`**：每个 part 一个自己的投影 `Ctx`（DOM / rels / 媒体表 / UTF-16 索引）。顺手修掉一处
+    跨 part 的真错：`Ctx` 原来读 `doc.fields` / `doc.spans`（主 part 的索引）而 `ctx.dom` 是页眉，
+    `FieldId` 用错了索引——页眉里的 PAGE 字段因此静默丢了标记 run。现在 `Ctx` 带**当前 part** 的
+    两个索引（`Ctx::for_aux`），页眉里的批注 `commentIds` 也跟着对了。规则见 `spec/16` 5.4 与
+    `COMPAT-05`：不看分类（水印 / 纯图段落因此照 TS 落到"框内段落"分支）、样式层的对齐与制表位
+    合并、`ptabAligns` / `frameXAlign`、浮动表格延后、表格一行一段带 `cells`、格里带图。
+  - **c `images` 与门**：part 级图片列表（表格里的随文图跳过、浮动的照收、位置 / 裁剪 / 冲蚀）；
+    无位图的实心矢量装饰按 TS 合成一张 SVG（`shape_drawing_svg`，用 M4 的 `custGeom` 归一化路径与组仿射，
+    表达不出就整张不给）。`is_hf_path` 定义域边界（有单测钉着），CI 加一步。
+    一处登记为已知差异：`hf-images__011` 的 `mc:Choice Requires="wps"` 而 `wps` 前缀没声明，
+    本引擎按 `XML-09` 走 Fallback（同 `numbering-defs__012` 一条）。
+  - **d 外部文本框 part**（从 5.3 挪来）：`wps:txbx/@r:txbx` → `word/txbx1.xml`。`RelType::Txbx`、
+    `ShapeDisplay.txbx_rel` / `content_part`、`Document.aux_flows`，投影侧 `Ctx::switch` 换 DOM，
+    框整块只读。`KNOWN_DIFFS` 里 `themeless-shapes-external-txbx__003` 那条**删掉**。
 - [ ] **5.5 页眉页脚与节的编辑操作**：位置带 `PartId`；`SetSectionProps` / `SetHeaderFooter` / `LinkHeaderFooter` / `SetWatermark` / `SetPageColor` / `SetDocumentSettings`。
 - [ ] **5.6 保存选项**：节 / 页眉页脚 / 水印 / 页面颜色 / 保护 / 奇偶页眉 → `EditOp`；compat 的 `headerFooterPartXml` 外科合并。
 - [ ] **5.7 声明 part 的读写**：参考文献（读 + 写）、编号追加、主题、样式 upsert。

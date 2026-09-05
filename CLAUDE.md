@@ -68,6 +68,7 @@ cargo run -p diff-parse -- --scope text     # M1 门：文本用例未知差异�
 cargo run -p diff-parse -- --scope fields   # M2 门：再加字段 / 范围 / 批注，仍须为 0
 cargo run -p diff-parse -- --scope tables   # M3 门：再加含表格的文档（按文档筛），仍须为 0
 cargo run -p diff-parse -- --scope drawing  # M4 门：绘图域**路径**（不是按文档筛），仍须为 0
+cargo run -p diff-parse -- --scope hf       # M5 门：页眉页脚域**路径**，仍须为 0
 cargo run -p diff-parse -- --scope all --json          # 全域差距排名
 cargo run -p xpath-assert -- a.docx '//w:p[1]/w:r/w:t/text()'
 cd fuzz && cargo +nightly fuzz run fuzz_xml -- -max_total_time=600      # 另有 fuzz_zip / fuzz_instr
