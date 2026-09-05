@@ -7,7 +7,7 @@ use serde_json::{Map, Value};
 
 use crate::model::drawing::{AnchorGeom, DrawingDisplay, Wrap};
 use crate::model::units::{EMU_PER_PT, EMU_PER_PX, Length, emu_to_px};
-use crate::model::{Segment, SegmentKind, VmlDisplay};
+use crate::model::{Display, Segment, SegmentKind, VmlDisplay};
 use crate::resolve::drawingml::{ColorBase, color_in, hex};
 use crate::xml::{Dom, LocalName, NodeId, QName};
 
@@ -117,20 +117,34 @@ pub(super) fn image_meta(
 /// 分别走文本框投影与 `brokenImage`，不会走到「带图的文本段落」。
 pub(super) fn run_image(ctx: &Ctx<'_>, seg: &Segment) -> Option<Map<String, Value>> {
     match seg.kind {
-        SegmentKind::Drawing { .. } => drawing_run_image(ctx, seg),
+        SegmentKind::Drawing { .. } => drawing_run_image(ctx, seg.display.as_ref()?),
         // `w:pict` / `w:object` 的预览图也是一个原子 run（`smartart-ole__016`：OLE 预览与
         // 随后的图片各占一个 run）。
-        SegmentKind::Pict | SegmentKind::Object => vml_run_image(ctx, seg),
+        SegmentKind::Pict | SegmentKind::Object => vml_run_image(ctx, seg.display.as_ref()?),
         _ => None,
     }
 }
 
-fn vml_run_image(ctx: &Ctx<'_>, seg: &Segment) -> Option<Map<String, Value>> {
-    let v = seg.display.as_ref()?.as_vml()?;
+/// 挂在**块**上的显示模型（`ImageBlock.display`）也能出图片 run：表格单元格里只有一张图的段落
+/// 被 `MOD-05` R15 分成了图片块，但 TS 在格里一律当普通段落，`richParas` 要有这个 run
+/// （`COMPAT-10`）。
+pub(super) fn block_image_run(ctx: &Ctx<'_>, display: &Display) -> Option<Map<String, Value>> {
+    let img = match display {
+        Display::Drawing(_) => drawing_run_image(ctx, display)?,
+        Display::Vml(_) => vml_run_image(ctx, display)?,
+    };
+    let mut o = Map::new();
+    set(&mut o, "text", "");
+    set(&mut o, "image", Value::Object(img));
+    Some(o)
+}
+
+fn vml_run_image(ctx: &Ctx<'_>, display: &Display) -> Option<Map<String, Value>> {
+    let v = display.as_vml()?;
     let m = ctx.media.get(v.image()?.imagedata.as_deref()?)?;
     let mut o = Map::new();
     set(&mut o, "dataUrl", m.url.clone());
-    set(&mut o, "xml", ctx.node_xml(seg.node).to_string());
+    set(&mut o, "xml", ctx.node_xml(v.node).to_string());
     let (w, h) = vml_px(v);
     if let Some(w) = w {
         set(&mut o, "widthPx", w);
@@ -141,13 +155,13 @@ fn vml_run_image(ctx: &Ctx<'_>, seg: &Segment) -> Option<Map<String, Value>> {
     Some(o)
 }
 
-fn drawing_run_image(ctx: &Ctx<'_>, seg: &Segment) -> Option<Map<String, Value>> {
-    let d = seg.display.as_ref()?.as_drawing()?;
+fn drawing_run_image(ctx: &Ctx<'_>, display: &Display) -> Option<Map<String, Value>> {
+    let d = display.as_drawing()?;
     let pic = d.picture()?;
     let m = ctx.media.pick(pic.embed.as_deref(), pic.link.as_deref())?;
     let mut o = Map::new();
     set(&mut o, "dataUrl", m.url.clone());
-    set(&mut o, "xml", ctx.node_xml(seg.node).to_string());
+    set(&mut o, "xml", ctx.node_xml(d.node).to_string());
     if let Some(ext) = d.extent {
         if ext.cx > 0 {
             set(&mut o, "widthPx", emu_to_px(ext.cx as f64).round() as i64);

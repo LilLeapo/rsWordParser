@@ -31,8 +31,14 @@ fn w(local: LocalName) -> QName {
     QName::w(local)
 }
 
-/// `blocks[*].table`：`depth` 是这张表的嵌套层数（最外层为 1）。
-pub(super) fn table_json(ctx: &Ctx<'_>, t: &TableBlock, depth: usize) -> Option<Value> {
+/// `blocks[*].table`：`depth` 是这张表的嵌套层数（最外层为 1），`docx_index` 是这张表所在块的下标
+/// （单元格里的锚定框要用它判首页）。
+pub(super) fn table_json(
+    ctx: &Ctx<'_>,
+    t: &TableBlock,
+    depth: usize,
+    docx_index: usize,
+) -> Option<Value> {
     let view = ctx.resolver.table(ctx.dom, t);
     let cols = view.columns();
     // TS 丢掉没有格的行；每行的附属数组都跟着这个过滤
@@ -56,7 +62,7 @@ pub(super) fn table_json(ctx: &Ctx<'_>, t: &TableBlock, depth: usize) -> Option<
                 real += 1;
                 v
             };
-            cells.push(cell_json(ctx, &view, r, vc, depth, raw_tc));
+            cells.push(cell_json(ctx, &view, r, vc, depth, docx_index, raw_tc));
         }
         rows.push(Value::Array(cells));
     }
@@ -277,12 +283,14 @@ fn row_revision(revs: &[Revision]) -> Value {
     Value::Null
 }
 
+#[allow(clippy::too_many_arguments)]
 fn cell_json(
     ctx: &Ctx<'_>,
     view: &TableView<'_>,
     row: usize,
     vc: &ViewCell,
     depth: usize,
+    docx_index: usize,
     raw_tc_pr: Option<String>,
 ) -> Value {
     let mut o = Map::new();
@@ -302,6 +310,8 @@ fn cell_json(
     let mut rich: Vec<Value> = Vec::new();
     let mut nested: Vec<Value> = Vec::new();
     let mut anchors: Vec<usize> = Vec::new();
+    let mut boxes: Vec<Value> = Vec::new();
+    let mut box_anchors: Vec<usize> = Vec::new();
     let mut jcs: BTreeSet<String> = BTreeSet::new();
     let mut saw_bold = false;
     let mut saw_non_bold = false;
@@ -312,7 +322,7 @@ fn cell_json(
             let model = if depth >= MAX_TABLE_NEST_DEPTH {
                 flattened(ctx.dom, inner.node)
             } else {
-                table_json(ctx, inner, depth + 1)
+                table_json(ctx, inner, depth + 1, docx_index)
             };
             if let Some(m) = model {
                 nested.push(m);
@@ -324,7 +334,16 @@ fn cell_json(
         if !ctx.dom.is(node, w(LocalName::P)) {
             continue;
         }
-        let text = text_of(ctx.dom, node);
+        // 格里的锚定形状：Word 画在格内并把行撑高，所以挂在格上而不是把整段降级成 `Text box`
+        let (found, stripped) = match b.as_text() {
+            Some(tb) => super::textbox::anchored_boxes_in_cell(ctx, node, tb, docx_index),
+            None => (Vec::new(), Vec::new()),
+        };
+        if !found.is_empty() {
+            box_anchors.extend(std::iter::repeat_n(paras.len(), found.len()));
+            boxes.extend(found.into_iter().map(|b| Value::Object(b.json)));
+        }
+        let text = text_of_skipping(ctx.dom, node, &stripped);
         paras.push(Value::from(text.clone()));
         rich.push(rich_para(ctx, b, node, &text));
         if !text.is_empty() {
@@ -346,6 +365,14 @@ fn cell_json(
     let para_count = paras.len();
     set(&mut o, "paras", Value::Array(paras));
     set(&mut o, "richParas", Value::Array(rich));
+    if !boxes.is_empty() {
+        set(&mut o, "anchoredBoxes", Value::Array(boxes));
+        set(
+            &mut o,
+            "anchoredBoxAnchors",
+            Value::Array(box_anchors.into_iter().map(Value::from).collect()),
+        );
+    }
     if !nested.is_empty() {
         set(&mut o, "nestedTables", Value::Array(nested));
         set(
@@ -438,15 +465,17 @@ fn rich_para(ctx: &Ctx<'_>, b: &Block, node: NodeId, text: &str) -> Value {
     let tb: Option<&TextBlock> = b.as_text();
     let runs = match tb {
         Some(tb) => runs_json(ctx, tb),
-        None => {
-            if text.is_empty() {
-                Vec::new()
-            } else {
+        // 非文本块：格里只有一张图的段落是 `MOD-05` R15 的图片块，格里的保护块同理——
+        // TS 在单元格里一律当普通段落，所以图片补成一个原子 run，其余退化成纯文本 run
+        None => match block_display(b).and_then(|d| super::image::block_image_run(ctx, d)) {
+            Some(r) => vec![r],
+            None if text.is_empty() => Vec::new(),
+            None => {
                 let mut r = Map::new();
                 set(&mut r, "text", text.to_string());
                 vec![r]
             }
-        }
+        },
     };
     if let Some(tb) = tb
         && let Some(Value::Object(f)) = para_format(ctx, tb, ppr, runs.is_empty())
@@ -485,6 +514,15 @@ fn rich_para(ctx: &Ctx<'_>, b: &Block, node: NodeId, text: &str) -> Value {
     }
     set(&mut p, "runs", Value::Array(runs.into_iter().map(Value::Object).collect()));
     Value::Object(p)
+}
+
+/// 块上挂的显示模型（图片块 / 保护块）。
+fn block_display(b: &Block) -> Option<&crate::model::Display> {
+    match b {
+        Block::Image(i) => i.display.as_ref(),
+        Block::Protected(p) => p.display.as_ref(),
+        _ => None,
+    }
 }
 
 /// TS `flattenedTableModel`：整棵子树按段落收集纯文本，成一个 1×1 的只读表。
@@ -541,12 +579,25 @@ fn flattened(dom: &Dom, tbl: NodeId) -> Option<Value> {
 
 /// TS `textOf`：子树里所有文本节点拼接（含 `w:delText` / `w:instrText`）。
 fn text_of(dom: &Dom, node: NodeId) -> String {
+    text_of_skipping(dom, node, &[])
+}
+
+/// 同上，但跳过 `skip` 里那些子树——TS 在取单元格文字前会把锚定形状从段落里删掉再解析，
+/// 不跳的话框里的文字与 `wp:posOffset` 的数字会漏进单元格文本（`COMPAT-10`）。
+///
+/// 走**语义**子节点：MCE 的非活动分支不算数（TS 没有 MCE，靠正则删 `mc:Fallback` 达到同样效果，
+/// 但两边选的分支可能不同——见 `KNOWN_DIFFS` 的 `Requires` 前缀未声明那条）。
+fn text_of_skipping(dom: &Dom, node: NodeId, skip: &[NodeId]) -> String {
     let mut out = String::new();
     let mut stack = vec![node];
     let mut order = Vec::new();
     while let Some(n) = stack.pop() {
+        if skip.contains(&n) {
+            continue;
+        }
         order.push(n);
-        for &c in dom.children(n).iter().rev() {
+        let kids: Vec<NodeId> = dom.semantic_children(n).collect();
+        for &c in kids.iter().rev() {
             stack.push(c);
         }
     }
