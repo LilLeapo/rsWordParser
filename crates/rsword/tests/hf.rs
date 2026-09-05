@@ -595,6 +595,29 @@ fn compat_05_hf_images() {
     assert_eq!(json["hfParts"]["rIdH"]["images"], json["headerImages"]);
 }
 
+/// 任务 5.4d：外部文本框 part（`wps:txbx/@r:txbx` → `word/txbx1.xml`）的段落进 `textboxes[].paras`，
+/// 整个框只读（内容不在本 part 里，重写本 part 的段落列表救不了它）。
+#[test]
+fn compat_03_external_textbox_part_content() {
+    let doc = "themeless-shapes-external-txbx__003.docx";
+    let bytes = std::fs::read(common::corpus_dir("synthetic").join(doc)).expect("语料");
+    let mut pkg = Package::open(&bytes).expect("open");
+    let json = rsword::bind::compat_ts::parsed_doc(&mut pkg).expect("parsed_doc");
+    let boxes = json["blocks"]
+        .as_array()
+        .expect("blocks")
+        .iter()
+        .filter_map(|b| b.get("textboxes"))
+        .flat_map(|t| t.as_array().cloned().unwrap_or_default())
+        .collect::<Vec<_>>();
+    assert_eq!(boxes.len(), 1, "{boxes:#?}");
+    assert_eq!(boxes[0]["paras"][0]["runs"][0]["text"], "hello", "框的内容在另一个 part 里");
+    assert_eq!(boxes[0]["readOnly"], true);
+    // 模型侧：块属于那个 part
+    let doc_model = rsword::model::Document::rebuild(&mut pkg).expect("rebuild");
+    assert_eq!(doc_model.aux_flows.len(), 1, "外部文本框 part 的索引建了");
+}
+
 /// 全语料：页眉页脚 part 的 `rId` 集合与 `hasPageNumber` 与 TS 逐份一致。
 #[test]
 fn compat_05_hf_parts_match_ts_on_corpus() {

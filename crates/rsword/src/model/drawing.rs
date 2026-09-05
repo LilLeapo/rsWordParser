@@ -105,8 +105,14 @@ pub struct ShapeDisplay {
     pub body: Option<BodyPr>,
     /// `wps:txbx/w:txbxContent`：框里的独立内容流。
     pub txbx: Option<NodeId>,
+    /// `wps:txbx/@r:txbx`：框的内容在**另一个 part** 里（`word/txbx1.xml`，根是 `w14:txbx`）。
+    /// 与 `txbx` 互斥：本 part 里没有 `w:txbxContent` 时才看它。
+    pub txbx_rel: Option<String>,
     /// 框里内容流的块（`MOD-11` 的 `content`）。由 `Document::rebuild` 复用段落管线构建。
     pub content: Vec<Block>,
+    /// `content` 里的 `NodeId` 属于哪个 part。`None` = 本 part（`txbx`）；
+    /// `Some` = 外部文本框 part（`txbx_rel`），投影要换那个 part 的 DOM。
+    pub content_part: Option<crate::package::PartId>,
     /// 所属组在 `shapes` 里的下标。
     pub group: Option<usize>,
 }
@@ -415,7 +421,9 @@ fn shape_display(dom: &Dom, node: NodeId, is_group: bool, group: Option<usize>) 
         has_effects: false,
         body: None,
         txbx: None,
+        txbx_rel: None,
         content: Vec::new(),
+        content_part: None,
         group,
     };
     // 只走形状自己的属性容器：`spPr` / `grpSpPr` / `style` / `bodyPr` / `txbx`。
@@ -438,6 +446,8 @@ fn shape_display(dom: &Dom, node: NodeId, is_group: bool, group: Option<usize>) 
             (NsId::Wps, LocalName::BodyPr) => s.body = Some(body_pr(dom, c)),
             (NsId::Wps, LocalName::CNvPr) => s.cnv_id = attr(dom, c, NsId::None, LocalName::Id),
             (NsId::Wps, LocalName::Txbx) => {
+                s.txbx_rel =
+                    dom.attr_value(c, QName::new(NsId::R, LocalName::Txbx)).map(|v| v.into_owned());
                 s.txbx = dom
                     .semantic_children(c)
                     .find(|&t| dom.is(t, QName::new(NsId::W, LocalName::TxbxContent)));

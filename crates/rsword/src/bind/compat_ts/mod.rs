@@ -57,7 +57,29 @@ pub fn parsed_doc_of(pkg: &Package, doc: &Document, media: &MediaSet) -> Value {
     let resolver = Resolver::new(doc);
     let idx = Utf16Index::new(dom.src());
     let numbering = decl::numbering_json(doc);
-    let ctx = blocks::Ctx::new(dom, doc, &resolver, &idx, rels, &numbering, &media.main);
+    // 正文引用的其他 part（外部文本框 part，任务 5.4d）：各自的 UTF-16 索引要活到投影结束
+    let aux_idx: Vec<(PartId, Utf16Index)> = doc
+        .aux_flows
+        .keys()
+        .filter_map(|&p| pkg.part(p).dom().map(|d| (p, Utf16Index::new(d.src()))))
+        .collect();
+    let aux: blocks::AuxProjMap<'_> = aux_idx
+        .iter()
+        .filter_map(|(p, i)| {
+            Some((
+                *p,
+                blocks::AuxProj {
+                    dom: pkg.part(*p).dom()?,
+                    rels: &pkg.part(*p).rels,
+                    idx: i,
+                    flows: doc.aux_flows.get(p)?,
+                    media: media.part(*p),
+                },
+            ))
+        })
+        .collect();
+    let ctx =
+        blocks::Ctx::new(dom, doc, &resolver, &idx, rels, &numbering, &media.main).with_aux(&aux);
     let (elements, blocks) = blocks::body(&ctx);
 
     let mut o = Map::new();

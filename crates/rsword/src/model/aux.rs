@@ -52,3 +52,25 @@ impl AuxFlows {
         blocks
     }
 }
+
+/// 一个外部文本框 part（`wps:txbx/@r:txbx` → `word/txbx1.xml`，根是 `w14:txbx`）。
+///
+/// 形状的内容不在本 part 里时才用它。`Document::rebuild` 先把这些 part 解析好放进一张
+/// `rel id → ExtTxbxPart` 的表，构建器遇到 `txbx_rel` 就从表里取——构建器只持有主 part 的 DOM，
+/// 没法自己去解析别的 part。
+pub struct ExtTxbxPart<'a> {
+    pub part: PartId,
+    pub dom: &'a Dom,
+    pub rels: &'a Rels,
+    pub idx: AuxFlows,
+}
+
+/// 外部文本框 part 表（按关系 id）。
+pub type ExtTxbxMap<'a> = std::collections::BTreeMap<String, ExtTxbxPart<'a>>;
+
+/// 空表（没有外部文本框 part 的文档，以及 `build_main` 之类的入口）。
+pub(crate) fn empty_ext_txbx() -> &'static ExtTxbxMap<'static> {
+    static EMPTY: std::sync::LazyLock<ExtTxbxMap<'static>> =
+        std::sync::LazyLock::new(ExtTxbxMap::new);
+    &EMPTY
+}

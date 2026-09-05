@@ -690,7 +690,7 @@ fn wps_box(
     nested: bool,
     index: Option<usize>,
 ) -> Option<BoxInfo> {
-    let (paras, structured) = box_json::paras_json(ctx, &s.content);
+    let (paras, structured) = box_json::paras_json_in(ctx, &s.content, s.content_part);
     let texts = box_json::box_texts(&paras);
     let has_text = box_json::any_runs(&paras);
     // `paint` 要查主题与媒体，所以放在最后算：前面的形状规则先把不用看颜色的情况筛掉。
@@ -831,6 +831,8 @@ mod tests {
             has_effects: false,
             body: None,
             txbx: None,
+            txbx_rel: None,
+            content_part: None,
             content: Vec::new(),
             group: None,
         }

@@ -10,6 +10,7 @@ use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 const T_FAMILY: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
 const S_FAMILY: &str = "http://purl.oclc.org/ooxml/officeDocument/relationships/";
 const PKG_FAMILY: &str = "http://schemas.openxmlformats.org/package/2006/relationships/";
+const MS_2006: &str = "http://schemas.microsoft.com/office/2006/relationships/";
 const MS_2007: &str = "http://schemas.microsoft.com/office/2007/relationships/";
 const MS_2011: &str = "http://schemas.microsoft.com/office/2011/relationships/";
 const MS_2014: &str = "http://schemas.microsoft.com/office/2014/relationships/";
@@ -47,6 +48,8 @@ pub enum RelType {
     DiagramQuickStyle,
     DiagramColors,
     DiagramDrawing,
+    /// 外部文本框 part（`wps:txbx/@r:txbx` → `word/txbx1.xml`），微软扩展。
+    Txbx,
     CustomXml,
     CustomXmlProps,
     OleObject,
@@ -99,6 +102,7 @@ const SINGLE: &[(RelType, &str, &str)] = &[
     (RelType::CommentsExtensible, MS_2018_08, "commentsExtensible"),
     (RelType::DiagramDrawing, MS_2007, "diagramDrawing"),
     (RelType::ChartEx, MS_2014, "chartEx"),
+    (RelType::Txbx, MS_2006, "txbx"),
 ];
 
 impl RelType {

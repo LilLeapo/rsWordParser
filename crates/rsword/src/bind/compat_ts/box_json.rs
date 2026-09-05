@@ -707,6 +707,22 @@ fn px_to_emu_round(px: f64) -> i64 {
 
 /// 框里内容流的块 → `paras[]`（TS `txbxContentParas`）。返回 `(段落, 是否只读)`。
 pub(super) fn paras_json(ctx: &Ctx<'_>, content: &[Block]) -> (Vec<Value>, bool) {
+    paras_json_in(ctx, content, None)
+}
+
+/// 同上，但内容可能属于**另一个 part**（外部文本框 part，`ShapeDisplay.content_part`）：
+/// 那时换成那个 part 的投影上下文，并把整块标只读——内容不在本 part 里，重写本 part 的
+/// `w:p` 列表救不了它（TS 同样把它排除在保存序号之外）。
+pub(super) fn paras_json_in(
+    ctx: &Ctx<'_>,
+    content: &[Block],
+    part: Option<crate::package::PartId>,
+) -> (Vec<Value>, bool) {
+    if let Some(p) = part {
+        let Some(aux) = ctx.switch(p) else { return (Vec::new(), true) };
+        let (paras, _) = paras_json(&aux, content);
+        return (paras, true);
+    }
     let (mut out, mut read_only) = own_paras(ctx, content);
     // 框里还套着框：TS 把所有层的 `w:txbxContent` 平铺进同一个 `paras`，并把整块标只读——
     // 提交时会重写外层的 `w:p` 列表，套在里面的形状就没了。

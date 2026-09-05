@@ -6,6 +6,7 @@ use std::collections::{BTreeMap, HashMap};
 
 use crate::diag::{DiagCode, Diagnostic};
 use crate::error::Result;
+use crate::model::aux::AuxFlows;
 use crate::model::block::{
     Block, ImageBlock, ListRef, ProtectedBlock, ProtectedKind, Revision, SdtInfo, TextBlock,
 };
@@ -52,6 +53,9 @@ pub struct Document {
     pub hf_parts: BTreeMap<PartId, HfPart>,
     /// 关系 id → 页眉页脚 part。`sectPr` 的引用与 `SectionInfo.hf_ref` 都是 `rId`，查 part 走这里。
     pub hf_by_rel: BTreeMap<String, PartId>,
+    /// 正文引用的其他 part 的内容流索引（目前只有外部文本框 part，`wps:txbx/@r:txbx`）。
+    /// 那些 part 的块挂在 `ShapeDisplay.content` 上、`content_part` 指回这里的键。
+    pub aux_flows: BTreeMap<PartId, AuxFlows>,
     /// 主 part 的内容流映射（`SPAN-01`）。
     pub flows: FlowMap,
     /// 主 part 的字段索引（`FLD-02`）。与投影同寿命：`rebuild` / `refresh_blocks` 都重建它。
@@ -121,6 +125,24 @@ impl Document {
             let _ = pkg.dom(*id);
         }
 
+        // 外部文本框 part（`wps:txbx/@r:txbx` → `word/txbx*.xml`，任务 5.4d）：同页眉页脚，
+        // 关系表的借用要在 `pkg.dom` 之前结束
+        let txbx_rels: Vec<(String, PartId)> = pkg
+            .part(main)
+            .rels
+            .of_kind(RelType::Txbx)
+            .filter_map(|r| match &r.target {
+                RelTarget::Internal(u) => Some((r.id.clone(), u.clone())),
+                RelTarget::External(_) => None,
+            })
+            .collect::<Vec<_>>()
+            .into_iter()
+            .filter_map(|(id, uri)| pkg.find(&uri).map(|p| (id, p)))
+            .collect();
+        for (_, id) in &txbx_rels {
+            let _ = pkg.dom(*id);
+        }
+
         let mut warnings = Vec::new();
         let dom_of = |id: Option<PartId>| id.and_then(|id| pkg.part(id).dom());
         let styles = dom_of(styles_id).and_then(|d| Styles::from_dom(d, &mut warnings));
@@ -162,13 +184,32 @@ impl Document {
         let mut fields = FieldIndex::build(dom);
         warnings.extend(fields.take_diagnostics());
         let spans = SpanIndex::build(dom);
-        let mut b = Builder::new(dom, styles.as_ref(), rels, &fields, &spans, warnings);
+        let ext_txbx: crate::model::aux::ExtTxbxMap<'_> = txbx_rels
+            .iter()
+            .filter_map(|(rid, id)| {
+                let d = pkg.part(*id).dom()?;
+                let idx = AuxFlows::build(*id, d, &mut warnings);
+                Some((
+                    rid.clone(),
+                    crate::model::aux::ExtTxbxPart {
+                        part: *id,
+                        dom: d,
+                        rels: &pkg.part(*id).rels,
+                        idx,
+                    },
+                ))
+            })
+            .collect();
+        let mut b = Builder::new(dom, styles.as_ref(), rels, &fields, &spans, warnings)
+            .with_ext_txbx(&ext_txbx);
         let body = b.find_body();
         let mut blocks = Vec::new();
         if let Some(body) = body {
             b.build_container(body, None, &[], &mut blocks);
         }
         let mut warnings = b.warnings;
+        let aux_flows: BTreeMap<PartId, AuxFlows> =
+            ext_txbx.into_values().map(|e| (e.part, e.idx)).collect();
         let sections = crate::model::section::build_sections(dom, &blocks, &mut warnings);
         // 页眉页脚 part：同一个构建器，各自的 DOM 与 rels（`SPAN-01` 独立内容流）
         let mut hf_parts = BTreeMap::new();
@@ -192,6 +233,7 @@ impl Document {
             sections,
             hf_parts,
             hf_by_rel,
+            aux_flows,
             styles,
             numbering,
             theme,
@@ -298,6 +340,8 @@ pub(super) struct Builder<'a> {
     block_fields: HashMap<NodeId, FieldId>,
     /// 字段起点所在的段落 → 字段 id（`MOD-04` 的 `facts.fields`）。
     fields_by_para: HashMap<NodeId, Vec<FieldId>>,
+    /// 外部文本框 part（`wps:txbx/@r:txbx`）：空表表示这份文档没有（多数情况）。
+    ext_txbx: &'a crate::model::aux::ExtTxbxMap<'a>,
     pub(super) warnings: Vec<Diagnostic>,
     /// 当前嵌套的容器层数（body / sdtContent / 修订包裹 / 单元格都算一层，段落内的内联容器也算）；
     /// 块容器超过 [`MAX_CONTAINER_DEPTH`] 层的子树降级为 `TooDeep`（`MOD-07`）。
@@ -330,6 +374,7 @@ impl<'a> Builder<'a> {
             dom,
             styles,
             rels,
+            ext_txbx: crate::model::aux::empty_ext_txbx(),
             fields,
             spans,
             block_fields: fields.block_result_paragraphs(dom),
@@ -351,6 +396,15 @@ fn w(local: LocalName) -> QName {
 }
 
 impl<'a> Builder<'a> {
+    /// 挂上外部文本框 part 表（`Document::rebuild` 用；别的入口没有别的 part 可给）。
+    pub(super) fn with_ext_txbx(
+        mut self,
+        map: &'a crate::model::aux::ExtTxbxMap<'a>,
+    ) -> Builder<'a> {
+        self.ext_txbx = map;
+        self
+    }
+
     fn find_body(&mut self) -> Option<NodeId> {
         let dom = self.dom;
         let root = dom.root();
@@ -914,7 +968,7 @@ impl<'a> Builder<'a> {
             let display = match kind {
                 SegmentKind::Drawing { .. } => {
                     let mut d = drawing_display(dom, c);
-                    self.fill_box_content(d.shapes.iter_mut().map(|s| (s.txbx, &mut s.content)));
+                    self.fill_shape_content(&mut d.shapes);
                     Some(Display::Drawing(Box::new(d)))
                 }
                 SegmentKind::Pict | SegmentKind::Object => {
@@ -965,6 +1019,33 @@ impl<'a> Builder<'a> {
             let mut blocks = Vec::new();
             self.build_container(txbx, None, &[], &mut blocks);
             *content = blocks;
+        }
+    }
+
+    /// DrawingML 形状的内容流：本 part 的 `w:txbxContent`，或**外部文本框 part**
+    /// （`wps:txbx/@r:txbx` → `word/txbx1.xml`，任务 5.4d）。
+    ///
+    /// 外部 part 的块用**那个 part 的** DOM / rels / 索引建（`NodeId` 因此属于它，投影靠
+    /// `content_part` 换 DOM）。这种框是只读的：内容不在本 part 里，重写本 part 的段落列表
+    /// 救不了它（TS 同样把它排除在保存序号之外并标 `readOnly`）。
+    fn fill_shape_content(&mut self, shapes: &mut [crate::model::drawing::ShapeDisplay]) {
+        for s in shapes {
+            if let Some(txbx) = s.txbx {
+                let mut blocks = Vec::new();
+                self.build_container(txbx, None, &[], &mut blocks);
+                s.content = blocks;
+                continue;
+            }
+            let Some(rid) = s.txbx_rel.as_deref() else { continue };
+            let Some(ext) = self.ext_txbx.get(rid) else { continue };
+            s.content = ext.idx.blocks_of(
+                ext.dom,
+                ext.rels,
+                self.styles,
+                ext.dom.root(),
+                &mut self.warnings,
+            );
+            s.content_part = Some(ext.part);
         }
     }
 

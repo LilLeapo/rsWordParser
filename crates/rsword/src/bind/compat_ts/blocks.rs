@@ -23,7 +23,7 @@ use crate::model::{
     AtomKind, Block, BreakKind, Display, Document, Inline, LinkTarget, ProtectedKind, Revision,
     RevisionMeta, Run, SdtControl, SdtInfo, SegmentKind, StyleType, TextBlock, TextKind,
 };
-use crate::package::{RelTarget, Rels};
+use crate::package::{PartId, RelTarget, Rels};
 use crate::resolve::{Resolver, rgb_hex};
 use crate::semantic::props::{ParaProps, RunProps, UnderlineKind, Val};
 use crate::span::field::{FieldId, FieldSpan, FormData, InstrToken, Keyword, read_form_data};
@@ -36,6 +36,18 @@ pub(super) struct StyleDisp {
     vanish: Option<bool>,
     auto_space: Option<bool>,
 }
+
+/// 另一个 part 的投影上下文来源（外部文本框 part 等）。
+pub(super) struct AuxProj<'a> {
+    pub dom: &'a Dom,
+    pub rels: &'a Rels,
+    pub idx: &'a Utf16Index,
+    pub flows: &'a crate::model::AuxFlows,
+    pub media: &'a MediaMap,
+}
+
+/// `PartId` → 那个 part 的投影来源。
+pub(super) type AuxProjMap<'a> = std::collections::BTreeMap<PartId, AuxProj<'a>>;
 
 pub(super) struct Ctx<'a> {
     pub dom: &'a Dom,
@@ -55,6 +67,8 @@ pub(super) struct Ctx<'a> {
     pub sections: Sections,
     /// 文档里第一处分页的字节位置（`None` = 整篇都在首页）。
     first_page_break: Option<u32>,
+    /// 正文引用的其他 part（外部文本框 part）：[`Ctx::switch`] 用。
+    aux: &'a AuxProjMap<'a>,
     disp_cache: RefCell<HashMap<(String, StyleType), StyleDisp>>,
 }
 
@@ -106,8 +120,39 @@ impl<'a> Ctx<'a> {
             media,
             sections,
             first_page_break,
+            aux: empty_aux(),
             disp_cache: RefCell::new(HashMap::new()),
         }
+    }
+
+    /// 挂上"正文引用的其他 part"表（`parsed_doc_of` 建）。
+    pub(super) fn with_aux(mut self, aux: &'a AuxProjMap<'a>) -> Ctx<'a> {
+        self.aux = aux;
+        self
+    }
+
+    /// 切到另一个 part 的投影上下文：`dom` / `rels` / 媒体表 / UTF-16 索引与两个索引全换掉，
+    /// 声明模型（样式 / 编号 / 主题）与 `doc` 共用。
+    ///
+    /// 外部文本框 part（`wps:txbx/@r:txbx`）的块的 `NodeId` 属于那个 part，投影必须换 DOM，
+    /// 否则 `rawRPr` 之类的原字节切片会切到主 part 上去（任务 5.4d）。
+    pub(super) fn switch(&self, part: PartId) -> Option<Ctx<'a>> {
+        let a = self.aux.get(&part)?;
+        Some(Ctx {
+            dom: a.dom,
+            doc: self.doc,
+            fields: &a.flows.fields,
+            spans: &a.flows.spans,
+            resolver: self.resolver,
+            idx: a.idx,
+            rels: a.rels,
+            numbering: self.numbering,
+            media: a.media,
+            sections: self.sections.clone(),
+            first_page_break: None,
+            aux: self.aux,
+            disp_cache: RefCell::new(HashMap::new()),
+        })
     }
 
     /// 换成另一个 part 的索引：`dom` 是那个 part 的 DOM 时，字段与范围索引也必须跟着换
@@ -2395,6 +2440,13 @@ fn same_style(a: &Map<String, Value>, b: &Map<String, Value>) -> bool {
 
 fn s_of(v: &Value, k: &str) -> Option<String> {
     v.get(k).and_then(Value::as_str).map(str::to_string)
+}
+
+/// 空的 aux 表（多数文档没有外部 part）。
+fn empty_aux() -> &'static AuxProjMap<'static> {
+    static EMPTY: std::sync::LazyLock<AuxProjMap<'static>> =
+        std::sync::LazyLock::new(AuxProjMap::new);
+    &EMPTY
 }
 
 #[cfg(test)]
