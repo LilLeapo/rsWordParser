@@ -7,7 +7,7 @@ use serde_json::{Map, Value};
 
 use crate::model::drawing::{AnchorGeom, DrawingDisplay, Wrap};
 use crate::model::units::{EMU_PER_PT, EMU_PER_PX, Length, emu_to_px};
-use crate::model::{Segment, SegmentKind, VmlDisplay};
+use crate::model::{Display, Segment, SegmentKind, VmlDisplay};
 use crate::resolve::drawingml::{ColorBase, color_in, hex};
 use crate::xml::{Dom, LocalName, NodeId, QName};
 
@@ -117,20 +117,29 @@ pub(super) fn image_meta(
 /// 分别走文本框投影与 `brokenImage`，不会走到「带图的文本段落」。
 pub(super) fn run_image(ctx: &Ctx<'_>, seg: &Segment) -> Option<Map<String, Value>> {
     match seg.kind {
-        SegmentKind::Drawing { .. } => drawing_run_image(ctx, seg),
+        SegmentKind::Drawing { .. } => drawing_run_image(ctx, seg.display.as_ref()?),
         // `w:pict` / `w:object` 的预览图也是一个原子 run（`smartart-ole__016`：OLE 预览与
         // 随后的图片各占一个 run）。
-        SegmentKind::Pict | SegmentKind::Object => vml_run_image(ctx, seg),
+        SegmentKind::Pict | SegmentKind::Object => vml_run_image(ctx, seg.display.as_ref()?),
         _ => None,
     }
 }
 
-fn vml_run_image(ctx: &Ctx<'_>, seg: &Segment) -> Option<Map<String, Value>> {
-    let v = seg.display.as_ref()?.as_vml()?;
+/// 显示模型 → 图片 run。段落被分类成 `Image` / `Protected` 时显示模型挂在**块**上而不是段上
+/// （页眉页脚的单元格里就有这种纯图段落，`COMPAT-05`），所以入口取 `Display` 而不是 `Segment`。
+pub(super) fn display_image_run(ctx: &Ctx<'_>, d: &Display) -> Option<Map<String, Value>> {
+    match d {
+        Display::Drawing(_) => drawing_run_image(ctx, d),
+        Display::Vml(_) => vml_run_image(ctx, d),
+    }
+}
+
+fn vml_run_image(ctx: &Ctx<'_>, d: &Display) -> Option<Map<String, Value>> {
+    let v = d.as_vml()?;
     let m = ctx.media.get(v.image()?.imagedata.as_deref()?)?;
     let mut o = Map::new();
     set(&mut o, "dataUrl", m.url.clone());
-    set(&mut o, "xml", ctx.node_xml(seg.node).to_string());
+    set(&mut o, "xml", ctx.node_xml(v.node).to_string());
     let (w, h) = vml_px(v);
     if let Some(w) = w {
         set(&mut o, "widthPx", w);
@@ -141,13 +150,13 @@ fn vml_run_image(ctx: &Ctx<'_>, seg: &Segment) -> Option<Map<String, Value>> {
     Some(o)
 }
 
-fn drawing_run_image(ctx: &Ctx<'_>, seg: &Segment) -> Option<Map<String, Value>> {
-    let d = seg.display.as_ref()?.as_drawing()?;
+fn drawing_run_image(ctx: &Ctx<'_>, disp: &Display) -> Option<Map<String, Value>> {
+    let d = disp.as_drawing()?;
     let pic = d.picture()?;
     let m = ctx.media.pick(pic.embed.as_deref(), pic.link.as_deref())?;
     let mut o = Map::new();
     set(&mut o, "dataUrl", m.url.clone());
-    set(&mut o, "xml", ctx.node_xml(seg.node).to_string());
+    set(&mut o, "xml", ctx.node_xml(d.node).to_string());
     if let Some(ext) = d.extent {
         if ext.cx > 0 {
             set(&mut o, "widthPx", emu_to_px(ext.cx as f64).round() as i64);

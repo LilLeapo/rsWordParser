@@ -91,3 +91,32 @@ fn collect_rids(dom: &Dom, out: &mut Vec<String>) {
         }
     }
 }
+
+/// 一次投影要的全部媒体预取：主 part 一张，辅助 part（页眉页脚…）各一张。
+///
+/// 图片关系是**按 part** 解析的（`PKG-05`：页眉里的 `r:embed` 查的是 `header1.xml.rels`），
+/// 所以不能共用一张表。
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct MediaSet {
+    pub main: MediaMap,
+    pub aux: std::collections::BTreeMap<PartId, MediaMap>,
+}
+
+impl MediaSet {
+    /// 主 part + 给定的辅助 part 各扫一遍。
+    pub fn build(pkg: &mut Package, main: PartId, aux: &[PartId]) -> MediaSet {
+        let mut set = MediaSet { main: MediaMap::build(pkg, main), ..Default::default() };
+        for &p in aux {
+            set.aux.insert(p, MediaMap::build(pkg, p));
+        }
+        set
+    }
+
+    /// 某个 part 的表；没预取过就给空表（图片一律输出 `brokenImage`）。
+    pub fn part(&self, part: PartId) -> &MediaMap {
+        self.aux.get(&part).unwrap_or(&EMPTY)
+    }
+}
+
+/// `MediaSet::part` 的空表（没预取过的 part）。
+static EMPTY: std::sync::LazyLock<MediaMap> = std::sync::LazyLock::new(MediaMap::default);

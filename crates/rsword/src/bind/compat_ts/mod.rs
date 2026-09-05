@@ -9,11 +9,8 @@ use serde_json::{Map, Value, json};
 
 use crate::error::Result;
 use crate::model::Document;
-use std::collections::BTreeMap;
-
 use crate::package::{Package, PartId, RelType};
 use crate::resolve::Resolver;
-use crate::xml::Dom;
 
 mod blocks;
 mod box_json;
@@ -33,7 +30,7 @@ pub use diff::{
     is_drawing_path, is_span_field_case, is_table_case, is_text_case, known_diffs,
     parse_known_diffs, path_key, path_matches, split_known,
 };
-pub use media::{MediaMap, MediaOut};
+pub use media::{MediaMap, MediaOut, MediaSet};
 pub use save_blocks::{SaveBlocksOutcome, apply_save_blocks, bookmark_id_of};
 pub use utf16::Utf16Index;
 
@@ -41,12 +38,14 @@ pub use utf16::Utf16Index;
 pub fn parsed_doc(pkg: &mut Package) -> Result<Value> {
     let doc = Document::rebuild(pkg)?;
     // 先把媒体读出来：之后整条投影链路只有 DOM 的不可变借用（`bind::compat_ts::media`）。
-    let media = MediaMap::build(pkg, doc.main_part);
+    // 页眉页脚 part 各一张表——图片关系按 part 解析（`PKG-05`）。
+    let aux: Vec<PartId> = doc.hf_parts.keys().copied().collect();
+    let media = MediaSet::build(pkg, doc.main_part, &aux);
     Ok(parsed_doc_of(pkg, &doc, &media))
 }
 
 /// 用已构建的模型投影（`pkg` 里的 part 已解析）。
-pub fn parsed_doc_of(pkg: &Package, doc: &Document, media: &MediaMap) -> Value {
+pub fn parsed_doc_of(pkg: &Package, doc: &Document, media: &MediaSet) -> Value {
     let main = doc.main_part;
     let dom = pkg.part(main).dom().expect("main part parsed by rebuild");
     let rels = &pkg.part(main).rels;
@@ -58,7 +57,7 @@ pub fn parsed_doc_of(pkg: &Package, doc: &Document, media: &MediaMap) -> Value {
     let resolver = Resolver::new(doc);
     let idx = Utf16Index::new(dom.src());
     let numbering = decl::numbering_json(doc);
-    let ctx = blocks::Ctx::new(dom, doc, &resolver, &idx, rels, &numbering, media);
+    let ctx = blocks::Ctx::new(dom, doc, &resolver, &idx, rels, &numbering, &media.main);
     let (elements, blocks) = blocks::body(&ctx);
 
     let mut o = Map::new();
@@ -77,9 +76,7 @@ pub fn parsed_doc_of(pkg: &Package, doc: &Document, media: &MediaMap) -> Value {
     o.insert("protection".into(), decl::protection_json(doc));
     o.insert("writeProtection".into(), decl::write_protection_json(doc));
     // 页眉页脚（`COMPAT-05`，任务 5.4）
-    let hf_doms: BTreeMap<PartId, &Dom> =
-        doc.hf_parts.keys().filter_map(|&id| pkg.part(id).dom().map(|d| (id, d))).collect();
-    hf::hf_json(dom, doc, &hf_doms, &mut o);
+    hf::hf_json(&ctx, pkg, doc, &resolver, &numbering, media, &mut o);
     o.insert("titlePg".into(), Value::Bool(decl::title_pg(dom)));
     decl::settings_json(doc, settings_dom, &mut o);
     let styles = decl::styles_json(doc, &resolver);

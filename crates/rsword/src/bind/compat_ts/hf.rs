@@ -27,8 +27,15 @@ use std::collections::BTreeMap;
 
 use serde_json::{Map, Value};
 
-use crate::bind::compat_ts::blocks::set;
-use crate::model::{Document, HfKind, HfPart, HfVariant};
+use crate::bind::compat_ts::blocks::{Ctx, set};
+use crate::bind::compat_ts::decl::NumberingOut;
+use crate::bind::compat_ts::json::{set_if, set_some};
+use crate::bind::compat_ts::{MediaSet, Utf16Index};
+use crate::model::{
+    Block, Cell, Display, Document, HfKind, HfPart, HfVariant, Inline, TableBlock, TextBlock,
+};
+use crate::package::{Package, PartId};
+use crate::resolve::Resolver;
 use crate::span::field::{FieldForm, Keyword};
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
@@ -41,22 +48,31 @@ pub(super) const TOTAL_PAGES_MARK: char = '\u{E000}';
 struct PartInfo {
     text: String,
     has_page_number: bool,
+    paras: Vec<Value>,
     watermark: Option<String>,
 }
 
 /// 把页眉页脚的全部顶层键写进 `out`。
 pub(super) fn hf_json(
-    dom: &Dom,
+    main: &Ctx<'_>,
+    pkg: &Package,
     doc: &Document,
-    hf_doms: &BTreeMap<crate::package::PartId, &Dom>,
+    resolver: &Resolver<'_>,
+    numbering: &NumberingOut,
+    media: &MediaSet,
     out: &mut Map<String, Value>,
 ) {
-    // 每个 part 投影一次（多个 rId 可能指向同一个 part）
-    let infos: BTreeMap<crate::package::PartId, PartInfo> = doc
-        .hf_parts
-        .iter()
-        .filter_map(|(&id, hf)| hf_doms.get(&id).map(|d| (id, part_info(d, hf))))
-        .collect();
+    // 每个 part 一个自己的 `Ctx`（自己的 DOM / rels / 媒体表 / UTF-16 索引），投影一次
+    // ——多个 rId 可能指向同一个 part
+    let mut infos: BTreeMap<PartId, PartInfo> = BTreeMap::new();
+    for (&id, hf) in &doc.hf_parts {
+        let Some(hf_dom) = pkg.part(id).dom() else { continue };
+        let idx = Utf16Index::new(hf_dom.src());
+        let ctx =
+            Ctx::new(hf_dom, doc, resolver, &idx, &pkg.part(id).rels, numbering, media.part(id))
+                .for_aux(&hf.idx);
+        infos.insert(id, part_info(&ctx, hf));
+    }
 
     let mut parts = Map::new();
     for (rid, part) in &doc.hf_by_rel {
@@ -65,42 +81,44 @@ pub(super) fn hf_json(
         }
     }
     out.insert("hfParts".into(), Value::Object(parts));
-    // `headerParas` / `footerParas` / `headerImages` / `footerImages` 在 5.4b / 5.4c
-    for k in ["headerParas", "footerParas", "headerImages", "footerImages"] {
+    // `headerImages` / `footerImages` 在 5.4c
+    for k in ["headerImages", "footerImages"] {
         out.insert(k.into(), Value::Null);
     }
 
-    // 顶层字段：default 变体 + 三种 typed
+    // 顶层字段：default 变体那一个 part 的 `text` / `hasPageNumber` / `paras`（+ 页眉的水印），
+    // 加上 first / even 两种 typed 变体的整条 `HfPartInfo`
     for kind in HfKind::ALL {
-        let name = |suffix: &str| format!("{}{suffix}", kind.as_str());
-        let default = pick(dom, doc, kind, HfVariant::Default).and_then(|p| infos.get(&p));
-        // `headerText` / `footerText` 与 `headerHasPageNumber` / `footerHasPageNumber`
-        out.insert(name("Text"), default.map_or(Value::Null, |i| Value::String(i.text.clone())));
-        out.insert(
-            format!("{}HasPageNumber", kind.as_str()),
-            Value::Bool(default.is_some_and(|i| i.has_page_number)),
-        );
-        if kind == HfKind::Header {
-            out.insert(
-                "watermarkText".into(),
-                default.and_then(|i| i.watermark.clone()).map_or(Value::Null, Value::String),
-            );
+        let default = pick(main.dom, doc, kind, HfVariant::Default).and_then(|p| infos.get(&p));
+        for (suffix, from) in DEFAULT_KEYS {
+            if let Some(k) = key_of(kind, suffix) {
+                out.insert(k, from(default));
+            }
         }
-        // `headerFirst` / `headerEven` / `footerFirst` / `footerEven`：整条 `HfPartInfo`
-        for variant in [HfVariant::First, HfVariant::Even] {
-            let key = format!(
-                "{}{}",
-                kind.as_str(),
-                match variant {
-                    HfVariant::First => "First",
-                    _ => "Even",
-                }
-            );
-            let v = pick(dom, doc, kind, variant)
+        for (variant, suffix) in [(HfVariant::First, "First"), (HfVariant::Even, "Even")] {
+            let v = pick(main.dom, doc, kind, variant)
                 .and_then(|p| infos.get(&p))
                 .map_or(Value::Null, info_json);
-            out.insert(key, v);
+            out.insert(format!("{}{suffix}", kind.as_str()), v);
         }
+    }
+}
+
+/// default 变体那个 part 贡献的顶层键：TS 的键名后缀与取值。名字集中在这一张表里——
+/// 散在几个 `format!` 里迟早写错一个（`watermarkText` 只在页眉出，TS 只读页眉的水印）。
+type DefaultKey = (&'static str, fn(Option<&PartInfo>) -> Value);
+const DEFAULT_KEYS: [DefaultKey; 4] = [
+    ("Text", |i| i.map_or(Value::Null, |i| Value::String(i.text.clone()))),
+    ("HasPageNumber", |i| Value::Bool(i.is_some_and(|i| i.has_page_number))),
+    ("Paras", |i| i.map_or(Value::Null, |i| Value::Array(i.paras.clone()))),
+    ("watermarkText", |i| i.and_then(|i| i.watermark.clone()).map_or(Value::Null, Value::String)),
+];
+
+/// `(Header, "Text")` → `headerText`；`watermarkText` 是页眉专有的整名。
+fn key_of(kind: HfKind, suffix: &str) -> Option<String> {
+    match suffix {
+        "watermarkText" => (kind == HfKind::Header).then(|| suffix.to_string()),
+        _ => Some(format!("{}{suffix}", kind.as_str())),
     }
 }
 
@@ -108,18 +126,13 @@ fn info_json(i: &PartInfo) -> Value {
     let mut o = Map::new();
     set(&mut o, "text", i.text.clone());
     set(&mut o, "hasPageNumber", i.has_page_number);
-    // `paras` 与 `images` 在 5.4b / 5.4c
-    o.insert("paras".into(), Value::Array(Vec::new()));
+    o.insert("paras".into(), Value::Array(i.paras.clone()));
+    // `images` 在 5.4c
     Value::Object(o)
 }
 
 /// TS `readHeaderFooterPart` 的引用选择：全文按文档序的 `w:headerReference` / `w:footerReference`。
-fn pick(
-    dom: &Dom,
-    doc: &Document,
-    kind: HfKind,
-    variant: HfVariant,
-) -> Option<crate::package::PartId> {
+fn pick(dom: &Dom, doc: &Document, kind: HfKind, variant: HfVariant) -> Option<PartId> {
     let elem = match kind {
         HfKind::Header => LocalName::HeaderReference,
         HfKind::Footer => LocalName::FooterReference,
@@ -140,11 +153,12 @@ fn pick(
     doc.hf_by_rel.get(rid.as_ref()).copied()
 }
 
-/// 一个 part 的 `text` / `hasPageNumber` / 水印。
-fn part_info(dom: &Dom, hf: &HfPart) -> PartInfo {
+/// 一个 part 的 `text` / `hasPageNumber` / `paras` / 水印。
+fn part_info(ctx: &Ctx<'_>, hf: &HfPart) -> PartInfo {
     PartInfo {
-        text: part_text(dom, hf),
+        text: part_text(ctx.dom, hf),
         has_page_number: hf.has_page_number,
+        paras: part_paras(ctx, hf),
         watermark: hf.watermark.clone(),
     }
 }
@@ -249,4 +263,505 @@ fn end_of(dom: &Dom, n: NodeId) -> u32 {
 
 fn in_skip(skip: &[(u32, u32)], pos: u32) -> bool {
     skip.iter().any(|&(a, b)| pos >= a && pos < b)
+}
+
+// ---- `paras`（TS `hfParagraphs`）---------------------------------------------------------------
+
+/// 一个 part 的 `paras`。
+///
+/// 与正文块投影的三点不同（都照 TS `hfParagraphs`）：
+///
+/// 1. **不看分类**：每个 `w:p` 都取 runs。分类成图片 / 保护块的段落（水印、纯图段落）runs 为空，
+///    走"框内段落"分支——框里没东西就整段不出，这正是 TS 丢掉水印段落的方式。
+/// 2. **字段已被改写**：`text` 那一步把 PAGE / NUMPAGES 换成标记 run、其他字段只留缓存结果，
+///    `paras` 看到的是同样的结果（[`hf_runs`]）。
+/// 3. **浮动表格延后**：`w:tblpPr` 的表格锚在它后面那个段落上，Word 先画那个段落。
+fn part_paras(ctx: &Ctx<'_>, hf: &HfPart) -> Vec<Value> {
+    let mut out: Vec<Value> = Vec::new();
+    let mut deferred: Vec<Value> = Vec::new();
+    for b in &hf.blocks {
+        match b {
+            Block::Table(t) => {
+                let rows = table_rows(ctx, t);
+                if t.props.position.is_some() {
+                    deferred.extend(rows);
+                } else {
+                    out.extend(rows);
+                }
+            }
+            _ => {
+                let node = b.node();
+                if !ctx.dom.is(node, QName::w(LocalName::P)) {
+                    continue;
+                }
+                match b {
+                    Block::Text(tb) => push_para(ctx, b, tb, &mut out),
+                    // 图片 / 保护段落：TS 的 `extractRuns` 给不出 run，直接走框内段落
+                    _ => out.extend(textbox_paras(ctx, b)),
+                }
+                out.append(&mut deferred);
+            }
+        }
+    }
+    out.append(&mut deferred);
+    // 整个 part 全是空段落 → 一个都不出（TS：`headerParas` 因此可能是 `[]`）
+    if out.iter().all(|p| {
+        p.get("runs").and_then(Value::as_array).is_none_or(|r| r.is_empty())
+            && p.get("cells").is_none()
+    }) {
+        return Vec::new();
+    }
+    out
+}
+
+/// 一个文本段落 → 一条 `HfParagraph`；runs 为空且段落里有 `w:r` / `w:pict` 时改出框内段落。
+fn push_para(ctx: &Ctx<'_>, block: &Block, tb: &TextBlock, out: &mut Vec<Value>) {
+    let runs = hf_runs(ctx, tb, false);
+    if runs.is_empty() && has_run_or_pict(ctx.dom, tb.node) {
+        // 政府公文的页码常放在 VML 文本框里；把框里的段落提出来，别把内容丢了
+        out.extend(textbox_paras(ctx, block));
+        return;
+    }
+    let mut p = Map::new();
+    // 样式层（Word 内建的 Header / Footer 样式带居中 / 右对齐制表位）；直接格式后写，覆盖它
+    let (style_align, style_stops) = style_layer(ctx, tb.style_id.as_deref());
+    set_some!(&mut p, "align" => style_align);
+    spread_format(&mut p, super::blocks::para_format_json(ctx, tb));
+    set_some!(&mut p,
+        // 制表位：样式与直接的按位置合并（TS `mergeTabStops`）
+        "tabStops" => merge_tab_stops(style_stops, p.remove("tabStops")),
+        "ptabAligns" => ptab_aligns(ctx.dom, tb.node),
+        "frameXAlign" => frame_x_align(tb),
+    );
+    set(&mut p, "runs", Value::Array(runs.into_iter().map(Value::Object).collect()));
+    out.push(Value::Object(p));
+}
+
+/// 段落里有 `w:r` 或 `w:pict`（TS 的"runs 为空但有内容"判定）。
+fn has_run_or_pict(dom: &Dom, p: NodeId) -> bool {
+    dom.semantic_children(p)
+        .any(|n| dom.is(n, QName::w(LocalName::R)) || dom.is(n, QName::w(LocalName::Pict)))
+}
+
+/// TS `textboxParagraphs`：段落里所有 `w:txbxContent` 的段落，runs 非空才出。
+///
+/// 走模型：框的内容已经由 `Document::rebuild` 建成 `ShapeDisplay.content` / `VmlDisplay.content`
+/// （M4 的独立内容流），这里只投影。`wp:anchor` 的绘图与 `position:absolute` 的 VML →
+/// `boxAnchored`（框画在锚点上，不占页眉的行高）。
+fn textbox_paras(ctx: &Ctx<'_>, block: &Block) -> Vec<Value> {
+    let mut out = Vec::new();
+    for (blocks, anchored) in box_contents(block) {
+        for b in blocks {
+            let Block::Text(tb) = b else { continue };
+            let runs = hf_runs(ctx, tb, false);
+            if runs.is_empty() {
+                continue;
+            }
+            let mut p = Map::new();
+            spread_format(&mut p, super::blocks::para_format_json(ctx, tb));
+            set(&mut p, "runs", Value::Array(runs.into_iter().map(Value::Object).collect()));
+            set_if!(&mut p, "boxAnchored" => anchored);
+            out.push(Value::Object(p));
+        }
+    }
+    out
+}
+
+/// 一个块里所有文本框的内容流与"是否浮动"。
+fn box_contents(block: &Block) -> Vec<(&[Block], bool)> {
+    let mut out = Vec::new();
+    let mut displays: Vec<&Display> = Vec::new();
+    match block {
+        Block::Text(tb) => {
+            for i in &tb.inlines {
+                let Inline::Run(r) = i else { continue };
+                displays.extend(r.segments.iter().filter_map(|seg| seg.display.as_ref()));
+            }
+        }
+        Block::Image(ib) => displays.extend(ib.display.as_ref()),
+        Block::Protected(pb) => displays.extend(pb.display.as_ref()),
+        Block::Table(_) => {}
+    }
+    for d in displays {
+        match d {
+            Display::Drawing(dr) => {
+                let anchored = dr.anchor.is_some();
+                for sh in &dr.shapes {
+                    if !sh.content.is_empty() {
+                        out.push((sh.content.as_slice(), anchored));
+                    }
+                }
+            }
+            Display::Vml(v) => {
+                for sh in &v.shapes {
+                    if sh.content.is_empty() {
+                        continue;
+                    }
+                    let abs = sh
+                        .style_get("position")
+                        .is_some_and(|p| p.trim().eq_ignore_ascii_case("absolute"));
+                    out.push((sh.content.as_slice(), abs));
+                }
+            }
+        }
+    }
+    out
+}
+
+// ---- 段落层的小规则 ---------------------------------------------------------------------------
+
+/// 样式层：Word 内建的 `Header` / `Footer` 样式带居中 / 右对齐制表位，有时还带 `w:jc`。
+/// 只取 `align`（非 justify）与 `tabStops`（TS 用的是 `styles.*.display`，即样式链解析后的值）。
+fn style_layer(ctx: &Ctx<'_>, style_id: Option<&str>) -> (Option<String>, Option<Value>) {
+    let Some(id) = style_id else { return (None, None) };
+    let Some(props) = ctx.resolver.style_para_props(id) else { return (None, None) };
+    let mut m = Map::new();
+    super::decl::style_para_display(&props, &mut m);
+    let align =
+        m.get("align").and_then(Value::as_str).filter(|a| *a != "justify").map(str::to_string);
+    (align, m.remove("tabStops"))
+}
+
+/// TS `mergeTabStops`：按位置合并，直接格式胜出；`w:val="clear"` 的删掉；同位置只留第一个。
+fn merge_tab_stops(style: Option<Value>, direct: Option<Value>) -> Option<Value> {
+    let pos_of = |v: &Value| v.get("pos").and_then(Value::as_i64).unwrap_or(0);
+    let not_clear = |v: &&Value| v.get("val").and_then(Value::as_str) != Some("clear");
+    let arr = |v: Option<Value>| match v {
+        Some(Value::Array(a)) => a,
+        _ => Vec::new(),
+    };
+    let (st, di) = (arr(style), arr(direct));
+    if st.is_empty() || di.is_empty() {
+        let only: Vec<Value> = st.iter().chain(di.iter()).filter(not_clear).cloned().collect();
+        return (!only.is_empty()).then_some(Value::Array(only));
+    }
+    let mut merged: Vec<Value> = st
+        .iter()
+        .filter(|s| !di.iter().any(|d| pos_of(d) == pos_of(s)))
+        .chain(di.iter())
+        .filter(not_clear)
+        .cloned()
+        .collect();
+    merged.sort_by_key(pos_of);
+    merged.dedup_by_key(|v| pos_of(v));
+    (!merged.is_empty()).then_some(Value::Array(merged))
+}
+
+/// TS 的 `ptabAligns`：按**整体制表位顺序**索引，`w:tab` 占一个 `null` 位。
+/// 一个 `w:ptab` 都没有就不出这个键（绝对位置制表位自带对齐，不看制表位表）。
+fn ptab_aligns(dom: &Dom, para: NodeId) -> Option<Value> {
+    let mut out: Vec<Value> = Vec::new();
+    let mut saw = false;
+    let mut stack: Vec<NodeId> = dom.semantic_children(para).collect();
+    stack.reverse();
+    while let Some(n) = stack.pop() {
+        if dom.is(n, QName::w(LocalName::PPr)) {
+            continue;
+        }
+        if dom.is(n, QName::w(LocalName::Tab)) {
+            out.push(Value::Null);
+        } else if dom.is(n, QName::w(LocalName::Ptab)) {
+            saw = true;
+            let a = dom.attr_value(n, QName::w(LocalName::Alignment));
+            out.push(Value::String(
+                match a.as_deref() {
+                    Some("center") => "center",
+                    Some("right") => "right",
+                    _ => "left",
+                }
+                .to_string(),
+            ));
+        } else {
+            for c in dom.semantic_children(n).collect::<Vec<_>>().into_iter().rev() {
+                stack.push(c);
+            }
+        }
+    }
+    saw.then_some(Value::Array(out))
+}
+
+/// TS 的 `frameXAlign`：`w:framePr/@w:xAlign`（不是首字下沉时才算）。
+/// `right` / `outside` → right，`center` → center，`left` / `inside` → left。
+fn frame_x_align(tb: &TextBlock) -> Option<&'static str> {
+    let f = tb.props.frame.as_ref()?;
+    if f.drop_cap.is_some() {
+        return None;
+    }
+    match f.x_align.as_ref()?.value()? {
+        crate::semantic::props::XAlign::Right | crate::semantic::props::XAlign::Outside => {
+            Some("right")
+        }
+        crate::semantic::props::XAlign::Center => Some("center"),
+        crate::semantic::props::XAlign::Left | crate::semantic::props::XAlign::Inside => {
+            Some("left")
+        }
+    }
+}
+
+// ---- 表格（TS `hfTableRowParagraphs` / `hfCellContent`）-----------------------------------------
+
+/// 顶层表格 → 一行一条 `HfParagraph`（`cells` 当列排）。
+fn table_rows(ctx: &Ctx<'_>, t: &TableBlock) -> Vec<Value> {
+    let grid: Vec<i64> = t
+        .grid
+        .iter()
+        .map(|g| g.w.as_ref().and_then(|v| v.value().copied()).unwrap_or(0).max(0).into())
+        .collect();
+    let mut out = Vec::new();
+    for row in &t.rows {
+        let mut widths: Vec<i64> = row
+            .cells
+            .iter()
+            .map(|c| {
+                c.props
+                    .width
+                    .as_ref()
+                    .filter(|w| w.percent().is_none())
+                    .and_then(|w| w.twips())
+                    .map(i64::from)
+                    .filter(|&w| w > 0)
+                    .unwrap_or(0)
+            })
+            .collect();
+        // 有格子没有 `tcW` 时按 `tblGrid` 与 `gridSpan` 切
+        if widths.iter().any(|&w| w <= 0) && grid.iter().any(|&w| w > 0) {
+            let mut col = 0usize;
+            for (i, c) in row.cells.iter().enumerate() {
+                let span =
+                    c.props.grid_span.as_ref().and_then(|v| v.value().copied()).unwrap_or(1).max(1)
+                        as usize;
+                widths[i] = grid.iter().skip(col).take(span).sum();
+                col += span;
+            }
+        }
+        let total: i64 = widths.iter().sum();
+        let cells: Vec<Value> = row
+            .cells
+            .iter()
+            .enumerate()
+            .map(|(i, c)| {
+                let mut m = cell_content(ctx, c);
+                if total > 0 && widths[i] > 0 {
+                    #[allow(clippy::cast_precision_loss)]
+                    set(&mut m, "widthPct", widths[i] as f64 / total as f64 * 100.0);
+                }
+                Value::Object(m)
+            })
+            .collect();
+        // 只有底纹没有文字的行也要画（横幅色条）
+        let keeps = cells.iter().any(|c| {
+            c.get("fill").is_some()
+                || c.get("paras").and_then(Value::as_array).is_some_and(|ps| {
+                    ps.iter().any(|rs| {
+                        rs.as_array().is_some_and(|rs| {
+                            rs.iter().any(|r| {
+                                r.get("text").and_then(Value::as_str).is_some_and(|t| !t.is_empty())
+                                    || r.get("image").is_some()
+                            })
+                        })
+                    })
+                })
+        });
+        if keeps {
+            let mut p = Map::new();
+            p.insert("runs".into(), Value::Array(Vec::new()));
+            p.insert("cells".into(), Value::Array(cells));
+            out.push(Value::Object(p));
+        }
+    }
+    out
+}
+
+/// 一个单元格：段落 runs、第一个有 `w:jc` 的段落的对齐、底纹；嵌套表格平铺进来。
+fn cell_content(ctx: &Ctx<'_>, cell: &Cell) -> Map<String, Value> {
+    let mut paras: Vec<Value> = Vec::new();
+    let mut align: Option<String> = None;
+    let mut fill = cell.props.shading.as_ref().and_then(super::decl::shd_display_fill);
+    let mut saw_nested = false;
+    for b in &cell.blocks {
+        match b {
+            Block::Table(inner) => {
+                saw_nested = true;
+                for row in &inner.rows {
+                    for c in &row.cells {
+                        let mut m = cell_content(ctx, c);
+                        if let Some(Value::Array(ps)) = m.remove("paras") {
+                            paras.extend(ps);
+                        }
+                        if align.is_none() {
+                            align = m.get("align").and_then(Value::as_str).map(str::to_string);
+                        }
+                        if fill.is_none() {
+                            fill = m.get("fill").and_then(Value::as_str).map(str::to_string);
+                        }
+                    }
+                }
+            }
+            Block::Text(tb) => {
+                // 格里带图：`withImages` 开着，但锚定 / 绝对定位的图归 part 级图片列表
+                let runs = hf_runs(ctx, tb, true);
+                paras.push(Value::Array(runs.into_iter().map(Value::Object).collect()));
+                if align.is_none() {
+                    align = super::blocks::para_format_json(ctx, tb)
+                        .as_ref()
+                        .and_then(|f| f.get("align"))
+                        .and_then(Value::as_str)
+                        .map(str::to_string);
+                }
+            }
+            // 纯图段落（`Block::Image`）与保护块：TS 的 `extractRuns(withImages)` 给出一个
+            // `text: ""` 的图片 run，显示模型挂在块上（不是段上），所以走 `display_image_run`
+            Block::Image(ib) => paras.push(image_para(ctx, ib.display.as_ref())),
+            Block::Protected(pb) => paras.push(image_para(ctx, pb.display.as_ref())),
+        }
+    }
+    // 嵌套表格后面那个必有的空段落是排版噪声
+    if saw_nested {
+        while paras.last().is_some_and(|p| p.as_array().is_some_and(Vec::is_empty)) {
+            paras.pop();
+        }
+    }
+    let mut m = Map::new();
+    m.insert("paras".into(), Value::Array(paras));
+    set_some!(&mut m, "align" => align, "fill" => fill);
+    m
+}
+
+/// 把 `format` 对象摊进段落对象（`HfParagraph extends ParaFormat`：TS 里格式键是平铺的）。
+fn spread_format(p: &mut Map<String, Value>, format: Option<Value>) {
+    if let Some(Value::Object(f)) = format {
+        for (k, v) in f {
+            p.insert(k, v);
+        }
+    }
+}
+
+// ---- run（TS 在 `hfContentFromXml` 里改写完字段之后才 `extractRuns`）---------------------------
+
+/// 页眉页脚的 run 投影。
+///
+/// 与正文（`COMPAT-07` 的 `runs_json`）差在字段：TS 先在 XML 上把字段整段改写掉，`extractRuns`
+/// 看到的已经是普通 run，所以这里
+///
+/// - `PAGE` / `NUMPAGES` → 一个文字是标记的 run，格式取整段**第一个 `w:rPr`**（TS 的正则就是
+///   `/<w:rPr>[\s\S]*?<\/w:rPr>/`，取到哪个就用哪个）；
+/// - 其他字段 → 只留 `separate` 之后带 `w:t` 的结果 run（Word 打开时会重算它们）；
+/// - 旧式 `w:pgNum` → 该 run 的文字换成标记（run 自己的 `w:rPr` 留着）。
+///
+/// `with_images`：非表格段落 TS 用 `extractRuns(p, ctx)`（不带图），单元格用
+/// `extractRuns(p, ctx, [], [], true)`（带图，但锚定的图剥掉 `image` 字段）——正是
+/// [`super::blocks::stray_runs_json`] 的两种模式。
+fn hf_runs(ctx: &Ctx<'_>, tb: &TextBlock, with_images: bool) -> Vec<Map<String, Value>> {
+    let para = super::blocks::para_disp(ctx, tb);
+    let mut out: Vec<Map<String, Value>> = Vec::new();
+    for inline in &tb.inlines {
+        match inline {
+            Inline::Field { id, result } => {
+                let Some(f) = ctx.fields.get(*id) else { continue };
+                match f.keyword() {
+                    Keyword::Page => out.extend(mark_run(ctx, f, para, PAGE_MARK)),
+                    Keyword::NumPages => out.extend(mark_run(ctx, f, para, TOTAL_PAGES_MARK)),
+                    // 其他字段：缓存结果里的 run 照常投影
+                    _ => out.extend(result_runs(ctx, result, para, with_images)),
+                }
+            }
+            // 旧式 `w:pgNum`：TS 把这个元素本身换成 `<w:t>PAGE_MARK</w:t>`，run 与它的 `w:rPr`
+            // 都留着。坐标流里它是 `Other` 段（一个 `U+FFFC`），按段重拼文字就能放对位置。
+            Inline::Run(run) if pg_num_seg(ctx.dom, run) => {
+                let mut o = Map::new();
+                set(&mut o, "text", pg_num_text(ctx.dom, run));
+                super::blocks::run_format_json(ctx, run.node, &run.props, para, false, &mut o);
+                out.push(o);
+            }
+            Inline::Run(_) | Inline::Atom(_) => {
+                out.extend(inline_runs(ctx, std::slice::from_ref(inline), para, with_images));
+            }
+        }
+    }
+    super::blocks::merge_runs(out)
+}
+
+/// 一个字段折成的标记 run（`PAGE` / `NUMPAGES`）。
+fn mark_run(
+    ctx: &Ctx<'_>,
+    f: &crate::span::field::FieldSpan,
+    para: super::blocks::StyleDisp,
+    mark: char,
+) -> Option<Map<String, Value>> {
+    let mut o = Map::new();
+    set(&mut o, "text", mark.to_string());
+    // 整段第一个带 `w:rPr` 的 run（TS 的正则在 begin..end 的原文里取第一个）
+    if let Some(node) = first_rpr_run(ctx.dom, f) {
+        let props =
+            crate::semantic::props::read_run_props(ctx.dom, rpr_of(ctx.dom, node), &mut Vec::new());
+        super::blocks::run_format_json(ctx, node, &props, para, false, &mut o);
+    }
+    Some(o)
+}
+
+/// 字段区间里第一个有 `w:rPr` 的 `w:r`。
+fn first_rpr_run(dom: &Dom, f: &crate::span::field::FieldSpan) -> Option<NodeId> {
+    let (lo, hi) = (start_of(dom, f.form.head()), end_of(dom, f.form.tail()));
+    dom.semantic_descendants(dom.root())
+        .filter(|&n| dom.is(n, QName::w(LocalName::R)))
+        .filter(|&n| start_of(dom, n) >= lo && end_of(dom, n) <= hi)
+        .find(|&n| rpr_of(dom, n).is_some())
+}
+
+fn rpr_of(dom: &Dom, run: NodeId) -> Option<NodeId> {
+    dom.semantic_children(run).find(|&n| dom.is(n, QName::w(LocalName::RPr)))
+}
+
+/// 字段缓存结果里的 run（TS 只留含 `w:t` 的完整 run）。
+fn result_runs(
+    ctx: &Ctx<'_>,
+    result: &[Inline],
+    para: super::blocks::StyleDisp,
+    with_images: bool,
+) -> Vec<Map<String, Value>> {
+    inline_runs(ctx, result, para, with_images)
+}
+
+/// 一串 inline → run JSON：空文字且没有图的 run 丢掉（TS `extractRuns` 同样丢）。
+fn inline_runs(
+    ctx: &Ctx<'_>,
+    inlines: &[Inline],
+    para: super::blocks::StyleDisp,
+    with_images: bool,
+) -> Vec<Map<String, Value>> {
+    super::blocks::inline_runs_json(ctx, inlines, para, with_images)
+}
+
+/// run 里有 `w:pgNum` 段。
+fn pg_num_seg(dom: &Dom, run: &crate::model::Run) -> bool {
+    run.segments.iter().any(|s| is_pg_num(dom, s))
+}
+
+fn is_pg_num(dom: &Dom, seg: &crate::model::Segment) -> bool {
+    matches!(seg.kind, crate::model::SegmentKind::Other(_))
+        && dom.is(seg.node, QName::w(LocalName::PgNum))
+}
+
+/// 按段重拼 run 的文字，`w:pgNum` 段换成页码标记。
+fn pg_num_text(dom: &Dom, run: &crate::model::Run) -> String {
+    let mut out = String::new();
+    for seg in &run.segments {
+        if is_pg_num(dom, seg) {
+            out.push(PAGE_MARK);
+        } else {
+            out.push_str(&run.text[seg.text.start as usize..seg.text.end as usize]);
+        }
+    }
+    out
+}
+
+/// 纯图段落在单元格里的投影：一个 `text: ""` 带 `image` 的 run（没有可解析的图就是空段落）。
+fn image_para(ctx: &Ctx<'_>, display: Option<&Display>) -> Value {
+    let run = display.and_then(|d| super::image::display_image_run(ctx, d)).map(|img| {
+        let mut r = Map::new();
+        set(&mut r, "text", "");
+        set(&mut r, "image", Value::Object(img));
+        Value::Object(r)
+    });
+    Value::Array(run.into_iter().collect())
 }

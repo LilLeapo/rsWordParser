@@ -13,6 +13,14 @@ const R: &str = r#"xmlns:r="http://schemas.openxmlformats.org/officeDocument/200
 const HDR_REL: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header";
 const FTR_REL: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer";
 
+/// 按 `COMPAT-09` 的容忍规则比较（浮点 1e-6、`undefined` 与缺失等价）——与差分工具同一把尺子，
+/// 这样 `50` 与 `50.0` 之类的 JSON 数字写法不会被判成差异。
+fn same(expected: &serde_json::Value, actual: &serde_json::Value, what: &str) {
+    let mut diffs = Vec::new();
+    rsword::bind::compat_ts::diff_json(expected, actual, &mut diffs);
+    assert!(diffs.is_empty(), "{what}: {diffs:#?}");
+}
+
 /// 索引里的书签名。
 fn bookmark_names(spans: &[rsword::span::RangeSpan]) -> Vec<&str> {
     spans
@@ -316,7 +324,7 @@ fn compat_05_hf_text_uses_the_ts_plain_text_rules() {
     let json = rsword::bind::compat_ts::parsed_doc_of(
         &pkg,
         &doc,
-        &rsword::bind::compat_ts::MediaMap::default(),
+        &rsword::bind::compat_ts::MediaSet::default(),
     );
     // 表格之后的 `pgNum`：TS 把标记也写成 `<w:t>`，所以 `</w:tc>` 的补空格同样作用在它前面
     let want = format!("  第  {PAGE_MARK} 页，共 {TOTAL}2026-09-05甲 乙 {PAGE_MARK}");
@@ -355,7 +363,7 @@ fn compat_05_default_variant_picks_the_first_reference_in_the_document() {
     let json = rsword::bind::compat_ts::parsed_doc_of(
         &pkg,
         &doc,
-        &rsword::bind::compat_ts::MediaMap::default(),
+        &rsword::bind::compat_ts::MediaSet::default(),
     );
     assert_eq!(json["headerText"], "DEF");
     // 只有 odd 时它就是缺省页
@@ -369,9 +377,100 @@ fn compat_05_default_variant_picks_the_first_reference_in_the_document() {
     let json2 = rsword::bind::compat_ts::parsed_doc_of(
         &pkg2,
         &doc2,
-        &rsword::bind::compat_ts::MediaMap::default(),
+        &rsword::bind::compat_ts::MediaSet::default(),
     );
     assert_eq!(json2["headerText"], "ODD");
+}
+
+/// `COMPAT-05` 的 `paras`：样式层的对齐与制表位、`w:ptab` 对齐、`w:framePr` 的 `xAlign`、
+/// 表格一行一段（`cells`）、水印段落不出、框里的段落被提出来。
+#[test]
+fn compat_05_hf_paras_shape() {
+    const PAGE_MARK: char = '\u{E001}';
+    let header = hdr(concat!(
+        // 普通段落：直接 jc 胜过样式层
+        r#"<w:p><w:pPr><w:pStyle w:val="Header"/><w:jc w:val="right"/></w:pPr>"#,
+        r#"<w:r><w:t>右</w:t></w:r></w:p>"#,
+        // ptab：普通 tab 占一个空位
+        r#"<w:p><w:r><w:tab/><w:ptab w:alignment="center" w:relativeTo="margin" w:leader="none"/>"#,
+        r#"<w:t>中</w:t></w:r></w:p>"#,
+        // framePr：右侧浮动的页码框
+        r#"<w:p><w:pPr><w:framePr w:xAlign="outside" w:vAnchor="text" w:hAnchor="margin"/></w:pPr>"#,
+        r#"<w:r><w:t>框</w:t></w:r></w:p>"#,
+        // 水印段落：只有 VML 形状 → TS 与我们都不出这一段
+        r#"<w:p><w:r><w:pict><v:shape><v:textpath string="草稿"/></v:shape></w:pict></w:r></w:p>"#,
+        // 表格：一行一段，cells 带 widthPct / fill / align
+        r#"<w:tbl><w:tblPr/><w:tblGrid><w:gridCol w:w="3000"/><w:gridCol w:w="1000"/></w:tblGrid>"#,
+        r#"<w:tr><w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/><w:shd w:val="clear" w:fill="1F3864"/></w:tcPr>"#,
+        r#"<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t>标题</w:t></w:r></w:p></w:tc>"#,
+        r#"<w:tc><w:tcPr><w:tcW w:w="1000" w:type="dxa"/></w:tcPr><w:p/></w:tc></w:tr></w:tbl>"#,
+    ));
+    let body = format!(
+        r#"<w:p/><w:sectPr><w:headerReference {R} w:type="default" r:id="rIdH"/></w:sectPr>"#
+    );
+    let (pkg, doc) = doc_with_hf(
+        &body,
+        &[
+            ("word/_rels/document.xml.rels", &rels(&[("rIdH", HDR_REL, "header1.xml")])),
+            ("word/header1.xml", &header),
+        ],
+    );
+    let json = rsword::bind::compat_ts::parsed_doc_of(
+        &pkg,
+        &doc,
+        &rsword::bind::compat_ts::MediaSet::default(),
+    );
+    let paras = json["headerParas"].as_array().expect("headerParas").clone();
+    assert_eq!(paras.len(), 4, "水印段落不出：三段 + 一行表格\n{paras:#?}");
+
+    assert_eq!(paras[0]["align"], "right");
+    assert_eq!(paras[0]["runs"][0]["text"], "右");
+    // ptabAligns 按整体制表位顺序：`w:tab` 是 null，`w:ptab` 是它的对齐
+    assert_eq!(paras[1]["ptabAligns"], serde_json::json!([null, "center"]));
+    assert_eq!(paras[2]["frameXAlign"], "right", "outside → right");
+    // 表格行
+    let cells = paras[3]["cells"].as_array().expect("cells");
+    assert_eq!(paras[3]["runs"].as_array().map(Vec::len), Some(0), "行本身没有 runs");
+    assert_eq!(cells.len(), 2);
+    assert_eq!(cells[0]["fill"], "1F3864");
+    assert_eq!(cells[0]["align"], "center");
+    assert_eq!(cells[0]["paras"][0][0]["text"], "标题");
+    assert_eq!(cells[0]["widthPct"], 75.0);
+    assert_eq!(cells[1]["widthPct"], 25.0);
+    // 水印仍然出现在 watermarkText 里
+    assert_eq!(json["watermarkText"], "草稿");
+    let _ = PAGE_MARK;
+}
+
+/// 框里的段落被提出来（政府公文的页码常放在 VML 文本框里），浮动框的段落带 `boxAnchored`。
+#[test]
+fn compat_05_textbox_paragraphs_are_surfaced() {
+    let header = hdr(concat!(
+        r#"<w:p><w:r><w:pict><v:shape style="position:absolute;width:100pt;height:20pt">"#,
+        r#"<v:textbox><w:txbxContent><w:p><w:pPr><w:jc w:val="center"/></w:pPr>"#,
+        r#"<w:r><w:t>— 1 —</w:t></w:r></w:p></w:txbxContent></v:textbox>"#,
+        r#"</v:shape></w:pict></w:r></w:p>"#,
+    ));
+    let body = format!(
+        r#"<w:p/><w:sectPr><w:headerReference {R} w:type="default" r:id="rIdH"/></w:sectPr>"#
+    );
+    let (pkg, doc) = doc_with_hf(
+        &body,
+        &[
+            ("word/_rels/document.xml.rels", &rels(&[("rIdH", HDR_REL, "header1.xml")])),
+            ("word/header1.xml", &header),
+        ],
+    );
+    let json = rsword::bind::compat_ts::parsed_doc_of(
+        &pkg,
+        &doc,
+        &rsword::bind::compat_ts::MediaSet::default(),
+    );
+    let paras = json["headerParas"].as_array().expect("headerParas");
+    assert_eq!(paras.len(), 1, "{paras:#?}");
+    assert_eq!(paras[0]["runs"][0]["text"], "— 1 —");
+    assert_eq!(paras[0]["align"], "center");
+    assert_eq!(paras[0]["boxAnchored"], true, "position:absolute → 画在锚点上，不占行高");
 }
 
 /// 全语料：页眉页脚 part 的 `rId` 集合与 `hasPageNumber` 与 TS 逐份一致。
@@ -415,9 +514,26 @@ fn compat_05_hf_parts_match_ts_on_corpus() {
             if v["paras"].as_array().is_some_and(|a| !a.is_empty()) {
                 assert!(!hf.blocks.is_empty(), "{}: {rid} TS 有段落我们没块", path.display());
             }
+            same(
+                &v["paras"],
+                &json["hfParts"][rid]["paras"],
+                &format!("{}: {rid} 的 paras", path.display()),
+            );
         }
-        for k in ["headerText", "footerText", "headerHasPageNumber", "footerHasPageNumber"] {
-            assert_eq!(json[k], j[k], "{}: {k}", path.display());
+        for k in [
+            "headerText",
+            "footerText",
+            "headerHasPageNumber",
+            "footerHasPageNumber",
+            "headerParas",
+            "footerParas",
+            "watermarkText",
+            "headerFirst",
+            "headerEven",
+            "footerFirst",
+            "footerEven",
+        ] {
+            same(&j[k], &json[k], &format!("{}: {k}", path.display()));
         }
     }
     eprintln!("hf: {docs} 份文档、{parts} 个 part、{blocks} 个块");

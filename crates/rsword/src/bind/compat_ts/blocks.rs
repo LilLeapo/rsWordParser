@@ -31,7 +31,7 @@ use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
 /// 样式的"显示"信息（TS `StyleInfo.display` 里 run 映射用到的三项）。
 #[derive(Debug, Clone, Copy, Default)]
-struct StyleDisp {
+pub(super) struct StyleDisp {
     rtl: Option<bool>,
     vanish: Option<bool>,
     auto_space: Option<bool>,
@@ -40,6 +40,11 @@ struct StyleDisp {
 pub(super) struct Ctx<'a> {
     pub dom: &'a Dom,
     pub doc: &'a Document,
+    /// **当前 part** 的字段索引（`FLD-02`）。页眉页脚投影时是那个 part 的，不是主 part 的
+    /// ——`FieldId` 只在自己的索引里有意义，用错了会读到另一个 part 的字段（任务 5.4）。
+    pub fields: &'a crate::span::field::FieldIndex,
+    /// **当前 part** 的范围索引（`SPAN-04`）。`commentIds` 要用。
+    pub spans: &'a crate::span::SpanIndex,
     pub resolver: &'a Resolver<'a>,
     pub idx: &'a Utf16Index,
     pub rels: &'a Rels,
@@ -92,6 +97,8 @@ impl<'a> Ctx<'a> {
         Ctx {
             dom,
             doc,
+            fields: &doc.fields,
+            spans: &doc.spans,
             resolver,
             idx,
             rels,
@@ -101,6 +108,14 @@ impl<'a> Ctx<'a> {
             first_page_break,
             disp_cache: RefCell::new(HashMap::new()),
         }
+    }
+
+    /// 换成另一个 part 的索引：`dom` 是那个 part 的 DOM 时，字段与范围索引也必须跟着换
+    /// （页眉页脚 / 注释 / 批注的投影，任务 5.4）。
+    pub(super) fn for_aux(mut self, aux: &'a crate::model::AuxFlows) -> Ctx<'a> {
+        self.fields = &aux.fields;
+        self.spans = &aux.spans;
+        self
     }
 
     pub(super) fn slice(&self, r: &Range<u32>) -> &'a str {
@@ -811,7 +826,7 @@ fn paragraph_block(
 
 /// 起点在本段的字段（`MOD-04` 的 `facts.fields`）。
 fn para_fields<'a>(ctx: &'a Ctx<'_>, tb: &TextBlock) -> Vec<&'a FieldSpan> {
-    tb.facts.fields.iter().filter_map(|&id| ctx.doc.fields.get(id)).collect()
+    tb.facts.fields.iter().filter_map(|&id| ctx.fields.get(id)).collect()
 }
 
 /// 段落里有配不上对的 `fldChar` / `instrText`（未闭合、孤立 end）。
@@ -826,7 +841,7 @@ fn has_stray_field_chars(ctx: &Ctx<'_>, tb: &TextBlock) -> bool {
                     sg.kind,
                     SegmentKind::FldChar | SegmentKind::InstrText | SegmentKind::DelInstrText
                 )
-            }) && ctx.doc.fields.field_of(r.node).is_none()
+            }) && ctx.fields.field_of(r.node).is_none()
         }
         _ => false,
     })
@@ -1703,7 +1718,7 @@ pub(super) fn stray_runs_json(
 }
 
 /// 段落级的显示属性（`vanish` / `rtl` / 自动间距），run 投影要用。
-fn para_disp(ctx: &Ctx<'_>, tb: &TextBlock) -> StyleDisp {
+pub(super) fn para_disp(ctx: &Ctx<'_>, tb: &TextBlock) -> StyleDisp {
     let mut d =
         tb.style_id.as_deref().map(|s| ctx.style_disp(s, StyleType::Paragraph)).unwrap_or_default();
     if tb.style_id.is_none()
@@ -1713,6 +1728,49 @@ fn para_disp(ctx: &Ctx<'_>, tb: &TextBlock) -> StyleDisp {
         d.vanish = ctx.style_disp(def, StyleType::Paragraph).vanish.filter(|&v| v);
     }
     d
+}
+
+/// 一串 inline → TS run 列表，可选带不带图（`COMPAT-05` 的页眉页脚投影用：TS 的
+/// `extractRuns` 在非表格段落上不带图，在单元格里带图但剥掉锚定图）。
+///
+/// 与 [`runs_json`] 的区别只有两点：不做字段折叠（页眉页脚的字段由调用方按 `COMPAT-05` 改写），
+/// 以及 `with_images` 可关。空文字且没有图的 run 一律丢掉。
+pub(super) fn inline_runs_json(
+    ctx: &Ctx<'_>,
+    inlines: &[Inline],
+    para: StyleDisp,
+    with_images: bool,
+) -> Vec<Map<String, Value>> {
+    let anchored = |run: &Run| {
+        run.segments.iter().any(|seg| {
+            seg.display.as_ref().and_then(Display::as_drawing).is_some_and(|d| d.anchor.is_some())
+        })
+    };
+    let mut out = Vec::new();
+    for inline in inlines {
+        match inline {
+            Inline::Run(run) => {
+                let Some(mut r) = run_json(ctx, run, para) else { continue };
+                if !with_images || anchored(run) {
+                    r.remove("image");
+                }
+                let has_text = r.get("text").and_then(Value::as_str).is_some_and(|t| !t.is_empty());
+                if has_text || r.contains_key("image") {
+                    out.push(r);
+                }
+            }
+            Inline::Atom(a) => {
+                if let AtomKind::BareBreak { kind } = &a.kind {
+                    let mut o = Map::new();
+                    set(&mut o, "text", break_char(*kind));
+                    out.push(o);
+                }
+            }
+            // 字段：调用方决定（页眉页脚按 `COMPAT-05` 改写，正文走 `runs_json`）
+            Inline::Field { .. } => {}
+        }
+    }
+    out
 }
 
 pub(super) fn runs_json(ctx: &Ctx<'_>, tb: &TextBlock) -> Vec<Map<String, Value>> {
@@ -1795,7 +1853,7 @@ fn field_run_json(
     result: &[Inline],
     para: StyleDisp,
 ) -> Option<Map<String, Value>> {
-    let f = ctx.doc.fields.get(id)?;
+    let f = ctx.fields.get(id)?;
     let text = inlines_text(result);
     let first = result.iter().find_map(|i| match i {
         Inline::Run(r) if !run_text(r).is_empty() => Some(r),
@@ -1948,8 +2006,6 @@ fn symbol_text(ctx: &Ctx<'_>, run: &Run) -> (String, bool) {
 
 /// TS `buildRun`。
 fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Value>> {
-    let dom = ctx.dom;
-    let r = ctx.resolver;
     // `COMPAT-07`：脚注 / 尾注引用是原子 run，`text` 是显示编号，其余字段一概不出（TS 行为）
     if let Some((endnote, id)) = note_ref_of(run) {
         let mut o = Map::new();
@@ -2003,7 +2059,7 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
             }
             // `FLD-07` 透明字段：目标来自指令（`HYPERLINK "url" \o "tip"` / `\l anchor`）
             crate::model::Link::Field(id) => {
-                if let Some(f) = ctx.doc.fields.get(*id)
+                if let Some(f) = ctx.fields.get(*id)
                     && ts_convertible_hyperlink(f)
                 {
                     let mut l = Map::new();
@@ -2016,71 +2072,89 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
             }
         }
     }
-    let rpr_node = dom.semantic_children(run.node).find(|&n| dom.is(n, w(LocalName::RPr)));
-    let props: &RunProps = &run.props;
+    let inherited_rtl = run_format_json(ctx, run.node, &run.props, para, symbol_decoded, &mut o);
+    rpr_change_json(ctx, run, inherited_rtl, &mut o);
+    revision_ctx(run, &mut o);
+    Some(o)
+}
+
+/// run 的格式键（`COMPAT-07` 的 `rawRPr` 与半解析字段）。
+///
+/// 从 [`run_json`] 里拆出来是给页眉页脚投影用的：TS 的 `hfContentFromXml` 把 PAGE 字段整段换成
+/// 一个"带同一份 `w:rPr`、文字是标记"的合成 run（`COMPAT-05`），所以格式要能脱离 run 的文字单独算。
+pub(super) fn run_format_json(
+    ctx: &Ctx<'_>,
+    node: NodeId,
+    props: &RunProps,
+    para: StyleDisp,
+    symbol_decoded: bool,
+    o: &mut Map<String, Value>,
+) -> Option<bool> {
+    let dom = ctx.dom;
+    let r = ctx.resolver;
+    let rpr_node = dom.semantic_children(node).find(|&n| dom.is(n, w(LocalName::RPr)));
     let para_rtl = para.rtl;
     let para_vanish = para.vanish;
     let Some(rpr_node) = rpr_node else {
         if para_rtl == Some(true) {
-            set(&mut o, "cs", true);
+            set(o, "cs", true);
         }
         if para_vanish == Some(true) {
-            set(&mut o, "vanish", true);
+            set(o, "vanish", true);
         }
-        revision_ctx(run, &mut o);
-        return Some(o);
+        return para_rtl;
     };
-    set(&mut o, "rawRPr", raw_rpr(ctx, rpr_node, symbol_decoded));
+    set(o, "rawRPr", raw_rpr(ctx, rpr_node, symbol_decoded));
     let r_style = props.style.as_deref().filter(|s| *s != "Hyperlink");
     if let Some(s) = r_style {
-        set(&mut o, "styleId", s);
+        set(o, "styleId", s);
     }
     let char_disp = r_style.map(|s| ctx.style_disp(s, StyleType::Character)).unwrap_or_default();
     let vanish_own = if props.spec_vanish == Some(true) { None } else { props.vanish };
     if vanish_own.or(char_disp.vanish).or(para_vanish) == Some(true) {
-        set(&mut o, "vanish", true);
+        set(o, "vanish", true);
     }
     let inherited_rtl = char_disp.rtl.or(para_rtl);
     let cs = props.rtl.or(inherited_rtl) == Some(true);
     if cs {
-        set(&mut o, "cs", true);
+        set(o, "cs", true);
     }
     if let Some(b) = if cs { props.bold_cs } else { props.bold } {
-        set(&mut o, "bold", b);
+        set(o, "bold", b);
     }
     if let Some(b) = if cs { props.italic_cs } else { props.italic } {
-        set(&mut o, "italic", b);
+        set(o, "italic", b);
     }
     if let Some(u) = props.underline.as_ref().and_then(|u| u.val.as_ref()) {
         if *u != Val::Value(UnderlineKind::None) {
-            set(&mut o, "underline", true);
+            set(o, "underline", true);
         } else {
-            set(&mut o, "underline", false);
+            set(o, "underline", false);
         }
     }
     if let Some(b) = props.strike {
-        set(&mut o, "strike", b);
+        set(o, "strike", b);
     }
     if let Some(c) = props.color.as_ref().and_then(|c| r.color(c)) {
-        set(&mut o, "color", rgb_hex(c));
+        set(o, "color", rgb_hex(c));
     }
     let sz = if cs { &props.size_cs } else { &props.size };
     if let Some(n) = u32_of(sz).filter(|&n| n != 0) {
-        set(&mut o, "sizeHalfPoints", n);
+        set(o, "sizeHalfPoints", n);
     }
     let fonts = r.fonts(props);
     // 解码过的符号 run：TS 连 `w:rFonts` 一起摘掉，`font` / `fontAscii` / `themeRFonts` 都不出
     let fonts = if symbol_decoded { Default::default() } else { fonts };
     let font = fonts.display().map(str::to_string);
     if let Some(f) = &font {
-        set(&mut o, "font", f.clone());
+        set(o, "font", f.clone());
         if fonts.ea_slot_empty && fonts.east_asia.as_deref() == Some(f) {
-            set(&mut o, "eaSlotEmpty", true);
+            set(o, "eaSlotEmpty", true);
         }
     }
     let font_ascii = fonts.display_ascii().map(str::to_string);
     if let Some(a) = &font_ascii {
-        set(&mut o, "fontAscii", a.clone());
+        set(o, "fontAscii", a.clone());
     }
     let [t_ascii, t_hansi, t_ea, _] = fonts.themed;
     let font_themed = if fonts.east_asia.is_some() {
@@ -2099,32 +2173,32 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
         if ascii_themed && let Some(a) = &font_ascii {
             set(&mut tr, "fontAscii", a.clone());
         }
-        set(&mut o, "themeRFonts", Value::Object(tr));
+        set(o, "themeRFonts", Value::Object(tr));
     }
     if let Some(cs_lit) = props.fonts.as_ref().and_then(|f| f.cs.clone()).filter(|s| !s.is_empty())
     {
-        set(&mut o, "fontCs", cs_lit);
+        set(o, "fontCs", cs_lit);
     }
     if let Some(cs_font) = &fonts.cs {
-        set(&mut o, "csFont", cs_font.clone());
+        set(o, "csFont", cs_font.clone());
     }
     if let Some(b) = props.rtl {
-        set(&mut o, "rtl", b);
+        set(o, "rtl", b);
     }
     if let Some(sp) = twips_int(&props.spacing).filter(|&n| n != 0) {
-        set(&mut o, "charSpacingTwips", sp);
+        set(o, "charSpacingTwips", sp);
     }
     match (props.caps, props.small_caps) {
-        (Some(true), _) => set(&mut o, "caps", "all"),
-        (_, Some(true)) => set(&mut o, "caps", "small"),
-        (Some(false), _) | (_, Some(false)) => set(&mut o, "caps", "none"),
+        (Some(true), _) => set(o, "caps", "all"),
+        (_, Some(true)) => set(o, "caps", "small"),
+        (Some(false), _) | (_, Some(false)) => set(o, "caps", "none"),
         _ => {}
     }
     if let Some(sc) = u32_of(&props.scale).filter(|&n| n > 0 && n != 100) {
-        set(&mut o, "charScalePct", sc);
+        set(o, "charScalePct", sc);
     }
     if let Some(h) = val_text(&props.highlight, |h| h.as_str()).filter(|h| h != "none") {
-        set(&mut o, "highlight", h);
+        set(o, "highlight", h);
     }
     if props.shading.is_some() {
         let raw = dom
@@ -2134,17 +2208,28 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
         if let Some(fill) = raw
             && fill != "auto"
         {
-            set(&mut o, "shading", strip_hash(&fill).to_string());
+            set(o, "shading", strip_hash(&fill).to_string());
         }
     }
     if let Some(va) = val_text(&props.vert_align, |v| v.as_str())
         .filter(|v| v == "superscript" || v == "subscript")
     {
-        set(&mut o, "vertAlign", va);
+        set(o, "vertAlign", va);
     }
     if let Some(em) = val_text(&props.em, |e| e.as_str()).filter(|e| e != "none") {
-        set(&mut o, "em", em);
+        set(o, "em", em);
     }
+    inherited_rtl
+}
+
+/// `COMPAT-07` 的 `rPrChange`：旧属性快照。`inherited_rtl` 决定读 `b` 还是 `bCs`（`RES-06`）。
+fn rpr_change_json(
+    ctx: &Ctx<'_>,
+    run: &Run,
+    inherited_rtl: Option<bool>,
+    o: &mut Map<String, Value>,
+) {
+    let r = ctx.resolver;
     if let Some((meta, old)) = run.rev.as_ref().and_then(|rv| rv.props_change.as_ref()) {
         let mut change = revision_info(meta);
         let mut old_json = Map::new();
@@ -2202,10 +2287,8 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
         if !old_json.is_empty() {
             set(&mut change, "old", Value::Object(old_json));
         }
-        set(&mut o, "rPrChange", Value::Object(change));
+        set(o, "rPrChange", Value::Object(change));
     }
-    revision_ctx(run, &mut o);
-    Some(o)
 }
 
 /// run 里的脚注 / 尾注引用段（`w:footnoteReference` / `w:endnoteReference`）。
@@ -2226,7 +2309,7 @@ fn comment_ids(ctx: &Ctx<'_>, run: &Run, o: &mut Map<String, Value>) {
     let ids: Vec<Value> = run
         .comments
         .iter()
-        .filter_map(|s| ctx.doc.spans.get(*s))
+        .filter_map(|s| ctx.spans.get(*s))
         .map(|s| Value::String(s.pair_id().to_string()))
         .collect();
     if !ids.is_empty() {
@@ -2246,7 +2329,7 @@ fn revision_ctx(run: &Run, o: &mut Map<String, Value>) {
 }
 
 /// TS `mergeRuns` / `sameStyle`。
-fn merge_runs(runs: Vec<Map<String, Value>>) -> Vec<Map<String, Value>> {
+pub(super) fn merge_runs(runs: Vec<Map<String, Value>>) -> Vec<Map<String, Value>> {
     let mut out: Vec<Map<String, Value>> = Vec::new();
     for run in runs {
         if let Some(prev) = out.last_mut()

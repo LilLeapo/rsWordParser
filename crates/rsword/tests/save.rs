@@ -207,8 +207,8 @@ fn test_04_corpus_edit_fidelity() {
 
         let before_text_block_count = s.document().text_blocks().count();
         // 空的媒体表：这个 oracle 比的是「编辑前后哪些块变了」，两侧用同一张表就够；
-        // 真正读字节的 `MediaMap::build` 要 `&mut Package`，这里只有不可变借用。
-        let media = compat_ts::MediaMap::default();
+        // 真正读字节的 `MediaSet::build` 要 `&mut Package`，这里只有不可变借用。
+        let media = compat_ts::MediaSet::default();
         let before_compat_blocks =
             compat_ts::parsed_doc_of(s.package(), s.document(), &media)["blocks"]
                 .as_array()

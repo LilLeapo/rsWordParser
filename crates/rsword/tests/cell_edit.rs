@@ -254,7 +254,7 @@ fn test_04_corpus_cell_edit_fidelity() {
         let Some((node, before)) = target else { continue };
         let main_name = s.package().part(s.main_part()).uri.to_string();
         // 空媒体表：这个 oracle 比的是「编辑前后哪些块变了」，两侧同一张表就够（同 tests/save.rs）
-        let media = rsword::bind::compat_ts::MediaMap::default();
+        let media = rsword::bind::compat_ts::MediaSet::default();
         let before_blocks =
             rsword::bind::compat_ts::parsed_doc_of(s.package(), s.document(), &media)["blocks"]
                 .as_array()
