@@ -25,12 +25,12 @@ Span 索引与 Anchor 变换 / 物化（2.1–2.3）、字段子系统与它的�
 
 **M3 已并入 `main`**（9181eae，2026-09-05；M0–M4 至此全部在 `main` 上）。`main` 之后又前进了一格
 （`dcd653d` "compat: cell-anchored shapes and cell image runs"，另一个会话关掉了单元格锚定形状那
-19 处差异）；**`m5-hf` 还没合它**，下次接手先 `git merge main`——重叠文件是
-`compat_ts/{blocks,diff,image,textbox}.rs`、`KNOWN_DIFFS.md` 与本文件，合完全域差异数会从 82 再降。
+19 处差异），**已合进 `m5-hf`**（c437564）；全域未知差异因此从 82 降到 63 处 / 30 份。
 **M5 进行中**（分支 `m5-hf`，
 工作树 `../rsWordParser-m4`）：5.1 节属性表、5.2 节模型与 `RES-10` 节视图、5.3 页眉页脚 / 注释 / 批注的
-内容流、5.4 compat 页眉页脚投影**已落地**——**页眉页脚域清零**，`diff-parse --scope hf` 是第五道门
-（573 份 0 未知差异，已接 CI）。下一步 5.5（页眉页脚与节的编辑操作）。任务分解见
+内容流、5.4 compat 页眉页脚投影、5.5 页眉页脚与节的编辑操作**已落地**——**页眉页脚域清零**，
+`diff-parse --scope hf` 是第五道门（573 份 0 未知差异，已接 CI）；编辑位置带 `PartId`，
+页眉页脚 part 可读可改可新建。下一步 5.6（保存选项）。任务分解见
 `spec/16-m5-plan.md`，逐条进度见 `docs/04` §14。
 
 现在这套代码能：打开任意语料文档、输出与 TS 兼容的 `ParsedDoc` JSON（含整个绘图域：图片、文本框
@@ -38,9 +38,12 @@ Span 索引与 Anchor 变换 / 物化（2.1–2.3）、字段子系统与它的�
 （书签 / 批注 / 权限 / 移动）的 `Anchor` 并在保存时物化标记；解析字段（复杂 / 简单 / 嵌套 / 跨段）、
 定策略、进模型并按 TS 形态输出，且能编辑它们（插入字段、改链接目标、切换复选框、改表单文字、
 改结果格式、换块字段的结果）；建批注与注释条目并按需**新建 part**（`SAVE-05`）；把 TS 的
-`SaveBlock[]` 与 `comments` / `footnotes` / `endnotes` 保存选项翻成编辑操作。
-**不能**：表格的模型与操作（M3）、绘图的**编辑**与写回（M7，读侧已完成）、页眉页脚 / 节 / 水印 /
-图表等保存选项（M5 / M6）、块字段生成器与修订生成（M7）。
+`SaveBlock[]` 与 `comments` / `footnotes` / `endnotes` 保存选项翻成编辑操作；**在页眉页脚 /
+注释 / 批注 / 外部文本框 part 里编辑段落**（位置带 `PartId`），改节属性、整体替换或新建页眉页脚
+part、挂"同前"引用、写删文字水印、设页面底色与文档级开关。
+**不能**：绘图的**编辑**与写回（M7，读侧已完成）、TS 那 48 份保存用例的选项翻译（5.6）、
+参考文献 / 编号 / 主题 / 样式 upsert 的写侧（5.7）、图表与墨迹（M6）、块字段生成器与修订生成（M7）；
+**新建分节符**（给某段加 `sectPr` 断节）也不在 M5（§8 有偏差记录）。
 
 ## 能力矩阵
 
@@ -53,8 +56,8 @@ Span 索引与 Anchor 变换 / 物化（2.1–2.3）、字段子系统与它的�
 | L3 属性表 `semantic/props/` | 完成 | 32 张表由 TOML 生成（读 / 写 / diff / patch / merge / `plan_apply_*`）、按 flavor 编解码、`Val::Raw` 降级、`PROP-05` 顺序；表格三组表 `TableProps`（含 `tblPrEx`）/ `RowProps` / `CellProps` 与边框 / 边距子表、`MeasureOrPercent` codec（3.1）；节表 `SectionProps` 与四张子表（5.1，`para.toml` 的 `sect_pr` 已接表） | — |
 | L3 模型 `model/` | 文本 + 表格 + 字段 + 批注 / 注释 + 绘图 | `Document::rebuild`、块分类 R01–R19（含 R09 字段块）、段落坐标流（`Run`/`Segment`，UTF-16）、`Inline::Field` 与透明字段、`ParagraphFacts`、**表格模型**（`TableBlock / Row / Cell`，穿透 sdt 与修订包裹，声明网格，表格修订，> 64 层 TooDeep，`MOD_TABLE_SHAPE` 诊断；3.2）、跨表格的 `blocks()` / `paragraphs()` / `block_path()`、**内容控件**（`SdtInfo`：16 种控件 / 四态锁 / 数据绑定 / docPart / 占位符；3.3）、绘图 / 形状 / VML 显示模型（`Segment.display` / `ProtectedBlock.display` / `ImageBlock.display`）、声明模型（styles / numbering / theme / settings / fontTable / comments / footnotes / endnotes）、**节模型**（`SectionInfo` + `section_of` + `SectPropsChange`，5.2）、**页眉页脚 / 注释 / 批注的内容流**（`HfPart` / `AuxFlows` / `Note.blocks` / `Comment.blocks`，5.3） | — |
 | resolve `resolve/` | 首版 + 表格 | 样式链（basedOn / link）、docDefaults 层叠、每字段 `Provenance`、主题字体与颜色、符号字体解码、heading 级别、DrawingML 颜色算法、**节视图**（`RES-10` 的六槽继承与有效变体，5.2）；**表格视图**（`tblLook`、表格样式链的条件格式、边框 / 边距回退、行高截断、`ColumnView` 的四条列宽启发式与 `hMerge` 折叠、`RES-03` 第 4 层；3.4） | toggle 属性真实规则 + Word 实测 fixture（M5）、补全 Wingdings 2/3 与 Webdings 映射表 |
-| L4 编辑 `edit/` | 段落 / 范围 / 字段操作齐了，单元格内可编辑 | `EditSession`（含范围索引）、`InlinePos` 定位、`MutationPlan` plan/validate/commit、按 part 回滚的事务（DOM + 索引）、`InsertText`、`DeleteRange`（同段）、`SetRunProps`、`SetParaProps`、`ReplaceInlines`、`ReplaceParaProps`、`InsertBlock`/`DeleteBlock`/`MoveBlock`、`SPAN-06/07` 锚点维护、`AddComment`/`RemoveComment`/`SetCommentText`（含 `SAVE-05` 新建 part）、`SplitParagraph`/`MergeWithNext`、`AddBookmark`/`RemoveBookmark`、`InsertField`/`SetLinkTarget`/`ToggleCheckbox`/`SetFormText`/`SetFieldResultProps`/`UpdateBlockField`；**单元格内编辑**（`InlinePos.para` 可为任意深度的 `w:p`，容器级刷新，格尾自动保持 `w:p`；3.6）、`SetTableProps`/`SetRowProps`/`SetCellProps`（3.7）、**行列结构操作**（`InsertRow`/`DeleteRow`/`InsertColumn`/`DeleteColumn`/`MergeCells`/`NewBlock::Table`，声明网格几何 + 书签列区间维护；3.8） | 绘图的编辑与写回、块字段生成器与修订生成（M7） |
-| 保存 `save/` | 六步齐了 | `SAVE-01` 六步编排（含第 3 步 Span 物化）、`SAVE-02` 子集校验（未绑定前缀、`PROP-05` 顺序、`SPAN-09` 范围检查）、`SAVE-05` 新建 part（追加在 zip 末尾）、扩展命名空间声明、`w:t` preserve、`raw_copy_file` 写回、`SaveOptions`（`saved_at`、`remove_personal_info`、`remove_date_and_time`、批注与注释的权威列表） | 节 / 页眉页脚 / 水印 / 图表 / 墨迹等选项（M5 / M6） |
+| L4 编辑 `edit/` | 段落 / 范围 / 字段操作齐了，单元格内可编辑 | `EditSession`（含范围索引）、`InlinePos` 定位、`MutationPlan` plan/validate/commit、按 part 回滚的事务（DOM + 索引）、`InsertText`、`DeleteRange`（同段）、`SetRunProps`、`SetParaProps`、`ReplaceInlines`、`ReplaceParaProps`、`InsertBlock`/`DeleteBlock`/`MoveBlock`、`SPAN-06/07` 锚点维护、`AddComment`/`RemoveComment`/`SetCommentText`（含 `SAVE-05` 新建 part）、`SplitParagraph`/`MergeWithNext`、`AddBookmark`/`RemoveBookmark`、`InsertField`/`SetLinkTarget`/`ToggleCheckbox`/`SetFormText`/`SetFieldResultProps`/`UpdateBlockField`；**单元格内编辑**（`InlinePos.para` 可为任意深度的 `w:p`，容器级刷新，格尾自动保持 `w:p`；3.6）、`SetTableProps`/`SetRowProps`/`SetCellProps`（3.7）、**行列结构操作**（`InsertRow`/`DeleteRow`/`InsertColumn`/`DeleteColumn`/`MergeCells`/`NewBlock::Table`，声明网格几何 + 书签列区间维护；3.8）；**位置带 `PartId`**（`InlinePos { part, para, offset }` 与 `BlockPos { part, at }`，段落 / 块 / 范围 / 字段操作在页眉页脚 / 注释 / 批注 / 外部文本框 part 里原样可用，只有主 part 才有的 id 显式拒绝；5.5a）、**节与页眉页脚操作**（`SetSectionProps`/`SetHeaderFooter`/`LinkHeaderFooter`/`SetWatermark`/`SetPageColor`/`SetDocumentSettings`，含按 `SAVE-05` 新建 `header{N}.xml`；5.5b） | 新建分节符、绘图的编辑与写回、块字段生成器与修订生成（M7） |
+| 保存 `save/` | 六步齐了 | `SAVE-01` 六步编排（含第 3 步 Span 物化）、`SAVE-02` 子集校验（未绑定前缀、`PROP-05` 顺序、`SPAN-09` 范围检查）、`SAVE-05` 新建 part（追加在 zip 末尾；批注 / 注释 / **页眉页脚** / `settings.xml`）、扩展命名空间声明、`w:t` preserve、`raw_copy_file` 写回、`SaveOptions`（`saved_at`、`remove_personal_info`、`remove_date_and_time`、批注与注释的权威列表） | 节 / 页眉页脚 / 水印 / 页面颜色 / 保护等选项翻成 `EditOp`（5.6，操作本身已就位）、图表 / 墨迹（M6） |
 | 兼容 `bind/compat_ts/` | 文本 + 表格 + 字段 + 批注 / 注释 + 绘图 + 页眉页脚 | `parsed_doc` 整份 `ParsedDoc`（含 `extras`、UTF-16 索引、sdt 拆分）、字段折叠 run 与 `fieldDisplay` / `fieldLabel`、`comments` / `footnotes` / `endnotes` / `commentIds` / `noteRef`、`apply_save_blocks`（original / generated / xml 块）、容忍差分；**表格模型**（`blocks[*].table` 全部字段与 `styles.*.tableDisplay`，含 TS 的 `attachRawTablePr` / 深度 8 扁平化 / `tableSummary` 三处半解析；3.5）、整个绘图域（`image*` / `textboxes[]` / `rule*` / `oleProgId`）、**整个页眉页脚域**（`hfParts` / 六变体 / `hfParagraphs` 的样式层与表格行 / `hfImages` / 水印 / 矢量装饰合成 SVG；5.4）、跨 part 内容流（`Ctx::switch`，外部文本框 part） | 图表与公式（M6） |
 
 ## 公开 API 边界（今天可用的）
@@ -93,8 +96,8 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
-| 源码行数 / 文件数 | 51,325 行 / 125 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 386（单元 + 集成，27 个集成测试文件） | `cargo test --workspace` |
+| 源码行数 / 文件数 | 52,784 行 / 127 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
+| 测试数 | 397（单元 + 集成，28 个集成测试文件） | `cargo test --workspace` |
 | 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 22 份 hostile（含 4 份绘图与 2 份表格） | `ls corpus/*` |
 | 往返字节保真 | 589 份文档、3,093 个 XML part 全部字节相同 | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
@@ -107,6 +110,8 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 解析差分（全域） | 573 份里 30 份有未知差异、63 个差异点（M6 的工作面） | `cargo run -p diff-parse -- --scope all` |
 | 保存差分 | 162 份 TS 保存用例：90 份与 `saveDocx` 等价（其中 41 份逐字节相同）、4 份有意不同、68 份跳过 | `tests/save_blocks.rs` |
 | 节与页眉页脚 | 573 份 588 个节（与 TS `readSections` 逐份一致）；43 份带页眉页脚 part（47 个 part / 63 个块，`rId` 集合与 `hasPageNumber` 与 TS 一致）；26 个注释 / 批注条目 32 个块 | `cargo test -p rsword --test section --test hf --test notes -- --nocapture` |
+| 节与页眉页脚的编辑操作 | 9 个用例（`SAVE-05` 页眉版、已有 part 只重写该 part、`PROP-05/06` 插入位置与原字节、Strict 水印拒绝、六个操作各一组 XPath 断言、`MOD-13` oracle） | `cargo test -p rsword --test hf_ops` |
+| 跨 part 编辑 | 34 份带页眉的语料上页眉段落 `InsertText` 往返（M5 门第 3 条）：只重写该 part，其他条目 CRC 与压缩字节不变 | `cargo test -p rsword --test hf` |
 | 节属性往返 | 604 个 `w:sectPr`：0 处 `PROP_BAD_VALUE`、596 个符合 schema 顺序 | `cargo test -p rsword --test props -- --nocapture` |
 | 范围索引 | 573 份 / 3012 个 part 的 31 个标记全部成对认领 → 19 个范围（书签 7、批注 12）；1 处孤儿终点 | `tests/span.rs` |
 | Span 编辑与物化 | 29 个用例覆盖 `SPAN-01`–`SPAN-09`（含 4 条变换规则、整体删除策略、物化与原字节保真） | `cargo test -p rsword --test span` |
@@ -157,9 +162,10 @@ let bytes = s.save_with(&outcome.save_options)?;
   `instrField` / `fldBeginXml` 重发（要 begin run 原字节，M7）、跨段 `Block` 字段的边界编辑
   （结果段落只读）。
 - **新建 part**：`SAVE-05` 已落地（批注 / `commentsExtended` / 脚注 / 尾注 / `settings.xml` / 缺失的
-  `.rels` 都能建，内容类型 Override 与关系同步写，新 part 追加在 zip 末尾）。还没有的：页眉页脚与
-  图表 part（随 M5 5.5 / M6）。
-- **页眉页脚 / 节**：读侧齐了（节模型 5.2、part 内容流 5.3、compat 投影 5.4，域已清零）。还没有的是
+  `.rels` 都能建，内容类型 Override 与关系同步写，新 part 追加在 zip 末尾）。5.5 起**页眉页脚 part**
+  与 `settings.xml` 也能按需新建（`word/header{N}.xml` 取第一个空闲号）。还没有的：图表 part（M6）。
+- **页眉页脚 / 节**：读侧齐了（节模型 5.2、part 内容流 5.3、compat 投影 5.4，域已清零），
+  写侧的六个操作也齐了（5.5b）。还没有的是
   **编辑操作与保存选项**：`SetSectionProps` / `SetHeaderFooter` / `SetWatermark` / `SetPageColor`
   与 TS 的那 48 份保存用例（5.5 / 5.6）。
 - **表格**：模型、`resolve` 视图、compat 投影、单元格内编辑与行列操作都在（3.1–3.9）。还没有的：
@@ -177,7 +183,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 ```sh
 cargo fmt --all --check && cargo clippy --workspace --all-targets   # 零告警
-cargo test --workspace && cargo test --workspace --release          # 386 个测试，两种构建
+cargo test --workspace && cargo test --workspace --release          # 397 个测试，两种构建
 cargo run -p diff-parse -- --scope text                             # M1 门第一条：0 未知差异
 cargo run -p diff-parse -- --scope fields                           # M2 门：字段与 Span 域 0 未知差异
 cargo run -p diff-parse -- --scope tables                           # M3 门：表格域 0 未知差异

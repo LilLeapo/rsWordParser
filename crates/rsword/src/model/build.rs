@@ -297,8 +297,12 @@ impl Document {
         let mut b = Builder::new(dom, self.styles.as_ref(), rels, &fields, &spans, Vec::new());
         let mut main = std::mem::take(&mut self.main);
         for (p, path, sdt, revs) in work {
+            // body 级 `w:sectPr` 也是一个块（`MOD-01` 的 R01），但它没有段落 / 表格的内容流，
+            // 交给 `build_paragraph` 会得出一个假段落，节投影随后就崩（`MOD-10` 的 owner 断言）。
             let rebuilt = if dom.is(p, QName::w(LocalName::Tbl)) {
                 b.build_table(p, sdt.as_ref(), &revs)
+            } else if dom.is(p, QName::w(LocalName::SectPr)) {
+                section_props_block(p, sdt.as_ref(), &revs)
             } else {
                 b.build_paragraph(p, sdt.as_ref(), &revs)
             };
@@ -327,6 +331,18 @@ impl Document {
     pub fn text_block(&self, para: NodeId) -> Option<&TextBlock> {
         self.blocks().find(|b| b.node() == para).and_then(Block::as_text)
     }
+}
+
+/// body 级 `w:sectPr` 的块（`MOD-01` R01）：没有内容流，只占一个块位，让节投影能定位它。
+fn section_props_block(node: NodeId, sdt: Option<&SdtInfo>, revs: &[Revision]) -> Block {
+    Block::Protected(ProtectedBlock {
+        node,
+        kind: ProtectedKind::SectionProps,
+        preview: String::new(),
+        display: None,
+        sdt: sdt.cloned(),
+        revisions: revs.to_vec(),
+    })
 }
 
 /// 正文构建器；表格部分在 `model/table.rs`（同一个类型的另一组方法）。
@@ -471,14 +487,7 @@ impl<'a> Builder<'a> {
             }
             let (_rule, class) = classify_body_child(dom, node);
             match class {
-                BodyClass::SectionProps => out.push(Block::Protected(ProtectedBlock {
-                    node,
-                    kind: ProtectedKind::SectionProps,
-                    preview: String::new(),
-                    display: None,
-                    sdt: sdt.cloned(),
-                    revisions: revs.to_vec(),
-                })),
+                BodyClass::SectionProps => out.push(section_props_block(node, sdt, revs)),
                 BodyClass::Table => {
                     let block = self.build_table(node, sdt, revs);
                     out.push(block);

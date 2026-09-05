@@ -377,6 +377,8 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `PROP-05` CT_SectPr | `headerReference/footerReference`（0–6 个，顺序任意），然后 sequence | 两者共用 `order` 的第 0 格（`"a\|b"` 写法），因此 `order_index` 对两者都返回 0 | 它们是 schema 里的一个可重复组（EG_HdrFtrReferences），**组内顺序自由**，Word 按 default / first / even 的逻辑顺序写、两种元素会交错。分别编号会让 `SAVE-02` 的 PROP-05 单调性检查把合法的 `<ftr/><hdr/>` 判成乱序；同一格表达的正是"彼此之间无序、整组在其他子元素之前"，新引用也就插在已有引用之后、`w:footnotePr` 之前 |
 | `PROP-08` `SectionProps` 清单 | `headerReference*, footerReference*, footnotePr, endnotePr, type, pgSz, pgMar, pgBorders, lnNumType, pgNumType, cols, formProt, vAlign, titlePg, textDirection, bidi, rtlGutter, docGrid` | 另建模 `noEndnote`（同类 OnOff，写回要用）；**不**建模 `paperSrc` 与 `printerSettings` | 前者是清单的遗漏（它就夹在 `vAlign` 与 `titlePg` 之间）；后两个是打印机硬件配置，编辑器与 resolve 都不用，不建模就原字节留在原位（`PROP-06`），需要时补一行即可 |
 | `PROP-09` 枚举容错 | 字面不匹配 → `Val::Raw` + 诊断 | `ST_HdrFtr` 额外收非 schema 的 `odd` | Word 之外的生成器用 `w:type="odd"` 表示"缺省页"，TS 与 Word 都当 default（`docs/01` §12）。当成 `Raw` 只会白记一条 `PROP_BAD_VALUE`，而 `RES-10` 照样得把它当 default |
+| `EDIT-03 SetSectionProps`（`spec/16` 5.5） | 新容器的位置：body 级 → `w:body` 最后一个子元素；段落级 → `pPr` 内 `rPr` 之后 `pPrChange` 之前 | 只合并**已有**的活 `w:sectPr`，否则 `Err(EDIT_BAD_POSITION)` | "新建 `sectPr`"就是**新建分节符**：要在某段之后断开节、把后续块划给新节、六个页眉页脚槽的继承随之改变——那是块级结构操作，不是属性合并。M5 的三条节操作（`SetSectionProps` / `SetHeaderFooter` / `LinkHeaderFooter`）都作用于已有的节；分节符的增删留到 M7 与段落结构操作一起做 |
+| `spec/16` 5.5 的宏计划 | `SetSectionProps` 由 `table_props_op!` 泛化成 `props_container_op!` 一起生成 | 手写一个 `set_section_props` | 泛化后只有一个新客户（节表），而三张表格属性表的宏形状是"容器在 `w:tbl` / `w:tr` / `w:tc` 里按 order 新建"，节表要的是"容器已在，只合并"。够不上"同一形状三次"，5.6 的保存选项若再来两个容器操作再收 |
 | `MOD-10` `SectionGeom` | — | `node` 从 `NodeId` 改为 `Option<NodeId>` | 隐式节（文档里没有任何 `w:sectPr`）也要有几何 |
 | `MOD-10` `Notes` / `Comments` | 只有条目列表 | 各多一个 `idx: Option<AuxFlows>`（该 part 的三份索引） | 条目内容成块之后，`SPAN-01` 的流映射与该 part 的字段 / 范围索引得有地方放；5.5 的按 part 编辑要用 |
 | `FLD-11` `has_page_number` | 由字段列表推导 | 另认旧式 `w:pgNum` 元素 | Word 6.0/95 的页码是一个 run 子元素而不是字段，语义相同（TS `hfContentFromXml` 把它换成 `PAGE_MARK` 并置 `hasPageNumber`）。坐标流里它占 1 个单位，与原子字段一致 |
@@ -915,21 +917,32 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   - **d 外部文本框 part**（从 5.3 挪来）：`wps:txbx/@r:txbx` → `word/txbx1.xml`。`RelType::Txbx`、
     `ShapeDisplay.txbx_rel` / `content_part`、`Document.aux_flows`，投影侧 `Ctx::switch` 换 DOM，
     框整块只读。`KNOWN_DIFFS` 里 `themeless-shapes-external-txbx__003` 那条**删掉**。
-- [ ] **5.5 页眉页脚与节的编辑操作**（**下一步**）：位置带 `PartId`；`SetSectionProps` /
-  `SetHeaderFooter` / `LinkHeaderFooter` / `SetWatermark` / `SetPageColor` / `SetDocumentSettings`。
-  开工面已量过（2026-09-05，别再量一遍）：
-  - **只有两个操作真要"在另一个 part 里改块"**：`SetHeaderFooter`（整体替换 part 内容 / 新建 part）
-    与 `SetWatermark`（页眉里插删水印段落）；`SetSectionProps` / `LinkHeaderFooter` / `SetPageColor`
-    都在主 part，`SetDocumentSettings` 在 `settings.xml`（`commit_plan` 本来就接受任意 part）。
-  - **但 M5 门第 3 条要求"在页眉段落里 `InsertText` 后保存"**，所以 `InlinePos` 必须带 part。
-    建议签名 `InlinePos { part: Option<PartId>, para, offset }`（`None` = 主 part，现有构造函数与
-    全部调用点不动），`BlockPos` 同样加。
-  - 机械改动量：`edit/ops.rs` 40 处 `s.dom()` / 24 处 `main_part()` / 16 处 `text_block()`，
-    `edit/table_ops.rs` 10 + 7 处，`edit/session.rs` 15 处 `main_part()`，另有 51 处
-    `MutationPlan::new`（它本来就按 part）。`EditSession` 要补 `dom_of(part)` /
-    `text_block_of(part, para)`（页眉的块在 `doc.hf_parts[part].blocks` 里，注释 / 批注在
-    `Notes` / `Comments` 的条目里），`Document::refresh` 对辅助 part 整 part 重建。
-  - 建议拆成 5.5a（位置带 part，纯机械，先落地让后面的操作都站在同一签名上）与 5.5b（六个新操作）。
+- [x] **5.5 页眉页脚与节的编辑操作**（分 a / b 两个提交上）
+  - **a 位置带 `PartId`**：`InlinePos { part: Option<PartId>, para, offset }`（`None` = 主 part，
+    原构造函数与全部调用点不动），`BlockPos` 拆成 `{ part, at: BlockAt }`；段落 / 块操作从位置的 part
+    取 DOM / flavor / `MutationPlan`（`part_or_main` / `dom_in` / `text_block_in`），`Document` 补
+    `blocks_of_part` / `text_block_in` / `fields_in`。id 只在自己 part 的索引里有意义：`boundary_node`
+    原来拿主 part 的字段索引查页眉里的字段，报"投影过期"；sdt 守卫拿主 DOM 走页眉节点的祖先，越界 panic。
+    只有主 part 才有的 id（`AddBookmark` / `AddComment` / `InsertField`）显式拒绝外部 part
+    （`EDIT_UNSUPPORTED`）而不是去改错 DOM。辅助 part 提交后整 part 重建投影（几 KB，`rebuild` 本身
+    就是 `MOD-13` 的 oracle）。**M5 门第 3 条过**：34 份语料的页眉段落 `InsertText` → 只重写该 part、
+    其他条目 CRC 与压缩字节不变、正文投影不变。
+  - **b 六个操作**（`edit/section_ops.rs`）：`SetSectionProps`（`plan_apply_section_props_at` 合并，
+    未建模子元素原字节不动）、`SetHeaderFooter`（声明了该变体 → 该 part 内容整体替换；没声明（含继承）
+    → 按 `SAVE-05` 新建 `word/header{N}.xml` + 关系 + Override，引用插进**这一节**的 `sectPr`，
+    这一节因此独立，前面的节不受影响）、`LinkHeaderFooter`（挂已有 part，已有引用时幂等）、
+    `SetWatermark`（TS `watermarkParagraphXml` 那棵 VML 子树走 `xml::fragment` 解析，`None` 删掉所有
+    含 `v:textpath` 的段落，**Strict 包 `Err`**）、`SetPageColor`（`w:background` 为 `w:document`
+    第一个子元素）、`SetDocumentSettings`（`plan_apply_settings`，缺 `settings.xml` 按 `SAVE-05` 建）。
+    顺手修掉一处真错：`refresh_blocks` 把任何非 `w:tbl` 的脏块都交给 `build_paragraph`，body 级
+    `w:sectPr` 因此被投影成一个假段落，节序列随后崩在 owner 断言上——现在按元素名分派，
+    `section_props_block` 由整体重建与增量刷新共用。`tests/hf_ops.rs` 9 个用例：`SAVE-05` 的页眉版
+    （新 part / 关系 / 内容类型 / 引用位置 / 其他条目原压缩数据不变）、已有 part 只重写该 part、
+    `w:pgNumType` 插在 `w:lnNumType` 之后 `w:cols` 之前且开标签与未碰子元素原字节不动、Strict 水印
+    `Err` 且字节不变、每个操作一组 XPath 断言（`TEST-05` 的 `xpath_asserts!`，落在 `tests/common`）、
+    每个改主 part 的操作一条 `MOD-13` oracle（`refresh == rebuild`，节序列一起比）。
+    两处与 `spec/16` 措辞不同，记在 §8：`SetSectionProps` 只合并**已有**的 `w:sectPr`；
+    `table_props_op!` 没有泛化成 `props_container_op!`（只有一个新客户，等 5.6 的保存选项再看）。
 - [ ] **5.6 保存选项**：节 / 页眉页脚 / 水印 / 页面颜色 / 保护 / 奇偶页眉 → `EditOp`；compat 的 `headerFooterPartXml` 外科合并。
 - [ ] **5.7 声明 part 的读写**：参考文献（读 + 写）、编号追加、主题、样式 upsert。
 - [ ] **5.8 resolve 校准**：toggle 与节继承 fixture（文档我们生成，观察值来自 Word）；`RES-04` 占位规则替换。

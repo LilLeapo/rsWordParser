@@ -82,3 +82,39 @@ pub fn docx_with_body(document_body: &str) -> Vec<u8> {
     }
     w.finish().unwrap().into_inner()
 }
+
+/// 取 docx 里一个 part 的 DOM（`xpath_asserts!` 用；独立成函数，跳转得到声明处）。
+#[allow(dead_code)]
+pub fn xpath_dom(docx: &[u8], part: &str) -> rsword::xml::Dom {
+    let mut pkg = rsword::package::Package::open(docx).expect("打开 docx");
+    let id = pkg.find_name(part).unwrap_or_else(|| panic!("没有 part {part}"));
+    pkg.dom(id).expect("解析 part").unwrap_or_else(|| panic!("{part} 不是 XML")).clone()
+}
+
+/// `TEST-05` 的一组 XPath 断言：对某个 part 逐条求值，失败信息里带上表达式。
+///
+/// 期望值写成字符串数组（`eval_strings` 的结果形态：`count()` 是一个数字串，
+/// 节点集是各节点的字符串值，`@attr` 是各属性值）。
+///
+/// ```ignore
+/// xpath_asserts!(&saved, "word/document.xml", [
+///     ("count(//w:sectPr/w:pgNumType)", ["1"]),
+///     ("//w:sectPr/w:pgNumType/@w:fmt", ["upperRoman"]),
+///     ("count(//w:hdr)", ["0"]),
+/// ]);
+/// ```
+#[allow(unused_macros)]
+macro_rules! xpath_asserts {
+    ($docx:expr, $part:expr, [ $( ($expr:expr, $want:expr) ),* $(,)? ]) => {{
+        let dom = $crate::common::xpath_dom($docx, $part);
+        $({
+            let got = rsword::xml::xpath::eval_strings(&dom, $expr)
+                .unwrap_or_else(|e| panic!("XPath `{}` 求值失败：{e}", $expr));
+            let want: Vec<String> = $want.iter().map(|s| s.to_string()).collect();
+            assert_eq!(got, want, "{} 上的 XPath `{}`", $part, $expr);
+        })*
+    }};
+}
+
+#[allow(unused_imports)]
+pub(crate) use xpath_asserts;

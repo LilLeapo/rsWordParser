@@ -116,6 +116,31 @@ impl EditSession {
         self.pkg.flavor_of(self.part_or_main(part))
     }
 
+    /// 一段 XML → 那个 part 里的 `NewElement`（`XML-14`：前缀按目标 part 的作用域解析）。
+    /// 水印那棵 VML 子树是唯一手写的片段，用它解析而不是拼字符串。
+    pub(crate) fn new_element_from_xml(&mut self, part: PartId, xml: &str) -> Result<NewElement> {
+        let dom = self.pkg.dom_mut(part)?.ok_or_else(|| {
+            Error::edit(DiagCode::EditBadPosition, format!("part {} 没有可编辑的 XML", part.0))
+        })?;
+        let frags = crate::xml::parse_fragment(dom, xml)
+            .map_err(|e| Error::edit(DiagCode::EditPlanInvalid, format!("片段解析失败: {e}")))?;
+        frags
+            .into_iter()
+            .next()
+            .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "片段没有顶层元素"))
+    }
+
+    /// `owner` 指向 `target` 的关系 id（`LinkHeaderFooter` 要把已有 part 挂到节上）。
+    pub fn relationship_id(&self, owner: PartId, target: PartId) -> Option<String> {
+        let uri = &self.pkg.part(target).uri;
+        self.pkg
+            .part(owner)
+            .rels
+            .iter()
+            .find(|r| matches!(&r.target, crate::package::RelTarget::Internal(u) if u == uri))
+            .map(|r| r.id.clone())
+    }
+
     /// 某个 part 里的文本段落投影（页眉页脚 / 注释 / 批注条目 / 正文）。
     pub fn text_block_in(&self, part: Option<PartId>, para: NodeId) -> Option<&TextBlock> {
         self.doc.text_block_in(self.part_or_main(part), para)
@@ -806,6 +831,10 @@ pub(crate) const CT_FOOTNOTES: &str =
     "application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml";
 pub(crate) const CT_ENDNOTES: &str =
     "application/vnd.openxmlformats-officedocument.wordprocessingml.endnotes+xml";
+pub(crate) const CT_HEADER: &str =
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml";
+pub(crate) const CT_FOOTER: &str =
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml";
 pub(crate) const CT_COMMENTS_EXTENDED: &str =
     "application/vnd.openxmlformats-officedocument.wordprocessingml.commentsExtended+xml";
 

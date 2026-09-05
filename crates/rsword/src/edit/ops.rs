@@ -65,7 +65,39 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::SetFormText { field, text } => set_form_text(s, field, &text),
         EditOp::SetFieldResultProps { field, patch } => set_field_result_props(s, field, &patch),
         EditOp::UpdateBlockField { field, blocks } => update_block_field(s, field, blocks, ctx),
+        EditOp::SetSectionProps { sect, patch } => {
+            super::section_ops::set_section_props(s, sect, &patch)
+        }
+        EditOp::SetHeaderFooter { sect, kind, variant, content } => {
+            super::section_ops::set_header_footer(s, sect, kind, variant, content)
+        }
+        EditOp::LinkHeaderFooter { sect, kind, variant, part } => {
+            super::section_ops::link_header_footer(s, sect, kind, variant, part)
+        }
+        EditOp::SetWatermark { sect, text } => super::section_ops::set_watermark(s, sect, text),
+        EditOp::SetPageColor { color } => super::section_ops::set_page_color(s, color),
+        EditOp::SetDocumentSettings { patch } => set_document_settings(s, &patch),
     }
+}
+
+/// `EDIT-03 SetDocumentSettings`：`word/settings.xml` 按 `PROP-06` 合并；part 不存在就按
+/// `SAVE-05` 建（`evenAndOddHeaders` / 保护标志要有地方写）。
+fn set_document_settings(
+    s: &mut EditSession,
+    patch: &crate::semantic::props::SettingsPatch,
+) -> Result<MutationResult> {
+    let part = s.ensure_settings_part()?;
+    let dom = s.dom_in(Some(part))?;
+    let root = dom.root();
+    let mut plan = MutationPlan::new(part);
+    plan.node_edits = crate::semantic::props::plan_apply_settings(
+        dom,
+        root,
+        Some(root),
+        patch,
+        s.flavor_in(Some(part)),
+    );
+    s.commit_plan(plan)
 }
 
 /// 只支持主 part 的操作（书签 / 批注 / 字段：它们的索引与 id 都只对主 part 建过）。位置带别的
@@ -135,6 +167,13 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
         EditOp::RemoveComment { .. }
         | EditOp::SetCommentText { .. }
         | EditOp::RemoveBookmark { .. } => Vec::new(),
+        // 节与页眉页脚：目标是 `w:sectPr` 或整个 part，不在内容控件里（任务 5.5）
+        EditOp::SetSectionProps { .. }
+        | EditOp::SetHeaderFooter { .. }
+        | EditOp::LinkHeaderFooter { .. }
+        | EditOp::SetWatermark { .. }
+        | EditOp::SetPageColor { .. }
+        | EditOp::SetDocumentSettings { .. } => Vec::new(),
     };
     for (part, node) in targets {
         let dom = s.dom_in(part)?;
@@ -938,7 +977,7 @@ fn block_site(dom: &Dom, at: BlockAt) -> Result<(NodeId, Option<NodeId>)> {
     }
 }
 
-fn new_block_element(dom: &Dom, block: NewBlock) -> NewElement {
+pub(super) fn new_block_element(dom: &Dom, block: NewBlock) -> NewElement {
     match block {
         NewBlock::Xml(e) => e,
         NewBlock::Table { rows, cols, widths, style, header } => {

@@ -14,6 +14,7 @@ pub mod inline;
 pub mod ops;
 pub mod plan;
 pub mod pos;
+pub mod section_ops;
 pub mod session;
 pub mod table_ops;
 
@@ -22,9 +23,11 @@ pub use plan::{MutationPlan, MutationResult};
 pub use pos::{InlinePos, Loc, Utf16Offset, inline_spans, locate};
 pub use session::EditSession;
 
+use crate::model::{HfKind, HfVariant};
 use crate::package::PartId;
 use crate::semantic::props::{
-    CellPropsPatch, ParaPropsPatch, RowPropsPatch, RunProps, RunPropsPatch, TablePropsPatch,
+    CellPropsPatch, ParaPropsPatch, RowPropsPatch, RunProps, RunPropsPatch, SectionPropsPatch,
+    SettingsPatch, TablePropsPatch,
 };
 use crate::span::FieldId;
 use crate::xml::{NewElement, NodeId};
@@ -196,6 +199,26 @@ pub enum EditOp {
     SetFieldResultProps { field: FieldId, patch: RunPropsPatch },
     /// `FLD-09`：用给定的块替换块字段的 `separate..end`（生成器在 M7；`w:fldLock` 拒绝）。
     UpdateBlockField { field: FieldId, blocks: Vec<NewBlock> },
+
+    // ---- 节与页眉页脚（`EDIT-03`，任务 5.5）--------------------------------------------------
+    /// `EDIT-03 SetSectionProps`：给定 `w:sectPr` 按 `PROP-06` 合并（未建模的子元素原字节不动，
+    /// 新元素按 CT_SectPr 顺序插入）。**新建分节符**（给段落加一个 `sectPr`）不在 M5。
+    SetSectionProps { sect: NodeId, patch: SectionPropsPatch },
+    /// `EDIT-03 SetHeaderFooter`：这一节这个变体的页眉页脚内容整体替换。
+    ///
+    /// 该节**自己声明**了这个变体（`RES-10` 的 `Declared`）→ 改写它引用的 part；没声明（含从上一节
+    /// 继承）→ 按 `SAVE-05` 新建 `word/header{N}.xml` 并把引用插进这一节的 `sectPr`，这一节因此
+    /// 独立、前面的节不受影响（Word 与 TS 的 `sectionHf` 语义）。
+    SetHeaderFooter { sect: NodeId, kind: HfKind, variant: HfVariant, content: Vec<NewBlock> },
+    /// 给一个没有该变体引用的节挂上**已有** part 的引用（TS 的 `hfAllSections`）。
+    LinkHeaderFooter { sect: NodeId, kind: HfKind, variant: HfVariant, part: PartId },
+    /// `SAVE-07 watermark`：这一节 default 页眉里的文字水印。`None` 删掉（连同页眉里所有
+    /// 含 `v:textpath` 的段落）；页眉不存在时先建。Strict 包拒绝（VML 不在 Strict 里）。
+    SetWatermark { sect: NodeId, text: Option<String> },
+    /// `SAVE-07 pageColor`：`w:background/@w:color`（`w:document` 的第一个子元素）。`None` 删掉。
+    SetPageColor { color: Option<String> },
+    /// `EDIT-03 SetDocumentSettings`：`word/settings.xml` 按 `PROP-06` 合并（part 不存在就建）。
+    SetDocumentSettings { patch: SettingsPatch },
 }
 
 /// `SetLinkTarget` 要改哪个链接。
