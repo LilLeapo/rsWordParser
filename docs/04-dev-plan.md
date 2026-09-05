@@ -915,7 +915,21 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   - **d 外部文本框 part**（从 5.3 挪来）：`wps:txbx/@r:txbx` → `word/txbx1.xml`。`RelType::Txbx`、
     `ShapeDisplay.txbx_rel` / `content_part`、`Document.aux_flows`，投影侧 `Ctx::switch` 换 DOM，
     框整块只读。`KNOWN_DIFFS` 里 `themeless-shapes-external-txbx__003` 那条**删掉**。
-- [ ] **5.5 页眉页脚与节的编辑操作**：位置带 `PartId`；`SetSectionProps` / `SetHeaderFooter` / `LinkHeaderFooter` / `SetWatermark` / `SetPageColor` / `SetDocumentSettings`。
+- [ ] **5.5 页眉页脚与节的编辑操作**（**下一步**）：位置带 `PartId`；`SetSectionProps` /
+  `SetHeaderFooter` / `LinkHeaderFooter` / `SetWatermark` / `SetPageColor` / `SetDocumentSettings`。
+  开工面已量过（2026-09-05，别再量一遍）：
+  - **只有两个操作真要"在另一个 part 里改块"**：`SetHeaderFooter`（整体替换 part 内容 / 新建 part）
+    与 `SetWatermark`（页眉里插删水印段落）；`SetSectionProps` / `LinkHeaderFooter` / `SetPageColor`
+    都在主 part，`SetDocumentSettings` 在 `settings.xml`（`commit_plan` 本来就接受任意 part）。
+  - **但 M5 门第 3 条要求"在页眉段落里 `InsertText` 后保存"**，所以 `InlinePos` 必须带 part。
+    建议签名 `InlinePos { part: Option<PartId>, para, offset }`（`None` = 主 part，现有构造函数与
+    全部调用点不动），`BlockPos` 同样加。
+  - 机械改动量：`edit/ops.rs` 40 处 `s.dom()` / 24 处 `main_part()` / 16 处 `text_block()`，
+    `edit/table_ops.rs` 10 + 7 处，`edit/session.rs` 15 处 `main_part()`，另有 51 处
+    `MutationPlan::new`（它本来就按 part）。`EditSession` 要补 `dom_of(part)` /
+    `text_block_of(part, para)`（页眉的块在 `doc.hf_parts[part].blocks` 里，注释 / 批注在
+    `Notes` / `Comments` 的条目里），`Document::refresh` 对辅助 part 整 part 重建。
+  - 建议拆成 5.5a（位置带 part，纯机械，先落地让后面的操作都站在同一签名上）与 5.5b（六个新操作）。
 - [ ] **5.6 保存选项**：节 / 页眉页脚 / 水印 / 页面颜色 / 保护 / 奇偶页眉 → `EditOp`；compat 的 `headerFooterPartXml` 外科合并。
 - [ ] **5.7 声明 part 的读写**：参考文献（读 + 写）、编号追加、主题、样式 upsert。
 - [ ] **5.8 resolve 校准**：toggle 与节继承 fixture（文档我们生成，观察值来自 Word）；`RES-04` 占位规则替换。

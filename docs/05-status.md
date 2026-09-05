@@ -89,7 +89,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
-| 源码行数 / 文件数 | 47,978 行 / 119 个（另有生成代码 16,793 行） | `find crates tools -name '*.rs' \| xargs wc -l` |
+| 源码行数 / 文件数 | 51,325 行 / 125 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
 | 测试数 | 384（单元 + 集成，27 个集成测试文件） | `cargo test --workspace` |
 | 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 22 份 hostile（含 4 份绘图与 2 份表格） | `ls corpus/*` |
 | 往返字节保真 | 589 份文档、3,093 个 XML part 全部字节相同 | `tests/xml_roundtrip.rs` |
