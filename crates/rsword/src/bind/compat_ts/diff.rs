@@ -322,6 +322,20 @@ pub fn is_drawing_path(path: &str) -> bool {
         || rest.strip_prefix("runs[].").is_some_and(|r| r.starts_with("image"))
 }
 
+/// M5 页眉页脚域的 JSON 路径（`TEST-10` 的 M5 门）：`hfParts` 的每条内容、六个变体的顶层字段、
+/// 水印与首页 / 奇偶页标志。按**路径**筛而不是按文档——带页眉页脚的文档同时背着 M6 的图表 /
+/// 公式差异，按文档筛这道门永远关不上（同 `is_drawing_path`）。
+///
+/// `sources`（参考文献，任务 5.7）**不在**这道门里：它与页眉页脚无关，归 `--scope all`。
+pub fn is_hf_path(path: &str) -> bool {
+    /// 顶层键的前缀。
+    const PREFIXES: [&str; 6] =
+        ["hfParts", "header", "footer", "watermarkText", "titlePg", "evenAndOddHeaders"];
+    let key = path_key(path);
+    // `headerReference` 之类不存在于 `ParsedDoc`；`header*` 只会命中 hf 域的键
+    PREFIXES.iter().any(|p| key.starts_with(p))
+}
+
 /// 一类未知差异的聚合：出现次数与首个样例。
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct PathStat {
@@ -433,6 +447,37 @@ mod tests {
             "internal.documentXml",
         ] {
             assert!(!is_drawing_path(p), "{p} 不该算绘图域");
+        }
+    }
+
+    /// M5 门的域边界（`is_hf_path`）。表格 / 绘图 / 图表各归各的里程碑，混进来这道门关不上。
+    #[test]
+    fn test_10_hf_domain_paths() {
+        for p in [
+            "hfParts.rId7.text",
+            "hfParts.rId7.paras[0].runs[0].text",
+            "hfParts.rId7.images[0].dataUrl",
+            "headerText",
+            "headerParas[0].cells[1].fill",
+            "headerImages[0].posXPx",
+            "footerHasPageNumber",
+            "footerEven.text",
+            "watermarkText",
+            "titlePg",
+            "evenAndOddHeaders",
+        ] {
+            assert!(is_hf_path(p), "{p} 应属页眉页脚域");
+        }
+        for p in [
+            "blocks[3].imageWidthPx",
+            "blocks[0].textboxes[1].paras[0].runs[0].text",
+            "blocks[3].table.rows[0][0].fill",
+            "blocks[3].chartDisplay.kind",
+            "internal.documentXml",
+            "styles.Header.display.align",
+            "sources[0].title",
+        ] {
+            assert!(!is_hf_path(p), "{p} 不该算页眉页脚域");
         }
     }
 

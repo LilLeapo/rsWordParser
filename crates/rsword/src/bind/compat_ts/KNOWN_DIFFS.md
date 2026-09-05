@@ -15,6 +15,7 @@
 | `field-display__015` | 框内段落 `runs[*].link` | 目标带反斜杠的 `HYPERLINK` 字段：TS 不给链接，本引擎给 | TS 的 `convertibleHyperlink` 正则是 `"([^"\\]+)"`，目标里有反斜杠就整个不认（Windows 路径 `file:///C:\Users\…`）。引号里的反斜杠是字面量、开关只在引号外有意义，所以本引擎照常折出链接，地址原样保留 | 本引擎（功能更强；TS 那条正则是保守回避） |
 | `wordart-vml__004` | `blocks[*].textboxes[*].paras[*].runs[*]` | VML 文本框里的随文图片：TS 输出空 run，本引擎给出图片 run | TS 只在**宿主**段落上预取媒体（`stripTextboxes` 之后），框里的 `a:blip` 拿不到 dataURL 就把整个 run 丢了；Word 是画得出这张图的 | 本引擎（TS 的缺陷不跟随） |
 | `themeless-shapes-external-txbx__003` | `blocks[*].textboxes[*].paras[*]` | 外部文本框 part（`wps:txbx/@r:txbx` → `word/txbx1.xml`）的段落 | 框的内容在**另一个 part** 里；`Block` 的 `NodeId` 是相对单个 DOM 的，跨 part 的内容流要等 M5 的页眉页脚管线（`spec/15` 被阻塞表） | 暂放行，M5 接跨 part 内容流后删除 |
+| `hf-images__011` | `headerImages[*]` / `hfParts.*.images[*]` 的 `floating` / `wrap` / `pos*` | 页眉里的 `mc:Choice Requires="wps"` 而 `wps` 前缀**没有声明**（Choice 里也没用到 `wps:` 元素）：本引擎按 `XML-09` 走 `mc:Fallback`（里面是随文副本），TS 用正则直接取 Choice（锚定副本） | 同 `numbering-defs__012` 一条：`Requires` 里的前缀必须在作用域内声明（ECMA-376 Part 3 §10.2.1），没声明就不算"理解"。真实 Word 文档都会声明 `wps`，这份是 TS 测试生成器造出来的 | 本引擎（规范行为） |
 | `emf-image__*`（4 份） | 任何 `dataUrl` | TS 把 EMF 渲染成 PNG（导出工具打的占位 `data:image/png;base64,EMFPNG`），本引擎输出 EMF 原字节的 dataURL 并标 `MediaKind::Metafile` | `docs/03` §3.5 冻结：EMF/WMF/EMZ/WMZ 与 TIFF 的转换是可插拔服务，不在 Rust 侧做，由 TS / 渲染端继续转 | 本引擎（有意不同）；语料里 4 份 metafile 媒体全在这些文档 |
 
 ## 定位辅助 part 的差别（不算差异，测试里已对齐）
@@ -39,4 +40,6 @@ emf-image__*             *image.dataUrl                           # 同上，表
 field-display__015*      *paras[*].runs[*].link                   # 目标带反斜杠的 HYPERLINK，TS 的正则不认，本引擎照折
 wordart-vml__004*        blocks[*].textboxes[*].paras[*].runs[*]  # TS 没给框里的随文图片预取媒体，整个 run 丢了
 themeless-shapes-external-txbx__003* blocks[*].textboxes[*].paras[*]  # 外部文本框 part 要等 M5 的跨 part 内容流
+hf-images__011*          headerImages[*].*                        # 未声明的 mc:Choice Requires="wps"，本引擎走 Fallback（同 numbering-defs__012）
+hf-images__011*          hfParts.*.images[*].*                    # 同上
 ```

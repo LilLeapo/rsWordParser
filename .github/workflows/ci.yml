@@ -28,4 +28,6 @@ jobs:
       - run: cargo run -p diff-parse -- --scope tables
       # TEST-10 M4 门：全部用例里绘图域（image* / textboxes[] / rule* / oleProgId）的差分为 0
       - run: cargo run -p diff-parse -- --scope drawing
+      # TEST-10 M5 门：全部用例里页眉页脚域（hfParts / header* / footer* / watermarkText）的差分为 0
+      - run: cargo run -p diff-parse -- --scope hf
   # fuzz 在 .github/workflows/fuzz.yml（手动 / 每周），不挂在每次 push 上。

@@ -48,7 +48,7 @@ fn rgb_hex(ctx: &Ctx<'_>, c: &DrawingColor) -> Option<String> {
 }
 
 /// 颜色容器节点 → hex。
-fn color_hex(ctx: &Ctx<'_>, node: NodeId) -> Option<String> {
+pub(super) fn color_hex(ctx: &Ctx<'_>, node: NodeId) -> Option<String> {
     rgb_hex(ctx, &color_in(ctx.dom, node)?)
 }
 
@@ -125,7 +125,7 @@ pub(super) fn wps_box_json(
 /// 每条 `a:path` 按它自己声明的 `@w` / `@h` 归一化到 0..1（缺省时退到形状的 `a:ext`），
 /// 保留 5 位小数；按 `@fill` / `@stroke` 分进 `path` / `fillPath` / `strokePath` 三层，
 /// 两者都是 none 的路径不画。
-fn path_data(geom: &CustomGeom, ext: Option<Extent>) -> Option<Map<String, Value>> {
+pub(super) fn path_data(geom: &CustomGeom, ext: Option<Extent>) -> Option<Map<String, Value>> {
     let (mut fill_only, mut stroke_only, mut both) = (Vec::new(), Vec::new(), Vec::new());
     for p in &geom.paths {
         if p.fill_none && p.stroke_none {
@@ -161,7 +161,7 @@ fn path_data(geom: &CustomGeom, ext: Option<Extent>) -> Option<Map<String, Value
 }
 
 /// 归一化坐标：5 位小数，去掉 `-0`。
-fn norm(v: f64) -> String {
+pub(super) fn norm(v: f64) -> String {
     let r = (v * 100_000.0).round() / 100_000.0;
     let r = if r == 0.0 { 0.0 } else { r };
     format!("{r}")

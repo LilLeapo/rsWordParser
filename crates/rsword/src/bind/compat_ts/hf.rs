@@ -49,6 +49,7 @@ struct PartInfo {
     text: String,
     has_page_number: bool,
     paras: Vec<Value>,
+    images: Vec<Value>,
     watermark: Option<String>,
 }
 
@@ -81,10 +82,6 @@ pub(super) fn hf_json(
         }
     }
     out.insert("hfParts".into(), Value::Object(parts));
-    // `headerImages` / `footerImages` 在 5.4c
-    for k in ["headerImages", "footerImages"] {
-        out.insert(k.into(), Value::Null);
-    }
 
     // 顶层字段：default 变体那一个 part 的 `text` / `hasPageNumber` / `paras`（+ 页眉的水印），
     // 加上 first / even 两种 typed 变体的整条 `HfPartInfo`
@@ -107,11 +104,15 @@ pub(super) fn hf_json(
 /// default 变体那个 part 贡献的顶层键：TS 的键名后缀与取值。名字集中在这一张表里——
 /// 散在几个 `format!` 里迟早写错一个（`watermarkText` 只在页眉出，TS 只读页眉的水印）。
 type DefaultKey = (&'static str, fn(Option<&PartInfo>) -> Value);
-const DEFAULT_KEYS: [DefaultKey; 4] = [
+const DEFAULT_KEYS: [DefaultKey; 5] = [
     ("Text", |i| i.map_or(Value::Null, |i| Value::String(i.text.clone()))),
     ("HasPageNumber", |i| Value::Bool(i.is_some_and(|i| i.has_page_number))),
     ("Paras", |i| i.map_or(Value::Null, |i| Value::Array(i.paras.clone()))),
     ("watermarkText", |i| i.and_then(|i| i.watermark.clone()).map_or(Value::Null, Value::String)),
+    // 顶层 `headerImages` / `footerImages`：没有 part 或没有图片都是 `null`
+    ("Images", |i| {
+        i.map(|i| i.images.clone()).filter(|v| !v.is_empty()).map_or(Value::Null, Value::Array)
+    }),
 ];
 
 /// `(Header, "Text")` → `headerText`；`watermarkText` 是页眉专有的整名。
@@ -127,7 +128,10 @@ fn info_json(i: &PartInfo) -> Value {
     set(&mut o, "text", i.text.clone());
     set(&mut o, "hasPageNumber", i.has_page_number);
     o.insert("paras".into(), Value::Array(i.paras.clone()));
-    // `images` 在 5.4c
+    // TS 只在非空时给这个键
+    if !i.images.is_empty() {
+        o.insert("images".into(), Value::Array(i.images.clone()));
+    }
     Value::Object(o)
 }
 
@@ -159,6 +163,7 @@ fn part_info(ctx: &Ctx<'_>, hf: &HfPart) -> PartInfo {
         text: part_text(ctx.dom, hf),
         has_page_number: hf.has_page_number,
         paras: part_paras(ctx, hf),
+        images: part_images(ctx, hf),
         watermark: hf.watermark.clone(),
     }
 }
@@ -764,4 +769,359 @@ fn image_para(ctx: &Ctx<'_>, display: Option<&Display>) -> Value {
         Value::Object(r)
     });
     Value::Array(run.into_iter().collect())
+}
+
+// ---- `images`（TS `hfImages`）------------------------------------------------------------------
+
+/// 一个 part 的 `images`（part 级的图片列表，显示用；文字编辑不碰它们的字节）。
+///
+/// 按文档序扫这个 part 的 `w:drawing` 与 `w:pict`。两条跳过规则照 TS：
+///
+/// - **随文**图片落在顶层 `w:tbl` 区间里 → 跳过（它已经在单元格 run 上了，`hfCellContent`）；
+///   浮动的照样进这张表（它要按页面定位）。
+/// - `w:pict` 里有 `v:textpath` → 跳过（那是文字水印，走 `watermarkText`）。
+///
+/// 尺寸：DrawingML 用 `wp:extent`（EMU），VML 用 `v:shape/@style` 的 pt。位置：`wp:anchor` 的
+/// `wp:align` / `wp:posOffset`（EMU → px，`relativeFrom` 决定基准），VML 用 `mso-position-*`。
+fn part_images(ctx: &Ctx<'_>, hf: &HfPart) -> Vec<Value> {
+    let dom = ctx.dom;
+    let tables = top_level_table_ranges(dom, hf.root);
+    let in_table = |n: NodeId| {
+        let at = start_of(dom, n);
+        tables.iter().any(|&(a, b)| at > a && at < b)
+    };
+    let mut out = Vec::new();
+    for n in dom.semantic_descendants(hf.root) {
+        if dom.is(n, QName::w(LocalName::Drawing)) {
+            let d = crate::model::drawing::drawing_display(dom, n);
+            let anchored = d.anchor.is_some();
+            if !anchored && in_table(n) {
+                continue;
+            }
+            if let Some(img) = drawing_image(ctx, &d, n) {
+                out.push(img);
+            }
+        } else if dom.is(n, QName::w(LocalName::Pict)) || dom.is(n, QName::w(LocalName::Object)) {
+            let v = crate::model::vml::vml_display(dom, n);
+            // 文字水印不算图片
+            if v.shapes.iter().any(|s| s.textpath.is_some()) {
+                continue;
+            }
+            let absolute = v
+                .shapes
+                .iter()
+                .any(|s| s.style_get("position").is_some_and(|p| p.trim() == "absolute"));
+            if !absolute && in_table(n) {
+                continue;
+            }
+            if let Some(img) = vml_image(ctx, &v, n, absolute) {
+                out.push(img);
+            }
+        }
+    }
+    out
+}
+
+/// 顶层 `w:tbl` 的字节区间（嵌套的算在外层里）。
+fn top_level_table_ranges(dom: &Dom, root: NodeId) -> Vec<(u32, u32)> {
+    dom.semantic_children(root)
+        .filter(|&n| dom.is(n, QName::w(LocalName::Tbl)))
+        .map(|n| (start_of(dom, n), end_of(dom, n)))
+        .collect()
+}
+
+/// `w:drawing` → 一条 `HfImage`。解析不出媒体就不出这条（TS 同样跳过）。
+fn drawing_image(
+    ctx: &Ctx<'_>,
+    d: &crate::model::drawing::DrawingDisplay,
+    node: NodeId,
+) -> Option<Value> {
+    // 一个 drawing 里可能有几张图（mac Word 的 PDF Choice + PNG Fallback）：取第一张解析得出的
+    let found = d
+        .pictures
+        .iter()
+        .find_map(|p| ctx.media.pick(p.embed.as_deref(), p.link.as_deref()).map(|m| (p, m)));
+    // 没有位图时：无字的实心矢量装饰合成一张 SVG（TS `hfShapeDrawingSvg`）
+    let (pic, url) = match found {
+        Some((p, m)) => (Some(p), m.url.clone()),
+        None => (None, shape_drawing_svg(ctx, d)?),
+    };
+    let mut o = Map::new();
+    set(&mut o, "dataUrl", url);
+    let ext = d.extent.filter(|e| e.cx > 0 || e.cy > 0);
+    set_some!(&mut o,
+        "widthPx" => ext.filter(|e| e.cx > 0).map(|e| px(e.cx)),
+        "heightPx" => ext.filter(|e| e.cy > 0).map(|e| px(e.cy)),
+        "crop" => pic.and_then(|p| p.crop).filter(|c| !c.is_zero()).map(|c| Value::Object(crop_json(c))),
+    );
+    match d.anchor.as_ref() {
+        Some(a) => {
+            set_if!(&mut o, "floating" => true, "behind" => a.behind_doc);
+            set_some!(&mut o, "wrap" => wrap_name(&a.wrap));
+            anchor_pos(a, &mut o);
+        }
+        // 随文图片跟着所在段落的对齐
+        None => set_some!(&mut o, "align" => para_align_of(ctx.dom, node)),
+    }
+    Some(Value::Object(o))
+}
+
+/// `w:pict` / `w:object` → 一条 `HfImage`。
+fn vml_image(
+    ctx: &Ctx<'_>,
+    v: &crate::model::VmlDisplay,
+    node: NodeId,
+    absolute: bool,
+) -> Option<Value> {
+    let shape = v.shapes.iter().find(|s| s.imagedata.is_some())?;
+    let media = ctx.media.get(shape.imagedata.as_deref()?)?;
+    let mut o = Map::new();
+    set(&mut o, "dataUrl", media.url.clone());
+    // VML 的尺寸写在 `style` 里，单位 pt
+    set_some!(&mut o,
+        "widthPx" => shape.style_len("width").and_then(style_px),
+        "heightPx" => shape.style_len("height").and_then(style_px),
+    );
+    if absolute {
+        set_if!(&mut o, "floating" => true);
+        // 负 `z-index` = 画在文字下面（图片水印）
+        let z = shape.style_get("z-index").map(str::trim).unwrap_or("");
+        set_if!(&mut o, "behind" => z.starts_with('-'));
+        set_some!(&mut o,
+            "posH" => shape.style_get("mso-position-horizontal").and_then(h_align),
+            "posV" => shape.style_get("mso-position-vertical").and_then(v_align),
+        );
+    } else {
+        set_some!(&mut o, "align" => para_align_of(ctx.dom, node));
+    }
+    // `gain` / `blacklevel` 是 Word 的"冲蚀"预设（图片水印）
+    set_if!(&mut o, "washout" => washout(ctx.dom, shape.node));
+    Some(Value::Object(o))
+}
+
+/// `wp:positionH` / `wp:positionV` → `posH` / `posV` 或 `posXPx` / `posYPx` + 基准。
+fn anchor_pos(a: &crate::model::drawing::AnchorGeom, o: &mut Map<String, Value>) {
+    for (axis_h, pos) in [(true, &a.h), (false, &a.v)] {
+        if let Some(align) = pos.align.as_deref() {
+            if axis_h {
+                set_some!(o, "posH" => h_align(align));
+            } else {
+                set_some!(o, "posV" => v_align(align));
+            }
+        } else if let Some(off) = pos.offset_emu {
+            let rel = pos.relative_from.as_deref().unwrap_or("");
+            if axis_h {
+                set(o, "posXPx", px(off));
+                set(o, "posHRel", if rel == "page" { "page" } else { "margin" });
+            } else {
+                set(o, "posYPx", px(off));
+                set(
+                    o,
+                    "posVRel",
+                    match rel {
+                        "page" => "page",
+                        // 竖向的 `paragraph` / `line` 保留原义：正文下推要从页眉带顶开始量
+                        "paragraph" | "line" => "paragraph",
+                        _ => "margin",
+                    },
+                );
+            }
+        }
+    }
+}
+
+fn wrap_name(w: &crate::model::drawing::Wrap) -> Option<&'static str> {
+    use crate::model::drawing::Wrap;
+    Some(match w {
+        Wrap::None => "none",
+        Wrap::Square { .. } => "square",
+        Wrap::Tight { .. } => "tight",
+        Wrap::Through { .. } => "through",
+        Wrap::TopAndBottom => "topBottom",
+        Wrap::Unspecified => return None,
+    })
+}
+
+fn h_align(a: &str) -> Option<&'static str> {
+    match a.trim() {
+        "left" => Some("left"),
+        "center" => Some("center"),
+        "right" => Some("right"),
+        _ => None,
+    }
+}
+
+fn v_align(a: &str) -> Option<&'static str> {
+    match a.trim() {
+        "top" => Some("top"),
+        "center" => Some("center"),
+        "bottom" => Some("bottom"),
+        _ => None,
+    }
+}
+
+/// EMU → px，四舍五入（`MOD-11` 的单位换算集中在 `model/units.rs`）。
+fn px(emu: i64) -> i64 {
+    #[allow(clippy::cast_possible_truncation)]
+    let v = crate::model::units::emu_to_px(emu as f64).round() as i64;
+    v
+}
+
+/// VML `style` 里的长度 → px（`width:40pt` → 53）。无单位或非绝对单位 → `None`。
+fn style_px(l: crate::model::units::Length) -> Option<i64> {
+    #[allow(clippy::cast_possible_truncation)]
+    let v = crate::model::units::emu_to_px(l.to_emu()?).round() as i64;
+    (v > 0).then_some(v)
+}
+
+/// `a:srcRect` → 四边的小数（TS `rectFrac`：千分之一百分比 → 0..1）。
+fn crop_json(c: crate::model::drawing::RectFrac) -> Map<String, Value> {
+    let mut o = Map::new();
+    for (k, v) in [("l", c.l), ("t", c.t), ("r", c.r), ("b", c.b)] {
+        #[allow(clippy::cast_precision_loss)]
+        set(&mut o, k, v as f64 / 100_000.0);
+    }
+    o
+}
+
+/// `v:imagedata` 上有 `gain` / `blacklevel`（Word 的冲蚀预设）。
+fn washout(dom: &Dom, shape: NodeId) -> bool {
+    dom.semantic_descendants(shape)
+        .filter(|&n| dom.is(n, QName::new(NsId::V, LocalName::Imagedata)))
+        .any(|n| {
+            [LocalName::Gain, LocalName::Blacklevel]
+                .into_iter()
+                .any(|a| dom.attr_value(n, QName::new(NsId::None, a)).is_some())
+        })
+}
+
+/// 图片所在段落的 `w:jc`（随文图片跟着段落对齐）。
+fn para_align_of(dom: &Dom, node: NodeId) -> Option<&'static str> {
+    let para = std::iter::once(node)
+        .chain(dom.ancestors(node))
+        .find(|&n| dom.is(n, QName::w(LocalName::P)))?;
+    super::image::jc_align(dom, para)
+}
+
+// ---- 无字矢量装饰 → 一张 SVG（TS `hfShapeDrawingSvg`）------------------------------------------
+
+/// 一个页眉里的绘图**没有位图**、只有几个实心 `custGeom` 形状（角花之类的装饰）时，TS 把整组
+/// 合成**一张 SVG** 当作图片。这是显示层的合成，只出现在适配器里（`COMPAT-01`）。
+///
+/// 任何一处表达不出来就整张不给（返回 `None`）：有文字、有旋转 / 翻转、缺尺寸、没有实心填充、
+/// 几何用了公式或圆弧（`model::custgeom` 给不出路径）。宁可不画，也不能画一张缺了形状的图。
+fn shape_drawing_svg(ctx: &Ctx<'_>, d: &crate::model::drawing::DrawingDisplay) -> Option<String> {
+    let ext = d.extent.filter(|e| e.cx > 0 && e.cy > 0)?;
+    if d.shapes.is_empty() || d.shapes.iter().any(|s| !s.content.is_empty()) {
+        return None;
+    }
+    // 组的子坐标系 → 绘图坐标系的仿射（`a:chOff` / `a:chExt` → `a:off` / `a:ext`）
+    let (mut sx, mut sy, mut tx, mut ty) = (1.0f64, 1.0f64, 0.0f64, 0.0f64);
+    if let Some(g) = d.shapes.iter().find(|s| s.is_group) {
+        let (ge, gce) = (g.ext, g.ch_ext);
+        if let (Some(e), Some(ce)) = (ge, gce) {
+            #[allow(clippy::cast_precision_loss)]
+            if e.cx > 0 && ce.cx > 0 {
+                sx = e.cx as f64 / ce.cx as f64;
+            }
+            #[allow(clippy::cast_precision_loss)]
+            if e.cy > 0 && ce.cy > 0 {
+                sy = e.cy as f64 / ce.cy as f64;
+            }
+        }
+        let off = g.off.unwrap_or((0, 0));
+        let ch = g.ch_off.unwrap_or((0, 0));
+        #[allow(clippy::cast_precision_loss)]
+        {
+            tx = off.0 as f64 - ch.0 as f64 * sx;
+            ty = off.1 as f64 - ch.1 as f64 * sy;
+        }
+    }
+    let mut paths = String::new();
+    for s in d.shapes.iter().filter(|s| !s.is_group) {
+        if s.rot_60k.is_some_and(|r| r != 0) || s.flip_h || s.flip_v {
+            return None;
+        }
+        let e = s.ext.filter(|e| e.cx > 0 && e.cy > 0)?;
+        let fill = s
+            .fill
+            .as_ref()
+            .filter(|f| f.kind == crate::model::drawing::FillKind::Solid)
+            .and_then(|f| super::box_json::color_hex(ctx, f.node))?;
+        let geom = s.geom.as_ref()?;
+        let pd = super::box_json::path_data(geom, s.ext)?;
+        // 只画填充路径（`path` + `fillPath`），描边路径不参与
+        let d_norm: String = ["path", "fillPath"]
+            .into_iter()
+            .filter_map(|k| pd.get(k).and_then(Value::as_str))
+            .collect::<Vec<_>>()
+            .join(" ");
+        if d_norm.is_empty() {
+            return None;
+        }
+        let off = s.off.unwrap_or((0, 0));
+        #[allow(clippy::cast_precision_loss)]
+        let (x, y) = (emu_px2(off.0 as f64 * sx + tx), emu_px2(off.1 as f64 * sy + ty));
+        #[allow(clippy::cast_precision_loss)]
+        let (w, h) = (emu_px2(e.cx as f64 * sx), emu_px2(e.cy as f64 * sy));
+        let placed = place_path(&d_norm, x, y, w, h);
+        paths.push_str(&format!(r##"<path d="{placed}" fill="#{fill}"/>"##));
+    }
+    if paths.is_empty() {
+        return None;
+    }
+    #[allow(clippy::cast_precision_loss)]
+    let svg = format!(
+        r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {} {}">{paths}</svg>"#,
+        num2(emu_px2(ext.cx as f64)),
+        num2(emu_px2(ext.cy as f64))
+    );
+    Some(format!("data:image/svg+xml,{}", encode_uri_component(&svg)))
+}
+
+/// 0..1 的归一化路径 → 形状矩形里的 px 路径。数字按 x / y 交替换算，遇到命令字母重新计数。
+fn place_path(d: &str, x: f64, y: f64, w: f64, h: f64) -> String {
+    let mut axis = 0usize;
+    d.split(' ')
+        .map(|tok| match tok.parse::<f64>() {
+            Ok(n) => {
+                let v = if axis.is_multiple_of(2) { x + n * w } else { y + n * h };
+                axis += 1;
+                num2(round2(v))
+            }
+            Err(_) => {
+                axis = 0;
+                tok.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// EMU → px，保留两位小数（TS `px()`）。
+fn emu_px2(emu: f64) -> f64 {
+    round2(crate::model::units::emu_to_px(emu))
+}
+
+fn round2(v: f64) -> f64 {
+    let r = (v * 100.0).round() / 100.0;
+    if r == 0.0 { 0.0 } else { r }
+}
+
+/// 数字的 JS `String()` 写法（整数不带小数点，`-0` 归 `0`）。
+fn num2(v: f64) -> String {
+    format!("{v}")
+}
+
+/// `encodeURIComponent`：除 `A-Za-z0-9-_.!~*'()` 外一律按 UTF-8 百分号编码。
+fn encode_uri_component(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for b in s.bytes() {
+        if b.is_ascii_alphanumeric() || b"-_.!~*'()".contains(&b) {
+            out.push(b as char);
+        } else {
+            out.push_str(&format!("%{b:02X}"));
+        }
+    }
+    out
 }

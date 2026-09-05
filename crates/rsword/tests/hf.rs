@@ -13,6 +13,42 @@ const R: &str = r#"xmlns:r="http://schemas.openxmlformats.org/officeDocument/200
 const HDR_REL: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header";
 const FTR_REL: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer";
 
+/// base64 解码（测试里塞真实 PNG 字节用）。
+fn b64(s: &str) -> Vec<u8> {
+    const T: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = Vec::new();
+    let mut acc = 0u32;
+    let mut bits = 0u32;
+    for c in s.bytes().filter(|&c| c != b'=') {
+        let Some(v) = T.iter().position(|&t| t == c) else { continue };
+        acc = (acc << 6) | v as u32;
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            out.push((acc >> bits) as u8);
+        }
+    }
+    out
+}
+
+/// 往一份 docx 里追加一个二进制 part。
+fn with_binary_part(docx: &[u8], name: &str, data: &[u8]) -> Vec<u8> {
+    use std::io::{Cursor, Write};
+    let mut zin = zip::ZipArchive::new(Cursor::new(docx.to_vec())).unwrap();
+    let mut w = zip::ZipWriter::new(Cursor::new(Vec::new()));
+    for i in 0..zin.len() {
+        let mut f = zin.by_index(i).unwrap();
+        let n = f.name().to_string();
+        let mut buf = Vec::new();
+        std::io::Read::read_to_end(&mut f, &mut buf).unwrap();
+        w.start_file(n, zip::write::SimpleFileOptions::default()).unwrap();
+        w.write_all(&buf).unwrap();
+    }
+    w.start_file(name, zip::write::SimpleFileOptions::default()).unwrap();
+    w.write_all(data).unwrap();
+    w.finish().unwrap().into_inner()
+}
+
 /// 按 `COMPAT-09` 的容忍规则比较（浮点 1e-6、`undefined` 与缺失等价）——与差分工具同一把尺子，
 /// 这样 `50` 与 `50.0` 之类的 JSON 数字写法不会被判成差异。
 fn same(expected: &serde_json::Value, actual: &serde_json::Value, what: &str) {
@@ -471,6 +507,92 @@ fn compat_05_textbox_paragraphs_are_surfaced() {
     assert_eq!(paras[0]["runs"][0]["text"], "— 1 —");
     assert_eq!(paras[0]["align"], "center");
     assert_eq!(paras[0]["boxAnchored"], true, "position:absolute → 画在锚点上，不占行高");
+}
+
+/// `COMPAT-05` 的 `images`：part 级的图片列表。随文图片在顶层表格里的不进这张表（它已经在
+/// 单元格 run 上），浮动的照样进；锚定的位置按 `wp:align` / `wp:posOffset` 出 `posH` / `posXPx`。
+#[test]
+fn compat_05_hf_images() {
+    // 1x1 的 PNG
+    const PNG: &str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    let drawing_inline = concat!(
+        r#"<w:r><w:drawing><wp:inline><wp:extent cx="381000" cy="190500"/>"#,
+        r#"<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">"#,
+        r#"<pic:pic><pic:blipFill><a:blip r:embed="rIdImg"/></pic:blipFill></pic:pic>"#,
+        r#"</a:graphicData></a:graphic></wp:inline></w:drawing></w:r>"#
+    );
+    let drawing_anchor = concat!(
+        r#"<w:r><w:drawing><wp:anchor behindDoc="1">"#,
+        r#"<wp:positionH relativeFrom="page"><wp:posOffset>190500</wp:posOffset></wp:positionH>"#,
+        r#"<wp:positionV relativeFrom="paragraph"><wp:align>bottom</wp:align></wp:positionV>"#,
+        r#"<wp:extent cx="381000" cy="190500"/><wp:wrapSquare wrapText="bothSides"/>"#,
+        r#"<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">"#,
+        r#"<pic:pic><pic:blipFill><a:blip r:embed="rIdImg"/>"#,
+        r#"<a:srcRect l="0" t="10000" r="0" b="0"/></pic:blipFill></pic:pic>"#,
+        r#"</a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>"#
+    );
+    let header = format!(
+        concat!(
+            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr xmlns:w="{W}""#,
+            r#" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships""#,
+            r#" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing""#,
+            r#" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main""#,
+            r#" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture""#,
+            r#" xmlns:v="{V}">"#,
+            // 随文图片：跟着段落对齐
+            r#"<w:p><w:pPr><w:jc w:val="right"/></w:pPr>{inline}</w:p>"#,
+            // 锚定图片：floating / behind / wrap / 位置 / 裁剪
+            r#"<w:p>{anchor}</w:p>"#,
+            // 表格里的随文图片：不进 part 级列表
+            r#"<w:tbl><w:tblPr/><w:tblGrid><w:gridCol w:w="1000"/></w:tblGrid>"#,
+            r#"<w:tr><w:tc><w:p>{inline}</w:p></w:tc></w:tr></w:tbl>"#,
+            r#"</w:hdr>"#
+        ),
+        W = W,
+        V = V,
+        inline = drawing_inline,
+        anchor = drawing_anchor
+    );
+    let body = format!(
+        r#"<w:p/><w:sectPr><w:headerReference {R} w:type="default" r:id="rIdH"/></w:sectPr>"#
+    );
+    let bytes = common::docx_with_parts(
+        &body,
+        &[
+            ("word/_rels/document.xml.rels", &rels(&[("rIdH", HDR_REL, "header1.xml")])),
+            ("word/header1.xml", &header),
+            (
+                "word/_rels/header1.xml.rels",
+                &rels(&[(
+                    "rIdImg",
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+                    "media/logo.png",
+                )]),
+            ),
+        ],
+    );
+    // 媒体是二进制，`docx_with_parts` 只写文本 part —— 用 base64 解出来的 PNG 单独塞进去
+    let bytes = with_binary_part(&bytes, "word/media/logo.png", &b64(PNG));
+    let mut pkg = Package::open(&bytes).expect("open");
+    let json = rsword::bind::compat_ts::parsed_doc(&mut pkg).expect("parsed_doc");
+    let imgs = json["headerImages"].as_array().expect("headerImages");
+    assert_eq!(imgs.len(), 2, "表格里的随文图片不进 part 级列表\n{imgs:#?}");
+
+    assert_eq!(imgs[0]["widthPx"], 40);
+    assert_eq!(imgs[0]["heightPx"], 20);
+    assert_eq!(imgs[0]["align"], "right", "随文图片跟着段落 jc");
+    assert!(imgs[0]["dataUrl"].as_str().unwrap().starts_with("data:image/png;base64,"));
+    assert!(imgs[0].get("floating").is_none());
+
+    assert_eq!(imgs[1]["floating"], true);
+    assert_eq!(imgs[1]["behind"], true);
+    assert_eq!(imgs[1]["wrap"], "square");
+    assert_eq!(imgs[1]["posXPx"], 20);
+    assert_eq!(imgs[1]["posHRel"], "page");
+    assert_eq!(imgs[1]["posV"], "bottom", "wp:align 优先于偏移");
+    assert_eq!(imgs[1]["crop"]["t"], 0.1);
+    // `hfParts` 里同一份
+    assert_eq!(json["hfParts"]["rIdH"]["images"], json["headerImages"]);
 }
 
 /// 全语料：页眉页脚 part 的 `rId` 集合与 `hasPageNumber` 与 TS 逐份一致。

@@ -3,15 +3,15 @@
 //! 有未知差异时退出码 1（CI 门 `TEST-10`）。
 //!
 //! ```text
-//! diff-parse [--corpus DIR] [--scope text|fields|tables|drawing|all] [--known FILE] [--doc PREFIX] [--show N] [--json] [--by-doc]
+//! diff-parse [--corpus DIR] [--scope text|fields|tables|drawing|hf|all] [--known FILE] [--doc PREFIX] [--show N] [--json] [--by-doc]
 //! ```
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use rsword::bind::compat_ts::{
-    Report, diff_json, is_drawing_path, is_span_field_case, is_table_case, is_text_case,
-    known_diffs, parse_known_diffs, parsed_doc, split_known,
+    Report, diff_json, is_drawing_path, is_hf_path, is_span_field_case, is_table_case,
+    is_text_case, known_diffs, parse_known_diffs, parsed_doc, split_known,
 };
 use rsword::package::Package;
 use serde_json::{Value, json};
@@ -31,6 +31,8 @@ enum Scope {
     Tables,
     /// M4 门：全部文档，只计绘图域的路径。
     Drawing,
+    /// M5 门：全部文档，只计页眉页脚域的路径。
+    Hf,
     /// 全部语料。
     All,
 }
@@ -42,6 +44,7 @@ impl Scope {
             Scope::Fields => "fields",
             Scope::Tables => "tables",
             Scope::Drawing => "drawing",
+            Scope::Hf => "hf",
             Scope::All => "all",
         }
     }
@@ -59,10 +62,11 @@ struct Args {
 
 fn usage() -> ! {
     eprintln!(
-        "用法: diff-parse [--corpus DIR] [--scope text|fields|tables|drawing|all] [--known KNOWN_DIFFS.md] [--doc PREFIX] [--show N] [--json] [--by-doc]\n\
+        "用法: diff-parse [--corpus DIR] [--scope text|fields|tables|drawing|hf|all] [--known KNOWN_DIFFS.md] [--doc PREFIX] [--show N] [--json] [--by-doc]\n\
          scope: text = M1 门（纯文本段落），fields = M2 门（再加字段 / 范围 / 批注），\n\
                 tables = M3 门（再加表格），\n\
-                drawing = M4 门（全部文档，只计绘图域**路径**），all = 全部语料\n\
+                drawing = M4 门（全部文档，只计绘图域**路径**），\n\
+                hf = M5 门（全部文档，只计页眉页脚域**路径**），all = 全部语料\n\
          缺省 corpus = <仓库根>/corpus/synthetic，scope = all，known = 编进库里的 KNOWN_DIFFS.md，show = 3"
     );
     std::process::exit(2)
@@ -88,6 +92,7 @@ fn parse_args() -> Args {
                     Some("fields") => Scope::Fields,
                     Some("tables") => Scope::Tables,
                     Some("drawing") => Scope::Drawing,
+                    Some("hf") => Scope::Hf,
                     Some("all") => Scope::All,
                     _ => usage(),
                 }
@@ -180,8 +185,8 @@ fn main() -> ExitCode {
             Scope::Text => is_text_case(&expected),
             Scope::Fields => is_span_field_case(&expected),
             Scope::Tables => is_table_case(&expected),
-            // 绘图门跑全部文档，筛的是路径不是文档
-            Scope::Drawing | Scope::All => true,
+            // 绘图门与页眉页脚门跑全部文档，筛的是路径不是文档
+            Scope::Drawing | Scope::Hf | Scope::All => true,
         };
         if !in_scope {
             skipped_scope += 1;
@@ -202,6 +207,9 @@ fn main() -> ExitCode {
         // 绘图门只看绘图域路径；别的域各归各的里程碑，混进来这道门永远关不上。
         if args.scope == Scope::Drawing {
             unknown.retain(|d| is_drawing_path(&d.path));
+        }
+        if args.scope == Scope::Hf {
+            unknown.retain(|d| is_hf_path(&d.path));
         }
         if !unknown.is_empty() {
             by_doc.push((file.clone(), unknown.len()));
