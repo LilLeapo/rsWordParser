@@ -1076,3 +1076,22 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
     页脚的语料各 100 步（页眉段落 `InsertText` / `DeleteRange` + 五个节 / 页眉页脚操作），
     每步断言 `MOD-13`（投影 == 重建）与"无引擎不变式破坏"，每 20 步保存 + 重解析接着跑
     （实测 986 次生效、10 次被拒）。`--scope hf` 早在 5.4 就进了 CI。
+
+---
+
+## 15. M6 执行进度
+
+任务分解与 DoD 在 `spec/17-m6-plan.md`。分支 `m6-embedded`（从 `main` = bf1f906 开，M0–M5 全部已并入；计划最初在 dcd653d 上写成，M5 并入后重定基），
+工作树 `../rsWordParser-m6`。开工基线（2026-09-06 实测）：`diff-parse --scope all` 62 处 / 29 份，其中嵌入对象域 22 处 / 12 份
+（公式 8 + 行内公式 4 + 图表 3 + SmartArt / 缺 part 的 `previewText` 5 + OLE 同段 2），其余 40 处是没有归属的零散差异（6.9）；
+保存语料 138 / 162 等价，剩下的 20 份跳过全属 M6（chart 6 + image 4 + inks 8 + partXml 1 + replaceImage 1）。M6 门五条见 `spec/17`。
+
+- [ ] **6.1 图表 part 的模型**（`model/chart.rs`）：图表 part 有自己的 DOM，`ChartDisplay` 是投影；`c:` 与 chartex；TS 单测夹具搬成 `tests/fixtures/chart/*.xml`。
+- [ ] **6.2 图表投影与 `--scope embedded`**（`bind/compat_ts/chart.rs`、`diff.rs`、`tools/diff-parse`）：`chartDisplay` / `extras.chartParts` / `previewText` 的有无；R12 的 chartex Fallback 图；CI。
+- [ ] **6.3 SmartArt 与绘图画布**（`model/diagram.rs`、`bind/compat_ts/diagram.rs`）：数据 part 文字树、绘图 part 形状、`lc:lockedCanvas` 缩放；分栏启发式只在 compat。
+- [ ] **6.4 OLE 与文字同段的 run 投影**（`bind/compat_ts/image.rs`）：`SegmentKind::Object` → run 图片；`OleDisplay` 进 `Segment.display`。
+- [ ] **6.5 公式与 ruby**（`model/math.rs`、`model/omml/{mathml,latex}.rs`）：`FormulaDisplay`、`runs[].math`、`runs[].ruby`；两个转换器逐字移植且迭代实现。
+- [ ] **6.6 图表的保存**（`edit/chart_ops.rs`、`save/parts.rs`）：`SetChartData` 只改缓存文本；`NewBlock::Chart` 新建 part + 工作簿 + 关系；`ReplacePartXml / Bytes`。
+- [ ] **6.7 媒体写侧**（`package/media.rs`、`edit/media_ops.rs`、`save/prune.rs`）：`MediaStore::add` 去重、`NewBlock::Image`、`ReplaceImageMedia`、编辑引起的孤儿回收。
+- [ ] **6.8 墨迹**（`model/ink.rs`、`edit/ink_ops.rs`）：`inks[]` 读侧、`RemoveInks` + `InsertInk`、墨迹对分类与坐标流不可见。
+- [ ] **6.9 恶意输入、fuzz、全域收尾与 M6 门**：6 份 hostile、`fuzz_embedded`、100 × 10 随机序列、40 处零散差异修掉或登记、`--scope embedded` 与 `--scope all` 进 CI。
