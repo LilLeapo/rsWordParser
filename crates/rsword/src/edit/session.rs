@@ -107,7 +107,14 @@ impl EditSession {
     pub fn dom_in(&self, part: Option<PartId>) -> Result<&Dom> {
         let id = self.part_or_main(part);
         self.pkg.part(id).dom().ok_or_else(|| {
-            Error::edit(DiagCode::EditBadPosition, format!("part {} 没有可编辑的 XML", id.0))
+            // `Opaque`（`PKG-11` 解析失败）与"这个 part 压根不是 XML"分开报：前者是可以修的
+            // 状况（重新给一份好的 part 字节），后者是调用方指错了地方
+            let code = if self.pkg.part(id).is_opaque() {
+                DiagCode::EditTargetOpaque
+            } else {
+                DiagCode::EditBadPosition
+            };
+            Error::edit(code, format!("part {} 没有可编辑的 XML", id.0))
         })
     }
 

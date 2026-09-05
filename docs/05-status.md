@@ -117,7 +117,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 保存差分 | 162 份 TS 保存用例：138 份与 `saveDocx` 等价（其中 41 份逐字节相同）、4 份有意不同、20 份跳过 | `tests/save_blocks.rs` |
 | 节与页眉页脚 | 573 份 588 个节（与 TS `readSections` 逐份一致）；43 份带页眉页脚 part（47 个 part / 63 个块，`rId` 集合与 `hasPageNumber` 与 TS 一致）；26 个注释 / 批注条目 32 个块 | `cargo test -p rsword --test section --test hf --test notes -- --nocapture` |
 | 节与页眉页脚的编辑操作 | 14 个用例（`SAVE-05` 页眉版、已有 part 只重写该 part、`PROP-05/06` 插入位置与原字节、Strict 水印拒绝、六个操作各一组 XPath 断言、`MOD-13` oracle；另加 4 份 hostile 与 `TEST-07` 的 10 × 100 步随机序列） | `cargo test -p rsword --test hf_ops` |
-| 跨 part 编辑 | 34 份带页眉的语料上页眉段落 `InsertText` 往返（M5 门第 3 条）：只重写该 part，其他条目 CRC 与压缩字节不变 | `cargo test -p rsword --test hf` |
+| 跨 part 编辑 | **43 / 43** 份带页眉页脚的语料（M5 门第 3 条）：改页眉后只重写该 part，其他条目 CRC 与压缩字节不变，正文投影不变 | `cargo test -p rsword --test hf -- --nocapture` |
 | 节属性往返 | 604 个 `w:sectPr`：0 处 `PROP_BAD_VALUE`、596 个符合 schema 顺序 | `cargo test -p rsword --test props -- --nocapture` |
 | 范围索引 | 573 份 / 3012 个 part 的 31 个标记全部成对认领 → 19 个范围（书签 7、批注 12）；1 处孤儿终点 | `tests/span.rs` |
 | Span 编辑与物化 | 29 个用例覆盖 `SPAN-01`–`SPAN-09`（含 4 条变换规则、整体删除策略、物化与原字节保真） | `cargo test -p rsword --test span` |

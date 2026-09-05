@@ -875,6 +875,16 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
 工作树 `../rsWordParser-m4`。开工基线（2026-09-05 实测）：`diff-parse --scope all` 244 处 / 81 份，其中页眉页脚域
 161 处 / 43 份；保存语料 90 / 162 等价，48 份被 M5 选项阻塞。M5 门五条见 `spec/16`。
 
+### M5 门（2026-09-06 实测）
+
+| # | 条件 | 状态 |
+| --- | --- | --- |
+| 1 | `--scope hf` 0 未知差异，`text` / `fields` / `tables` / `drawing` 继续为 0 | **通过**（573 / 226 / 253 / 320 / 573 份，五道门都是 0） |
+| 2 | 被 M5 选项阻塞的 48 份保存用例全部等价或登记；跳过只剩 20 份 | **通过**（162 份里 138 等价、4 份 `INTENTIONAL`、20 份跳过 = 图表 6 + 图片 4 + 墨迹 8 + `partXml` 1 + `replaceImage` 1，全属 M6 / M7） |
+| 3 | 43 份带页眉页脚的语料：改页眉后只重写那个 part，其他条目 CRC 与压缩字节不变 | **通过**（43 / 43。9 份页眉里一个文本段落都没有——整个页眉只有一张图或一张表——改用 `InsertBlock`） |
+| 4 | `RES-04` / `RES-10` 的 fixture 通过 `TEST-08` | **挂起**：脚手架全就位（六份 docx、参数化规则、harness），**只差在真实 Word 里观察一次**。见 5.8 与 §9 第 4 条 |
+| 5 | 4 份页眉页脚 / 节的病态输入解析成功、局部降级、无编辑保存字节相同 | **通过**（`PKG_REL_MISSING` / `PKG_OPAQUE_PART` + `EDIT_TARGET_OPAQUE` / `PROP_BAD_VALUE` + 几何回退 / `MOD_TOO_DEEP`） |
+
 - [x] **5.1 节属性表**（`schema/props/section.toml`，`types.toml` + 12 枚举 / 8 结构体）：`SectionProps`
   （`change = w:sectPrChange`）+ 四张子表 `FootnoteProps` / `EndnoteProps` / `PageBorders` / `Columns`；
   `para.toml` 的 `sect_pr` 从 `Raw` 接到这张表（分节段落的属性因此建模了）；`model/section.rs` 的几何

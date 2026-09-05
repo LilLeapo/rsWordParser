@@ -698,24 +698,40 @@ fn test_04_editing_a_header_paragraph_touches_only_that_part() {
         let bytes = std::fs::read(&path).unwrap();
         let Ok(mut probe) = Package::open(&bytes) else { continue };
         let Ok(doc) = Document::rebuild(&mut probe) else { continue };
-        // 找一个有文本段落的页眉页脚 part
-        let Some((part, para)) = doc.hf_parts.iter().find_map(|(&p, hf)| {
-            hf.text_blocks().find(|tb| !tb.inlines.is_empty()).map(|tb| (p, tb.node))
-        }) else {
-            continue;
+        // 有文本段落就往里插字（空段落也算，`InsertText` 在偏移 0 一样能落）；整个页眉只有
+        // 一张图或一张表的（语料里有 9 份）就插一个新段落——门要的是"改页眉只重写那个 part"，
+        // 用哪个操作达到不重要
+        let text_target =
+            doc.hf_parts.iter().find_map(|(&p, hf)| hf.text_blocks().next().map(|tb| (p, tb.node)));
+        let block_target =
+            doc.hf_parts.iter().find_map(|(&p, hf)| hf.blocks.last().map(|b| (p, b.node())));
+        let (part, op) = match (text_target, block_target) {
+            (Some((part, para)), _) => (
+                part,
+                EditOp::InsertText {
+                    at: InlinePos::in_part(part, para, 0),
+                    text: "Z".into(),
+                    props: None,
+                },
+            ),
+            (None, Some((part, last))) => (
+                part,
+                EditOp::InsertBlock {
+                    at: rsword::edit::BlockPos::in_part(part, rsword::edit::BlockAt::After(last)),
+                    block: rsword::edit::NewBlock::Paragraph {
+                        props: None,
+                        inlines: vec![rsword::edit::NewInline::Run(rsword::edit::NewRun::text(
+                            "Z",
+                        ))],
+                    },
+                },
+            ),
+            (None, None) => continue,
         };
         let before = zip_entries(&bytes);
 
         let mut s = EditSession::open(&bytes).expect("open");
-        s.apply(
-            EditOp::InsertText {
-                at: InlinePos::in_part(part, para, 0),
-                text: "Z".into(),
-                props: None,
-            },
-            &EditContext::default(),
-        )
-        .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        s.apply(op, &EditContext::default()).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
         let saved = s.save().unwrap_or_else(|e| panic!("{}: {e}", path.display()));
         let after = zip_entries(&saved);
         edited += 1;
@@ -759,7 +775,9 @@ fn test_04_editing_a_header_paragraph_touches_only_that_part() {
         );
     }
     eprintln!("hf edit: {edited} 份文档在页眉里插字后只重写了那个 part");
-    assert!(edited >= 30, "语料缺失？{edited}");
+    // 语料里带 `header*.xml` / `footer*.xml` 的文档共 43 份（M5 门第 3 条）。少的那几份里
+    // 一个文本段落都没有（整个页眉只有一张图或一张表），没有地方可以插字
+    assert!(edited >= 40, "语料缺失？{edited}");
 }
 
 /// 书签 / 批注 / 字段的索引只对主 part 建过：位置带别的 part 时明确拒绝，状态不变（`EDIT-05`）。

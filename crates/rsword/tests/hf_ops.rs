@@ -563,7 +563,10 @@ fn test_09_binary_header_part_is_opaque() {
             &EditContext::default(),
         )
         .expect_err("Opaque part 不能写");
-    assert!(matches!(err, rsword::Error::Edit { .. }), "{err}");
+    assert!(
+        matches!(err, rsword::Error::Edit { code: rsword::diag::DiagCode::EditTargetOpaque, .. }),
+        "{err}"
+    );
     assert_eq!(s.save().expect("save"), before, "拒绝后一个字节都不该动");
 
     // 正文仍然可编辑

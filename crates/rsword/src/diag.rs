@@ -128,6 +128,8 @@ pub enum DiagCode {
     EditPlanInvalid,
     /// `EDIT-03`：该操作或输入形态在当前阶段不支持。
     EditUnsupported,
+    /// `EDIT-03`：目标 part 是 `Opaque`（`PKG-11` 解析失败），改不了它的内容。
+    EditTargetOpaque,
     /// `EDIT-03`：表格各行的网格宽度与 `tblGrid` 列数不一致，列操作拒绝执行（**不**偷偷修网格）。
     EditTableGridInconsistent,
     /// `EDIT-03`：请求的表格几何非法（合并区不是矩形 / 与既有合并交叠 / 会把行掏空）。
@@ -187,6 +189,7 @@ impl DiagCode {
             Self::EditAnchorUnmoved => "EDIT_ANCHOR_UNMOVED",
             Self::EditPlanInvalid => "EDIT_PLAN_INVALID",
             Self::EditUnsupported => "EDIT_UNSUPPORTED",
+            Self::EditTargetOpaque => "EDIT_TARGET_OPAQUE",
             Self::EditTableGridInconsistent => "EDIT_TABLE_GRID_INCONSISTENT",
             Self::EditTableGeometry => "EDIT_TABLE_GEOMETRY",
             Self::EditSplitField => "EDIT_SPLIT_FIELD",
