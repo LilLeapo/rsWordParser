@@ -346,8 +346,10 @@ fn prop_08_nested_tables_sub_tables_and_multi() {
     assert_eq!(rpr.bold, Some(true));
     assert_eq!(rpr.size, Some(Val::Value(32)));
     assert_eq!(rpr.raw_unmodeled.len(), 1);
-    // sectPr 是 Raw 字段；pPrChange 进 raw_unmodeled
-    assert!(d.is(p.sect_pr.unwrap(), QName::w(LocalName::SectPr)));
+    // sectPr 是嵌套表（任务 5.1，M1–M4 是 Raw）；pPrChange 进 raw_unmodeled
+    let sect = p.sect_pr.as_ref().unwrap();
+    assert_eq!(sect.page_size.as_ref().unwrap().w, Some(Val::Value(11906)));
+    assert_eq!(sect.page_size.as_ref().unwrap().h, Some(Val::Value(16838)));
     assert_eq!(p.raw_unmodeled.len(), 1);
     assert!(d.is(p.raw_unmodeled[0], QName::w(LocalName::PPrChange)));
     // 快照
@@ -483,7 +485,7 @@ fn para_sample() -> ParaProps {
             lang: Some(Language { val: Some("zh-CN".into()), ..Default::default() }),
             ..Default::default()
         }),
-        sect_pr: None,
+        sect_pr: Some(section_sample()),
         raw_unmodeled: Vec::new(),
     }
 }
@@ -554,8 +556,8 @@ fn prop_05_para_order_table() {
     assert!(TabsField::Tab.info().multi);
     assert_eq!(
         TABLES.len(),
-        27,
-        "run/para 5 + numbering 5 + styles 6 + fontTable 2 + settings 2 + table 3 + row 1 + cell 3"
+        32,
+        "run/para 5 + numbering 5 + styles 6 + fontTable 2 + settings 2 + table 3 + row 1 + cell 3 + section 5"
     );
     assert!(PARA_PROPS.field("indent").is_some());
 }
@@ -792,37 +794,44 @@ fn prop_06_multi_replaces_whole_list_in_place() {
 
 #[test]
 fn prop_06_raw_field_set_clones_subtree() {
+    // `w14:textFill` 是 run 表里唯一的 Raw 字段（`w:sectPr` 从任务 5.1 起是嵌套表）：`Change::Set`
+    // 克隆原子树而不重新生成，原件一个字节不动。
+    let fill = r#"<w14:textFill><w14:solidFill><w14:srgbClr w14:val="FF0000"/></w14:solidFill></w14:textFill>"#;
     let mut d = dom(&format!(
-        r#"<w:body xmlns:w="{W_T}"><w:p><w:pPr><w:sectPr><w:pgSz w:w="1"/></w:sectPr></w:pPr></w:p><w:p><w:pPr><w:jc w:val="both"/></w:pPr></w:p><w:p/></w:body>"#
+        r#"<w:p xmlns:w="{W_T}" xmlns:w14="{W14}"><w:r><w:rPr>{fill}</w:rPr></w:r><w:r><w:rPr><w:b/></w:rPr></w:r><w:r/></w:p>"#
     ));
-    let body = d.root();
-    let ps: Vec<NodeId> = d.semantic_children(body).collect();
-    let ppr1 = first_child(&d, ps[0]);
-    let ppr2 = first_child(&d, ps[1]);
-    let sect = read_para_props(&d, Some(ppr1), &mut Vec::new()).sect_pr.unwrap();
+    let p = d.root();
+    let rs: Vec<NodeId> = d.semantic_children(p).collect();
+    let rpr1 = first_child(&d, rs[0]);
+    let rpr2 = first_child(&d, rs[1]);
+    let src = read_run_props(&d, Some(rpr1), &mut Vec::new()).text_fill.unwrap();
 
-    let patch = ParaPropsPatch { sect_pr: Change::Set(sect), ..Default::default() };
-    let edits = plan_apply_para_props(&d, ps[1], Some(ppr2), &patch, PartFlavor::Transitional);
+    let patch = RunPropsPatch { text_fill: Change::Set(src), ..Default::default() };
+    let edits = plan_apply_run_props(&d, rs[1], Some(rpr2), &patch, PartFlavor::Transitional);
     assert_eq!(
         edits,
-        vec![NodeEdit::InsertClone { parent: Target::Node(ppr2), before: None, source: sect }]
+        vec![NodeEdit::InsertClone { parent: Target::Node(rpr2), before: None, source: src }]
     );
     d.apply_edits(&edits);
     // 缺容器 + Raw：先建容器，再把克隆挂到新容器（Target::New）
-    let patch = ParaPropsPatch {
-        jc: Change::Set(Val::Value(Jc::Center)),
-        sect_pr: Change::Set(sect),
+    let patch = RunPropsPatch {
+        bold: Change::Set(true),
+        text_fill: Change::Set(src),
         ..Default::default()
     };
-    let edits = plan_apply_para_props(&d, ps[2], None, &patch, PartFlavor::Transitional);
+    let edits = plan_apply_run_props(&d, rs[2], None, &patch, PartFlavor::Transitional);
     assert_eq!(edits.len(), 2);
     assert!(matches!(&edits[1], NodeEdit::InsertClone { parent: Target::New(0), .. }));
     d.apply_edits(&edits);
     let out = xml_of(&d);
-    assert!(out.contains(r#"<w:p><w:pPr><w:jc w:val="both"/><w:sectPr><w:pgSz w:w="1"/></w:sectPr></w:pPr></w:p>"#), "{out}");
-    assert!(out.contains(r#"<w:p><w:pPr><w:jc w:val="center"/><w:sectPr><w:pgSz w:w="1"/></w:sectPr></w:pPr></w:p>"#), "{out}");
+    assert!(out.contains(&format!(r#"<w:r><w:rPr><w:b/>{fill}</w:rPr></w:r>"#)), "{out}");
     // 原件不动
-    assert!(out.starts_with(&format!(r#"<w:body xmlns:w="{W_T}"><w:p><w:pPr><w:sectPr><w:pgSz w:w="1"/></w:sectPr></w:pPr></w:p>"#)), "{out}");
+    assert!(
+        out.starts_with(&format!(
+            r#"<w:p xmlns:w="{W_T}" xmlns:w14="{W14}"><w:r><w:rPr>{fill}</w:rPr></w:r>"#
+        )),
+        "{out}"
+    );
 }
 
 /// 与 [`para_sample`] 每个非 Raw 字段都不同的样本。
@@ -871,7 +880,7 @@ fn para_sample_alt() -> ParaProps {
         jc: Some(Val::Value(Jc::Start)),
         outline_lvl: Some(Val::Value(1)),
         rpr: Some(RunProps { italic: Some(true), ..Default::default() }),
-        sect_pr: None,
+        sect_pr: Some(section_sample_alt()),
         raw_unmodeled: Vec::new(),
     }
 }
@@ -1733,4 +1742,250 @@ fn prop_05_table_containers_order_tables() {
     assert_eq!(CellPropsField::Width.info().kind, FieldKind::Struct);
     assert_eq!(CellPropsField::Headers.info().kind, FieldKind::Raw);
     assert_eq!(TC_BORDERS.field("start").unwrap().legacy, Some(QName::w(LocalName::Left)));
+}
+
+// ---- 节属性（任务 5.1，PROP-07 / PROP-08）--------------------------------------------------------
+
+fn hf_ref(id: &str, kind: HdrFtrType) -> HdrFtrRef {
+    HdrFtrRef { id: Some(id.into()), kind: Some(Val::Value(kind)) }
+}
+
+/// 覆盖 `SectionProps` 每个非 Raw 字段的样本。
+fn section_sample() -> SectionProps {
+    SectionProps {
+        header_references: vec![
+            hf_ref("rId7", HdrFtrType::Default),
+            hf_ref("rId8", HdrFtrType::First),
+        ],
+        footer_references: vec![hf_ref("rId9", HdrFtrType::Even)],
+        footnote_props: Some(FootnoteProps {
+            pos: Some(Val::Value(FootnotePos::BeneathText)),
+            num_fmt: Some(NumFmt { val: Some(Val::Value(NumberFormat::LowerRoman)), format: None }),
+            num_start: Some(Val::Value(2)),
+            num_restart: Some(Val::Value(NumRestart::EachSect)),
+            raw_unmodeled: Vec::new(),
+        }),
+        endnote_props: Some(EndnoteProps {
+            pos: Some(Val::Value(EndnotePos::DocEnd)),
+            num_fmt: Some(NumFmt {
+                val: Some(Val::Value(NumberFormat::UpperLetter)),
+                format: None,
+            }),
+            num_start: Some(Val::Value(3)),
+            num_restart: Some(Val::Value(NumRestart::Continuous)),
+            raw_unmodeled: Vec::new(),
+        }),
+        kind: Some(Val::Value(SectType::Continuous)),
+        page_size: Some(PageSz {
+            w: Some(Val::Value(11906)),
+            h: Some(Val::Value(16838)),
+            orient: Some(Val::Value(PageOrient::Landscape)),
+            code: Some(Val::Value(9)),
+        }),
+        page_margins: Some(PageMar {
+            top: Some(Val::Value(1440)),
+            right: Some(Val::Value(1800)),
+            bottom: Some(Val::Value(-1440)),
+            left: Some(Val::Value(1800)),
+            header: Some(Val::Value(851)),
+            footer: Some(Val::Value(992)),
+            gutter: Some(Val::Value(0)),
+        }),
+        page_borders: Some(PageBorders {
+            z_order: Some(Val::Value(PageBorderZOrder::Front)),
+            display: Some(Val::Value(PageBorderDisplay::NotFirstPage)),
+            offset_from: Some(Val::Value(PageBorderOffset::Page)),
+            top: Some(border(BorderStyle::Single, 4)),
+            left: Some(border(BorderStyle::Double, 6)),
+            bottom: Some(border(BorderStyle::Dashed, 8)),
+            right: Some(border(BorderStyle::Dotted, 2)),
+            raw_unmodeled: Vec::new(),
+        }),
+        line_numbers: Some(LineNumber {
+            count_by: Some(Val::Value(5)),
+            start: Some(Val::Value(1)),
+            distance: Some(Val::Value(360)),
+            restart: Some(Val::Value(LineNumberRestart::NewPage)),
+        }),
+        page_numbers: Some(PageNumber {
+            fmt: Some(Val::Value(NumberFormat::UpperRoman)),
+            start: Some(Val::Value(5)),
+            chap_style: Some(Val::Value(1)),
+            chap_sep: Some(Val::Value(ChapterSep::EmDash)),
+        }),
+        columns: Some(Columns {
+            equal_width: Some(false),
+            space: Some(Val::Value(720)),
+            num: Some(Val::Value(2)),
+            sep: Some(true),
+            col: vec![
+                Column { w: Some(Val::Value(4000)), space: Some(Val::Value(720)) },
+                Column { w: Some(Val::Value(4200)), space: None },
+            ],
+            raw_unmodeled: Vec::new(),
+        }),
+        form_prot: Some(true),
+        v_align: Some(Val::Value(VerticalJc::Center)),
+        no_endnote: Some(true),
+        title_pg: Some(true),
+        text_direction: Some(Val::Value(TextDirection::TbRl)),
+        bidi: Some(true),
+        rtl_gutter: Some(true),
+        doc_grid: Some(DocGrid {
+            kind: Some(Val::Value(DocGridType::LinesAndChars)),
+            line_pitch: Some(Val::Value(312)),
+            char_space: Some(Val::Value(0)),
+        }),
+        raw_unmodeled: Vec::new(),
+    }
+}
+
+/// 与 [`section_sample`] 每个非 Raw 字段都不同的样本。
+fn section_sample_alt() -> SectionProps {
+    SectionProps {
+        header_references: vec![hf_ref("rId1", HdrFtrType::Even)],
+        footer_references: vec![
+            hf_ref("rId2", HdrFtrType::Default),
+            hf_ref("rId3", HdrFtrType::First),
+        ],
+        footnote_props: Some(FootnoteProps {
+            pos: Some(Val::Value(FootnotePos::SectEnd)),
+            num_fmt: Some(NumFmt { val: Some(Val::Value(NumberFormat::Decimal)), format: None }),
+            num_start: Some(Val::Value(1)),
+            num_restart: Some(Val::Value(NumRestart::EachPage)),
+            raw_unmodeled: Vec::new(),
+        }),
+        endnote_props: Some(EndnoteProps {
+            pos: Some(Val::Value(EndnotePos::SectEnd)),
+            num_fmt: Some(NumFmt {
+                val: Some(Val::Value(NumberFormat::LowerLetter)),
+                format: None,
+            }),
+            num_start: Some(Val::Value(9)),
+            num_restart: Some(Val::Value(NumRestart::EachSect)),
+            raw_unmodeled: Vec::new(),
+        }),
+        kind: Some(Val::Value(SectType::OddPage)),
+        page_size: Some(PageSz {
+            w: Some(Val::Value(12240)),
+            h: Some(Val::Value(15840)),
+            orient: Some(Val::Value(PageOrient::Portrait)),
+            code: Some(Val::Value(1)),
+        }),
+        page_margins: Some(PageMar {
+            top: Some(Val::Value(720)),
+            right: Some(Val::Value(720)),
+            bottom: Some(Val::Value(720)),
+            left: Some(Val::Value(720)),
+            header: Some(Val::Value(708)),
+            footer: Some(Val::Value(708)),
+            gutter: Some(Val::Value(180)),
+        }),
+        page_borders: Some(PageBorders {
+            z_order: Some(Val::Value(PageBorderZOrder::Back)),
+            display: Some(Val::Value(PageBorderDisplay::FirstPage)),
+            offset_from: Some(Val::Value(PageBorderOffset::Text)),
+            top: Some(border(BorderStyle::Wave, 12)),
+            left: Some(border(BorderStyle::Thick, 24)),
+            bottom: Some(border(BorderStyle::Triple, 18)),
+            right: Some(border(BorderStyle::Nil, 0)),
+            raw_unmodeled: Vec::new(),
+        }),
+        line_numbers: Some(LineNumber {
+            count_by: Some(Val::Value(1)),
+            start: Some(Val::Value(10)),
+            distance: Some(Val::Value(180)),
+            restart: Some(Val::Value(LineNumberRestart::Continuous)),
+        }),
+        page_numbers: Some(PageNumber {
+            fmt: Some(Val::Value(NumberFormat::Decimal)),
+            start: Some(Val::Value(1)),
+            chap_style: Some(Val::Value(2)),
+            chap_sep: Some(Val::Value(ChapterSep::Hyphen)),
+        }),
+        columns: Some(Columns {
+            equal_width: Some(true),
+            space: Some(Val::Value(425)),
+            num: Some(Val::Value(3)),
+            sep: Some(false),
+            col: vec![Column { w: Some(Val::Value(2000)), space: Some(Val::Value(200)) }],
+            raw_unmodeled: Vec::new(),
+        }),
+        form_prot: Some(false),
+        v_align: Some(Val::Value(VerticalJc::Bottom)),
+        no_endnote: Some(false),
+        title_pg: Some(false),
+        text_direction: Some(Val::Value(TextDirection::LrTb)),
+        bidi: Some(false),
+        rtl_gutter: Some(false),
+        doc_grid: Some(DocGrid {
+            kind: Some(Val::Value(DocGridType::SnapToChars)),
+            line_pitch: Some(Val::Value(240)),
+            char_space: Some(Val::Value(2048)),
+        }),
+        raw_unmodeled: Vec::new(),
+    }
+}
+
+#[test]
+fn prop_07_every_section_props_row_roundtrips_and_plans() {
+    check_table_rows!(
+        "w:pPr",
+        SECTION_PROPS,
+        SectionPropsField,
+        SectionProps,
+        read_section_props,
+        emit_section_props,
+        emit_section_props_value,
+        diff_section_props,
+        plan_apply_section_props,
+        order_index_section_props,
+        section_sample(),
+        section_sample_alt()
+    );
+    let _ = SectionProps::default();
+}
+
+/// `w:headerReference` 与 `w:footerReference` 共用 order 的第 0 格：组内交错是合法的，
+/// `SAVE-02` 的 PROP-05 单调性检查不能把它判成乱序（`section.toml` 头注 1）。
+#[test]
+fn prop_05_hf_references_share_one_order_slot() {
+    let hdr = order_index_section_props(QName::w(LocalName::HeaderReference));
+    let ftr = order_index_section_props(QName::w(LocalName::FooterReference));
+    assert_eq!(hdr, Some(0));
+    assert_eq!(ftr, Some(0));
+    // 整组在其余子元素之前
+    for name in [LocalName::FootnotePr, LocalName::Type, LocalName::PgSz, LocalName::DocGrid] {
+        assert!(order_index_section_props(QName::w(name)).unwrap() > 0);
+    }
+    // 交错的引用顺序单调（非严格递增），所以读一份交错文档再改别的字段不会被判违规
+    let d = dom(&format!(
+        r#"<w:sectPr xmlns:w="{W_T}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:footerReference w:type="default" r:id="rId1"/><w:headerReference w:type="default" r:id="rId2"/><w:pgSz w:w="1" w:h="2"/></w:sectPr>"#
+    ));
+    let mut last = 0;
+    for c in d.semantic_children(d.root()) {
+        let i = order_index_section_props(d.name(c).unwrap()).unwrap();
+        assert!(i >= last);
+        last = i;
+    }
+    let props = read_section_props(&d, Some(d.root()), &mut Vec::new());
+    assert_eq!(props.header_references.len(), 1);
+    assert_eq!(props.footer_references.len(), 1);
+    assert_eq!(props.header_references[0].id.as_deref(), Some("rId2"));
+}
+
+/// 非 schema 的 `w:type="odd"`（Word 之外的生成器写它表示缺省页）读成枚举值而不是 `Val::Raw`，
+/// 不记 `PROP_BAD_VALUE`（`RES-10` 把它当 default）。
+#[test]
+fn prop_09_hf_reference_type_odd_is_not_a_bad_value() {
+    let d = dom(&format!(
+        r#"<w:sectPr xmlns:w="{W_T}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:headerReference w:type="odd" r:id="rId1"/></w:sectPr>"#
+    ));
+    let mut diags = Vec::new();
+    let props = read_section_props(&d, Some(d.root()), &mut diags);
+    assert_eq!(props.header_references[0].kind, Some(Val::Value(HdrFtrType::Odd)));
+    assert!(diags.is_empty(), "{diags:?}");
+    // 写回原样
+    let out = to_xml(&emit_section_props(&props, PartFlavor::Transitional), W_T);
+    assert!(out.contains(r#"w:type="odd""#), "{out}");
 }

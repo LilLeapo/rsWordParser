@@ -163,6 +163,7 @@ continuationSeparator
 coordorigin
 coordsize
 coreProperties
+countBy
 cr
 created
 creator
@@ -210,8 +211,10 @@ descr
 dir
 dirty
 displacedByCustomXml
+display
 displayText
 dist
+distance
 distB
 distL
 distR
@@ -557,6 +560,7 @@ ObjectID
 oddHBand
 oddVBand
 off
+offsetFrom
 ole
 OLEObject
 oMath
@@ -659,6 +663,7 @@ removePersonalInformation
 repeatingSection
 repeatingSectionItem
 Requires
+restart
 result
 revision
 rFonts
@@ -937,14 +942,12 @@ Year
 yearLong
 yearShort
 zoom
-
 # 任务 1.2（ParaProps）补充
 anchorLock
 frame
 hSpace
 vSpace
 yAlign
-
 # 任务 1.4（声明模型：styles / numbering / settings / fontTable）补充
 activeWritingStyle
 adjustLineHeightInTable
@@ -1120,3 +1123,4 @@ view
 wpJustification
 wpSpaceWidth
 wrapTrailSpaces
+zOrder

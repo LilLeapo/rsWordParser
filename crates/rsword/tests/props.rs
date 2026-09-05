@@ -9,11 +9,13 @@ use std::path::Path;
 
 use rsword::package::{Package, PartFlavor, PartId};
 use rsword::semantic::props::{
-    CellProps, ParaProps, PropsPatch, RowProps, RunProps, TableProps, diff_cell_props,
-    diff_para_props, diff_row_props, diff_run_props, diff_table_props, emit_cell_props,
-    emit_para_props, emit_row_props, emit_run_props, emit_table_props, order_index_cell_props,
-    order_index_para_props, order_index_row_props, order_index_run_props, order_index_table_props,
-    read_cell_props, read_para_props, read_row_props, read_run_props, read_table_props,
+    CellProps, ParaProps, PropsPatch, RowProps, RunProps, SectionProps, TableProps,
+    diff_cell_props, diff_para_props, diff_row_props, diff_run_props, diff_section_props,
+    diff_table_props, emit_cell_props, emit_para_props, emit_row_props, emit_run_props,
+    emit_section_props, emit_table_props, order_index_cell_props, order_index_para_props,
+    order_index_row_props, order_index_run_props, order_index_section_props,
+    order_index_table_props, read_cell_props, read_para_props, read_row_props, read_run_props,
+    read_section_props, read_table_props,
 };
 use rsword::xml::{Dom, LocalName, QName};
 
@@ -136,7 +138,7 @@ fn prop_07_para_props_roundtrip_on_corpus() {
             let root = scratch.root();
             scratch.append_child(root, id);
             let mut again = read_para_props(scratch, Some(id), &mut Vec::new());
-            again.sect_pr = props.sect_pr;
+            // sect_pr 从任务 5.1 起是嵌套表，emit 会生成，所以这里不再抄回来
             if let (Some(a), Some(b)) = (&mut again.rpr, &props.rpr) {
                 a.text_fill = b.text_fill;
             }
@@ -238,4 +240,19 @@ fn prop_07_table_props_roundtrip_on_corpus() {
         0
     );
     let _ = TableProps::default();
+}
+
+/// 节属性容器的语料往返（任务 5.1，`PROP-07`）：`w:body` 与 `w:pPr` 下的 `w:sectPr` 都算。
+#[test]
+fn prop_07_section_props_roundtrip_on_corpus() {
+    corpus_roundtrip!(
+        "sectPr",
+        QName::w(LocalName::SectPr),
+        read_section_props,
+        emit_section_props,
+        diff_section_props,
+        order_index_section_props,
+        500
+    );
+    let _ = SectionProps::default();
 }

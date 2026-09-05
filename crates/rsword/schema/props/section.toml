@@ -1,0 +1,236 @@
+# SectionProps（`w:sectPr`）与它的子表：PROP-05 CT_SectPr 顺序、PROP-08 字段（任务 5.1）。
+# 格式见 README.md。
+#
+# 两点与别的表不同：
+#
+# 1. `w:headerReference` 与 `w:footerReference` 共用 order 的第 0 格（`a|b` 写法）。它们在 schema 里是
+#    一个可重复 6 次的组（EG_HdrFtrReferences），组内**顺序自由**——Word 按 default / first / even 的
+#    逻辑顺序写，两种元素会交错。给它们分别编号会让 `SAVE-02` 的 PROP-05 单调性检查把合法的
+#    `<ftr/><hdr/>` 判成乱序；同一格则表示「彼此之间无序、整组在其他子元素之前」，新引用也就插在
+#    已有引用之后、`w:footnotePr` 之前。
+# 2. `w:paperSrc`（进纸盒）与 `w:printerSettings`（打印机配置关系）不建模，只占 order 的格子：它们是打印机
+#    硬件配置，编辑器与 resolve 都不用；不建模就原字节留在原位（`PROP-06`），需要时再补一行。
+# 3. `w:sectPr` 自身的 `w:rsidRPr` / `w:rsidDel` / `w:rsidR` / `w:rsidSect` 不建模：它们是编辑会话噪声，
+#    不建模就留在开标签里原样写回（`SAVE-03`），与 `Settings.rsid` 的处理一致。
+
+[[table]]
+name = "SectionProps"
+element = "w:sectPr"
+change = "w:sectPrChange"
+doc = "CT_SectPr（§17.6.18）：EG_HdrFtrReferences（0–6 个，组内无序）+ EG_SectPrContents（sequence，顺序强制）+ sectPrChange。`w:sectPrChange` 里的旧值是 CT_SectPrBase，没有页眉页脚引用（所以那两个字段 `in_change = false`）。"
+order = [
+  "w:headerReference|w:footerReference",
+  "w:footnotePr", "w:endnotePr", "w:type", "w:pgSz", "w:pgMar", "w:paperSrc", "w:pgBorders",
+  "w:lnNumType", "w:pgNumType", "w:cols", "w:formProt", "w:vAlign", "w:noEndnote", "w:titlePg",
+  "w:textDirection", "w:bidi", "w:rtlGutter", "w:docGrid", "w:printerSettings", "w:sectPrChange",
+]
+
+[[table.field]]
+name = "header_references"
+element = "w:headerReference"
+codec = "HdrFtrRef"
+multi = true
+in_change = false
+doc = "本节声明的页眉引用，最多三种 `w:type`；缺失的种类继承上一节（`RES-10`，模型只存声明值）"
+
+[[table.field]]
+name = "footer_references"
+element = "w:footerReference"
+codec = "HdrFtrRef"
+multi = true
+in_change = false
+
+[[table.field]]
+name = "footnote_props"
+element = "w:footnotePr"
+codec = "FootnoteProps"
+
+[[table.field]]
+name = "endnote_props"
+element = "w:endnotePr"
+codec = "EndnoteProps"
+
+[[table.field]]
+name = "kind"
+element = "w:type"
+codec = "SectType"
+doc = "分节符类型（本节相对上一节如何开始）；缺省 nextPage，第一节无意义"
+
+[[table.field]]
+name = "page_size"
+element = "w:pgSz"
+codec = "PageSz"
+
+[[table.field]]
+name = "page_margins"
+element = "w:pgMar"
+codec = "PageMar"
+
+
+[[table.field]]
+name = "page_borders"
+element = "w:pgBorders"
+codec = "PageBorders"
+
+[[table.field]]
+name = "line_numbers"
+element = "w:lnNumType"
+codec = "LineNumber"
+
+[[table.field]]
+name = "page_numbers"
+element = "w:pgNumType"
+codec = "PageNumber"
+
+[[table.field]]
+name = "columns"
+element = "w:cols"
+codec = "Columns"
+
+[[table.field]]
+name = "form_prot"
+element = "w:formProt"
+codec = "OnOff"
+doc = "本节只能填写表单域"
+
+[[table.field]]
+name = "v_align"
+element = "w:vAlign"
+codec = "VerticalJc"
+doc = "页面内容的垂直对齐；缺省 top"
+
+[[table.field]]
+name = "no_endnote"
+element = "w:noEndnote"
+codec = "OnOff"
+
+[[table.field]]
+name = "title_pg"
+element = "w:titlePg"
+codec = "OnOff"
+doc = "首页不同（用 first 变体的页眉页脚）"
+
+[[table.field]]
+name = "text_direction"
+element = "w:textDirection"
+codec = "TextDirection"
+
+[[table.field]]
+name = "bidi"
+element = "w:bidi"
+codec = "OnOff"
+doc = "节的基准方向：栏从右向左排"
+
+[[table.field]]
+name = "rtl_gutter"
+element = "w:rtlGutter"
+codec = "OnOff"
+
+[[table.field]]
+name = "doc_grid"
+element = "w:docGrid"
+codec = "DocGrid"
+
+
+# ---- 子表 -----------------------------------------------------------------------------------------
+
+[[table]]
+name = "FootnoteProps"
+element = "w:footnotePr"
+doc = "CT_FtnProps（§17.11.12）：节级脚注属性。`word/settings.xml` 里同名元素是 CT_FtnDocProps（多一批 `w:footnote` 特殊引用），仍按 `Raw` 读（`settings.toml`）。"
+order = ["w:pos", "w:numFmt", "w:numStart", "w:numRestart"]
+
+[[table.field]]
+name = "pos"
+element = "w:pos"
+codec = "FootnotePos"
+
+[[table.field]]
+name = "num_fmt"
+element = "w:numFmt"
+codec = "NumFmt"
+
+[[table.field]]
+name = "num_start"
+element = "w:numStart"
+codec = "Int"
+
+[[table.field]]
+name = "num_restart"
+element = "w:numRestart"
+codec = "NumRestart"
+
+[[table]]
+name = "EndnoteProps"
+element = "w:endnotePr"
+doc = "CT_EdnProps（§17.11.5）：与 CT_FtnProps 同形，只是 `w:pos` 的取值少两个。"
+order = ["w:pos", "w:numFmt", "w:numStart", "w:numRestart"]
+
+[[table.field]]
+name = "pos"
+element = "w:pos"
+codec = "EndnotePos"
+
+[[table.field]]
+name = "num_fmt"
+element = "w:numFmt"
+codec = "NumFmt"
+
+[[table.field]]
+name = "num_start"
+element = "w:numStart"
+codec = "Int"
+
+[[table.field]]
+name = "num_restart"
+element = "w:numRestart"
+codec = "NumRestart"
+
+[[table]]
+name = "PageBorders"
+element = "w:pgBorders"
+doc = "CT_PageBorders（§17.6.10）：四边共用 `CT_Border`（与 `w:pBdr` 一样是 top/left/bottom/right，没有 Strict 的 start/end 改名）。"
+order = ["w:top", "w:left", "w:bottom", "w:right"]
+attrs = [
+  { name = "z_order", attr = "w:zOrder", codec = "PageBorderZOrder", doc = "边框画在文字前还是后" },
+  { name = "display", attr = "w:display", codec = "PageBorderDisplay", doc = "哪些页画边框；缺省 allPages" },
+  { name = "offset_from", attr = "w:offsetFrom", codec = "PageBorderOffset", doc = "各边 `w:space` 的基准：页边缘还是文字区" },
+]
+
+[[table.field]]
+name = "top"
+element = "w:top"
+codec = "Border"
+
+[[table.field]]
+name = "left"
+element = "w:left"
+codec = "Border"
+
+[[table.field]]
+name = "bottom"
+element = "w:bottom"
+codec = "Border"
+
+[[table.field]]
+name = "right"
+element = "w:right"
+codec = "Border"
+
+[[table]]
+name = "Columns"
+element = "w:cols"
+doc = "CT_Columns（§17.6.4）：栏数与栏间距在属性上，不等宽时才有 `w:col` 子元素（最多 45 个）。`w:space` 的 OOXML 缺省是 720。"
+order = ["w:col"]
+attrs = [
+  { name = "equal_width", attr = "w:equalWidth", codec = "OnOff" },
+  { name = "space", attr = "w:space", codec = "Twips" },
+  { name = "num", attr = "w:num", codec = "Int" },
+  { name = "sep", attr = "w:sep", codec = "OnOff", doc = "栏间画分隔线" },
+]
+
+[[table.field]]
+name = "col"
+element = "w:col"
+codec = "Column"
+multi = true
