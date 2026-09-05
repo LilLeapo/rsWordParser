@@ -1,0 +1,23 @@
+# RES-04 toggle 校准（任务 5.8）。观察值必须来自真实 Word：
+# 在 Word 里打开同目录的 doc.docx，看每段那句话到底加不加粗，把 bold 填成
+# true / false，并把 verified 改成 true。verified = false 的条目测试只记不断言。
+# 观察方法与 Word 版本记在 fixtures/resolve/README.md。
+
+doc = "toggle/based-on-two-levels"
+
+[[run]]
+# basedOn 链上两层都 b=true：奇偶规则 → false
+text = "basedOn b + derived b"
+bold = false
+# source 可选：填了就连 bold 的来源一起断言（Direct / ParaStyle:PBold / …）
+# source = "ParaStyle:PBold"
+verified = false
+
+[[run]]
+# 链上一层 b=true → true
+text = "base b only"
+bold = false
+# source 可选：填了就连 bold 的来源一起断言（Direct / ParaStyle:PBold / …）
+# source = "ParaStyle:PBold"
+verified = false
+

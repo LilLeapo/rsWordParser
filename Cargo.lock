@@ -41,6 +41,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "gen-fixtures"
+version = "0.0.1"
+dependencies = [
+ "zip",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

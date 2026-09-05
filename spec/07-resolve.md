@@ -41,7 +41,11 @@ toggle 属性：`b bCs i iCs caps smallCaps strike dstrike outline shadow emboss
 2. 否则，若字符样式链中任一层指定 → 有效值 = 段落样式层结果 XOR 字符样式链结果？规范原文：在样式层级中出现时，"该属性在层级各样式中的值为 true 的次数为奇数则为 true"，再与 docDefaults 值异或。
 3. [MS-OI29500] 对 §17.7.3 记录了 Word 的偏差：docDefaults 为 true 时的处理、表格样式中 toggle 的处理、多层 basedOn 的处理与 Word 版本相关。
 
-**实现要求**：`resolve_toggle(prop, direct, char_chain: &[Option<bool>], para_chain: &[Option<bool>], table: &[Option<bool>], doc_default: Option<bool>) -> Effective<bool>` 单独实现，规则参数化；`fixtures/resolve/toggle/*` 用真实 Word 文档与 Word 实际显示的断言校准，fixture 不通过时以 Word 行为为准修改规则并记录差异。至少覆盖：段落样式 b + 字符样式 b；docDefaults b + 段落样式 b；basedOn 两层都 b；表格样式 firstRow b + 段落样式 b；直接 `w:b w:val="0"` 覆盖。
+**实现**（任务 5.8）：`resolve::toggle::resolve_toggle(rule, &ToggleLayers { direct, char_chain, table, para_chain, doc_default })`，规则由 `ToggleRule` 参数化——`MostSpecificWins`（最具体的声明胜出，M1 起的行为，也是 TS `display` 的行为）与 `OddParity`（本条上面那套字面规则）都已实现并有单测。层叠（`Resolver::run_in_table`）按层把各层声明喂给它，所以换规则只改 `ACTIVE_TOGGLE_RULE` 一行。九个 toggle 字段的枚举、读写与常量由 `toggle_fields!` 一张表展开。
+
+直接格式在两条规则里都一票定音（`w:b w:val="0"` 压住样式的 `b`）。
+
+**校准仍未完成**：`fixtures/resolve/toggle/*` 的六份最小 docx 已生成（`cargo run -p gen-fixtures`），覆盖段落样式 b + 字符样式 b、docDefaults b + 段落样式 b、basedOn 两层都 b、表格样式 firstRow b + 段落样式 b、直接 `w:b w:val="0"` 覆盖，以及第二节无 header 引用的节继承。**观察值必须来自真实 Word**：`expected.toml` 里 `verified = false` 的条目 `tests/resolve_fixtures.rs` 只记不断言（用引擎自己的输出当期望值等于自证）。填法与实测记录见 `fixtures/resolve/README.md`；fixture 不通过时以 Word 行为为准修改规则并在那里记录差异。
 
 ## RES-05 主题字体、颜色与符号字体
 

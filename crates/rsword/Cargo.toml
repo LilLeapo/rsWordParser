@@ -18,6 +18,10 @@ thiserror.workspace = true
 # compat_ts 适配器的 ParsedDoc JSON（COMPAT-02）与差分工具
 serde_json = "1"
 
+[dev-dependencies]
+# `RES-12` fixture 的 `expected.toml`（任务 5.8）；只在测试里用
+toml = "1.1"
+
 [build-dependencies]
 # 属性表（schema/props/*.toml，PROP-01）的读取；只在构建脚本里用
 toml = "1.1"

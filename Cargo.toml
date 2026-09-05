@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/rsword", "tools/diff-parse", "tools/xpath-assert"]
+members = ["crates/rsword", "tools/diff-parse", "tools/gen-fixtures", "tools/xpath-assert"]
 exclude = ["fuzz"]
 
 [workspace.package]

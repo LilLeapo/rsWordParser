@@ -1,9 +1,12 @@
 //! 有效属性只读视图（`spec/07-resolve.md`，`docs/03` §7）。
 //!
 //! 从声明值计算编辑器需要的有效值，带来源（`RES-01`）；不修改规范状态，不做排版。
-//! M1 首版（任务 1.9）：样式链与 linked（`RES-02`）、run 层叠（`RES-03`）、toggle 占位（`RES-04`）、
+//! M1 首版（任务 1.9）：样式链与 linked（`RES-02`）、run 层叠（`RES-03`）、
 //! 主题字体 / 颜色（`RES-05`）、Cs 选择（`RES-06`）、段落层叠的编号缩进（`RES-07`/`RES-09` 级别查找）。
-//! 表格（`RES-08`）、编号标记（`RES-09`）、节（`RES-10`）在 M2+。
+//! 表格（`RES-08`）在 M3，节（`RES-10`）在 M5。
+//!
+//! toggle 属性（`RES-04`）的规则在 [`toggle`] 里参数化，等 `fixtures/resolve/toggle/*` 的
+//! **真实 Word 观察值**校准（任务 5.8）；激活的那条与非 toggle 属性同规则。
 
 use crate::model::block::ListRef;
 use crate::model::decl::{Numbering, Settings, Styles};
@@ -21,6 +24,7 @@ pub mod fonts;
 pub mod section;
 pub mod symbol;
 pub mod table;
+pub mod toggle;
 
 pub use color::{resolve_theme_color, rgb_hex};
 pub use drawingml::{ColorBase, ColorTransform, DrawingColor, Rgb};
@@ -29,6 +33,10 @@ pub use symbol::{decode as decode_symbol, decode_pua, is_symbol_font};
 pub use table::{
     ColumnSource, ColumnView, EffectiveCellProps, TableStyleLayer, TableStyleView, TableView,
     TblLookFlags, ViewCell,
+};
+pub use toggle::{
+    ACTIVE_TOGGLE_RULE, TOGGLE_FIELDS, ToggleLayers, ToggleRule, resolve_toggle, set_toggle,
+    toggle_of,
 };
 
 /// 有效值的来源（`RES-01`）。
@@ -110,21 +118,6 @@ impl EffectiveParaProps {
         self.sources[field as usize].clone().unwrap_or(Provenance::Default)
     }
 }
-
-/// `RES-04` placeholder：toggle 属性（b/bCs/i/iCs/caps/smallCaps/strike/dstrike/vanish）暂按
-/// "最具体的声明胜出"处理，与非 toggle 属性相同。规范的奇偶叠加规则与 Word 偏差待
-/// `fixtures/resolve/toggle/*` 校准（M5），到时只改这里。
-pub const TOGGLE_FIELDS: &[RunPropsField] = &[
-    RunPropsField::Bold,
-    RunPropsField::BoldCs,
-    RunPropsField::Italic,
-    RunPropsField::ItalicCs,
-    RunPropsField::Caps,
-    RunPropsField::SmallCaps,
-    RunPropsField::Strike,
-    RunPropsField::Dstrike,
-    RunPropsField::Vanish,
-];
 
 impl<'a> Resolver<'a> {
     pub fn new(doc: &'a Document) -> Resolver<'a> {
@@ -260,6 +253,7 @@ impl<'a> Resolver<'a> {
             }
         }
         // linked 补缺：字符样式链没有声明、其 w:link 段落样式链声明了的项
+        let mut linked_fill: Option<RunProps> = None;
         if let (Some(leaf), Some(id)) = (char_chain.first(), char_style)
             && let Some(link) = leaf.link.as_deref()
         {
@@ -275,8 +269,42 @@ impl<'a> Resolver<'a> {
                 copy_field(&mut layer, &fill, f);
             }
             apply(&mut props, &layer, Provenance::CharStyle(id.to_string()));
+            linked_fill = Some(layer);
         }
         apply(&mut props, direct, Provenance::Direct);
+
+        // RES-04：toggle 字段单独合成一遍。规则在 `resolve::toggle` 里参数化，激活的那条
+        // （`MostSpecificWins`）与上面的层叠结果相同，所以这一段今天不改变任何取值；
+        // 换成 `OddParity` 时改的只有 `ACTIVE_TOGGLE_RULE` 一行（`fixtures/resolve/toggle/*`
+        // 的 Word 观察值填好之前不许换）
+        for &f in toggle::TOGGLE_FIELDS {
+            // 字符样式一侧：链自身各层，末尾再接 linked 补缺层（它只带链没声明的字段，
+            // 所以接在后面不影响链内的优先级；漏了它 `H1Char` 这类 linked 壳就丢掉 `b`）
+            let char_layer: Vec<Option<bool>> = char_chain
+                .iter()
+                .map(|st| st.rpr.as_ref().and_then(|r| toggle::toggle_of(r, f)))
+                .chain(linked_fill.as_ref().map(|l| toggle::toggle_of(l, f)))
+                .collect();
+            let para_layer: Vec<Option<bool>> = para_chain
+                .iter()
+                .map(|st| st.rpr.as_ref().and_then(|r| toggle::toggle_of(r, f)))
+                .collect();
+            let layers = toggle::ToggleLayers {
+                direct: toggle::toggle_of(direct, f),
+                char_chain: &char_layer,
+                table: table.and_then(|t| toggle::toggle_of(t, f)),
+                para_chain: &para_layer,
+                doc_default: self
+                    .styles
+                    .and_then(Styles::doc_default_rpr)
+                    .and_then(|dd| toggle::toggle_of(dd, f)),
+            };
+            toggle::set_toggle(
+                &mut props,
+                f,
+                toggle::resolve_toggle(toggle::ACTIVE_TOGGLE_RULE, &layers),
+            );
+        }
 
         // RES-06：cs = 直接 rtl ?? 字符样式链 rtl ?? 段落样式链 rtl ?? false
         let cs = if let Some(v) = direct.rtl {

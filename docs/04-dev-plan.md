@@ -204,7 +204,7 @@ flowchart LR
 
 - 1.10 从 `COMPAT-04`（`docxIndex`/`elements` 对齐）开始（§2.4）。
 - 1.12 的 `DeleteRange` 遇到范围标记时"标记不动"并记 `EngineInvariantViolation`（`spec/12` 已规定），M2 再做 Anchor 变换。
-- 1.9 的 toggle 用占位规则并在代码中标 `RES-04 placeholder`；fixture 集在 M5 前建齐。
+- 1.9 的 toggle 用占位规则并在代码中标 `RES-04 placeholder`；5.8 把它换成 `resolve::toggle` 里参数化的 `resolve_toggle`，fixture 集已建齐（观察值待填，见 `fixtures/resolve/README.md`）。
 - 1.13 的输入直接来自 `corpus/synthetic/*.save.<k>.json`（`blocks` + `options`），期望是其中的 `documentXml`，用 1.15 的 `xpath-assert` 做等价比较。
 - `KNOWN_DIFFS.md` 放在 `crates/rsword/src/bind/compat_ts/`，第一批预期条目：`rawRPr` 引号/自闭合差异、Strict 文档的 `internal.documentXml`（TS 装载时归一化为 Transitional，本引擎不归一化）、`image.wrap/offset` 的碰撞位移。
 
@@ -401,7 +401,7 @@ crate 名 `rsword`；nightly 与 cargo-fuzz 已装）。已决的政策见 §8 �
 | 1 | ~~语料基线~~ 已决（2026-09-04）：接受当前基线，不重导。`manifest.jsonl` 首行记着 `f105f36` + 32 个脏文件 + 导出时间；复核过影响面：32 个里只有 `packages/docx-engine/src/generate.ts`（三处 hunk 全在 `patchTableCellTexts`）与 `tests/nested-table-edit.test.ts` 在引擎内，其余 29 个在 `apps/docs`，碰不到解析与保存输出 | 后续若改了 genoffice 的 `docx-engine` 再重导；重导前先比对 `manifest.jsonl` 首行与 genoffice 当时状态 |
 | 2 | ~~`m1.15-diff-tools` 何时并入 `main`~~ 已并入（2026-09-04） | M2 直接从 `main` 开分支 |
 | 3 | ~~M2 计划文档~~ 已写：`spec/13-m2-plan.md`（10 个任务 + 从 M1 带过来的债 + 5 条风险提示）；M4 计划见 `spec/15-m4-plan.md`（8 个任务，与 M2 并行） | 开工前复核第 1 条（语料基线）对 2.5 / 2.6 差分基准的影响 |
-| 4 | **M5 计划文档**已写：`spec/16-m5-plan.md`（9 个任务 + 5 条门 + 债务表 + 8 条风险）。两件事要项目负责人出手：① `RES-04` toggle 与 `RES-10` 节继承的 fixture **观察值必须来自真实 Word**——5.8 会生成 6 份最小 docx，请在 Word 里打开并记录显示结果与 Word 版本（`fixtures/resolve/*/README.md`）；② `pageColor` 是否要同时写 settings 的 `w:displayBackgroundShape`（TS 不写；Word 可能不写就不显示）待 Word 实测 | 5.8 的文档生成放在第一周，观察值回来前 M5 门第 4 条挂起；② 实测需要就写并登记「超过 TS」 |
+| 4 | **仍需项目负责人出手一件事**：`RES-04` toggle 与 `RES-10` 节继承的 fixture **观察值必须来自真实 Word**。5.8 已经把六份最小 docx、断言表骨架、参数化的 `resolve_toggle`（两条候选规则都实现并有单测）与测试 harness 都做好了，`fixtures/resolve/README.md` 写清了打开哪个文件、看哪一句话、填哪一格。**只差在 Word 里打开一次并把结果填进 `expected.toml`**（顺手记下 Word 版本）。填好之前 `verified = false` 的条目只记不断言，M5 门第 4 条挂起。<br>② `pageColor` 要不要同时写 `w:displayBackgroundShape`：**已决**——要写。复核 TS 的 `patch.ts` 时发现它其实也写（`if (options.pageColor && !xml.includes('<w:displayBackgroundShape'))`），当时那条备注记错了；5.6a 按写实现，Word 不打开这个开关就不画 `w:background` | 观察值回来后：全绿则 `ACTIVE_TOGGLE_RULE` 不动；有红则以 Word 为准换规则，并按 `spec/07` 的 `RES-04` 改写规范条目 |
 
 ---
 
@@ -1003,7 +1003,25 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
     断言 + **重解析后** `parsed_doc` 的 `sources` / `numbering[numId]` / `themeFonts` /
     `themeColors` / `styles[styleId]` 等于请求值（这是这些 part 唯一的 oracle），
     两种新建 part 之后其他条目的原压缩数据不变。
-- [ ] **5.8 resolve 校准**：toggle 与节继承 fixture（文档我们生成，观察值来自 Word）；`RES-04` 占位规则替换。
+- [~] **5.8 resolve 校准**（机械部分已完成，**观察值等 Word**）
+  - `resolve/toggle.rs`：`resolve_toggle(rule, &ToggleLayers { direct, char_chain, table,
+    para_chain, doc_default })`，规则由 `ToggleRule` 参数化——`MostSpecificWins`（M1 起的行为，
+    也是 TS `display` 的行为）与 ECMA-376 §17.7.3 的 `OddParity` 都实现了并有单测。
+    `Resolver::run_in_table` 按层把各层声明喂给它，所以**换规则只改 `ACTIVE_TOGGLE_RULE` 一行**；
+    今天激活的那条与原层叠结果相同，`tests/resolve.rs` 的 86,465 项对照保持全等。
+    九个 toggle 字段的枚举、`RunProps` 读写与常量由新宏 `toggle_fields!` 一张表展开。
+    接线时抓到一处：linked 补缺层（`H1Char` 这类壳从 `w:link` 的段落样式取 `b`）不在字符样式链
+    自己的 `rPr` 里，漏了它 toggle 就丢值——现在它作为字符侧的最后一层参与。
+  - `tools/gen-fixtures`（新 workspace 成员）生成六份最小 docx 到 `fixtures/resolve/**`：
+    段落样式 b + 字符样式 b、docDefaults b + 段落样式 b、basedOn 两层都 b、表格样式 firstRow b +
+    段落样式 b、直接 `w:b w:val="0"` 覆盖、两节文档第二节无 header 引用。生成可重复
+    （固定时间戳，内容没变就不写），已存在的 `expected.toml` **不覆盖**。
+  - `tests/resolve_fixtures.rs`：每个 fixture 目录一个 `#[test]`（`fixture_tests!` 展开，另有一个
+    "目录都登记了"的检查）。每条断言带 `verified`：`true` 才真断言，`false` 只打印"引擎说 X、
+    文件里占位 Y"。**故意不拿引擎自己的输出去填期望值**——那是自证，比没有断言更糟。
+  - `fixtures/resolve/README.md` 写清为什么只能靠 Word（§17.7.3 的奇偶规则与 [MS-OI29500] 的
+    Word 偏差对不上）、怎么填、填完怎么处理 `tests/resolve.rs` 可能出现的不等（按路径登记，
+    Word 为准）。**剩下的就是在 Word 里打开一次。**
 - [x] **5.9 恶意输入、随机序列与 M5 门**
   - `corpus/hostile` 加 4 份（生成器进 `tools/export-golden/hostile.export.test.ts`）：
     `hf-dangling-reference`（引用不存在的 `r:id` → 新增 `PKG_REL_MISSING` 诊断，槽读成"没声明"，
