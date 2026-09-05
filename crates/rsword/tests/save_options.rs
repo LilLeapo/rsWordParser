@@ -720,3 +720,397 @@ fn save_07_watermark_option_alone_and_with_content() {
     assert_eq!(xpath_on(&x3, "count(//v:textpath)"), ["0"], "{x3}");
     assert!(x3.contains("页眉文字"), "内容不动\n{x3}");
 }
+
+// ---------------------------------------------------------------------------
+// 5.7：声明 part 的保存选项（`SAVE-07` / `SAVE-05`，`spec/16` 任务 5.7）
+// ---------------------------------------------------------------------------
+
+use rsword::save::options::{
+    NumberingDefSave, NumberingLevelSave, RestartNumSave, SourceSave, StyleUpsertSave,
+    ThemeColorsSave, ThemeFontsSave,
+};
+
+/// 每个 zip 条目的 `(CRC, 压缩后字节)`。
+fn raw_entries(bytes: &[u8]) -> std::collections::BTreeMap<String, (u32, Vec<u8>)> {
+    let mut z = zip::ZipArchive::new(Cursor::new(bytes.to_vec())).unwrap();
+    let mut out = std::collections::BTreeMap::new();
+    for i in 0..z.len() {
+        let mut f = z.by_index_raw(i).unwrap();
+        let name = f.name().to_string();
+        let crc = f.crc32();
+        let mut raw = Vec::new();
+        Read::read_to_end(&mut f, &mut raw).unwrap();
+        out.insert(name, (crc, raw));
+    }
+    out
+}
+
+/// 新建了某个 part 之后，其他条目的原压缩数据不变（`SAVE-05`）。
+fn assert_only_added(before: &[u8], after: &[u8], added: &[&str], touched: &[&str]) {
+    let (a, b) = (raw_entries(before), raw_entries(after));
+    for (name, x) in &a {
+        if touched.contains(&name.as_str()) {
+            continue;
+        }
+        let y = b.get(name).unwrap_or_else(|| panic!("{name} 不见了"));
+        assert_eq!(x, y, "{name} 的压缩字节变了");
+    }
+    for name in added {
+        assert!(b.contains_key(*name), "{name} 没建出来");
+        assert!(!a.contains_key(*name), "{name} 本来就在");
+    }
+}
+
+/// `themeFonts` / `themeColors`：只改 `@typeface` 与槽里的颜色；重解析后投影读得出来。
+#[test]
+fn save_07_theme_fonts_and_colors() {
+    let bytes = corpus("watermark-theme-sources__008.docx");
+    let mut s = EditSession::open(&bytes).unwrap();
+    let opts = SaveOptions {
+        theme_fonts: Some(ThemeFontsSave {
+            major: "Calibri Light".into(),
+            minor: "Calibri".into(),
+            east_asia: Some("宋体".into()),
+        }),
+        theme_colors: Some(ThemeColorsSave {
+            name: Some("我的配色".into()),
+            slots: vec![("accent1".into(), "1F4E79".into()), ("dk2".into(), "112233".into())],
+        }),
+        ..Default::default()
+    };
+    let saved = s.save_with(&opts).unwrap();
+    let theme = part_text(&saved, "word/theme/theme1.xml");
+    assert_eq!(xpath_on(&theme, "//a:majorFont/a:latin/@typeface"), ["Calibri Light"], "{theme}");
+    assert_eq!(xpath_on(&theme, "//a:minorFont/a:latin/@typeface"), ["Calibri"], "{theme}");
+    assert_eq!(xpath_on(&theme, "//a:minorFont/a:ea/@typeface"), ["宋体"], "{theme}");
+    assert_eq!(xpath_on(&theme, "//a:clrScheme/a:accent1/a:srgbClr/@val"), ["1F4E79"], "{theme}");
+    assert_eq!(xpath_on(&theme, "//a:clrScheme/a:dk2/a:srgbClr/@val"), ["112233"], "{theme}");
+    assert_eq!(xpath_on(&theme, "//a:clrScheme/@name"), ["我的配色"], "{theme}");
+    // 重解析：投影里读得出来（这是主题 part 唯一的 oracle）
+    let mut pkg = Package::open(&saved).unwrap();
+    let json = rsword::bind::compat_ts::parsed_doc(&mut pkg).unwrap();
+    assert_eq!(json["themeFonts"]["major"], "Calibri Light");
+    assert_eq!(json["themeFonts"]["minor"], "Calibri");
+    assert_eq!(json["themeColors"]["accent1"], "1F4E79");
+    assert_eq!(json["themeColors"]["dk2"], "112233");
+    // `document.xml` 一个字节都没动
+    assert!(same_entry(&bytes, &saved, "word/document.xml"));
+}
+
+/// 没有 theme part 的文档：按 `SAVE-05` 从模板新建，其他条目原压缩数据不变。
+#[test]
+fn save_05_theme_part_created_from_template() {
+    let bytes = common::docx_with_body(r#"<w:p><w:r><w:t>x</w:t></w:r></w:p><w:sectPr/>"#);
+    let mut s = EditSession::open(&bytes).unwrap();
+    let opts = SaveOptions {
+        theme_fonts: Some(ThemeFontsSave {
+            major: "Georgia".into(),
+            minor: "Verdana".into(),
+            east_asia: None,
+        }),
+        ..Default::default()
+    };
+    let saved = s.save_with(&opts).unwrap();
+    assert_only_added(
+        &bytes,
+        &saved,
+        &["word/theme/theme1.xml"],
+        &["[Content_Types].xml", "word/_rels/document.xml.rels"],
+    );
+    let theme = part_text(&saved, "word/theme/theme1.xml");
+    assert_eq!(xpath_on(&theme, "//a:majorFont/a:latin/@typeface"), ["Georgia"], "{theme}");
+    assert_eq!(xpath_on(&theme, "count(//a:fmtScheme)"), ["1"], "Word 要求 fmtScheme\n{theme}");
+    let ct = part_text(&saved, "[Content_Types].xml");
+    assert!(ct.contains("theme+xml"), "{ct}");
+    let mut pkg = Package::open(&saved).unwrap();
+    let json = rsword::bind::compat_ts::parsed_doc(&mut pkg).unwrap();
+    assert_eq!(json["themeFonts"]["minor"], "Verdana");
+}
+
+/// `numbering`：只追加；`abstractNum` 在 `w:num` 之前，既有条目不动。
+#[test]
+fn save_07_numbering_appends_definitions() {
+    let numbering = concat!(
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>"#,
+        r#"<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">"#,
+        r#"<w:abstractNum w:abstractNumId="3"><w:lvl w:ilvl="0"><w:numFmt w:val="decimal"/></w:lvl></w:abstractNum>"#,
+        r#"<w:num w:numId="6"><w:abstractNumId w:val="3"/></w:num>"#,
+        r#"</w:numbering>"#
+    );
+    let doc_rels = concat!(
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>"#,
+        r#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">"#,
+        r#"<Relationship Id="rIdN" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>"#,
+        r#"</Relationships>"#
+    );
+    let bytes = common::docx_with_parts(
+        r#"<w:p><w:r><w:t>x</w:t></w:r></w:p><w:sectPr/>"#,
+        &[("word/_rels/document.xml.rels", doc_rels), ("word/numbering.xml", numbering)],
+    );
+    let mut s = EditSession::open(&bytes).unwrap();
+    let opts = SaveOptions {
+        numbering_new_defs: vec![
+            NumberingDefSave { num_id: "9".into(), bullet: true, levels: Vec::new() },
+            NumberingDefSave {
+                num_id: "10".into(),
+                bullet: false,
+                levels: vec![NumberingLevelSave {
+                    num_fmt: "upperRoman".into(),
+                    lvl_text: "%1)".into(),
+                    indent_left: 480,
+                    hanging: Some(240),
+                    start: Some(3),
+                }],
+            },
+        ],
+        numbering_restart_nums: vec![RestartNumSave {
+            num_id: "11".into(),
+            abstract_num_id: "3".into(),
+            start_overrides: vec![(0, 1)],
+        }],
+        ..Default::default()
+    };
+    let saved = s.save_with(&opts).unwrap();
+    let xml = part_text(&saved, "word/numbering.xml");
+    // 既有条目原字节不动
+    assert!(xml.contains(r#"<w:abstractNum w:abstractNumId="3">"#), "{xml}");
+    assert!(xml.contains(r#"<w:num w:numId="6"><w:abstractNumId w:val="3"/></w:num>"#), "{xml}");
+    // 新号从最大值 +1 起
+    assert_eq!(xpath_on(&xml, "//w:abstractNum/@w:abstractNumId"), ["3", "4", "5"], "{xml}");
+    assert_eq!(xpath_on(&xml, "//w:num/@w:numId"), ["6", "9", "10", "11"], "{xml}");
+    // 缺省级别：5 级，项目符号带 Symbol 字体
+    assert_eq!(
+        xpath_on(&xml, r#"count(//w:abstractNum[@w:abstractNumId="4"]/w:lvl)"#),
+        ["5"],
+        "{xml}"
+    );
+    assert_eq!(
+        xpath_on(&xml, r#"//w:abstractNum[@w:abstractNumId="4"]/w:lvl[1]/w:rPr/w:rFonts/@w:ascii"#),
+        ["Symbol"],
+        "{xml}"
+    );
+    // 自定义级别
+    assert_eq!(
+        xpath_on(&xml, r#"//w:abstractNum[@w:abstractNumId="5"]/w:lvl[1]/w:numFmt/@w:val"#),
+        ["upperRoman"],
+        "{xml}"
+    );
+    assert_eq!(
+        xpath_on(&xml, r#"//w:abstractNum[@w:abstractNumId="5"]/w:lvl[1]/w:start/@w:val"#),
+        ["3"],
+        "{xml}"
+    );
+    // `lvlOverride`
+    assert_eq!(
+        xpath_on(&xml, r#"//w:num[@w:numId="11"]/w:lvlOverride/w:startOverride/@w:val"#),
+        ["1"],
+        "{xml}"
+    );
+    // 所有 `w:abstractNum` 都在 `w:num` 之前（schema 顺序）
+    let (last_abs, first_num) =
+        (xml.rfind("<w:abstractNum ").unwrap(), xml.find("<w:num ").unwrap());
+    assert!(last_abs < first_num, "abstractNum 要全在 num 之前\n{xml}");
+    // 重解析 oracle：新的 numId 在投影里查得到
+    let mut pkg = Package::open(&saved).unwrap();
+    let json = rsword::bind::compat_ts::parsed_doc(&mut pkg).unwrap();
+    let defs = &json["numbering"];
+    assert!(defs.get("9").is_some(), "numbering[9] 缺失: {defs}");
+    // `numbering[numId].levels` 是按 ilvl 的对象（TS 形态），不是数组
+    assert_eq!(defs["10"]["levels"]["0"]["numFmt"], "upperRoman", "{defs}");
+    assert_eq!(defs["10"]["levels"]["0"]["start"], 3, "{defs}");
+    assert_eq!(defs["9"]["levels"]["0"]["numFmt"], "bullet", "{defs}");
+    assert_eq!(defs["11"]["startOverrides"]["0"], 1, "{defs}");
+    assert!(same_entry(&bytes, &saved, "word/document.xml"));
+}
+
+/// `styleUpserts`：同 `styleId` 整条替换，否则追加；`rPr` / `pPr` 由属性表生成。
+#[test]
+fn save_07_style_upserts_replace_or_append() {
+    use rsword::semantic::props::{Jc, ParaProps, RunProps, Spacing, Val};
+    let bytes = corpus("write-protection__001.docx");
+    let before = part_text(&bytes, "word/styles.xml");
+    let existing = xpath_on(&before, "//w:style/@w:styleId");
+    let mut s = EditSession::open(&bytes).unwrap();
+    let opts = SaveOptions {
+        style_upserts: vec![StyleUpsertSave {
+            style_id: "MyQuote".into(),
+            kind: "paragraph".into(),
+            name: "我的引用".into(),
+            based_on: Some("Normal".into()),
+            run_props: Some(RunProps {
+                italic: Some(true),
+                size: Some(Val::Value(20)),
+                ..Default::default()
+            }),
+            para_props: Some(ParaProps {
+                jc: Some(Val::Value(Jc::Center)),
+                spacing: Some(Spacing {
+                    before: Some(Val::Value(120)),
+                    after: Some(Val::Value(120)),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+        }],
+        ..Default::default()
+    };
+    let saved = s.save_with(&opts).unwrap();
+    let xml = part_text(&saved, "word/styles.xml");
+    assert_eq!(
+        xpath_on(&xml, r#"//w:style[@w:styleId="MyQuote"]/w:name/@w:val"#),
+        ["我的引用"],
+        "{xml}"
+    );
+    assert_eq!(xpath_on(&xml, r#"//w:style[@w:styleId="MyQuote"]/@w:customStyle"#), ["1"], "{xml}");
+    assert_eq!(
+        xpath_on(&xml, r#"count(//w:style[@w:styleId="MyQuote"]/w:pPr/w:jc)"#),
+        ["1"],
+        "{xml}"
+    );
+    assert_eq!(
+        xpath_on(&xml, r#"//w:style[@w:styleId="MyQuote"]/w:rPr/w:sz/@w:val"#),
+        ["20"],
+        "{xml}"
+    );
+    // `w:pPr` 在 `w:rPr` 之前（CT_Style 顺序）
+    let one = xml.find(r#"w:styleId="MyQuote""#).unwrap();
+    let tail = &xml[one..];
+    assert!(tail.find("<w:pPr>").unwrap() < tail.find("<w:rPr>").unwrap(), "{xml}");
+    // 既有样式一条不少
+    let after = xpath_on(&xml, "//w:style/@w:styleId");
+    assert_eq!(after.len(), existing.len() + 1, "只多了一条");
+
+    // 再 upsert 同一个 id：整条替换，不是追加
+    let mut s2 = EditSession::open(&saved).unwrap();
+    let again = SaveOptions {
+        style_upserts: vec![StyleUpsertSave {
+            style_id: "MyQuote".into(),
+            kind: "paragraph".into(),
+            name: "改名了".into(),
+            based_on: None,
+            run_props: None,
+            para_props: None,
+        }],
+        ..Default::default()
+    };
+    let x2 = part_text(&s2.save_with(&again).unwrap(), "word/styles.xml");
+    assert_eq!(xpath_on(&x2, r#"count(//w:style[@w:styleId="MyQuote"])"#), ["1"], "还是一条\n{x2}");
+    assert_eq!(
+        xpath_on(&x2, r#"//w:style[@w:styleId="MyQuote"]/w:name/@w:val"#),
+        ["改名了"],
+        "{x2}"
+    );
+    assert_eq!(
+        xpath_on(&x2, r#"count(//w:style[@w:styleId="MyQuote"]/w:rPr)"#),
+        ["0"],
+        "整条替换\n{x2}"
+    );
+}
+
+/// `sources`：权威列表——未变的条目原字节不动（未建模的域因此保住）、变了的重建、列表外的删掉。
+#[test]
+fn save_07_sources_authoritative_list() {
+    let bytes = corpus("watermark-theme-sources__008.docx");
+    let mut s = EditSession::open(&bytes).unwrap();
+    // 现有条目 Zhao2022 原样保留 + 新增 Wang2024
+    let keep = SourceSave {
+        tag: "Zhao2022".into(),
+        kind: "JournalArticle".into(),
+        author: "赵, 一".into(),
+        title: "大模型对齐".into(),
+        year: "2022".into(),
+        publisher: Some("软件学报".into()),
+        url: None,
+    };
+    let add = SourceSave {
+        tag: "Wang2024".into(),
+        kind: "Book".into(),
+        author: "王明".into(),
+        title: "深度学习实践".into(),
+        year: "2024".into(),
+        publisher: Some("清华出版社".into()),
+        url: None,
+    };
+    let opts = SaveOptions { sources: Some(vec![keep.clone(), add]), ..Default::default() };
+    let saved = s.save_with(&opts).unwrap();
+    let xml = part_text(&saved, "customXml/item1.xml");
+    // 未变的条目原字节不动：未建模的 `b:Volume` / `b:Pages` 还在
+    assert!(xml.contains("<b:Volume>33</b:Volume>"), "未建模的域要保住\n{xml}");
+    assert!(xml.contains("<b:Pages>1-20</b:Pages>"), "{xml}");
+    // 新条目：团体名之外的作者拆成 Last / First，Book 用 `b:Publisher`
+    assert_eq!(xpath_on(&xml, "count(//b:Source)"), ["2"], "{xml}");
+    assert_eq!(xpath_on(&xml, "//b:Source/b:Publisher"), ["清华出版社"], "{xml}");
+    assert_eq!(
+        xpath_on(&xml, "//b:Person/b:Last"),
+        ["赵", "钱", "王明"],
+        "没有逗号就整串当 Last\n{xml}"
+    );
+    // 重解析 oracle
+    let mut pkg = Package::open(&saved).unwrap();
+    let json = rsword::bind::compat_ts::parsed_doc(&mut pkg).unwrap();
+    let list = json["sources"].as_array().unwrap();
+    assert_eq!(list.len(), 2, "{json:#}");
+    assert_eq!(list[1]["tag"], "Wang2024");
+    assert_eq!(list[1]["publisher"], "清华出版社");
+
+    // 列表外的删掉；改了字段的重建
+    let mut s2 = EditSession::open(&saved).unwrap();
+    let edited = SourceSave { year: "2023".into(), ..keep };
+    let shrink = SaveOptions { sources: Some(vec![edited]), ..Default::default() };
+    let x2 = part_text(&s2.save_with(&shrink).unwrap(), "customXml/item1.xml");
+    assert_eq!(xpath_on(&x2, "count(//b:Source)"), ["1"], "{x2}");
+    assert_eq!(xpath_on(&x2, "//b:Source/b:Year"), ["2023"], "{x2}");
+    assert_eq!(
+        xpath_on(&x2, "count(//b:Volume)"),
+        ["0"],
+        "改过的条目整条重建，未建模的域随之丢掉\n{x2}"
+    );
+    let mut pkg2 = Package::open(&s2.save_with(&shrink).unwrap()).unwrap();
+    let json2 = rsword::bind::compat_ts::parsed_doc(&mut pkg2).unwrap();
+    assert_eq!(json2["sources"].as_array().unwrap().len(), 1);
+}
+
+/// 没有 customXml 的文档：按 `SAVE-05` 建 `item{N}.xml` + `itemProps{N}.xml` + 两条关系。
+#[test]
+fn save_05_sources_part_created_with_item_props() {
+    let bytes = common::docx_with_body(r#"<w:p><w:r><w:t>x</w:t></w:r></w:p><w:sectPr/>"#);
+    let mut s = EditSession::open(&bytes).unwrap();
+    let opts = SaveOptions {
+        sources: Some(vec![SourceSave {
+            tag: "Li2025".into(),
+            kind: "InternetSite".into(),
+            author: "李, 四".into(),
+            title: "在线资料".into(),
+            year: "2025".into(),
+            publisher: Some("某站".into()),
+            url: Some("https://example.com".into()),
+        }]),
+        ..Default::default()
+    };
+    let saved = s.save_with(&opts).unwrap();
+    assert_only_added(
+        &bytes,
+        &saved,
+        &["customXml/item1.xml", "customXml/itemProps1.xml", "customXml/_rels/item1.xml.rels"],
+        &["[Content_Types].xml", "word/_rels/document.xml.rels"],
+    );
+    let item = part_text(&saved, "customXml/item1.xml");
+    assert_eq!(xpath_on(&item, "//b:Source/b:Tag"), ["Li2025"], "{item}");
+    assert_eq!(xpath_on(&item, "//b:Person/b:Last"), ["李"], "{item}");
+    assert_eq!(xpath_on(&item, "//b:Person/b:First"), ["四"], "{item}");
+    // InternetSite 的出版方字段是 `b:InternetSiteTitle`
+    assert_eq!(xpath_on(&item, "//b:Source/b:InternetSiteTitle"), ["某站"], "{item}");
+    assert_eq!(xpath_on(&item, "//b:Source/b:URL"), ["https://example.com"], "{item}");
+    let props = part_text(&saved, "customXml/itemProps1.xml");
+    assert!(props.contains("datastoreItem") && props.contains("bibliography"), "{props}");
+    let rels = part_text(&saved, "customXml/_rels/item1.xml.rels");
+    assert!(rels.contains("itemProps1.xml"), "{rels}");
+    let ct = part_text(&saved, "[Content_Types].xml");
+    assert!(ct.contains("customXmlProperties+xml"), "{ct}");
+    // 重解析 oracle
+    let mut pkg = Package::open(&saved).unwrap();
+    let json = rsword::bind::compat_ts::parsed_doc(&mut pkg).unwrap();
+    assert_eq!(json["sources"][0]["tag"], "Li2025");
+    assert_eq!(json["sources"][0]["author"], "李, 四");
+    assert_eq!(json["sources"][0]["url"], "https://example.com");
+}

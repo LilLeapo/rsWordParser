@@ -377,6 +377,8 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `PROP-05` CT_SectPr | `headerReference/footerReference`（0–6 个，顺序任意），然后 sequence | 两者共用 `order` 的第 0 格（`"a\|b"` 写法），因此 `order_index` 对两者都返回 0 | 它们是 schema 里的一个可重复组（EG_HdrFtrReferences），**组内顺序自由**，Word 按 default / first / even 的逻辑顺序写、两种元素会交错。分别编号会让 `SAVE-02` 的 PROP-05 单调性检查把合法的 `<ftr/><hdr/>` 判成乱序；同一格表达的正是"彼此之间无序、整组在其他子元素之前"，新引用也就插在已有引用之后、`w:footnotePr` 之前 |
 | `PROP-08` `SectionProps` 清单 | `headerReference*, footerReference*, footnotePr, endnotePr, type, pgSz, pgMar, pgBorders, lnNumType, pgNumType, cols, formProt, vAlign, titlePg, textDirection, bidi, rtlGutter, docGrid` | 另建模 `noEndnote`（同类 OnOff，写回要用）；**不**建模 `paperSrc` 与 `printerSettings` | 前者是清单的遗漏（它就夹在 `vAlign` 与 `titlePg` 之间）；后两个是打印机硬件配置，编辑器与 resolve 都不用，不建模就原字节留在原位（`PROP-06`），需要时补一行即可 |
 | `PROP-09` 枚举容错 | 字面不匹配 → `Val::Raw` + 诊断 | `ST_HdrFtr` 额外收非 schema 的 `odd` | Word 之外的生成器用 `w:type="odd"` 表示"缺省页"，TS 与 Word 都当 default（`docs/01` §12）。当成 `Raw` 只会白记一条 `PROP_BAD_VALUE`，而 `RES-10` 照样得把它当 default |
+| `SAVE-07` `sources` 选项（TS `buildSourcesXml`） | 新建的 `b:Sources` 同时声明 `xmlns:b` 与一个同 URI 的默认命名空间 | 只声明 `xmlns:b` | 两个绑定指同一个命名空间，但默认绑定会让新加的子元素序列化成不带前缀的 `<Source>`。语义完全相同（Word 与本引擎都按命名空间认），带前缀的形态更好读，也和 Word 自己写出来的一致 |
+| `SAVE-07` `themeColors` 选项 | `applyThemeColors` 只替换 `a:srgbClr/@val`，槽里原来是 `a:sysClr` 的就整条跳过 | 槽里的颜色元素一律换成 `a:srgbClr` | 跳过等于把请求静默丢掉。`dk1` / `lt1` 那两个常见的 `sysClr` 槽本来就不在可写的八个里，所以这条只在文档把 `accentN` 写成 `sysClr` 时才生效——那时用户明确要求换色，换掉才对 |
 | `SAVE-07` `header` 选项（TS `headerFooterPartXml`） | 重新生成整个页眉 part，把解析出来的水印文字重写成一棵新的 `watermarkParagraphXml` 子树 | 选项没有给 `watermark` 时原水印段落一个字节都不动 | 改页眉文字不是改水印。TS 因为整份重建 part 才顺带重写它，代价是水印原有的字号 / 颜色 / 位置被替换成生成器的字面值。保存语料只比 `documentXml`，这条差异不产生任何不等价 |
 | `SAVE-07` `section` 选项 | TS `applySectionSettings` 整个替换 `w:pgSz` 与 `w:pgMar` | `w:pgMar` 里选项没给出的属性（`w:gutter`、未给 `headerDist` 时的 `w:header`）与 `w:pgSz/@w:code` 沿用原值 | 选项只表达"页面设置"，装订线与打印机纸型不在其中。TS 的正则式重建整个标签会顺手丢掉它们；不变式 1 的精神是"没让改的不动"。语料里没有带 `w:code` 的用例，所以这条差异目前不产生任何不等价 |
 | `EDIT-03 SetSectionProps`（`spec/16` 5.5） | 新容器的位置：body 级 → `w:body` 最后一个子元素；段落级 → `pPr` 内 `rPr` 之后 `pPrChange` 之前 | 只合并**已有**的活 `w:sectPr`，否则 `Err(EDIT_BAD_POSITION)` | "新建 `sectPr`"就是**新建分节符**：要在某段之后断开节、把后续块划给新节、六个页眉页脚槽的继承随之改变——那是块级结构操作，不是属性合并。M5 的三条节操作（`SetSectionProps` / `SetHeaderFooter` / `LinkHeaderFooter`）都作用于已有的节；分节符的增删留到 M7 与段落结构操作一起做 |
@@ -974,6 +976,30 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
     保存语料 103 → **129 份等价**，`spec/16` 预计的 39 份全部关掉；剩下 29 份跳过全属 5.7（9）
     与 M6 / M7（20）。`tests/save_options.rs` 再加 6 个用例（六槽表、新建 part 的引用位置与
     重解析、外科合并、`sectionHf` 只碰一节、`hfAllSections` 的传播与不传播、水印单独 / 同出现）。
-- [ ] **5.7 声明 part 的读写**：参考文献（读 + 写）、编号追加、主题、样式 upsert。
+- [x] **5.7 声明 part 的读写**
+  - **读侧**：`model/sources.rs` 按**根元素**在 `customXml/item{N}.xml` 里找 `b:Sources`
+    （customXml 的关系类型对每个 item 都一样，Word 自己也是这么找的），`Source { tag, kind,
+    author, title, year, publisher, url, node }` + `Document.sources` / `sources_part`，compat
+    `sources[]`。作者按 TS 的规则取：`b:Corporate`，否则整条 `b:Source` 里**第一个** `b:Person`
+    的 `"Last, First"`（多作者只看第一个）；出版方是 `b:Publisher` → `b:JournalName` →
+    `b:InternetSiteTitle` 的第一个有值者。`local_names.txt` 补 5 个名字（`Corporate` /
+    `Middle` / `Publisher` / `InternetSiteTitle` / `URL`；`Tag` / `Title` / `Author` / `Person`
+    的 `U` 前缀变体本来就有）。全域未知差异 63 → **62 处 / 29 份**（`sources[0]` 归零）。
+  - **写侧**（`save/options/decl.rs`）：四个选项各翻成对应 part 的 `MutationPlan`——它们没有
+    对应的 `EditOp`（正文里没有位置可指），所以走 `plan_all` 而不是编辑操作；缺 part 时
+    `decl::ensure_parts` 先按 `SAVE-05` 建。`sources` 是**权威列表**：字段没变的条目原字节不动
+    （`b:Volume` / `b:Pages` 一类未建模的域因此保住）、变了的整条重建、列表外的删掉；
+    `numbering` **只追加**（新 `abstractNum` 号取现有最大值 +1，插在第一个 `w:num` 之前；
+    缺省 5 级模板照抄 `blank.ts`）；`themeFonts` / `themeColors` 只改 `@typeface` 与槽里的颜色
+    元素；`styleUpserts` 同 `styleId` 整条替换否则追加，`rPr` / `pPr` 由属性表的
+    `emit_run_props` / `emit_para_props` 生成（**不手写 XML**，顺序由 `PROP-05` 保证）。
+    `SAVE-05` 扩到 customXml：`item{N}.xml` + `itemProps{N}.xml` + item 自己的 `.rels` +
+    主 part 的 customXml 关系 + 两条 Override。新建的 `b:Sources` 只声明 `xmlns:b`
+    （不像 TS 再绑一个同 URI 的默认命名空间，那样新子元素会序列化成不带前缀的 `<Source>`）。
+    保存语料 129 → **138 份等价**，剩下 20 份跳过全属 M6 / M7（图表 6 + 图片 4 + 墨迹 8 +
+    `partXml` 1 + `replaceImage` 1）。`tests/save_options.rs` 加 6 个用例：每个选项一组 XPath
+    断言 + **重解析后** `parsed_doc` 的 `sources` / `numbering[numId]` / `themeFonts` /
+    `themeColors` / `styles[styleId]` 等于请求值（这是这些 part 唯一的 oracle），
+    两种新建 part 之后其他条目的原压缩数据不变。
 - [ ] **5.8 resolve 校准**：toggle 与节继承 fixture（文档我们生成，观察值来自 Word）；`RES-04` 占位规则替换。
 - [ ] **5.9 恶意输入、随机序列与 M5 门**：4 份 hostile、100 × 10 随机序列、CI。

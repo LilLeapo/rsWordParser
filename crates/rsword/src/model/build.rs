@@ -63,6 +63,9 @@ pub struct Document {
     /// 主 part 的范围索引（`SPAN-04`）。**这是投影侧的副本**：编辑期的规范状态在
     /// `EditSession.spans` 里，由 `SPAN-06` 变换维护；这一份只用来读（`Run.comments` 等）。
     pub spans: SpanIndex,
+    /// 参考文献源（`customXml` 里的 `b:Sources`，任务 5.7）与它所在的 part。
+    pub sources: Vec<crate::model::Source>,
+    pub sources_part: Option<PartId>,
     /// 批注（`comments.xml` + `commentsExtended.xml` + `commentsIds.xml`）。
     pub comments: Comments,
     pub footnotes: Notes,
@@ -78,6 +81,9 @@ impl Document {
         let aux = |pkg: &Package, kind: RelType, name: &str| {
             pkg.related(main, kind).next().or_else(|| pkg.find_name(name))
         };
+        // 文献源 part 按根元素找（customXml 的关系类型对每个 item 都一样）；要在下面借出
+        // 各 part 的 DOM 之前做完，它自己要 `&mut pkg`
+        let sources_part = crate::model::sources::find_part(pkg);
         let styles_id = aux(pkg, RelType::Styles, "word/styles.xml");
         let comments_id = aux(pkg, RelType::Comments, "word/comments.xml");
         let comments_ex_id = aux(pkg, RelType::CommentsExtended, "word/commentsExtended.xml");
@@ -149,6 +155,7 @@ impl Document {
         let numbering = dom_of(numbering_id).and_then(|d| Numbering::from_dom(d, &mut warnings));
         let settings = dom_of(settings_id).and_then(|d| Settings::from_dom(d, &mut warnings));
         let theme = dom_of(theme_id).and_then(Theme::from_dom);
+        let sources = dom_of(sources_part).map(crate::model::sources::read).unwrap_or_default();
         let font_table = dom_of(font_id).and_then(|d| FontTable::from_dom(d, &mut warnings));
         let with_dom = |id: Option<PartId>| id.and_then(|i| pkg.part(i).dom().map(|d| (i, d)));
         // 条目内容复用正文管线（任务 5.3）：要那个 part 自己的 rels（条目里的图片 / 链接按 part 解析）
@@ -242,6 +249,8 @@ impl Document {
             flows,
             fields,
             spans,
+            sources,
+            sources_part,
             comments,
             footnotes,
             endnotes,

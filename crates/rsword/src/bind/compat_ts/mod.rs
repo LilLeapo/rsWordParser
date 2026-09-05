@@ -87,9 +87,8 @@ pub fn parsed_doc_of(pkg: &Package, doc: &Document, media: &MediaSet) -> Value {
     o.insert("comments".into(), decl::comments_json(doc));
     o.insert("footnotes".into(), decl::notes_json(doc, &resolver, false));
     o.insert("endnotes".into(), decl::notes_json(doc, &resolver, true));
-    for k in ["sources", "inks"] {
-        o.insert(k.into(), Value::Array(Vec::new()));
-    }
+    o.insert("sources".into(), decl::sources_json(doc));
+    o.insert("inks".into(), Value::Array(Vec::new()));
     o.insert("themeFonts".into(), decl::theme_fonts_json(doc, &resolver));
     o.insert("themeColors".into(), decl::theme_colors_json(doc));
     if let Some(ft) = decl::font_table_json(doc) {

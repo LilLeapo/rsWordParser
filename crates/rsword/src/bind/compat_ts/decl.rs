@@ -13,6 +13,8 @@ use crate::semantic::props::{
 };
 use crate::xml::Dom;
 
+use super::json::set_some;
+
 pub(super) fn i32_of(v: &Option<Val<i32>>) -> Option<i64> {
     v.as_ref().and_then(|x| x.value().map(|&n| i64::from(n)))
 }
@@ -963,4 +965,26 @@ fn rich_paras_json(rich: &[Vec<crate::model::RichRun>], r: &Resolver<'_>) -> Opt
         paras.push(Value::Array(runs));
     }
     any_format.then_some(Value::Array(paras))
+}
+
+/// TS `sources[]`（任务 5.7）：`customXml` 里 `b:Sources` 的条目。
+///
+/// `publisher` / `url` 缺失时**不给键**（TS 的 `SourceInfo` 里它们是可选的），其余四个字段
+/// 总是给——空串也给，因为 TS 的 `??  ''` 把它们兜成了空串。
+pub fn sources_json(doc: &Document) -> Value {
+    Value::Array(
+        doc.sources
+            .iter()
+            .map(|s| {
+                let mut o = Map::new();
+                o.insert("tag".into(), Value::String(s.tag.clone()));
+                o.insert("type".into(), Value::String(s.kind.clone()));
+                o.insert("author".into(), Value::String(s.author.clone()));
+                o.insert("title".into(), Value::String(s.title.clone()));
+                o.insert("year".into(), Value::String(s.year.clone()));
+                set_some!(&mut o, "publisher" => s.publisher.clone(), "url" => s.url.clone());
+                Value::Object(o)
+            })
+            .collect(),
+    )
 }

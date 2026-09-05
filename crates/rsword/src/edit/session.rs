@@ -666,6 +666,10 @@ impl EditSession {
         if !links.is_empty() {
             self.apply_all(links, &EditContext::default())?;
         }
+        // 5.7：声明 part 的选项要改的 part 缺了就先按 `SAVE-05` 建（`plan_all` 是只读的）
+        if self.transaction(|s| crate::save::options::decl::ensure_parts(s, opts))? {
+            self.rebuild()?;
+        }
         let (plans, diags) = crate::save::options::plan_all(&mut self.pkg, opts, authors, dates)?;
         let mut touches_main = plans.iter().any(|p| p.part == self.pkg.main_part());
         touches_main |= self.transaction(|s| s.materialize_spans())?;

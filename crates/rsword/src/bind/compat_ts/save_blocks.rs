@@ -34,7 +34,9 @@ use crate::model::{HfKind, HfVariant};
 use crate::package::{PartFlavor, RelType};
 use crate::save::SaveOptions;
 use crate::save::options::{
-    PgNumTypeOption, ProtectionOption, SectionHfSave, SectionSaveSettings, WriteProtectionOption,
+    NumberingDefSave, NumberingLevelSave, PgNumTypeOption, ProtectionOption, RestartNumSave,
+    SectionHfSave, SectionSaveSettings, SourceSave, StyleUpsertSave, ThemeColorsSave,
+    ThemeFontsSave, WriteProtectionOption,
 };
 use crate::semantic::props::{
     Border, BorderStyle, Color, DropCap, FontHint, Fonts, FrameAnchor, FramePr, FrameWrap,
@@ -49,7 +51,7 @@ use crate::xml::{
 };
 
 /// `apply_save_blocks` 的结果。
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct SaveBlocksOutcome {
     /// 全部 original 且顺序不变 → 没有产生任何 `EditOp`（是否真的返回原字节还要看 `save_options`
     /// 与文档的 `w:removePersonalInformation` 标志，由 [`crate::edit::EditSession::save_with`] 判定）。
@@ -160,6 +162,19 @@ fn save_options_of(options: &Value) -> Result<(SaveOptions, EntryLists, HfOption
                 })
             }
             "hfAllSections" => out.hf_all_sections = v.as_bool().unwrap_or(false),
+            // ---- 5.7：声明 part ----
+            "sources" => {
+                out.sources = Some(
+                    arr(v, "sources")?.iter().map(source_save_of).collect::<Result<Vec<_>>>()?,
+                )
+            }
+            "numbering" => numbering_of(v, &mut out)?,
+            "themeFonts" => out.theme_fonts = Some(theme_fonts_of(v)),
+            "themeColors" => out.theme_colors = Some(theme_colors_of(v)),
+            "styleUpserts" => {
+                out.style_upserts =
+                    arr(v, "styleUpserts")?.iter().map(style_upsert_of).collect::<Result<_>>()?
+            }
             "sectionHf" => hfs.section_hf = arr(v, "sectionHf")?,
             k if HF_SLOT_KEYS.contains(&k) => {
                 if !v.is_object() {
@@ -1795,6 +1810,172 @@ fn sect_pr_in(dom: &Dom, node: NodeId) -> Option<NodeId> {
     }
     let ppr = dom.semantic_children(node).find(|&c| dom.is(c, w(LocalName::PPr)))?;
     dom.semantic_children(ppr).find(|&c| dom.is(c, w(LocalName::SectPr)))
+}
+// ---------------------------------------------------------------------------
+// 声明 part 的保存选项：TS JSON → `SaveOptions`（`spec/16` 任务 5.7）
+// ---------------------------------------------------------------------------
+
+/// TS `SourceInfo` → [`SourceSave`]。
+fn source_save_of(v: &Value) -> Result<SourceSave> {
+    let tag = s_of(v, "tag").ok_or_else(|| unsupported("sources 条目缺 tag"))?;
+    Ok(SourceSave {
+        tag: tag.to_string(),
+        kind: s_of(v, "type").unwrap_or("Misc").to_string(),
+        author: s_of(v, "author").unwrap_or_default().to_string(),
+        title: s_of(v, "title").unwrap_or_default().to_string(),
+        year: s_of(v, "year").unwrap_or_default().to_string(),
+        publisher: s_of(v, "publisher").map(str::to_string),
+        url: s_of(v, "url").map(str::to_string),
+    })
+}
+
+/// TS `numbering` → 两张只追加的表。`numId` 由调用方给（正文的 `w:numPr` 已经在引用它）。
+fn numbering_of(v: &Value, out: &mut SaveOptions) -> Result<()> {
+    for def in v.get("newDefs").and_then(Value::as_array).into_iter().flatten() {
+        let num_id = num_id_of(def).ok_or_else(|| unsupported("numbering.newDefs 缺 numId"))?;
+        let levels = def
+            .get("levels")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .map(|l| NumberingLevelSave {
+                num_fmt: s_of(l, "numFmt").unwrap_or("decimal").to_string(),
+                lvl_text: s_of(l, "lvlText").unwrap_or_default().to_string(),
+                indent_left: num(l, "indentLeft").map_or(720, round),
+                hanging: num(l, "hanging").map(round),
+                start: num(l, "start").map(round),
+            })
+            .collect();
+        out.numbering_new_defs.push(NumberingDefSave {
+            num_id,
+            bullet: s_of(def, "kind") == Some("bullet"),
+            levels,
+        });
+    }
+    for r in v.get("restartNums").and_then(Value::as_array).into_iter().flatten() {
+        let num_id = num_id_of(r).ok_or_else(|| unsupported("numbering.restartNums 缺 numId"))?;
+        let abstract_num_id = r
+            .get("abstractNumId")
+            .and_then(json_id)
+            .ok_or_else(|| unsupported("numbering.restartNums 缺 abstractNumId"))?;
+        let start_overrides = r
+            .get("startOverrides")
+            .and_then(Value::as_object)
+            .map(|m| {
+                m.iter()
+                    .filter_map(|(k, v)| Some((k.parse::<i32>().ok()?, v.as_i64()? as i32)))
+                    .collect()
+            })
+            .unwrap_or_default();
+        out.numbering_restart_nums.push(RestartNumSave {
+            num_id,
+            abstract_num_id,
+            start_overrides,
+        });
+    }
+    Ok(())
+}
+
+/// TS 里这些 id 有时是字符串、有时是数字。
+fn json_id(v: &Value) -> Option<String> {
+    match v {
+        Value::String(s) => Some(s.clone()),
+        Value::Number(n) => Some(n.to_string()),
+        _ => None,
+    }
+}
+
+fn num_id_of(v: &Value) -> Option<String> {
+    v.get("numId").and_then(json_id)
+}
+
+fn theme_fonts_of(v: &Value) -> ThemeFontsSave {
+    ThemeFontsSave {
+        major: s_of(v, "major").unwrap_or_default().to_string(),
+        minor: s_of(v, "minor").unwrap_or_default().to_string(),
+        east_asia: s_of(v, "eastAsia").map(str::to_string),
+    }
+}
+
+/// TS `ThemeColors`：`name` 之外的键都是槽名，只收可写的那八个（`dk1` / `lt1` / `hlink` /
+/// `folHlink` 是只读槽，TS 的 `applyThemeColors` 也不改）。
+fn theme_colors_of(v: &Value) -> ThemeColorsSave {
+    let mut out = ThemeColorsSave { name: s_of(v, "name").map(str::to_string), slots: Vec::new() };
+    for slot in crate::save::options::decl::THEME_COLOR_SLOTS {
+        if let Some(hex) = s_of(v, slot) {
+            out.slots.push((slot.to_string(), hex.to_string()));
+        }
+    }
+    out
+}
+
+/// TS `StyleUpsert` → [`StyleUpsertSave`]：`rPr` / `pPr` 进属性表结构体，emit 由 `PROP-05` 排序。
+fn style_upsert_of(v: &Value) -> Result<StyleUpsertSave> {
+    let style_id = s_of(v, "styleId").ok_or_else(|| unsupported("styleUpserts 条目缺 styleId"))?;
+    let mut run_props = RunProps::default();
+    if let Some(r) = v.get("rPr").filter(|r| r.is_object()) {
+        if let Some(f) = s_of(r, "font") {
+            run_props.fonts = Some(Fonts {
+                ascii: Some(f.to_string()),
+                h_ansi: Some(f.to_string()),
+                east_asia: Some(f.to_string()),
+                ..Default::default()
+            });
+        }
+        if truthy(r, "bold") {
+            run_props.bold = Some(true);
+        }
+        if truthy(r, "italic") {
+            run_props.italic = Some(true);
+        }
+        if truthy(r, "strike") {
+            run_props.strike = Some(true);
+        }
+        if let Some(c) = s_of(r, "color").and_then(hex) {
+            run_props.color = Some(Color { val: Some(Val::Value(c)), ..Default::default() });
+        }
+        if let Some(sz) = num(r, "sizeHalfPoints").filter(|&x| x > 0.0) {
+            let v = Val::Value(round(sz) as u32);
+            run_props.size = Some(v.clone());
+            run_props.size_cs = Some(v);
+        }
+        if truthy(r, "underline") {
+            run_props.underline = Some(Underline {
+                val: Some(Val::Value(UnderlineKind::Single)),
+                ..Default::default()
+            });
+        }
+    }
+    let mut para_props = ParaProps::default();
+    if let Some(p) = v.get("pPr").filter(|p| p.is_object()) {
+        let mut sp = Spacing::default();
+        if let Some(b) = num(p, "spaceBeforeTwips") {
+            sp.before = Some(Val::Value(round(b)));
+        }
+        if let Some(af) = num(p, "spaceAfterTwips") {
+            sp.after = Some(Val::Value(round(af)));
+        }
+        if let Some(ls) = num(p, "lineSpacing") {
+            sp.line = Some(Val::Value(round(ls * 240.0)));
+            sp.line_rule = Some(Val::Value(LineSpacingRule::Auto));
+        }
+        if sp != Spacing::default() {
+            para_props.spacing = Some(sp);
+        }
+        if let Some(align) = s_of(p, "align") {
+            let jc = if align == "justify" { "both" } else { align };
+            para_props.jc =
+                Some(Jc::parse(jc).map_or_else(|| Val::Raw(jc.to_string()), Val::Value));
+        }
+    }
+    Ok(StyleUpsertSave {
+        style_id: style_id.to_string(),
+        kind: s_of(v, "type").unwrap_or("paragraph").to_string(),
+        name: s_of(v, "name").unwrap_or(style_id).to_string(),
+        based_on: s_of(v, "basedOn").map(str::to_string),
+        run_props: (run_props != RunProps::default()).then_some(run_props),
+        para_props: (para_props != ParaProps::default()).then_some(para_props),
+    })
 }
 
 #[cfg(test)]

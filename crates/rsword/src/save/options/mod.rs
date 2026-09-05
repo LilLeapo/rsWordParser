@@ -15,10 +15,15 @@
 //! 日期清洗是独立的一项（OOXML 的 `w:removeDateAndTime`，TS 没有这个能力）：批注元素（带 `w:author` 的
 //! 修订与批注）上的 `w:date` 删除。`remove_personal_info` 单独开启时日期保留，与 TS 一致。
 
+pub mod decl;
 pub mod hf;
 pub mod section;
 pub mod settings;
 
+pub use decl::{
+    NumberingDefSave, NumberingLevelSave, RestartNumSave, SourceSave, StyleUpsertSave,
+    ThemeColorsSave, ThemeFontsSave,
+};
 pub use hf::{HfSlots, SectionHfSave};
 pub use section::{PgNumTypeOption, ProtectionOption, SectionSaveSettings, WriteProtectionOption};
 
@@ -26,12 +31,12 @@ use crate::diag::Diagnostic;
 use crate::edit::{EditOp, MutationPlan};
 use crate::error::Result;
 use crate::model::SectionOwner;
-use crate::package::{Package, PartId, RelType};
+use crate::package::{Package, PartFlavor, PartId, RelType};
 use crate::semantic::props::{PropsPatch, SectType, SettingsPatch};
 use crate::xml::{Dirty, Dom, LocalName, NodeEdit, NodeId, NodeKind, NsId, QName, Target};
 
 /// `SAVE-07`：与 TS `SaveOptions` 对齐的保存选项（M1 子集）。
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct SaveOptions {
     /// `docProps/core.xml` 的 `dcterms:modified`（ISO 8601，毫秒被去掉）。
     ///
@@ -75,6 +80,20 @@ pub struct SaveOptions {
     pub section_hf: Vec<SectionHfSave>,
     /// 把新建的页眉页脚 part 挂到每个自己不带引用的 `w:sectPr` 上（TS `hfAllSections`）。
     pub hf_all_sections: bool,
+
+    // ---- 5.7：声明 part ----
+    /// 参考文献的**权威列表**（`None` = 不动）：列表外的条目删掉，字段没变的原字节不动。
+    pub sources: Option<Vec<SourceSave>>,
+    /// 新编号定义（只追加）。
+    pub numbering_new_defs: Vec<NumberingDefSave>,
+    /// 重新起编号的 `w:num`（只追加）。
+    pub numbering_restart_nums: Vec<RestartNumSave>,
+    /// 主题字体。
+    pub theme_fonts: Option<ThemeFontsSave>,
+    /// 主题配色。
+    pub theme_colors: Option<ThemeColorsSave>,
+    /// 样式 upsert。
+    pub style_upserts: Vec<StyleUpsertSave>,
 }
 
 impl SaveOptions {
@@ -98,6 +117,12 @@ impl SaveOptions {
             || self.write_protection.is_some()
             || self.even_and_odd_headers.is_some()
             || !hf::is_empty(self)
+            || self.sources.is_some()
+            || !self.numbering_new_defs.is_empty()
+            || !self.numbering_restart_nums.is_empty()
+            || self.theme_fonts.is_some()
+            || self.theme_colors.is_some()
+            || !self.style_upserts.is_empty()
     }
 }
 
@@ -398,6 +423,58 @@ pub(crate) fn plan_all(
                 if !plan.is_empty() {
                     plans.push(plan);
                 }
+            }
+        }
+    }
+
+    // 5.7：声明 part 的四项（part 由 `decl::ensure_parts` 在此之前建好）
+    let decl_targets: Vec<(Option<PartId>, u8)> = vec![
+        (pkg.find_name("word/styles.xml"), 0),
+        (
+            pkg.related(main, RelType::Numbering)
+                .next()
+                .or_else(|| pkg.find_name("word/numbering.xml")),
+            1,
+        ),
+        (
+            pkg.related(main, RelType::Theme)
+                .next()
+                .or_else(|| pkg.find_name("word/theme/theme1.xml")),
+            2,
+        ),
+    ];
+    let want_decl = [
+        !opts.style_upserts.is_empty(),
+        !opts.numbering_new_defs.is_empty() || !opts.numbering_restart_nums.is_empty(),
+        opts.theme_fonts.is_some() || opts.theme_colors.is_some(),
+    ];
+    for (id, which) in decl_targets {
+        if !want_decl[which as usize] {
+            continue;
+        }
+        let Some(id) = id else { continue };
+        pkg.dom(id)?;
+        let flavor = pkg.part(id).flavor.unwrap_or(PartFlavor::Transitional);
+        if let Some(dom) = pkg.part(id).dom() {
+            let plan = match which {
+                0 => decl::styles_plan(dom, id, flavor, &opts.style_upserts),
+                1 => decl::numbering_plan(dom, id, opts),
+                _ => decl::theme_plan(dom, id, opts),
+            };
+            if !plan.is_empty() {
+                plans.push(plan);
+            }
+        }
+    }
+    if let Some(want) = &opts.sources
+        && let Some(id) = crate::model::sources::find_part(pkg)
+    {
+        pkg.dom(id)?;
+        if let Some(dom) = pkg.part(id).dom() {
+            let current = crate::model::sources::read(dom);
+            let plan = decl::sources_plan(dom, id, &current, want);
+            if !plan.is_empty() {
+                plans.push(plan);
             }
         }
     }
