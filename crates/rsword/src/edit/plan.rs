@@ -13,8 +13,8 @@ use super::pos::Utf16Offset;
 pub struct MutationPlan {
     pub part: PartId,
     pub node_edits: Vec<NodeEdit>,
-    /// 需要刷新投影的段落（`w:p`）。
-    pub affected_paragraphs: Vec<NodeId>,
+    /// 需要刷新投影的块（`w:p` 或 `w:tbl`）；`Document::refresh_blocks` 就地重建它们。
+    pub affected_blocks: Vec<NodeId>,
     /// 块的增删移：投影整体重建。
     pub structure_changed: bool,
     /// 计划阶段发现、提交后记录到会话的诊断（例如 `EDIT_ANCHOR_UNMOVED`）。
@@ -30,7 +30,7 @@ pub struct MutationPlan {
 pub struct MutationResult {
     /// 每条 `NodeEdit` 创建的节点（与 `node_edits` 对齐；不创建节点的为 `None`）。
     pub created: Vec<Option<NodeId>>,
-    pub affected_paragraphs: Vec<NodeId>,
+    pub affected_blocks: Vec<NodeId>,
     pub structure_changed: bool,
     pub diagnostics: Vec<Diagnostic>,
     pub offset_delta: Vec<(NodeId, Utf16Offset, i32)>,
@@ -40,9 +40,9 @@ impl MutationResult {
     /// 合并多阶段结果（后一阶段的 `created` 覆盖）。
     pub fn absorb(&mut self, later: MutationResult) {
         self.created = later.created;
-        for p in later.affected_paragraphs {
-            if !self.affected_paragraphs.contains(&p) {
-                self.affected_paragraphs.push(p);
+        for p in later.affected_blocks {
+            if !self.affected_blocks.contains(&p) {
+                self.affected_blocks.push(p);
             }
         }
         self.structure_changed |= later.structure_changed;
@@ -56,7 +56,7 @@ impl MutationPlan {
         Self {
             part,
             node_edits: Vec::new(),
-            affected_paragraphs: Vec::new(),
+            affected_blocks: Vec::new(),
             structure_changed: false,
             diagnostics: Vec::new(),
             offset_delta: Vec::new(),
@@ -68,9 +68,10 @@ impl MutationPlan {
         self.node_edits.is_empty()
     }
 
-    pub fn touch(&mut self, para: NodeId) {
-        if !self.affected_paragraphs.contains(&para) {
-            self.affected_paragraphs.push(para);
+    /// 标记一个块（`w:p` / `w:tbl`）需要刷新投影。
+    pub fn touch(&mut self, block: NodeId) {
+        if !self.affected_blocks.contains(&block) {
+            self.affected_blocks.push(block);
         }
     }
 
@@ -180,7 +181,7 @@ impl MutationPlan {
         debug_assert!(dom.check_dirty_invariants().is_ok(), "XML-12 脏状态不变式被破坏");
         MutationResult {
             created,
-            affected_paragraphs: self.affected_paragraphs,
+            affected_blocks: self.affected_blocks,
             structure_changed: self.structure_changed,
             diagnostics: self.diagnostics,
             offset_delta: self.offset_delta,

@@ -355,6 +355,7 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `docs/03` §5.4 `Keyword` | 列了 20 个变体 + `…` | `FLD-06` 表里的全部 76 个关键字都是变体，由一张 `macro_rules!` 表同时生成 `parse` / `as_str` / `policy` | 策略表与关键字表必须是同一份数据，否则加关键字时会漏改策略；`FLD-11` 的 `has_page_number` 也要按变体判断 |
 | `FLD-02` 索引的地位 | — | `FieldIndex` 是 DOM 的**投影**（编辑后作废重建），不像 `SpanIndex` 那样是规范状态的一半 | `FieldSpan` 里每条事实都能从节点重新读出来（`docs/03` §5.4："保存真相是 `instr_nodes` 的原字节"），没有 Anchor 那种"标记之外的信息"，增量维护只会多一份可能不同步的状态 |
 | `FLD-13` 缺陷来源判定 | "解析阶段的缺陷为 `PreExistingDamage`；编辑后新出现的为 `EngineInvariantViolation`" | 第一次写某个 part 之前记下按诊断代码的缺陷计数作基线，保存前重建索引比对，多出来的按 `EngineInvariantViolation` 并经 `save::enforce` 在调试构建下报错 | 索引是重建出来的，没有"这条诊断是不是新的"的天然标识；计数比对不需要跨编辑追踪节点身份 |
+| `EDIT-03` 表格操作集 | `docs/03` §8.2 只有 `SetCellProps` / `SetTableProps` | 另加 `SetRowProps` | `w:trPr` 的 `tblHeader` / `trHeight` / `cantSplit` / `gridBefore` 没有别的入口；行是表格的一等结构，属性操作不该缺它 |
 | `RES-08` 视图入口 | `resolve::table_cell` 无参数 | `Resolver::table(&Dom, &TableBlock) -> TableView` 要多传一个 `Dom` | 重复声明的取舍（`w:tcW` 取最后一个、边框容器按边合并）要看模型按属性表通则去重时留在 `raw_unmodeled` 里的元素，只有 DOM 能拿到 |
 | `RES-08` 列宽 | 一组列宽 | `ColumnView` 里绝对宽与百分比宽**分开**存 | TS 的拉伸只改绝对宽、百分比仍是拉伸前的比例；`tblGrid` 有 0 宽列时也只有百分比可用。合成一个数组就对不上 TS |
 | `MOD-08` 读取时机 | `SdtInfo` 是「最近的 `w:sdt` 祖先信息」 | 块 / 行 / 格构建时就地读全（`SdtInfo::read`），不是编辑时按需读 | 投影要能直接回答「这一块能不能编辑」；`sdtPr` 很小，读一遍比每次编辑再扫一遍便宜 |
@@ -742,7 +743,16 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
   格内编辑保存后重开、其他格与顶层段落原字节不变。**M3 门第 2 条达成**：
   `test_04_corpus_cell_edit_fidelity` 在 **67 份**含表格的语料上各改一个格内段落，保存后其他 zip 条目的
   CRC 与压缩字节不变、重解析后 `compat_ts` 的块投影**只有那张表变了**。
-- [ ] **3.7 表格属性操作**（`SetTableProps / SetRowProps / SetCellProps`；`trPr` 位置规则）
+- [x] **3.7 表格属性操作**（`edit/{mod,ops}.rs`）：`SetTableProps` / `SetRowProps`（`docs/03` 的
+  `EditOp` 里没有，`tblHeader` / `trHeight` 没有别的入口，见 §8）/ `SetCellProps` 走生成的
+  `plan_apply_*_at`，三个操作同形所以收成一个 `table_props_op!` 宏（校验目标节点类型 → 定位容器与插入点
+  → 标记所属 `w:tbl` 刷新）。容器缺失时的位置按 `PROP-05` 的 `w:tbl` / `w:tr` / `w:tc` 子元素顺序：
+  `tblPr` / `tcPr` 插为第一个元素子节点，`trPr` 插在 `w:tblPrEx` **之后**、第一个 `w:tc` 之前。
+  为此把 `MutationPlan.affected_paragraphs` 改名为 `affected_blocks`，`Document::refresh_blocks`
+  按节点名分派（`w:p` → 段落、`w:tbl` → 表格），属性改动因此只重建那一张表而不是整份文档。
+  验收（`tests/cell_edit.rs` 新增 3 个用例）：新元素按 schema 序号插入且原有属性与未建模子元素保留、
+  `trPr` 排在 `tblPrEx` 之后（另造一份带行级例外的文档）、目标节点类型不对时 `Err(EDIT_BAD_POSITION)`
+  且投影与保存字节都不变；每步之后 `refresh == rebuild`。
 - [ ] **3.8 行列结构操作**（`InsertRow / DeleteRow / InsertColumn / DeleteColumn / MergeCells / NewBlock::Table`；`SAVE_TABLE_GRID`）
 - [ ] **3.9 随机序列、恶意输入与 M3 门**（`tests/table_ops.rs` 200 × 10；两份 hostile；CI）
 

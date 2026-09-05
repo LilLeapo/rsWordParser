@@ -53,6 +53,14 @@ fn cell_texts(doc: &Document) -> Vec<Vec<Vec<String>>> {
         .unwrap_or_default()
 }
 
+/// 一个节点的元素子节点名（跳过缩进空白）。
+fn child_names(s: &EditSession, node: rsword::xml::NodeId) -> Vec<&'static str> {
+    let dom = s.dom();
+    dom.semantic_children(node)
+        .filter_map(|n| dom.name(n).and_then(|q| q.local.known_str()))
+        .collect()
+}
+
 /// 投影与从 DOM 完整重建的结果一致（`MOD-13` 的 oracle）。
 fn assert_refresh_matches_rebuild(s: &mut EditSession, what: &str) {
     let refreshed = s.document().clone();
@@ -309,4 +317,139 @@ fn zip_entries(bytes: &[u8]) -> Vec<(String, u32, Vec<u8>)> {
             (f.name().to_string(), f.crc32(), raw)
         })
         .collect()
+}
+
+// ---- 表格属性操作（`EDIT-03`，任务 3.7）----------------------------------------------------------
+
+/// 三个属性操作：容器缺失时按 `PROP-05` 的位置新建，未建模子元素与其他属性原样保留。
+#[test]
+fn edit_03_table_row_cell_props() {
+    use rsword::semantic::props::{
+        CellPropsPatch, RowPropsPatch, TablePropsPatch, TblWidth, VerticalJc,
+    };
+    let bytes = table_doc();
+    let mut s = EditSession::open(&bytes).unwrap();
+    let ctx = EditContext::default();
+    let tbl = s.document().tables().next().unwrap().node;
+
+    // 表格：已有 tblPr，新元素按 schema 序号插入（tblStyle 在 tblW 之前）
+    s.apply(
+        EditOp::SetTableProps {
+            table: tbl,
+            patch: TablePropsPatch { style: Change::Set("TableGrid".into()), ..Default::default() },
+        },
+        &ctx,
+    )
+    .unwrap();
+    let t = s.document().tables().next().unwrap();
+    assert_eq!(t.style_id.as_deref(), Some("TableGrid"));
+    assert_eq!(t.props.width.as_ref().unwrap().kind.is_some(), true, "原有 tblW 保留");
+    let dom = s.dom();
+    let tbl_pr =
+        dom.semantic_children(tbl).find(|&n| dom.is(n, QName::w(LocalName::TblPr))).unwrap();
+    assert_eq!(child_names(&s, tbl_pr), ["tblStyle", "tblW"], "新元素按 PROP-05 顺序插入");
+    assert_refresh_matches_rebuild(&mut s, "SetTableProps");
+
+    // 行：没有 trPr，要新建；本例没有 tblPrEx，插为第一个子元素
+    let row = s.document().tables().next().unwrap().rows[0].node;
+    s.apply(
+        EditOp::SetRowProps {
+            row,
+            patch: RowPropsPatch { tbl_header: Change::Set(true), ..Default::default() },
+        },
+        &ctx,
+    )
+    .unwrap();
+    assert_eq!(s.document().tables().next().unwrap().rows[0].props.tbl_header, Some(true));
+    assert_eq!(child_names(&s, row)[0], "trPr", "trPr 应是第一个子元素");
+    assert_refresh_matches_rebuild(&mut s, "SetRowProps");
+
+    // 格：已有 tcPr（A1 有 tcW），加 vAlign
+    let cell = s.document().tables().next().unwrap().rows[0].cells[0].node;
+    s.apply(
+        EditOp::SetCellProps {
+            cell,
+            patch: CellPropsPatch {
+                v_align: Change::Set(rsword::semantic::props::Val::Value(VerticalJc::Center)),
+                ..Default::default()
+            },
+        },
+        &ctx,
+    )
+    .unwrap();
+    let c = &s.document().tables().next().unwrap().rows[0].cells[0];
+    assert_eq!(c.props.v_align.as_ref().unwrap().value(), Some(&VerticalJc::Center));
+    assert_eq!(c.props.width.as_ref().and_then(TblWidth::twips), Some(2000), "原有 tcW 保留");
+    assert_refresh_matches_rebuild(&mut s, "SetCellProps");
+
+    // 格里没有 tcPr 时新建为第一个子元素
+    let b1 = s.document().tables().next().unwrap().rows[0].cells[1].node;
+    s.apply(
+        EditOp::SetCellProps {
+            cell: b1,
+            patch: CellPropsPatch { no_wrap: Change::Set(true), ..Default::default() },
+        },
+        &ctx,
+    )
+    .unwrap();
+    assert_eq!(child_names(&s, b1)[0], "tcPr", "tcPr 应是第一个子元素");
+    assert_refresh_matches_rebuild(&mut s, "SetCellProps(新建)");
+
+    // 保存后重开，属性都在
+    let saved = s.save().unwrap();
+    let re = EditSession::open(&saved).unwrap();
+    let t = re.document().tables().next().unwrap();
+    assert_eq!(t.style_id.as_deref(), Some("TableGrid"));
+    assert_eq!(t.rows[0].props.tbl_header, Some(true));
+    assert_eq!(t.rows[0].cells[1].props.no_wrap, Some(true));
+}
+
+/// `w:trPr` 必须排在 `w:tblPrEx` 之后（`PROP-05` 的 `w:tr` 子元素顺序）。
+#[test]
+fn prop_05_tr_pr_goes_after_tbl_pr_ex() {
+    use rsword::semantic::props::RowPropsPatch;
+    let bytes = common::docx_with_body(
+        r#"<w:tbl><w:tblGrid><w:gridCol w:w="1000"/></w:tblGrid>
+             <w:tr><w:tblPrEx><w:tblW w:w="5000" w:type="pct"/></w:tblPrEx>
+               <w:tc><w:p><w:r><w:t>x</w:t></w:r></w:p></w:tc></w:tr>
+           </w:tbl>"#,
+    );
+    let mut s = EditSession::open(&bytes).unwrap();
+    let row = s.document().tables().next().unwrap().rows[0].node;
+    s.apply(
+        EditOp::SetRowProps {
+            row,
+            patch: RowPropsPatch { cant_split: Change::Set(true), ..Default::default() },
+        },
+        &EditContext::default(),
+    )
+    .unwrap();
+    assert_eq!(child_names(&s, row), ["tblPrEx", "trPr", "tc"], "trPr 插在 tblPrEx 之后");
+    assert_eq!(s.document().tables().next().unwrap().rows[0].props.cant_split, Some(true));
+    // 行级例外仍在
+    assert!(s.document().tables().next().unwrap().rows[0].tbl_pr_ex.is_some());
+}
+
+/// 目标节点类型不对 → `Err(EDIT_BAD_POSITION)`，状态不变（`EDIT-05`）。
+#[test]
+fn edit_05_table_props_reject_wrong_targets() {
+    use rsword::semantic::props::CellPropsPatch;
+    let bytes = table_doc();
+    let mut s = EditSession::open(&bytes).unwrap();
+    let para = cell_para(s.document(), 0, 0, 0);
+    let before = format!("{:?}", s.document().main);
+    let err = s
+        .apply(
+            EditOp::SetCellProps {
+                cell: para,
+                patch: CellPropsPatch { no_wrap: Change::Set(true), ..Default::default() },
+            },
+            &EditContext::default(),
+        )
+        .expect_err("段落不是单元格");
+    assert!(
+        matches!(err, rsword::Error::Edit { code, .. } if code == rsword::DiagCode::EditBadPosition)
+    );
+    assert_eq!(format!("{:?}", s.document().main), before);
+    assert_eq!(s.save().unwrap(), bytes, "不变式 1");
 }

@@ -43,7 +43,7 @@ pub struct Document {
     pub font_table: Option<FontTable>,
     /// 主 part 的内容流映射（`SPAN-01`）。
     pub flows: FlowMap,
-    /// 主 part 的字段索引（`FLD-02`）。与投影同寿命：`rebuild` / `refresh_paragraphs` 都重建它。
+    /// 主 part 的字段索引（`FLD-02`）。与投影同寿命：`rebuild` / `refresh_blocks` 都重建它。
     pub fields: FieldIndex,
     /// 主 part 的范围索引（`SPAN-04`）。**这是投影侧的副本**：编辑期的规范状态在
     /// `EditSession.spans` 里，由 `SPAN-06` 变换维护；这一份只用来读（`Run.comments` 等）。
@@ -171,17 +171,13 @@ impl Document {
         self.main.iter().filter_map(Block::as_text)
     }
 
-    /// 容器级刷新（`MOD-13` 的 `refresh`，任务 3.6）：按 [`Document::block_path`] 就地重建给定
-    /// `w:p` 的投影——**正文顶层与任意深度的单元格内一视同仁**，保留它的 sdt / 修订上下文。
-    /// 返回在投影里找不到的段落（调用方据此退回整体重建）。
+    /// 容器级刷新（`MOD-13` 的 `refresh`，任务 3.6 / 3.7）：按 [`Document::block_path`] 就地重建给定
+    /// 的块——`w:p` 走段落构建、`w:tbl` 走表格构建，**正文顶层与任意深度的单元格内一视同仁**，
+    /// 保留它的 sdt / 修订上下文。返回在投影里找不到的节点（调用方据此退回整体重建）。
     ///
     /// 字段与范围索引是整个 part 的投影，跟着一起重建（只重建主 part；容器级的增量在 M7 随
     /// `TEST-07` 的随机序列一起评估）。
-    pub fn refresh_paragraphs(
-        &mut self,
-        pkg: &mut Package,
-        paras: &[NodeId],
-    ) -> Result<Vec<NodeId>> {
+    pub fn refresh_blocks(&mut self, pkg: &mut Package, blocks: &[NodeId]) -> Result<Vec<NodeId>> {
         let main = self.main_part;
         pkg.dom(main)?;
         let dom = pkg.part(main).dom().expect("main part parsed above");
@@ -191,7 +187,7 @@ impl Document {
         let mut missing = Vec::new();
         // 先把路径与上下文取齐，再借出块表——构建器借着 `self.styles`
         let mut work: Vec<RefreshItem> = Vec::new();
-        for &p in paras {
+        for &p in blocks {
             match self.block_path(p).and_then(|path| {
                 let blk = self.block_at(&path)?;
                 Some((path, blk.sdt().cloned(), blk.revisions().to_vec()))
@@ -203,7 +199,11 @@ impl Document {
         let mut b = Builder::new(dom, self.styles.as_ref(), rels, &fields, &spans, Vec::new());
         let mut main = std::mem::take(&mut self.main);
         for (p, path, sdt, revs) in work {
-            let rebuilt = b.build_paragraph(p, sdt.as_ref(), &revs);
+            let rebuilt = if dom.is(p, QName::w(LocalName::Tbl)) {
+                b.build_table(p, sdt.as_ref(), &revs)
+            } else {
+                b.build_paragraph(p, sdt.as_ref(), &revs)
+            };
             match block_at_mut_in(&mut main, &path) {
                 Some(slot) => *slot = rebuilt,
                 None => missing.push(p),

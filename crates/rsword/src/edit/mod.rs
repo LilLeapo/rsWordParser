@@ -21,7 +21,9 @@ pub use plan::{MutationPlan, MutationResult};
 pub use pos::{InlinePos, Loc, Utf16Offset, inline_spans, locate};
 pub use session::EditSession;
 
-use crate::semantic::props::{ParaPropsPatch, RunProps, RunPropsPatch};
+use crate::semantic::props::{
+    CellPropsPatch, ParaPropsPatch, RowPropsPatch, RunProps, RunPropsPatch, TablePropsPatch,
+};
 use crate::span::FieldId;
 use crate::xml::{NewElement, NodeId};
 
@@ -94,6 +96,12 @@ pub enum EditOp {
     SetParaProps { para: NodeId, patch: ParaPropsPatch },
     /// compat 路径：整个 `w:pPr` 替换为给定片段（`None` = 删除 `pPr`）。`EDIT-04` 的 `rawPPr` 语义。
     ReplaceParaProps { para: NodeId, props: Option<NewElement> },
+    /// `EDIT-03 SetTableProps`：`w:tblPr` 按 `PROP-06` 合并（容器缺失时插为 `w:tbl` 第一个子元素）。
+    SetTableProps { table: NodeId, patch: TablePropsPatch },
+    /// `EDIT-03 SetRowProps`：`w:trPr` 按 `PROP-06` 合并（容器缺失时插在 `w:tblPrEx` 之后、首个 `w:tc` 之前）。
+    SetRowProps { row: NodeId, patch: RowPropsPatch },
+    /// `EDIT-03 SetCellProps`：`w:tcPr` 按 `PROP-06` 合并（容器缺失时插为 `w:tc` 第一个子元素）。
+    SetCellProps { cell: NodeId, patch: CellPropsPatch },
     /// `EDIT-03 InsertBlock`：`New` 子树。
     InsertBlock { at: BlockPos, block: NewBlock },
     /// `EDIT-03 DeleteBlock`：`Deleted`。

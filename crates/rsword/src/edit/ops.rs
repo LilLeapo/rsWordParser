@@ -9,7 +9,8 @@ use crate::model::inline::{Inline, Run, Segment, SegmentKind, utf16_len};
 use crate::model::{SdtRefusal, refusing_sdt};
 use crate::package::RelType;
 use crate::semantic::props::{
-    ParaPropsPatch, RunPropsPatch, emit_run_props, plan_apply_para_props, plan_apply_run_props,
+    CellPropsPatch, ParaPropsPatch, RowPropsPatch, RunPropsPatch, TablePropsPatch, emit_run_props,
+    plan_apply_para_props, plan_apply_run_props,
 };
 use crate::span::{
     Affinity, Anchor, FieldId, FlowId, RangeClass, RangeKind, RangeSpan, SpanId, SpanOrigin,
@@ -33,6 +34,9 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::ReplaceInlines { para, inlines } => replace_inlines(s, para, &inlines),
         EditOp::SetParaProps { para, patch } => set_para_props(s, para, &patch),
         EditOp::ReplaceParaProps { para, props } => replace_para_props(s, para, props),
+        EditOp::SetTableProps { table, patch } => set_table_props(s, table, &patch),
+        EditOp::SetRowProps { row, patch } => set_row_props(s, row, &patch),
+        EditOp::SetCellProps { cell, patch } => set_cell_props(s, cell, &patch),
         EditOp::InsertBlock { at, block } => insert_block(s, at, block),
         EditOp::DeleteBlock { node } => delete_block(s, node),
         EditOp::MoveBlock { node, to } => move_block(s, node, to),
@@ -77,6 +81,9 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
         | EditOp::SetParaProps { para, .. }
         | EditOp::ReplaceParaProps { para, .. }
         | EditOp::MergeWithNext { para } => vec![*para],
+        EditOp::SetTableProps { table: n, .. }
+        | EditOp::SetRowProps { row: n, .. }
+        | EditOp::SetCellProps { cell: n, .. } => vec![*n],
         EditOp::InsertBlock { at, .. } => vec![block_pos(at)],
         EditOp::DeleteBlock { node } => vec![*node],
         EditOp::MoveBlock { node, to } => vec![*node, block_pos(to)],
@@ -889,6 +896,86 @@ fn new_block_element(dom: &Dom, block: NewBlock) -> NewElement {
         }
     }
 }
+
+// ---- 表格属性（`EDIT-03`，任务 3.7）------------------------------------------------------------
+
+/// `node` 所属的最内层 `w:tbl`（投影刷新的单位）。
+fn owning_table(dom: &Dom, node: NodeId) -> Option<NodeId> {
+    std::iter::once(node).chain(dom.ancestors(node)).find(|&n| dom.is(n, w(LocalName::Tbl)))
+}
+
+/// 属性容器与"缺失时插在谁之前"。`w:tblPr` / `w:tcPr` 是第一个子元素；`w:trPr` 在 `w:tblPrEx`
+/// 之后、第一个 `w:tc` 之前（`PROP-05` 的 `w:tr` 子元素顺序）。
+fn props_site(dom: &Dom, parent: NodeId, container: LocalName) -> (Option<NodeId>, Option<NodeId>) {
+    let live = |c: NodeId| dom.node(c).dirty != Dirty::Deleted && dom.element(c).is_some();
+    let kids: Vec<NodeId> = dom.children(parent).iter().copied().filter(|&c| live(c)).collect();
+    let existing = kids.iter().copied().find(|&c| dom.is(c, w(container)));
+    let before = if container == LocalName::TrPr {
+        kids.iter().copied().find(|&c| !dom.is(c, w(LocalName::TblPrEx)))
+    } else {
+        kids.first().copied()
+    };
+    (existing, before)
+}
+
+/// 三个表格属性操作同形：定位容器 → `plan_apply_*_at` → 标记所属表格刷新。
+///
+/// ```ignore
+/// table_props_op!(set_cell_props, CellPropsPatch, Tc, TcPr, plan_apply_cell_props_at, "单元格");
+/// ```
+macro_rules! table_props_op {
+    ($name:ident, $patch:ty, $owner:ident, $container:ident, $plan_apply:path, $what:literal) => {
+        fn $name(s: &mut EditSession, node: NodeId, patch: &$patch) -> Result<MutationResult> {
+            let dom = s.dom();
+            if (node.0 as usize) >= dom.node_count()
+                || dom.node(node).dirty == Dirty::Deleted
+                || !dom.is(node, w(LocalName::$owner))
+            {
+                return Err(Error::edit(DiagCode::EditBadPosition, concat!("目标不是", $what)));
+            }
+            let (container, before) = props_site(dom, node, LocalName::$container);
+            let mut plan = MutationPlan::new(s.main_part());
+            $plan_apply(
+                dom,
+                Target::Node(node),
+                container,
+                before,
+                patch,
+                s.flavor(),
+                &mut plan.node_edits,
+            );
+            if let Some(tbl) = owning_table(dom, node) {
+                plan.touch(tbl);
+            }
+            s.commit_plan(plan)
+        }
+    };
+}
+
+table_props_op!(
+    set_table_props,
+    TablePropsPatch,
+    Tbl,
+    TblPr,
+    crate::semantic::props::plan_apply_table_props_at,
+    "表格"
+);
+table_props_op!(
+    set_row_props,
+    RowPropsPatch,
+    Tr,
+    TrPr,
+    crate::semantic::props::plan_apply_row_props_at,
+    "表格行"
+);
+table_props_op!(
+    set_cell_props,
+    CellPropsPatch,
+    Tc,
+    TcPr,
+    crate::semantic::props::plan_apply_cell_props_at,
+    "单元格"
+);
 
 fn insert_block(s: &mut EditSession, at: BlockPos, block: NewBlock) -> Result<MutationResult> {
     let dom = s.dom();

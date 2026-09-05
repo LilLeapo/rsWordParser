@@ -748,11 +748,10 @@ impl EditSession {
         if part == main {
             if result.structure_changed {
                 self.rebuild()?;
-            } else if !result.affected_paragraphs.is_empty() {
+            } else if !result.affected_blocks.is_empty() {
                 // 容器级刷新（`MOD-13`）：单元格内的段落也就地重建。真找不到（投影与 DOM 不同步）
                 // 才整体重建——那是兜底，不是正常路径
-                let missing =
-                    self.doc.refresh_paragraphs(&mut self.pkg, &result.affected_paragraphs)?;
+                let missing = self.doc.refresh_blocks(&mut self.pkg, &result.affected_blocks)?;
                 if !missing.is_empty() {
                     self.rebuild()?;
                 }
