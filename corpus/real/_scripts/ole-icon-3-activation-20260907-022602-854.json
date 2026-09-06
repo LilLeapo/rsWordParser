@@ -1,0 +1,42 @@
+﻿{
+    "started":  "2026-09-07T02:26:02.8629940+08:00",
+    "file":  "ole/ole-icon-3.docx",
+    "inspectionCopy":  "_checks/ole/ole-icon-3-readonly-inspection.docx",
+    "method":  "_scripts/verify-ole-icon-3-activation.ps1",
+    "status":  "verification-or-cleanup-incomplete",
+    "phase":  "finished",
+    "expectedOriginalSha256":  "902E32369E40BACDDD54A556A1BE733FF39D2903DC5CF18AB95C77BC152B93A6",
+    "officeSaveMethodsCalled":  false,
+    "cellsWritten":  false,
+    "sourceWorkbookOpened":  false,
+    "originalSha256Before":  "902E32369E40BACDDD54A556A1BE733FF39D2903DC5CF18AB95C77BC152B93A6",
+    "copySha256Before":  "902E32369E40BACDDD54A556A1BE733FF39D2903DC5CF18AB95C77BC152B93A6",
+    "wordProcessId":  26332,
+    "wordVersion":  "16.0",
+    "wordBuild":  "16.0.14334",
+    "openedDocumentReadOnly":  true,
+    "progId":  "Excel.Sheet.12",
+    "displayAsIcon":  true,
+    "primaryVerb":  "DoVerb(0) succeeded",
+    "excelProcessId":  28972,
+    "excelProcessCreatedDuringActivation":  false,
+    "excelVersion":  "16.0",
+    "workbookName":  "工作表 在 C  code rsWordParser real-word-corpus-20260906 _checks ole ole-icon-3-readonly-inspection.docx",
+    "worksheetName":  "示例",
+    "cells":  {
+                  "A1":  12,
+                  "B1":  34
+              },
+    "cellEvidence":  "Read directly from the workbook exposed by the activated embedded OLE object; no external XLSX was opened.",
+    "hideVerb":  "DoVerb(-3) succeeded",
+    "documentClosedWithoutSaving":  true,
+    "embeddedWorkbookClosedWithoutSaving":  true,
+    "cleanupErrors":  [
+                          "Owned Word Quit: Argument: \u00271\u0027 should be a System.Management.Automation.PSReference. Use [ref]."
+                      ],
+    "originalSha256After":  "902E32369E40BACDDD54A556A1BE733FF39D2903DC5CF18AB95C77BC152B93A6",
+    "copySha256After":  "902E32369E40BACDDD54A556A1BE733FF39D2903DC5CF18AB95C77BC152B93A6",
+    "originalUnchanged":  true,
+    "copyUnchanged":  true,
+    "finished":  "2026-09-07T02:26:07.9628615+08:00"
+}

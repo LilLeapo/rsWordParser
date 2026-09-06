@@ -21,9 +21,10 @@ fn out_dir() -> PathBuf {
     d
 }
 
-/// 语料里第一份满足 `ok` 的文档。
+/// 语料里第一份满足 `ok` 的文档：先找真实 Word 写的（`corpus/real`，Word 打开不进兼容模式、结构完整），
+/// 再退回合成语料。
 fn base(prefix: &str, ok: impl Fn(&EditSession) -> bool) -> (String, Vec<u8>) {
-    for p in common::docx_paths("synthetic") {
+    for p in common::docx_paths("real").into_iter().chain(common::docx_paths("synthetic")) {
         let name = p.file_name().unwrap().to_string_lossy().to_string();
         if !name.starts_with(prefix) {
             continue;
@@ -70,7 +71,7 @@ fn generate_roundtrip_samples() {
 
     // 01 / 06：纯文字文档里插图表（柱形；折线 + 饼）
     let (text_name, text_bytes) =
-        base("ink__", |s| text_paras(s).len() >= 2 && s.document().inks.is_empty());
+        base("text-custom-styles", |s| text_paras(s).len() >= 2 && s.document().inks.is_empty());
     write("01-text-source.docx", &text_bytes);
     let mut s = EditSession::open(&text_bytes).unwrap();
     let p = text_paras(&s)[0];
@@ -122,7 +123,7 @@ fn generate_roundtrip_samples() {
     write("06-chart-insert-line-pie.docx", &s.save().unwrap());
 
     // 02：已有图表改数据（只改缓存文本）
-    let (chart_name, chart_bytes) = base("chart-edit__", |s| !s.document().chart_parts.is_empty());
+    let (chart_name, chart_bytes) = base("chart-column", |s| !s.document().chart_parts.is_empty());
     write("02-chart-source.docx", &chart_bytes);
     let mut s = EditSession::open(&chart_bytes).unwrap();
     let part = *s.document().chart_parts.keys().next().unwrap();
@@ -163,8 +164,9 @@ fn generate_roundtrip_samples() {
     write("03-image-insert-inline-and-square.docx", &s.save().unwrap());
 
     // 04：换掉已有图片的媒体
-    let (pic_name, pic_bytes) =
-        base("image-wrap__", |s| s.document().main.iter().any(|b| matches!(b, Block::Image(_))));
+    let (pic_name, pic_bytes) = base("image-wrap-square", |s| {
+        s.document().main.iter().any(|b| matches!(b, Block::Image(_)))
+    });
     write("04-image-source.docx", &pic_bytes);
     let mut s = EditSession::open(&pic_bytes).unwrap();
     let drawing = {

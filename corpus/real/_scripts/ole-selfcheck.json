@@ -1,0 +1,120 @@
+[
+  {
+    "file": "ole/ole-excel-embedded.docx",
+    "status": "passed",
+    "details": {
+      "status": "passed",
+      "copiedZip": "_checks/ole/ole-excel-embedded-2.zip",
+      "originalSha256": "5B1ED702EE66FB09C3B9BE13CED6E39D5D24C1DF67E0B47DFAE0E763E9DBCB8D",
+      "originalUnchanged": true,
+      "progId": "Excel.Sheet.12",
+      "type": "Embed",
+      "drawAspect": "Content",
+      "previewParts": [
+        "word/media/image1.emf"
+      ],
+      "embeddingParts": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ]
+    },
+    "error": null
+  },
+  {
+    "file": "ole/ole-excel-linked.docx",
+    "status": "passed",
+    "details": {
+      "status": "passed",
+      "copiedZip": "_checks/ole/ole-excel-linked-2.zip",
+      "originalSha256": "568802BC67A4B4F8C52C16884A9E4AF7AA5E8CEB074B7FDE14C5BF7AE7EE71E4",
+      "originalUnchanged": true,
+      "progId": "Excel.Sheet.12",
+      "type": "Link",
+      "drawAspect": "Content",
+      "previewParts": [
+        "word/media/image1.wmf"
+      ],
+      "embeddingParts": []
+    },
+    "error": null
+  },
+  {
+    "file": "ole/ole-icon.docx",
+    "status": "passed",
+    "details": {
+      "status": "passed",
+      "copiedZip": "_checks/ole/ole-icon-2.zip",
+      "originalSha256": "B184DE8EB7A54C280F42B265BB747BE3846E2CBB12F13F5FF93D16D2458BC3AE",
+      "originalUnchanged": true,
+      "progId": "Excel.Sheet.12",
+      "type": "Embed",
+      "drawAspect": "Icon",
+      "previewParts": [
+        "word/media/image1.emf"
+      ],
+      "embeddingParts": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ]
+    },
+    "error": null
+  },
+  {
+    "file": "ole/ole-in-table.docx",
+    "status": "passed",
+    "details": {
+      "status": "passed",
+      "copiedZip": "_checks/ole/ole-in-table-2.zip",
+      "originalSha256": "651C22B2CA1E4869CF53D503A0614E093AF34AAA44C9B75DAE5203A41A56ECD5",
+      "originalUnchanged": true,
+      "progId": "Excel.Sheet.12",
+      "type": "Embed",
+      "drawAspect": "Content",
+      "previewParts": [
+        "word/media/image1.emf"
+      ],
+      "embeddingParts": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ]
+    },
+    "error": null
+  },
+  {
+    "file": "ole/ole-ppt.docx",
+    "status": "passed",
+    "details": {
+      "status": "passed",
+      "copiedZip": "_checks/ole/ole-ppt-2.zip",
+      "originalSha256": "16BBF3696D69EB1AA27920BBB225353BC8FA2CFCCFFEFD436EAEA718FC2EC368",
+      "originalUnchanged": true,
+      "progId": "PowerPoint.Slide.12",
+      "type": "Embed",
+      "drawAspect": "Content",
+      "previewParts": [
+        "word/media/image1.emf"
+      ],
+      "embeddingParts": [
+        "word/embeddings/Microsoft_PowerPoint_Slide.sldx"
+      ]
+    },
+    "error": null
+  },
+  {
+    "file": "ole/ole-with-text.docx",
+    "status": "passed",
+    "details": {
+      "status": "passed",
+      "copiedZip": "_checks/ole/ole-with-text-2.zip",
+      "originalSha256": "7F25D78A4E5925052378FA21309DBAE93D9C0F3BFF034E19B1AB174C5CE12E4C",
+      "originalUnchanged": true,
+      "progId": "Excel.Sheet.12",
+      "type": "Embed",
+      "drawAspect": "Content",
+      "previewParts": [
+        "word/media/image1.emf"
+      ],
+      "embeddingParts": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ]
+    },
+    "error": null
+  }
+]

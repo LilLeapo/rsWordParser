@@ -35,4 +35,6 @@ jobs:
       - run: cargo run -p diff-parse -- --scope embedded
       # TEST-10 第八道门（M6 6.9）：全部语料、全部路径的差分除 KNOWN_DIFFS.md 外为 0
       - run: cargo run -p diff-parse -- --scope all
+      # 真实 Word 语料（docs/07，2026-09-07 收到 124 份）：TS 参考输出的差分除 KNOWN_DIFFS.md 外为 0
+      - run: cargo run -p diff-parse -- --corpus corpus/real
   # fuzz 在 .github/workflows/fuzz.yml（手动 / 每周），不挂在每次 push 上。

@@ -17,8 +17,18 @@ use crate::xml::ns::{Scope, push_decls};
 /// `Choice Requires="c14"` 放 `c14:style`（101–148）、Fallback 放 `c:style`（1–48），两者是同一个值的两种写法，
 /// 但 Word 2010+ 与 TS 读的都是 Choice 那份——语料 `m6-chart__043` 的 Choice 与 Fallback 故意不一致，
 /// 走 Fallback 会把调色板认错（M6 6.1）。
-pub const DEFAULT_UNDERSTOOD: &[NsId] =
-    &[NsId::Wps, NsId::Wpg, NsId::Wp14, NsId::W14, NsId::W15, NsId::Cx, NsId::C14];
+pub const DEFAULT_UNDERSTOOD: &[NsId] = &[
+    NsId::Wps,
+    NsId::Wpg,
+    // 真实 Word 的绘图画布：`mc:Choice Requires="wpc"` 里是 `wpc:wpc`（子形状是 `wps:wsp` / `pic:pic`），
+    // Fallback 是 VML `v:group`。本引擎按组处理画布子形状，所以算理解（`corpus/real/canvas-*`）。
+    NsId::Wpc,
+    NsId::Wp14,
+    NsId::W14,
+    NsId::W15,
+    NsId::Cx,
+    NsId::C14,
+];
 
 /// `mc:ProcessContent` 里的一项：`p:x`（限定名）或 `p:*`。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

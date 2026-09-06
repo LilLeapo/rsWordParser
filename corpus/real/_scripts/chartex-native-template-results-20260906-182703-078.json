@@ -1,0 +1,88 @@
+﻿{
+    "startedUtc":  "2026-09-06T18:27:03.0890292Z",
+    "method":  "Word Documents.Add(existing native DOCX as template), Chart.ChartType conversion, one SaveAs2 and Word PDF export",
+    "observationStatus":  "No chart series/property readback; inspect saved package and actual Word UI or exported PDF separately",
+    "useClassicSource":  true,
+    "dataset":  "Classic source for non-treemap cases: Category 1/2/3, Series 1 10/20/30, Series 2 15/25/35; treemap retains hierarchical source",
+    "entries":  [
+                    {
+                        "case":  "chart/chartex-waterfall",
+                        "source":  "chart/chart-column.docx",
+                        "requestedType":  119,
+                        "status":  "failed",
+                        "stage":  "Native Chart.ChartType conversion",
+                        "savedOnce":  false,
+                        "sourceSha256Before":  "C62B982160004C32CC9EEEE579B7BF48090BA7A0824E69F9AF5D9036576D4E21",
+                        "file":  "chart/chartex-waterfall-2.docx",
+                        "preview":  "_previews/chart/chartex-waterfall-2.pdf",
+                        "error":  {
+                                      "message":  "The parameter is incorrect. (Exception from HRESULT: 0x80070057 (E_INVALIDARG))",
+                                      "hresult":  "0x80070057",
+                                      "scriptStack":  "at \u003cScriptBlock\u003e, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-chartex-from-native-template.ps1: line 80\r\nat \u003cScriptBlock\u003e, \u003cNo file\u003e: line 1"
+                                  },
+                        "sourceSha256After":  "C62B982160004C32CC9EEEE579B7BF48090BA7A0824E69F9AF5D9036576D4E21",
+                        "sourceUnchanged":  true,
+                        "finishedUtc":  "2026-09-06T18:27:04.2554990Z"
+                    },
+                    {
+                        "case":  "chart/chartex-histogram",
+                        "source":  "chart/chart-column.docx",
+                        "requestedType":  118,
+                        "status":  "failed",
+                        "stage":  "Native Chart.ChartType conversion",
+                        "savedOnce":  false,
+                        "sourceSha256Before":  "C62B982160004C32CC9EEEE579B7BF48090BA7A0824E69F9AF5D9036576D4E21",
+                        "file":  "chart/chartex-histogram-2.docx",
+                        "preview":  "_previews/chart/chartex-histogram-2.pdf",
+                        "error":  {
+                                      "message":  "The parameter is incorrect. (Exception from HRESULT: 0x80070057 (E_INVALIDARG))",
+                                      "hresult":  "0x80070057",
+                                      "scriptStack":  "at \u003cScriptBlock\u003e, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-chartex-from-native-template.ps1: line 80\r\nat \u003cScriptBlock\u003e, \u003cNo file\u003e: line 1"
+                                  },
+                        "sourceSha256After":  "C62B982160004C32CC9EEEE579B7BF48090BA7A0824E69F9AF5D9036576D4E21",
+                        "sourceUnchanged":  true,
+                        "finishedUtc":  "2026-09-06T18:27:04.5097099Z"
+                    },
+                    {
+                        "case":  "chart/chartex-boxwhisker",
+                        "source":  "chart/chart-column.docx",
+                        "requestedType":  121,
+                        "status":  "failed",
+                        "stage":  "Native Chart.ChartType conversion",
+                        "savedOnce":  false,
+                        "sourceSha256Before":  "C62B982160004C32CC9EEEE579B7BF48090BA7A0824E69F9AF5D9036576D4E21",
+                        "file":  "chart/chartex-boxwhisker-2.docx",
+                        "preview":  "_previews/chart/chartex-boxwhisker-2.pdf",
+                        "error":  {
+                                      "message":  "The parameter is incorrect. (Exception from HRESULT: 0x80070057 (E_INVALIDARG))",
+                                      "hresult":  "0x80070057",
+                                      "scriptStack":  "at \u003cScriptBlock\u003e, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-chartex-from-native-template.ps1: line 80\r\nat \u003cScriptBlock\u003e, \u003cNo file\u003e: line 1"
+                                  },
+                        "sourceSha256After":  "C62B982160004C32CC9EEEE579B7BF48090BA7A0824E69F9AF5D9036576D4E21",
+                        "sourceUnchanged":  true,
+                        "finishedUtc":  "2026-09-06T18:27:04.7757524Z"
+                    },
+                    {
+                        "case":  "chart/chartex-funnel",
+                        "source":  "chart/chart-column.docx",
+                        "requestedType":  123,
+                        "status":  "failed",
+                        "stage":  "Native Chart.ChartType conversion",
+                        "savedOnce":  false,
+                        "sourceSha256Before":  "C62B982160004C32CC9EEEE579B7BF48090BA7A0824E69F9AF5D9036576D4E21",
+                        "file":  "chart/chartex-funnel-2.docx",
+                        "preview":  "_previews/chart/chartex-funnel-2.pdf",
+                        "error":  {
+                                      "message":  "The parameter is incorrect. (Exception from HRESULT: 0x80070057 (E_INVALIDARG))",
+                                      "hresult":  "0x80070057",
+                                      "scriptStack":  "at \u003cScriptBlock\u003e, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-chartex-from-native-template.ps1: line 80\r\nat \u003cScriptBlock\u003e, \u003cNo file\u003e: line 1"
+                                  },
+                        "sourceSha256After":  "C62B982160004C32CC9EEEE579B7BF48090BA7A0824E69F9AF5D9036576D4E21",
+                        "sourceUnchanged":  true,
+                        "finishedUtc":  "2026-09-06T18:27:05.0487192Z"
+                    }
+                ],
+    "wordVersion":  "16.0",
+    "wordBuild":  "16.0.14334",
+    "finishedUtc":  "2026-09-06T18:27:05.0497190Z"
+}

@@ -1,0 +1,293 @@
+{
+  "generatedAt": "2026-09-07T01:25:56.4792227+08:00",
+  "evidence": "Actual desktop Word/Excel/PowerPoint object models; PDF visual inspection remains separate",
+  "cases": [
+    {
+      "runId": "2026-09-07T01:21:25.0474101+08:00",
+      "requestedFile": "ole/ole-excel-embedded.docx",
+      "file": "ole/ole-excel-embedded.docx",
+      "status": "saved-but-verification-failed",
+      "method": "_scripts/create-ole.ps1",
+      "steps": "新建Excel.Sheet.12嵌入对象，A1=12、B1=34，退出编辑后保存",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 12844,
+      "details": {
+        "progId": "Excel.Sheet.12",
+        "displayAsIcon": false,
+        "linked": false,
+        "doVerb0": "succeeded; OLEFormat.Object available",
+        "cells": {
+          "A1": 12.0,
+          "B1": 34.0
+        },
+        "hideVerb": "succeeded",
+        "previewExpectation": "Excel worksheet content containing 12 and 34"
+      },
+      "savedOnce": true,
+      "visualInspection": "pending",
+      "selfCheck": {
+        "status": "pending"
+      },
+      "pdfPreview": "_previews/ole/ole-excel-embedded.pdf",
+      "error": "System.IO.IOException: The process cannot access the file 'C:\\code\\rsWordParser\\real-word-corpus-20260906\\ole\\ole-excel-embedded.docx' because it is being used by another process.\r\n   at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)\r\n   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)\r\n   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)\r\n   at System.IO.Strategies.FileStreamHelpers.ChooseStrategyCore(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)\r\n   at System.IO.File.OpenRead(String path)\r\n   at Microsoft.PowerShell.Commands.GetFileHashCommand.ComputeFileHash(String path, String& hash)",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-ole.ps1:166 char:14\r\n+     $hash = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash\r\n+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:22:37.2728912+08:00",
+      "requestedFile": "ole/ole-excel-linked.docx",
+      "file": "ole/ole-excel-linked.docx",
+      "status": "incomplete",
+      "method": "_scripts/create-ole.ps1",
+      "steps": "由真实Excel生成的本地xlsx创建链接OLE对象",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 16996,
+      "details": {
+        "progId": "Excel.Sheet.12",
+        "displayAsIcon": false,
+        "linked": true,
+        "sourceWorkbook": "_assets/ole-excel-source.xlsx",
+        "doVerb0": "succeeded; OLEFormat.Object available"
+      },
+      "savedOnce": false,
+      "visualInspection": "pending",
+      "selfCheck": {
+        "status": "pending"
+      },
+      "pdfPreview": null,
+      "error": "System.Management.Automation.PropertyNotFoundException: The property 'Worksheets' cannot be found on this object. Verify that the property exists.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-ole.ps1:211 char:9\r\n+         $script:Details['cells'] = [ordered]@{ A1 = [double]$book.Wor …\r\n+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:22:37.2728912+08:00",
+      "requestedFile": "ole/ole-icon.docx",
+      "file": "ole/ole-icon.docx",
+      "status": "passed-package-check-pending-visual-inspection",
+      "method": "_scripts/create-ole.ps1",
+      "steps": "由真实Excel生成的xlsx插入嵌入OLE，并显示为图标",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 30432,
+      "details": {
+        "progId": "Excel.Sheet.12",
+        "displayAsIcon": true,
+        "linked": false,
+        "sourceWorkbook": "_assets/ole-excel-source.xlsx",
+        "doVerb0": "succeeded; OLEFormat.Object available",
+        "hideVerb": "succeeded",
+        "previewExpectation": "Excel document icon"
+      },
+      "savedOnce": true,
+      "visualInspection": "pending",
+      "selfCheck": {
+        "status": "passed",
+        "copiedZip": "_checks/ole/ole-icon.zip",
+        "originalSha256": "B184DE8EB7A54C280F42B265BB747BE3846E2CBB12F13F5FF93D16D2458BC3AE",
+        "originalUnchanged": true,
+        "progId": "Excel.Sheet.12",
+        "type": "Embed",
+        "drawAspect": "Icon",
+        "previewParts": [
+          "word/media/image1.emf"
+        ],
+        "embeddingParts": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ]
+      },
+      "pdfPreview": "_previews/ole/ole-icon.pdf",
+      "error": null
+    },
+    {
+      "runId": "2026-09-07T01:22:37.2728912+08:00",
+      "requestedFile": "ole/ole-ppt.docx",
+      "file": "ole/ole-ppt.docx",
+      "status": "passed-package-check-pending-visual-inspection",
+      "method": "_scripts/create-ole.ps1",
+      "steps": "新建PowerPoint.Slide.12对象，写入示例幻灯片文字",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 3432,
+      "details": {
+        "progId": "PowerPoint.Slide.12",
+        "displayAsIcon": false,
+        "linked": false,
+        "doVerb0": "succeeded; OLEFormat.Object available",
+        "hideVerb": "succeeded",
+        "previewExpectation": "PowerPoint slide showing 嵌入幻灯片"
+      },
+      "savedOnce": true,
+      "visualInspection": "pending",
+      "selfCheck": {
+        "status": "passed",
+        "copiedZip": "_checks/ole/ole-ppt.zip",
+        "originalSha256": "16BBF3696D69EB1AA27920BBB225353BC8FA2CFCCFFEFD436EAEA718FC2EC368",
+        "originalUnchanged": true,
+        "progId": "PowerPoint.Slide.12",
+        "type": "Embed",
+        "drawAspect": "Content",
+        "previewParts": [
+          "word/media/image1.emf"
+        ],
+        "embeddingParts": [
+          "word/embeddings/Microsoft_PowerPoint_Slide.sldx"
+        ]
+      },
+      "pdfPreview": "_previews/ole/ole-ppt.pdf",
+      "error": null
+    },
+    {
+      "runId": "2026-09-07T01:22:37.2728912+08:00",
+      "requestedFile": "ole/ole-with-text.docx",
+      "file": "ole/ole-with-text.docx",
+      "status": "passed-package-check-pending-visual-inspection",
+      "method": "_scripts/create-ole.ps1",
+      "steps": "同一个正文段落中，文字末尾插Excel嵌入对象",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 15864,
+      "details": {
+        "progId": "Excel.Sheet.12",
+        "displayAsIcon": false,
+        "linked": false,
+        "doVerb0": "succeeded; OLEFormat.Object available",
+        "cells": {
+          "A1": 12.0,
+          "B1": 34.0
+        },
+        "hideVerb": "succeeded",
+        "previewExpectation": "Text and worksheet preview in one paragraph"
+      },
+      "savedOnce": true,
+      "visualInspection": "pending",
+      "selfCheck": {
+        "status": "passed",
+        "copiedZip": "_checks/ole/ole-with-text.zip",
+        "originalSha256": "7F25D78A4E5925052378FA21309DBAE93D9C0F3BFF034E19B1AB174C5CE12E4C",
+        "originalUnchanged": true,
+        "progId": "Excel.Sheet.12",
+        "type": "Embed",
+        "drawAspect": "Content",
+        "previewParts": [
+          "word/media/image1.emf"
+        ],
+        "embeddingParts": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ]
+      },
+      "pdfPreview": "_previews/ole/ole-with-text.pdf",
+      "error": null
+    },
+    {
+      "runId": "2026-09-07T01:22:37.2728912+08:00",
+      "requestedFile": "ole/ole-in-table.docx",
+      "file": "ole/ole-in-table.docx",
+      "status": "passed-package-check-pending-visual-inspection",
+      "method": "_scripts/create-ole.ps1",
+      "steps": "2×2表格左上格插Excel嵌入对象",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 8628,
+      "details": {
+        "progId": "Excel.Sheet.12",
+        "displayAsIcon": false,
+        "linked": false,
+        "doVerb0": "succeeded; OLEFormat.Object available",
+        "cells": {
+          "A1": 12.0,
+          "B1": 34.0
+        },
+        "hideVerb": "succeeded",
+        "previewExpectation": "Worksheet preview in the upper-left table cell"
+      },
+      "savedOnce": true,
+      "visualInspection": "pending",
+      "selfCheck": {
+        "status": "passed",
+        "copiedZip": "_checks/ole/ole-in-table.zip",
+        "originalSha256": "651C22B2CA1E4869CF53D503A0614E093AF34AAA44C9B75DAE5203A41A56ECD5",
+        "originalUnchanged": true,
+        "progId": "Excel.Sheet.12",
+        "type": "Embed",
+        "drawAspect": "Content",
+        "previewParts": [
+          "word/media/image1.emf"
+        ],
+        "embeddingParts": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ]
+      },
+      "pdfPreview": "_previews/ole/ole-in-table.pdf",
+      "error": null
+    },
+    {
+      "runId": "2026-09-07T01:24:31.1000814+08:00",
+      "requestedFile": "ole/ole-excel-linked.docx",
+      "file": "ole/ole-excel-linked.docx",
+      "status": "incomplete",
+      "method": "_scripts/create-ole.ps1",
+      "steps": "由真实Excel生成的本地xlsx创建链接OLE对象",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 36456,
+      "details": {
+        "progId": "Excel.Sheet.12",
+        "displayAsIcon": false,
+        "linked": true,
+        "sourceWorkbook": "_assets/ole-excel-source-2.xlsx",
+        "doVerb0": "succeeded; OLEFormat.Object available"
+      },
+      "savedOnce": false,
+      "visualInspection": "pending",
+      "selfCheck": {
+        "status": "pending"
+      },
+      "pdfPreview": null,
+      "error": "System.Management.Automation.PropertyNotFoundException: The property 'Cells' cannot be found on this object. Verify that the property exists.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-ole.ps1:213 char:9\r\n+         $script:Details['cells'] = [ordered]@{ A1 = [double]$sheet.Ce …\r\n+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:25:48.2690103+08:00",
+      "requestedFile": "ole/ole-excel-linked.docx",
+      "file": "ole/ole-excel-linked.docx",
+      "status": "passed-package-check-pending-visual-inspection",
+      "method": "_scripts/create-ole.ps1",
+      "steps": "由真实Excel生成的本地xlsx创建链接OLE对象",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 29252,
+      "details": {
+        "progId": "Excel.Sheet.12",
+        "displayAsIcon": false,
+        "linked": true,
+        "sourceWorkbook": "_assets/ole-excel-source-3.xlsx",
+        "doVerb0": "succeeded",
+        "oleObjectDispatchType": "not exposed",
+        "sourceCells": {
+          "A1": 12.0,
+          "B1": 34.0
+        },
+        "cellEvidence": "Read back from the actual Excel source workbook immediately after its save; linked OLE dispatch does not expose worksheet cells.",
+        "hideVerb": "succeeded",
+        "previewExpectation": "Linked Excel worksheet content containing 12 and 34"
+      },
+      "savedOnce": true,
+      "visualInspection": "pending",
+      "selfCheck": {
+        "status": "passed",
+        "copiedZip": "_checks/ole/ole-excel-linked.zip",
+        "originalSha256": "568802BC67A4B4F8C52C16884A9E4AF7AA5E8CEB074B7FDE14C5BF7AE7EE71E4",
+        "originalUnchanged": true,
+        "progId": "Excel.Sheet.12",
+        "type": "Link",
+        "drawAspect": "Content",
+        "previewParts": [
+          "word/media/image1.wmf"
+        ],
+        "embeddingParts": []
+      },
+      "pdfPreview": "_previews/ole/ole-excel-linked.pdf",
+      "error": null
+    }
+  ]
+}

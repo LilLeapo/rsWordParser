@@ -1,0 +1,635 @@
+{
+  "method": "Copy originals, inspect copied ZIP/XML/XLSX read-only; no Office automation",
+  "createdUtc": "2026-09-06T18:09:54.088920+00:00",
+  "counts": {
+    "passed": 1,
+    "failed": 0,
+    "error": 0,
+    "missing": 0
+  },
+  "results": [
+    {
+      "case": "chartex-sunburst",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chartex-sunburst-2.docx",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "copied bytes equal original",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "one chartEx part",
+          "passed": true,
+          "evidence": [
+            "word/charts/chartEx1.xml"
+          ]
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "cx chartSpace root",
+          "passed": true,
+          "evidence": "{http://schemas.microsoft.com/office/drawing/2014/chartex}chartSpace"
+        },
+        {
+          "name": "requested modern chart layout",
+          "passed": true,
+          "evidence": [
+            "sunburst"
+          ]
+        },
+        {
+          "name": "series reference existing cached datasets",
+          "passed": true,
+          "evidence": [
+            "0"
+          ]
+        },
+        {
+          "name": "nonempty cached chart data",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ]
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ]
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ]
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "size",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "name": "cached categories contain no reference errors",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "name": "chart cache reflects written numeric data",
+          "passed": true,
+          "evidence": {
+            "cached": [
+              [
+                10,
+                20,
+                30
+              ]
+            ],
+            "matchedExpectedSeries": [
+              [
+                10,
+                20,
+                30
+              ]
+            ]
+          }
+        },
+        {
+          "name": "chart cache reflects written category labels",
+          "passed": true,
+          "evidence": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "Item 1",
+            "Item 2",
+            "Item 3",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "Group A",
+            "Group A",
+            "Group B",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        },
+        {
+          "name": "externalData exists",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "externalData resolves to embedded xlsx",
+          "passed": true,
+          "evidence": {
+            "id": "rId1",
+            "relationship": {
+              "Id": "rId1",
+              "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+              "Target": "../embeddings/Microsoft_Excel_Worksheet.xlsx"
+            },
+            "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        },
+        {
+          "name": "embedded workbook contains the intended three data rows",
+          "passed": true,
+          "evidence": {
+            "numericColumn": "D",
+            "mismatches": {}
+          }
+        },
+        {
+          "name": "no old populated workbook rows beyond row 4",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "name": "cached formulas refer to actual embedded worksheet names",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "name": "document cx chart reference resolves",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "chart reference belongs to AlternateContent",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "matching fallback contains an image relationship",
+          "passed": true,
+          "evidence": [
+            "rId5"
+          ]
+        },
+        {
+          "name": "fallback relationship resolves to real embedded PNG",
+          "passed": true,
+          "evidence": {
+            "id": "rId5",
+            "target": "word/media/image1.png"
+          }
+        },
+        {
+          "name": "title is the requested sales title",
+          "passed": true,
+          "evidence": "销售统计"
+        },
+        {
+          "name": "original bytes remain unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "actual": {
+        "chartPart": "word/charts/chartEx1.xml",
+        "layoutIds": [
+          "sunburst"
+        ],
+        "series": [
+          {
+            "attributes": {
+              "layoutId": "sunburst",
+              "uniqueId": "{836F8D4C-1F4F-4E86-80FF-69232E3757BE}"
+            },
+            "dataIds": [
+              "0"
+            ],
+            "layoutPropertiesXml": null
+          }
+        ],
+        "cache": [
+          {
+            "id": "0",
+            "dimensions": [
+              {
+                "kind": "strDim",
+                "type": "cat",
+                "formula": "Sheet1!$A$2:$C$17",
+                "levels": [
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": ""
+                      },
+                      {
+                        "index": 1,
+                        "value": ""
+                      },
+                      {
+                        "index": 2,
+                        "value": ""
+                      },
+                      {
+                        "index": 3,
+                        "value": ""
+                      },
+                      {
+                        "index": 4,
+                        "value": ""
+                      },
+                      {
+                        "index": 5,
+                        "value": ""
+                      },
+                      {
+                        "index": 6,
+                        "value": ""
+                      },
+                      {
+                        "index": 7,
+                        "value": ""
+                      },
+                      {
+                        "index": 8,
+                        "value": ""
+                      },
+                      {
+                        "index": 9,
+                        "value": ""
+                      },
+                      {
+                        "index": 10,
+                        "value": ""
+                      },
+                      {
+                        "index": 11,
+                        "value": ""
+                      },
+                      {
+                        "index": 12,
+                        "value": ""
+                      },
+                      {
+                        "index": 13,
+                        "value": ""
+                      },
+                      {
+                        "index": 14,
+                        "value": ""
+                      },
+                      {
+                        "index": 15,
+                        "value": ""
+                      }
+                    ]
+                  },
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": "Item 1"
+                      },
+                      {
+                        "index": 1,
+                        "value": "Item 2"
+                      },
+                      {
+                        "index": 2,
+                        "value": "Item 3"
+                      },
+                      {
+                        "index": 3,
+                        "value": ""
+                      },
+                      {
+                        "index": 4,
+                        "value": ""
+                      },
+                      {
+                        "index": 5,
+                        "value": ""
+                      },
+                      {
+                        "index": 6,
+                        "value": ""
+                      },
+                      {
+                        "index": 7,
+                        "value": ""
+                      },
+                      {
+                        "index": 8,
+                        "value": ""
+                      },
+                      {
+                        "index": 9,
+                        "value": ""
+                      },
+                      {
+                        "index": 10,
+                        "value": ""
+                      },
+                      {
+                        "index": 11,
+                        "value": ""
+                      },
+                      {
+                        "index": 12,
+                        "value": ""
+                      },
+                      {
+                        "index": 13,
+                        "value": ""
+                      },
+                      {
+                        "index": 14,
+                        "value": ""
+                      },
+                      {
+                        "index": 15,
+                        "value": ""
+                      }
+                    ]
+                  },
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": "Group A"
+                      },
+                      {
+                        "index": 1,
+                        "value": "Group A"
+                      },
+                      {
+                        "index": 2,
+                        "value": "Group B"
+                      },
+                      {
+                        "index": 3,
+                        "value": ""
+                      },
+                      {
+                        "index": 4,
+                        "value": ""
+                      },
+                      {
+                        "index": 5,
+                        "value": ""
+                      },
+                      {
+                        "index": 6,
+                        "value": ""
+                      },
+                      {
+                        "index": 7,
+                        "value": ""
+                      },
+                      {
+                        "index": 8,
+                        "value": ""
+                      },
+                      {
+                        "index": 9,
+                        "value": ""
+                      },
+                      {
+                        "index": 10,
+                        "value": ""
+                      },
+                      {
+                        "index": 11,
+                        "value": ""
+                      },
+                      {
+                        "index": 12,
+                        "value": ""
+                      },
+                      {
+                        "index": 13,
+                        "value": ""
+                      },
+                      {
+                        "index": 14,
+                        "value": ""
+                      },
+                      {
+                        "index": 15,
+                        "value": ""
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "numDim",
+                "type": "size",
+                "formula": "Sheet1!$D$2:$D$17",
+                "levels": [
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": "G/通用格式",
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": 10
+                      },
+                      {
+                        "index": 1,
+                        "value": 20
+                      },
+                      {
+                        "index": 2,
+                        "value": 30
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "embeddedWorkbooks": [
+          {
+            "sheets": [
+              {
+                "name": "Sheet1",
+                "part": "xl/worksheets/sheet1.xml",
+                "cells": {
+                  "A1": "Category",
+                  "B1": "Subcategory",
+                  "D1": "Value",
+                  "A2": "Group A",
+                  "B2": "Item 1",
+                  "D2": 10,
+                  "A3": "Group A",
+                  "B3": "Item 2",
+                  "D3": 20,
+                  "A4": "Group B",
+                  "B4": "Item 3",
+                  "D4": 30
+                },
+                "formulas": {}
+              }
+            ],
+            "bytes": 8988,
+            "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        ],
+        "fallbackImages": [
+          {
+            "relationshipId": "rId5",
+            "part": "word/media/image1.png",
+            "png": true,
+            "pixelSize": [
+              555,
+              324
+            ],
+            "bytes": 17554
+          }
+        ],
+        "title": "销售统计",
+        "legend": null,
+        "floating": false,
+        "chartRelationships": {
+          "rId3": {
+            "Id": "rId3",
+            "Type": "http://schemas.microsoft.com/office/2011/relationships/chartColorStyle",
+            "Target": "colors1.xml"
+          },
+          "rId2": {
+            "Id": "rId2",
+            "Type": "http://schemas.microsoft.com/office/2011/relationships/chartStyle",
+            "Target": "style1.xml"
+          },
+          "rId1": {
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+            "Target": "../embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        }
+      },
+      "observationStatus": "Package evidence only; actual Word UI observation must be supplied separately.",
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\chartex\\20260906-180954-085152\\chartex-sunburst-2.docx",
+      "sha256": "8e050251603655610d11b986962d1ec697ad34cb72aa30134eec6082c57841af",
+      "warnings": []
+    }
+  ]
+}

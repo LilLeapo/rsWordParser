@@ -1,0 +1,87 @@
+{
+  "Script": "create-charts.ps1",
+  "StartedUtc": "2026-09-06T17:04:30.8734853Z",
+  "UpdatedUtc": "2026-09-06T17:04:34.8384500Z",
+  "CompletedUtc": "2026-09-06T17:04:34.8375104Z",
+  "OutputRoot": "C:\\code\\rsWordParser\\real-word-corpus-20260906",
+  "WordVersion": "16.0",
+  "WordBuild": "16.0.14334",
+  "WordProductCode": "{90160000-000F-0000-1000-0000000FF1CE}",
+  "WordProcessId": 2672,
+  "WindowsVersion": "Microsoft Windows NT 10.0.22631.0",
+  "PowerShellVersion": "7.6.5",
+  "SaveFormat": 12,
+  "Method": "Word COM; Documents.Add; InlineShapes.AddChart2; ChartData.Workbook; SaveAs2 once",
+  "ObservationStatus": "COM property readback only. Visual observation and copied-package self-check still required.",
+  "Entries": [
+    {
+      "RequestedFile": "chart/chartex-funnel.docx",
+      "File": "chart/chartex-funnel.docx",
+      "Requested": {
+        "Palette": null,
+        "HoleSize": null,
+        "Color": null,
+        "Bubble": null,
+        "LegendTop": null,
+        "RedPoint": null,
+        "SingleSeries": null,
+        "Gray": null,
+        "Name": "chartex-funnel",
+        "Combo": null,
+        "NoTitle": null,
+        "Type": 123,
+        "ChartEx": true,
+        "Floating": null,
+        "Style": null,
+        "InTable": null,
+        "XY": null,
+        "NoLegend": null,
+        "Kind": "funnel",
+        "Dates": null
+      },
+      "RequestedTitle": "销售统计",
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Status": "failed",
+      "Stage": "InlineShapes.AddChart2",
+      "StartedUtc": "2026-09-06T17:04:33.3112671Z",
+      "FinishedUtc": "2026-09-06T17:04:34.6531671Z",
+      "Actual": null,
+      "Warnings": [],
+      "Error": {
+        "ScriptStackTrace": "at <ScriptBlock>, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 365",
+        "Message": "命令失败",
+        "HResult": "0x800A1066",
+        "Detail": "命令失败"
+      },
+      "SavedOnce": false,
+      "Bytes": null,
+      "PackageCheck": null,
+      "PreviewFile": null,
+      "PreviewStatus": "not-exported"
+    }
+  ],
+  "FatalError": null
+}

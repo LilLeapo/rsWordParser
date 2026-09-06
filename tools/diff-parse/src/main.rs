@@ -160,16 +160,23 @@ fn main() -> ExitCode {
         })),
         None => known_diffs(),
     };
-    let mut paths: Vec<PathBuf> = match std::fs::read_dir(&args.corpus) {
-        Ok(rd) => rd
-            .filter_map(|e| e.ok().map(|e| e.path()))
-            .filter(|p| p.extension().is_some_and(|x| x == "docx"))
-            .collect(),
-        Err(e) => {
-            eprintln!("读不到语料目录 {}: {e}", args.corpus.display());
-            return ExitCode::from(2);
+    // 递归：`corpus/real` 按域分目录，`expected.json` 与 docx 同目录
+    let mut paths: Vec<PathBuf> = Vec::new();
+    let mut stack = vec![args.corpus.clone()];
+    if !args.corpus.is_dir() {
+        eprintln!("读不到语料目录 {}", args.corpus.display());
+        return ExitCode::from(2);
+    }
+    while let Some(dir) = stack.pop() {
+        let Ok(rd) = std::fs::read_dir(&dir) else { continue };
+        for p in rd.filter_map(|e| e.ok().map(|e| e.path())) {
+            if p.is_dir() {
+                stack.push(p);
+            } else if p.extension().is_some_and(|x| x == "docx") {
+                paths.push(p);
+            }
         }
-    };
+    }
     paths.sort();
     let mut report = Report::default();
     let mut skipped_scope = 0usize;

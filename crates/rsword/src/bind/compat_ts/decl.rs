@@ -923,6 +923,7 @@ pub(super) fn notes_json(doc: &Document, r: &Resolver<'_>, endnotes: bool) -> Va
         if n.no_ref_mark {
             set(&mut o, "noRefMark", true);
         }
+        set_some!(&mut o, "styleId" => n.style_id.clone());
         out.push(Value::Object(o));
     }
     Value::Array(out)

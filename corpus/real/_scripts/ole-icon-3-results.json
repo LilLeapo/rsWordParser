@@ -1,0 +1,54 @@
+{
+  "createdAt": "2026-09-07T01:43:30.2191674+08:00",
+  "file": "ole/ole-icon-3.docx",
+  "method": "_scripts/create-ole-icon-clean.ps1",
+  "status": "passed-package-and-visual-check-pending-readonly-activation-verification",
+  "wordVersion": "16.0",
+  "wordBuild": "16.0.14334",
+  "wordProcessId": 26268,
+  "sourceWorkbook": "_assets/ole-excel-source.xlsx",
+  "requestedIconFileName": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE",
+  "requestedIconIndex": 0,
+  "requestedIconLabel": "示例工作表",
+  "savedOnce": true,
+  "activationBeforeSave": "No OLEFormat.DoVerb, OLEFormat.Activate, OLEFormat.Object access, or explicit Excel COM calls; only the containing document is activated and its ordinary text selected.",
+  "originalFirstVersionSha256": "B184DE8EB7A54C280F42B265BB747BE3846E2CBB12F13F5FF93D16D2458BC3AE",
+  "firstVersionUnchanged": true,
+  "pdfPreview": "_previews/ole/ole-icon-3.pdf",
+  "visualInspection": "passed; the one-page Word PDF shows a clear green Excel X icon above the label 示例工作表, between separate before/after paragraphs, with no hatching or generic page icon",
+  "visualEvidence": "_previews/rendered/ole-ole-icon-3-p1.png",
+  "offlineReview": {
+    "copiedZip": "_checks/ole/ole-icon-3-offline-review-20260907-020107-485.zip",
+    "objectCount": 1,
+    "type": "Embed",
+    "progId": "Excel.Sheet.12",
+    "drawAspect": "Icon",
+    "embeddingTarget": "embeddings/Microsoft_Excel_Worksheet.xlsx",
+    "previewTarget": "media/image1.emf",
+    "sha256Before": "902E32369E40BACDDD54A556A1BE733FF39D2903DC5CF18AB95C77BC152B93A6",
+    "sha256After": "902E32369E40BACDDD54A556A1BE733FF39D2903DC5CF18AB95C77BC152B93A6",
+    "originalUnchanged": true,
+    "officeInvoked": false
+  },
+  "activationVerification": "pending; use only the read-only inspection copy after reviewing the initial PDF",
+  "error": null,
+  "progId": "Excel.Sheet.12",
+  "displayAsIcon": true,
+  "actualIconName": "EXCEL.EXE",
+  "actualIconPath": "C:\\Program Files\\Microsoft Office\\root\\Office16",
+  "actualIconIndex": 0,
+  "actualIconLabel": "示例工作表",
+  "selfCheck": {
+    "status": "passed",
+    "copiedZip": "_checks/ole/ole-icon-3.zip",
+    "previewParts": [
+      "word/media/image1.emf"
+    ],
+    "embeddingParts": [
+      "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+    ]
+  },
+  "readonlyInspectionCopy": "_checks/ole/ole-icon-3-readonly-inspection.docx",
+  "originalSha256": "902E32369E40BACDDD54A556A1BE733FF39D2903DC5CF18AB95C77BC152B93A6",
+  "originalUnchangedAfterCopies": true
+}

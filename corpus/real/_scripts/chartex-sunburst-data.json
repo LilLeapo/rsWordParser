@@ -1,0 +1,42 @@
+﻿{
+    "case":  "chart/chartex-sunburst",
+    "method":  "Word UI Insert Chart, then actual embedded Excel workbook edited through COM",
+    "hierarchical":  true,
+    "worksheet":  [
+                      [
+                          "Category",
+                          "Subcategory",
+                          "Value"
+                      ],
+                      [
+                          "Group A",
+                          "Item 1",
+                          "10"
+                      ],
+                      [
+                          "Group A",
+                          "Item 2",
+                          "20"
+                      ],
+                      [
+                          "Group B",
+                          "Item 3",
+                          "30"
+                      ]
+                  ],
+    "title":  "销售统计",
+    "sourceDataError":  "Unspecified error (Exception from HRESULT: 0x80004005 (E_FAIL))",
+    "sourceRangeRequiresUi":  true,
+    "chartType":  120,
+    "series":  [
+                   {
+                       "categories":  [
+                                          null
+                                      ],
+                       "values":  [
+                                      null
+                                  ],
+                       "name":  "系列 1"
+                   }
+               ]
+}

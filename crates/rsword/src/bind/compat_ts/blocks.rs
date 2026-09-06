@@ -2108,9 +2108,17 @@ fn field_run_json(
             set(&mut o, "fldBeginXml", ctx.slice(&begin).to_string());
         }
         k if is_simple_inline(k) => {
-            // 没有结果的简单内联字段（PAGE 常见）：TS 放一个空格占位，run 才不是空的
+            // TS `pushRun({ text: fieldCached || ' ', instrField: fieldInstr.trim() })`：只有文字与**整条**指令
+            // （含开关，`DATE  \* MERGEFORMAT`），不带结果 run 的格式键（真实 Word 的 `fields-toc`）；
+            // 没有结果的简单内联字段（PAGE 常见）放一个空格占位，run 才不是空的
+            let comments = o.remove("commentIds");
+            o = Map::new();
             set(&mut o, "text", if text.is_empty() { " ".to_string() } else { text });
-            set(&mut o, "instrField", k.as_str().to_string());
+            set(&mut o, "instrField", f.instr.raw.trim().to_string());
+            if let Some(c) = comments {
+                o.insert("commentIds".into(), c);
+            }
+            let _ = k;
         }
         _ => {
             if text.is_empty() {

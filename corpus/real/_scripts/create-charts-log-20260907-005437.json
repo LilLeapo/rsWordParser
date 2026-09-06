@@ -1,0 +1,134 @@
+{
+  "Script": "create-charts.ps1",
+  "StartedUtc": "2026-09-06T16:54:37.3726351Z",
+  "UpdatedUtc": "2026-09-06T16:54:43.3426143Z",
+  "CompletedUtc": "2026-09-06T16:54:43.3420800Z",
+  "OutputRoot": "C:\\code\\rsWordParser\\real-word-corpus-20260906",
+  "WordVersion": "16.0",
+  "WordBuild": "16.0.14334",
+  "WordProductCode": "{90160000-000F-0000-1000-0000000FF1CE}",
+  "WindowsVersion": "Microsoft Windows NT 10.0.22631.0",
+  "PowerShellVersion": "7.6.5",
+  "SaveFormat": 12,
+  "Method": "Word COM; Documents.Add; InlineShapes.AddChart2; ChartData.Workbook; SaveAs2 once",
+  "ObservationStatus": "COM property readback only. Visual observation and copied-package self-check still required.",
+  "Entries": [
+    {
+      "RequestedFile": "chart/chart-column.docx",
+      "File": "chart/chart-column.docx",
+      "Requested": {
+        "Name": "chart-column",
+        "Floating": null,
+        "Type": 51,
+        "Style": null,
+        "Kind": "clustered column",
+        "Gray": null,
+        "XY": null,
+        "Bubble": null,
+        "RedPoint": null,
+        "Combo": null,
+        "ChartEx": null,
+        "NoTitle": null,
+        "Color": null,
+        "Dates": null,
+        "SingleSeries": null,
+        "NoLegend": null,
+        "Palette": null,
+        "LegendTop": null,
+        "InTable": null,
+        "HoleSize": null
+      },
+      "RequestedTitle": "销售统计",
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Status": "saved-but-incomplete",
+      "Stage": "read-only package self-check",
+      "StartedUtc": "2026-09-06T16:54:39.4425853Z",
+      "FinishedUtc": "2026-09-06T16:54:43.2357955Z",
+      "Actual": {
+        "ChartType": 51,
+        "ChartStyle": 201,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 3243501
+          }
+        ],
+        "Layout": {
+          "WidthPt": 420.0,
+          "InTable": false,
+          "Floating": false,
+          "HeightPt": 240.0
+        }
+      },
+      "Warnings": [],
+      "Error": {
+        "Message": "Exception calling \"OpenRead\" with \"1\" argument(s): \"The process cannot access the file 'C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-column.docx' because it is being used by another process.\"",
+        "HResult": "0x80131501",
+        "Detail": "Exception calling \"OpenRead\" with \"1\" argument(s): \"The process cannot access the file 'C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-column.docx' because it is being used by another process.\"",
+        "ScriptStackTrace": "at Test-ChartPackage, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 107\r\nat <ScriptBlock>, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 476"
+      },
+      "SavedOnce": true,
+      "Bytes": 25576,
+      "PackageCheck": null,
+      "PreviewFile": "_previews/chart/chart-column.pdf",
+      "PreviewStatus": "Word-exported PDF; not visually verified"
+    }
+  ],
+  "FatalError": null
+}

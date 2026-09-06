@@ -1,0 +1,13 @@
+﻿{
+    "action":  "Save",
+    "case":  "ink/ink-math",
+    "file":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\ink\\ink-math.docx",
+    "version":  "16.0",
+    "build":  "16.0.14334",
+    "text":  "before 前文\r\r𝑥\r2\r+1这是一段用于观察原生墨迹的文字。\rafter 后文\r\r",
+    "objects":  [
+
+                ],
+    "mathCount":  1,
+    "pdf":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\ink\\ink-math.pdf"
+}

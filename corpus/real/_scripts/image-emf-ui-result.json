@@ -1,0 +1,19 @@
+﻿{
+    "action":  "Save",
+    "case":  "image/image-emf",
+    "file":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\image\\image-emf.docx",
+    "version":  "16.0",
+    "build":  "16.0.14334",
+    "text":  "before 前文\r/\rafter 后文\r\r",
+    "objects":  [
+                    {
+                        "placement":  "inline",
+                        "type":  3,
+                        "width":  415.3,
+                        "height":  251.05,
+                        "alt":  ""
+                    }
+                ],
+    "mathCount":  0,
+    "pdf":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\image\\image-emf.pdf"
+}

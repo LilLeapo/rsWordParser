@@ -1,0 +1,86 @@
+{
+  "Script": "create-charts.ps1",
+  "StartedUtc": "2026-09-06T16:50:11.5225875Z",
+  "UpdatedUtc": "2026-09-06T16:50:16.7303346Z",
+  "CompletedUtc": "2026-09-06T16:50:16.7294324Z",
+  "OutputRoot": "C:\\code\\rsWordParser\\real-word-corpus-20260906",
+  "WordVersion": "16.0",
+  "WordBuild": "16.0.14334",
+  "WordProductCode": "string ProductCode ()",
+  "WindowsVersion": "Microsoft Windows NT 10.0.22631.0",
+  "PowerShellVersion": "7.6.5",
+  "SaveFormat": 12,
+  "Method": "Word COM; Documents.Add; InlineShapes.AddChart2; ChartData.Workbook; SaveAs2 once",
+  "ObservationStatus": "COM property readback only. Visual observation and copied-package self-check still required.",
+  "Entries": [
+    {
+      "RequestedFile": "chart/chart-column.docx",
+      "File": "chart/chart-column.docx",
+      "Requested": {
+        "SingleSeries": null,
+        "Style": null,
+        "ChartEx": null,
+        "Gray": null,
+        "Name": "chart-column",
+        "Dates": null,
+        "Bubble": null,
+        "RedPoint": null,
+        "Kind": "clustered column",
+        "Combo": null,
+        "Palette": null,
+        "LegendTop": null,
+        "InTable": null,
+        "NoLegend": null,
+        "NoTitle": null,
+        "Floating": null,
+        "Type": 51,
+        "Color": null,
+        "XY": null,
+        "HoleSize": null
+      },
+      "RequestedTitle": "销售统计",
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Status": "failed",
+      "Stage": "ChartData.Activate and Workbook",
+      "StartedUtc": "2026-09-06T16:50:14.2904396Z",
+      "FinishedUtc": "2026-09-06T16:50:16.5567301Z",
+      "Actual": null,
+      "Warnings": [],
+      "Error": {
+        "Detail": "The property 'Windows' cannot be found on this object. Verify that the property exists.",
+        "HResult": "0x80131501",
+        "ScriptStackTrace": "at <ScriptBlock>, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 346",
+        "Message": "The property 'Windows' cannot be found on this object. Verify that the property exists."
+      },
+      "SavedOnce": false,
+      "Bytes": null,
+      "PackageCheck": null,
+      "PreviewFile": null,
+      "PreviewStatus": "not-exported"
+    }
+  ],
+  "FatalError": null
+}

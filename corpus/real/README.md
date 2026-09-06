@@ -17,3 +17,12 @@ corpus/real/
 
 接入（macOS 侧）：`cargo run -p diff-parse -- --corpus corpus/real`（参考差分），`tests/save.rs` 的往返与编辑保真扫描覆盖
 `corpus/real/**/*.docx`（字节相同、其他条目 CRC 不变——这两条是门）。
+
+## 已收到的交付
+
+- **2026-09-07**：Windows 侧（Office LTSC Professional Plus 2021，16.0.14334.20848，Windows 11）交回 124 份，报告在
+  `DELIVERY-2026-09-07.md`（原 README）、`OBSERVED.md`、`ROUNDTRIP.md`、`STRUCTURE.md`；脚本在 `_scripts/`（日志未收），
+  Word 导出的 PDF 在 `_previews/`（栅格页面图未收），截图在 `screenshots/`，源资产在 `_assets/`。
+  **同一目标有多份时按 `DELIVERY-2026-09-07.md`「推荐版本」表选**：带数字后缀的多半是修正版，无后缀的首版有的是失败试件
+  （箱线图例外：首版可见、`-2` 空白）。这些试件都保留——它们同样是 Word 写出的合法文档，往返与差分门照样覆盖。
+- 接入结果见 `docs/04` §15「真实 Word 语料接入」：三条门 124 / 124 通过，TS 差分 0 处未知（登记 235 处）。

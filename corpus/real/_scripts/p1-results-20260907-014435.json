@@ -1,0 +1,13 @@
+{
+  "case": "shapes/textbox-shapes",
+  "status": "saved-needs-visual-and-package-check",
+  "version": "16.0",
+  "build": "16.0.14334",
+  "visualChecked": false,
+  "started": "2026-09-07T01:44:37.3684726+08:00",
+  "pages": 1,
+  "text": "before 前文\r\rafter 后文\r\r",
+  "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\shapes\\textbox-shapes-2.docx",
+  "pdf": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\shapes\\textbox-shapes-2.pdf",
+  "finished": "2026-09-07T01:44:38.9867585+08:00"
+}

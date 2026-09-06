@@ -1,0 +1,49 @@
+﻿{
+    "action":  "Save",
+    "case":  "chart/chart-pasted-linked",
+    "file":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-pasted-linked.docx",
+    "version":  "16.0",
+    "build":  "16.0.14334",
+    "text":  "before 前文\r/\rafter 后文\r\r",
+    "objects":  [
+                    {
+                        "placement":  "inline",
+                        "type":  12,
+                        "width":  415.3,
+                        "height":  250.9,
+                        "alt":  "",
+                        "chartType":  51,
+                        "title":  "销售统计",
+                        "series":  [
+                                       {
+                                           "values":  [
+                                                          10,
+                                                          20,
+                                                          30
+                                                      ],
+                                           "name":  "Series 1",
+                                           "x":  [
+                                                     "Category 1",
+                                                     "Category 2",
+                                                     "Category 3"
+                                                 ]
+                                       },
+                                       {
+                                           "values":  [
+                                                          15,
+                                                          25,
+                                                          35
+                                                      ],
+                                           "name":  "Series 2",
+                                           "x":  [
+                                                     "Category 1",
+                                                     "Category 2",
+                                                     "Category 3"
+                                                 ]
+                                       }
+                                   ]
+                    }
+                ],
+    "mathCount":  0,
+    "pdf":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\chart\\chart-pasted-linked.pdf"
+}

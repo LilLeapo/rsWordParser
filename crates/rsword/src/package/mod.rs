@@ -568,6 +568,10 @@ impl Package {
         })
     }
 
+    pub(crate) fn content_types_mut(&mut self) -> &mut ContentTypes {
+        &mut self.content_types
+    }
+
     pub fn content_types(&self) -> &ContentTypes {
         &self.content_types
     }

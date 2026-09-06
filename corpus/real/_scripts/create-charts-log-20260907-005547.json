@@ -1,0 +1,149 @@
+{
+  "Script": "create-charts.ps1",
+  "StartedUtc": "2026-09-06T16:55:47.6450472Z",
+  "UpdatedUtc": "2026-09-06T16:55:54.0015226Z",
+  "CompletedUtc": null,
+  "OutputRoot": "C:\\code\\rsWordParser\\real-word-corpus-20260906",
+  "WordVersion": "16.0",
+  "WordBuild": "16.0.14334",
+  "WordProductCode": "{90160000-000F-0000-1000-0000000FF1CE}",
+  "WindowsVersion": "Microsoft Windows NT 10.0.22631.0",
+  "PowerShellVersion": "7.6.5",
+  "SaveFormat": 12,
+  "Method": "Word COM; Documents.Add; InlineShapes.AddChart2; ChartData.Workbook; SaveAs2 once",
+  "ObservationStatus": "COM property readback only. Visual observation and copied-package self-check still required.",
+  "Entries": [
+    {
+      "RequestedFile": "chart/chart-bar.docx",
+      "File": "chart/chart-bar.docx",
+      "Requested": {
+        "Palette": null,
+        "HoleSize": null,
+        "NoLegend": null,
+        "LegendTop": null,
+        "Color": null,
+        "Floating": null,
+        "Style": null,
+        "Name": "chart-bar",
+        "Gray": null,
+        "Bubble": null,
+        "SingleSeries": null,
+        "NoTitle": null,
+        "Combo": null,
+        "XY": null,
+        "Dates": null,
+        "Type": 57,
+        "RedPoint": null,
+        "ChartEx": null,
+        "Kind": "clustered bar",
+        "InTable": null
+      },
+      "RequestedTitle": "销售统计",
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Status": "failed",
+      "Stage": "populate worksheet and SetSourceData",
+      "StartedUtc": "2026-09-06T16:55:49.6317796Z",
+      "FinishedUtc": "2026-09-06T16:55:53.9293159Z",
+      "Actual": null,
+      "Warnings": [],
+      "Error": {
+        "ScriptStackTrace": "at Set-ChartWorkbook, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 177\r\nat <ScriptBlock>, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 374",
+        "HResult": "0x80004005",
+        "Message": "未指定的错误 (0x80004005 (E_FAIL))",
+        "Detail": "未指定的错误 (0x80004005 (E_FAIL))"
+      },
+      "SavedOnce": false,
+      "Bytes": null,
+      "PackageCheck": null,
+      "PreviewFile": null,
+      "PreviewStatus": "not-exported"
+    },
+    {
+      "RequestedFile": "chart/chart-stacked.docx",
+      "File": "chart/chart-stacked.docx",
+      "Requested": {
+        "Palette": null,
+        "HoleSize": null,
+        "NoLegend": null,
+        "LegendTop": null,
+        "Color": null,
+        "Floating": null,
+        "Style": null,
+        "Name": "chart-stacked",
+        "Gray": null,
+        "Bubble": null,
+        "SingleSeries": null,
+        "NoTitle": null,
+        "Combo": null,
+        "XY": null,
+        "Dates": null,
+        "Type": 52,
+        "RedPoint": null,
+        "ChartEx": null,
+        "Kind": "stacked column",
+        "InTable": null
+      },
+      "RequestedTitle": "销售统计",
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Status": "creating",
+      "Stage": "Documents.Add",
+      "StartedUtc": "2026-09-06T16:55:54.0014446Z",
+      "FinishedUtc": null,
+      "Actual": null,
+      "Warnings": [],
+      "Error": null,
+      "SavedOnce": false,
+      "Bytes": null,
+      "PackageCheck": null,
+      "PreviewFile": null,
+      "PreviewStatus": "not-exported"
+    }
+  ],
+  "FatalError": null
+}

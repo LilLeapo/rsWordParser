@@ -1,0 +1,369 @@
+{
+  "method": "Copy originals, open copied ZIPs read-only, parse XML; no Office automation",
+  "createdUtc": "2026-09-06T17:43:23.331466+00:00",
+  "counts": {
+    "passed": 3,
+    "failed": 0,
+    "error": 0,
+    "missing": 0
+  },
+  "results": [
+    {
+      "case": "text/text-basic",
+      "variant": "-2",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\text\\text-basic-2.docx",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "snapshot matches original bytes",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "document main namespace",
+          "passed": true,
+          "evidence": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "heading levels 1 and 2",
+          "passed": true,
+          "evidence": [
+            0,
+            1
+          ]
+        },
+        {
+          "name": "a bullet paragraph",
+          "passed": true,
+          "evidence": [
+            {
+              "level": 0,
+              "format": "bullet",
+              "text": "",
+              "paragraph": "项目符号条目"
+            },
+            {
+              "level": 0,
+              "format": "decimal",
+              "text": "%1.",
+              "paragraph": "编号一级"
+            },
+            {
+              "level": 1,
+              "format": "decimal",
+              "text": "%1.%2.",
+              "paragraph": "编号二级"
+            },
+            {
+              "level": 2,
+              "format": "decimal",
+              "text": "%1.%2.%3.",
+              "paragraph": "编号三级"
+            }
+          ]
+        },
+        {
+          "name": "three numbering levels used",
+          "passed": true,
+          "evidence": [
+            {
+              "level": 0,
+              "format": "decimal",
+              "text": "%1.",
+              "paragraph": "编号一级"
+            },
+            {
+              "level": 1,
+              "format": "decimal",
+              "text": "%1.%2.",
+              "paragraph": "编号二级"
+            },
+            {
+              "level": 2,
+              "format": "decimal",
+              "text": "%1.%2.%3.",
+              "paragraph": "编号三级"
+            }
+          ]
+        },
+        {
+          "name": "number format level 1",
+          "passed": true,
+          "evidence": "%1."
+        },
+        {
+          "name": "number format level 2",
+          "passed": true,
+          "evidence": "%1.%2."
+        },
+        {
+          "name": "number format level 3",
+          "passed": true,
+          "evidence": "%1.%2.%3."
+        },
+        {
+          "name": "run formatting b",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "run formatting i",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "run formatting u",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "run formatting strike",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "superscript",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "colored run",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "18 point run",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "mixed Chinese and English body",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "original remains unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "warnings": [],
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\p1\\20260906-174323-324967\\text\\text-basic-2.docx",
+      "sha256": "c93551cf94fb0f364ac735d9065ebed922e173bc7277681eec30f393233a58e8"
+    },
+    {
+      "case": "sdt/content-controls",
+      "variant": "-2",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\sdt\\content-controls-2.docx",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "snapshot matches original bytes",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "document main namespace",
+          "passed": true,
+          "evidence": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "rich text content control",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "dropdown with two entries",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "date picker and display format",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "checked checkbox control",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "content and deletion lock",
+          "passed": true,
+          "evidence": [
+            "sdtContentLocked",
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "name": "original remains unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "warnings": [],
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\p1\\20260906-174323-324967\\sdt\\content-controls-2.docx",
+      "sha256": "6e0d8a8da133308acaaff38a64862bde8ba7d94e547d9380da90a86ccc679940"
+    },
+    {
+      "case": "strict/strict-basic",
+      "variant": "-2",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\strict\\strict-basic-2.docx",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "snapshot matches original bytes",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "document main namespace",
+          "passed": true,
+          "evidence": "http://purl.oclc.org/ooxml/wordprocessingml/main"
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "heading levels 1 and 2",
+          "passed": true,
+          "evidence": [
+            0,
+            1
+          ]
+        },
+        {
+          "name": "a bullet paragraph",
+          "passed": true,
+          "evidence": [
+            {
+              "level": 0,
+              "format": "bullet",
+              "text": "",
+              "paragraph": "项目符号条目"
+            },
+            {
+              "level": 0,
+              "format": "decimal",
+              "text": "%1.",
+              "paragraph": "编号一级"
+            },
+            {
+              "level": 1,
+              "format": "decimal",
+              "text": "%1.%2.",
+              "paragraph": "编号二级"
+            },
+            {
+              "level": 2,
+              "format": "decimal",
+              "text": "%1.%2.%3.",
+              "paragraph": "编号三级"
+            }
+          ]
+        },
+        {
+          "name": "three numbering levels used",
+          "passed": true,
+          "evidence": [
+            {
+              "level": 0,
+              "format": "decimal",
+              "text": "%1.",
+              "paragraph": "编号一级"
+            },
+            {
+              "level": 1,
+              "format": "decimal",
+              "text": "%1.%2.",
+              "paragraph": "编号二级"
+            },
+            {
+              "level": 2,
+              "format": "decimal",
+              "text": "%1.%2.%3.",
+              "paragraph": "编号三级"
+            }
+          ]
+        },
+        {
+          "name": "number format level 1",
+          "passed": true,
+          "evidence": "%1."
+        },
+        {
+          "name": "number format level 2",
+          "passed": true,
+          "evidence": "%1.%2."
+        },
+        {
+          "name": "number format level 3",
+          "passed": true,
+          "evidence": "%1.%2.%3."
+        },
+        {
+          "name": "run formatting b",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "run formatting i",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "run formatting u",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "run formatting strike",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "superscript",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "colored run",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "18 point run",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "mixed Chinese and English body",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "original remains unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "warnings": [],
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\p1\\20260906-174323-324967\\strict\\strict-basic-2.docx",
+      "sha256": "8998e3e73cb7e6a11b7e180f6851975623fe07d6857fa4a5643e3507965f2058"
+    }
+  ]
+}

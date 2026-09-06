@@ -12,15 +12,21 @@ pub fn corpus_dir(kind: &str) -> PathBuf {
     repo_root().join("corpus").join(kind)
 }
 
-/// `corpus/<kind>/*.docx`，按文件名排序，保证测试输出稳定。
+/// `corpus/<kind>/**/*.docx`（递归：`corpus/real` 按域分目录），按路径排序，保证测试输出稳定。
 #[allow(dead_code)]
 pub fn docx_paths(kind: &str) -> Vec<PathBuf> {
-    let dir = corpus_dir(kind);
-    let Ok(rd) = std::fs::read_dir(&dir) else { return Vec::new() };
-    let mut v: Vec<PathBuf> = rd
-        .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|p| p.extension().is_some_and(|x| x == "docx"))
-        .collect();
+    let mut v = Vec::new();
+    let mut stack = vec![corpus_dir(kind)];
+    while let Some(dir) = stack.pop() {
+        let Ok(rd) = std::fs::read_dir(&dir) else { continue };
+        for p in rd.filter_map(|e| e.ok().map(|e| e.path())) {
+            if p.is_dir() {
+                stack.push(p);
+            } else if p.extension().is_some_and(|x| x == "docx") {
+                v.push(p);
+            }
+        }
+    }
     v.sort();
     v
 }

@@ -17,3 +17,16 @@
 | `05-ink-insert.docx` | 在第一段上加两条「墨迹」：本引擎的墨迹是 `wp:anchor` 浮动图片（`aidocs-ink`），偏移 (40, −10) px 与 (300, 20) px，各 200 × 80 px | 两块纯色浮动图片压在第一段文字**前方**、不挤开文字；无提示 |
 
 核对完请另存一份（`<名>-resaved-by-word.docx`）放回这个目录：我们拿它看 Word 重写后哪些字节变了。
+
+## 第一轮 Word 核对（2026-09-07，Office LTSC 2021）的结论与修正
+
+结果全文在 `../ROUNDTRIP.md` / `../STRUCTURE.md`。要点：
+
+| 样本 | 结果 | 我们的处理 |
+| --- | --- | --- |
+| `01-*`、`03-*` | 正常打开、内容与期望一致（图表「编辑数据」能打开内嵌工作簿且数字一致） | 通过 |
+| `05-ink-insert`、`06-chart-insert-line-pie` | 打开弹「发现无法读取的内容」，恢复后内容正确 | **真 bug**：`[Content_Types].xml` 里写了两条同扩展名的 `Default`（一次会话补两个媒体 / 工作簿）。已修（`ensure_default_type` 看活 DOM + 同步缓存），本目录的两份已**重新生成（v2）**，请下一轮再开一次 |
+| `02-*`、`04-*` | 源文件本身就打不开（TS 合成的图表没有坐标轴、`pic:pic` 缺 `nvPicPr` / `spPr`） | 不是引擎问题。样本底稿已改为真实 Word 文档（`chart-column.docx` / `image-wrap-square.docx` / `text-custom-styles.docx`），全部样本都已重新生成 |
+
+`*-resaved-by-word.docx` 是 Word 对**第一版**样本的另存件，与现在目录里的 v2 原件不再逐字节对应；留着它们是为了看 Word 重写了哪些字节
+（例如 Word 去掉了重复的 `Default`、给 run 补 `w:noProof`）。

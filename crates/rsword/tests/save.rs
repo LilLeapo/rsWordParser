@@ -25,7 +25,7 @@ fn entries(bytes: &[u8]) -> Vec<(String, u32, u64, Vec<u8>)> {
 #[test]
 fn save_01_no_edit_returns_original_bytes_for_all_corpus() {
     let mut n = 0;
-    for kind in ["synthetic", "hostile"] {
+    for kind in ["synthetic", "hostile", "real"] {
         for path in common::docx_paths(kind) {
             let bytes = std::fs::read(&path).unwrap();
             let Ok(mut pkg) = Package::open(&bytes) else { continue };
@@ -115,7 +115,7 @@ fn save_06_untouched_entries_keep_crc_and_compressed_bytes() {
 #[test]
 fn test_04_single_node_edit_roundtrips_on_every_synthetic_doc() {
     let mut edited = 0;
-    for path in common::docx_paths("synthetic") {
+    for path in ["synthetic", "real"].into_iter().flat_map(common::docx_paths) {
         let bytes = std::fs::read(&path).unwrap();
         let mut pkg = Package::open(&bytes).unwrap();
         let main = pkg.main_part();
@@ -162,7 +162,7 @@ fn test_04_corpus_edit_fidelity() {
 
     let mut edited = 0;
     let mut skipped_no_text_block = 0;
-    for path in common::docx_paths("synthetic") {
+    for path in ["synthetic", "real"].into_iter().flat_map(common::docx_paths) {
         let bytes = std::fs::read(&path).unwrap();
         let mut s = EditSession::open(&bytes)
             .unwrap_or_else(|e| panic!("{}: EditSession::open failed: {e}", path.display()));

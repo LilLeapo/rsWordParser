@@ -51,7 +51,7 @@ fn xml_13_clean_roundtrip_all_corpus() {
         ("chart-part-malformed", "word/charts/chart1.xml"),
     ];
 
-    for kind in ["synthetic", "hostile"] {
+    for kind in ["synthetic", "hostile", "real"] {
         for path in common::docx_paths(kind) {
             let stem = path.file_stem().unwrap().to_string_lossy().to_string();
             let file = File::open(&path).unwrap();

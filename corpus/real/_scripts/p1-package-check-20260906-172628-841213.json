@@ -1,0 +1,120 @@
+{
+  "method": "Copy originals, open copied ZIPs read-only, parse XML; no Office automation",
+  "createdUtc": "2026-09-06T17:26:28.841485+00:00",
+  "counts": {
+    "passed": 0,
+    "failed": 0,
+    "error": 0,
+    "missing": 12
+  },
+  "results": [
+    {
+      "case": "text/text-basic",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\text\\text-basic.docx",
+      "status": "missing",
+      "checks": [],
+      "warnings": [
+        "Sample has not been generated. No Office operation was attempted."
+      ]
+    },
+    {
+      "case": "text/text-custom-styles",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\text\\text-custom-styles.docx",
+      "status": "missing",
+      "checks": [],
+      "warnings": [
+        "Sample has not been generated. No Office operation was attempted."
+      ]
+    },
+    {
+      "case": "table/table-styled",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\table\\table-styled.docx",
+      "status": "missing",
+      "checks": [],
+      "warnings": [
+        "Sample has not been generated. No Office operation was attempted."
+      ]
+    },
+    {
+      "case": "hf/hf-variants",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\hf\\hf-variants.docx",
+      "status": "missing",
+      "checks": [],
+      "warnings": [
+        "Sample has not been generated. No Office operation was attempted."
+      ]
+    },
+    {
+      "case": "sections/sections-three",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\sections\\sections-three.docx",
+      "status": "missing",
+      "checks": [],
+      "warnings": [
+        "Sample has not been generated. No Office operation was attempted."
+      ]
+    },
+    {
+      "case": "fields/fields-toc",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\fields\\fields-toc.docx",
+      "status": "missing",
+      "checks": [],
+      "warnings": [
+        "Sample has not been generated. No Office operation was attempted."
+      ]
+    },
+    {
+      "case": "revisions/revisions-comments",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\revisions\\revisions-comments.docx",
+      "status": "missing",
+      "checks": [],
+      "warnings": [
+        "Sample has not been generated. No Office operation was attempted."
+      ]
+    },
+    {
+      "case": "shapes/textbox-shapes",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\shapes\\textbox-shapes.docx",
+      "status": "missing",
+      "checks": [],
+      "warnings": [
+        "Sample has not been generated. No Office operation was attempted."
+      ]
+    },
+    {
+      "case": "sdt/content-controls",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\sdt\\content-controls.docx",
+      "status": "missing",
+      "checks": [],
+      "warnings": [
+        "Sample has not been generated. No Office operation was attempted."
+      ]
+    },
+    {
+      "case": "links/hyperlinks-bookmarks",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\links\\hyperlinks-bookmarks.docx",
+      "status": "missing",
+      "checks": [],
+      "warnings": [
+        "Sample has not been generated. No Office operation was attempted."
+      ]
+    },
+    {
+      "case": "strict/strict-basic",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\strict\\strict-basic.docx",
+      "status": "missing",
+      "checks": [],
+      "warnings": [
+        "Sample has not been generated. No Office operation was attempted."
+      ]
+    },
+    {
+      "case": "misc/large-report",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\misc\\large-report.docx",
+      "status": "missing",
+      "checks": [],
+      "warnings": [
+        "Sample has not been generated. No Office operation was attempted."
+      ]
+    }
+  ]
+}

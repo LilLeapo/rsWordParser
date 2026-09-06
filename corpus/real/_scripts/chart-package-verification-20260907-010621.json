@@ -1,0 +1,439 @@
+[
+  {
+    "File": "chart/chart-3d.docx",
+    "Sha256": "AD8DFD57C6C460452C6B1700DC10940E95CD9FC84BB6CD75316D1BC6DFB7AFA8",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-area.docx",
+    "Sha256": "82086464836362476AD385B93D6C389A4948A9063D7CD1BCE24AD30493D96B0B",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-bar.docx",
+    "Sha256": "0A217C341848B15B299D7F0B2B4A7EB1F70A3DEBC8CF21F7FFCE16D569B18191",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-bubble.docx",
+    "Sha256": "3630589C7DF9F46072453CF80E60183D2A43A20EB1570778E9470A0246C06265",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-column.docx",
+    "Sha256": "C62B982160004C32CC9EEEE579B7BF48090BA7A0824E69F9AF5D9036576D4E21",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-combo.docx",
+    "Sha256": "EAE751FE127CB0CE236999CD4D871FABF5B5FC97AD3E61660AE16769E095CCFE",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-dates.docx",
+    "Sha256": "FAF9491C49BE50141FCA3F74C5717595F298BACC845FB8F4FDE8C5E8D16C2BB5",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-doughnut.docx",
+    "Sha256": "38E23843B71886DF5717E533FC629873198D32E6F204C1EBA3E0CBC2A43D91C3",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-floating.docx",
+    "Sha256": "A225310FAB114CBDDB2AEA126B9084DC7C6100ACB29F7331E9CF21092BAABE82",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-in-table.docx",
+    "Sha256": "BE968364B6A67E4961482D81F1D65A59CA74A3EC06A68531A174C562E5314560",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-legend.docx",
+    "Sha256": "6294B49322B5C9A43CD5BF1062EA22A4F375BAE9460B8A86B2932F808AB0B6A9",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-line-plain.docx",
+    "Sha256": "769EA81FC746B693052D129C733C907112A827F3F29ED7495EEB62B5208515AA",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-line.docx",
+    "Sha256": "C83CAD6382F5DF9B5DE78B0C6FA03BA219F48A1A7200F973E6FEB7C47258F426",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-no-legend.docx",
+    "Sha256": "8D416B948B954EDDC41BB84E26E85DCE68B1FD877734E6276D1C713F5032C4AD",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-no-title.docx",
+    "Sha256": "D26ADB278238BE26A7E9FC338790B98E833C8BC8B3FE56F1443574EF48D3285A",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-percent-stacked.docx",
+    "Sha256": "CE5F024757F67CB3AC95621F89525F59D0FC3686E21B551CD476D50109844EF0",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-pie.docx",
+    "Sha256": "8E31D05455A025F24CB345E64CC05B5C56C27E6BCE67F7F7C08AE1B46FE52139",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-point-color.docx",
+    "Sha256": "A9B3C10E4C03E3B8EFA54856BFDDA0F6AD70B70EA65CE68BCDA4C6A5BE09B01D",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-scatter-lines.docx",
+    "Sha256": "F9459F81C857314A0B20DDA9B19D23F1200B3E6D7BC642F13D3EFF36C616B91A",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-scatter.docx",
+    "Sha256": "C08740960261D1A0BAED96E22851574AFEFE7994D107136937ECE8CA95D52DA8",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-stacked.docx",
+    "Sha256": "42A0357D572D7CAE5DC801F569817E8CD182F795796717E3F2C56DD351485470",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-style-gray.docx",
+    "Sha256": "CD57572E368DB0EB1337B52C05A7ABC1525EC7B0C442E0B769598B18686588F1",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  },
+  {
+    "File": "chart/chart-style.docx",
+    "Sha256": "51025C3F0E8866B3F5742EEE759BFA1DFCB4650A58E1577D2D87743C3B4965E6",
+    "Check": {
+      "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+      "Passed": true,
+      "ChartParts": [
+        "word/charts/chart1.xml"
+      ],
+      "EmbeddedWorkbooks": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "ExternalData": true,
+      "ChartRelationships": true,
+      "ChartReference": true,
+      "FallbackImage": false,
+      "Failures": []
+    }
+  }
+]

@@ -292,6 +292,9 @@ fn save_07_ink_into_empty_paragraph_and_two_inks_on_one_anchor() {
         media(&saved),
         vec!["word/media/image1.png".to_string(), "word/media/image2.png".to_string()]
     );
+    // 两个 png part 只补**一条** `Default Extension="png"`：重复的 Default 会让 Word 弹恢复提示
+    // （真实 Word 核对，`docs/07` 任务 B / `corpus/real/ROUNDTRIP.md`）
+    assert_eq!(text(&saved, "[Content_Types].xml").matches(r#"Extension="png""#).count(), 1);
     let v = parsed(&saved);
     assert_eq!(v["inks"].as_array().unwrap().len(), 2);
     assert_eq!(v["inks"][1]["offsetXPx"], 90);

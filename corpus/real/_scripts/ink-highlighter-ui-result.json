@@ -1,0 +1,20 @@
+﻿{
+    "action":  "Save",
+    "case":  "ink/ink-highlighter",
+    "file":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\ink\\ink-highlighter.docx",
+    "version":  "16.0",
+    "build":  "16.0.14334",
+    "text":  "before 前文\r这是一段用于观察原生墨迹的文字。\rafter 后文\r\r",
+    "objects":  [
+                    {
+                        "placement":  "floating",
+                        "width":  157.4,
+                        "alt":  "",
+                        "wrap":  3,
+                        "type":  23,
+                        "height":  0
+                    }
+                ],
+    "mathCount":  0,
+    "pdf":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\ink\\ink-highlighter.pdf"
+}

@@ -1,0 +1,784 @@
+[
+  {
+    "file": "ink/ink-highlighter.docx",
+    "copy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\ink-offline\\20260907-024910-073\\ink-highlighter.zip",
+    "sourceSha256": "09D7CC7BDD8C73584E703FCA6561177D541FC0A5D0C8C9ADAE774E2B0D4F4D9F",
+    "originalUnchanged": true,
+    "parts": [
+      "[Content_Types].xml",
+      "_rels/.rels",
+      "word/document.xml",
+      "word/_rels/document.xml.rels",
+      "word/ink/ink1.xml",
+      "word/media/image1.png",
+      "word/theme/theme1.xml",
+      "word/settings.xml",
+      "word/styles.xml",
+      "word/webSettings.xml",
+      "word/fontTable.xml",
+      "docProps/core.xml",
+      "docProps/app.xml"
+    ],
+    "counts": {
+      "contentPart": 1,
+      "AlternateContent": 1,
+      "Choice": 1,
+      "Fallback": 1,
+      "anchor": 1,
+      "inline": 0,
+      "pict": 1,
+      "pic": 0,
+      "sp": 0,
+      "wsp": 0,
+      "prstGeom": 0,
+      "oMath": 0,
+      "oMathPara": 0
+    },
+    "contentParts": [
+      "<w14:contentPart bwMode=\"auto\" r:id=\"rId4\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\"><w14:nvContentPartPr><w14:cNvContentPartPr /></w14:nvContentPartPr><w14:xfrm><a:off x=\"0\" y=\"0\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /><a:ext cx=\"1999080\" cy=\"360\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /></w14:xfrm></w14:contentPart>"
+    ],
+    "choiceRequirements": [
+      "wpi"
+    ],
+    "anchorExtents": [
+      "<wp:extent cx=\"1999080\" cy=\"360\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />"
+    ],
+    "presetGeometry": [],
+    "math": [],
+    "ink": [
+      {
+        "part": "word/ink/ink1.xml",
+        "namespace": "http://www.w3.org/2003/InkML",
+        "traceCount": 1,
+        "traces": [
+          "0 0,'2383'0,\"787\"0"
+        ],
+        "brushProperties": [
+          {
+            "name": "width",
+            "value": "0.3",
+            "units": "cm"
+          },
+          {
+            "name": "height",
+            "value": "0.6",
+            "units": "cm"
+          },
+          {
+            "name": "color",
+            "value": "#FFFC00",
+            "units": ""
+          },
+          {
+            "name": "tip",
+            "value": "rectangle",
+            "units": ""
+          },
+          {
+            "name": "rasterOp",
+            "value": "maskPen",
+            "units": ""
+          },
+          {
+            "name": "ignorePressure",
+            "value": "1",
+            "units": ""
+          }
+        ],
+        "channels": [
+          "<inkml:channel name=\"X\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />",
+          "<inkml:channel name=\"Y\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />"
+        ]
+      }
+    ],
+    "media": [
+      {
+        "part": "word/media/image1.png",
+        "bytes": 296,
+        "decoded": true,
+        "width": 242,
+        "height": 32,
+        "visibleArgbCounts": {
+          "FFFFF900": 3762,
+          "FFFFFF00": 1342
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "id": "rId5",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+        "target": "media/image1.png"
+      },
+      {
+        "id": "rId4",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+        "target": "ink/ink1.xml"
+      }
+    ]
+  },
+  {
+    "file": "ink/ink-math.docx",
+    "copy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\ink-offline\\20260907-024910-073\\ink-math.zip",
+    "sourceSha256": "A3B7824D299F1B4A2364D5837925A0D57728ACBE62F3E74966987D29F4F4CAA4",
+    "originalUnchanged": true,
+    "parts": [
+      "[Content_Types].xml",
+      "_rels/.rels",
+      "word/document.xml",
+      "word/_rels/document.xml.rels",
+      "word/theme/theme1.xml",
+      "word/settings.xml",
+      "word/styles.xml",
+      "word/webSettings.xml",
+      "word/fontTable.xml",
+      "docProps/core.xml",
+      "docProps/app.xml"
+    ],
+    "counts": {
+      "contentPart": 0,
+      "AlternateContent": 0,
+      "Choice": 0,
+      "Fallback": 0,
+      "anchor": 0,
+      "inline": 0,
+      "pict": 0,
+      "pic": 0,
+      "sp": 0,
+      "wsp": 0,
+      "prstGeom": 0,
+      "oMath": 1,
+      "oMathPara": 0
+    },
+    "contentParts": [],
+    "choiceRequirements": [],
+    "anchorExtents": [],
+    "presetGeometry": [],
+    "math": [
+      "<m:oMath xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:sSup><m:sSupPr><m:ctrlPr><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:i /><w:sz w:val=\"22\" /></w:rPr></m:ctrlPr></m:sSupPr><m:e><m:r><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:sz w:val=\"22\" /></w:rPr><m:t>x</m:t></m:r></m:e><m:sup><m:r><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:sz w:val=\"22\" /></w:rPr><m:t>2</m:t></m:r></m:sup></m:sSup><m:r><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:sz w:val=\"22\" /></w:rPr><m:t>+1</m:t></m:r></m:oMath>"
+    ],
+    "ink": [],
+    "media": [],
+    "relationships": []
+  },
+  {
+    "file": "ink/ink-pen.docx",
+    "copy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\ink-offline\\20260907-024910-073\\ink-pen.zip",
+    "sourceSha256": "3E8FDF8D374793D3BE389E7DDE68AD7D4220FBFC837260B91A2F671956BEF56C",
+    "originalUnchanged": true,
+    "parts": [
+      "[Content_Types].xml",
+      "_rels/.rels",
+      "word/document.xml",
+      "word/_rels/document.xml.rels",
+      "word/ink/ink1.xml",
+      "word/media/image1.png",
+      "word/ink/ink2.xml",
+      "word/media/image2.png",
+      "word/theme/theme1.xml",
+      "word/settings.xml",
+      "word/styles.xml",
+      "word/webSettings.xml",
+      "word/fontTable.xml",
+      "docProps/core.xml",
+      "docProps/app.xml"
+    ],
+    "counts": {
+      "contentPart": 2,
+      "AlternateContent": 2,
+      "Choice": 2,
+      "Fallback": 2,
+      "anchor": 2,
+      "inline": 0,
+      "pict": 2,
+      "pic": 0,
+      "sp": 0,
+      "wsp": 0,
+      "prstGeom": 0,
+      "oMath": 0,
+      "oMathPara": 0
+    },
+    "contentParts": [
+      "<w14:contentPart bwMode=\"auto\" r:id=\"rId4\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\"><w14:nvContentPartPr><w14:cNvContentPartPr /></w14:nvContentPartPr><w14:xfrm><a:off x=\"0\" y=\"0\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /><a:ext cx=\"174600\" cy=\"119880\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /></w14:xfrm></w14:contentPart>",
+      "<w14:contentPart bwMode=\"auto\" r:id=\"rId6\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\"><w14:nvContentPartPr><w14:cNvContentPartPr /></w14:nvContentPartPr><w14:xfrm><a:off x=\"0\" y=\"0\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /><a:ext cx=\"823680\" cy=\"360\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /></w14:xfrm></w14:contentPart>"
+    ],
+    "choiceRequirements": [
+      "wpi",
+      "wpi"
+    ],
+    "anchorExtents": [
+      "<wp:extent cx=\"174600\" cy=\"119880\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />",
+      "<wp:extent cx=\"823680\" cy=\"360\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />"
+    ],
+    "presetGeometry": [],
+    "math": [],
+    "ink": [
+      {
+        "part": "word/ink/ink1.xml",
+        "namespace": "http://www.w3.org/2003/InkML",
+        "traceCount": 1,
+        "traces": [
+          "0 0,'208'143,\"68\"47"
+        ],
+        "brushProperties": [
+          {
+            "name": "width",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "height",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "ignorePressure",
+            "value": "1",
+            "units": ""
+          }
+        ],
+        "channels": [
+          "<inkml:channel name=\"X\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />",
+          "<inkml:channel name=\"Y\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />"
+        ]
+      },
+      {
+        "part": "word/ink/ink2.xml",
+        "namespace": "http://www.w3.org/2003/InkML",
+        "traceCount": 1,
+        "traces": [
+          "0 1,'982'0,\"323\"0"
+        ],
+        "brushProperties": [
+          {
+            "name": "width",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "height",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "ignorePressure",
+            "value": "1",
+            "units": ""
+          }
+        ],
+        "channels": [
+          "<inkml:channel name=\"X\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />",
+          "<inkml:channel name=\"Y\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />"
+        ]
+      }
+    ],
+    "media": [
+      {
+        "part": "word/media/image1.png",
+        "bytes": 201,
+        "decoded": true,
+        "width": 21,
+        "height": 15,
+        "visibleArgbCounts": {
+          "FF000000": 72
+        }
+      },
+      {
+        "part": "word/media/image2.png",
+        "bytes": 153,
+        "decoded": true,
+        "width": 89,
+        "height": 3,
+        "visibleArgbCounts": {
+          "FF000000": 267
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "id": "rId7",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+        "target": "media/image2.png"
+      },
+      {
+        "id": "rId6",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+        "target": "ink/ink2.xml"
+      },
+      {
+        "id": "rId5",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+        "target": "media/image1.png"
+      },
+      {
+        "id": "rId4",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+        "target": "ink/ink1.xml"
+      }
+    ]
+  },
+  {
+    "file": "ink/ink-to-shape.docx",
+    "copy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\ink-offline\\20260907-024910-073\\ink-to-shape.zip",
+    "sourceSha256": "96D79924D7F7158E478E65A96158E116809EF8D57B4BEFF1AB7D320E8C996B41",
+    "originalUnchanged": true,
+    "parts": [
+      "[Content_Types].xml",
+      "_rels/.rels",
+      "word/document.xml",
+      "word/_rels/document.xml.rels",
+      "word/ink/ink1.xml",
+      "word/media/image1.png",
+      "word/ink/ink2.xml",
+      "word/media/image2.png",
+      "word/ink/ink3.xml",
+      "word/media/image3.png",
+      "word/ink/ink4.xml",
+      "word/media/image4.png",
+      "word/ink/ink5.xml",
+      "word/media/image5.png",
+      "word/ink/ink6.xml",
+      "word/media/image6.png",
+      "word/ink/ink7.xml",
+      "word/ink/ink8.xml",
+      "word/media/image7.png",
+      "word/theme/theme1.xml",
+      "word/settings.xml",
+      "word/styles.xml",
+      "word/webSettings.xml",
+      "word/fontTable.xml",
+      "docProps/core.xml",
+      "docProps/app.xml"
+    ],
+    "counts": {
+      "contentPart": 8,
+      "AlternateContent": 8,
+      "Choice": 8,
+      "Fallback": 8,
+      "anchor": 8,
+      "inline": 0,
+      "pict": 8,
+      "pic": 0,
+      "sp": 0,
+      "wsp": 0,
+      "prstGeom": 0,
+      "oMath": 0,
+      "oMathPara": 0
+    },
+    "contentParts": [
+      "<w14:contentPart bwMode=\"auto\" r:id=\"rId4\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\"><w14:nvContentPartPr><w14:cNvContentPartPr /></w14:nvContentPartPr><w14:xfrm><a:off x=\"0\" y=\"0\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /><a:ext cx=\"359280\" cy=\"144000\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /></w14:xfrm></w14:contentPart>",
+      "<w14:contentPart bwMode=\"auto\" r:id=\"rId6\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\"><w14:nvContentPartPr><w14:cNvContentPartPr /></w14:nvContentPartPr><w14:xfrm><a:off x=\"0\" y=\"0\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /><a:ext cx=\"154080\" cy=\"366120\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /></w14:xfrm></w14:contentPart>",
+      "<w14:contentPart bwMode=\"auto\" r:id=\"rId8\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\"><w14:nvContentPartPr><w14:cNvContentPartPr /></w14:nvContentPartPr><w14:xfrm><a:off x=\"0\" y=\"0\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /><a:ext cx=\"154080\" cy=\"366120\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /></w14:xfrm></w14:contentPart>",
+      "<w14:contentPart bwMode=\"auto\" r:id=\"rId10\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\"><w14:nvContentPartPr><w14:cNvContentPartPr /></w14:nvContentPartPr><w14:xfrm><a:off x=\"0\" y=\"0\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /><a:ext cx=\"359280\" cy=\"144000\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /></w14:xfrm></w14:contentPart>",
+      "<w14:contentPart bwMode=\"auto\" r:id=\"rId12\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\"><w14:nvContentPartPr><w14:cNvContentPartPr /></w14:nvContentPartPr><w14:xfrm><a:off x=\"0\" y=\"0\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /><a:ext cx=\"359280\" cy=\"144000\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /></w14:xfrm></w14:contentPart>",
+      "<w14:contentPart bwMode=\"auto\" r:id=\"rId14\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\"><w14:nvContentPartPr><w14:cNvContentPartPr /></w14:nvContentPartPr><w14:xfrm><a:off x=\"0\" y=\"0\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /><a:ext cx=\"154080\" cy=\"366120\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /></w14:xfrm></w14:contentPart>",
+      "<w14:contentPart bwMode=\"auto\" r:id=\"rId16\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\"><w14:nvContentPartPr><w14:cNvContentPartPr /></w14:nvContentPartPr><w14:xfrm><a:off x=\"0\" y=\"0\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /><a:ext cx=\"154080\" cy=\"366120\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /></w14:xfrm></w14:contentPart>",
+      "<w14:contentPart bwMode=\"auto\" r:id=\"rId17\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\"><w14:nvContentPartPr><w14:cNvContentPartPr /></w14:nvContentPartPr><w14:xfrm><a:off x=\"0\" y=\"0\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /><a:ext cx=\"359280\" cy=\"144000\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" /></w14:xfrm></w14:contentPart>"
+    ],
+    "choiceRequirements": [
+      "wpi",
+      "wpi",
+      "wpi",
+      "wpi",
+      "wpi",
+      "wpi",
+      "wpi",
+      "wpi"
+    ],
+    "anchorExtents": [
+      "<wp:extent cx=\"359280\" cy=\"144000\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />",
+      "<wp:extent cx=\"154080\" cy=\"366120\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />",
+      "<wp:extent cx=\"154080\" cy=\"366120\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />",
+      "<wp:extent cx=\"359280\" cy=\"144000\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />",
+      "<wp:extent cx=\"359280\" cy=\"144000\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />",
+      "<wp:extent cx=\"154080\" cy=\"366120\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />",
+      "<wp:extent cx=\"154080\" cy=\"366120\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />",
+      "<wp:extent cx=\"359280\" cy=\"144000\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />"
+    ],
+    "presetGeometry": [],
+    "math": [],
+    "ink": [
+      {
+        "part": "word/ink/ink1.xml",
+        "namespace": "http://www.w3.org/2003/InkML",
+        "traceCount": 1,
+        "traces": [
+          "0 399,'428'-171,\"141\"-57"
+        ],
+        "brushProperties": [
+          {
+            "name": "width",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "height",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "ignorePressure",
+            "value": "1",
+            "units": ""
+          }
+        ],
+        "channels": [
+          "<inkml:channel name=\"X\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />",
+          "<inkml:channel name=\"Y\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />"
+        ]
+      },
+      {
+        "part": "word/ink/ink2.xml",
+        "namespace": "http://www.w3.org/2003/InkML",
+        "traceCount": 1,
+        "traces": [
+          "1 1016,'183'-435,\"61\"-145"
+        ],
+        "brushProperties": [
+          {
+            "name": "width",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "height",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "ignorePressure",
+            "value": "1",
+            "units": ""
+          }
+        ],
+        "channels": [
+          "<inkml:channel name=\"X\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />",
+          "<inkml:channel name=\"Y\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />"
+        ]
+      },
+      {
+        "part": "word/ink/ink3.xml",
+        "namespace": "http://www.w3.org/2003/InkML",
+        "traceCount": 1,
+        "traces": [
+          "427 1016,'-183'-436,\"-61\"-143"
+        ],
+        "brushProperties": [
+          {
+            "name": "width",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "height",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "ignorePressure",
+            "value": "1",
+            "units": ""
+          }
+        ],
+        "channels": [
+          "<inkml:channel name=\"X\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />",
+          "<inkml:channel name=\"Y\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />"
+        ]
+      },
+      {
+        "part": "word/ink/ink4.xml",
+        "namespace": "http://www.w3.org/2003/InkML",
+        "traceCount": 1,
+        "traces": [
+          "997 399,'-428'-171,\"-140\"-57"
+        ],
+        "brushProperties": [
+          {
+            "name": "width",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "height",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "ignorePressure",
+            "value": "1",
+            "units": ""
+          }
+        ],
+        "channels": [
+          "<inkml:channel name=\"X\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />",
+          "<inkml:channel name=\"Y\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />"
+        ]
+      },
+      {
+        "part": "word/ink/ink5.xml",
+        "namespace": "http://www.w3.org/2003/InkML",
+        "traceCount": 1,
+        "traces": [
+          "997 0,'-427'171,\"-142\"57"
+        ],
+        "brushProperties": [
+          {
+            "name": "width",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "height",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "ignorePressure",
+            "value": "1",
+            "units": ""
+          }
+        ],
+        "channels": [
+          "<inkml:channel name=\"X\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />",
+          "<inkml:channel name=\"Y\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />"
+        ]
+      },
+      {
+        "part": "word/ink/ink6.xml",
+        "namespace": "http://www.w3.org/2003/InkML",
+        "traceCount": 1,
+        "traces": [
+          "427 0,'-183'436,\"-60\"144"
+        ],
+        "brushProperties": [
+          {
+            "name": "width",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "height",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "ignorePressure",
+            "value": "1",
+            "units": ""
+          }
+        ],
+        "channels": [
+          "<inkml:channel name=\"X\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />",
+          "<inkml:channel name=\"Y\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />"
+        ]
+      },
+      {
+        "part": "word/ink/ink7.xml",
+        "namespace": "http://www.w3.org/2003/InkML",
+        "traceCount": 1,
+        "traces": [
+          "0 1,'184'436,\"60\"143"
+        ],
+        "brushProperties": [
+          {
+            "name": "width",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "height",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "ignorePressure",
+            "value": "1",
+            "units": ""
+          }
+        ],
+        "channels": [
+          "<inkml:channel name=\"X\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />",
+          "<inkml:channel name=\"Y\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />"
+        ]
+      },
+      {
+        "part": "word/ink/ink8.xml",
+        "namespace": "http://www.w3.org/2003/InkML",
+        "traceCount": 1,
+        "traces": [
+          "0 0,'428'171,\"141\"57"
+        ],
+        "brushProperties": [
+          {
+            "name": "width",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "height",
+            "value": "0.05",
+            "units": "cm"
+          },
+          {
+            "name": "ignorePressure",
+            "value": "1",
+            "units": ""
+          }
+        ],
+        "channels": [
+          "<inkml:channel name=\"X\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />",
+          "<inkml:channel name=\"Y\" type=\"integer\" min=\"-2.14748E9\" max=\"2.14748E9\" units=\"cm\" xmlns:inkml=\"http://www.w3.org/2003/InkML\" />"
+        ]
+      }
+    ],
+    "media": [
+      {
+        "part": "word/media/image1.png",
+        "bytes": 233,
+        "decoded": true,
+        "width": 40,
+        "height": 18,
+        "visibleArgbCounts": {
+          "FF000000": 127
+        }
+      },
+      {
+        "part": "word/media/image2.png",
+        "bytes": 247,
+        "decoded": true,
+        "width": 19,
+        "height": 41,
+        "visibleArgbCounts": {
+          "FF000000": 133
+        }
+      },
+      {
+        "part": "word/media/image3.png",
+        "bytes": 229,
+        "decoded": true,
+        "width": 19,
+        "height": 41,
+        "visibleArgbCounts": {
+          "FF000000": 132
+        }
+      },
+      {
+        "part": "word/media/image4.png",
+        "bytes": 229,
+        "decoded": true,
+        "width": 41,
+        "height": 18,
+        "visibleArgbCounts": {
+          "FF000000": 128
+        }
+      },
+      {
+        "part": "word/media/image5.png",
+        "bytes": 235,
+        "decoded": true,
+        "width": 41,
+        "height": 18,
+        "visibleArgbCounts": {
+          "FF000000": 129
+        }
+      },
+      {
+        "part": "word/media/image6.png",
+        "bytes": 244,
+        "decoded": true,
+        "width": 19,
+        "height": 41,
+        "visibleArgbCounts": {
+          "FF000000": 133
+        }
+      },
+      {
+        "part": "word/media/image7.png",
+        "bytes": 229,
+        "decoded": true,
+        "width": 40,
+        "height": 18,
+        "visibleArgbCounts": {
+          "FF000000": 127
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "id": "rId8",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+        "target": "ink/ink3.xml"
+      },
+      {
+        "id": "rId13",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+        "target": "media/image5.png"
+      },
+      {
+        "id": "rId18",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+        "target": "media/image7.png"
+      },
+      {
+        "id": "rId7",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+        "target": "media/image2.png"
+      },
+      {
+        "id": "rId12",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+        "target": "ink/ink5.xml"
+      },
+      {
+        "id": "rId17",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+        "target": "ink/ink8.xml"
+      },
+      {
+        "id": "rId16",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+        "target": "ink/ink7.xml"
+      },
+      {
+        "id": "rId6",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+        "target": "ink/ink2.xml"
+      },
+      {
+        "id": "rId11",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+        "target": "media/image4.png"
+      },
+      {
+        "id": "rId5",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+        "target": "media/image1.png"
+      },
+      {
+        "id": "rId15",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+        "target": "media/image6.png"
+      },
+      {
+        "id": "rId10",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+        "target": "ink/ink4.xml"
+      },
+      {
+        "id": "rId4",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+        "target": "ink/ink1.xml"
+      },
+      {
+        "id": "rId9",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+        "target": "media/image3.png"
+      },
+      {
+        "id": "rId14",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+        "target": "ink/ink6.xml"
+      }
+    ]
+  }
+]

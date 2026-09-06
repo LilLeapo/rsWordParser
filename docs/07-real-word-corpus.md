@@ -229,6 +229,14 @@ macOS Word 与 WPS 各重做 `chart-column` / `smartart-list` / `math-fraction` 
 
 ## 6. 接入方式（macOS 侧，维护者做，你不用管）
 
+**状态（2026-09-07）**：第一轮交付已收到并接入（Office LTSC 2021，124 份；结果与规格修正见下）。下一轮若再做，优先：
+① 用 Microsoft 365 复做 `chart-column` / `smartart-list` / `math-fraction` / `image-wrap-square` 四份对照版本差异；
+② 重开 `_roundtrip/` 里重新生成的样本（`05` / `06` 修了重复 `Default`，`02` / `04` 换成真 Word 底稿）；③ 补 `ink-to-shape` 的成功版本。
+
+规格修正（真 Word 与本文档第 3 节原先写法不同，以真 Word 为准）：画布写 `wpc:wpc`（`mc:Choice Requires="wpc"`，子形状
+`wps:wsp` / `pic:pic`），**不是** `lc:lockedCanvas`；装饰性图片写 `adec:decorative`（`…/drawing/2017/decorative`），不是 `a16`；
+链接 OLE 的预览是 WMF，PowerPoint 嵌入包是 `.sldx`；图片 SmartArt 的布局名是「图片题注列表」。
+
 - 目录 `corpus/real/<域>/<名字>.docx` 为**源文件**，随仓库提交；旁边的 `<名字>.expected.json` 由
   `tools/export-golden/real.export.test.ts` 生成（读 `corpus/real/**/*.docx`，用 TS `parseDocx` 录制，写回同目录）。
 - `cargo run -p diff-parse -- --corpus corpus/real` 看 TS 差分（参考，不是门；差异按路径登记，TS 不是权威）；`tests/save.rs`

@@ -1,0 +1,560 @@
+{
+  "method": "Copied-package ZIP/XML/XLSX checks only; no Office automation",
+  "results": [
+    {
+      "case": "chart-pasted-embedded",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-pasted-embedded.docx",
+      "status": "passed",
+      "actual": {
+        "chartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "documentRelationships": {
+          "rId3": {
+            "Id": "rId3",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+            "Target": "webSettings.xml"
+          },
+          "rId2": {
+            "Id": "rId2",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+            "Target": "settings.xml"
+          },
+          "rId1": {
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+            "Target": "styles.xml"
+          },
+          "rId6": {
+            "Id": "rId6",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+            "Target": "theme/theme1.xml"
+          },
+          "rId5": {
+            "Id": "rId5",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+            "Target": "fontTable.xml"
+          },
+          "rId4": {
+            "Id": "rId4",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+            "Target": "charts/chart1.xml"
+          }
+        },
+        "floatingCharts": [
+          false
+        ],
+        "embeddedWorkbook": {
+          "sheets": [
+            {
+              "name": "ChartData",
+              "part": "xl/worksheets/sheet1.xml",
+              "cells": {
+                "A1": "Category",
+                "B1": "Series 1",
+                "C1": "Series 2",
+                "A2": "Category 1",
+                "B2": 10,
+                "C2": 15,
+                "A3": "Category 2",
+                "B3": 20,
+                "C3": 25,
+                "A4": "Category 3",
+                "B4": 30,
+                "C4": 35
+              },
+              "formulas": {}
+            }
+          ],
+          "bytes": 12061
+        },
+        "title": "销售统计",
+        "chartKinds": [
+          "barChart"
+        ],
+        "series": [
+          {
+            "name": "Series 1",
+            "categories": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "values": [
+              10,
+              20,
+              30
+            ],
+            "formulas": [
+              "ChartData!$B$1",
+              "ChartData!$A$2:$A$4",
+              "ChartData!$B$2:$B$4"
+            ]
+          },
+          {
+            "name": "Series 2",
+            "categories": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "values": [
+              15,
+              25,
+              35
+            ],
+            "formulas": [
+              "ChartData!$C$1",
+              "ChartData!$A$2:$A$4",
+              "ChartData!$C$2:$C$4"
+            ]
+          }
+        ],
+        "legend": "r",
+        "chartRelationships": {
+          "rId1": {
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+            "Target": "../embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        }
+      },
+      "sha256": "cb34f3933f1c394f69f2004ec13ee6871cc9ce63f883390e973a62029d54926c",
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\pasted\\20260906-182257-544709\\chart-pasted-embedded.docx",
+      "checks": [
+        {
+          "name": "snapshot bytes equal original",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "one classic chart part and reference",
+          "passed": true,
+          "evidence": [
+            "word/charts/chart1.xml"
+          ]
+        },
+        {
+          "name": "document chart relationship resolves",
+          "passed": true,
+          "evidence": "word/charts/chart1.xml"
+        },
+        {
+          "name": "requested sales title",
+          "passed": true,
+          "evidence": "销售统计"
+        },
+        {
+          "name": "clustered column chart",
+          "passed": true,
+          "evidence": [
+            "barChart"
+          ]
+        },
+        {
+          "name": "two cached series match intended categories and values",
+          "passed": true,
+          "evidence": [
+            {
+              "name": "Series 1",
+              "categories": [
+                "Category 1",
+                "Category 2",
+                "Category 3"
+              ],
+              "values": [
+                10,
+                20,
+                30
+              ],
+              "formulas": [
+                "ChartData!$B$1",
+                "ChartData!$A$2:$A$4",
+                "ChartData!$B$2:$B$4"
+              ]
+            },
+            {
+              "name": "Series 2",
+              "categories": [
+                "Category 1",
+                "Category 2",
+                "Category 3"
+              ],
+              "values": [
+                15,
+                25,
+                35
+              ],
+              "formulas": [
+                "ChartData!$C$1",
+                "ChartData!$A$2:$A$4",
+                "ChartData!$C$2:$C$4"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "legend is right",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "native pasted chart is inline",
+          "passed": true,
+          "evidence": [
+            false
+          ]
+        },
+        {
+          "name": "externalData exists",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "embedded paste links to internal XLSX",
+          "passed": true,
+          "evidence": {
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+            "Target": "../embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        },
+        {
+          "name": "embedded XLSX matches chart cache dataset",
+          "passed": true,
+          "evidence": {}
+        },
+        {
+          "name": "original bytes remain unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "case": "chart-pasted-linked",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-pasted-linked.docx",
+      "status": "passed",
+      "actual": {
+        "chartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "documentRelationships": {
+          "rId3": {
+            "Id": "rId3",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+            "Target": "webSettings.xml"
+          },
+          "rId2": {
+            "Id": "rId2",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+            "Target": "settings.xml"
+          },
+          "rId1": {
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+            "Target": "styles.xml"
+          },
+          "rId6": {
+            "Id": "rId6",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+            "Target": "theme/theme1.xml"
+          },
+          "rId5": {
+            "Id": "rId5",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+            "Target": "fontTable.xml"
+          },
+          "rId4": {
+            "Id": "rId4",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+            "Target": "charts/chart1.xml"
+          }
+        },
+        "floatingCharts": [
+          false
+        ],
+        "externalWorkbook": {
+          "relationship": {
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject",
+            "Target": "file:///C:\\code\\rsWordParser\\real-word-corpus-20260906\\_assets\\chart-paste-source.xlsx",
+            "TargetMode": "External"
+          },
+          "localPath": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_assets\\chart-paste-source.xlsx",
+          "localFileExists": true
+        },
+        "title": "销售统计",
+        "chartKinds": [
+          "barChart"
+        ],
+        "series": [
+          {
+            "name": "Series 1",
+            "categories": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "values": [
+              10,
+              20,
+              30
+            ],
+            "formulas": [
+              "ChartData!$B$1",
+              "ChartData!$A$2:$A$4",
+              "ChartData!$B$2:$B$4"
+            ]
+          },
+          {
+            "name": "Series 2",
+            "categories": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "values": [
+              15,
+              25,
+              35
+            ],
+            "formulas": [
+              "ChartData!$C$1",
+              "ChartData!$A$2:$A$4",
+              "ChartData!$C$2:$C$4"
+            ]
+          }
+        ],
+        "legend": "r",
+        "chartRelationships": {
+          "rId1": {
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject",
+            "Target": "file:///C:\\code\\rsWordParser\\real-word-corpus-20260906\\_assets\\chart-paste-source.xlsx",
+            "TargetMode": "External"
+          }
+        }
+      },
+      "sha256": "501120a3c7dee2a4a024d88bf3fb63d447d9c372f2f293755dc48689f403129a",
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\pasted\\20260906-182257-544709\\chart-pasted-linked.docx",
+      "checks": [
+        {
+          "name": "snapshot bytes equal original",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "one classic chart part and reference",
+          "passed": true,
+          "evidence": [
+            "word/charts/chart1.xml"
+          ]
+        },
+        {
+          "name": "document chart relationship resolves",
+          "passed": true,
+          "evidence": "word/charts/chart1.xml"
+        },
+        {
+          "name": "requested sales title",
+          "passed": true,
+          "evidence": "销售统计"
+        },
+        {
+          "name": "clustered column chart",
+          "passed": true,
+          "evidence": [
+            "barChart"
+          ]
+        },
+        {
+          "name": "two cached series match intended categories and values",
+          "passed": true,
+          "evidence": [
+            {
+              "name": "Series 1",
+              "categories": [
+                "Category 1",
+                "Category 2",
+                "Category 3"
+              ],
+              "values": [
+                10,
+                20,
+                30
+              ],
+              "formulas": [
+                "ChartData!$B$1",
+                "ChartData!$A$2:$A$4",
+                "ChartData!$B$2:$B$4"
+              ]
+            },
+            {
+              "name": "Series 2",
+              "categories": [
+                "Category 1",
+                "Category 2",
+                "Category 3"
+              ],
+              "values": [
+                15,
+                25,
+                35
+              ],
+              "formulas": [
+                "ChartData!$C$1",
+                "ChartData!$A$2:$A$4",
+                "ChartData!$C$2:$C$4"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "legend is right",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "native pasted chart is inline",
+          "passed": true,
+          "evidence": [
+            false
+          ]
+        },
+        {
+          "name": "externalData exists",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "linked paste has external workbook relationship",
+          "passed": true,
+          "evidence": {
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject",
+            "Target": "file:///C:\\code\\rsWordParser\\real-word-corpus-20260906\\_assets\\chart-paste-source.xlsx",
+            "TargetMode": "External"
+          }
+        },
+        {
+          "name": "original bytes remain unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "case": "chart-pasted-picture",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-pasted-picture.docx",
+      "status": "passed",
+      "actual": {
+        "chartParts": [],
+        "documentRelationships": {
+          "rId3": {
+            "Id": "rId3",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+            "Target": "webSettings.xml"
+          },
+          "rId2": {
+            "Id": "rId2",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+            "Target": "settings.xml"
+          },
+          "rId1": {
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+            "Target": "styles.xml"
+          },
+          "rId6": {
+            "Id": "rId6",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+            "Target": "theme/theme1.xml"
+          },
+          "rId5": {
+            "Id": "rId5",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+            "Target": "fontTable.xml"
+          },
+          "rId4": {
+            "Id": "rId4",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+            "Target": "media/image1.png"
+          }
+        },
+        "floatingCharts": [],
+        "images": [
+          {
+            "part": "word/media/image1.png",
+            "bytes": 12461,
+            "format": "png"
+          }
+        ]
+      },
+      "sha256": "61bc6a84bdf650ef929b56f082961bc5374cf062e32da4a1e0eee610b52c1e5f",
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\pasted\\20260906-182257-544709\\chart-pasted-picture.docx",
+      "checks": [
+        {
+          "name": "snapshot bytes equal original",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "picture paste contains no native chart part or reference",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "picture paste has an embedded drawing image",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "picture relationship resolves internally",
+          "passed": true,
+          "evidence": {
+            "id": "rId4",
+            "relationship": {
+              "Id": "rId4",
+              "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+              "Target": "media/image1.png"
+            }
+          }
+        },
+        {
+          "name": "picture has recognized PNG or EMF signature",
+          "passed": true,
+          "evidence": {
+            "part": "word/media/image1.png",
+            "signature": "89504e470d0a1a0a0000000d49484452"
+          }
+        },
+        {
+          "name": "picture paste is inline",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "original bytes remain unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ]
+    }
+  ]
+}

@@ -481,6 +481,7 @@ impl EditSession {
         let mut plan = MutationPlan::new(ct_part);
         plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(root), before: None, node });
         self.commit_plan(plan)?;
+        self.pkg.content_types_mut().add_override(uri, content_type);
         Ok(())
     }
 
@@ -541,6 +542,17 @@ impl EditSession {
             .dom(ct_part)?
             .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "内容类型不是 XML part"))?;
         let root = dom.root();
+        // 缓存之外再看一眼 DOM（本会话刚补过的也算）：`Default Extension` 重复会让 Word 弹恢复提示
+        let already = dom.semantic_children(root).any(|c| {
+            dom.name(c).is_some_and(|q| q.local == LocalName::UDefault)
+                && dom
+                    .attr_value(c, QName::new(NsId::None, LocalName::UExtension))
+                    .is_some_and(|v| v.eq_ignore_ascii_case(ext))
+        });
+        if already {
+            self.pkg.content_types_mut().add_default(ext, content_type);
+            return Ok(());
+        }
         let name = dom
             .children(root)
             .iter()
@@ -556,6 +568,7 @@ impl EditSession {
         let mut plan = MutationPlan::new(ct_part);
         plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(root), before: first, node });
         self.commit_plan(plan)?;
+        self.pkg.content_types_mut().add_default(ext, content_type);
         Ok(())
     }
 

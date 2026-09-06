@@ -1,0 +1,15 @@
+{
+  "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+  "Passed": true,
+  "ChartParts": [
+    "word/charts/chart1.xml"
+  ],
+  "EmbeddedWorkbooks": [
+    "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+  ],
+  "ExternalData": true,
+  "ChartRelationships": true,
+  "ChartReference": true,
+  "FallbackImage": false,
+  "Failures": []
+}

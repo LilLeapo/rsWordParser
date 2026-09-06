@@ -1,0 +1,76 @@
+﻿{
+    "action":  "Save",
+    "case":  "ink/ink-to-shape",
+    "file":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\ink\\ink-to-shape.docx",
+    "version":  "16.0",
+    "build":  "16.0.14334",
+    "text":  "before 前文\r这是一段用于观察原生墨迹的文字。\rafter 后文\r\r",
+    "objects":  [
+                    {
+                        "placement":  "floating",
+                        "width":  28.25,
+                        "alt":  "",
+                        "wrap":  3,
+                        "type":  23,
+                        "height":  11.3
+                    },
+                    {
+                        "placement":  "floating",
+                        "width":  12.1,
+                        "alt":  "",
+                        "wrap":  3,
+                        "type":  23,
+                        "height":  28.8
+                    },
+                    {
+                        "placement":  "floating",
+                        "width":  12.1,
+                        "alt":  "",
+                        "wrap":  3,
+                        "type":  23,
+                        "height":  28.8
+                    },
+                    {
+                        "placement":  "floating",
+                        "width":  28.25,
+                        "alt":  "",
+                        "wrap":  3,
+                        "type":  23,
+                        "height":  11.3
+                    },
+                    {
+                        "placement":  "floating",
+                        "width":  28.25,
+                        "alt":  "",
+                        "wrap":  3,
+                        "type":  23,
+                        "height":  11.3
+                    },
+                    {
+                        "placement":  "floating",
+                        "width":  12.1,
+                        "alt":  "",
+                        "wrap":  3,
+                        "type":  23,
+                        "height":  28.8
+                    },
+                    {
+                        "placement":  "floating",
+                        "width":  12.1,
+                        "alt":  "",
+                        "wrap":  3,
+                        "type":  23,
+                        "height":  28.8
+                    },
+                    {
+                        "placement":  "floating",
+                        "width":  28.25,
+                        "alt":  "",
+                        "wrap":  3,
+                        "type":  23,
+                        "height":  11.3
+                    }
+                ],
+    "mathCount":  0,
+    "pdf":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\ink\\ink-to-shape.pdf"
+}

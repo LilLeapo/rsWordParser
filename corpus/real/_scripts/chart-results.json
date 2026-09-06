@@ -1,0 +1,3344 @@
+{
+  "GeneratedUtc": "2026-09-06T17:09:49.6101499Z",
+  "Scope": "29 non-pasted Task A charts",
+  "GeneratedCount": 23,
+  "NotGeneratedCount": 6,
+  "ObservationStatus": "Root visually inspected all 23 Word-exported PDFs in four contact sheets and confirmed chart type, title, legend and data. These are Word-rendered PDF observations, not direct Word UI observations.",
+  "ExecutionNote": "chart-column succeeded hidden; remaining classic charts used independent visible Word instances after hidden COM activation was unreliable. No UI actions were used.",
+  "PackageVerificationLog": "chart-package-verification-20260907-010621.json",
+  "Generated": [
+    {
+      "File": "chart/chart-3d.docx",
+      "Log": "create-charts-log-20260907-010302.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "3D clustered column",
+      "Requested": {
+        "Color": null,
+        "SingleSeries": null,
+        "LegendTop": null,
+        "Dates": null,
+        "Name": "chart-3d",
+        "HoleSize": null,
+        "InTable": null,
+        "NoTitle": null,
+        "Kind": "3D clustered column",
+        "Floating": null,
+        "Type": 54,
+        "ChartEx": null,
+        "Gray": null,
+        "Style": null,
+        "Combo": null,
+        "Palette": null,
+        "NoLegend": null,
+        "Bubble": null,
+        "XY": null,
+        "RedPoint": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 54,
+        "ChartStyle": 286,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 54,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 54,
+            "AxisGroup": 1,
+            "FillRgb": 3243501
+          }
+        ],
+        "Layout": {
+          "Floating": false,
+          "InTable": false,
+          "WidthPt": 420.0,
+          "HeightPt": 240.0
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-3d.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "AD8DFD57C6C460452C6B1700DC10940E95CD9FC84BB6CD75316D1BC6DFB7AFA8",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-area.docx",
+      "Log": "create-charts-log-20260907-010230.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "area",
+      "Requested": {
+        "InTable": null,
+        "Dates": null,
+        "LegendTop": null,
+        "NoLegend": null,
+        "Palette": null,
+        "HoleSize": null,
+        "XY": null,
+        "NoTitle": null,
+        "Name": "chart-area",
+        "Style": null,
+        "ChartEx": null,
+        "Bubble": null,
+        "Combo": null,
+        "Type": 1,
+        "Color": null,
+        "Gray": null,
+        "RedPoint": null,
+        "Kind": "area",
+        "SingleSeries": null,
+        "Floating": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 1,
+        "ChartStyle": 276,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 1,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 1,
+            "AxisGroup": 1,
+            "FillRgb": 3243501
+          }
+        ],
+        "Layout": {
+          "WidthPt": 420.0,
+          "Floating": false,
+          "HeightPt": 240.0,
+          "InTable": false
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-area.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "82086464836362476AD385B93D6C389A4948A9063D7CD1BCE24AD30493D96B0B",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": [
+          "Orange Series 2 covers blue Series 1 in the area chart."
+        ]
+      }
+    },
+    {
+      "File": "chart/chart-bar.docx",
+      "Log": "create-charts-log-20260907-005832.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "clustered bar",
+      "Requested": {
+        "LegendTop": null,
+        "Color": null,
+        "Dates": null,
+        "NoLegend": null,
+        "NoTitle": null,
+        "Type": 57,
+        "Name": "chart-bar",
+        "SingleSeries": null,
+        "ChartEx": null,
+        "Gray": null,
+        "Bubble": null,
+        "HoleSize": null,
+        "RedPoint": null,
+        "XY": null,
+        "Floating": null,
+        "Combo": null,
+        "Kind": "clustered bar",
+        "Style": null,
+        "Palette": null,
+        "InTable": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 57,
+        "ChartStyle": 216,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 57,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 57,
+            "AxisGroup": 1,
+            "FillRgb": 3243501
+          }
+        ],
+        "Layout": {
+          "InTable": false,
+          "WidthPt": 420.0,
+          "Floating": false,
+          "HeightPt": 240.0
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-bar.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "0A217C341848B15B299D7F0B2B4A7EB1F70A3DEBC8CF21F7FFCE16D569B18191",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-bubble.docx",
+      "Log": "create-charts-log-20260907-010249.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "bubble",
+      "Requested": {
+        "InTable": null,
+        "NoTitle": null,
+        "NoLegend": null,
+        "LegendTop": null,
+        "RedPoint": null,
+        "HoleSize": null,
+        "Type": 15,
+        "Kind": "bubble",
+        "Palette": null,
+        "ChartEx": null,
+        "Name": "chart-bubble",
+        "SingleSeries": null,
+        "Combo": null,
+        "Dates": null,
+        "Gray": null,
+        "Bubble": true,
+        "Color": null,
+        "XY": true,
+        "Floating": null,
+        "Style": null
+      },
+      "Worksheet": {
+        "Categories": [
+          1,
+          2,
+          3
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": [
+          [
+            3,
+            6,
+            9
+          ],
+          [
+            4,
+            7,
+            10
+          ]
+        ]
+      },
+      "Actual": {
+        "ChartType": 15,
+        "ChartStyle": 269,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              1.0,
+              2.0,
+              3.0
+            ],
+            "ChartType": 15,
+            "AxisGroup": 1,
+            "FillRgb": 12874308,
+            "BubbleSizes": "Sheet1!$D$2:$D$4"
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              1.0,
+              2.0,
+              3.0
+            ],
+            "ChartType": 15,
+            "AxisGroup": 1,
+            "FillRgb": 3243501,
+            "BubbleSizes": "Sheet1!$E$2:$E$4"
+          }
+        ],
+        "Layout": {
+          "WidthPt": 420.0,
+          "InTable": false,
+          "Floating": false,
+          "HeightPt": 240.0
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-bubble.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "3630589C7DF9F46072453CF80E60183D2A43A20EB1570778E9470A0246C06265",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-column.docx",
+      "Log": "create-charts-log-20260907-005437.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "clustered column",
+      "Requested": {
+        "Name": "chart-column",
+        "Floating": null,
+        "Type": 51,
+        "Style": null,
+        "Kind": "clustered column",
+        "Gray": null,
+        "XY": null,
+        "Bubble": null,
+        "RedPoint": null,
+        "Combo": null,
+        "ChartEx": null,
+        "NoTitle": null,
+        "Color": null,
+        "Dates": null,
+        "SingleSeries": null,
+        "NoLegend": null,
+        "Palette": null,
+        "LegendTop": null,
+        "InTable": null,
+        "HoleSize": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 51,
+        "ChartStyle": 201,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 3243501
+          }
+        ],
+        "Layout": {
+          "WidthPt": 420.0,
+          "InTable": false,
+          "Floating": false,
+          "HeightPt": 240.0
+        }
+      },
+      "Warnings": [],
+      "Error": {
+        "Message": "Exception calling \"OpenRead\" with \"1\" argument(s): \"The process cannot access the file 'C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-column.docx' because it is being used by another process.\"",
+        "HResult": "0x80131501",
+        "Detail": "Exception calling \"OpenRead\" with \"1\" argument(s): \"The process cannot access the file 'C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-column.docx' because it is being used by another process.\"",
+        "ScriptStackTrace": "at Test-ChartPackage, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 107\r\nat <ScriptBlock>, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 476"
+      },
+      "SourceStatus": "saved-but-incomplete",
+      "PreviewFile": "_previews/chart/chart-column.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "C62B982160004C32CC9EEEE579B7BF48090BA7A0824E69F9AF5D9036576D4E21",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-combo.docx",
+      "Log": "create-charts-log-20260907-010520.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "column plus line on secondary axis",
+      "Requested": {
+        "Color": null,
+        "Palette": null,
+        "RedPoint": null,
+        "InTable": null,
+        "NoLegend": null,
+        "NoTitle": null,
+        "SingleSeries": null,
+        "LegendTop": null,
+        "Gray": null,
+        "Style": null,
+        "Kind": "column plus line on secondary axis",
+        "HoleSize": null,
+        "Bubble": null,
+        "XY": null,
+        "Combo": true,
+        "Name": "chart-combo",
+        "Floating": null,
+        "Dates": null,
+        "Type": 51,
+        "ChartEx": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": -4111,
+        "ChartStyle": 201,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 4,
+            "AxisGroup": 2,
+            "FillRgb": 0
+          }
+        ],
+        "Layout": {
+          "HeightPt": 240.0,
+          "Floating": false,
+          "InTable": false,
+          "WidthPt": 420.0
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-combo.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "EAE751FE127CB0CE236999CD4D871FABF5B5FC97AD3E61660AE16769E095CCFE",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-dates.docx",
+      "Log": "create-charts-log-20260907-010309.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "line with date categories",
+      "Requested": {
+        "NoTitle": null,
+        "LegendTop": null,
+        "Dates": true,
+        "RedPoint": null,
+        "InTable": null,
+        "Name": "chart-dates",
+        "Style": null,
+        "HoleSize": null,
+        "Gray": null,
+        "Color": null,
+        "Type": 4,
+        "Bubble": null,
+        "Floating": null,
+        "NoLegend": null,
+        "Kind": "line with date categories",
+        "ChartEx": null,
+        "Palette": null,
+        "SingleSeries": null,
+        "XY": null,
+        "Combo": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "1/1/2024",
+          "2/1/2024",
+          "3/1/2024"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 4,
+        "ChartStyle": 227,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              45292.0,
+              45323.0,
+              45352.0
+            ],
+            "ChartType": 4,
+            "AxisGroup": 1,
+            "FillRgb": 0
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              45292.0,
+              45323.0,
+              45352.0
+            ],
+            "ChartType": 4,
+            "AxisGroup": 1,
+            "FillRgb": 0
+          }
+        ],
+        "DateCategoryType": 3,
+        "DateNumberFormat": "m/d/yyyy",
+        "Layout": {
+          "HeightPt": 240.0,
+          "InTable": false,
+          "WidthPt": 420.0,
+          "Floating": false
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-dates.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "FAF9491C49BE50141FCA3F74C5717595F298BACC845FB8F4FDE8C5E8D16C2BB5",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": [
+          "Word PDF axis labels display 2024/1/1, 2024/2/1, 2024/3/1 despite the COM NumberFormat readback m/d/yyyy."
+        ]
+      }
+    },
+    {
+      "File": "chart/chart-doughnut.docx",
+      "Log": "create-charts-log-20260907-010513.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "doughnut",
+      "Requested": {
+        "SingleSeries": null,
+        "Gray": null,
+        "Dates": null,
+        "Floating": null,
+        "InTable": null,
+        "Style": null,
+        "Combo": null,
+        "ChartEx": null,
+        "Kind": "doughnut",
+        "RedPoint": null,
+        "Type": -4120,
+        "HoleSize": 30,
+        "NoLegend": null,
+        "Palette": null,
+        "NoTitle": null,
+        "Bubble": null,
+        "Name": "chart-doughnut",
+        "Color": null,
+        "LegendTop": null,
+        "XY": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": -4120,
+        "ChartStyle": 251,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": -4120,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": -4120,
+            "AxisGroup": 1,
+            "FillRgb": 3243501
+          }
+        ],
+        "DoughnutHoleSize": 30,
+        "Layout": {
+          "Floating": false,
+          "HeightPt": 240.0,
+          "InTable": false,
+          "WidthPt": 420.0
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-doughnut.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "38E23843B71886DF5717E533FC629873198D32E6F204C1EBA3E0CBC2A43D91C3",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": [
+          "Two rings; inner hole 30 percent."
+        ]
+      }
+    },
+    {
+      "File": "chart/chart-floating.docx",
+      "Log": "create-charts-log-20260907-010354.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "clustered column",
+      "Requested": {
+        "Name": "chart-floating",
+        "Gray": null,
+        "InTable": null,
+        "RedPoint": null,
+        "Palette": null,
+        "Dates": null,
+        "NoTitle": null,
+        "Style": null,
+        "NoLegend": null,
+        "LegendTop": null,
+        "Floating": true,
+        "Kind": "clustered column",
+        "Bubble": null,
+        "Color": null,
+        "HoleSize": null,
+        "Type": 51,
+        "XY": null,
+        "Combo": null,
+        "ChartEx": null,
+        "SingleSeries": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 51,
+        "ChartStyle": 201,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 3243501
+          }
+        ],
+        "Layout": {
+          "HeightPt": 240.0,
+          "WidthPt": 285.0,
+          "WrapType": 0,
+          "Floating": true,
+          "Left": -999996.0
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-floating.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "A225310FAB114CBDDB2AEA126B9084DC7C6100ACB29F7331E9CF21092BAABE82",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-in-table.docx",
+      "Log": "create-charts-log-20260907-010401.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "clustered column",
+      "Requested": {
+        "HoleSize": null,
+        "Name": "chart-in-table",
+        "Color": null,
+        "Bubble": null,
+        "LegendTop": null,
+        "NoTitle": null,
+        "Floating": null,
+        "SingleSeries": null,
+        "XY": null,
+        "Dates": null,
+        "Kind": "clustered column",
+        "InTable": true,
+        "Gray": null,
+        "ChartEx": null,
+        "Type": 51,
+        "RedPoint": null,
+        "Palette": null,
+        "Style": null,
+        "Combo": null,
+        "NoLegend": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 51,
+        "ChartStyle": 201,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 3243501
+          }
+        ],
+        "Layout": {
+          "InTable": true,
+          "HeightPt": 155.0,
+          "WidthPt": 205.0,
+          "Floating": false
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-in-table.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "BE968364B6A67E4961482D81F1D65A59CA74A3EC06A68531A174C562E5314560",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-legend.docx",
+      "Log": "create-charts-log-20260907-010335.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "clustered column",
+      "Requested": {
+        "NoTitle": null,
+        "Style": null,
+        "NoLegend": null,
+        "Bubble": null,
+        "RedPoint": null,
+        "SingleSeries": null,
+        "Palette": null,
+        "ChartEx": null,
+        "XY": null,
+        "Floating": null,
+        "Gray": null,
+        "Name": "chart-legend",
+        "Dates": null,
+        "InTable": null,
+        "Color": null,
+        "Type": 51,
+        "Kind": "clustered column",
+        "LegendTop": true,
+        "HoleSize": null,
+        "Combo": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 51,
+        "ChartStyle": 201,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4160,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 3243501
+          }
+        ],
+        "Layout": {
+          "Floating": false,
+          "WidthPt": 420.0,
+          "HeightPt": 240.0,
+          "InTable": false
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-legend.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "6294B49322B5C9A43CD5BF1062EA22A4F375BAE9460B8A86B2932F808AB0B6A9",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-line-plain.docx",
+      "Log": "create-charts-log-20260907-010210.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "line without markers",
+      "Requested": {
+        "Kind": "line without markers",
+        "NoLegend": null,
+        "HoleSize": null,
+        "Palette": null,
+        "InTable": null,
+        "Name": "chart-line-plain",
+        "LegendTop": null,
+        "ChartEx": null,
+        "Bubble": null,
+        "Color": null,
+        "Floating": null,
+        "Gray": null,
+        "Dates": null,
+        "Combo": null,
+        "SingleSeries": null,
+        "Style": null,
+        "Type": 4,
+        "NoTitle": null,
+        "XY": null,
+        "RedPoint": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 4,
+        "ChartStyle": 227,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 4,
+            "AxisGroup": 1,
+            "FillRgb": 0
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 4,
+            "AxisGroup": 1,
+            "FillRgb": 0
+          }
+        ],
+        "Layout": {
+          "InTable": false,
+          "WidthPt": 420.0,
+          "Floating": false,
+          "HeightPt": 240.0
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-line-plain.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "769EA81FC746B693052D129C733C907112A827F3F29ED7495EEB62B5208515AA",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-line.docx",
+      "Log": "create-charts-log-20260907-010203.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "line with markers",
+      "Requested": {
+        "Color": null,
+        "NoTitle": null,
+        "RedPoint": null,
+        "SingleSeries": null,
+        "ChartEx": null,
+        "Dates": null,
+        "Floating": null,
+        "HoleSize": null,
+        "Palette": null,
+        "Name": "chart-line",
+        "Combo": null,
+        "Gray": null,
+        "Type": 65,
+        "NoLegend": null,
+        "Kind": "line with markers",
+        "XY": null,
+        "Bubble": null,
+        "Style": null,
+        "InTable": null,
+        "LegendTop": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 65,
+        "ChartStyle": 332,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 65,
+            "AxisGroup": 1,
+            "FillRgb": 0
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 65,
+            "AxisGroup": 1,
+            "FillRgb": 0
+          }
+        ],
+        "Layout": {
+          "WidthPt": 420.0,
+          "HeightPt": 240.0,
+          "Floating": false,
+          "InTable": false
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-line.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "C83CAD6382F5DF9B5DE78B0C6FA03BA219F48A1A7200F973E6FEB7C47258F426",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-no-legend.docx",
+      "Log": "create-charts-log-20260907-010342.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "clustered column",
+      "Requested": {
+        "Combo": null,
+        "Gray": null,
+        "Type": 51,
+        "Palette": null,
+        "InTable": null,
+        "XY": null,
+        "Kind": "clustered column",
+        "HoleSize": null,
+        "Dates": null,
+        "SingleSeries": null,
+        "Floating": null,
+        "NoLegend": true,
+        "RedPoint": null,
+        "ChartEx": null,
+        "Style": null,
+        "LegendTop": null,
+        "Bubble": null,
+        "NoTitle": null,
+        "Color": null,
+        "Name": "chart-no-legend"
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 51,
+        "ChartStyle": 201,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": false,
+        "LegendPosition": null,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 3243501
+          }
+        ],
+        "Layout": {
+          "Floating": false,
+          "WidthPt": 420.0,
+          "HeightPt": 240.0,
+          "InTable": false
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-no-legend.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "8D416B948B954EDDC41BB84E26E85DCE68B1FD877734E6276D1C713F5032C4AD",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-no-title.docx",
+      "Log": "create-charts-log-20260907-010348.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "clustered column",
+      "Requested": {
+        "Combo": null,
+        "NoLegend": null,
+        "Type": 51,
+        "RedPoint": null,
+        "XY": null,
+        "Gray": null,
+        "Floating": null,
+        "Palette": null,
+        "Color": null,
+        "Dates": null,
+        "SingleSeries": null,
+        "Bubble": null,
+        "Style": null,
+        "LegendTop": null,
+        "Name": "chart-no-title",
+        "InTable": null,
+        "NoTitle": true,
+        "HoleSize": null,
+        "Kind": "clustered column",
+        "ChartEx": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 51,
+        "ChartStyle": 201,
+        "ChartColor": 10,
+        "HasTitle": false,
+        "Title": null,
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 3243501
+          }
+        ],
+        "Layout": {
+          "WidthPt": 420.0,
+          "HeightPt": 240.0,
+          "Floating": false,
+          "InTable": false
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-no-title.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "D26ADB278238BE26A7E9FC338790B98E833C8BC8B3FE56F1443574EF48D3285A",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-percent-stacked.docx",
+      "Log": "create-charts-log-20260907-010157.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "100 percent stacked column",
+      "Requested": {
+        "Combo": null,
+        "Floating": null,
+        "Style": null,
+        "ChartEx": null,
+        "Gray": null,
+        "InTable": null,
+        "HoleSize": null,
+        "Type": 53,
+        "Bubble": null,
+        "SingleSeries": null,
+        "Palette": null,
+        "RedPoint": null,
+        "NoLegend": null,
+        "XY": null,
+        "Color": null,
+        "Name": "chart-percent-stacked",
+        "NoTitle": null,
+        "LegendTop": null,
+        "Dates": null,
+        "Kind": "100 percent stacked column"
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 53,
+        "ChartStyle": 297,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 53,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 53,
+            "AxisGroup": 1,
+            "FillRgb": 3243501
+          }
+        ],
+        "Layout": {
+          "InTable": false,
+          "WidthPt": 420.0,
+          "Floating": false,
+          "HeightPt": 240.0
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-percent-stacked.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "CE5F024757F67CB3AC95621F89525F59D0FC3686E21B551CD476D50109844EF0",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-pie.docx",
+      "Log": "create-charts-log-20260907-010216.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "pie",
+      "Requested": {
+        "Style": null,
+        "InTable": null,
+        "Name": "chart-pie",
+        "Color": null,
+        "Gray": null,
+        "SingleSeries": true,
+        "Kind": "pie",
+        "HoleSize": null,
+        "Type": 5,
+        "ChartEx": null,
+        "Dates": null,
+        "RedPoint": null,
+        "Combo": null,
+        "NoLegend": null,
+        "XY": null,
+        "Palette": null,
+        "NoTitle": null,
+        "LegendTop": null,
+        "Floating": null,
+        "Bubble": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": null,
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 5,
+        "ChartStyle": 251,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 5,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          }
+        ],
+        "Layout": {
+          "InTable": false,
+          "HeightPt": 240.0,
+          "WidthPt": 420.0,
+          "Floating": false
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-pie.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "8E31D05455A025F24CB345E64CC05B5C56C27E6BCE67F7F7C08AE1B46FE52139",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-point-color.docx",
+      "Log": "create-charts-log-20260907-010328.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "pie with red second sector",
+      "Requested": {
+        "Style": null,
+        "Type": 5,
+        "XY": null,
+        "Color": null,
+        "HoleSize": null,
+        "SingleSeries": true,
+        "ChartEx": null,
+        "NoLegend": null,
+        "Kind": "pie with red second sector",
+        "Combo": null,
+        "Gray": null,
+        "RedPoint": true,
+        "LegendTop": null,
+        "NoTitle": null,
+        "Name": "chart-point-color",
+        "Dates": null,
+        "InTable": null,
+        "Bubble": null,
+        "Palette": null,
+        "Floating": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": null,
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 5,
+        "ChartStyle": 251,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 5,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          }
+        ],
+        "SecondPointRgb": 255,
+        "Layout": {
+          "Floating": false,
+          "HeightPt": 240.0,
+          "WidthPt": 420.0,
+          "InTable": false
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-point-color.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "A9B3C10E4C03E3B8EFA54856BFDDA0F6AD70B70EA65CE68BCDA4C6A5BE09B01D",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-scatter-lines.docx",
+      "Log": "create-charts-log-20260907-010242.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "scatter with smooth lines and markers",
+      "Requested": {
+        "Name": "chart-scatter-lines",
+        "ChartEx": null,
+        "Palette": null,
+        "SingleSeries": null,
+        "RedPoint": null,
+        "Color": null,
+        "Dates": null,
+        "LegendTop": null,
+        "Type": 72,
+        "NoLegend": null,
+        "HoleSize": null,
+        "Kind": "scatter with smooth lines and markers",
+        "Combo": null,
+        "Floating": null,
+        "InTable": null,
+        "XY": true,
+        "NoTitle": null,
+        "Style": null,
+        "Gray": null,
+        "Bubble": null
+      },
+      "Worksheet": {
+        "Categories": [
+          1,
+          2,
+          3
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 72,
+        "ChartStyle": 240,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              1.0,
+              2.0,
+              3.0
+            ],
+            "ChartType": 72,
+            "AxisGroup": 1,
+            "FillRgb": 0,
+            "MarkerStyle": 8,
+            "Smooth": true
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              1.0,
+              2.0,
+              3.0
+            ],
+            "ChartType": 72,
+            "AxisGroup": 1,
+            "FillRgb": 0,
+            "MarkerStyle": 8,
+            "Smooth": true
+          }
+        ],
+        "Layout": {
+          "WidthPt": 420.0,
+          "InTable": false,
+          "HeightPt": 240.0,
+          "Floating": false
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-scatter-lines.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "F9459F81C857314A0B20DDA9B19D23F1200B3E6D7BC642F13D3EFF36C616B91A",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-scatter.docx",
+      "Log": "create-charts-log-20260907-010236.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "scatter with markers only",
+      "Requested": {
+        "LegendTop": null,
+        "InTable": null,
+        "NoTitle": null,
+        "Type": -4169,
+        "Name": "chart-scatter",
+        "Kind": "scatter with markers only",
+        "Gray": null,
+        "Floating": null,
+        "XY": true,
+        "ChartEx": null,
+        "Combo": null,
+        "Bubble": null,
+        "HoleSize": null,
+        "Dates": null,
+        "Color": null,
+        "SingleSeries": null,
+        "Style": null,
+        "RedPoint": null,
+        "Palette": null,
+        "NoLegend": null
+      },
+      "Worksheet": {
+        "Categories": [
+          1,
+          2,
+          3
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": -4169,
+        "ChartStyle": 240,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              1.0,
+              2.0,
+              3.0
+            ],
+            "ChartType": -4169,
+            "AxisGroup": 1,
+            "FillRgb": 0,
+            "MarkerStyle": 8,
+            "Smooth": false
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              1.0,
+              2.0,
+              3.0
+            ],
+            "ChartType": -4169,
+            "AxisGroup": 1,
+            "FillRgb": 0,
+            "MarkerStyle": 8,
+            "Smooth": false
+          }
+        ],
+        "Layout": {
+          "InTable": false,
+          "HeightPt": 240.0,
+          "WidthPt": 420.0,
+          "Floating": false
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-scatter.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "C08740960261D1A0BAED96E22851574AFEFE7994D107136937ECE8CA95D52DA8",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-stacked.docx",
+      "Log": "create-charts-log-20260907-010024.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "stacked column",
+      "Requested": {
+        "SingleSeries": null,
+        "RedPoint": null,
+        "ChartEx": null,
+        "Palette": null,
+        "Dates": null,
+        "Kind": "stacked column",
+        "NoTitle": null,
+        "XY": null,
+        "Style": null,
+        "Bubble": null,
+        "Color": null,
+        "NoLegend": null,
+        "Floating": null,
+        "Combo": null,
+        "HoleSize": null,
+        "InTable": null,
+        "LegendTop": null,
+        "Name": "chart-stacked",
+        "Type": 52,
+        "Gray": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 52,
+        "ChartStyle": 297,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 52,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 52,
+            "AxisGroup": 1,
+            "FillRgb": 3243501
+          }
+        ],
+        "Layout": {
+          "InTable": false,
+          "WidthPt": 420.0,
+          "Floating": false,
+          "HeightPt": 240.0
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-stacked.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "42A0357D572D7CAE5DC801F569817E8CD182F795796717E3F2C56DD351485470",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-style-gray.docx",
+      "Log": "create-charts-log-20260907-010322.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "clustered column",
+      "Requested": {
+        "Name": "chart-style-gray",
+        "Dates": null,
+        "Palette": "grayscale",
+        "Gray": true,
+        "NoTitle": null,
+        "SingleSeries": null,
+        "Type": 51,
+        "RedPoint": null,
+        "ChartEx": null,
+        "NoLegend": null,
+        "Bubble": null,
+        "LegendTop": null,
+        "InTable": null,
+        "Kind": "clustered column",
+        "Combo": null,
+        "HoleSize": null,
+        "Style": 14,
+        "Floating": null,
+        "Color": 26,
+        "XY": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 51,
+        "ChartStyle": 14,
+        "ChartColor": 26,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 5855577
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 10921638
+          }
+        ],
+        "Layout": {
+          "InTable": false,
+          "HeightPt": 240.0,
+          "Floating": false,
+          "WidthPt": 420.0
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-style-gray.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "CD57572E368DB0EB1337B52C05A7ABC1525EC7B0C442E0B769598B18686588F1",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    },
+    {
+      "File": "chart/chart-style.docx",
+      "Log": "create-charts-log-20260907-010315.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "clustered column",
+      "Requested": {
+        "Style": 14,
+        "Gray": null,
+        "NoLegend": null,
+        "Dates": null,
+        "Combo": null,
+        "Name": "chart-style",
+        "NoTitle": null,
+        "RedPoint": null,
+        "InTable": null,
+        "Type": 51,
+        "Bubble": null,
+        "Palette": "monochromatic accent 1",
+        "Color": 14,
+        "LegendTop": null,
+        "Floating": null,
+        "Kind": "clustered column",
+        "ChartEx": null,
+        "SingleSeries": null,
+        "XY": null,
+        "HoleSize": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Actual": {
+        "ChartType": 51,
+        "ChartStyle": 14,
+        "ChartColor": 14,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 11363387
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 51,
+            "AxisGroup": 1,
+            "FillRgb": 13935247
+          }
+        ],
+        "Layout": {
+          "Floating": false,
+          "HeightPt": 240.0,
+          "InTable": false,
+          "WidthPt": 420.0
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SourceStatus": "saved-package-check-passed-needs-visual-check",
+      "PreviewFile": "_previews/chart/chart-style.pdf",
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "Sha256": "51025C3F0E8866B3F5742EEE759BFA1DFCB4650A58E1577D2D87743C3B4965E6",
+      "Status": "generated-package-and-Word-PDF-verified",
+      "VisualObservation": {
+        "Source": "Root inspection of Word-exported PDF contact sheets",
+        "Result": "Type, title, legend and data match",
+        "Notes": []
+      }
+    }
+  ],
+  "NotGenerated": [
+    {
+      "File": "chart/chartex-treemap.docx",
+      "Log": "create-charts-log-20260907-010532.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "treemap",
+      "Requested": {
+        "Color": null,
+        "InTable": null,
+        "XY": null,
+        "Combo": null,
+        "Palette": null,
+        "Floating": null,
+        "Style": null,
+        "Gray": null,
+        "LegendTop": null,
+        "ChartEx": true,
+        "HoleSize": null,
+        "Type": 117,
+        "NoLegend": null,
+        "NoTitle": null,
+        "RedPoint": null,
+        "Kind": "treemap",
+        "Name": "chartex-treemap",
+        "Bubble": null,
+        "Dates": null,
+        "SingleSeries": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Actual": null,
+      "Warnings": [
+        "Direct AddChart2 failed: 命令失败"
+      ],
+      "Error": {
+        "HResult": "0x80070057",
+        "ScriptStackTrace": "at <ScriptBlock>, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 387",
+        "Detail": "参数错误。 (0x80070057 (E_INVALIDARG))",
+        "Message": "参数错误。 (0x80070057 (E_INVALIDARG))"
+      },
+      "SourceStatus": "failed",
+      "PreviewFile": null,
+      "Status": "failed-not-generated"
+    },
+    {
+      "File": "chart/chartex-funnel.docx",
+      "Log": "create-charts-log-20260907-010556.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "funnel",
+      "Requested": {
+        "InTable": null,
+        "Palette": null,
+        "RedPoint": null,
+        "HoleSize": null,
+        "Combo": null,
+        "Kind": "funnel",
+        "Floating": null,
+        "Color": null,
+        "ChartEx": true,
+        "Name": "chartex-funnel",
+        "LegendTop": null,
+        "XY": null,
+        "Gray": null,
+        "Bubble": null,
+        "Dates": null,
+        "NoTitle": null,
+        "SingleSeries": null,
+        "Style": null,
+        "NoLegend": null,
+        "Type": 123
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Actual": null,
+      "Warnings": [
+        "Direct AddChart2 failed: 命令失败"
+      ],
+      "Error": {
+        "Detail": "参数错误。 (0x80070057 (E_INVALIDARG))",
+        "Message": "参数错误。 (0x80070057 (E_INVALIDARG))",
+        "HResult": "0x80070057",
+        "ScriptStackTrace": "at <ScriptBlock>, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 387"
+      },
+      "SourceStatus": "failed",
+      "PreviewFile": null,
+      "Status": "failed-not-generated"
+    },
+    {
+      "File": "chart/chartex-sunburst.docx",
+      "Log": "create-charts-log-20260907-010527.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "sunburst",
+      "Requested": {
+        "Name": "chartex-sunburst",
+        "XY": null,
+        "Type": 120,
+        "NoTitle": null,
+        "SingleSeries": null,
+        "RedPoint": null,
+        "Bubble": null,
+        "Floating": null,
+        "InTable": null,
+        "Color": null,
+        "HoleSize": null,
+        "ChartEx": true,
+        "Combo": null,
+        "Dates": null,
+        "Style": null,
+        "LegendTop": null,
+        "NoLegend": null,
+        "Gray": null,
+        "Kind": "sunburst",
+        "Palette": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Actual": null,
+      "Warnings": [
+        "Direct AddChart2 failed: 命令失败"
+      ],
+      "Error": {
+        "HResult": "0x80070057",
+        "ScriptStackTrace": "at <ScriptBlock>, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 387",
+        "Message": "参数错误。 (0x80070057 (E_INVALIDARG))",
+        "Detail": "参数错误。 (0x80070057 (E_INVALIDARG))"
+      },
+      "SourceStatus": "failed",
+      "PreviewFile": null,
+      "Status": "failed-not-generated"
+    },
+    {
+      "File": "chart/chartex-waterfall.docx",
+      "Log": "create-charts-log-20260907-010538.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "waterfall",
+      "Requested": {
+        "Floating": null,
+        "HoleSize": null,
+        "Color": null,
+        "Dates": null,
+        "ChartEx": true,
+        "InTable": null,
+        "Style": null,
+        "Type": 119,
+        "Gray": null,
+        "Kind": "waterfall",
+        "Name": "chartex-waterfall",
+        "SingleSeries": null,
+        "Palette": null,
+        "NoTitle": null,
+        "XY": null,
+        "Combo": null,
+        "LegendTop": null,
+        "NoLegend": null,
+        "Bubble": null,
+        "RedPoint": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Actual": null,
+      "Warnings": [
+        "Direct AddChart2 failed: 命令失败"
+      ],
+      "Error": {
+        "Detail": "参数错误。 (0x80070057 (E_INVALIDARG))",
+        "ScriptStackTrace": "at <ScriptBlock>, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 387",
+        "Message": "参数错误。 (0x80070057 (E_INVALIDARG))",
+        "HResult": "0x80070057"
+      },
+      "SourceStatus": "failed",
+      "PreviewFile": null,
+      "Status": "failed-not-generated"
+    },
+    {
+      "File": "chart/chartex-histogram.docx",
+      "Log": "create-charts-log-20260907-010544.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "histogram",
+      "Requested": {
+        "Palette": null,
+        "InTable": null,
+        "NoTitle": null,
+        "Dates": null,
+        "LegendTop": null,
+        "Kind": "histogram",
+        "Style": null,
+        "Combo": null,
+        "HoleSize": null,
+        "Floating": null,
+        "Name": "chartex-histogram",
+        "Bubble": null,
+        "ChartEx": true,
+        "NoLegend": null,
+        "XY": null,
+        "SingleSeries": null,
+        "Color": null,
+        "Gray": null,
+        "Type": 118,
+        "RedPoint": null
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Actual": null,
+      "Warnings": [
+        "Direct AddChart2 failed: 命令失败"
+      ],
+      "Error": {
+        "HResult": "0x80070057",
+        "ScriptStackTrace": "at <ScriptBlock>, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 387",
+        "Detail": "参数错误。 (0x80070057 (E_INVALIDARG))",
+        "Message": "参数错误。 (0x80070057 (E_INVALIDARG))"
+      },
+      "SourceStatus": "failed",
+      "PreviewFile": null,
+      "Status": "failed-not-generated"
+    },
+    {
+      "File": "chart/chartex-boxwhisker.docx",
+      "Log": "create-charts-log-20260907-010550.json",
+      "WordVersion": "16.0",
+      "WordBuild": "16.0.14334",
+      "RequestedKind": "box and whisker",
+      "Requested": {
+        "Combo": null,
+        "XY": null,
+        "NoLegend": null,
+        "RedPoint": null,
+        "HoleSize": null,
+        "Dates": null,
+        "Style": null,
+        "Gray": null,
+        "Bubble": null,
+        "Color": null,
+        "LegendTop": null,
+        "SingleSeries": null,
+        "NoTitle": null,
+        "ChartEx": true,
+        "Name": "chartex-boxwhisker",
+        "Kind": "box and whisker",
+        "Palette": null,
+        "Floating": null,
+        "InTable": null,
+        "Type": 121
+      },
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Actual": null,
+      "Warnings": [
+        "Direct AddChart2 failed: 命令失败"
+      ],
+      "Error": {
+        "HResult": "0x80070057",
+        "Message": "参数错误。 (0x80070057 (E_INVALIDARG))",
+        "ScriptStackTrace": "at <ScriptBlock>, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 387",
+        "Detail": "参数错误。 (0x80070057 (E_INVALIDARG))"
+      },
+      "SourceStatus": "failed",
+      "PreviewFile": null,
+      "Status": "failed-not-generated"
+    }
+  ]
+}

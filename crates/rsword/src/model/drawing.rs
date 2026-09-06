@@ -433,6 +433,17 @@ pub fn drawing_display(dom: &Dom, drawing: NodeId) -> DrawingDisplay {
                     d.shapes.push(shape_display(dom, n, true, parent));
                     group = Some(d.shapes.len() - 1);
                 }
+                // 绘图画布（真实 Word 的 `wpc:wpc`）：子形状的 `a:off` 以画布左上为原点、单位就是 EMU，
+                // 等价于一个 `chOff = 0`、`chExt = ext = wp:extent` 的组（`corpus/real/canvas-*`）
+                (NsId::Wpc, LocalName::Wpc) => {
+                    let mut g = shape_display(dom, n, true, parent);
+                    g.off = Some((0, 0));
+                    g.ch_off = Some((0, 0));
+                    g.ext = d.extent;
+                    g.ch_ext = d.extent;
+                    d.shapes.push(g);
+                    group = Some(d.shapes.len() - 1);
+                }
                 _ => {}
             }
         }

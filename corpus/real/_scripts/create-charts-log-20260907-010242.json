@@ -1,0 +1,148 @@
+{
+  "Script": "create-charts.ps1",
+  "StartedUtc": "2026-09-06T17:02:42.9343187Z",
+  "UpdatedUtc": "2026-09-06T17:02:49.1353358Z",
+  "CompletedUtc": "2026-09-06T17:02:49.1346659Z",
+  "OutputRoot": "C:\\code\\rsWordParser\\real-word-corpus-20260906",
+  "WordVersion": "16.0",
+  "WordBuild": "16.0.14334",
+  "WordProductCode": "{90160000-000F-0000-1000-0000000FF1CE}",
+  "WordProcessId": 31708,
+  "WindowsVersion": "Microsoft Windows NT 10.0.22631.0",
+  "PowerShellVersion": "7.6.5",
+  "SaveFormat": 12,
+  "Method": "Word COM; Documents.Add; InlineShapes.AddChart2; ChartData.Workbook; SaveAs2 once",
+  "ObservationStatus": "COM property readback only. Visual observation and copied-package self-check still required.",
+  "Entries": [
+    {
+      "RequestedFile": "chart/chart-scatter-lines.docx",
+      "File": "chart/chart-scatter-lines.docx",
+      "Requested": {
+        "Name": "chart-scatter-lines",
+        "ChartEx": null,
+        "Palette": null,
+        "SingleSeries": null,
+        "RedPoint": null,
+        "Color": null,
+        "Dates": null,
+        "LegendTop": null,
+        "Type": 72,
+        "NoLegend": null,
+        "HoleSize": null,
+        "Kind": "scatter with smooth lines and markers",
+        "Combo": null,
+        "Floating": null,
+        "InTable": null,
+        "XY": true,
+        "NoTitle": null,
+        "Style": null,
+        "Gray": null,
+        "Bubble": null
+      },
+      "RequestedTitle": "销售统计",
+      "Worksheet": {
+        "Categories": [
+          1,
+          2,
+          3
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Status": "saved-package-check-passed-needs-visual-check",
+      "Stage": "finished",
+      "StartedUtc": "2026-09-06T17:02:45.2602993Z",
+      "FinishedUtc": "2026-09-06T17:02:48.8558950Z",
+      "Actual": {
+        "ChartType": 72,
+        "ChartStyle": 240,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              1.0,
+              2.0,
+              3.0
+            ],
+            "ChartType": 72,
+            "AxisGroup": 1,
+            "FillRgb": 0,
+            "MarkerStyle": 8,
+            "Smooth": true
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              1.0,
+              2.0,
+              3.0
+            ],
+            "ChartType": 72,
+            "AxisGroup": 1,
+            "FillRgb": 0,
+            "MarkerStyle": 8,
+            "Smooth": true
+          }
+        ],
+        "Layout": {
+          "WidthPt": 420.0,
+          "InTable": false,
+          "HeightPt": 240.0,
+          "Floating": false
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SavedOnce": true,
+      "Bytes": 25524,
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "PreviewFile": "_previews/chart/chart-scatter-lines.pdf",
+      "PreviewStatus": "Word-exported PDF; not visually verified"
+    }
+  ],
+  "FatalError": null
+}

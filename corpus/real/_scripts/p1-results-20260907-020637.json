@@ -1,0 +1,66 @@
+﻿{
+    "case":  "shapes/textbox-shapes",
+    "status":  "saved-needs-visual-and-package-check",
+    "version":  "16.0",
+    "build":  "16.0.14334",
+    "visualChecked":  false,
+    "started":  "2026-09-07T02:06:39.7274622+08:00",
+    "groupAnchorAfterGrouping":  12,
+    "featureParagraphStart":  10,
+    "shapeLayout":  [
+                        {
+                            "object":  "textbox",
+                            "name":  "Text Box 1",
+                            "type":  17,
+                            "anchorBeforeRepair":  12,
+                            "anchorStart":  10,
+                            "anchorParagraphStart":  10,
+                            "relativeHorizontalPosition":  0,
+                            "relativeVerticalPosition":  2,
+                            "left":  30,
+                            "top":  25
+                        },
+                        {
+                            "object":  "rounded-rectangle",
+                            "name":  "Rounded Rectangle 2",
+                            "type":  1,
+                            "anchorBeforeRepair":  12,
+                            "anchorStart":  10,
+                            "anchorParagraphStart":  10,
+                            "relativeHorizontalPosition":  0,
+                            "relativeVerticalPosition":  2,
+                            "left":  270,
+                            "top":  25
+                        },
+                        {
+                            "object":  "group",
+                            "name":  "Group 5",
+                            "type":  6,
+                            "anchorBeforeRepair":  23,
+                            "anchorStart":  10,
+                            "anchorParagraphStart":  10,
+                            "relativeHorizontalPosition":  0,
+                            "relativeVerticalPosition":  2,
+                            "left":  30,
+                            "top":  125
+                        },
+                        {
+                            "object":  "wordart",
+                            "name":  "Text Box 6",
+                            "type":  17,
+                            "anchorBeforeRepair":  13,
+                            "anchorStart":  10,
+                            "anchorParagraphStart":  10,
+                            "relativeHorizontalPosition":  0,
+                            "relativeVerticalPosition":  2,
+                            "left":  30,
+                            "top":  220
+                        }
+                    ],
+    "pages":  1,
+    "text":  "before 前文\r\rafter 后文\r\r",
+    "file":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\shapes\\textbox-shapes-3.docx",
+    "pdf":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\shapes\\textbox-shapes-3.pdf",
+    "quitError":  "Argument: \u00271\u0027 should be a System.Management.Automation.PSReference. Use [ref].",
+    "finished":  "2026-09-07T02:06:44.7438548+08:00"
+}

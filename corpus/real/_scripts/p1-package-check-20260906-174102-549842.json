@@ -1,0 +1,1007 @@
+{
+  "method": "Copy originals, open copied ZIPs read-only, parse XML; no Office automation",
+  "createdUtc": "2026-09-06T17:41:02.574259+00:00",
+  "counts": {
+    "passed": 9,
+    "failed": 3,
+    "error": 0,
+    "missing": 0
+  },
+  "results": [
+    {
+      "case": "text/text-basic",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\text\\text-basic.docx",
+      "status": "failed",
+      "checks": [
+        {
+          "name": "snapshot matches original bytes",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "document main namespace",
+          "passed": true,
+          "evidence": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "heading levels 1 and 2",
+          "passed": true,
+          "evidence": [
+            0,
+            1
+          ]
+        },
+        {
+          "name": "a bullet paragraph",
+          "passed": true,
+          "evidence": [
+            {
+              "level": 0,
+              "format": "bullet",
+              "text": "",
+              "paragraph": "项目符号条目"
+            },
+            {
+              "level": 0,
+              "format": "decimal",
+              "text": "%1.",
+              "paragraph": "编号一级"
+            },
+            {
+              "level": 0,
+              "format": "decimal",
+              "text": "%1.",
+              "paragraph": "编号二级"
+            },
+            {
+              "level": 0,
+              "format": "decimal",
+              "text": "%1.",
+              "paragraph": "编号三级"
+            }
+          ]
+        },
+        {
+          "name": "three numbering levels used",
+          "passed": false,
+          "evidence": [
+            {
+              "level": 0,
+              "format": "decimal",
+              "text": "%1.",
+              "paragraph": "编号一级"
+            },
+            {
+              "level": 0,
+              "format": "decimal",
+              "text": "%1.",
+              "paragraph": "编号二级"
+            },
+            {
+              "level": 0,
+              "format": "decimal",
+              "text": "%1.",
+              "paragraph": "编号三级"
+            }
+          ]
+        },
+        {
+          "name": "number format level 1",
+          "passed": true,
+          "evidence": "%1."
+        },
+        {
+          "name": "number format level 2",
+          "passed": false,
+          "evidence": "%1.%2."
+        },
+        {
+          "name": "number format level 3",
+          "passed": false,
+          "evidence": "%1.%2.%3."
+        },
+        {
+          "name": "run formatting b",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "run formatting i",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "run formatting u",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "run formatting strike",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "superscript",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "colored run",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "18 point run",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "mixed Chinese and English body",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "original remains unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "warnings": [],
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\p1\\20260906-174102-549842\\text\\text-basic.docx",
+      "sha256": "af4970cece20968ac5a72b160d7129b5c181f3cb733d1df40fe7b74a77821844"
+    },
+    {
+      "case": "text/text-custom-styles",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\text\\text-custom-styles.docx",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "snapshot matches original bytes",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "document main namespace",
+          "passed": true,
+          "evidence": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "custom style exists",
+          "passed": true,
+          "evidence": [
+            "a3"
+          ]
+        },
+        {
+          "name": "custom style based on Heading 1",
+          "passed": true,
+          "evidence": "1"
+        },
+        {
+          "name": "custom font is stored",
+          "passed": true,
+          "evidence": {
+            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}ascii": "微软雅黑",
+            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}eastAsia": "微软雅黑",
+            "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}hAnsi": "微软雅黑"
+          }
+        },
+        {
+          "name": "custom style applied",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "original remains unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "warnings": [],
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\p1\\20260906-174102-549842\\text\\text-custom-styles.docx",
+      "sha256": "dfcde85859c057d6c93e95a991a360b41acb2b98dba8d0f2eef4caedc37ffa6a"
+    },
+    {
+      "case": "table/table-styled",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\table\\table-styled.docx",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "snapshot matches original bytes",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "document main namespace",
+          "passed": true,
+          "evidence": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "outer and nested tables",
+          "passed": true,
+          "evidence": 2
+        },
+        {
+          "name": "outer table has three rows and grid columns",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "Grid Table 4 Accent 1 style",
+          "passed": true,
+          "evidence": {
+            "id": "4-1",
+            "name": "Grid Table 4 Accent 1"
+          }
+        },
+        {
+          "name": "header row table styling",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "banded row table styling",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "merged cell",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "nested 2 by 2 table",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "original remains unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "warnings": [],
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\p1\\20260906-174102-549842\\table\\table-styled.docx",
+      "sha256": "a6ee8750c8163513e69ca4e57e920cb8297b8fdcefabeff84e877e69d8fb41eb"
+    },
+    {
+      "case": "hf/hf-variants",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\hf\\hf-variants.docx",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "snapshot matches original bytes",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "document main namespace",
+          "passed": true,
+          "evidence": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "different first page",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "different odd and even pages",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "header has all three variants",
+          "passed": true,
+          "evidence": [
+            "default",
+            "even",
+            "first"
+          ]
+        },
+        {
+          "name": "header relationship target exists",
+          "passed": true,
+          "evidence": "word/header1.xml"
+        },
+        {
+          "name": "header relationship target exists",
+          "passed": true,
+          "evidence": "word/header2.xml"
+        },
+        {
+          "name": "header relationship target exists",
+          "passed": true,
+          "evidence": "word/header3.xml"
+        },
+        {
+          "name": "header variants have distinct text",
+          "passed": true,
+          "evidence": [
+            "偶数页 页眉",
+            "奇数页 页眉",
+            "首页 页眉"
+          ]
+        },
+        {
+          "name": "footer has all three variants",
+          "passed": true,
+          "evidence": [
+            "default",
+            "even",
+            "first"
+          ]
+        },
+        {
+          "name": "footer relationship target exists",
+          "passed": true,
+          "evidence": "word/footer1.xml"
+        },
+        {
+          "name": "word/footer1.xml has PAGE field",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "footer relationship target exists",
+          "passed": true,
+          "evidence": "word/footer2.xml"
+        },
+        {
+          "name": "word/footer2.xml has PAGE field",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "footer relationship target exists",
+          "passed": true,
+          "evidence": "word/footer3.xml"
+        },
+        {
+          "name": "word/footer3.xml has PAGE field",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "footer variants have distinct text",
+          "passed": true,
+          "evidence": [
+            "偶数页 页脚 1",
+            "奇数页 页脚 1",
+            "首页 页脚 1"
+          ]
+        },
+        {
+          "name": "VML text watermark",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "original remains unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "warnings": [],
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\p1\\20260906-174102-549842\\hf\\hf-variants.docx",
+      "sha256": "18e2bc53cee008c4e9bf9d02034664e4451a57d82a5e394e011a70d495e3dda5"
+    },
+    {
+      "case": "sections/sections-three",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\sections\\sections-three.docx",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "snapshot matches original bytes",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "document main namespace",
+          "passed": true,
+          "evidence": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "exactly three sections",
+          "passed": true,
+          "evidence": 3
+        },
+        {
+          "name": "second section landscape",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "third section has two columns",
+          "passed": true,
+          "evidence": 2
+        },
+        {
+          "name": "three distinct margin settings",
+          "passed": true,
+          "evidence": [
+            [
+              "900",
+              "900",
+              "900",
+              "900"
+            ],
+            [
+              "1080",
+              "1080",
+              "1080",
+              "1080"
+            ],
+            [
+              "1260",
+              "1260",
+              "1260",
+              "1260"
+            ]
+          ]
+        },
+        {
+          "name": "second section has an independent header reference",
+          "passed": true,
+          "evidence": [
+            [
+              "rId10",
+              "rId6",
+              "rId7"
+            ],
+            [
+              "rId12"
+            ],
+            []
+          ]
+        },
+        {
+          "name": "original remains unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "warnings": [],
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\p1\\20260906-174102-549842\\sections\\sections-three.docx",
+      "sha256": "28ada1815cb3b7dc265984a47bf88a59a4665e01dc8c6a01c862577fe1ca798b"
+    },
+    {
+      "case": "fields/fields-toc",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\fields\\fields-toc.docx",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "snapshot matches original bytes",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "document main namespace",
+          "passed": true,
+          "evidence": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "TOC field",
+          "passed": true,
+          "evidence": " TOC \\o \"1-3\"   PAGEREF _Toc239637536 \\h   PAGEREF _Toc239637537 \\h   PAGEREF _Toc239637538 \\h    REF ChapterOne \\h \\* MERGEFORMAT    DATE  \\* MERGEFORMAT "
+        },
+        {
+          "name": "REF field",
+          "passed": true,
+          "evidence": " TOC \\o \"1-3\"   PAGEREF _Toc239637536 \\h   PAGEREF _Toc239637537 \\h   PAGEREF _Toc239637538 \\h    REF ChapterOne \\h \\* MERGEFORMAT    DATE  \\* MERGEFORMAT "
+        },
+        {
+          "name": "DATE field",
+          "passed": true,
+          "evidence": " TOC \\o \"1-3\"   PAGEREF _Toc239637536 \\h   PAGEREF _Toc239637537 \\h   PAGEREF _Toc239637538 \\h    REF ChapterOne \\h \\* MERGEFORMAT    DATE  \\* MERGEFORMAT "
+        },
+        {
+          "name": "three heading levels",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "REF target bookmark",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "footnote has a real note and valid reference",
+          "passed": true,
+          "evidence": [
+            "1"
+          ]
+        },
+        {
+          "name": "endnote has a real note and valid reference",
+          "passed": true,
+          "evidence": [
+            "1"
+          ]
+        },
+        {
+          "name": "original remains unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "warnings": [],
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\p1\\20260906-174102-549842\\fields\\fields-toc.docx",
+      "sha256": "7570e23e7be1533625875c96af95e94396b8b04a4f940bd27242024e03ad8b45"
+    },
+    {
+      "case": "revisions/revisions-comments",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\revisions\\revisions-comments.docx",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "snapshot matches original bytes",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "document main namespace",
+          "passed": true,
+          "evidence": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "tracked ins",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "tracked del",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "tracked rPrChange",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "two comments and a reply are stored",
+          "passed": true,
+          "evidence": 3
+        },
+        {
+          "name": "threaded reply metadata",
+          "passed": true,
+          "evidence": 1
+        },
+        {
+          "name": "resolved comment metadata",
+          "passed": true,
+          "evidence": 2
+        },
+        {
+          "name": "original remains unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "warnings": [],
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\p1\\20260906-174102-549842\\revisions\\revisions-comments.docx",
+      "sha256": "0a97c48c761c19d268c8f1db6abbe1a2b9557071575cc8dd97e05c688ec67926"
+    },
+    {
+      "case": "shapes/textbox-shapes",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\shapes\\textbox-shapes.docx",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "snapshot matches original bytes",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "document main namespace",
+          "passed": true,
+          "evidence": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "multi-paragraph textbox",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "rounded rectangle geometry",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "group of at least two shapes",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "WordArt markup",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "original remains unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "warnings": [],
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\p1\\20260906-174102-549842\\shapes\\textbox-shapes.docx",
+      "sha256": "e862da27c2c18d691fb3d5ba7685a30a15ec0acf50563b5ba6a426d532e3df92"
+    },
+    {
+      "case": "sdt/content-controls",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\sdt\\content-controls.docx",
+      "status": "failed",
+      "checks": [
+        {
+          "name": "snapshot matches original bytes",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "document main namespace",
+          "passed": true,
+          "evidence": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "rich text content control",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "dropdown with two entries",
+          "passed": false,
+          "evidence": null
+        },
+        {
+          "name": "date picker and display format",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "checked checkbox control",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "content and deletion lock",
+          "passed": true,
+          "evidence": [
+            "sdtContentLocked",
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "name": "original remains unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "warnings": [],
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\p1\\20260906-174102-549842\\sdt\\content-controls.docx",
+      "sha256": "9cafc117b246c0869ec0aab8d1215d0af5c87e78becbbfeb94ef9f8b80a7193c"
+    },
+    {
+      "case": "links/hyperlinks-bookmarks",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\links\\hyperlinks-bookmarks.docx",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "snapshot matches original bytes",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "document main namespace",
+          "passed": true,
+          "evidence": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "external HTTP hyperlink",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "mailto hyperlink",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "internal hyperlink to existing bookmark",
+          "passed": true,
+          "evidence": [
+            "Target"
+          ]
+        },
+        {
+          "name": "original remains unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "warnings": [],
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\p1\\20260906-174102-549842\\links\\hyperlinks-bookmarks.docx",
+      "sha256": "2dd3e3fb0eb92a8612bcb28f94393659b764a9d8b7a71ae27cc0ecaf6118e160"
+    },
+    {
+      "case": "strict/strict-basic",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\strict\\strict-basic.docx",
+      "status": "failed",
+      "checks": [
+        {
+          "name": "snapshot matches original bytes",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "document main namespace",
+          "passed": true,
+          "evidence": "http://purl.oclc.org/ooxml/wordprocessingml/main"
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "heading levels 1 and 2",
+          "passed": true,
+          "evidence": [
+            0,
+            1
+          ]
+        },
+        {
+          "name": "a bullet paragraph",
+          "passed": true,
+          "evidence": [
+            {
+              "level": 0,
+              "format": "bullet",
+              "text": "",
+              "paragraph": "项目符号条目"
+            },
+            {
+              "level": 0,
+              "format": "decimal",
+              "text": "%1.",
+              "paragraph": "编号一级"
+            },
+            {
+              "level": 0,
+              "format": "decimal",
+              "text": "%1.",
+              "paragraph": "编号二级"
+            },
+            {
+              "level": 0,
+              "format": "decimal",
+              "text": "%1.",
+              "paragraph": "编号三级"
+            }
+          ]
+        },
+        {
+          "name": "three numbering levels used",
+          "passed": false,
+          "evidence": [
+            {
+              "level": 0,
+              "format": "decimal",
+              "text": "%1.",
+              "paragraph": "编号一级"
+            },
+            {
+              "level": 0,
+              "format": "decimal",
+              "text": "%1.",
+              "paragraph": "编号二级"
+            },
+            {
+              "level": 0,
+              "format": "decimal",
+              "text": "%1.",
+              "paragraph": "编号三级"
+            }
+          ]
+        },
+        {
+          "name": "number format level 1",
+          "passed": true,
+          "evidence": "%1."
+        },
+        {
+          "name": "number format level 2",
+          "passed": false,
+          "evidence": "%1.%2."
+        },
+        {
+          "name": "number format level 3",
+          "passed": false,
+          "evidence": "%1.%2.%3."
+        },
+        {
+          "name": "run formatting b",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "run formatting i",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "run formatting u",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "run formatting strike",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "superscript",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "colored run",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "18 point run",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "mixed Chinese and English body",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "original remains unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "warnings": [],
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\p1\\20260906-174102-549842\\strict\\strict-basic.docx",
+      "sha256": "e7d7a496b21f30995676a79fed075f13416e97242c9a9906f5baabe544ff1bb6"
+    },
+    {
+      "case": "misc/large-report",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\misc\\large-report.docx",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "snapshot matches original bytes",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "document main namespace",
+          "passed": true,
+          "evidence": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "stored page count is at least 21",
+          "passed": true,
+          "evidence": 26
+        },
+        {
+          "name": "report has tables",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "report has charts",
+          "passed": true,
+          "evidence": [
+            "word/charts/chart1.xml",
+            "word/charts/chart10.xml",
+            "word/charts/chart11.xml",
+            "word/charts/chart12.xml",
+            "word/charts/chart13.xml",
+            "word/charts/chart14.xml",
+            "word/charts/chart15.xml",
+            "word/charts/chart16.xml",
+            "word/charts/chart17.xml",
+            "word/charts/chart18.xml",
+            "word/charts/chart19.xml",
+            "word/charts/chart2.xml",
+            "word/charts/chart20.xml",
+            "word/charts/chart21.xml",
+            "word/charts/chart22.xml",
+            "word/charts/chart23.xml",
+            "word/charts/chart3.xml",
+            "word/charts/chart4.xml",
+            "word/charts/chart5.xml",
+            "word/charts/chart6.xml",
+            "word/charts/chart7.xml",
+            "word/charts/chart8.xml",
+            "word/charts/chart9.xml"
+          ]
+        },
+        {
+          "name": "report has TOC",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "report has header reference",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "original remains unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "warnings": [
+        "Package page-count metadata is not a layout oracle; confirm the Word-exported PDF page count and report content separately."
+      ],
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\p1\\20260906-174102-549842\\misc\\large-report.docx",
+      "sha256": "70ced902f90a60505a8445144519c52d17ee7050e7763054e9ced98e68e45b93"
+    }
+  ]
+}

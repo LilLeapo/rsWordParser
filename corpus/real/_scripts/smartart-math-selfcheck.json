@@ -1,0 +1,538 @@
+[
+  {
+    "file": "smartart/smartart-cycle.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "fiveRequiredParts": [
+        "data1.xml",
+        "layout1.xml",
+        "quickStyle1.xml",
+        "colors1.xml",
+        "drawing1.xml"
+      ],
+      "relIds": 1,
+      "dataText": [
+        "计划",
+        "实施",
+        "检查"
+      ],
+      "drawingText": [
+        "计划",
+        "实施",
+        "检查"
+      ]
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/smartart/smartart-cycle.zip",
+    "originalSha256": "5C6219B217810F5FA88F089FCFD3166ABCEE8D923C1D006A16095822FE36091E",
+    "originalUnchanged": true
+  },
+  {
+    "file": "smartart/smartart-edited-text.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "fiveRequiredParts": [
+        "data1.xml",
+        "layout1.xml",
+        "quickStyle1.xml",
+        "colors1.xml",
+        "drawing1.xml"
+      ],
+      "relIds": 1,
+      "dataText": [
+        "准备",
+        "执行（已修改）",
+        "完成"
+      ],
+      "drawingText": [
+        "准备",
+        "执行（已修改）",
+        "完成"
+      ]
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/smartart/smartart-edited-text.zip",
+    "originalSha256": "124D6EC2BE613F4FC8C3CE5957A274D8AC20283F7AB1E0F902F9E1F49AA9C93E",
+    "originalUnchanged": true
+  },
+  {
+    "file": "smartart/smartart-floating.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "fiveRequiredParts": [
+        "data1.xml",
+        "layout1.xml",
+        "quickStyle1.xml",
+        "colors1.xml",
+        "drawing1.xml"
+      ],
+      "relIds": 1,
+      "dataText": [
+        "准备",
+        "执行",
+        "完成"
+      ],
+      "drawingText": [
+        "准备",
+        "执行",
+        "完成"
+      ],
+      "sameParagraphAnchors": 1
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/smartart/smartart-floating.zip",
+    "originalSha256": "068438309C6F5F5F9529A775C27DBFD005B7857BAE7C9071F42F62796889EAF7",
+    "originalUnchanged": true
+  },
+  {
+    "file": "smartart/smartart-hierarchy.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "fiveRequiredParts": [
+        "data1.xml",
+        "layout1.xml",
+        "quickStyle1.xml",
+        "colors1.xml",
+        "drawing1.xml"
+      ],
+      "relIds": 1,
+      "dataText": [
+        "总经理",
+        "部门A",
+        "部门B",
+        "组1",
+        "助理"
+      ],
+      "drawingText": [
+        "总经理",
+        "部门A",
+        "组1",
+        "部门B",
+        "助理"
+      ],
+      "connections": 54
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/smartart/smartart-hierarchy.zip",
+    "originalSha256": "798FB69703CB11098654529F54F2238003538FA9D8534CD89562F742DD73D21A",
+    "originalUnchanged": true
+  },
+  {
+    "file": "smartart/smartart-in-table.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "fiveRequiredParts": [
+        "data1.xml",
+        "layout1.xml",
+        "quickStyle1.xml",
+        "colors1.xml",
+        "drawing1.xml"
+      ],
+      "relIds": 1,
+      "dataText": [
+        "准备",
+        "执行",
+        "完成"
+      ],
+      "drawingText": [
+        "准备",
+        "执行",
+        "完成"
+      ],
+      "tableDiagram": 1
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/smartart/smartart-in-table.zip",
+    "originalSha256": "1A61DFAF6904F6E2375873BA043493272047288A524E0EC681F71914C161FF7E",
+    "originalUnchanged": true
+  },
+  {
+    "file": "smartart/smartart-list.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "fiveRequiredParts": [
+        "data1.xml",
+        "layout1.xml",
+        "quickStyle1.xml",
+        "colors1.xml",
+        "drawing1.xml"
+      ],
+      "relIds": 1,
+      "dataText": [
+        "第一项",
+        "第二项",
+        "第三项",
+        "第四项",
+        "第五项"
+      ],
+      "drawingText": [
+        "第一项",
+        "第二项",
+        "第三项",
+        "第四项",
+        "第五项"
+      ]
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/smartart/smartart-list.zip",
+    "originalSha256": "EBF60DA717B178C7694962FED998F7EC2BFB200DD12453F81E6EF5C44F62F591",
+    "originalUnchanged": true
+  },
+  {
+    "file": "smartart/smartart-picture.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "fiveRequiredParts": [
+        "data1.xml",
+        "layout1.xml",
+        "quickStyle1.xml",
+        "colors1.xml",
+        "drawing1.xml"
+      ],
+      "relIds": 1,
+      "dataText": [
+        "图片一",
+        "图片二"
+      ],
+      "drawingText": [
+        "图片一",
+        "图片二"
+      ],
+      "pictureFills": 2,
+      "drawingImageRelationships": 1
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/smartart/smartart-picture.zip",
+    "originalSha256": "099ECDB94902406F2D5E97A2A6F85C4CDD76D3B0177851DB9FB1C1A5A194E547",
+    "originalUnchanged": true
+  },
+  {
+    "file": "smartart/smartart-process.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "fiveRequiredParts": [
+        "data1.xml",
+        "layout1.xml",
+        "quickStyle1.xml",
+        "colors1.xml",
+        "drawing1.xml"
+      ],
+      "relIds": 1,
+      "dataText": [
+        "准备",
+        "执行",
+        "完成"
+      ],
+      "drawingText": [
+        "准备",
+        "执行",
+        "完成"
+      ]
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/smartart/smartart-process.zip",
+    "originalSha256": "7D03FB1E9036C4663AD96468855ACCCE8310E581EEB77F05DC5714AB5131B24B",
+    "originalUnchanged": true
+  },
+  {
+    "file": "smartart/smartart-styled.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "fiveRequiredParts": [
+        "data1.xml",
+        "layout1.xml",
+        "quickStyle1.xml",
+        "colors1.xml",
+        "drawing1.xml"
+      ],
+      "relIds": 1,
+      "dataText": [
+        "准备",
+        "执行",
+        "完成"
+      ],
+      "drawingText": [
+        "准备",
+        "执行",
+        "完成"
+      ]
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/smartart/smartart-styled.zip",
+    "originalSha256": "9B4ECA26D1410C35F90F6553093D51725943371EC9352E1D96D2BEB3A770FE92",
+    "originalUnchanged": true
+  },
+  {
+    "file": "math/math-builtin.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "oMath": 3,
+      "mathText": [
+        "x",
+        "=",
+        "-",
+        "b",
+        "±",
+        "b",
+        "2",
+        "-4",
+        "ac",
+        "2",
+        "a",
+        "e",
+        "x",
+        "=1+",
+        "x",
+        "1!",
+        "+",
+        "x",
+        "2",
+        "2!",
+        "+",
+        "x",
+        "3",
+        "3!",
+        "+…,",
+        "  ",
+        "-∞<x<∞",
+        "f",
+        "x",
+        "=",
+        "a",
+        "0",
+        "+",
+        "n=1",
+        "∞",
+        "a",
+        "n",
+        "cos",
+        "nπx",
+        "L",
+        "+",
+        "b",
+        "n",
+        "sin",
+        "nπx",
+        "L"
+      ],
+      "threeParagraphEquations": 3,
+      "radical": 1,
+      "summation": 1
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/math/math-builtin.zip",
+    "originalSha256": "067A6630CDADBF05DA06C9A8522D83BD0BE7435434EB7D3590A11CB13E03E132",
+    "originalUnchanged": true
+  },
+  {
+    "file": "math/math-display-two.docx",
+    "status": "failed",
+    "errors": [
+      "Expected at least 1 match(es) for //m:oMathPara[count(m:oMath)=2]; found 0."
+    ],
+    "checks": {
+      "markerParagraphs": "passed",
+      "oMath": 2,
+      "mathText": [
+        "x",
+        "2",
+        "+",
+        "y",
+        "2",
+        "=",
+        "z",
+        "2",
+        "E=m",
+        "c",
+        "2"
+      ]
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/math/math-display-two.zip",
+    "originalSha256": "97D3C5602D21FD0DD60ECB5E37A0ACA3E4D835572B097FB08477DC0439434009"
+  },
+  {
+    "file": "math/math-fraction.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "oMath": 1,
+      "mathText": [
+        "a+b",
+        "2",
+        "+",
+        "x",
+        "2"
+      ],
+      "fraction": 1,
+      "superscript": 1
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/math/math-fraction.zip",
+    "originalSha256": "D3859BE2930B99A08261B243CF4E062457FC392357634D690DBFD49610453657",
+    "originalUnchanged": true
+  },
+  {
+    "file": "math/math-in-table.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "oMath": 1,
+      "mathText": [
+        "a+b",
+        "2",
+        "+",
+        "x",
+        "2"
+      ],
+      "tableFormula": 1
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/math/math-in-table.zip",
+    "originalSha256": "8D0059B03CD1F5A89645C8358B8951E659AB18AB01BA8643F9AE8BF7F33DE70B",
+    "originalUnchanged": true
+  },
+  {
+    "file": "math/math-inline.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "oMath": 1,
+      "mathText": [
+        "E=m",
+        "c",
+        "2"
+      ],
+      "inlineWithText": 1
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/math/math-inline.zip",
+    "originalSha256": "4B8360882DFA3F65F1ED66CE97C6DC2C0DD7594564C09633ACAB3C0B9D6AEAE1",
+    "originalUnchanged": true
+  },
+  {
+    "file": "math/math-integral.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "oMath": 1,
+      "mathText": [
+        "0",
+        "1",
+        "x",
+        "2",
+        "ⅆ",
+        "x"
+      ],
+      "nary": 1
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/math/math-integral.zip",
+    "originalSha256": "8284D04B2F18D2F599837FC04F3A6AB9F5629D3D138FE73F0990F4097BDF6234",
+    "originalUnchanged": true
+  },
+  {
+    "file": "math/math-latex.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "oMath": 1,
+      "mathText": [
+        "1",
+        "2",
+        "i=1",
+        "n",
+        "x",
+        "i"
+      ],
+      "fraction": 1,
+      "summation": 1,
+      "latexModeCommandAndReadBack": "passed"
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/math/math-latex.zip",
+    "originalSha256": "EE3DFB7D0D516096553585BD2B8EFCD372B86360725027FB546B569DCB584E55",
+    "originalUnchanged": true
+  },
+  {
+    "file": "math/math-linear.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "oMath": 1,
+      "mathText": [
+        "\\frac",
+        "{",
+        "1",
+        "}{",
+        "2",
+        "}",
+        "\\sum_",
+        "{",
+        "i=1",
+        "}",
+        "^{n}x_i"
+      ],
+      "onlyMathRuns": "passed"
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/math/math-linear.zip",
+    "originalSha256": "3433DE5D379FF65F9C507E7DF035C3C94C29B4735EA148894CAAC4C486CB7901",
+    "originalUnchanged": true
+  },
+  {
+    "file": "math/math-matrix.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "oMath": 1,
+      "mathText": [
+        "a",
+        "b",
+        "c",
+        "d"
+      ],
+      "bracketed2x2Matrix": 1
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/math/math-matrix.zip",
+    "originalSha256": "CF529CC4434C3C376926387F32E3E17A82B85C7AC0E07D7E093C4D60CCEFCB49",
+    "originalUnchanged": true
+  },
+  {
+    "file": "math/math-styled.docx",
+    "status": "passed",
+    "errors": [],
+    "checks": {
+      "markerParagraphs": "passed",
+      "oMath": 1,
+      "mathText": [
+        "a",
+        "+b",
+        "2",
+        "+",
+        "x",
+        "2"
+      ],
+      "coloredRun": 1,
+      "twentyPointRun": 6,
+      "centeredMath": 1,
+      "fontSizesHalfPoints": [
+        "40"
+      ]
+    },
+    "copy": "_checks/smartart-math/20260907-012659-483/math/math-styled.zip",
+    "originalSha256": "AD3C026AB0025CDAE719A0BA55E4FE86F1537E6710CBDF4879D19337831D0D15",
+    "specificationDeviation": "Word applied the requested 20-point size to the entire equation; partial red color is present, but mixed font sizes are not.",
+    "originalUnchanged": true
+  }
+]

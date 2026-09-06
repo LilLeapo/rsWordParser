@@ -88,6 +88,10 @@ impl DrawingKind {
             "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" => {
                 DrawingKind::Group
             }
+            // 真实 Word 的绘图画布（`wpc:wpc`）：子形状与组一样按容器处理（`corpus/real/canvas-*`）
+            "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" => {
+                DrawingKind::Group
+            }
             _ => DrawingKind::Unknown,
         }
     }
@@ -105,7 +109,7 @@ impl DrawingKind {
             NsId::Dgm => DrawingKind::Diagram,
             NsId::Lc => DrawingKind::LockedCanvas,
             NsId::Wps => DrawingKind::Shape,
-            NsId::Wpg => DrawingKind::Group,
+            NsId::Wpg | NsId::Wpc => DrawingKind::Group,
             _ => DrawingKind::Unknown,
         }
     }
@@ -499,7 +503,7 @@ fn graphic_child_kind(dom: &Dom, child: NodeId) -> DrawingKind {
         Some("dgm") => DrawingKind::Diagram,
         Some("lc") => DrawingKind::LockedCanvas,
         Some("wps") => DrawingKind::Shape,
-        Some("wpg") => DrawingKind::Group,
+        Some("wpg") | Some("wpc") => DrawingKind::Group,
         _ => DrawingKind::Unknown,
     }
 }

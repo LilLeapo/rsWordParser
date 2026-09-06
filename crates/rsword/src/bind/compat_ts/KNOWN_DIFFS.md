@@ -22,6 +22,19 @@
 | `extra__mixed-flavor` | `internal.documentXml`、`internal.bodyInner*`、`extras.elements[*]` | TS 装载时把混合口味（Strict + Transitional）的主 part 改写成 Transitional，偏移随之变化 | 同 `extra__strict-minimal`：本引擎不归一化 | 本引擎（M6 6.9 登记） |
 | `write-protection__004` | `blocks[*].originalXml`、`internal.*`、`extras.elements[*]` | 主 part 用 `x:` 前缀绑定 `w` 命名空间（`<w:p xmlns:x="…/wordprocessingml/2006/main"><w:ins x:id=…>`）；TS 装载时把前缀改写成规范的 `w:`，本引擎按 `COMPAT-04` 给原字节 | 原字节才是真相；`x:id` 与 `w:id` 语义相同，模型侧早已按命名空间解析 | 本引擎（M6 6.9 登记） |
 | `shape-extraction__014` | `blocks[0]` 的 `type` / `label` / `previewText` / `runs` | `mc:Choice Requires="wps"` 而 `wps` 前缀**没有声明**：本引擎按 `XML-09` 走 `mc:Fallback`（VML 文本框 → `Text box` 芯片），TS 用正则取 Choice（随文图片 + 文字的段落） | 同 `cell-anchored-boxes__002` / `hf-images__011` 一条 | 本引擎（规范行为；M6 6.9 登记） |
+| `strict-basic*`（`corpus/real`） | `internal.*`、`extras.elements[*]`、`blocks[*].originalXml` | Word 另存的 Strict 文档带单位的度量（`w:w="595.30pt"`）与 Strict URI：TS 装载时改写成 Transitional twips，偏移随之变化 | 同 `extra__strict-minimal`：本引擎不归一化（Strict stays Strict，`SAVE-03`） | 本引擎 |
+| 任意 | `styles.*.display.indentChars` | TS `withCharIndents` 在样式显示模型里也用字号换算字符单位缩进 | 与 `blocks[*].format.charIndents*` 同一条：需字体度量，属显示层 | 暂放行 |
+| `fields-toc`（`corpus/real`） | `blocks[9].*` | 真实 Word 把 `REF ChapterOne \h \* MERGEFORMAT` 的指令拆成三个 `w:instrText`（首个只有一个空格）：TS `fieldLabel` 只看第一个，关键字为空 → 整段 passthrough `Field (TOC/page number/etc.)`；本引擎把连续 `instrText` 攒起来认出 REF，按可折叠字段给出可编辑 run + `instrField` | 与 `PAGE` 被拆成 `PA` + `GE` 同一条：指令是拼起来的文本，不是第一个片段 | 本引擎（功能更强） |
+| `ink-pen` / `ink-highlighter` / `ink-to-shape` / `ink-math`（`corpus/real`） | `blocks[*].runs*` | Word 原生墨迹：`mc:Choice Requires="wpi"` 里是 `w14:contentPart`（InkML part），`mc:Fallback` 是 Word 自己栅格化的 PNG。`wpi` 不在本引擎理解的命名空间里（`XML-09`），走 Fallback → 墨迹成为 run 级图片；TS 剥掉 Fallback 后在 Choice 里找不到 `pic:pic`，什么都不画 | Word 渲染的是笔迹；不会画 InkML 的消费者拿到的最好结果就是 Word 留下的栅格。InkML part 原字节保留 | 本引擎（功能更强） |
+| `*-resaved-by-word`、`05-ink-insert`（`corpus/real/_roundtrip`） | `blocks[*].runs[*]`、`inks*` | 本引擎写的 `aidocs-ink` 墨迹层：经 Word 另存后 run 多了 `w:rPr`（`w:noProof`）与 rsid；以真实 Word 文档为底稿直接生成时，根上没声明的 `xmlns:a` / `xmlns:pic` 被序列化器提到新 run 上（`<w:r xmlns:a=…>`）。TS `stripInkRuns` / `findInkRuns` 的正则要求 `<w:r><w:drawing>` 紧邻，两种情况都不再认它是墨迹，当成两张图片 | `docs/04` §8「墨迹的判据」：前缀才是语义；墨迹层应当在 Word 一次另存后仍然可编辑 | 本引擎（功能更强） |
+| `image-emf`（`corpus/real`） | `blocks[*].imageDataUrl`、`brokenImage`、`previewText`、`type` | TS 的 metafile 转换器返回 null → `brokenImage` passthrough；本引擎给 EMF 原字节的 dataURL 图片块 | 同 `emf-image__*`：转换是可插拔服务，不在 Rust 侧做 | 本引擎（有意不同） |
+| `ole-*`（`corpus/real`） | `blocks[*].imageDataUrl`、`blocks[*].table.rows[*][*].richParas[*].runs[*].image.dataUrl` | OLE 预览是 EMF / WMF：TS 转不出来就不给 `dataUrl`，本引擎给原字节 dataURL | 同上 | 本引擎（有意不同） |
+| `math-in-table`（`corpus/real`） | `blocks[*].table.rows[*][*].richParas[*].runs[*]` | 单元格里的公式 TS 一个 run 都不出 | 同 `m6-omml__033` | 本引擎（功能更强） |
+| `smartart-cycle` / `smartart-process` / `smartart-styled` / `smartart-edited-text` / `smartart-floating`（`corpus/real`） | `blocks[*].diagramDisplay.shapes[*].fillHex` | 真实 Word 的图示绘图 part 给连接箭头写 `<a:solidFill><a:schemeClr val="accent1"><a:tint val="60000"/>…`：本引擎按 `RES-05` 施加 tint（`8FAADC`），TS 的实心填充取色不看 `a:schemeClr` 的变换（`4472C4`） | Word 画出来的箭头就是浅的（`_previews/smartart/*.pdf`）；变换是颜色定义的一部分 | 本引擎（规范行为） |
+| `ole-with-text`（`corpus/real`） | `blocks[1].*` | 文字 + `w:object` 同段：TS 只在每个对象的预览都能解析成媒体时才走 run 级图片（`smartart-ole__017`），EMF 预览转不出来就退成 `Embedded object` passthrough；本引擎的预览是原字节 dataURL，总能解析，所以按 6.4 给 run 级图片 | 根因同 `emf-image__*`：metafile 转换不在 Rust 侧做 | 本引擎（有意不同） |
+| `canvas-*`（`corpus/real`） | `blocks[*].textboxes[*].offsetXEmu` / `offsetYEmu` / `bandTopPx` / `bandBottomPx`；`canvas-floating` 的 `textboxes[*].floating` | 真实 Word 的绘图画布 `wpc:wpc`：TS 不把它当容器，每个子形状都落在锚点原点（`a:off` 被忽略）；本引擎把画布当 `chOff = 0` 的组，子形状 = 锚点 + 画布内偏移（矩形在画布里内缩 0.25 in，`_previews/canvas/*.pdf` 可见）；浮动画布的子形状也跟着浮动 | 位置来自 XML，TS 那条路只是没实现画布的坐标系 | 本引擎（功能更强） |
+| `canvas-picture`（`corpus/real`） | `blocks[*].textboxes*` | 画布里的 `pic:pic`：本引擎与组里的图片一样出成图片框（排在前面），TS 不认画布容器所以丢掉它，`textboxes[0]` 是矩形 | 画布里的图片 Word 是画出来的 | 本引擎（功能更强） |
+| `ole-in-table`（`corpus/real`） | `blocks[*].table.rows[*][*].richParas[*].runs[*]` | 单元格里的 `w:object` TS 一个 run 都不出（与单元格里的公式 / ruby 同一条路） | 同 `m6-omml__033` | 本引擎（功能更强） |
 | `emf-image__*`（4 份） | 任何 `dataUrl` | TS 把 EMF 渲染成 PNG（导出工具打的占位 `data:image/png;base64,EMFPNG`），本引擎输出 EMF 原字节的 dataURL 并标 `MediaKind::Metafile` | `docs/03` §3.5 冻结：EMF/WMF/EMZ/WMZ 与 TIFF 的转换是可插拔服务，不在 Rust 侧做，由 TS / 渲染端继续转 | 本引擎（有意不同）；语料里 4 份 metafile 媒体全在这些文档 |
 
 ## 定位辅助 part 的差别（不算差异，测试里已对齐）
@@ -44,6 +57,45 @@ balance-dbcs-spacing__*  blocks[*].runs[*].charSpacingTwips       # TS 按双字
 *                        blocks[*].format.charIndents*            # 字符单位缩进（显示层）
 inline-image-mixed__009* blocks[*].runs[*].rawRPr                 # 源文件写 <w:rPr></w:rPr>，TS 重序列化成 <w:rPr/>
 emf-image__*             blocks[*].imageDataUrl                   # EMF 不在 Rust 侧渲染（docs/03 §3.5）
+strict-basic*            internal.*                               # 真实 Word 的 Strict：TS 装载时改写成 Transitional（单位 → twips），同 extra__strict-minimal
+strict-basic*            extras.elements[*].*                     # 同上（偏移）
+strict-basic*            blocks[*].originalXml                    # 同上（"595.30pt" vs 11906）
+*                        styles.*.display.indentChars             # 样式层的字符单位缩进（显示层，同 format.charIndents*）
+fields-toc*              blocks[9].*                              # REF 指令拆成三个 instrText，TS 认不出关键字整段 passthrough；本引擎折成 run
+ink-pen*                 blocks[*].runs*                          # Word 原生墨迹（Requires="wpi"）：本引擎走 Fallback 出栅格 run 图片，TS 什么都不画
+ink-highlighter*         blocks[*].runs*                          # 同上
+ink-to-shape*            blocks[*].runs*                          # 同上
+ink-math*                blocks[*].runs*                          # 同上
+*-resaved-by-word*       blocks[*].runs[*]                        # Word 另存后 aidocs-ink run 带了 rPr，TS 正则不再认它是墨迹
+*-resaved-by-word*       inks*                                    # 同上
+05-ink-insert*           blocks[*].runs[*]                        # 以真 Word 文档为底稿生成的墨迹 run 根上带 xmlns 声明，TS 正则同样不认
+05-ink-insert*           inks*                                    # 同上
+image-emf*               blocks[*].imageDataUrl                   # EMF 不在 Rust 侧渲染（同 emf-image__*）
+image-emf*               blocks[*].brokenImage                    # 同上
+image-emf*               blocks[*].previewText                    # 同上
+image-emf*               blocks[*].type                           # 同上
+ole-*                    blocks[*].imageDataUrl                   # OLE 预览 EMF/WMF：TS 转不出来不给，本引擎给原字节
+ole-*                    blocks[*].table.rows[*][*].richParas[*].runs[*].image.dataUrl   # 同上（表格里）
+math-in-table*           blocks[*].table.rows[*][*].richParas[*].runs[*]      # 单元格里的公式 run：TS 丢（同 m6-omml__033）
+canvas-*                 blocks[*].textboxes[*].offsetXEmu        # 真实 Word 画布 wpc:wpc：TS 不做画布坐标系，子形状全落在锚点原点
+canvas-*                 blocks[*].textboxes[*].offsetYEmu        # 同上
+canvas-*                 blocks[*].textboxes[*].bandTopPx         # 同上（带随偏移变）
+canvas-*                 blocks[*].textboxes[*].bandBottomPx      # 同上
+canvas-floating*         blocks[*].textboxes[*].floating          # 同上：浮动画布的子形状跟着浮动
+canvas-picture*          blocks[*].textboxes*                     # 画布里的图片：TS 丢，本引擎出图片框
+ole-in-table*            blocks[*].table.rows[*][*].richParas[*].runs[*]      # 单元格里的 OLE：TS 丢（同单元格公式）
+ole-with-text*           blocks[*].imageHeightPx                  # 文字 + OLE 同段：TS 因 EMF 预览转不出来退成 passthrough，本引擎给 run 级图片（6.4）
+ole-with-text*           blocks[*].imageWidthPx                   # 同上
+ole-with-text*           blocks[*].label                          # 同上
+ole-with-text*           blocks[*].oleProgId                      # 同上
+ole-with-text*           blocks[*].previewText                    # 同上
+ole-with-text*           blocks[*].runs                           # 同上
+ole-with-text*           blocks[*].type                           # 同上
+smartart-cycle*          blocks[*].diagramDisplay.shapes[*].fillHex   # 图示箭头 schemeClr + tint：TS 不施加变换
+smartart-process*        blocks[*].diagramDisplay.shapes[*].fillHex   # 同上
+smartart-styled*         blocks[*].diagramDisplay.shapes[*].fillHex   # 同上
+smartart-edited-text*    blocks[*].diagramDisplay.shapes[*].fillHex   # 同上
+smartart-floating*       blocks[*].diagramDisplay.shapes[*].fillHex   # 同上
 extra__mixed-flavor*     internal.*                               # TS 装载时把混合口味的主 part 改写成 Transitional（同 extra__strict-minimal，6.9）
 extra__mixed-flavor*     extras.elements[*].*                     # 同上（偏移）
 write-protection__004*   blocks[*].originalXml                    # 主 part 用 x: 前缀绑定 w 命名空间，TS 改写成 w:，本引擎原字节（6.9）

@@ -1,0 +1,2152 @@
+{
+  "generatedAt": "2026-09-07T01:42:54.3290022+08:00",
+  "method": "A fresh visible Windows desktop Word COM instance for each case. One SaveAs2 per document, then PDF export without another DOCX save. Package inspection uses a copied ZIP and never modifies DOCX.",
+  "evidence": "Object-model and package facts only. PDF/Word visual observations are recorded separately by the reviewing agent.",
+  "cases": [
+    {
+      "name": "canvas-shapes",
+      "startedAt": "2026-09-07T01:00:46.3100209+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "status": "saved-with-structure-note",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\canvas\\canvas-shapes.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\canvas\\canvas-shapes.pdf",
+      "details": {
+        "canvasItems": [
+          {
+            "index": 1,
+            "type": 1,
+            "text": "画布\r",
+            "sizePoints": [
+              135.0,
+              65.0
+            ],
+            "positionPoints": [
+              1.0,
+              1.0
+            ]
+          },
+          {
+            "index": 2,
+            "type": 1,
+            "text": "\r",
+            "sizePoints": [
+              120.0,
+              65.0
+            ],
+            "positionPoints": [
+              10.0,
+              1.0
+            ]
+          },
+          {
+            "index": 3,
+            "type": 9,
+            "text": "",
+            "sizePoints": [
+              125.0,
+              0.0
+            ],
+            "positionPoints": [
+              1.25,
+              6.25
+            ]
+          },
+          {
+            "index": 4,
+            "type": 9,
+            "text": "",
+            "sizePoints": [
+              120.0,
+              0.0
+            ],
+            "positionPoints": [
+              10.25,
+              6.25
+            ]
+          }
+        ],
+        "canvasSizePoints": [
+          360.0,
+          200.0
+        ],
+        "floating": true,
+        "wrapType": 4
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\canvas\\canvas-shapes.zip",
+        "sourceHash": "B0D3E15EFC3864250A8EEF0AE4D67DD6D2AB5A39D3D6AC35A471DBDB109E6CBC",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 1,
+          "wsp": 4,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 0,
+          "inline": 0,
+          "anchor": 1,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 1,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"254000\" y=\"254000\" /><a:ext cx=\"1714500\" cy=\"825500\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"2540000\" y=\"254000\" /><a:ext cx=\"1524000\" cy=\"825500\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"317500\" y=\"1587500\" /><a:ext cx=\"1587500\" cy=\"0\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"2603500\" y=\"1587500\" /><a:ext cx=\"1524000\" cy=\"0\" /></a:xfrm>"
+          }
+        ],
+        "media": [],
+        "bodyParagraphTexts": [
+          "画布画布before 前文",
+          "",
+          "after 后文",
+          ""
+        ],
+        "warnings": [
+          "Word emitted a modern wpc canvas instead of the lc:lockedCanvas wrapper requested by docs/07.",
+          "Standalone before/after marker missing."
+        ]
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:00:47.5798764+08:00"
+    },
+    {
+      "name": "image-inline",
+      "startedAt": "2026-09-07T01:00:47.5984592+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "status": "saved",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\image\\image-inline.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\image\\image-inline.pdf",
+      "details": {
+        "pictureSizePoints": [
+          144.0,
+          72.0
+        ],
+        "inlineShapeCount": 1,
+        "floatingShapeCount": 0
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\image\\image-inline.zip",
+        "sourceHash": "CF5598EF6A3299D018AD8B4C406DB9A028566FCA36448D6F2EC49815B8301C71",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 0,
+          "wsp": 0,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 1,
+          "inline": 1,
+          "anchor": 0,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 0,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [
+          {
+            "embed": "rId4",
+            "link": ""
+          }
+        ],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"1828800\" cy=\"914401\" /></a:xfrm>"
+          }
+        ],
+        "media": [
+          "word/media/image1.png"
+        ],
+        "bodyParagraphTexts": [
+          "before 前文",
+          "",
+          "after 后文",
+          ""
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:00:47.7738175+08:00"
+    },
+    {
+      "name": "canvas-shapes",
+      "startedAt": "2026-09-07T01:31:23.4666439+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": null,
+      "status": "failed",
+      "path": null,
+      "preview": null,
+      "details": {},
+      "package": null,
+      "error": "The property 'Hwnd' cannot be found on this object. Verify that the property exists. at at <ScriptBlock>, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-canvas-images.ps1: line 198\r\nat <ScriptBlock>, <No file>: line 2",
+      "finishedAt": "2026-09-07T01:31:25.7962819+08:00"
+    },
+    {
+      "name": "canvas-shapes",
+      "startedAt": "2026-09-07T01:33:33.0278081+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 7015748,
+      "status": "saved-with-structure-note",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\canvas\\canvas-shapes-2.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\canvas\\canvas-shapes-2.pdf",
+      "details": {
+        "canvasItems": [
+          {
+            "index": 1,
+            "type": 1,
+            "text": "画布\r",
+            "sizePoints": [
+              135.0,
+              65.0
+            ],
+            "positionPoints": [
+              1.0,
+              1.0
+            ]
+          },
+          {
+            "index": 2,
+            "type": 1,
+            "text": "\r",
+            "sizePoints": [
+              120.0,
+              65.0
+            ],
+            "positionPoints": [
+              10.0,
+              1.0
+            ]
+          },
+          {
+            "index": 3,
+            "type": 9,
+            "text": "",
+            "sizePoints": [
+              125.0,
+              0.0
+            ],
+            "positionPoints": [
+              1.25,
+              6.25
+            ]
+          },
+          {
+            "index": 4,
+            "type": 9,
+            "text": "",
+            "sizePoints": [
+              120.0,
+              0.0
+            ],
+            "positionPoints": [
+              10.25,
+              6.25
+            ]
+          }
+        ],
+        "canvasSizePoints": [
+          360.0,
+          200.0
+        ],
+        "floating": true,
+        "wrapType": 4,
+        "anchorRangeStart": 0,
+        "requestedAnchorRangeStart": 11
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\canvas\\canvas-shapes-2.zip",
+        "sourceHash": "32D1243DC56ED42EE0E2D0CB25B3FF85DA47004CC3034E3E7F17F2D3D21967A1",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 1,
+          "wsp": 4,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 0,
+          "inline": 0,
+          "anchor": 1,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 1,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"254000\" y=\"254000\" /><a:ext cx=\"1714500\" cy=\"825500\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"2540000\" y=\"254000\" /><a:ext cx=\"1524000\" cy=\"825500\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"317500\" y=\"1587500\" /><a:ext cx=\"1587500\" cy=\"0\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"2603500\" y=\"1587500\" /><a:ext cx=\"1524000\" cy=\"0\" /></a:xfrm>"
+          }
+        ],
+        "media": [],
+        "bodyParagraphTexts": [
+          "before 前文",
+          " ",
+          "after 后文",
+          ""
+        ],
+        "warnings": [
+          "Word emitted a modern wpc canvas instead of the lc:lockedCanvas wrapper requested by docs/07."
+        ]
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:33:36.558976+08:00"
+    },
+    {
+      "name": "canvas-shapes",
+      "startedAt": "2026-09-07T01:34:23.9112011+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 5902550,
+      "status": "saved-with-structure-note",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\canvas\\canvas-shapes-3.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\canvas\\canvas-shapes-3.pdf",
+      "details": {
+        "canvasItems": [
+          {
+            "index": 1,
+            "type": 1,
+            "text": "画布\r",
+            "sizePoints": [
+              135.0,
+              65.0
+            ],
+            "positionPoints": [
+              1.0,
+              1.0
+            ]
+          },
+          {
+            "index": 2,
+            "type": 1,
+            "text": "\r",
+            "sizePoints": [
+              120.0,
+              65.0
+            ],
+            "positionPoints": [
+              10.0,
+              1.0
+            ]
+          },
+          {
+            "index": 3,
+            "type": 9,
+            "text": "",
+            "sizePoints": [
+              125.0,
+              0.0
+            ],
+            "positionPoints": [
+              1.25,
+              6.25
+            ]
+          },
+          {
+            "index": 4,
+            "type": 9,
+            "text": "",
+            "sizePoints": [
+              120.0,
+              0.0
+            ],
+            "positionPoints": [
+              10.25,
+              6.25
+            ]
+          }
+        ],
+        "canvasSizePoints": [
+          360.0,
+          200.0
+        ],
+        "floating": true,
+        "wrapType": 4,
+        "anchorRangeStart": 0,
+        "requestedAnchorRangeStart": 11
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\canvas\\canvas-shapes-3.zip",
+        "sourceHash": "C11F6594101D944BFA158A63192510F736E31ADAC8A28A520E971E6BDFCB3679",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 1,
+          "wsp": 4,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 0,
+          "inline": 0,
+          "anchor": 1,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 1,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"254000\" y=\"254000\" /><a:ext cx=\"1714500\" cy=\"825500\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"2540000\" y=\"254000\" /><a:ext cx=\"1524000\" cy=\"825500\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"317500\" y=\"1587500\" /><a:ext cx=\"1587500\" cy=\"0\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"2603500\" y=\"1587500\" /><a:ext cx=\"1524000\" cy=\"0\" /></a:xfrm>"
+          }
+        ],
+        "media": [],
+        "bodyParagraphTexts": [
+          "before 前文",
+          " ",
+          "after 后文",
+          ""
+        ],
+        "warnings": [
+          "Word emitted a modern wpc canvas instead of the lc:lockedCanvas wrapper requested by docs/07."
+        ]
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:34:27.4010879+08:00"
+    },
+    {
+      "name": "canvas-shapes",
+      "startedAt": "2026-09-07T01:35:51.293719+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 4920154,
+      "status": "saved-with-structure-note",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\canvas\\canvas-shapes-4.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\canvas\\canvas-shapes-4.pdf",
+      "details": {
+        "canvasItems": [
+          {
+            "index": 1,
+            "type": 1,
+            "text": "画布\r",
+            "sizePoints": [
+              135.0,
+              65.0
+            ],
+            "positionPoints": [
+              1.0,
+              1.0
+            ]
+          },
+          {
+            "index": 2,
+            "type": 1,
+            "text": "\r",
+            "sizePoints": [
+              120.0,
+              65.0
+            ],
+            "positionPoints": [
+              10.0,
+              1.0
+            ]
+          },
+          {
+            "index": 3,
+            "type": 9,
+            "text": "",
+            "sizePoints": [
+              125.0,
+              0.0
+            ],
+            "positionPoints": [
+              1.25,
+              6.25
+            ]
+          },
+          {
+            "index": 4,
+            "type": 9,
+            "text": "",
+            "sizePoints": [
+              120.0,
+              0.0
+            ],
+            "positionPoints": [
+              10.25,
+              6.25
+            ]
+          }
+        ],
+        "canvasSizePoints": [
+          360.0,
+          200.0
+        ],
+        "floating": true,
+        "wrapType": 4,
+        "anchorRangeStart": 0,
+        "requestedAnchorRangeStart": 0
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\canvas\\canvas-shapes-4.zip",
+        "sourceHash": "9CC5A0F9F8BDF868E52D1D9AD69556558228E59B31A5447B63984D37F05A3E48",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 1,
+          "wsp": 4,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 0,
+          "inline": 0,
+          "anchor": 1,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 1,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"254000\" y=\"254000\" /><a:ext cx=\"1714500\" cy=\"825500\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"2540000\" y=\"254000\" /><a:ext cx=\"1524000\" cy=\"825500\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"317500\" y=\"1587500\" /><a:ext cx=\"1587500\" cy=\"0\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"2603500\" y=\"1587500\" /><a:ext cx=\"1524000\" cy=\"0\" /></a:xfrm>"
+          }
+        ],
+        "media": [],
+        "bodyParagraphTexts": [
+          "before 前文",
+          " ",
+          "after 后文",
+          ""
+        ],
+        "warnings": [
+          "Word emitted a modern wpc canvas instead of the lc:lockedCanvas wrapper requested by docs/07."
+        ]
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:35:54.8312512+08:00"
+    },
+    {
+      "name": "canvas-picture",
+      "startedAt": "2026-09-07T01:37:04.5810351+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 5575506,
+      "status": "saved-with-structure-note",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\canvas\\canvas-picture.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\canvas\\canvas-picture.pdf",
+      "details": {
+        "canvasItems": [
+          {
+            "index": 1,
+            "type": 13,
+            "text": "",
+            "sizePoints": [
+              128.0,
+              64.0
+            ],
+            "positionPoints": [
+              0.75,
+              1.5
+            ]
+          },
+          {
+            "index": 2,
+            "type": 1,
+            "text": "画布\r",
+            "sizePoints": [
+              130.0,
+              70.0
+            ],
+            "positionPoints": [
+              10.0,
+              1.75
+            ]
+          }
+        ],
+        "canvasSizePoints": [
+          360.0,
+          200.0
+        ],
+        "floating": true,
+        "wrapType": 4,
+        "anchorRangeStart": 0,
+        "requestedAnchorRangeStart": 0
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\canvas\\canvas-picture.zip",
+        "sourceHash": "71F9C832A122C1BC6F17886A8104BF147DDA5A590A067D8F2BD4A0B5F07F5CAC",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 1,
+          "wsp": 1,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 1,
+          "inline": 0,
+          "anchor": 1,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 1,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [
+          {
+            "embed": "rId4",
+            "link": ""
+          }
+        ],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"190500\" y=\"381000\" /><a:ext cx=\"1625600\" cy=\"812800\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"2540000\" y=\"444500\" /><a:ext cx=\"1651000\" cy=\"889000\" /></a:xfrm>"
+          }
+        ],
+        "media": [
+          "word/media/image1.png",
+          "word/media/image2.png"
+        ],
+        "bodyParagraphTexts": [
+          "before 前文",
+          " ",
+          "after 后文",
+          ""
+        ],
+        "warnings": [
+          "Word emitted a modern wpc canvas instead of the lc:lockedCanvas wrapper requested by docs/07."
+        ]
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:37:08.1239244+08:00"
+    },
+    {
+      "name": "canvas-resized",
+      "startedAt": "2026-09-07T01:37:08.1406162+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 2692130,
+      "status": "saved-with-structure-note",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\canvas\\canvas-resized.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\canvas\\canvas-resized.pdf",
+      "details": {
+        "sizeBeforePoints": [
+          360.0,
+          200.0
+        ],
+        "canvasItems": [
+          {
+            "index": 1,
+            "type": 1,
+            "text": "画布\r",
+            "sizePoints": [
+              33.75,
+              16.25
+            ],
+            "positionPoints": [
+              0.25,
+              0.25
+            ]
+          },
+          {
+            "index": 2,
+            "type": 1,
+            "text": "\r",
+            "sizePoints": [
+              30.0,
+              16.25
+            ],
+            "positionPoints": [
+              2.5,
+              0.25
+            ]
+          },
+          {
+            "index": 3,
+            "type": 9,
+            "text": "",
+            "sizePoints": [
+              31.25,
+              0.0
+            ],
+            "positionPoints": [
+              0.3125,
+              1.5625
+            ]
+          },
+          {
+            "index": 4,
+            "type": 9,
+            "text": "",
+            "sizePoints": [
+              30.0,
+              0.0
+            ],
+            "positionPoints": [
+              2.5625,
+              1.5625
+            ]
+          }
+        ],
+        "canvasSizePoints": [
+          90.0,
+          50.0
+        ],
+        "floating": true,
+        "wrapType": 4,
+        "anchorRangeStart": 0,
+        "requestedAnchorRangeStart": 0
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\canvas\\canvas-resized.zip",
+        "sourceHash": "8E8C78E8D0CE929E3022C8BC768ECA4595CF0C0CE65CE56BC869E1F7051294BB",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 1,
+          "wsp": 4,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 0,
+          "inline": 0,
+          "anchor": 1,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 1,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"63500\" y=\"63500\" /><a:ext cx=\"428625\" cy=\"206375\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"635000\" y=\"63500\" /><a:ext cx=\"381000\" cy=\"206375\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"79375\" y=\"396875\" /><a:ext cx=\"396875\" cy=\"0\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"650875\" y=\"396875\" /><a:ext cx=\"381000\" cy=\"0\" /></a:xfrm>"
+          }
+        ],
+        "media": [],
+        "bodyParagraphTexts": [
+          "before 前文",
+          " ",
+          "after 后文",
+          ""
+        ],
+        "warnings": [
+          "Word emitted a modern wpc canvas instead of the lc:lockedCanvas wrapper requested by docs/07."
+        ]
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:37:11.0646922+08:00"
+    },
+    {
+      "name": "canvas-floating",
+      "startedAt": "2026-09-07T01:37:11.0671169+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 12783848,
+      "status": "saved-with-structure-note",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\canvas\\canvas-floating.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\canvas\\canvas-floating.pdf",
+      "details": {
+        "canvasItems": [
+          {
+            "index": 1,
+            "type": 1,
+            "text": "画布\r",
+            "sizePoints": [
+              135.0,
+              65.0
+            ],
+            "positionPoints": [
+              1.0,
+              1.0
+            ]
+          },
+          {
+            "index": 2,
+            "type": 1,
+            "text": "\r",
+            "sizePoints": [
+              120.0,
+              65.0
+            ],
+            "positionPoints": [
+              10.0,
+              1.0
+            ]
+          },
+          {
+            "index": 3,
+            "type": 9,
+            "text": "",
+            "sizePoints": [
+              125.0,
+              0.0
+            ],
+            "positionPoints": [
+              1.25,
+              6.25
+            ]
+          },
+          {
+            "index": 4,
+            "type": 9,
+            "text": "",
+            "sizePoints": [
+              120.0,
+              0.0
+            ],
+            "positionPoints": [
+              10.25,
+              6.25
+            ]
+          }
+        ],
+        "canvasSizePoints": [
+          360.0,
+          200.0
+        ],
+        "floating": true,
+        "wrapType": 0,
+        "anchorRangeStart": 0,
+        "requestedAnchorRangeStart": 0
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\canvas\\canvas-floating.zip",
+        "sourceHash": "1E2CAAC37EB936DECBB0E7DE4BE6F86748006DE11B0940AC75D86D4FF0871E86",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 1,
+          "wsp": 4,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 0,
+          "inline": 0,
+          "anchor": 1,
+          "wrapSquare": 1,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 0,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"254000\" y=\"254000\" /><a:ext cx=\"1714500\" cy=\"825500\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"2540000\" y=\"254000\" /><a:ext cx=\"1524000\" cy=\"825500\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"317500\" y=\"1587500\" /><a:ext cx=\"1587500\" cy=\"0\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"2603500\" y=\"1587500\" /><a:ext cx=\"1524000\" cy=\"0\" /></a:xfrm>"
+          }
+        ],
+        "media": [],
+        "bodyParagraphTexts": [
+          "before 前文",
+          " ",
+          "after 后文",
+          ""
+        ],
+        "warnings": [
+          "Word emitted a modern wpc canvas instead of the lc:lockedCanvas wrapper requested by docs/07."
+        ]
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:37:13.9225906+08:00"
+    },
+    {
+      "name": "canvas-textbox",
+      "startedAt": "2026-09-07T01:37:13.9251875+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 11735778,
+      "status": "saved-with-structure-note",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\canvas\\canvas-textbox.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\canvas\\canvas-textbox.pdf",
+      "details": {
+        "canvasItems": [
+          {
+            "index": 1,
+            "type": 17,
+            "text": "Canvas text paragraph one\rCanvas text paragraph two\r",
+            "sizePoints": [
+              300.0,
+              125.0
+            ],
+            "positionPoints": [
+              1.25,
+              1.25
+            ]
+          }
+        ],
+        "canvasSizePoints": [
+          360.0,
+          200.0
+        ],
+        "floating": true,
+        "wrapType": 4,
+        "anchorRangeStart": 0,
+        "requestedAnchorRangeStart": 0
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\canvas\\canvas-textbox.zip",
+        "sourceHash": "F5D02AB9C2E908EEEF5B04CA80CBFB2F5FEE48A42AB3690457BCE2671E6F6E5A",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 1,
+          "wsp": 1,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 0,
+          "inline": 0,
+          "anchor": 1,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 1,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"317500\" y=\"317500\" /><a:ext cx=\"3810000\" cy=\"1587500\" /></a:xfrm>"
+          }
+        ],
+        "media": [],
+        "bodyParagraphTexts": [
+          "before 前文",
+          " ",
+          "after 后文",
+          ""
+        ],
+        "warnings": [
+          "Word emitted a modern wpc canvas instead of the lc:lockedCanvas wrapper requested by docs/07."
+        ]
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:37:16.6549409+08:00"
+    },
+    {
+      "name": "image-wrap-square",
+      "startedAt": "2026-09-07T01:37:16.656629+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 2560854,
+      "status": "saved",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\image\\image-wrap-square.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\image\\image-wrap-square.pdf",
+      "details": {
+        "wrapType": 0,
+        "positionPoints": [
+          180.0,
+          0.0
+        ],
+        "pictureSizePoints": [
+          144.0,
+          72.0
+        ],
+        "inlineShapeCount": 0,
+        "floatingShapeCount": 1
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\image\\image-wrap-square.zip",
+        "sourceHash": "A8AEFAA7F5598D5128965D75E8A873AF63395819C8451A7B539583068166A4CB",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 0,
+          "wsp": 0,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 1,
+          "inline": 0,
+          "anchor": 1,
+          "wrapSquare": 1,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 0,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [
+          {
+            "embed": "rId4",
+            "link": ""
+          }
+        ],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"1828800\" cy=\"914400\" /></a:xfrm>"
+          }
+        ],
+        "media": [
+          "word/media/image1.png"
+        ],
+        "bodyParagraphTexts": [
+          "before 前文",
+          "",
+          "after 后文",
+          ""
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:37:19.3969682+08:00"
+    },
+    {
+      "name": "image-wrap-tight",
+      "startedAt": "2026-09-07T01:37:19.3985147+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 5311020,
+      "status": "saved",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\image\\image-wrap-tight.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\image\\image-wrap-tight.pdf",
+      "details": {
+        "wrapType": 1,
+        "positionPoints": [
+          180.0,
+          0.0
+        ],
+        "pictureSizePoints": [
+          144.0,
+          72.0
+        ],
+        "inlineShapeCount": 0,
+        "floatingShapeCount": 1
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\image\\image-wrap-tight.zip",
+        "sourceHash": "76849711931CF5BFF7B668489F16AD087F8DCF3ED482639553305751E3A9714B",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 0,
+          "wsp": 0,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 1,
+          "inline": 0,
+          "anchor": 1,
+          "wrapSquare": 0,
+          "wrapTight": 1,
+          "wrapPolygon": 1,
+          "wrapTopAndBottom": 0,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [
+          {
+            "embed": "rId4",
+            "link": ""
+          }
+        ],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"1828800\" cy=\"914400\" /></a:xfrm>"
+          }
+        ],
+        "media": [
+          "word/media/image1.png"
+        ],
+        "bodyParagraphTexts": [
+          "before 前文",
+          "",
+          "after 后文",
+          ""
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:37:21.983623+08:00"
+    },
+    {
+      "name": "image-behind",
+      "startedAt": "2026-09-07T01:37:21.9855207+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 12849736,
+      "status": "saved",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\image\\image-behind.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\image\\image-behind.pdf",
+      "details": {
+        "wrapType": 5,
+        "positionPoints": [
+          180.0,
+          0.0
+        ],
+        "pictureSizePoints": [
+          144.0,
+          72.0
+        ],
+        "inlineShapeCount": 0,
+        "floatingShapeCount": 1
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\image\\image-behind.zip",
+        "sourceHash": "874BDE03D13271ECB991BBACCA8F3964AF2664C4E4BB49BE9A1C3FE29D47E9ED",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 0,
+          "wsp": 0,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 1,
+          "inline": 0,
+          "anchor": 1,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 0,
+          "wrapNone": 1,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [
+          {
+            "embed": "rId4",
+            "link": ""
+          }
+        ],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"1828800\" cy=\"914400\" /></a:xfrm>"
+          }
+        ],
+        "media": [
+          "word/media/image1.png"
+        ],
+        "bodyParagraphTexts": [
+          "before 前文",
+          "",
+          "after 后文",
+          ""
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:37:24.5695164+08:00"
+    },
+    {
+      "name": "image-front",
+      "startedAt": "2026-09-07T01:37:24.5714197+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 6032176,
+      "status": "saved",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\image\\image-front.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\image\\image-front.pdf",
+      "details": {
+        "wrapType": 3,
+        "positionPoints": [
+          180.0,
+          0.0
+        ],
+        "pictureSizePoints": [
+          144.0,
+          72.0
+        ],
+        "inlineShapeCount": 0,
+        "floatingShapeCount": 1
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\image\\image-front.zip",
+        "sourceHash": "A4EFD76674F3CA82DF0E77A57B3FFEB0186DB91B14072980B43CA1C068A84491",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 0,
+          "wsp": 0,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 1,
+          "inline": 0,
+          "anchor": 1,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 0,
+          "wrapNone": 1,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [
+          {
+            "embed": "rId4",
+            "link": ""
+          }
+        ],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"1828800\" cy=\"914400\" /></a:xfrm>"
+          }
+        ],
+        "media": [
+          "word/media/image1.png"
+        ],
+        "bodyParagraphTexts": [
+          "before 前文",
+          "",
+          "after 后文",
+          ""
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:37:27.1770733+08:00"
+    },
+    {
+      "name": "image-top-bottom",
+      "startedAt": "2026-09-07T01:37:27.1788594+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 5442092,
+      "status": "saved",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\image\\image-top-bottom.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\image\\image-top-bottom.pdf",
+      "details": {
+        "wrapType": 4,
+        "positionPoints": [
+          180.0,
+          0.0
+        ],
+        "pictureSizePoints": [
+          144.0,
+          72.0
+        ],
+        "inlineShapeCount": 0,
+        "floatingShapeCount": 1
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\image\\image-top-bottom.zip",
+        "sourceHash": "D65F17DC340F2AF8BB8FAF985085BF29CCFCA3EE6AD3887AB85194C3B9BCE3E1",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 0,
+          "wsp": 0,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 1,
+          "inline": 0,
+          "anchor": 1,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 1,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [
+          {
+            "embed": "rId4",
+            "link": ""
+          }
+        ],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"1828800\" cy=\"914400\" /></a:xfrm>"
+          }
+        ],
+        "media": [
+          "word/media/image1.png"
+        ],
+        "bodyParagraphTexts": [
+          "before 前文",
+          "",
+          "after 后文",
+          ""
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:37:32.8942416+08:00"
+    },
+    {
+      "name": "image-cropped",
+      "startedAt": "2026-09-07T01:37:32.8956914+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 10554400,
+      "status": "saved",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\image\\image-cropped.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\image\\image-cropped.pdf",
+      "details": {
+        "cropPoints": [
+          18.000109,
+          9.00007
+        ],
+        "pictureSizePoints": [
+          90.0,
+          45.0
+        ],
+        "inlineShapeCount": 1,
+        "floatingShapeCount": 0
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\image\\image-cropped.zip",
+        "sourceHash": "E0C38A98CC64FDDB5A9EFD9A082993DB0242500BAE8EDE3A3D4C041DECBE0BC7",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 0,
+          "wsp": 0,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 1,
+          "inline": 1,
+          "anchor": 0,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 0,
+          "wrapNone": 0,
+          "srcRect": 1,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [
+          {
+            "embed": "rId4",
+            "link": ""
+          }
+        ],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"1143000\" cy=\"571549\" /></a:xfrm>"
+          }
+        ],
+        "media": [
+          "word/media/image1.png"
+        ],
+        "bodyParagraphTexts": [
+          "before 前文",
+          "",
+          "after 后文",
+          ""
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:37:35.5215781+08:00"
+    },
+    {
+      "name": "image-svg",
+      "startedAt": "2026-09-07T01:37:35.5232999+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 5573164,
+      "status": "saved",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\image\\image-svg.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\image\\image-svg.pdf",
+      "details": {
+        "pictureSizePoints": [
+          144.0,
+          72.0
+        ],
+        "inlineShapeCount": 1,
+        "floatingShapeCount": 0
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\image\\image-svg.zip",
+        "sourceHash": "C51E701F55F5909AC2AF799DA31C9E75A9DB0D875487E5DA96CCDF2D4BE236D0",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 0,
+          "wsp": 0,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 1,
+          "inline": 1,
+          "anchor": 0,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 0,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 1,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [
+          {
+            "embed": "rId4",
+            "link": ""
+          }
+        ],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"1828800\" cy=\"914400\" /></a:xfrm>"
+          }
+        ],
+        "media": [
+          "word/media/image1.png",
+          "word/media/image2.svg"
+        ],
+        "bodyParagraphTexts": [
+          "before 前文",
+          "",
+          "after 后文",
+          ""
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:37:38.0900347+08:00"
+    },
+    {
+      "name": "image-linked",
+      "startedAt": "2026-09-07T01:37:38.0917309+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 9112398,
+      "status": "saved",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\image\\image-linked.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\image\\image-linked.pdf",
+      "details": {
+        "sourceAsset": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_assets\\tiny.png",
+        "savePictureWithDocument": false,
+        "pictureSizePoints": [
+          144.0,
+          72.0
+        ],
+        "inlineShapeCount": 1,
+        "floatingShapeCount": 0
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\image\\image-linked.zip",
+        "sourceHash": "6821970EF5D58A5192AE63BF586D524A08784E78C6D41D9CD41E746C4EE092D5",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 0,
+          "wsp": 0,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 1,
+          "inline": 1,
+          "anchor": 0,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 0,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [
+          {
+            "embed": "",
+            "link": "rId4"
+          }
+        ],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"1828800\" cy=\"914401\" /></a:xfrm>"
+          }
+        ],
+        "media": [],
+        "bodyParagraphTexts": [
+          "before 前文",
+          "",
+          "after 后文",
+          ""
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:37:40.6500573+08:00"
+    },
+    {
+      "name": "image-insert-and-link",
+      "startedAt": "2026-09-07T01:37:40.6519323+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 6952082,
+      "status": "saved",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\image\\image-insert-and-link.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\image\\image-insert-and-link.pdf",
+      "details": {
+        "sourceAsset": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_assets\\tiny.png",
+        "savePictureWithDocument": true,
+        "pictureSizePoints": [
+          144.0,
+          72.0
+        ],
+        "inlineShapeCount": 1,
+        "floatingShapeCount": 0
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\image\\image-insert-and-link.zip",
+        "sourceHash": "212255E92315ED48F299CA32FF02EE955DD023D475F65D80DF3672CE9E678B93",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 0,
+          "wsp": 0,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 1,
+          "inline": 1,
+          "anchor": 0,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 0,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [
+          {
+            "embed": "rId4",
+            "link": "rId5"
+          }
+        ],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"1828800\" cy=\"914401\" /></a:xfrm>"
+          }
+        ],
+        "media": [
+          "word/media/image1.png"
+        ],
+        "bodyParagraphTexts": [
+          "before 前文",
+          "",
+          "after 后文",
+          ""
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:37:43.2306145+08:00"
+    },
+    {
+      "name": "image-emf",
+      "startedAt": "2026-09-07T01:37:43.2322321+08:00",
+      "wordVersion": null,
+      "wordBuild": null,
+      "windowHandle": null,
+      "status": "pending-ui",
+      "path": null,
+      "preview": null,
+      "details": {},
+      "package": null,
+      "error": "Requires the specified UI copy/paste as enhanced metafile. No substitute was generated.",
+      "finishedAt": "2026-09-07T01:37:43.2328535+08:00"
+    },
+    {
+      "name": "image-rotated",
+      "startedAt": "2026-09-07T01:37:43.234168+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 7017384,
+      "status": "saved-with-structure-note",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\image\\image-rotated.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\image\\image-rotated.pdf",
+      "details": {
+        "wrapType": 0,
+        "positionPoints": [
+          180.0,
+          0.0
+        ],
+        "rotationDegrees": 315.0,
+        "horizontalFlip": -1,
+        "pictureSizePoints": [
+          144.0,
+          72.0
+        ],
+        "inlineShapeCount": 0,
+        "floatingShapeCount": 1
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\image\\image-rotated.zip",
+        "sourceHash": "4BE264A965A6FC48B5ED50D12AF7AE7C422A7AF3EEEF24D5F830777F9741D097",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 0,
+          "wsp": 0,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 1,
+          "inline": 0,
+          "anchor": 1,
+          "wrapSquare": 1,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 0,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [
+          {
+            "embed": "rId4",
+            "link": ""
+          }
+        ],
+        "transforms": [
+          {
+            "rot": "18900000",
+            "flipH": "1",
+            "xml": "<a:xfrm rot=\"18900000\" flipH=\"1\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"1828800\" cy=\"914400\" /></a:xfrm>"
+          }
+        ],
+        "media": [
+          "word/media/image1.png"
+        ],
+        "bodyParagraphTexts": [
+          "before 前文",
+          "",
+          "after 后文",
+          ""
+        ],
+        "warnings": [
+          "Requested rotation/flip transform is not rot=2700000 and flipH=1."
+        ]
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:37:45.840321+08:00"
+    },
+    {
+      "name": "image-alt-decorative",
+      "startedAt": "2026-09-07T01:37:45.8419074+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 7016662,
+      "status": "saved",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\image\\image-alt-decorative.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\image\\image-alt-decorative.pdf",
+      "details": {
+        "decorativeComValue": -1,
+        "pictureSizePoints": [
+          144.0,
+          72.0
+        ],
+        "inlineShapeCount": 1,
+        "floatingShapeCount": 0
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\image\\image-alt-decorative.zip",
+        "sourceHash": "23975D9719791026B92867AB858803D40A83004E77F903A8A42AB902FE39D601",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 0,
+          "wsp": 0,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 1,
+          "inline": 1,
+          "anchor": 0,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 0,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 2,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [
+          {
+            "embed": "rId4",
+            "link": ""
+          }
+        ],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"1828800\" cy=\"914401\" /></a:xfrm>"
+          }
+        ],
+        "media": [
+          "word/media/image1.png"
+        ],
+        "bodyParagraphTexts": [
+          "before 前文",
+          "",
+          "after 后文",
+          ""
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:37:48.4417576+08:00"
+    },
+    {
+      "name": "image-two-in-run",
+      "startedAt": "2026-09-07T01:37:48.4437572+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 3478562,
+      "status": "saved",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\image\\image-two-in-run.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\image\\image-two-in-run.pdf",
+      "details": {
+        "secondPictureWidthPoints": 144.0,
+        "pictureSizePoints": [
+          144.0,
+          72.0
+        ],
+        "inlineShapeCount": 2,
+        "floatingShapeCount": 0
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\image\\image-two-in-run.zip",
+        "sourceHash": "1A4FEF84205EC2941BFC6AF6AFBE2D092AC0D32E6B09336AA1B26ED41D4C33DC",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 0,
+          "wsp": 0,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 2,
+          "inline": 2,
+          "anchor": 0,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 0,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [
+          {
+            "embed": "rId4",
+            "link": ""
+          },
+          {
+            "embed": "rId4",
+            "link": ""
+          }
+        ],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"1828800\" cy=\"914401\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"1828800\" cy=\"914401\" /></a:xfrm>"
+          }
+        ],
+        "media": [
+          "word/media/image1.png"
+        ],
+        "bodyParagraphTexts": [
+          "before 前文",
+          "",
+          "after 后文",
+          ""
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:37:51.0136053+08:00"
+    },
+    {
+      "name": "canvas-resized",
+      "startedAt": "2026-09-07T01:42:47.4591255+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 7476134,
+      "status": "saved-with-structure-note",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\canvas\\canvas-resized-2.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\canvas\\canvas-resized-2.pdf",
+      "details": {
+        "sizeBeforePoints": [
+          360.0,
+          200.0
+        ],
+        "canvasItems": [
+          {
+            "index": 1,
+            "type": 1,
+            "text": "画布\r",
+            "sizePoints": [
+              67.5,
+              32.5
+            ],
+            "positionPoints": [
+              0.5,
+              0.5
+            ]
+          },
+          {
+            "index": 2,
+            "type": 1,
+            "text": "\r",
+            "sizePoints": [
+              60.0,
+              32.5
+            ],
+            "positionPoints": [
+              5.0,
+              0.5
+            ]
+          },
+          {
+            "index": 3,
+            "type": 9,
+            "text": "",
+            "sizePoints": [
+              62.5,
+              0.0
+            ],
+            "positionPoints": [
+              0.625,
+              3.125
+            ]
+          },
+          {
+            "index": 4,
+            "type": 9,
+            "text": "",
+            "sizePoints": [
+              60.0,
+              0.0
+            ],
+            "positionPoints": [
+              5.125,
+              3.125
+            ]
+          }
+        ],
+        "canvasSizePoints": [
+          180.0,
+          100.0
+        ],
+        "floating": true,
+        "wrapType": 4,
+        "anchorRangeStart": 0,
+        "requestedAnchorRangeStart": 0
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\canvas\\canvas-resized-2.zip",
+        "sourceHash": "D80E75C34DFE80A3DE91BB5A676C90ABF011138E90852BE606600FA70144F949",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 1,
+          "wsp": 4,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 0,
+          "inline": 0,
+          "anchor": 1,
+          "wrapSquare": 0,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 1,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [],
+        "transforms": [
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"127000\" y=\"127000\" /><a:ext cx=\"857250\" cy=\"412750\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"1270000\" y=\"127000\" /><a:ext cx=\"762000\" cy=\"412750\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"158750\" y=\"793750\" /><a:ext cx=\"793750\" cy=\"0\" /></a:xfrm>"
+          },
+          {
+            "rot": "",
+            "flipH": "",
+            "xml": "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"1301750\" y=\"793750\" /><a:ext cx=\"762000\" cy=\"0\" /></a:xfrm>"
+          }
+        ],
+        "media": [],
+        "bodyParagraphTexts": [
+          "before 前文",
+          " ",
+          "after 后文",
+          ""
+        ],
+        "warnings": [
+          "Word emitted a modern wpc canvas instead of the lc:lockedCanvas wrapper requested by docs/07."
+        ]
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:42:51.3809645+08:00"
+    },
+    {
+      "name": "image-rotated",
+      "startedAt": "2026-09-07T01:42:51.3990309+08:00",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "windowHandle": 7541670,
+      "status": "saved",
+      "path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\image\\image-rotated-2.docx",
+      "preview": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\image\\image-rotated-2.pdf",
+      "details": {
+        "wrapType": 0,
+        "positionPoints": [
+          180.0,
+          0.0
+        ],
+        "rotationDegrees": 45.0,
+        "horizontalFlip": -1,
+        "pictureSizePoints": [
+          144.0,
+          72.0
+        ],
+        "inlineShapeCount": 0,
+        "floatingShapeCount": 1
+      },
+      "package": {
+        "zipCopy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\image\\image-rotated-2.zip",
+        "sourceHash": "C666DF769B9A2B2906B2A48A1E82C8288C57A8AC831C9029D7DB2F0E0B303D91",
+        "counts": {
+          "lockedCanvas": 0,
+          "wpc": 0,
+          "wsp": 0,
+          "sp": 0,
+          "cxnSp": 0,
+          "pic": 1,
+          "inline": 0,
+          "anchor": 1,
+          "wrapSquare": 1,
+          "wrapTight": 0,
+          "wrapPolygon": 0,
+          "wrapTopAndBottom": 0,
+          "wrapNone": 0,
+          "srcRect": 0,
+          "svgBlip": 0,
+          "decorative": 0,
+          "chOff": 0,
+          "chExt": 0
+        },
+        "blips": [
+          {
+            "embed": "rId4",
+            "link": ""
+          }
+        ],
+        "transforms": [
+          {
+            "rot": "2700000",
+            "flipH": "1",
+            "xml": "<a:xfrm rot=\"2700000\" flipH=\"1\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"1828800\" cy=\"914400\" /></a:xfrm>"
+          }
+        ],
+        "media": [
+          "word/media/image1.png"
+        ],
+        "bodyParagraphTexts": [
+          "before 前文",
+          "",
+          "after 后文",
+          ""
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "finishedAt": "2026-09-07T01:42:54.3288394+08:00"
+    }
+  ]
+}

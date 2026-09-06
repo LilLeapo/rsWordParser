@@ -218,6 +218,8 @@ pub struct Note {
     pub rich: Vec<Vec<RichRun>>,
     /// 条目里没有任何 `w:footnoteRef` / `w:endnoteRef` run。
     pub no_ref_mark: bool,
+    /// 首段的 `w:pStyle`（真实 Word 的脚注段落带「脚注文本」样式；TS `footnotes[].styleId`）。
+    pub style_id: Option<String>,
     pub paragraphs: Vec<NodeId>,
     /// 条目内容，与正文同一构建器（`MOD-01`，任务 5.3）。
     pub blocks: Vec<Block>,
@@ -285,6 +287,11 @@ fn read_note(dom: &Dom, node: NodeId, ref_mark: LocalName, diags: &mut Vec<Diagn
         dom.semantic_children(node).filter(|&n| dom.is(n, w(LocalName::P))).collect();
     let (text, rich) = entry_text(dom, &paragraphs, true, diags);
     let no_ref_mark = !dom.descendants(node).any(|n| dom.is(n, w(ref_mark)));
+    let style_id = paragraphs.first().and_then(|&p| {
+        let ppr = dom.semantic_children(p).find(|&c| dom.is(c, w(LocalName::PPr)))?;
+        let st = dom.semantic_children(ppr).find(|&c| dom.is(c, w(LocalName::PStyle)))?;
+        attr(dom, st, NsId::W, LocalName::Val)
+    });
     Note {
         node,
         id: attr(dom, node, NsId::W, LocalName::Id).unwrap_or_default(),
@@ -292,6 +299,7 @@ fn read_note(dom: &Dom, node: NodeId, ref_mark: LocalName, diags: &mut Vec<Diagn
         text,
         rich,
         no_ref_mark,
+        style_id,
         paragraphs,
         blocks: Vec::new(),
     }

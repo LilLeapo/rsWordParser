@@ -1,0 +1,21 @@
+﻿{
+    "action":  "Prepare",
+    "case":  "math/math-styled",
+    "template":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\math\\math-styled.docx",
+    "templateSha256Before":  "AD3C026AB0025CDAE719A0BA55E4FE86F1537E6710CBDF4879D19337831D0D15",
+    "officeSaveMethodsCalled":  false,
+    "status":  "failed-left-open",
+    "phase":  "normal-text-command",
+    "log":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\math-styled-prepare-20260907-025040-872.json",
+    "documentName":  "文档21",
+    "windowHwnd":  8653404,
+    "wordVersion":  "16.0",
+    "wordBuild":  "16.0.14334",
+    "normalTextPressedBefore":  false,
+    "error":  "The normal-text command changed the target range unexpectedly.",
+    "templateSha256After":  "AD3C026AB0025CDAE719A0BA55E4FE86F1537E6710CBDF4879D19337831D0D15",
+    "templateUnchanged":  true,
+    "documentLeftOpen":  true,
+    "documentPath":  "",
+    "documentSavedFlag":  false
+}

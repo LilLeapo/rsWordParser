@@ -319,6 +319,7 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | 墨迹的判据 | TS `stripInkRuns` / `findInkRuns` 的正则要求 `<w:r><w:drawing><wp:anchor` 紧邻（run 不能有 `rPr`） | 结构判据：`w:drawing` 下的 `wp:anchor` 里有 `wp:docPr/@name` 以 `aidocs-ink` 开头，run 里有没有 `w:rPr` 不管 | 前缀才是语义；带 `rPr` 的墨迹 run 在 TS 里会退成图片块，是正则的副作用不是设计（6.8） |
 | 墨迹锚点不是段落 | TS 静默跳过 | 跳过 + `EDIT_BAD_POSITION` 诊断；同样不分配媒体与关系 | 调用方要知道这条墨迹没写进去（6.8） |
 | 内联容器嵌套过深的段落 | `MOD-07`「块容器超过 64 层的子树降级为 `TooDeep`」；内联容器过深时原来只把那个容器换成一个 `Other` 原子、段落仍是 `Text` | 整段降级为 `Protected(TooDeep)`（`Builder.inline_too_deep`，宿主段落连带） | 深处的文字没进内联模型，段落若仍可编辑，一次 `ReplaceInlines` 就会把它们无声删掉；只读 + 字节原样才安全。TS 对解析不了的段落也是整段 passthrough（`hostile-input__005`，6.9） |
+| `XML-09` 理解的命名空间 | `DEFAULT_UNDERSTOOD` = wps / wpg / wp14 / w14 / w15 / cx / c14 | 加 **`wpc`**（真实 Word 的绘图画布 `mc:Choice Requires="wpc"`），画布按 `chOff = 0` 的组处理 | 不理解就走 Fallback 的 VML `v:group`：颜色是 Word 算好的小写 hex、坐标是 VML 的，DrawingML 独有的字段全丢。本引擎会画 `wps:wsp` / `pic:pic`，画布只是给它们一个坐标系，理应算理解（`corpus/real/canvas-*`，2026-09-07） |
 | 墨迹锚的 `relativeHeight`（保存比较） | — | `COMPAT-09`：`tests/save_blocks.rs` 对 `wp:docPr/@name` 以 `aidocs-ink` 开头的 `wp:anchor` 容忍 `@relativeHeight` | TS 写 `251658240 + docPrId`（id 从 9001 起），我们同样由 `EDIT-06` 的 id 派生——和 id 一样是分配细节；普通锚定图片的 `relativeHeight` 是输入的 z-order，照常比较（6.8） |
 | `TEST-10` 门的 CI 形态 | 「对应域 diff 为 0」 | 还没关上的门用 `diff-parse --max-unknown N` 做棘轮：未知差异 ≤ N 放行，每落地一个任务往下拧，归零后删掉参数 | 门一建就进 CI，回归有人拦，数字有地方掉；`.github/workflows/ci.yml` 第七步（6.2 起 214，6.3 起 170） |
 | `XML-09` `mc:Choice/@Requires` | 前缀按作用域解析 | 作用域里解析不到时，退一步看**分支子树内**有没有声明这个前缀 | 合成语料常把 `xmlns:wps` 写在 `wps:wsp` 元素自己身上，`Requires="wps"` 于是在 `mc:Choice` 处解析不出来、整段退到 VML Fallback（16 份文档）。意图毫无歧义，按分支内的声明认；前缀在**任何地方**都没声明的情况（`numbering-defs__012`）行为不变，仍是已知差异 |
@@ -1266,6 +1267,21 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   权威列表（模板逐段、重开一致、重复保存不累积、换锚点旧 run 消失、`Some([])` 删并回收媒体与关系、`None` 字节相同）；自闭合
   空段 + 同段两条各一个 part；表格锚点跳过无孤儿 + 诊断；`hostile/ink-garbage`（悬空 `r:embed` → `dataUrl: null`、`&quot;` /
   `&amp;` 解码、非数字 `posOffset` → 0、无编辑保存字节相同）。`tests/model.rs` 的 `("m6-ink__", "kind")` 已删。
+- [x] **真实 Word 语料接入**（2026-09-07，`corpus/real`，`docs/07`）：Windows 侧（Office LTSC 2021，16.0.14334）交回 124 份——
+  任务 A 110 份（图表 37 / SmartArt 9 / 画布 9 / 公式 12 / OLE 7 / 墨迹 4 / 图片 15 / P1 17，含保留的失败试件）+ 任务 B 的 9 份
+  样本与 5 份 Word 另存件，全部经脚本核对是 Word 写出的、特征齐全、`OBSERVED.md` 逐份记录。接入：`common::docx_paths` 与
+  `diff-parse --corpus` 递归遍历、`tools/export-golden/real.export.test.ts` 录 TS 参考输出（124 / 124 解析成功）、`tests/save.rs`
+  与 `tests/xml_roundtrip.rs` 的三条门覆盖 `corpus/real`（**124 份全部通过**：XML 往返字节相同、无编辑保存字节相同、改一字后
+  其他条目 CRC 不变）。任务 B 抓到一个真 bug：一次会话补两个媒体 / 工作簿会写出**重复的 `Default Extension`**，Word 弹恢复提示
+  （`05-ink-insert` / `06-chart-insert-line-pie`）——`ensure_default_type` 改为同时看 `[Content_Types]` 的活 DOM 并同步缓存
+  （`ContentTypes::add_default / add_override / remove_override`），`tests/ink.rs` / `chart_ops.rs` 钉住；`02-*` / `04-*` 打不开是
+  TS 合成源文档自身残缺（图表无坐标轴、`pic:pic` 无 `nvPicPr`），样本改用真实 Word 文档做底（`tests/roundtrip_samples.rs`）。
+  差分 473 → 0：修四处——画布 `wpc:wpc` 算理解的命名空间并按组处理（§8）；简单内联字段的 `instrField` 给整条指令（含
+  `\* MERGEFORMAT`）且不带结果 run 的格式键（TS `pushRun` 同）；`footnotes[] / endnotes[]` 补 `styleId`（`Note.style_id`）；
+  `diff-parse` / `docx_paths` 递归——登记 235 处（`KNOWN_DIFFS.md`：TS 不做画布坐标系 / 丢画布图片、原生墨迹的 Fallback 栅格、
+  EMF 预览、Strict 单位改写、拆成三段的 REF 指令、单元格里的 OLE / 公式、图示箭头的 `tint`、Word 另存后墨迹 run 带 rPr）。
+  规格修正两处（`docs/07`）：真 Word 写 `wpc:wpc` 不写 `lc:lockedCanvas`；装饰性图片是 `adec:decorative`。CI 加第九步
+  `diff-parse --corpus corpus/real`。
 - [x] **6.9 恶意输入、fuzz、全域收尾与 M6 门**（2026-09-06）：六份 hostile（m6.0a 已进语料）补上共同底线的用例——解析成功、
   无引擎不变式破坏、无编辑保存字节相同（`tests/embedded.rs`；各域的降级断言早在 6.1–6.8 的测试里）；`fuzz/fuzz_targets/
   fuzz_embedded.rs`（任意字节 → `Dom::parse` → `ChartPart::build` / `diagram_text` / `diagram_shapes` / 每个 `m:oMath` 的 `tokens` /

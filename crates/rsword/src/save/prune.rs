@@ -195,7 +195,8 @@ impl EditSession {
     /// `[Content_Types].xml` 里 `PartName="/<uri>"` 的 `Override` 删掉（没有就算了：靠 `Default` 声明的 part）。
     fn remove_content_type_override(&mut self, part: PartId) -> Result<()> {
         let Some(ct_part) = self.package().content_types_part() else { return Ok(()) };
-        let want = format!("/{}", self.package().part(part).uri.as_str());
+        let uri = self.package().part(part).uri.clone();
+        let want = format!("/{}", uri.as_str());
         let dom = self
             .package()
             .part(ct_part)
@@ -212,6 +213,7 @@ impl EditSession {
             let mut plan = MutationPlan::new(ct_part);
             plan.node_edits.push(NodeEdit::Delete(node));
             self.commit_plan(plan)?;
+            self.package_mut().content_types_mut().remove_override(&uri);
         }
         Ok(())
     }

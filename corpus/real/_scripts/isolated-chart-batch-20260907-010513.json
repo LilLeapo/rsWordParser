@@ -1,0 +1,171 @@
+[
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-column",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-column.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-bar",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-bar.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-stacked",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-stacked.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-percent-stacked",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-percent-stacked.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-line",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-line.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-line-plain",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-line-plain.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-pie",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-pie.docx"
+  },
+  {
+    "Name": "chart-doughnut",
+    "Stdout": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\chart-doughnut-20260907-010513.stdout.log",
+    "ElapsedSeconds": 6.5,
+    "Stderr": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\chart-doughnut-20260907-010513.stderr.log",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-doughnut.docx",
+    "Status": "generator-succeeded"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-area",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-area.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-scatter",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-scatter.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-scatter-lines",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-scatter-lines.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-bubble",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-bubble.docx"
+  },
+  {
+    "Name": "chart-combo",
+    "Stdout": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\chart-combo-20260907-010513.stdout.log",
+    "ElapsedSeconds": 6.7,
+    "Stderr": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\chart-combo-20260907-010513.stderr.log",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-combo.docx",
+    "Status": "generator-succeeded"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-3d",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-3d.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-dates",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-dates.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-style",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-style.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-style-gray",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-style-gray.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-point-color",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-point-color.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-legend",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-legend.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-no-legend",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-no-legend.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-no-title",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-no-title.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-floating",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-floating.docx"
+  },
+  {
+    "Status": "preexisting-skipped",
+    "Name": "chart-in-table",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chart-in-table.docx"
+  },
+  {
+    "Name": "chartex-sunburst",
+    "Stdout": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\chartex-sunburst-20260907-010513.stdout.log",
+    "ElapsedSeconds": 5.7,
+    "Stderr": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\chartex-sunburst-20260907-010513.stderr.log",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chartex-sunburst.docx",
+    "Status": "generator-failed"
+  },
+  {
+    "Name": "chartex-treemap",
+    "Stdout": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\chartex-treemap-20260907-010513.stdout.log",
+    "ElapsedSeconds": 5.7,
+    "Stderr": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\chartex-treemap-20260907-010513.stderr.log",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chartex-treemap.docx",
+    "Status": "generator-failed"
+  },
+  {
+    "Name": "chartex-waterfall",
+    "Stdout": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\chartex-waterfall-20260907-010513.stdout.log",
+    "ElapsedSeconds": 6.0,
+    "Stderr": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\chartex-waterfall-20260907-010513.stderr.log",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chartex-waterfall.docx",
+    "Status": "generator-failed"
+  },
+  {
+    "Name": "chartex-histogram",
+    "Stdout": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\chartex-histogram-20260907-010513.stdout.log",
+    "ElapsedSeconds": 5.7,
+    "Stderr": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\chartex-histogram-20260907-010513.stderr.log",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chartex-histogram.docx",
+    "Status": "generator-failed"
+  },
+  {
+    "Name": "chartex-boxwhisker",
+    "Stdout": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\chartex-boxwhisker-20260907-010513.stdout.log",
+    "ElapsedSeconds": 5.9,
+    "Stderr": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\chartex-boxwhisker-20260907-010513.stderr.log",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chartex-boxwhisker.docx",
+    "Status": "generator-failed"
+  },
+  {
+    "Name": "chartex-funnel",
+    "Stdout": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\chartex-funnel-20260907-010513.stdout.log",
+    "ElapsedSeconds": 5.6,
+    "Stderr": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\chartex-funnel-20260907-010513.stderr.log",
+    "File": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chartex-funnel.docx",
+    "Status": "generator-failed"
+  }
+]

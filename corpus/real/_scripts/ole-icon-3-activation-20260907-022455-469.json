@@ -1,0 +1,26 @@
+﻿{
+    "started":  "2026-09-07T02:24:55.4763935+08:00",
+    "file":  "ole/ole-icon-3.docx",
+    "inspectionCopy":  "_checks/ole/ole-icon-3-readonly-inspection.docx",
+    "method":  "_scripts/verify-ole-icon-3-activation.ps1",
+    "status":  "failed",
+    "phase":  "finished",
+    "expectedOriginalSha256":  "902E32369E40BACDDD54A556A1BE733FF39D2903DC5CF18AB95C77BC152B93A6",
+    "officeSaveMethodsCalled":  false,
+    "cellsWritten":  false,
+    "sourceWorkbookOpened":  false,
+    "originalSha256Before":  "902E32369E40BACDDD54A556A1BE733FF39D2903DC5CF18AB95C77BC152B93A6",
+    "copySha256Before":  "902E32369E40BACDDD54A556A1BE733FF39D2903DC5CF18AB95C77BC152B93A6",
+    "error":  "System.Management.Automation.MethodException: Exception setting \"Open\": Cannot convert the \"C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\ole\\ole-icon-3-readonly-inspection.docx\" value of type \"psobject\" to type \"Object\". ---\u003e System.ArgumentException: Exception setting \"Open\": Cannot convert the \"C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\ole\\ole-icon-3-readonly-inspection.docx\" value of type \"psobject\" to type \"Object\".\r\n   --- End of inner exception stack trace ---\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+    "errorPosition":  "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\verify-ole-icon-3-activation.ps1:77 char:5\r\n+     $document = $word.Documents.Open([ref]$openPath, [ref]$confirmCon ...\r\n+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+    "documentClosedWithoutSaving":  false,
+    "embeddedWorkbookClosedWithoutSaving":  false,
+    "cleanupErrors":  [
+
+                      ],
+    "originalSha256After":  "902E32369E40BACDDD54A556A1BE733FF39D2903DC5CF18AB95C77BC152B93A6",
+    "copySha256After":  "902E32369E40BACDDD54A556A1BE733FF39D2903DC5CF18AB95C77BC152B93A6",
+    "originalUnchanged":  true,
+    "copyUnchanged":  true,
+    "finished":  "2026-09-07T02:24:57.7765734+08:00"
+}
