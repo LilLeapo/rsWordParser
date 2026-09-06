@@ -229,6 +229,7 @@ M2 `FLD-06` 的关键字表宏（`EMBED` / `LINK` 已在）、M5 的 `xpath_asse
 | 图表 / 图片 / 墨迹操作的修订生成（`track_changes`） | M7 |
 | `applyImageZOrder` 的 `relativeHeight` 回写、既有图片的裁剪 / 缩放 / 换 wrap 操作 | M7（M6 只做 `replaceImage` 与新图片） |
 | **人工核对**：生成的图表 docx 在 Word 里打开、图表可见、「编辑数据」能打开工作簿；带墨迹的 docx 在 Word 里显示为浮动图片 | 需要真实 Word，项目负责人做；不作为门，作为 6.6 / 6.8 的检查清单项 |
+| **真实 Word 语料**（Word 写出的图表 / SmartArt 绘图 part / 画布 / 公式属性包 / 原生墨迹 / SVG 图片等形态） | 清单与做法在 `docs/07-real-word-corpus.md`；放 `corpus/real/`，接入由 6.1 前完成（`real.export.test.ts`、`diff-parse --corpus`、往返与编辑保真扫描）。往返字节相同与 CRC 不变对它们**是**门，TS 差分只作参考 |
 | 语料在本域极薄（图表 1 份、SmartArt 绘图 part 0 份、画布 0 份、chartex 0 份、墨迹解析侧 0 份） | 行为正确性主要靠移植 TS 单测夹具与构造文档；**可选**：往 genoffice 的 `tests/` 加带绘图 part 的 SmartArt / 画布 / chartex 用例后重导语料（`TEST-02`，改期望值的唯一合法途径），列为可选项不作为门 |
 
 ## 不在 M6
