@@ -60,15 +60,17 @@ impl BoxInfo {
     }
 }
 
-/// 段落里的绘图与 VML 显示模型，按文档序。
-fn graphics(tb: &TextBlock) -> (Vec<&DrawingDisplay>, Vec<&VmlDisplay>) {
+/// 段落里的绘图与 VML 显示模型，按文档序。`objects`：`w:object`（OLE 预览）算不算 VML——正文的绘图分支算
+/// （TS 的 `w:pict` 分支同时看 `<w:object`），单元格的锚定框闸门不算（TS 只看 `<wp:anchor` 与 `<w:pict`）。
+fn graphics(tb: &TextBlock, objects: bool) -> (Vec<&DrawingDisplay>, Vec<&VmlDisplay>) {
     let (mut drawings, mut vmls) = (Vec::new(), Vec::new());
     for i in &tb.inlines {
         let Inline::Run(r) = i else { continue };
         for s in &r.segments {
             match (&s.kind, s.display.as_ref()) {
                 (SegmentKind::Drawing { .. }, Some(Display::Drawing(d))) => drawings.push(&**d),
-                (SegmentKind::Pict | SegmentKind::Object, Some(Display::Vml(v))) => vmls.push(&**v),
+                (SegmentKind::Pict, Some(Display::Vml(v))) => vmls.push(&**v),
+                (SegmentKind::Object, Some(Display::Vml(v))) if objects => vmls.push(&**v),
                 _ => {}
             }
         }
@@ -88,7 +90,8 @@ pub(super) fn anchored_boxes_in_cell(
     tb: &TextBlock,
     docx_index: usize,
 ) -> (Vec<BoxInfo>, Vec<NodeId>) {
-    let (drawings, vmls) = graphics(tb);
+    // `w:object` 的预览图跟着 run 走（`richParas` 的图片 run），不进格的锚定框（任务 6.4，`m6-ole__006`）
+    let (drawings, vmls) = graphics(tb, false);
     if drawings.is_empty() && vmls.is_empty() {
         return (Vec::new(), Vec::new());
     }
@@ -127,7 +130,7 @@ pub(super) fn drawing_block(
     if !tb.facts.objects.is_empty() {
         return None;
     }
-    let (drawings, vmls) = graphics(tb);
+    let (drawings, vmls) = graphics(tb, true);
     if drawings.is_empty() && vmls.is_empty() {
         return None;
     }

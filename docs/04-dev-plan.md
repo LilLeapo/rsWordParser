@@ -1150,7 +1150,17 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   `all` 246 → 202，CI 棘轮拧到 170。`tests/diagram.rs` 八个：语料 23 份图示文档差异 0；构造的 SmartArt（连线 / 图片
   填充 / accent2 / 零尺寸 / `phClr`，关系与路径两种定位）、邻居照片与锚定偏移、悬空关系；画布（缩放 1/3、两列
   逐字拆分的 y 序手算、渐变 `800080`、锚定偏移、无 extent）；模型侧；两份 hostile。`PNG_1X1` 挪进 `tests/common`。
-- [ ] **6.4 OLE 与文字同段的 run 投影**（`bind/compat_ts/image.rs`）：`SegmentKind::Object` → run 图片；`OleDisplay` 进 `Segment.display`。
+- [x] **6.4 OLE 与文字同段的 run 投影**（`bind/compat_ts/blocks.rs` / `textbox.rs`，2026-09-06）：`run_jsons` = TS `splitImageRun`
+  ——一个 run 里有不止一个图形段（`w:drawing` / `w:pict` / `w:object`）时按图形拆成几个 TS run，每段收到它前面的文字，
+  剩下的文字单独成段（`smartart-ole__017` 的「对象 + 文字 + 空 pict」→ 图片 run + 文字 run；顺带收掉 `inline-image-mixed`
+  「同 run 两张图」的零散差异）；`{ EMBED }` / `{ LINK }` 包着 `w:object`、段落里没有别的字段 → `Embedded object` 块 +
+  `oleDisplay`（`m6-ole__007`，TS 的 `onlyOleFields`）；单元格里的 `w:object` 不进 `anchoredBoxes`（TS 的闸门只看
+  `wp:anchor` 与 `w:pict`，`m6-ole__006`）；VML 细横线块不给 `previewText`（`smartart-ole__005`，6.3 漏的）。模型侧
+  `OleInfo` 补 `draw_aspect` 与 `rel_id`（`o:OLEObject/@r:id`，6.7 回收孤儿要用）；`Segment.display` 早已是 `VmlDisplay`
+  带 `ole`，没有另立 `OleDisplay`。`embedded` 170 → **160 / 67 份**（OLE 域 0），`all` 188，棘轮 160。`tests/embedded.rs`
+  六个：语料 OLE 文档差异 0；构造的同 run 拆分 / 只有对象的段落与预览失效 / 字段包裹（另有 PAGE 字段时仍是字段芯片）/
+  单元格；`EDIT-02`：在原子前后 `InsertText` 后保存 `w:object` 子树与 OLE 关系原字节不动，`DeleteRange` 盖住原子 →
+  整 run 消失、二进制 part 留作孤儿。
 - [ ] **6.5 公式与 ruby**（`model/math.rs`、`model/omml/{mathml,latex}.rs`）：`FormulaDisplay`、`runs[].math`、`runs[].ruby`；两个转换器逐字移植且迭代实现。
 - [ ] **6.6 图表的保存**（`edit/chart_ops.rs`、`save/parts.rs`）：`SetChartData` 只改缓存文本；`NewBlock::Chart` 新建 part + 工作簿 + 关系；`ReplacePartXml / Bytes`。
 - [ ] **6.7 媒体写侧**（`package/media.rs`、`edit/media_ops.rs`、`save/prune.rs`）：`MediaStore::add` 去重、`NewBlock::Image`、`ReplaceImageMedia`、编辑引起的孤儿回收。

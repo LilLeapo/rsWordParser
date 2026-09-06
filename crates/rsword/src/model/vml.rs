@@ -182,6 +182,10 @@ pub struct OleInfo {
     pub prog_id: Option<String>,
     /// `@Type`：`Embed` / `Link`。
     pub kind: Option<String>,
+    /// `@DrawAspect`：`Content` / `Icon`。
+    pub draw_aspect: Option<String>,
+    /// `@r:id`：内嵌二进制 part（`embeddings/oleObject1.bin`）或外链的关系；删掉对象后它成为编辑引起的孤儿（6.7 回收）。
+    pub rel_id: Option<String>,
     /// `w:object/@w:dxaOrig`（缇），预览图的声明宽度。
     pub dxa_orig: Option<i64>,
     pub dya_orig: Option<i64>,
@@ -212,6 +216,8 @@ pub fn vml_display(dom: &Dom, node: NodeId) -> VmlDisplay {
                     node: n,
                     prog_id: attr(dom, n, NsId::None, LocalName::ProgID),
                     kind: attr(dom, n, NsId::None, LocalName::UType),
+                    draw_aspect: attr(dom, n, NsId::None, LocalName::DrawAspect),
+                    rel_id: attr(dom, n, NsId::R, LocalName::Id),
                     dxa_orig: num(dom, node, NsId::W, LocalName::DxaOrig),
                     dya_orig: num(dom, node, NsId::W, LocalName::DyaOrig),
                 });

@@ -16,6 +16,7 @@ use super::decl::{
 };
 use super::diagram;
 use super::image;
+use super::json::set_some;
 use super::media::MediaMap;
 use super::textbox;
 use super::utf16::Utf16Index;
@@ -778,6 +779,19 @@ fn paragraph_block(
         // `has_stray_field_chars` 都只看宿主段落自己的 inline），所以带字段的文本框段落照样
         // 走得到下面的绘图分支（`vml-textbox__007`）。
         Some(Block::Text(tb)) => match ts_field_passthrough(ctx, tb) {
+            // TS：`{ EMBED … }` / `{ LINK … }` 包着 `w:object`、段落里没有别的字段 → 走嵌入对象那条路，
+            // 预览图与声明尺寸留住，而不是一个光秃秃的 `Field (EMBED)` 芯片（任务 6.4，`m6-ole__007`）。
+            Some(_)
+                if !tb.facts.objects.is_empty()
+                    && has_field_chars(ctx, p)
+                    && ole_display_applies(ctx, p) =>
+            {
+                let mut o = passthrough(o, "Embedded object");
+                set(&mut o, "previewText", ctx.plain_text(p));
+                let v = vml_display(ctx.dom, tb.facts.objects[0]);
+                image::ole_display(ctx, p, &v, &mut o);
+                o
+            }
             Some(label) => {
                 let mut o = passthrough(o, &label);
                 set(&mut o, "previewText", ctx.plain_text(p));
@@ -856,6 +870,16 @@ fn paragraph_block(
                     }
                 }
             }
+            // TS 的决策树里字段分支在 `w:object` 之前：段落里除 `EMBED` / `LINK` 外还有别的字段，
+            // 哪怕一个字都没有（R18 归了 `Ole`），也是字段芯片（任务 6.4；有字的版本走上面的文本分支）
+            ProtectedKind::Ole if has_field_chars(ctx, p) && !ole_display_applies(ctx, p) => {
+                let style = para_style_id(ctx, p);
+                let toc = style.as_deref().and_then(crate::model::facts::toc_level_of_id);
+                let mut o = passthrough(o, &field_label(ctx, p));
+                set(&mut o, "previewText", ctx.plain_text(p));
+                set_some!(&mut o, "styleId" => style, "fieldDisplay" => field_display(ctx, p, toc));
+                o
+            }
             kind => {
                 let label = match kind {
                     ProtectedKind::Equation => "Equation",
@@ -864,7 +888,10 @@ fn paragraph_block(
                     _ => "Paragraph",
                 };
                 let mut o = passthrough(o, label);
-                set(&mut o, "previewText", ctx.plain_text(p));
+                // TS 的 `w:pict` 细横线分支只出 `decorative` / `rule*`，没有 `previewText`（`smartart-ole__005`）
+                if !matches!(kind, ProtectedKind::Rule) {
+                    set(&mut o, "previewText", ctx.plain_text(p));
+                }
                 let vml = pb.display.as_ref().and_then(Display::as_vml);
                 match (kind, vml) {
                     // HTML `<hr>` 导入的细横线：Word 按声明高度画一条线，画成绘图对象芯片会
@@ -1800,13 +1827,14 @@ pub(super) fn stray_runs_json(
     let mut out = Vec::new();
     for inline in &tb.inlines {
         let Inline::Run(run) = inline else { continue };
-        let Some(mut r) = run_json(ctx, run, para_disp(ctx, tb)) else { continue };
-        if !with_images || anchored(run) {
-            r.remove("image");
-        }
-        let has_text = r.get("text").and_then(Value::as_str).is_some_and(|t| !t.is_empty());
-        if has_text || r.contains_key("image") {
-            out.push(r);
+        for mut r in run_jsons(ctx, run, para_disp(ctx, tb)) {
+            if !with_images || anchored(run) {
+                r.remove("image");
+            }
+            let has_text = r.get("text").and_then(Value::as_str).is_some_and(|t| !t.is_empty());
+            if has_text || r.contains_key("image") {
+                out.push(r);
+            }
         }
     }
     merge_runs(out)
@@ -1845,13 +1873,15 @@ pub(super) fn inline_runs_json(
     for inline in inlines {
         match inline {
             Inline::Run(run) => {
-                let Some(mut r) = run_json(ctx, run, para) else { continue };
-                if !with_images || anchored(run) {
-                    r.remove("image");
-                }
-                let has_text = r.get("text").and_then(Value::as_str).is_some_and(|t| !t.is_empty());
-                if has_text || r.contains_key("image") {
-                    out.push(r);
+                for mut r in run_jsons(ctx, run, para) {
+                    if !with_images || anchored(run) {
+                        r.remove("image");
+                    }
+                    let has_text =
+                        r.get("text").and_then(Value::as_str).is_some_and(|t| !t.is_empty());
+                    if has_text || r.contains_key("image") {
+                        out.push(r);
+                    }
                 }
             }
             Inline::Atom(a) => {
@@ -1873,11 +1903,7 @@ pub(super) fn runs_json(ctx: &Ctx<'_>, tb: &TextBlock) -> Vec<Map<String, Value>
     let mut runs: Vec<Map<String, Value>> = Vec::new();
     for inline in &tb.inlines {
         match inline {
-            Inline::Run(run) => {
-                if let Some(r) = run_json(ctx, run, para_disp) {
-                    runs.push(r);
-                }
-            }
+            Inline::Run(run) => runs.extend(run_jsons(ctx, run, para_disp)),
             Inline::Atom(a) => {
                 if let AtomKind::BareBreak { kind } = &a.kind {
                     let mut o = Map::new();
@@ -2059,12 +2085,12 @@ fn inlines_text(inlines: &[Inline]) -> String {
 /// `symbol-fonts__002`）；符号字体 run 的
 /// `w:t` 只解码 PUA 区间的字符。返回值第二项表示"文本段被解码过"——TS 那边这种 run 的 `w:rFonts`
 /// 会被摘掉（字形已经变成真正的 Unicode，再带符号字体反而显示不出来）。
-fn symbol_text(ctx: &Ctx<'_>, run: &Run) -> (String, bool) {
+fn symbol_text(ctx: &Ctx<'_>, run: &Run, segs: &[crate::model::Segment]) -> (String, bool) {
     let font = ctx.resolver.fonts(&run.props).display_ascii().map(str::to_string);
     let symbol_run = font.as_deref().is_some_and(crate::resolve::is_symbol_font);
     let mut text = String::new();
     let mut decoded_text = false;
-    for seg in &run.segments {
+    for seg in segs {
         match &seg.kind {
             SegmentKind::Text | SegmentKind::DelText if symbol_run => {
                 let f = font.as_deref().unwrap_or_default();
@@ -2099,8 +2125,45 @@ fn symbol_text(ctx: &Ctx<'_>, run: &Run) -> (String, bool) {
     (text, decoded_text)
 }
 
+/// 一个模型 run → 零到多个 TS run。
+///
+/// TS `splitImageRun`：一个 run 里有不止一个图形子元素（`w:drawing` / `w:pict` / `w:object`）时按图形拆开——
+/// `Run.image` 只有一个位置，不拆的话第一张之后的图全丢、一编辑就从文件里消失。每一段收到它**前面**的文字，
+/// 最后剩下的文字单独成段（`smartart-ole__017`：`w:object` + 文字 + 空 `w:pict` → 图片 run + 文字 run；
+/// 任务 6.4）。只有一个图形的 run 不拆，图片与文字同在一个 run 上。
+fn run_jsons(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Vec<Map<String, Value>> {
+    let is_graphic = |seg: &crate::model::Segment| {
+        matches!(seg.kind, SegmentKind::Drawing { .. } | SegmentKind::Pict | SegmentKind::Object)
+    };
+    if run.segments.iter().filter(|s| is_graphic(s)).count() <= 1 {
+        return run_json(ctx, run, para).into_iter().collect();
+    }
+    let mut parts: Vec<std::ops::Range<usize>> = Vec::new();
+    let mut start = 0;
+    for (i, seg) in run.segments.iter().enumerate() {
+        if is_graphic(seg) {
+            parts.push(start..i + 1);
+            start = i + 1;
+        }
+    }
+    if start < run.segments.len() {
+        parts.push(start..run.segments.len());
+    }
+    parts.into_iter().filter_map(|r| run_json_segs(ctx, run, &run.segments[r], para)).collect()
+}
+
 /// TS `buildRun`。
 fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Value>> {
+    run_json_segs(ctx, run, &run.segments, para)
+}
+
+/// [`run_json`] 的一部分 run：`segs` 是 `run.segments` 的一个连续切片（[`run_jsons`] 拆图形用）。
+fn run_json_segs(
+    ctx: &Ctx<'_>,
+    run: &Run,
+    segs: &[crate::model::Segment],
+    para: StyleDisp,
+) -> Option<Map<String, Value>> {
     // `COMPAT-07`：脚注 / 尾注引用是原子 run，`text` 是显示编号，其余字段一概不出（TS 行为）
     if let Some((endnote, id)) = note_ref_of(run) {
         let mut o = Map::new();
@@ -2114,9 +2177,9 @@ fn run_json(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Option<Map<String, Val
         comment_ids(ctx, run, &mut o);
         return Some(o);
     }
-    let (text, symbol_decoded) = symbol_text(ctx, run);
+    let (text, symbol_decoded) = symbol_text(ctx, run, segs);
     // TS `buildRun(withImages)`：run 里的图片成为一个 `text: ""` 的原子 run。
-    let image = run.segments.iter().find_map(|s| image::run_image(ctx, s));
+    let image = segs.iter().find_map(|s| image::run_image(ctx, s));
     if text.is_empty() && image.is_none() {
         return None;
     }
