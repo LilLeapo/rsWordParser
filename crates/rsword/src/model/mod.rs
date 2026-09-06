@@ -21,6 +21,7 @@ pub mod classify;
 mod macros;
 
 pub mod aux;
+pub mod chart;
 pub mod custgeom;
 pub mod decl;
 pub mod drawing;
@@ -41,6 +42,9 @@ pub use block::{
     TextBlock, TextKind,
 };
 pub use build::Document;
+pub use chart::{
+    ChartColor, ChartDisplay, ChartGrouping, ChartKind, ChartPart, ChartSeries, LegendPos,
+};
 pub use classify::{BodyClass, ParaClass, classify_body_child, classify_paragraph, text_kind};
 pub use custgeom::{CustomGeom, GeomCmd, GeomPath};
 pub use decl::{
@@ -49,8 +53,8 @@ pub use decl::{
     TableStylePr,
 };
 pub use drawing::{
-    AnchorGeom, Display, Dist, DocPr, DrawingDisplay, Extent, ImageDisplay, LineDisplay, Position,
-    RectFrac, Wrap,
+    AnchorGeom, ChartRef, Display, Dist, DocPr, DrawingDisplay, Extent, ImageDisplay, LineDisplay,
+    Position, RectFrac, Wrap,
 };
 pub use facts::{
     DrawingFacts, DrawingKind, MathFacts, ParagraphFacts, PictFacts, PictKind, RevisionFacts,

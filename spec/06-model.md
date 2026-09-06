@@ -28,9 +28,10 @@ Document {
 Block = Text(TextBlock) | Table(TableBlock) | Image(ImageBlock) | Protected(ProtectedBlock)
 TextBlock { node, kind: Paragraph | Heading{level: u8} | ListItem{list: ListRef}, style_id, props: ParaProps, inlines: Vec<Inline>, sdt: Option<SdtInfo>, revisions: Vec<Revision>, facts: ParagraphFacts }
 ProtectedBlock { node, kind: ProtectedKind, preview: String, display: Option<Display>, sdt: Option<SdtInfo>, revisions }
-ProtectedKind = FieldBlockResult(FieldId) | Equation(FormulaDisplay) | Chart(ChartDisplay) | SmartArt(DiagramDisplay)
-              | Ole(OleDisplay) | Rule(RuleDisplay) | Invisible | SectionBreak | SectionProps | BodyBreak{page: bool}
-              | Unknown(QName) | TooDeep | Unparseable
+ProtectedKind = FieldBlockResult(FieldId) | Equation | Chart | SmartArt | Ole | Rule | Invisible | SectionBreak
+              | SectionProps | BodyBreak{page: bool} | Unknown(QName) | TooDeep | Unparseable
+// 显示载荷不在变体里，挂在 ProtectedBlock.display（M4 起）：绘图 / VML 的 Display；图表经 DrawingDisplay.chart
+// （ChartRef { rel_id, chartex }）→ Document.chart_by_rel → Document.chart_parts[part].display（6.1）
 ```
 
 相对 `docs/03` 6.3 的补充：`BodyBreak`（body 顶层 `w:br`）、`Unknown`（非 `w:p/w:tbl/w:sdt/w:sectPr` 的 body 子节点）、`TooDeep`（`MOD-07`）。`TextBox` 不再是保护种类：文本框是 `Inline::Run` 内的 `Drawing` 段（`MOD-06`），段落可编辑。
@@ -198,7 +199,8 @@ SdtInfo { node, alias, tag, id, control: RichText|PlainText|Picture|ComboBox|Dro
 - `AnchorGeom { rel_h, rel_v, align_h, align_v, offset_h_emu, offset_v_emu, pct_h, pct_v, wrap: None|Square{wrap_text}|Tight{..}|Through{..}|TopAndBottom, behind_doc, allow_overlap, relative_height_raw, layout_in_cell, dist_t/b/l/r, hidden }`
 - `ShapeDisplay { prst, xfrm{off, ext, rot, flips}, fill: Solid(rgb)|Gradient(stops)|Pattern{fg,bg}|Blip(media)|None, line: Option<{color, w_emu, dash, head, tail}>, body_pr{insets, anchor, autofit, wrap, vert}, style_refs{fill_ref, ln_ref, effect_ref, font_ref}, content: Option<Vec<Block>> /* txbxContent，独立内容流 */, group: Option<GroupCtm> }`
 - `VmlDisplay { kind: Shape|Rect|RoundRect|Oval|Line|Group|Image|TextPath|Hr, style: Map<String,String> /* 原始 style 键值 */, fill, stroke, imagedata: Option<MediaId>, textpath: Option<String>, content: Option<Vec<Block>> }`
-- `ChartDisplay`、`DiagramDisplay`、`OleDisplay`、`RuleDisplay`、`FormulaDisplay { omml_node, tokens, mathml, latex }` 字段与 TS 对齐，但几何用 EMU 原值，颜色经 `RES-05` 解析为 sRGB 并保留原始定义。
+- `ChartDisplay { root, kind: Bar|Line|Pie|Area|Scatter|Bubble|Other, plot, horizontal, grouping: Option<Stacked|PercentStacked>, markers, hole_pct, legend_pos: Option<b|l|r|t|tr>, title, title_node, categories: Vec<String>, series: Vec<ChartSeries { node, name, values: Vec<Option<f64>>, color: Option<ChartColor { def: DrawingColor, rgb }>, point_colors, x_values, sizes, line }>, style_val, palette: Option<[Rgb; 6]>, chartex }`（6.1）：图表 part 是有自己 DOM 的 part，`Document.chart_parts: Map<PartId, ChartPart { part, root, chartex, display: Option<ChartDisplay> }>` 收下主 part 关系里的全部 `chart` / `chartEx` part，`Document.chart_by_rel` 把绘图里的 `c:chart r:id` 接过去；只读 Word 写在数据引用旁的缓存（`c:strCache` / `c:numCache` / `strLit` / `numLit`），内嵌工作簿不打开；没有带缓存值的系列 → `display: None` + `CHART_NO_SERIES`；关系悬空 / part 缺失 → `PKG_REL_MISSING`。调色板是 `c:style` 列与主题 accent 的纯函数（`chart::palette`）。chartex（`cx:chartSpace`）按降级读进同一结构，`chartex: true`。
+- `DiagramDisplay`、`OleDisplay`、`RuleDisplay`、`FormulaDisplay { omml_node, tokens, mathml, latex }` 字段与 TS 对齐，但几何用 EMU 原值，颜色经 `RES-05` 解析为 sRGB 并保留原始定义。
 
 **禁止**在这些结构中出现由排版决定的字段（碰撞位移后的偏移、band 高度、猜测的 floatSide 等）。
 

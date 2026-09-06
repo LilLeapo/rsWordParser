@@ -10,6 +10,7 @@ use crate::model::aux::AuxFlows;
 use crate::model::block::{
     Block, ImageBlock, ListRef, ProtectedBlock, ProtectedKind, Revision, SdtInfo, TextBlock,
 };
+use crate::model::chart::ChartPart;
 use crate::model::classify::{
     BodyClass, ParaClass, classify_body_child, classify_paragraph, text_kind,
 };
@@ -23,7 +24,7 @@ use crate::model::inline::{
 };
 use crate::model::notes::{Comments, Notes};
 use crate::model::section::{HfKind, SectionInfo};
-use crate::model::table::{BlockStep, block_at_mut_in};
+use crate::model::table::{BlockStep, Blocks, block_at_mut_in};
 use crate::model::theme::Theme;
 use crate::model::vml::vml_display;
 use crate::package::{Package, PartId, RelTarget, RelType, Rels};
@@ -56,6 +57,10 @@ pub struct Document {
     /// 正文引用的其他 part 的内容流索引（目前只有外部文本框 part，`wps:txbx/@r:txbx`）。
     /// 那些 part 的块挂在 `ShapeDisplay.content` 上、`content_part` 指回这里的键。
     pub aux_flows: BTreeMap<PartId, AuxFlows>,
+    /// 主 part 关系里的图表 part（`chart` / `chartEx` 型，M6 6.1），含没被任何绘图引用的。
+    /// 绘图侧的引用是 `DrawingDisplay.chart`（`rel_id`），经 [`Document::chart_by_rel`] 到这里。
+    pub chart_parts: BTreeMap<PartId, ChartPart>,
+    pub chart_by_rel: BTreeMap<String, PartId>,
     /// 主 part 的内容流映射（`SPAN-01`）。
     pub flows: FlowMap,
     /// 主 part 的字段索引（`FLD-02`）。与投影同寿命：`rebuild` / `refresh_blocks` 都重建它。
@@ -148,6 +153,22 @@ impl Document {
         for (_, id) in &txbx_rels {
             let _ = pkg.dom(*id);
         }
+        // 图表 part（`c:chart r:id` / `cx:chart r:id`，任务 6.1）：同样先抄关系再解析。
+        // 关系指向的 part 不在包里 → 记 `PKG_REL_MISSING`（悬空的 `r:id` 在块建好之后另查）
+        let mut chart_rels: Vec<(String, PartId)> = Vec::new();
+        let mut chart_rels_missing: Vec<String> = Vec::new();
+        for kind in [RelType::Chart, RelType::ChartEx] {
+            for r in pkg.part(main).rels.of_kind(kind) {
+                let RelTarget::Internal(u) = &r.target else { continue };
+                match pkg.find(u) {
+                    Some(p) => chart_rels.push((r.id.clone(), p)),
+                    None => chart_rels_missing.push(format!("{}（{}）", r.id, u.as_str())),
+                }
+            }
+        }
+        for (_, id) in &chart_rels {
+            let _ = pkg.dom(*id);
+        }
 
         let mut warnings = Vec::new();
         let dom_of = |id: Option<PartId>| id.and_then(|id| pkg.part(id).dom());
@@ -155,6 +176,29 @@ impl Document {
         let numbering = dom_of(numbering_id).and_then(|d| Numbering::from_dom(d, &mut warnings));
         let settings = dom_of(settings_id).and_then(|d| Settings::from_dom(d, &mut warnings));
         let theme = dom_of(theme_id).and_then(Theme::from_dom);
+        for rid in chart_rels_missing {
+            warnings.push(Diagnostic::pre_existing(
+                main,
+                None,
+                DiagCode::PkgRelMissing,
+                format!("图表关系 {rid} 指向的 part 不在包里"),
+            ));
+        }
+        // 图表颜色按文档的配色方案解（没有 theme part 时按内建 Office 调色板，`RES-05`）
+        let scheme = theme
+            .as_ref()
+            .and_then(|t| t.colors.clone())
+            .unwrap_or_else(crate::model::theme::ColorScheme::office_default);
+        let mut chart_parts = BTreeMap::new();
+        let mut chart_by_rel = BTreeMap::new();
+        for (rel_id, id) in chart_rels {
+            chart_by_rel.insert(rel_id, id);
+            if chart_parts.contains_key(&id) {
+                continue;
+            }
+            let cp = ChartPart::build(id, pkg.part(id).dom(), &scheme, &mut warnings);
+            chart_parts.insert(id, cp);
+        }
         let sources = dom_of(sources_part).map(crate::model::sources::read).unwrap_or_default();
         let font_table = dom_of(font_id).and_then(|d| FontTable::from_dom(d, &mut warnings));
         let with_dom = |id: Option<PartId>| id.and_then(|i| pkg.part(i).dom().map(|d| (i, d)));
@@ -250,6 +294,28 @@ impl Document {
                 }
             }
         }
+        // 绘图里 `c:chart r:id` 悬空（关系表里没有那个 id）：TS 解析不出图表、块仍是 `Chart` 芯片；
+        // 留一条诊断让编辑器能说"这张图表的数据丢了"
+        for b in Blocks::over(&blocks) {
+            let Block::Protected(pb) = b else { continue };
+            let Some(chart) =
+                pb.display.as_ref().and_then(Display::as_drawing).and_then(|d| d.chart.as_ref())
+            else {
+                continue;
+            };
+            let dangling = chart.rel_id.as_ref().is_none_or(|rid| !chart_by_rel.contains_key(rid));
+            if dangling {
+                warnings.push(Diagnostic::pre_existing(
+                    main,
+                    dom.node(chart.node).lex.as_ref().map(|l| l.range.clone()),
+                    DiagCode::PkgRelMissing,
+                    match &chart.rel_id {
+                        Some(rid) => format!("图表引用的关系 {rid} 不存在"),
+                        None => "图表引用没有 r:id".to_string(),
+                    },
+                ));
+            }
+        }
         Ok(Document {
             main_part: main,
             body,
@@ -258,6 +324,8 @@ impl Document {
             hf_parts,
             hf_by_rel,
             aux_flows,
+            chart_parts,
+            chart_by_rel,
             styles,
             numbering,
             theme,

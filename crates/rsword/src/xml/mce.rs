@@ -12,8 +12,13 @@ use crate::xml::names::{LocalName, NsId, QName};
 use crate::xml::ns::{Scope, push_decls};
 
 /// 默认的已理解命名空间集合（`PKG-09`）。
+///
+/// `c14`（Word 2010 的图表扩展）在里面：图表 part 里 `c:style` 一律包在 `mc:AlternateContent` 里，
+/// `Choice Requires="c14"` 放 `c14:style`（101–148）、Fallback 放 `c:style`（1–48），两者是同一个值的两种写法，
+/// 但 Word 2010+ 与 TS 读的都是 Choice 那份——语料 `m6-chart__043` 的 Choice 与 Fallback 故意不一致，
+/// 走 Fallback 会把调色板认错（M6 6.1）。
 pub const DEFAULT_UNDERSTOOD: &[NsId] =
-    &[NsId::Wps, NsId::Wpg, NsId::Wp14, NsId::W14, NsId::W15, NsId::Cx];
+    &[NsId::Wps, NsId::Wpg, NsId::Wp14, NsId::W14, NsId::W15, NsId::Cx, NsId::C14];
 
 /// `mc:ProcessContent` 里的一项：`p:x`（限定名）或 `p:*`。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -62,6 +62,19 @@ pub struct DrawingDisplay {
     pub pictures: Vec<ImageDisplay>,
     /// `wps:wsp` 形状与 `wpg` 组，文档序；组内形状排在组之后，`group` 指回组。
     pub shapes: Vec<ShapeDisplay>,
+    /// `a:graphicData` 里的 `c:chart` / `cx:chart`：图表 part 的引用（M6 6.1）。part 本身在
+    /// `Document.chart_parts`，按 `rel_id` 经 `Document.chart_by_rel` 找。
+    pub chart: Option<ChartRef>,
+}
+
+/// `c:chart r:id` / `cx:chart r:id`：一个绘图对图表 part 的引用。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChartRef {
+    pub node: NodeId,
+    /// `r:id`；写丢了 → `None`（TS 同样解析不出图表）。
+    pub rel_id: Option<String>,
+    /// `cx:chart`（2014 chartex）。
+    pub chartex: bool,
 }
 
 /// 一个 `wps:wsp` 形状，或一个 `wpg:wgp` / `wpg:grpSp` 组。
@@ -358,6 +371,7 @@ pub fn drawing_display(dom: &Dom, drawing: NodeId) -> DrawingDisplay {
         doc_pr: DocPr::default(),
         pictures: Vec::new(),
         shapes: Vec::new(),
+        chart: None,
     };
     let mut pic_nodes: Vec<(NodeId, Option<usize>)> = Vec::new();
     // 组的下标要在遍历时跟着走，所以这里用带父组的显式栈，而不是 `walk`。
@@ -374,6 +388,13 @@ pub fn drawing_display(dom: &Dom, drawing: NodeId) -> DrawingDisplay {
                     d.kind = crate::model::facts::graphic_data_kind(dom, n);
                 }
                 (NsId::Pic, LocalName::Pic) => pic_nodes.push((n, parent)),
+                (ns @ (NsId::C | NsId::Cx), LocalName::Chart) if d.chart.is_none() => {
+                    d.chart = Some(ChartRef {
+                        node: n,
+                        rel_id: attr(dom, n, NsId::R, LocalName::Id),
+                        chartex: ns == NsId::Cx,
+                    });
+                }
                 (NsId::Wps, LocalName::Wsp) => d.shapes.push(shape_display(dom, n, false, parent)),
                 (NsId::Wpg, LocalName::Wgp | LocalName::GrpSp) => {
                     d.shapes.push(shape_display(dom, n, true, parent));
@@ -777,6 +798,8 @@ fn eff_ns(dom: &Dom, node: NodeId) -> NsId {
         Some("wps") => NsId::Wps,
         Some("wpg") => NsId::Wpg,
         Some("wp") => NsId::Wp,
+        Some("c") => NsId::C,
+        Some("cx") => NsId::Cx,
         Some("pic") => NsId::Pic,
         Some("a") => NsId::A,
         _ => name.ns,

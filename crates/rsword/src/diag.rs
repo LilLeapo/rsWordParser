@@ -98,6 +98,8 @@ pub enum DiagCode {
     /// `MOD-07`：表格结构畸形——单元格不以 `w:p` 结尾、行没有单元格、行的网格宽度与 `tblGrid`
     /// 列数不一致。只记诊断，模型照声明值保留（`SAVE-02` 据此把这类缺陷判为 PreExisting）。
     ModTableShape,
+    /// `MOD-11`（M6 6.1）：图表 part 里没有任何带缓存值的系列，建不出 `ChartDisplay`（TS 同样返回 null）。
+    ChartNoSeries,
 
     // ---- RES（spec/07）----
     /// `RES-02`：`basedOn` 链成环。
@@ -180,6 +182,7 @@ impl DiagCode {
             Self::ModUnknownBlock => "MOD_UNKNOWN_BLOCK",
             Self::ModUnparseable => "MOD_UNPARSEABLE",
             Self::ModTableShape => "MOD_TABLE_SHAPE",
+            Self::ChartNoSeries => "CHART_NO_SERIES",
             Self::ResStyleCycle => "RES_STYLE_CYCLE",
             Self::ResBasedOnTypeMismatch => "RES_BASED_ON_TYPE_MISMATCH",
             Self::EditSplitSurrogate => "EDIT_SPLIT_SURROGATE",

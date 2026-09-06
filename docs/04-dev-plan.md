@@ -301,6 +301,7 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `docs/03` §3.5 `MediaStore` | `MediaId → {part, mime, bytes}` | `Media { part, uri, mime, kind }`，字节惰性读取并缓存 | `kind`（Raster/Svg/Metafile/Tiff/Other）把「要不要送去外部转换」收敛成一个判断；`uri` 供诊断与按 part 去重；一张图被多处引用只解压一次 |
 | `RES-05` DrawingML 颜色 | 「按 `oox::drawingml::Color` 的变换顺序在**规范要求的色彩空间**实现」 | `lumMod`/`lumOff`/`shade`/`tint` 用 sRGB 逐通道，`satMod`/`hueMod` 用 HSL；变换按文档顺序施加 | 比过两处（语料 `bugfix-regressions__025` 与 Office 调色板的「淡色 80%」）：逐通道与 HSL 结果相同，与 Word 公布值差 ≤ 1/255，正是 `RES-05` 验收允许的误差；逐通道又与 TS 一致，绘图域差分才能为 0。按线性空间重做要先有 Word 实测 fixture |
 | `MOD-11` 绘图元素名 | 按 `QName`（URI + local）匹配 | `model/drawing.rs` 的 `eff_ns`：前缀**绑不上**时按字面量认（`wps` / `wpg` / `wp` / `pic` / `a`），能绑上的一律按 URI | TS 用字符串匹配 `<wps:wsp`，压根不看声明；语料里有文档只在根上声明了 `w`/`wp`/`a`/`pic`，`wps` 一个都没声明（`field-display__015`），按 URI 匹配会把整个形状看丢，段落分类全错。只对绑不上的前缀放宽，正常文档行为不变 |
+| `XML-09` 已理解集合 | `wps wpg wp14 w14 w15 cx`（`docs/03` §4.4） | 加 `c14`（Word 2010 图表扩展；`xml/mce.rs` `DEFAULT_UNDERSTOOD`） | 图表 part 的 `c:style` 一律包在 `mc:AlternateContent` 里：Choice 是 `c14:style`（101–148），Fallback 是 `c:style`（1–48）。Word 2010+ 与 TS 读的都是 Choice；语料 `m6-chart__043` 两支故意不一致，走 Fallback 会把调色板认成灰阶（6.1） |
 | `XML-09` `mc:Choice/@Requires` | 前缀按作用域解析 | 作用域里解析不到时，退一步看**分支子树内**有没有声明这个前缀 | 合成语料常把 `xmlns:wps` 写在 `wps:wsp` 元素自己身上，`Requires="wps"` 于是在 `mc:Choice` 处解析不出来、整段退到 VML Fallback（16 份文档）。意图毫无歧义，按分支内的声明认；前缀在**任何地方**都没声明的情况（`numbering-defs__012`）行为不变，仍是已知差异 |
 | `PKG-06` | 唯一路径函数 | `uri::resolve` 唯一；`parse_rels` 在目标不存在且写法为 `../` 时按 `_rels/` 目录再解析一次 | 兼容相对 `_rels/` 写目标的生成器（验收清单要求三种写法解析到同一 part） |
 | `XML-01` 转码 part | "Clean 拷贝的是转码后的字节" | 同；被改写时 XML 声明的 `encoding` 改为 `UTF-8` | 否则声明与字节不一致 |
@@ -1098,7 +1099,21 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   `media.rs` 的 `ink-garbage` / `m6-ole__005` 悬空引用、`model.rs` 的 `m6-ink__` 块类型（TS 剥墨迹 run，6.8 收口后删）、
   `xml_roundtrip.rs` 的 `chart-part-malformed` 必须解析失败。
 
-- [ ] **6.1 图表 part 的模型**（`model/chart.rs`）：图表 part 有自己的 DOM，`ChartDisplay` 是投影；`c:` 与 chartex；TS 单测夹具搬成 `tests/fixtures/chart/*.xml`。
+- [x] **6.1 图表 part 的模型**（`model/chart.rs`，2026-09-06）：`ChartPart` / `ChartDisplay` / `ChartSeries` / `ChartColor`，
+  `ChartKind` / `ChartGrouping` / `LegendPos` 用 `named_enum!`，16 种 `*Chart` 元素一张 `chart_kinds!` 表；`c:` 的种类 / 方向 /
+  堆积 / 标记 / 环形内径 / 图例 / 标题三形态（`a:t` → `c:v` → 自动标题，单系列取系列名，`autoTitleDeleted` 三种真值写法）/
+  类别（`strRef` / `numRef` / `strLit` / `numLit`，`ptCount` 补空，日期格式的序列号 → `m/d/yyyy`，`xVal` 长小数修到 4 位）/
+  系列（值、`c:spPr` 颜色走 `RES-05`、`c:dPt` 逐点、散点的 `xValues` / `line`、气泡的 `sizes`）/ `c:style` 调色板
+  （灰阶 / 六 accent / 单色阶梯，`c14:style` 的 MCE 包装）；chartex 的 `cx:chartData` 维度 + `layoutId` 归并。
+  `DrawingDisplay.chart: Option<ChartRef { rel_id, chartex }>`（`eff_ns` 兜底未声明的 `c` / `cx` 前缀），
+  `Document.chart_parts` / `chart_by_rel` 与页眉页脚 part 同一模式；关系悬空 / part 缺失 → `PKG_REL_MISSING`，
+  没有带缓存值的系列 → `CHART_NO_SERIES`。**MCE 已理解集合加 `c14`**（§8）：图表 part 的 `c:style` 一律包在
+  `mc:AlternateContent` 里，Word 与 TS 读的都是 Choice 那份，走 Fallback 会把 `m6-chart__043` 的调色板认成灰阶。
+  `tests/chart.rs`：语料 92 份 / 93 个图表块逐字段对照 TS golden（kind / horizontal / grouping / markers / holePct /
+  legendPos / title / categories / palette / extent px / 每个系列的 name / values / color / pointColors / xValues /
+  sizes / line）**全部相等**，`extras.chartParts` 的键集一致；构造用例覆盖字面缓存、自动标题的五种写法、`c14:style`、
+  未声明前缀、悬空关系、无系列；两份 hostile 降级。TS 的 `tests/chart-*.test.ts` 字面量不必再搬成夹具——它们已随 m6.0a
+  进了语料。447 个测试（调试 + 发布）。
 - [ ] **6.2 图表投影与 `--scope embedded`**（`bind/compat_ts/chart.rs`、`diff.rs`、`tools/diff-parse`）：`chartDisplay` / `extras.chartParts` / `previewText` 的有无；R12 的 chartex Fallback 图；CI。
 - [ ] **6.3 SmartArt 与绘图画布**（`model/diagram.rs`、`bind/compat_ts/diagram.rs`）：数据 part 文字树、绘图 part 形状、`lc:lockedCanvas` 缩放；分栏启发式只在 compat。
 - [ ] **6.4 OLE 与文字同段的 run 投影**（`bind/compat_ts/image.rs`）：`SegmentKind::Object` → run 图片；`OleDisplay` 进 `Segment.display`。
