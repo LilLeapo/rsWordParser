@@ -216,6 +216,11 @@ fn table_in_scope(table: &Value) -> bool {
 
 fn case_in_scope(e: &Value, scope: Scope) -> bool {
     let fields_ok = scope >= Scope::Fields;
+    // 嵌入对象域（图表 / SmartArt / 画布 / 公式 / OLE / 墨迹 / ruby）的文档归 M6 的门
+    // （`--scope embedded`，`spec/17`）；带它们的文档在 M6 收口前不进 M1–M3 的门。
+    if is_embedded_case(e) {
+        return false;
+    }
     let Some(blocks) = e.get("blocks").and_then(Value::as_array) else { return false };
     let mut text_blocks = 0;
     for b in blocks {
@@ -299,6 +304,106 @@ fn case_in_scope(e: &Value, scope: Scope) -> bool {
         && e.get("headerText").is_none_or(Value::is_null)
         && e.get("footerText").is_none_or(Value::is_null)
         && e.get("hfParts").and_then(Value::as_object).is_some_and(|m| m.is_empty())
+}
+
+/// 嵌入对象的种类（M6 域，`spec/17` 门第 1 条）。按**期望块**判：TS 的 label、TS 给出的 display 字段、
+/// 以及 `originalXml` 里的标志元素——不看我们自己的输出，否则门会随实现漂移。
+///
+/// `Ole` 也在里面：`w:object` 的块级投影（`oleProgId` / 预览图）虽是 M4 4.7 交付的，但它的各种变体
+/// （字段包着、与文字同段、格里带文字）是 M6 6.4 的活，整个 OLE 块归 `--scope embedded` 这道门看管；
+/// `drawing` 门只管图片 / 文本框 / 细横线。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EmbeddedKind {
+    Chart,
+    SmartArt,
+    Canvas,
+    Formula,
+    Ruby,
+    Ink,
+    Ole,
+}
+
+/// 期望块属于哪种嵌入对象；不是嵌入对象块 → `None`。
+pub fn embedded_kind(b: &Value) -> Option<EmbeddedKind> {
+    use EmbeddedKind::*;
+    if b.get("chartDisplay").is_some() {
+        return Some(Chart);
+    }
+    if b.get("diagramDisplay").is_some() {
+        return Some(SmartArt);
+    }
+    if b.get("formulaDisplay").is_some() {
+        return Some(Formula);
+    }
+    match b.get("label").and_then(Value::as_str) {
+        Some("Chart") => return Some(Chart),
+        Some("SmartArt") => return Some(SmartArt),
+        Some("Equation") => return Some(Formula),
+        Some("Embedded object") => return Some(Ole),
+        _ => {}
+    }
+    let xml = b.get("originalXml").and_then(Value::as_str).unwrap_or("");
+    // 标志元素与种类一一对应；顺序按"越具体越先"排，一个块只报一种
+    const MARKERS: [(&str, EmbeddedKind); 8] = [
+        ("<c:chart", Chart),
+        ("<cx:chart", Chart),
+        ("r:dm=", SmartArt),
+        ("<lc:lockedCanvas", Canvas),
+        ("<m:oMath", Formula),
+        ("<w:ruby", Ruby),
+        ("aidocs-ink", Ink),
+        ("<w:object", Ole),
+    ];
+    MARKERS.iter().find(|(m, _)| xml.contains(m)).map(|(_, k)| *k)
+}
+
+/// 文档是否属于嵌入对象域：任一块是嵌入对象块，或 `inks` / `extras.chartParts` 非空。
+pub fn is_embedded_case(e: &Value) -> bool {
+    if e.get("inks").and_then(Value::as_array).is_some_and(|a| !a.is_empty()) {
+        return true;
+    }
+    if e.pointer("/extras/chartParts").and_then(Value::as_object).is_some_and(|m| !m.is_empty()) {
+        return true;
+    }
+    e.get("blocks")
+        .and_then(Value::as_array)
+        .is_some_and(|bs| bs.iter().any(|b| embedded_kind(b).is_some()))
+}
+
+/// `blocks[i]…` 路径对应的期望块（其他路径 → `None`）。
+pub fn block_of_path<'a>(path: &str, expected: &'a Value) -> Option<&'a Value> {
+    let rest = path.strip_prefix("blocks[")?;
+    let end = rest.find(']')?;
+    let idx: usize = rest[..end].parse().ok()?;
+    expected.get("blocks")?.get(idx)
+}
+
+/// 某条差异是否落在一个嵌入对象块上。`drawing` / `hf` 这两道按路径筛的门用它剔除嵌入对象块上的
+/// 绘图路径差异（墨迹在 TS 里不可见、画布与 chartex 的图片回退是 R12 / R14 的分类、OLE 变体是 6.4）
+/// ——那些由 `--scope embedded` 看管。
+pub fn on_embedded_block(path: &str, expected: &Value) -> bool {
+    block_of_path(path, expected).and_then(embedded_kind).is_some()
+}
+
+/// M6 门的差异判定（`spec/17` 门第 1 条）：路径本身属于本域（`chartDisplay` / `diagramDisplay` /
+/// `formulaDisplay` / `runs[].math` / `runs[].ruby` / `extras.chartParts` / `inks`），或落在一个
+/// 嵌入对象块上（那个块的 `label` / `type` / `previewText` / `runs` 连带项）。
+pub fn is_embedded_diff(path: &str, expected: &Value) -> bool {
+    const TOP: [&str; 2] = ["inks", "extras.chartParts"];
+    const FIELDS: [&str; 3] = ["chartDisplay", "diagramDisplay", "formulaDisplay"];
+    let key = path_key(path);
+    if TOP.iter().any(|p| key.starts_with(p)) {
+        return true;
+    }
+    let Some(rest) = key.strip_prefix("blocks[].") else { return false };
+    if FIELDS.iter().any(|f| rest.starts_with(f)) {
+        return true;
+    }
+    if rest.strip_prefix("runs[].").is_some_and(|r| r.starts_with("math") || r.starts_with("ruby"))
+    {
+        return true;
+    }
+    block_of_path(path, expected).and_then(embedded_kind).is_some()
 }
 
 /// M4 绘图域的 JSON 路径（`TEST-10` 的 M4 门）：块上的图片 / 文本框 / 细横线 / 嵌入对象字段，
@@ -479,6 +584,57 @@ mod tests {
         ] {
             assert!(!is_hf_path(p), "{p} 不该算页眉页脚域");
         }
+    }
+
+    /// M6 门的域边界（`is_embedded_diff` / `embedded_kind`）。
+    #[test]
+    fn test_10_embedded_domain() {
+        let e = json!({
+            "inks": [],
+            "extras": { "chartParts": {} },
+            "blocks": [
+                { "type": "paragraph", "originalXml": "<w:p><w:r><w:t>plain</w:t></w:r></w:p>" },
+                { "type": "passthrough", "label": "Chart", "originalXml": "<w:p>..<c:chart r:id=\"rId1\"/>..</w:p>" },
+                { "type": "paragraph", "originalXml": "<w:p><w:r><m:oMath>..</m:oMath></w:r></w:p>" },
+                { "type": "passthrough", "label": "Embedded object", "originalXml": "<w:p><w:r><w:object/></w:r></w:p>" },
+                { "type": "paragraph", "originalXml": "<w:p><w:r><w:drawing><wp:anchor><wp:docPr name=\"aidocs-ink 1\"/></wp:anchor></w:drawing></w:r></w:p>" },
+            ]
+        });
+        use EmbeddedKind::*;
+        assert_eq!(embedded_kind(&e["blocks"][0]), None);
+        assert_eq!(embedded_kind(&e["blocks"][1]), Some(Chart));
+        assert_eq!(embedded_kind(&e["blocks"][2]), Some(Formula));
+        assert_eq!(embedded_kind(&e["blocks"][3]), Some(Ole));
+        assert_eq!(embedded_kind(&e["blocks"][4]), Some(Ink));
+        assert!(is_embedded_case(&e));
+        // 路径自身在域内
+        for p in [
+            "blocks[0].runs[0].math.omml",
+            "blocks[0].runs[2].ruby.rt",
+            "blocks[7].chartDisplay.kind",
+            "blocks[7].formulaDisplay",
+            "extras.chartParts.word/charts/chart1.xml",
+            "inks[0].payload",
+        ] {
+            assert!(is_embedded_diff(p, &e), "{p} 应属嵌入对象域");
+        }
+        // 连带项：落在嵌入对象块上才算
+        assert!(is_embedded_diff("blocks[1].previewText", &e));
+        assert!(is_embedded_diff("blocks[3].runs[1]", &e));
+        assert!(!is_embedded_diff("blocks[0].previewText", &e));
+        assert!(!is_embedded_diff("blocks[0].runs[0].text", &e));
+        assert!(!is_embedded_diff("headerText", &e));
+        // 按路径筛的门剔除所有嵌入对象块上的差异（含 OLE），普通段落的照常计入
+        assert!(on_embedded_block("blocks[4].imageWrap", &e));
+        assert!(on_embedded_block("blocks[1].imageWidthPx", &e));
+        assert!(on_embedded_block("blocks[3].oleProgId", &e));
+        assert!(!on_embedded_block("blocks[0].imageWrap", &e));
+        // 纯文本文档不在域内，文本域照常收下它
+        let plain = json!({ "inks": [], "extras": { "chartParts": {} }, "sources": [], "hfParts": {},
+            "blocks": [{ "type": "paragraph", "runs": [{ "text": "x" }], "originalXml": "<w:p/>" }] });
+        assert!(!is_embedded_case(&plain));
+        assert!(is_text_case(&plain));
+        assert!(!is_text_case(&e));
     }
 
     #[test]

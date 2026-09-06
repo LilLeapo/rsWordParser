@@ -26,8 +26,9 @@ mod textbox;
 pub mod utf16;
 
 pub use diff::{
-    Diff, KNOWN_DIFFS_MD, KnownDiff, PathStat, Report, Scope, diff_json, filter_known,
-    is_drawing_path, is_hf_path, is_span_field_case, is_table_case, is_text_case, known_diffs,
+    Diff, EmbeddedKind, KNOWN_DIFFS_MD, KnownDiff, PathStat, Report, Scope, block_of_path,
+    diff_json, embedded_kind, filter_known, is_drawing_path, is_embedded_case, is_embedded_diff,
+    is_hf_path, is_span_field_case, is_table_case, is_text_case, known_diffs, on_embedded_block,
     parse_known_diffs, path_key, path_matches, split_known,
 };
 pub use media::{MediaMap, MediaOut, MediaSet};

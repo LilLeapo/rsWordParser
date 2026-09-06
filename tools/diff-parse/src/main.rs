@@ -3,15 +3,16 @@
 //! 有未知差异时退出码 1（CI 门 `TEST-10`）。
 //!
 //! ```text
-//! diff-parse [--corpus DIR] [--scope text|fields|tables|drawing|hf|all] [--known FILE] [--doc PREFIX] [--show N] [--json] [--by-doc]
+//! diff-parse [--corpus DIR] [--scope text|fields|tables|drawing|hf|embedded|all] [--known FILE] [--doc PREFIX] [--show N] [--json] [--by-doc]
 //! ```
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use rsword::bind::compat_ts::{
-    Report, diff_json, is_drawing_path, is_hf_path, is_span_field_case, is_table_case,
-    is_text_case, known_diffs, parse_known_diffs, parsed_doc, split_known,
+    Report, diff_json, is_drawing_path, is_embedded_diff, is_hf_path, is_span_field_case,
+    is_table_case, is_text_case, known_diffs, on_embedded_block, parse_known_diffs, parsed_doc,
+    split_known,
 };
 use rsword::package::Package;
 use serde_json::{Value, json};
@@ -33,6 +34,9 @@ enum Scope {
     Drawing,
     /// M5 门：全部文档，只计页眉页脚域的路径。
     Hf,
+    /// M6 门：全部文档，只计嵌入对象域——路径本身在域内，或落在期望 label / 标志元素判为
+    /// 嵌入对象的块上（`compat_ts::is_embedded_diff`）。
+    Embedded,
     /// 全部语料。
     All,
 }
@@ -45,6 +49,7 @@ impl Scope {
             Scope::Tables => "tables",
             Scope::Drawing => "drawing",
             Scope::Hf => "hf",
+            Scope::Embedded => "embedded",
             Scope::All => "all",
         }
     }
@@ -62,11 +67,12 @@ struct Args {
 
 fn usage() -> ! {
     eprintln!(
-        "用法: diff-parse [--corpus DIR] [--scope text|fields|tables|drawing|hf|all] [--known KNOWN_DIFFS.md] [--doc PREFIX] [--show N] [--json] [--by-doc]\n\
+        "用法: diff-parse [--corpus DIR] [--scope text|fields|tables|drawing|hf|embedded|all] [--known KNOWN_DIFFS.md] [--doc PREFIX] [--show N] [--json] [--by-doc]\n\
          scope: text = M1 门（纯文本段落），fields = M2 门（再加字段 / 范围 / 批注），\n\
                 tables = M3 门（再加表格），\n\
                 drawing = M4 门（全部文档，只计绘图域**路径**），\n\
-                hf = M5 门（全部文档，只计页眉页脚域**路径**），all = 全部语料\n\
+                hf = M5 门（全部文档，只计页眉页脚域**路径**），\n\
+                embedded = M6 门（全部文档，只计嵌入对象域：路径或所在块），all = 全部语料\n\
          缺省 corpus = <仓库根>/corpus/synthetic，scope = all，known = 编进库里的 KNOWN_DIFFS.md，show = 3"
     );
     std::process::exit(2)
@@ -93,6 +99,7 @@ fn parse_args() -> Args {
                     Some("tables") => Scope::Tables,
                     Some("drawing") => Scope::Drawing,
                     Some("hf") => Scope::Hf,
+                    Some("embedded") => Scope::Embedded,
                     Some("all") => Scope::All,
                     _ => usage(),
                 }
@@ -185,8 +192,8 @@ fn main() -> ExitCode {
             Scope::Text => is_text_case(&expected),
             Scope::Fields => is_span_field_case(&expected),
             Scope::Tables => is_table_case(&expected),
-            // 绘图门与页眉页脚门跑全部文档，筛的是路径不是文档
-            Scope::Drawing | Scope::Hf | Scope::All => true,
+            // 绘图门 / 页眉页脚门 / 嵌入对象门跑全部文档，筛的是路径（或所在块）不是文档
+            Scope::Drawing | Scope::Hf | Scope::Embedded | Scope::All => true,
         };
         if !in_scope {
             skipped_scope += 1;
@@ -205,11 +212,16 @@ fn main() -> ExitCode {
         diff_json(&expected, &actual, &mut diffs);
         let (mut unknown, k) = split_known(diffs, &file, &known);
         // 绘图门只看绘图域路径；别的域各归各的里程碑，混进来这道门永远关不上。
+        // 嵌入对象块上的绘图路径差异（墨迹在 TS 里不可见、画布与 chartex 的图片回退、OLE 变体）
+        // 属于 M6 的门（`embedded`），不进这两道门。
         if args.scope == Scope::Drawing {
-            unknown.retain(|d| is_drawing_path(&d.path));
+            unknown.retain(|d| is_drawing_path(&d.path) && !on_embedded_block(&d.path, &expected));
         }
         if args.scope == Scope::Hf {
-            unknown.retain(|d| is_hf_path(&d.path));
+            unknown.retain(|d| is_hf_path(&d.path) && !on_embedded_block(&d.path, &expected));
+        }
+        if args.scope == Scope::Embedded {
+            unknown.retain(|d| is_embedded_diff(&d.path, &expected));
         }
         if !unknown.is_empty() {
             by_doc.push((file.clone(), unknown.len()));
