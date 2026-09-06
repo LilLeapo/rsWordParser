@@ -38,6 +38,8 @@ Span 索引与 Anchor 变换 / 物化（2.1–2.3）、字段子系统与它的�
 OLE / 公式 / 墨迹的模型与投影、图表与媒体的写侧、`inks` / `partXml` / `kind:"chart"` / `kind:"image"` /
 `replaceImage` 的保存映射。任务分解 `spec/17-m6-plan.md`，逐条进度 `docs/04` §15；今天的 62 处全域未知差异与
 20 份保存跳过就是它的工作面。
+**M6 完成**（2026-09-06，`m6-embedded` 上 6.1–6.9 全部落地，M6 门五条见 `docs/04` §15）：八道 `diff-parse` 门全部为 0
+（`--scope all` 成为第八道，进 CI），保存语料 204 / 208 等价、0 跳过，尚未并入 `main`。
 
 现在这套代码能：打开任意语料文档、输出与 TS 兼容的 `ParsedDoc` JSON（含整个绘图域：图片、文本框
 与形状、细横线、嵌入对象）、以字节级局部补丁写回并保证未编辑内容零改动；在文本段落上插入 / 删除 / 改 run 与段落属性 / 整段替换 / 拆分 / 合并；维护范围
@@ -103,8 +105,8 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
-| 源码行数 / 文件数 | 66,184 行 / 157 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 496（单元 + 集成，36 个集成测试文件） | `cargo test --workspace` |
+| 源码行数 / 文件数 | 66,629 行 / 158 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
+| 测试数 | 498（单元 + 集成，37 个集成测试文件） | `cargo test --workspace` |
 | 语料 | 799 份 synthetic（每份带 `expected.json`；其中 226 份是 M6 的嵌入对象语料 `m6-*`）+ 208 份 `save.<k>.json` + 32 份 hostile（含 4 份绘图、2 份表格、4 份页眉页脚 / 节、6 份嵌入对象） | `ls corpus/*` |
 | 往返字节保真 | 593 份文档、3,140 个 XML part 全部字节相同（3 个 part 按预期解析失败：两份不闭合 XML + 二进制页眉） | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
@@ -118,7 +120,8 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 解析差分（全域） | 799 份里 196 份有未知差异、452 个差异点（嵌入对象域 420 + 零散 32） | `cargo run -p diff-parse -- --scope all` |
 | resolve 校准 fixture | 8 份（7 个 toggle + 1 个节继承）全部 `verified = true`，观察值来自 2026-09-06 的 Word 网页版实测（方法与结论见 `fixtures/resolve/README.md`，未决部分见 `docs/06-toggle-open-question.md`） | `cargo test -p rsword --test resolve_fixtures` |
 | 页眉页脚 / 节的随机序列 | 10 份语料 × 100 步（页眉段落内联编辑 + 五个节 / 页眉页脚操作）：986 次生效、10 次被拒，每步 `refresh == rebuild`、无引擎不变式破坏 | `cargo test -p rsword --test hf_ops -- --nocapture` |
-| 保存差分 | 208 份 TS 保存用例：143 份与 `saveDocx` 等价（其中 43 份逐字节相同）、4 份有意不同、61 份跳过（全属 M6） | `tests/save_blocks.rs` |
+| 保存差分 | 208 份 TS 保存用例：204 份与 `saveDocx` 等价（其中 43 份逐字节相同）、4 份有意不同、0 份跳过 | `tests/save_blocks.rs` |
+| 嵌入对象的随机序列 | 5 份图表 + 5 份图片语料 × 100 步（图表数据 / 新图表 / 新图片 / 换图 / 墨迹增删 / 删块 / 插字）：633 次生效、0 次被拒、36 次保存，每步 `refresh == rebuild`、保存后无新的悬空关系与孤儿 part | `cargo test -p rsword --test embedded_ops -- --nocapture` |
 | 节与页眉页脚 | 573 份 588 个节（与 TS `readSections` 逐份一致）；43 份带页眉页脚 part（47 个 part / 63 个块，`rId` 集合与 `hasPageNumber` 与 TS 一致）；26 个注释 / 批注条目 32 个块 | `cargo test -p rsword --test section --test hf --test notes -- --nocapture` |
 | 节与页眉页脚的编辑操作 | 14 个用例（`SAVE-05` 页眉版、已有 part 只重写该 part、`PROP-05/06` 插入位置与原字节、Strict 水印拒绝、六个操作各一组 XPath 断言、`MOD-13` oracle；另加 4 份 hostile 与 `TEST-07` 的 10 × 100 步随机序列） | `cargo test -p rsword --test hf_ops` |
 | 跨 part 编辑 | **43 / 43** 份带页眉页脚的语料（M5 门第 3 条）：改页眉后只重写该 part，其他条目 CRC 与压缩字节不变，正文投影不变 | `cargo test -p rsword --test hf -- --nocapture` |
@@ -130,14 +133,11 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 段落 / 书签 / 字段操作 | 17 个用例（`SPAN-06` 拆分与合并、`EDIT-06` 书签分配、`FLD-09`/`10`/`12` 各自的验收行） | `cargo test -p rsword --test para_ops` |
 | 批注与注释 | 语料 11 份带批注（17 条）、5 条注释条目；13 个用例（三部件关联、结构条目、`commentIds` 三形态、`noteRef` 编号、`SAVE-05` 新建 part、三个编辑操作、compat 权威列表） | `cargo test -p rsword --test notes` |
 
-全域差异按域聚合（差异点，6.5 后实测 71；m6.0a 扩充语料时 452）：**嵌入对象域 43 / 12 份**（M6 的工作面，
-`--scope embedded` **已归零（6.8 后）**，CI 第七步不再带 `--max-unknown`；**图表域**（6.2）、**SmartArt / 画布域**（6.3）、
-**OLE 域**（6.4）、**公式 / ruby 域**（6.5）与**墨迹域**（6.8）全部归零——
-`chartDisplay` 88、`extras.chartParts` 80、`diagramDisplay` 13、`formulaDisplay` 41、`runs[].math` / `runs[].ruby`、
-`m6-chartex__008` 的图片块、图示与画布的 `previewText` / `label` / `textboxes`、OLE 的 run 图片与字段包裹）、
-**零散 32 / 14 份**（M6 6.9 收尾：Strict 改写 13 已登记候选、`TooDeep` 块形态 4、
-`shape-extraction__014` 的未声明 `wps` 前缀 4、同 run 两张图 3、`pageBreakBefore` 2、WordArt 3、其余 3）。
-文本域、字段与 Span 域、表格域、绘图域、页眉页脚域五道门都是 0（嵌入对象文档 / 块已按 `spec/17` 门第 1 条的边界剔除）。
+全域差异（`--scope all`）**为 0**（M6 6.9 后；m6.0a 扩充语料时 452 / 196 份，6.5 后 71，6.8 后 28）：已登记的 242 处见
+`KNOWN_DIFFS.md`（TS 装载时改写主 part 的三份、未声明 `mc:Choice Requires` 前缀的五份、单元格里的公式 / ruby、没有 `wp:extent`
+的画布、EMF 不在 Rust 侧渲染等）。八道门——文本、字段与 Span、表格、绘图、页眉页脚、嵌入对象、全域——都是 0 并都在 CI 里；
+嵌入对象域从 420 走到 0 的过程：214（6.2 图表）→ 170（6.3 SmartArt / 画布）→ 160（6.4 OLE）→ 43（6.5 公式 / ruby）→ 0（6.8 墨迹），
+6.9 再把域外的 32 处零散差异修掉 12 处、登记 17 处（`docs/04` §15）。
 保存侧 **204 / 208 等价、0 跳过**（6.8 后；剩下 4 份是 `INTENTIONAL`）：图表 13、`partXml` 7、`partBinary` 1、图片 11、
 `replaceImage` 6、墨迹 23 全部等价。
 
@@ -178,7 +178,7 @@ let bytes = s.save_with(&outcome.save_options)?;
   `.rels` 都能建，内容类型 Override 与关系同步写，新 part 追加在 zip 末尾）。5.5 起**页眉页脚 part**
   与 `settings.xml` 也能按需新建（`word/header{N}.xml` 取第一个空闲号），5.7 起再加上样式 /
   编号 / 主题与 **customXml**（`item{N}.xml` + `itemProps{N}.xml` + item 自己的 `.rels`）。
-  还没有的：图表 part（M6）。
+  6.6 起图表 part 与内嵌工作簿、6.7 起媒体 part 也能新建（`SAVE-05` 的机制扩到二进制 part）。
 - **页眉页脚 / 节**：读侧齐了（节模型 5.2、part 内容流 5.3、compat 投影 5.4，域已清零），写侧也齐了
   （5.5 的六个编辑操作 + 5.6 的保存选项，TS 那 39 份用例全部等价）。还没有的是**新建分节符**
   （给某段加 `sectPr` 断节，M7 与段落结构操作一起做）与 `RES-04` 的 toggle 校准（5.8）。
@@ -199,13 +199,15 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 ```sh
 cargo fmt --all --check && cargo clippy --workspace --all-targets   # 零告警
-cargo test --workspace && cargo test --workspace --release          # 496 个测试，两种构建
+cargo test --workspace && cargo test --workspace --release          # 498 个测试，两种构建
 cargo run -p diff-parse -- --scope text                             # M1 门第一条：0 未知差异
 cargo run -p diff-parse -- --scope fields                           # M2 门：字段与 Span 域 0 未知差异
 cargo run -p diff-parse -- --scope tables                           # M3 门：表格域 0 未知差异
 cargo run -p diff-parse -- --scope drawing                          # M4 门：绘图域路径 0 未知差异
 cargo run -p diff-parse -- --scope hf                               # M5 门：页眉页脚域路径 0 未知差异
 cargo run -p diff-parse -- --scope embedded                         # M6 门：嵌入对象域 0 未知差异
+cargo run -p diff-parse -- --scope all                              # 第八道门（M6 6.9）：全域 0 未知差异
+cd fuzz && cargo +nightly fuzz run fuzz_embedded -- -max_total_time=600 # M6 门第 4 条：图表 / 图示 / OMML / 画布解析无崩溃
 cd fuzz && cargo +nightly fuzz run fuzz_instr -- -max_total_time=600 # M2 门：指令 tokenizer 无崩溃
 cargo test -p rsword --test edit                                    # M1 门第二条：其他条目 CRC 不变
 cargo test -p rsword --test save_validate                           # M1 门第三条：Strict 改字仍 Strict

@@ -19,6 +19,9 @@
 | `m6-canvas__006` | `blocks[0]` 的 `type` / `label` / `imageDataUrl` / `previewText` / `diagramDisplay` | 没有 `wp:extent` 的画布：TS 放弃画布、拿画布里第一张图当 `Image` 块；本引擎按画布投影，显示尺寸退回子坐标系 `a:chExt` 的原尺寸（缩放 1） | `wp:inline` 没有 `wp:extent` 是畸形文档（schema 里它是必填的），TS 那条路是 `extractLockedCanvas` 返回 null 后的兜底，不是有意的显示规则；画布里的形状与文字仍然是真相 | 本引擎（功能更强） |
 | `m6-omml__033` | `blocks[*].table.rows[*][*].richParas[*].runs[*]` | 单元格里的 `m:oMath`：TS 一个 run 都不出，本引擎给公式 run（`text` = token，`math.omml`） | TS 的 `extractCell` 调 `extractRuns` 时不传公式片段（`mathFragments` 为空），公式在格里直接消失；Word 是画出来的 | 本引擎（功能更强） |
 | `m6-ruby__005` | `blocks[*].table.rows[*][*].richParas[*].runs[*].ruby` | 单元格里的 `w:ruby`：TS 只给被注正文 `{text}`，本引擎带 `ruby: {rt, xml}` | 同上：`rubyFragments` 为空时 TS 退成 `{text: base}` | 本引擎（功能更强） |
+| `extra__mixed-flavor` | `internal.documentXml`、`internal.bodyInner*`、`extras.elements[*]` | TS 装载时把混合口味（Strict + Transitional）的主 part 改写成 Transitional，偏移随之变化 | 同 `extra__strict-minimal`：本引擎不归一化 | 本引擎（M6 6.9 登记） |
+| `write-protection__004` | `blocks[*].originalXml`、`internal.*`、`extras.elements[*]` | 主 part 用 `x:` 前缀绑定 `w` 命名空间（`<w:p xmlns:x="…/wordprocessingml/2006/main"><w:ins x:id=…>`）；TS 装载时把前缀改写成规范的 `w:`，本引擎按 `COMPAT-04` 给原字节 | 原字节才是真相；`x:id` 与 `w:id` 语义相同，模型侧早已按命名空间解析 | 本引擎（M6 6.9 登记） |
+| `shape-extraction__014` | `blocks[0]` 的 `type` / `label` / `previewText` / `runs` | `mc:Choice Requires="wps"` 而 `wps` 前缀**没有声明**：本引擎按 `XML-09` 走 `mc:Fallback`（VML 文本框 → `Text box` 芯片），TS 用正则取 Choice（随文图片 + 文字的段落） | 同 `cell-anchored-boxes__002` / `hf-images__011` 一条 | 本引擎（规范行为；M6 6.9 登记） |
 | `emf-image__*`（4 份） | 任何 `dataUrl` | TS 把 EMF 渲染成 PNG（导出工具打的占位 `data:image/png;base64,EMFPNG`），本引擎输出 EMF 原字节的 dataURL 并标 `MediaKind::Metafile` | `docs/03` §3.5 冻结：EMF/WMF/EMZ/WMZ 与 TIFF 的转换是可插拔服务，不在 Rust 侧做，由 TS / 渲染端继续转 | 本引擎（有意不同）；语料里 4 份 metafile 媒体全在这些文档 |
 
 ## 定位辅助 part 的差别（不算差异，测试里已对齐）
@@ -41,6 +44,15 @@ balance-dbcs-spacing__*  blocks[*].runs[*].charSpacingTwips       # TS 按双字
 *                        blocks[*].format.charIndents*            # 字符单位缩进（显示层）
 inline-image-mixed__009* blocks[*].runs[*].rawRPr                 # 源文件写 <w:rPr></w:rPr>，TS 重序列化成 <w:rPr/>
 emf-image__*             blocks[*].imageDataUrl                   # EMF 不在 Rust 侧渲染（docs/03 §3.5）
+extra__mixed-flavor*     internal.*                               # TS 装载时把混合口味的主 part 改写成 Transitional（同 extra__strict-minimal，6.9）
+extra__mixed-flavor*     extras.elements[*].*                     # 同上（偏移）
+write-protection__004*   blocks[*].originalXml                    # 主 part 用 x: 前缀绑定 w 命名空间，TS 改写成 w:，本引擎原字节（6.9）
+write-protection__004*   internal.*                               # 同上
+write-protection__004*   extras.elements[*].*                     # 同上（偏移）
+shape-extraction__014*   blocks[0].type                           # 未声明的 mc:Choice Requires="wps"，本引擎走 Fallback（同 cell-anchored-boxes__002，6.9）
+shape-extraction__014*   blocks[0].label                          # 同上
+shape-extraction__014*   blocks[0].previewText                    # 同上
+shape-extraction__014*   blocks[0].runs                           # 同上
 m6-canvas__006*          blocks[0].type                           # 没有 wp:extent 的画布：TS 退成第一张图，本引擎按画布画（6.3）
 m6-canvas__006*          blocks[0].label                          # 同上
 m6-canvas__006*          blocks[0].imageDataUrl                   # 同上

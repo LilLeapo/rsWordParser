@@ -39,3 +39,10 @@ path = "fuzz_targets/fuzz_instr.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "fuzz_embedded"
+path = "fuzz_targets/fuzz_embedded.rs"
+test = false
+doc = false
+bench = false

@@ -557,6 +557,9 @@ pub(super) struct Builder<'a> {
     /// 当前段落开始时的 `depth`：内联容器的深度上限相对它计，块的嵌套不占内联的额度
     /// （第 64 层表格里的段落照样要能建 inlines）。
     inline_base: u32,
+    /// 本段（或它里面嵌着的段落）的内联容器嵌套超过了上限：整段降级为 `TooDeep`（TS 解析失败时整段
+    /// passthrough；我们不能一边丢掉深处的文字一边让段落可编辑，任务 6.9）。
+    inline_too_deep: bool,
 }
 
 impl<'a> Builder<'a> {
@@ -592,6 +595,7 @@ impl<'a> Builder<'a> {
             box_depth: 0,
             box_content: HashMap::new(),
             inline_base: 0,
+            inline_too_deep: false,
         }
     }
 }
@@ -769,6 +773,8 @@ impl<'a> Builder<'a> {
         // 中途嵌套进来（M4 的 `txbxContent` 走同一套段落管线），不还原的话外层会拿到更深的基线
         let outer_inline_base = self.inline_base;
         self.inline_base = self.depth;
+        // 外层段落（文本框宿主）的标志先收起来：里面这段太深，外层随后也会被判太深（它包着这一段）
+        let outer_too_deep = std::mem::replace(&mut self.inline_too_deep, false);
         let ppr = dom.semantic_children(p).find(|&n| dom.is(n, w(LocalName::PPr)));
         let props: ParaProps = read_para_props(dom, ppr, &mut self.warnings);
         let mut facts = ParagraphFacts::compute(dom, p, &props, self.styles, sdt.cloned());
@@ -831,19 +837,33 @@ impl<'a> Builder<'a> {
                 let mut inlines = Vec::new();
                 self.build_inlines(p, None, None, &mut inlines);
                 self.attach_comments(p, &mut inlines);
-                Block::Text(Box::new(TextBlock {
-                    node: p,
-                    kind: text_kind(&facts),
-                    style_id: props.style.clone(),
-                    props,
-                    inlines,
-                    sdt: sdt.cloned(),
-                    revisions,
-                    facts,
-                }))
+                if self.inline_too_deep {
+                    // 深处的内容没有进内联模型：整段只读，字节原样（`MOD-07`；TS 同样整段 passthrough）
+                    Block::Protected(ProtectedBlock {
+                        node: p,
+                        kind: ProtectedKind::TooDeep,
+                        preview: self.preview(p),
+                        display: None,
+                        siblings: Vec::new(),
+                        sdt: sdt.cloned(),
+                        revisions,
+                    })
+                } else {
+                    Block::Text(Box::new(TextBlock {
+                        node: p,
+                        kind: text_kind(&facts),
+                        style_id: props.style.clone(),
+                        props,
+                        inlines,
+                        sdt: sdt.cloned(),
+                        revisions,
+                        facts,
+                    }))
+                }
             }
         };
         self.inline_base = outer_inline_base;
+        self.inline_too_deep |= outer_too_deep;
         block
     }
 
@@ -991,6 +1011,7 @@ impl<'a> Builder<'a> {
         let dom = self.dom;
         if self.depth.saturating_sub(self.inline_base) > MAX_CONTAINER_DEPTH {
             self.warn(container, DiagCode::ModTooDeep, "内联容器嵌套过深");
+            self.inline_too_deep = true;
             let name = dom.name(container).expect("container is an element");
             out.push(Inline::Atom(InlineAtom {
                 node: container,

@@ -33,4 +33,6 @@ jobs:
       # TEST-10 M6 门：全部用例里嵌入对象域（chartDisplay / diagramDisplay / formulaDisplay / inks / 嵌入块上的字段）的差分为 0。
       # M6 门（嵌入对象域，6.8 起归零；6.2–6.7 期间曾用 --max-unknown 做棘轮：214 → 170 → 160 → 43）
       - run: cargo run -p diff-parse -- --scope embedded
+      # TEST-10 第八道门（M6 6.9）：全部语料、全部路径的差分除 KNOWN_DIFFS.md 外为 0
+      - run: cargo run -p diff-parse -- --scope all
   # fuzz 在 .github/workflows/fuzz.yml（手动 / 每周），不挂在每次 push 上。

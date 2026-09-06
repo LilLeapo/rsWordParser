@@ -274,6 +274,12 @@ fn text_box_block(
         "textboxes",
         Value::Array(boxes.iter().map(|b| Value::Object(b.json.clone())).collect()),
     );
+    // TS `hostPageBreak`：宿主段落自己带分页 `w:br`（框里的不算）→ 渲染器要在这里翻页（`out-of-run-breaks__004`）
+    if super::blocks::host_page_break(ctx, p) {
+        let mut fd = Map::new();
+        set(&mut fd, "kind", "pageBreak");
+        set(o, "fieldDisplay", Value::Object(fd));
+    }
     if vml {
         set_some!(o, "imageAlign" => image::jc_align(ctx.dom, p));
         return;

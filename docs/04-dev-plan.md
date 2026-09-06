@@ -318,6 +318,7 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | 墨迹媒体的去重 | `spec/17` 6.8「媒体走 `MediaStore::add`」（去重） | `add_media_with(dedup = false)`：每条墨迹一个 part | TS 也是每条一个（`aidocsink{N}.png`）；两笔画出同一张 PNG 只在测试里发生，去重只会让同段第二条的 `r:embed` 与 TS 分叉（`m6-ink__003/024`）。图片的去重不变（6.8） |
 | 墨迹的判据 | TS `stripInkRuns` / `findInkRuns` 的正则要求 `<w:r><w:drawing><wp:anchor` 紧邻（run 不能有 `rPr`） | 结构判据：`w:drawing` 下的 `wp:anchor` 里有 `wp:docPr/@name` 以 `aidocs-ink` 开头，run 里有没有 `w:rPr` 不管 | 前缀才是语义；带 `rPr` 的墨迹 run 在 TS 里会退成图片块，是正则的副作用不是设计（6.8） |
 | 墨迹锚点不是段落 | TS 静默跳过 | 跳过 + `EDIT_BAD_POSITION` 诊断；同样不分配媒体与关系 | 调用方要知道这条墨迹没写进去（6.8） |
+| 内联容器嵌套过深的段落 | `MOD-07`「块容器超过 64 层的子树降级为 `TooDeep`」；内联容器过深时原来只把那个容器换成一个 `Other` 原子、段落仍是 `Text` | 整段降级为 `Protected(TooDeep)`（`Builder.inline_too_deep`，宿主段落连带） | 深处的文字没进内联模型，段落若仍可编辑，一次 `ReplaceInlines` 就会把它们无声删掉；只读 + 字节原样才安全。TS 对解析不了的段落也是整段 passthrough（`hostile-input__005`，6.9） |
 | 墨迹锚的 `relativeHeight`（保存比较） | — | `COMPAT-09`：`tests/save_blocks.rs` 对 `wp:docPr/@name` 以 `aidocs-ink` 开头的 `wp:anchor` 容忍 `@relativeHeight` | TS 写 `251658240 + docPrId`（id 从 9001 起），我们同样由 `EDIT-06` 的 id 派生——和 id 一样是分配细节；普通锚定图片的 `relativeHeight` 是输入的 z-order，照常比较（6.8） |
 | `TEST-10` 门的 CI 形态 | 「对应域 diff 为 0」 | 还没关上的门用 `diff-parse --max-unknown N` 做棘轮：未知差异 ≤ N 放行，每落地一个任务往下拧，归零后删掉参数 | 门一建就进 CI，回归有人拦，数字有地方掉；`.github/workflows/ci.yml` 第七步（6.2 起 214，6.3 起 170） |
 | `XML-09` `mc:Choice/@Requires` | 前缀按作用域解析 | 作用域里解析不到时，退一步看**分支子树内**有没有声明这个前缀 | 合成语料常把 `xmlns:wps` 写在 `wps:wsp` 元素自己身上，`Requires="wps"` 于是在 `mc:Choice` 处解析不出来、整段退到 VML Fallback（16 份文档）。意图毫无歧义，按分支内的声明认；前缀在**任何地方**都没声明的情况（`numbering-defs__012`）行为不变，仍是已知差异 |
@@ -1107,6 +1108,16 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
 **m6.0a 扩充语料后**（2026-09-06，799 份 / 208 份保存用例 / 32 份 hostile）：`--scope embedded` 420 处 / 182 份，`--scope all`
 452 / 196（本域之外 32 / 14），保存 143 / 208 等价、61 份被 M6 阻塞；五道既有的门仍为 0。
 
+### M6 门（2026-09-06 实测）
+
+| # | 条件 | 状态 |
+| --- | --- | --- |
+| 1 | `--scope embedded` 0 未知差异，`text` / `fields` / `tables` / `drawing` / `hf` 继续为 0 | **通过**（799 份；六道门都是 0。域内 420 → 214（6.2）→ 170（6.3）→ 160（6.4）→ 43（6.5）→ 0（6.8）） |
+| 2 | 被 M6 阻塞的 61 份保存用例全部等价或登记；跳过清单为空 | **通过**（208 份里 204 等价、4 份 `INTENTIONAL`（3 份修订 `w:id`、1 份空 `commentReference` run）、0 跳过；143 → 164（6.6）→ 181（6.7）→ 204（6.8）） |
+| 3 | 往返：墨迹 / 新图表 / `SetChartData` 各自的语义 + `SAVE-06` 其他条目 CRC 不变 | **通过**（`tests/ink.rs` 权威列表往返；`tests/chart_ops.rs` 新图表重解析相等、`SetChartData` 只有被改的文本节点脏；`tests/media_ops.rs` / `chart_ops.rs` 的 CRC 断言） |
+| 4 | 6 份嵌入对象 hostile 解析成功、局部降级、无编辑保存字节相同；`fuzz_embedded` 10 分钟无崩溃 | **通过**（`tests/embedded.rs::test_09_hostile_embedded_documents_save_byte_identical` + 各域的降级断言；`fuzz_embedded` 本地 60 秒无崩溃，10 分钟在 `fuzz.yml` 每周跑） |
+| 5 | 本域之外的零散差异修掉或登记，`--scope all` 归零并进 CI | **通过**（32 → 0：修 12 处、登记 17 处；CI 第八步 `--scope all`） |
+
 - [x] **m6.0 语料与工具**：`tools/export-golden/try.sh`（单文件导出到临时目录）、`M6-CORPUS.md`（给 codex / kimi 的任务书）、
   `docs/07-real-word-corpus.md`（桌面 Word 语料清单）。**m6.0a** 两位 agent 的 `embedded-graphics.export.test.ts` /
   `embedded-text.export.test.ts` + 6 份 hostile；重导时发现录制器按哈希去重、vitest 文件顺序不稳会让既有 stem 漂移
@@ -1249,4 +1260,21 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   权威列表（模板逐段、重开一致、重复保存不累积、换锚点旧 run 消失、`Some([])` 删并回收媒体与关系、`None` 字节相同）；自闭合
   空段 + 同段两条各一个 part；表格锚点跳过无孤儿 + 诊断；`hostile/ink-garbage`（悬空 `r:embed` → `dataUrl: null`、`&quot;` /
   `&amp;` 解码、非数字 `posOffset` → 0、无编辑保存字节相同）。`tests/model.rs` 的 `("m6-ink__", "kind")` 已删。
-- [ ] **6.9 恶意输入、fuzz、全域收尾与 M6 门**：6 份 hostile、`fuzz_embedded`、100 × 10 随机序列、40 处零散差异修掉或登记、`--scope embedded` 与 `--scope all` 进 CI。
+- [x] **6.9 恶意输入、fuzz、全域收尾与 M6 门**（2026-09-06）：六份 hostile（m6.0a 已进语料）补上共同底线的用例——解析成功、
+  无引擎不变式破坏、无编辑保存字节相同（`tests/embedded.rs`；各域的降级断言早在 6.1–6.8 的测试里）；`fuzz/fuzz_targets/
+  fuzz_embedded.rs`（任意字节 → `Dom::parse` → `ChartPart::build` / `diagram_text` / `diagram_shapes` / 每个 `m:oMath` 的 `tokens` /
+  `to_mathml` / `to_latex` / 每个 `lc:lockedCanvas` 的 `canvas_display`；进 `fuzz.yml` 矩阵，本地 60 秒无崩溃）；`tests/embedded_ops.rs`
+  的 `TEST-07` 随机序列——5 份图表 + 5 份图片语料各 100 步（`SetChartData` / `InsertBlock{Chart}` / `InsertBlock{Image}` /
+  `ReplaceImageMedia` / `InsertInk` / `RemoveInks` / `DeleteBlock` / `InsertText`），每步 `refresh == rebuild`（块与墨迹表）与无引擎
+  不变式破坏，每 20 步保存 + 重解析并断言包里没有**新的**悬空关系与孤儿 part（与源文档基线比），实测 633 次生效、0 次被拒、36 次
+  保存。**全域收尾**（`--scope all` 28 → 0）：修了六处——(a) 内联容器嵌套过深的段落整段降级为 `Protected(TooDeep)`（`Builder.
+  inline_too_deep`，深处的文字不再一边丢一边让段落可编辑；compat 出 `passthrough` + `Paragraph` + `previewText`，
+  `hostile-input__005`，§8）；(b) 图片块之前的分页 run → `format.pageBreakBefore`（TS `applyProtectedLeadingBreaks`，
+  `inline-image-mixed__002/003`）；(c) 文本框宿主段落自己的分页 → `fieldDisplay: pageBreak`（TS `hostPageBreak`，
+  `out-of-run-breaks__004`）；(d) `w:fldSimple/@w:instr` 参与字段标签（`vml-textbox__008` → `Page number field`）；(e) R16 只含
+  画不出来的 VML（仅 shapetype / 隐藏形状）的段落标 `Drawing object`，R08 样式 vanish 的仍是 `Hidden paragraph`（TS
+  `isInvisibleVmlPict`，`wordart-vml__006`）；(f) `w14:textFill` 当颜色：实心直接取、渐变取停靠点平均（TS `w14TextFillHex`；
+  `resolve::drawingml` 的颜色解析按命名空间参数化，`w14:val` 这类带前缀的属性也认，`wordart-vml__012/013`）。登记三份（`KNOWN_DIFFS.md`）：
+  `extra__mixed-flavor`（TS 装载时改写成 Transitional，同 `extra__strict-minimal`）、`write-protection__004`（主 part 用 `x:` 前缀
+  绑定 `w` 命名空间，TS 改写成 `w:`，我们原字节）、`shape-extraction__014`（未声明的 `mc:Choice Requires="wps"`，同
+  `cell-anchored-boxes__002`）。CI 第八步 `cargo run -p diff-parse -- --scope all`。**M6 门五条全部通过**（上表）。

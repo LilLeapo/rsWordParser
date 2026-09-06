@@ -129,13 +129,24 @@ fn apply(rgb: Rgb, t: ColorTransform) -> Rgb {
 
 /// 容器里的第一个颜色元素（`a:solidFill` / `a:gs` / `a:fillRef` / `a:lnRef` / `a:fgClr` …）。
 pub fn color_in(dom: &Dom, container: NodeId) -> Option<DrawingColor> {
-    dom.semantic_children(container).find_map(|c| parse_color(dom, c))
+    color_in_ns(dom, container, NsId::A)
+}
+
+/// 同 [`color_in`]，颜色元素在 `ns` 命名空间下（`w14:solidFill` / `w14:gs` 里的 `w14:srgbClr` /
+/// `w14:schemeClr` 与 DrawingML 同一套语法，任务 6.9）。
+pub fn color_in_ns(dom: &Dom, container: NodeId, ns: NsId) -> Option<DrawingColor> {
+    dom.semantic_children(container).find_map(|c| parse_color_ns(dom, c, ns))
 }
 
 /// 颜色元素本身（`a:srgbClr` / `a:sysClr` / `a:prstClr` / `a:schemeClr` / `a:scrgbClr` / `a:hslClr`）。
 pub fn parse_color(dom: &Dom, node: NodeId) -> Option<DrawingColor> {
+    parse_color_ns(dom, node, NsId::A)
+}
+
+/// 同 [`parse_color`]，元素与它的变换子元素都在 `ns` 命名空间下。
+pub fn parse_color_ns(dom: &Dom, node: NodeId, ns: NsId) -> Option<DrawingColor> {
     let name = dom.name(node)?;
-    if name.ns != NsId::A {
+    if name.ns != ns {
         return None;
     }
     let val = attr(dom, node, LocalName::Val);
@@ -166,14 +177,14 @@ pub fn parse_color(dom: &Dom, node: NodeId) -> Option<DrawingColor> {
         },
         _ => return None,
     };
-    Some(DrawingColor { node, base, transforms: transforms_of(dom, node) })
+    Some(DrawingColor { node, base, transforms: transforms_of(dom, node, ns) })
 }
 
-fn transforms_of(dom: &Dom, color: NodeId) -> Vec<ColorTransform> {
+fn transforms_of(dom: &Dom, color: NodeId, ns: NsId) -> Vec<ColorTransform> {
     let mut out = Vec::new();
     for c in dom.semantic_children(color) {
         let Some(name) = dom.name(c) else { continue };
-        if name.ns != NsId::A {
+        if name.ns != ns {
             continue;
         }
         let Some(v) = attr_pct(dom, c) else { continue };
@@ -191,8 +202,12 @@ fn transforms_of(dom: &Dom, color: NodeId) -> Vec<ColorTransform> {
     out
 }
 
+/// 无前缀的属性；没有时再试元素自己的命名空间——DrawingML 写 `<a:srgbClr val=…>`，Word 2010 的
+/// `w14:*` 颜色写 `<w14:srgbClr w14:val=…>`（任务 6.9）。
 fn attr(dom: &Dom, node: NodeId, local: LocalName) -> Option<String> {
-    dom.attr_value(node, QName::new(NsId::None, local)).map(|s| s.trim().to_string())
+    dom.attr_value(node, QName::new(NsId::None, local))
+        .or_else(|| dom.attr_value(node, QName::new(dom.name(node)?.ns, local)))
+        .map(|s| s.trim().to_string())
 }
 
 fn num(dom: &Dom, node: NodeId, local: LocalName) -> Option<f64> {

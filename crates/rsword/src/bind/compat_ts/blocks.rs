@@ -808,7 +808,14 @@ fn paragraph_block(
         },
         Some(Block::Protected(pb)) => match &pb.kind {
             ProtectedKind::Invisible => {
-                let mut o = passthrough(o, "Hidden paragraph");
+                // R08（样式链 vanish）→ TS `Hidden paragraph`；R16（只有画不出来的 VML：仅 shapetype /
+                // 隐藏形状）→ TS `isInvisibleVmlPict` 的 `Drawing object`（`wordart-vml__006`，任务 6.9）
+                let style_vanish = para_style_id(ctx, p)
+                    .is_some_and(|s| ctx.style_disp(&s, StyleType::Paragraph).vanish == Some(true));
+                let has_pict = ctx.dom.descendants(p).any(|n| ctx.dom.is(n, w(LocalName::Pict)));
+                let label =
+                    if !style_vanish && has_pict { "Drawing object" } else { "Hidden paragraph" };
+                let mut o = passthrough(o, label);
                 set(&mut o, "invisibleMarker", true);
                 o
             }
@@ -940,6 +947,12 @@ fn paragraph_block(
             if let Some(d) = drawing {
                 image::image_meta(ctx, Some(p), d, &mut o);
             }
+            // TS `applyProtectedLeadingBreaks`：图片块吞掉了段落的 run，写在图形之前的分页 run 会无声
+            // 消失，而 Word 在那里翻页——等价地记成段落级 `pageBreakBefore`（只对 `image` 块，任务 6.9）
+            if o.get("type").and_then(Value::as_str) == Some("image") && leading_page_break(ctx, p)
+            {
+                set(&mut o, "format", json!({ "pageBreakBefore": true }));
+            }
             o
         }
         _ => {
@@ -1015,10 +1028,95 @@ fn first_instr_keyword(ctx: &Ctx<'_>, p: NodeId) -> Option<Keyword> {
             LocalName::FldChar | LocalName::T if !pending.trim().is_empty() => {
                 return Some(instr_keyword(&pending));
             }
+            // `w:fldSimple/@w:instr`（TS `fieldLabel` 的第二个来源，`vml-textbox__008`）
+            LocalName::FldSimple if pending.trim().is_empty() => {
+                if let Some(instr) = ctx.attr(n, NsId::W, LocalName::Instr)
+                    && !instr.trim().is_empty()
+                {
+                    return Some(instr_keyword(&instr));
+                }
+            }
             _ => {}
         }
     }
     (!pending.trim().is_empty()).then(|| instr_keyword(&pending))
+}
+
+/// `w14:textFill` → 6 位 hex（TS `w14TextFillHex`）：`w14:solidFill` 的颜色，或 `w14:gradFill/w14:gsLst` 各停靠点
+/// 的等权平均；颜色语法与 DrawingML 相同（`srgbClr` / `schemeClr` + `lumMod` / `lumOff` / `shade` / `tint` / `satMod`）。
+fn text_fill_hex(ctx: &Ctx<'_>, tf: NodeId) -> Option<String> {
+    use crate::resolve::drawingml::{average, color_in_ns, hex};
+    let dom = ctx.dom;
+    let palette = ctx.resolver.palette();
+    let w14 = |l: LocalName| QName::new(NsId::W14, l);
+    if let Some(solid) = dom.semantic_children(tf).find(|&c| dom.is(c, w14(LocalName::SolidFill))) {
+        return color_in_ns(dom, solid, NsId::W14).and_then(|c| c.to_rgb(palette)).map(hex);
+    }
+    let grad = dom.semantic_children(tf).find(|&c| dom.is(c, w14(LocalName::GradFill)))?;
+    let gs_lst = dom.semantic_children(grad).find(|&c| dom.is(c, w14(LocalName::GsLst)))?;
+    let stops: Vec<_> = dom
+        .semantic_children(gs_lst)
+        .filter(|&g| dom.is(g, w14(LocalName::Gs)))
+        .filter_map(|g| color_in_ns(dom, g, NsId::W14).and_then(|c| c.to_rgb(palette)))
+        .collect();
+    average(&stops).map(hex)
+}
+
+/// TS `hostPageBreak`：宿主段落自己（不算文本框内容）有没有分页 `w:br`。
+pub(super) fn host_page_break(ctx: &Ctx<'_>, p: NodeId) -> bool {
+    let dom = ctx.dom;
+    let mut stack = vec![p];
+    while let Some(n) = stack.pop() {
+        if dom.is(n, w(LocalName::TxbxContent)) {
+            continue;
+        }
+        if dom.is(n, w(LocalName::Br))
+            && ctx.attr(n, NsId::W, LocalName::Type).as_deref() == Some("page")
+        {
+            return true;
+        }
+        stack.extend(dom.children(n).iter().rev());
+    }
+    false
+}
+
+/// TS `applyProtectedLeadingBreaks` 的判据：第一个图形（`w:drawing` / `w:pict` / `w:object`）之前有分页
+/// `w:br`，且分页之前没有可见文字。
+fn leading_page_break(ctx: &Ctx<'_>, p: NodeId) -> bool {
+    let dom = ctx.dom;
+    let mut saw_break = false;
+    let mut stack = vec![p];
+    while let Some(n) = stack.pop() {
+        let Some(name) = dom.name(n) else {
+            if !saw_break && dom.text(n).is_some_and(|t| !t.trim().is_empty()) {
+                // 文字节点：分页之前有字就不算（`w:t` 之外的文字，如 instrText，TS 也不数——只看 w:t）
+            }
+            continue;
+        };
+        if name.ns == NsId::W {
+            match name.local {
+                LocalName::Drawing | LocalName::Pict | LocalName::Object => return saw_break,
+                LocalName::Br
+                    if ctx.attr(n, NsId::W, LocalName::Type).as_deref() == Some("page") =>
+                {
+                    saw_break = true;
+                    continue;
+                }
+                LocalName::T if !saw_break => {
+                    if dom
+                        .semantic_children(n)
+                        .any(|t| dom.text(t).is_some_and(|s| !s.trim().is_empty()))
+                    {
+                        return false;
+                    }
+                    continue;
+                }
+                _ => {}
+            }
+        }
+        stack.extend(dom.children(n).iter().rev());
+    }
+    false
 }
 
 fn instr_keyword(raw: &str) -> Keyword {
@@ -2312,6 +2410,10 @@ pub(super) fn run_format_json(
     }
     if let Some(c) = props.color.as_ref().and_then(|c| r.color(c)) {
         set(o, "color", rgb_hex(c));
+    } else if let Some(hex) = props.text_fill.and_then(|tf| text_fill_hex(ctx, tf)) {
+        // TS `w14TextFillHex`：WordArt 文字填充（`w14:textFill`）当作颜色——实心直接取，渐变取停靠点的
+        // 等权平均（显示近似；`wordart-vml__012/013`，任务 6.9）
+        set(o, "color", hex);
     }
     let sz = if cs { &props.size_cs } else { &props.size };
     if let Some(n) = u32_of(sz).filter(|&n| n != 0) {

@@ -243,3 +243,30 @@ fn edit_02_text_edits_step_around_the_ole_atom_and_deletion_removes_the_run() {
     assert_eq!(text, "abcd", "{}", v["blocks"][0]);
     assert!(runs.iter().all(|r| r.get("image").is_none()));
 }
+
+/// `TEST-09`（M6 6.9）：六份嵌入对象的病态输入解析成功、局部降级（各自的诊断在 `tests/chart.rs` /
+/// `diagram.rs` / `math.rs` / `ink.rs` 里逐份断言），这里钉住共同的底线——无编辑保存字节相同、没有引擎不变式破坏。
+#[test]
+fn test_09_hostile_embedded_documents_save_byte_identical() {
+    for name in [
+        "chart-part-malformed.docx",
+        "chart-missing-rel.docx",
+        "diagram-cyclic-cxn.docx",
+        "canvas-degenerate.docx",
+        "omml-deep.docx",
+        "ink-garbage.docx",
+    ] {
+        let bytes = std::fs::read(common::corpus_dir("hostile").join(name)).unwrap();
+        let mut s = EditSession::open(&bytes).unwrap_or_else(|e| panic!("{name}: {e}"));
+        let v = parsed(&bytes);
+        assert!(!v["blocks"].as_array().unwrap().is_empty(), "{name}: 投影出块");
+        assert!(
+            !s.diagnostics()
+                .iter()
+                .any(|d| d.origin == rsword::ValidationOrigin::EngineInvariantViolation),
+            "{name}: {:?}",
+            s.diagnostics()
+        );
+        assert_eq!(s.save().unwrap(), bytes, "{name}: 无编辑保存字节相同");
+    }
+}
