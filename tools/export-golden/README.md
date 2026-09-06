@@ -32,6 +32,24 @@ include 是 `export-golden.tmp*/*.export.test.ts`）。
 
 前提：genoffice 已 `npm install`（根 `node_modules/.bin/vitest` 存在）；Node ≥ 22（`node:zlib` 的 `crc32`）。
 
+## 重导的稳定性与噪音（2026-09-06 起）
+
+- **文件顺序固定**：录制器按字节哈希去重（同一份 docx 谁先跑到谁拿 stem）、`.save.<k>` 的 k 按调用序编号，
+  所以 vitest 的文件顺序一变，既有 stem 与 k 就会漂（`resource-cleanup__001` 曾整份换名成 `image-wrap__006`）。
+  `vitest.config.ts` 的 `StableSequencer` 按 `file-order.ts`（首次导出时的实际录制顺序，由 main 上的 manifest 反推）
+  排文件，新文件排最后。**`file-order.ts` 只许追加**：新的 `*.export.test.ts` 不必登记（自动排在最后、按字典序），
+  genoffice 新增的测试文件也一样。
+- **新导出文件里的源文档要字节唯一**：与 genoffice 自己测试同形的文档会被去重、抢走对方的 stem。约定在
+  `bodyXml` 开头放一条 `<!--<stem>-->` 注释（`embedded-*.export.test.ts` 都这么做；TS 与 Rust 两侧的
+  `bodyInnerStart` / `extras.elements` 都跳过注释，已核对无差异）。
+- **每次重导必然变、但没有意义的字节**（重导后按下面的规则**还原**成 HEAD 版本再提交，保持 diff 可审）：
+  `*.save.*.json` 的 `outputSha256`（`saveDocx` 写入保存时间）；`write-protection__001.save.{1,2,10}.json` 的
+  `options.protection / writeProtection` 的 `hash / salt`（TS 每次随机生成盐）；`corpus/hostile/*.docx` 与
+  `corpus/synthetic/extra__*.docx` 的 zip 时间戳（内容与大小不变）。还原的判据：save.json 只有上述键不同、
+  docx 大小不变。
+- `corpus/hostile/table-cell-no-paragraph.docx` 与 `table-grid-mismatch.docx` 不是本工具生成的（M3 手工构造），
+  `run.sh` 会删掉它们：重导后 `git checkout` 回来，并把它们的两条记录并回 `manifest.json`。
+
 ## 局限
 
 - 只捕获经 `./helpers/build-docx` 与 `../src/index` 导入的调用；直接用 JSZip 拼包或从 `../src/parse` 导入 `saveDocx` 的用例不在其中（`manifest.jsonl` 里看不到就是没捕获）。

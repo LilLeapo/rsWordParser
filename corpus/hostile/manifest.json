@@ -80,16 +80,6 @@
     "expectation": "PackageFlavor::Mixed; each part keeps its own flavor"
   },
   {
-    "name": "table-grid-mismatch.docx",
-    "bytes": 1043,
-    "expectation": "parses; MOD_TABLE_SHAPE + SAVE_TABLE_GRID\u662fPreExisting; column ops Err(EDIT_TABLE_GRID_INCONSISTENT); unedited save byte-identical"
-  },
-  {
-    "name": "table-cell-no-paragraph.docx",
-    "bytes": 987,
-    "expectation": "parses; MOD_TABLE_SHAPE; unedited save byte-identical; InsertBlock in the cell appends a w:p"
-  },
-  {
     "name": "drawing-deep-groups.docx",
     "bytes": 4475,
     "expectation": "parses; group depth > 64 degrades, no stack overflow"
@@ -128,5 +118,45 @@
     "name": "hf-deep-txbx.docx",
     "bytes": 4952,
     "expectation": "MOD_TOO_DEEP; the header projection stays iterative and does not overflow the stack"
+  },
+  {
+    "name": "chart-part-malformed.docx",
+    "bytes": 3032,
+    "expectation": "parses; chart block without chartDisplay; PKG_OPAQUE_PART; unedited save byte-identical"
+  },
+  {
+    "name": "chart-missing-rel.docx",
+    "bytes": 2260,
+    "expectation": "parses; PKG_REL_MISSING; no chartDisplay"
+  },
+  {
+    "name": "diagram-cyclic-cxn.docx",
+    "bytes": 31062,
+    "expectation": "parses without hanging; all texts kept once"
+  },
+  {
+    "name": "canvas-degenerate.docx",
+    "bytes": 2427,
+    "expectation": "parses; MOD_BAD_GEOMETRY; no non-finite numbers in output"
+  },
+  {
+    "name": "omml-deep.docx",
+    "bytes": 2351,
+    "expectation": "parses; MOD_TOO_DEEP; no stack overflow"
+  },
+  {
+    "name": "ink-garbage.docx",
+    "bytes": 2554,
+    "expectation": "parses; inks[0].dataUrl null; payload decoded; offsets 0"
+  },
+  {
+    "name": "table-grid-mismatch.docx",
+    "bytes": 1043,
+    "expectation": "parses; MOD_TABLE_SHAPE + SAVE_TABLE_GRID是PreExisting; column ops Err(EDIT_TABLE_GRID_INCONSISTENT); unedited save byte-identical"
+  },
+  {
+    "name": "table-cell-no-paragraph.docx",
+    "bytes": 987,
+    "expectation": "parses; MOD_TABLE_SHAPE; unedited save byte-identical; InsertBlock in the cell appends a w:p"
   }
 ]

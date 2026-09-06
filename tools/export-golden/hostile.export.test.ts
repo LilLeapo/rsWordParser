@@ -445,3 +445,145 @@ describe('TEST-09 hostile corpus', () => {
     expect(manifest.length).toBeGreaterThanOrEqual(24)
   })
 })
+
+describe('M6 嵌入对象病态输入（任务书 §7）', () => {
+  const CHART_CT = 'application/vnd.openxmlformats-officedocument.drawingml.chart+xml'
+  const DGM = 'http://schemas.openxmlformats.org/drawingml/2006/diagram'
+
+  it('chart part 标签不闭合', async () => {
+    // chart part 里 <c:chart> 不闭合：文档本身完好，图表 part 应整 part 降级
+    const malformed = real.CHART_PART_XML.replace('</c:chart></c:chartSpace>', '</c:chartSpace>')
+    emit(
+      'chart-part-malformed',
+      await real.buildDocx({
+        bodyXml: real.CHART_PARAGRAPH_XML + PLAIN,
+        extraRels: real.CHART_RELS,
+        extraParts: [{ path: 'word/charts/chart1.xml', xml: malformed, contentType: CHART_CT }],
+      }),
+      'parses; chart block without chartDisplay; PKG_OPAQUE_PART; unedited save byte-identical',
+    )
+  })
+
+  it('c:chart r:id 悬空；另一段 cx:chart 无 Fallback', async () => {
+    // chartex（cx:chart）直接裸露在 graphicData 里，没有 mc:AlternateContent 的 Fallback 图片
+    const chartexP =
+      '<w:p><w:r><w:drawing><wp:inline><wp:extent cx="5486400" cy="3200400"/>' +
+      `<a:graphic xmlns:a="${A}"><a:graphicData uri="http://schemas.microsoft.com/office/drawing/2014/chartex">` +
+      `<cx:chart xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:r="${R}" r:id="rId31"/>` +
+      '</a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>'
+    emit(
+      'chart-missing-rel',
+      await real.buildDocx({ bodyXml: real.CHART_PARAGRAPH_XML + chartexP + PLAIN }),
+      'parses; PKG_REL_MISSING; no chartDisplay',
+    )
+  })
+
+  it('SmartArt cxn 成环 + 自指 + srcOrd 缺失 + 5000 个 dgm:pt', async () => {
+    const pts: string[] = []
+    for (let i = 0; i < 5000; i++) {
+      pts.push(
+        `<dgm:pt modelId="{${i}}"><dgm:t><a:bodyPr/><a:p><a:r><a:t>节点${i}</a:t></a:r></a:p></dgm:t></dgm:pt>`,
+      )
+    }
+    const cxns =
+      // A→B→A 成环
+      `<dgm:cxn modelId="{c1}" dgm:type="parOf" dgm:srcId="{0}" dgm:destId="{1}" dgm:srcOrd="0" dgm:dstOrd="0"/>` +
+      `<dgm:cxn modelId="{c2}" dgm:type="parOf" dgm:srcId="{1}" dgm:destId="{0}" dgm:srcOrd="0" dgm:dstOrd="0"/>` +
+      // 自指
+      `<dgm:cxn modelId="{c3}" dgm:type="parOf" dgm:srcId="{2}" dgm:destId="{2}" dgm:srcOrd="0" dgm:dstOrd="0"/>` +
+      // srcOrd 缺失
+      `<dgm:cxn modelId="{c4}" dgm:type="parOf" dgm:srcId="{3}" dgm:destId="{4}" dgm:dstOrd="0"/>`
+    const dataXml =
+      XML_DECL +
+      `<dgm:dataModel xmlns:dgm="${DGM}" xmlns:a="${A}">` +
+      `<dgm:ptLst>${pts.join('')}</dgm:ptLst><dgm:cxnLst>${cxns}</dgm:cxnLst></dgm:dataModel>`
+    const smartartP =
+      '<w:p><w:r><w:drawing><wp:inline><wp:extent cx="5486400" cy="419100"/>' +
+      `<a:graphic xmlns:a="${A}"><a:graphicData uri="${DGM}">` +
+      `<dgm:relIds xmlns:dgm="${DGM}" xmlns:r="${R}" r:dm="rId40" r:lo="rId41" r:qs="rId42" r:cs="rId43"/>` +
+      '</a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>'
+    emit(
+      'diagram-cyclic-cxn',
+      await real.buildDocx({
+        bodyXml: smartartP + PLAIN,
+        extraRels: `<Relationship Id="rId40" Type="${REL_T}/diagramData" Target="diagrams/data1.xml"/>`,
+        extraParts: [
+          {
+            path: 'word/diagrams/data1.xml',
+            xml: dataXml,
+            contentType: 'application/vnd.openxmlformats-officedocument.drawingml.diagramData+xml',
+          },
+        ],
+      }),
+      'parses without hanging; all texts kept once',
+    )
+  })
+
+  it('lockedCanvas 退化几何', async () => {
+    // chExt 为 0 与负数（缩放除零/负缩放）、坐标 1e30、字号 sz="-5"、a:pic 无 a:blip
+    const canvas =
+      '<w:p><w:r><w:drawing><wp:inline><wp:extent cx="914400" cy="914400"/>' +
+      `<a:graphic xmlns:a="${A}"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/lockedCanvas">` +
+      '<lc:lockedCanvas xmlns:lc="http://schemas.openxmlformats.org/drawingml/2006/lockedCanvas">' +
+      '<a:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="914400" cy="914400"/>' +
+      '<a:chOff x="0" y="0"/><a:chExt cx="0" cy="-914400"/></a:xfrm></a:grpSpPr>' +
+      '<a:sp><a:nvSpPr><a:cNvPr id="2" name="s2"/><a:cNvSpPr/><a:nvPr/></a:nvSpPr>' +
+      '<a:spPr><a:xfrm><a:off x="1e30" y="-1e30"/><a:ext cx="-500" cy="0"/></a:xfrm>' +
+      '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></a:spPr>' +
+      '<a:txBody><a:bodyPr/><a:p><a:r><a:rPr lang="zh-CN" sz="-5"/><a:t>退化</a:t></a:r></a:p></a:txBody></a:sp>' +
+      '<a:pic><a:nvPicPr><a:cNvPr id="3" name="p3"/><a:cNvPicPr/><a:nvPr/></a:nvPicPr>' +
+      '<a:blipFill><a:stretch><a:fillRect/></a:stretch></a:blipFill>' +
+      '<a:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="100" cy="100"/></a:xfrm>' +
+      '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></a:spPr></a:pic>' +
+      '</lc:lockedCanvas></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>'
+    emit(
+      'canvas-degenerate',
+      await real.buildDocx({ bodyXml: canvas + PLAIN }),
+      'parses; MOD_BAD_GEOMETRY; no non-finite numbers in output',
+    )
+  })
+
+  it('OMML 3000 层分数套娃', async () => {
+    const deep =
+      '<m:f><m:num>'.repeat(3000) +
+      '<m:r><m:t>x</m:t></m:r>' +
+      '</m:num></m:f>'.repeat(3000)
+    emit(
+      'omml-deep',
+      await real.buildDocx({ bodyXml: `<w:p><m:oMath>${deep}</m:oMath></w:p>` + PLAIN }),
+      'parses; MOD_TOO_DEEP; no stack overflow',
+    )
+  })
+
+  it('aidocs-ink run：悬空 r:embed、descr 实体、posOffset 非数字', async () => {
+    const inkRun =
+      '<w:r><w:drawing>' +
+      `<wp:anchor xmlns:wp="${WP}" distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="251658247" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1">` +
+      '<wp:simplePos x="0" y="0"/>' +
+      '<wp:positionH relativeFrom="column"><wp:posOffset>abc</wp:posOffset></wp:positionH>' +
+      '<wp:positionV relativeFrom="paragraph"><wp:posOffset>-abc</wp:posOffset></wp:positionV>' +
+      '<wp:extent cx="1000" cy="800"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/>' +
+      '<wp:docPr id="7" name="aidocs-ink 7" descr="{&quot;strokes&quot;:[{&quot;tool&quot;:&quot;pen&amp;ink&quot;}]}"/>' +
+      '<wp:cNvGraphicFramePr/>' +
+      `<a:graphic xmlns:a="${A}"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
+      '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
+      '<pic:nvPicPr><pic:cNvPr id="7" name="aidocs-ink 7"/><pic:cNvPicPr/></pic:nvPicPr>' +
+      '<pic:blipFill><a:blip r:embed="rIdGone"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>' +
+      '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1000" cy="800"/></a:xfrm>' +
+      '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>' +
+      '</pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>'
+    emit(
+      'ink-garbage',
+      await real.buildDocx({
+        bodyXml: `<w:p>${inkRun}<w:r><w:t>批注段</w:t></w:r></w:p>` + PLAIN,
+      }),
+      'parses; inks[0].dataUrl null; payload decoded; offsets 0',
+    )
+  })
+
+  it('重写 hostile manifest（含本节 6 份）', () => {
+    // 已有 describe 的 manifest 落盘 it 先于本节执行，这里用完整数组重写一遍
+    writeFileSync(join(HOSTILE!, 'manifest.json'), JSON.stringify(manifest, null, 2))
+    expect(manifest.length).toBeGreaterThanOrEqual(30)
+  })
+})
