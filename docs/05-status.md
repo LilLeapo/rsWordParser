@@ -65,7 +65,7 @@ part、挂"同前"引用、写删文字水印、设页面底色与文档级开�
 | resolve `resolve/` | 首版 + 表格 + 节 | 样式链（basedOn / link）、docDefaults 层叠、每字段 `Provenance`、主题字体与颜色、符号字体解码、heading 级别、DrawingML 颜色算法、**节视图**（`RES-10` 的六槽继承与有效变体，5.2）；**表格视图**（`tblLook`、表格样式链的条件格式、边框 / 边距回退、行高截断、`ColumnView` 的四条列宽启发式与 `hMerge` 折叠、`RES-03` 第 4 层；3.4） | toggle 规则里 `strike` 一族只在 Word 网页版测过、`vanish` 与 `bCs` / `iCs` 没测到（`docs/06-toggle-open-question.md`）、补全 Wingdings 2/3 与 Webdings 映射表 |
 | L4 编辑 `edit/` | 段落 / 范围 / 字段操作齐了，单元格内可编辑 | `EditSession`（含范围索引）、`InlinePos` 定位、`MutationPlan` plan/validate/commit、按 part 回滚的事务（DOM + 索引）、`InsertText`、`DeleteRange`（同段）、`SetRunProps`、`SetParaProps`、`ReplaceInlines`、`ReplaceParaProps`、`InsertBlock`/`DeleteBlock`/`MoveBlock`、`SPAN-06/07` 锚点维护、`AddComment`/`RemoveComment`/`SetCommentText`（含 `SAVE-05` 新建 part）、`SplitParagraph`/`MergeWithNext`、`AddBookmark`/`RemoveBookmark`、`InsertField`/`SetLinkTarget`/`ToggleCheckbox`/`SetFormText`/`SetFieldResultProps`/`UpdateBlockField`；**单元格内编辑**（`InlinePos.para` 可为任意深度的 `w:p`，容器级刷新，格尾自动保持 `w:p`；3.6）、`SetTableProps`/`SetRowProps`/`SetCellProps`（3.7）、**行列结构操作**（`InsertRow`/`DeleteRow`/`InsertColumn`/`DeleteColumn`/`MergeCells`/`NewBlock::Table`，声明网格几何 + 书签列区间维护；3.8）；**位置带 `PartId`**（`InlinePos { part, para, offset }` 与 `BlockPos { part, at }`，段落 / 块 / 范围 / 字段操作在页眉页脚 / 注释 / 批注 / 外部文本框 part 里原样可用，只有主 part 才有的 id 显式拒绝；5.5a）、**节与页眉页脚操作**（`SetSectionProps`/`SetHeaderFooter`/`LinkHeaderFooter`/`SetWatermark`/`SetPageColor`/`SetDocumentSettings`，含按 `SAVE-05` 新建 `header{N}.xml`；5.5b） | 新建分节符、绘图的编辑与写回、块字段生成器与修订生成（M7） |
 | 保存 `save/` | 六步齐了 | `SAVE-01` 六步编排（含第 3 步 Span 物化）、`SAVE-02` 子集校验（未绑定前缀、`PROP-05` 顺序、`SPAN-09` 范围检查）、`SAVE-05` 新建 part（追加在 zip 末尾；批注 / 注释 / **页眉页脚** / `settings.xml` / **样式 / 编号 / 主题 / customXml**）、扩展命名空间声明、`w:t` preserve、`raw_copy_file` 写回、`SaveOptions`（`saved_at`、`remove_personal_info`、`remove_date_and_time`、批注与注释的权威列表；**节 / 页码 / 首页不同 / 页面底色 / 保护 / 奇偶页眉 / 六个页眉页脚槽 / 逐节页眉页脚 / 水印**翻成 5.5 的编辑操作，5.6；**参考文献 / 编号追加 / 主题 / 样式 upsert** 各翻成声明 part 的计划，5.7） | 图表 / 图片 / 墨迹 / `partXml`（M6 / M7） |
-| 兼容 `bind/compat_ts/` | 文本 + 表格 + 字段 + 批注 / 注释 + 绘图 + 页眉页脚 | `parsed_doc` 整份 `ParsedDoc`（含 `extras`、UTF-16 索引、sdt 拆分）、字段折叠 run 与 `fieldDisplay` / `fieldLabel`、`comments` / `footnotes` / `endnotes` / `commentIds` / `noteRef`、`apply_save_blocks`（original / generated / xml 块）、容忍差分；**表格模型**（`blocks[*].table` 全部字段与 `styles.*.tableDisplay`，含 TS 的 `attachRawTablePr` / 深度 8 扁平化 / `tableSummary` 三处半解析；3.5）、整个绘图域（`image*` / `textboxes[]` / `rule*` / `oleProgId`）、**整个页眉页脚域**（`hfParts` / 六变体 / `hfParagraphs` 的样式层与表格行 / `hfImages` / 水印 / 矢量装饰合成 SVG；5.4）、跨 part 内容流（`Ctx::switch`，外部文本框 part） | 图表与公式（M6） |
+| 兼容 `bind/compat_ts/` | 文本 + 表格 + 字段 + 批注 / 注释 + 绘图 + 页眉页脚 | `parsed_doc` 整份 `ParsedDoc`（含 `extras`、UTF-16 索引、sdt 拆分）、字段折叠 run 与 `fieldDisplay` / `fieldLabel`、`comments` / `footnotes` / `endnotes` / `commentIds` / `noteRef`、`apply_save_blocks`（original / generated / xml 块）、容忍差分；**表格模型**（`blocks[*].table` 全部字段与 `styles.*.tableDisplay`，含 TS 的 `attachRawTablePr` / 深度 8 扁平化 / `tableSummary` 三处半解析；3.5）、整个绘图域（`image*` / `textboxes[]` / `rule*` / `oleProgId`）、**整个页眉页脚域**（`hfParts` / 六变体 / `hfParagraphs` 的样式层与表格行 / `hfImages` / 水印 / 矢量装饰合成 SVG；5.4）、跨 part 内容流（`Ctx::switch`，外部文本框 part）、**图表块**（`chartDisplay` / `previewText` / `extras.chartParts` 原文、chartex 回退图 → 图片块；6.2） | SmartArt / 画布 / 公式 / 墨迹 / OLE run（M6 6.3–6.8） |
 
 ## 公开 API 边界（今天可用的）
 
@@ -104,7 +104,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
 | 源码行数 / 文件数 | 57,345 行 / 135 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 447（单元 + 集成，30 个集成测试文件） | `cargo test --workspace` |
+| 测试数 | 452（单元 + 集成，30 个集成测试文件） | `cargo test --workspace` |
 | 语料 | 799 份 synthetic（每份带 `expected.json`；其中 226 份是 M6 的嵌入对象语料 `m6-*`）+ 208 份 `save.<k>.json` + 32 份 hostile（含 4 份绘图、2 份表格、4 份页眉页脚 / 节、6 份嵌入对象） | `ls corpus/*` |
 | 往返字节保真 | 593 份文档、3,140 个 XML part 全部字节相同（3 个 part 按预期解析失败：两份不闭合 XML + 二进制页眉） | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
@@ -130,10 +130,12 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 段落 / 书签 / 字段操作 | 17 个用例（`SPAN-06` 拆分与合并、`EDIT-06` 书签分配、`FLD-09`/`10`/`12` 各自的验收行） | `cargo test -p rsword --test para_ops` |
 | 批注与注释 | 语料 11 份带批注（17 条）、5 条注释条目；13 个用例（三部件关联、结构条目、`commentIds` 三形态、`noteRef` 编号、`SAVE-05` 新建 part、三个编辑操作、compat 权威列表） | `cargo test -p rsword --test notes` |
 
-全域差异按域聚合（差异点，m6.0a 扩充语料后实测 452）：**嵌入对象域 420 / 182 份**（M6 的工作面，
-`--scope embedded`：`previewText` 94、`chartDisplay` 88、`extras.chartParts` 80、`formulaDisplay` 41、`runs[]` 41、`inks[]` 15、
-`diagramDisplay` 13、`label` 11 …；按语料前缀 `m6-chart` 188、`m6-omml` 82、`m6-ink` 43、`m6-canvas` 25、`m6-smartart` 16、
-`m6-chartex` 14、`m6-ruby` 14、旧语料 30）、**零散 32 / 14 份**（M6 6.9 收尾：Strict 改写 13 已登记候选、`TooDeep` 块形态 4、
+全域差异按域聚合（差异点，6.2 后实测 246；m6.0a 扩充语料时 452）：**嵌入对象域 214 / 90 份**（M6 的工作面，
+`--scope embedded`，CI 里以 `--max-unknown 214` 做棘轮：`previewText` 61、`formulaDisplay` 41、`runs[]` 41、`inks[]` 15、
+`diagramDisplay` 13、`label` 10 …；**图表域已归零**——`chartDisplay` 88、`extras.chartParts` 80、图表块的 `previewText`、
+`m6-chartex__008` 的图片块（6.2）；按语料前缀 `m6-omml` 82、`m6-ink` 43、`m6-canvas` 25、`m6-smartart` 16、`m6-ruby` 14、
+`ruby` 9、`m6-ole` 8、`math` 8 …）、
+**零散 32 / 14 份**（M6 6.9 收尾：Strict 改写 13 已登记候选、`TooDeep` 块形态 4、
 `shape-extraction__014` 的未声明 `wps` 前缀 4、同 run 两张图 3、`pageBreakBefore` 2、WordArt 3、其余 3）。
 文本域、字段与 Span 域、表格域、绘图域、页眉页脚域五道门都是 0（嵌入对象文档 / 块已按 `spec/17` 门第 1 条的边界剔除）。
 保存侧 61 份跳过全属 M6（图表 13 + 图片 11 + 墨迹 23 + `partXml` 7 + `partBinary` 1 + `replaceImage` 6）。
@@ -179,8 +181,9 @@ let bytes = s.save_with(&outcome.save_options)?;
   表格的修订生成（`tblPrChange` / `trPr/ins` 等，M7）、整表再生成的原生等价物（M7）。
 - **绘图**：读侧完整（显示模型 + 投影 + 门），**编辑与写回没有**——`applyImageZOrder` 的
   `relativeHeight` 回写、`xml.replaceImage` 都在 M7。另外几块按分层留给后面：页眉页脚里的图片（M5）、
-  图表的**投影**（模型 6.1 已在：92 份语料的图表 part 逐字段与 TS 相等；`chartDisplay` / `extras.chartParts`
-  的输出在 6.2）、SmartArt / lockedCanvas / 墨迹的**内容**（M6）。外部文本框 part 与单元格里的锚定形状与图片都已可用。
+  SmartArt / lockedCanvas / 墨迹的**内容**（M6 6.3 / 6.8）。图表的模型与投影都在（6.1 / 6.2：92 份语料的
+  `chartDisplay` / `extras.chartParts` / `previewText` 与 TS 无差异，chartex 回退图成图片块）。外部文本框 part 与单元格里的
+  锚定形状与图片都已可用。
 - **保存选项**：已支持 `savedAt` / `removePersonalInfo` / `removeDateAndTime` / `comments` / `footnotes` /
   `endnotes`；节、页眉页脚、水印、页面颜色、页码、编号、样式 upsert、保护、主题、墨迹、图表、
   `partXml` 仍是 `EditUnsupported`。

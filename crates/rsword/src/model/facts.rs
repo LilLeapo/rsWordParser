@@ -9,7 +9,7 @@ use crate::model::decl::{OwnHeadingLevel, Styles};
 use crate::model::macros::named_enum;
 use crate::semantic::props::{ParaProps, Style, StyleType, Val};
 use crate::span::FieldId;
-use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
+use crate::xml::{Dom, LocalName, MceRole, NodeId, NsId, QName};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ParagraphFacts {
@@ -51,6 +51,10 @@ pub struct DrawingFacts {
     pub has_blip: bool,
     /// `wp:docPr/@name` 以 `aidocs-ink` 开头。
     pub is_ink: bool,
+    /// chartex 绘图配的预渲染图：本绘图在 `mc:Choice` 里，同一 `mc:AlternateContent` 的 `mc:Fallback`
+    /// 里那个带 `a:blip` 的 `w:drawing`（R12 据此把段落归为图片；Word 2016+ 给每个 chartex 都配一张）。
+    /// 只对 `ChartEx` 算；其他种类恒为 `None`。
+    pub fallback_picture: Option<NodeId>,
 }
 
 named_enum! {
@@ -400,6 +404,7 @@ fn drawing_facts(dom: &Dom, drawing: NodeId) -> DrawingFacts {
         has_txbx_text: false,
         has_blip: false,
         is_ink: false,
+        fallback_picture: None,
     };
     for n in dom.descendants(drawing) {
         let Some(name) = dom.name(n) else { continue };
@@ -420,7 +425,38 @@ fn drawing_facts(dom: &Dom, drawing: NodeId) -> DrawingFacts {
             _ => {}
         }
     }
+    if f.kind == DrawingKind::ChartEx {
+        f.fallback_picture = fallback_picture(dom, drawing);
+    }
     f
+}
+
+/// 承载 `drawing` 的 `mc:Choice` 的兄弟 `mc:Fallback` 里第一个带 `a:blip` 的 `w:drawing`。
+///
+/// Fallback 不是 active 分支，语义遍历看不见它，这里按原始子树找；往上找 Choice 时到段落就停
+/// （`mc:AlternateContent` 只会出现在段落内容里）。
+fn fallback_picture(dom: &Dom, drawing: NodeId) -> Option<NodeId> {
+    let mut cur = dom.parent(drawing)?;
+    let choice = loop {
+        if dom.is(cur, QName::w(LocalName::P)) {
+            return None;
+        }
+        match dom.element(cur)?.mce.role {
+            MceRole::Choice => break cur,
+            MceRole::AlternateContent | MceRole::Fallback => return None,
+            MceRole::None => cur = dom.parent(cur)?,
+        }
+    };
+    let alternate = dom.parent(choice)?;
+    let fallback = dom
+        .children(alternate)
+        .iter()
+        .copied()
+        .find(|&c| dom.element(c).is_some_and(|e| e.mce.role == MceRole::Fallback))?;
+    let blip = QName::new(NsId::A, LocalName::Blip);
+    dom.descendants(fallback).find(|&n| {
+        dom.is(n, QName::w(LocalName::Drawing)) && dom.descendants(n).any(|b| dom.is(b, blip))
+    })
 }
 
 /// `a:graphicData` 的种类：`@uri` 优先，缺失或不认识时看第一个子元素的命名空间。

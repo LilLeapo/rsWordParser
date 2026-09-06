@@ -14,6 +14,7 @@ use crate::resolve::Resolver;
 
 mod blocks;
 mod box_json;
+mod chart;
 mod decl;
 pub mod diff;
 mod hf;
@@ -79,9 +80,13 @@ pub fn parsed_doc_of(pkg: &Package, doc: &Document, media: &MediaSet) -> Value {
             ))
         })
         .collect();
-    let ctx =
-        blocks::Ctx::new(dom, doc, &resolver, &idx, rels, &numbering, &media.main).with_aux(&aux);
+    // 主 part 引用的图表 part（任务 6.2）：块上的 `chartDisplay` 与 `extras.chartParts` 都从这张表查
+    let charts = chart::chart_map(pkg, doc);
+    let ctx = blocks::Ctx::new(dom, doc, &resolver, &idx, rels, &numbering, &media.main)
+        .with_aux(&aux)
+        .with_charts(&charts);
     let (elements, blocks) = blocks::body(&ctx);
+    let chart_parts = chart::chart_parts_json(&ctx);
 
     let mut o = Map::new();
     o.insert("blocks".into(), Value::Array(blocks));
@@ -139,7 +144,10 @@ pub fn parsed_doc_of(pkg: &Package, doc: &Document, media: &MediaSet) -> Value {
     );
     o.insert(
         "extras".into(),
-        json!({ "elements": Value::Array(elements), "chartParts": Value::Object(Map::new()) }),
+        json!({
+            "elements": Value::Array(elements),
+            "chartParts": Value::Object(chart_parts),
+        }),
     );
     Value::Object(o)
 }

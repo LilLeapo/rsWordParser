@@ -119,11 +119,17 @@ pub fn r11_equation(f: &ParagraphFacts) -> Option<ParaClass> {
 }
 
 pub fn r12_chart(f: &ParagraphFacts) -> Option<ParaClass> {
-    // ChartEx 且有 Fallback 图 → Image 的判定要看 mc:Fallback 内容，M3 随显示模型补
-    f.drawings
-        .iter()
-        .any(|d| matches!(d.kind, DrawingKind::Chart | DrawingKind::ChartEx))
-        .then_some(ParaClass::Protected(ProtectedKind::Chart))
+    let mut chart = false;
+    for d in &f.drawings {
+        match d.kind {
+            // chartex（旭日图 / 瀑布图 …）配了预渲染的回退图：Word 之外的渲染器画的就是这张图，
+            // 数据模型的降级读法只留给没有回退图的 part。`graphic_display` 取回退图的显示模型。
+            DrawingKind::ChartEx if d.fallback_picture.is_some() => return Some(ParaClass::Image),
+            DrawingKind::Chart | DrawingKind::ChartEx => chart = true,
+            _ => {}
+        }
+    }
+    chart.then_some(ParaClass::Protected(ProtectedKind::Chart))
 }
 
 pub fn r13_smart_art(f: &ParagraphFacts) -> Option<ParaClass> {

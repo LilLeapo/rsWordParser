@@ -13,42 +13,6 @@ const R: &str = r#"xmlns:r="http://schemas.openxmlformats.org/officeDocument/200
 const HDR_REL: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header";
 const FTR_REL: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer";
 
-/// base64 解码（测试里塞真实 PNG 字节用）。
-fn b64(s: &str) -> Vec<u8> {
-    const T: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut out = Vec::new();
-    let mut acc = 0u32;
-    let mut bits = 0u32;
-    for c in s.bytes().filter(|&c| c != b'=') {
-        let Some(v) = T.iter().position(|&t| t == c) else { continue };
-        acc = (acc << 6) | v as u32;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push((acc >> bits) as u8);
-        }
-    }
-    out
-}
-
-/// 往一份 docx 里追加一个二进制 part。
-fn with_binary_part(docx: &[u8], name: &str, data: &[u8]) -> Vec<u8> {
-    use std::io::{Cursor, Write};
-    let mut zin = zip::ZipArchive::new(Cursor::new(docx.to_vec())).unwrap();
-    let mut w = zip::ZipWriter::new(Cursor::new(Vec::new()));
-    for i in 0..zin.len() {
-        let mut f = zin.by_index(i).unwrap();
-        let n = f.name().to_string();
-        let mut buf = Vec::new();
-        std::io::Read::read_to_end(&mut f, &mut buf).unwrap();
-        w.start_file(n, zip::write::SimpleFileOptions::default()).unwrap();
-        w.write_all(&buf).unwrap();
-    }
-    w.start_file(name, zip::write::SimpleFileOptions::default()).unwrap();
-    w.write_all(data).unwrap();
-    w.finish().unwrap().into_inner()
-}
-
 /// 按 `COMPAT-09` 的容忍规则比较（浮点 1e-6、`undefined` 与缺失等价）——与差分工具同一把尺子，
 /// 这样 `50` 与 `50.0` 之类的 JSON 数字写法不会被判成差异。
 fn same(expected: &serde_json::Value, actual: &serde_json::Value, what: &str) {
@@ -572,7 +536,7 @@ fn compat_05_hf_images() {
         ],
     );
     // 媒体是二进制，`docx_with_parts` 只写文本 part —— 用 base64 解出来的 PNG 单独塞进去
-    let bytes = with_binary_part(&bytes, "word/media/logo.png", &b64(PNG));
+    let bytes = common::with_binary_part(&bytes, "word/media/logo.png", &common::b64(PNG));
     let mut pkg = Package::open(&bytes).expect("open");
     let json = rsword::bind::compat_ts::parsed_doc(&mut pkg).expect("parsed_doc");
     let imgs = json["headerImages"].as_array().expect("headerImages");

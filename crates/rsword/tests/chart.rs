@@ -1,25 +1,23 @@
-//! 图表 part 的显示模型（`MOD-11`，`spec/17` 任务 6.1）在语料上的验收。
+//! 图表 part 的显示模型（`MOD-11`，`spec/17` 任务 6.1）与它的投影（`COMPAT-03`，任务 6.2）在语料上的验收。
 //!
-//! 投影（`chartDisplay` 真正出现在 `ParsedDoc` 里）是 6.2 的事；这里验证**事实**：主 part 引用的每个图表 part
-//! 都建出 `ChartDisplay`，且每个字段与 TS golden（`expected.json` 的 `blocks[*].chartDisplay`）逐项对得上。
+//! 6.1 验证**事实**：主 part 引用的每个图表 part 都建出 `ChartDisplay`，且每个字段与 TS golden
+//! （`expected.json` 的 `blocks[*].chartDisplay`）逐项对得上。6.2 验证**输出**：`parsed_doc` 的 `chartDisplay` /
+//! `previewText` / `extras.chartParts` 与 golden 无差异，chartex 的回退图成为图片块。
 //! 语料里 95 份图表（`chart-edit__001` + m6.0a 的 `m6-chart__*` / `m6-chartex__*`）就是 TS 单测夹具的 docx 版。
 
 mod common;
 
 use std::collections::BTreeMap;
 
+use rsword::bind::compat_ts::{
+    EmbeddedKind, block_of_path, diff_json, embedded_kind, known_diffs, parsed_doc, split_known,
+};
 use rsword::diag::DiagCode;
 use rsword::model::units::EMU_PER_PX;
 use rsword::model::{Block, ChartColor, ChartDisplay, Display, Document, ProtectedKind};
 use rsword::package::Package;
 use rsword::resolve::drawingml::{Rgb, hex};
-use serde_json::Value;
-
-/// TS 与本引擎对不上时先看这里：分类差异（R12 的 chartex Fallback 图片）归 6.2，颜色 ±1 归 `RES-05`。
-const KNOWN_CLASS_DIFF: &[&str] = &[
-    // A23：chartex 带 Fallback 图片，TS 偏爱图片（`type: image`），R12 的细化在 6.2
-    "m6-chartex__008.docx",
-];
+use serde_json::{Value, json};
 
 #[derive(Default)]
 struct Stats {
@@ -246,13 +244,11 @@ fn mod_11_chart_parts_match_ts_across_the_corpus() {
         st.docs += 1;
         let ours = our_charts(&doc);
         if ours.len() != ts_charts.len() {
-            if !KNOWN_CLASS_DIFF.contains(&file.as_str()) {
-                st.mismatches.push(format!(
-                    "{file}: TS {} 个 Chart 块，本引擎 {} 个",
-                    ts_charts.len(),
-                    ours.len()
-                ));
-            }
+            st.mismatches.push(format!(
+                "{file}: TS {} 个 Chart 块，本引擎 {} 个",
+                ts_charts.len(),
+                ours.len()
+            ));
             continue;
         }
         for (i, ((px, ours_d, _), ts_d)) in ours.iter().zip(&ts_charts).enumerate() {
@@ -426,4 +422,205 @@ fn test_09_hostile_chart_parts_degrade_locally() {
     let missing = doc.warnings.iter().filter(|w| w.code == DiagCode::PkgRelMissing).count();
     assert!(missing >= 1, "{:?}", doc.warnings);
     assert!(our_charts(&doc).iter().all(|(_, d, _)| d.is_none()));
+}
+
+// ---- 6.2 投影 ------------------------------------------------------------------------------------
+
+/// `COMPAT-03`：语料里每个图表文档的 `parsed_doc` 与 TS golden 在图表域（图表块上的一切字段 +
+/// `extras.chartParts`）无未知差异——`--scope embedded` 在图表这一块的门。
+#[test]
+fn compat_03_chart_projection_matches_ts_across_the_corpus() {
+    let known = known_diffs();
+    let (mut docs, mut displays, mut parts) = (0, 0, 0);
+    let mut unknown: Vec<String> = Vec::new();
+    for path in common::docx_paths("synthetic") {
+        let file = path.file_name().unwrap().to_string_lossy().to_string();
+        let Ok(text) = std::fs::read_to_string(path.with_extension("expected.json")) else {
+            continue;
+        };
+        let expected: Value = serde_json::from_str(&text).expect("expected.json");
+        let blocks = expected.get("blocks").and_then(Value::as_array).cloned().unwrap_or_default();
+        let chart_blocks = blocks.iter().filter(|b| embedded_kind(b) == Some(EmbeddedKind::Chart));
+        let n_display = chart_blocks.clone().filter(|b| b.get("chartDisplay").is_some()).count();
+        let n_parts = expected
+            .pointer("/extras/chartParts")
+            .and_then(Value::as_object)
+            .map_or(0, serde_json::Map::len);
+        if chart_blocks.clone().next().is_none() && n_parts == 0 {
+            continue;
+        }
+        docs += 1;
+        displays += n_display;
+        parts += n_parts;
+        let bytes = std::fs::read(&path).unwrap();
+        let mut pkg = Package::open(&bytes).expect("open");
+        let actual = parsed_doc(&mut pkg).expect("parsed_doc");
+        let mut diffs = Vec::new();
+        diff_json(&expected, &actual, &mut diffs);
+        let (diffs, _) = split_known(diffs, &file, &known);
+        for d in diffs.into_iter().filter(|d| {
+            d.path.starts_with("extras.chartParts")
+                || block_of_path(&d.path, &expected)
+                    .is_some_and(|b| embedded_kind(b) == Some(EmbeddedKind::Chart))
+        }) {
+            unknown.push(format!("{file}: {} TS={:?} ours={:?}", d.path, d.expected, d.actual));
+        }
+    }
+    eprintln!(
+        "chart: {docs} 份图表文档，{displays} 个 chartDisplay，{parts} 个 extras.chartParts 条目"
+    );
+    for u in unknown.iter().take(40) {
+        eprintln!("chart: DIFF {u}");
+    }
+    assert!(docs >= 90 && displays >= 85 && parts >= 75, "{docs} / {displays} / {parts}");
+    assert!(unknown.is_empty(), "{} 处图表域差异", unknown.len());
+}
+
+fn parsed(docx: &[u8]) -> Value {
+    let mut pkg = Package::open(docx).expect("open");
+    parsed_doc(&mut pkg).expect("parsed_doc")
+}
+
+/// 一份图表块的 `parsed_doc`：`chartDisplay` 的字段换名、`wp:extent` → px、`previewText` = 标题、
+/// `extras.chartParts` 是 part 的**原文**（连 XML 声明与空白都一样，不重新序列化）。
+#[test]
+fn compat_03_chart_block_fields_and_raw_chart_part() {
+    let title = r#"<c:title><c:tx><c:rich><a:p><a:r><a:t>销售</a:t></a:r><a:r><a:t>统计</a:t></a:r></a:p></c:rich></c:tx></c:title>"#;
+    let part = format!(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\r\n{}",
+        chart_space(&format!("{title}{BAR_PLOT}"), "")
+    );
+    let docx = common::docx_with_parts(
+        &chart_paragraph(true),
+        &[
+            ("word/_rels/document.xml.rels", rels("charts/chart1.xml").as_str()),
+            ("word/charts/chart1.xml", &part),
+        ],
+    );
+    let v = parsed(&docx);
+    let b = &v["blocks"][0];
+    assert_eq!(b["type"], "passthrough");
+    assert_eq!(b["label"], "Chart");
+    assert_eq!(b["previewText"], "销售统计");
+    let cd = &b["chartDisplay"];
+    assert_eq!(cd["partPath"], "word/charts/chart1.xml");
+    assert_eq!(cd["kind"], "bar");
+    assert_eq!(cd["title"], "销售统计");
+    assert_eq!((cd["widthPx"].as_i64(), cd["heightPx"].as_i64()), (Some(300), Some(200)));
+    assert_eq!(cd["categories"], json!(["A", "B"]));
+    // 数值缓存：缺点与非数字是 null，整数值写成整数
+    assert_eq!(cd["series"], json!([{ "name": "S1", "values": [3, null, null] }]));
+    for absent in ["horizontal", "grouping", "markers", "holePct", "legendPos"] {
+        assert!(cd.get(absent).is_none(), "{absent} 不该出现");
+    }
+    let parts = v["extras"]["chartParts"].as_object().expect("chartParts");
+    assert_eq!(parts.len(), 1);
+    assert_eq!(parts["word/charts/chart1.xml"].as_str(), Some(part.as_str()), "原字节");
+}
+
+/// 解析不出 display 的图表块（关系悬空 / part 没有带缓存的系列）：只剩 `label: "Chart"`——没有 `chartDisplay`，
+/// 也**没有** `previewText`（TS 用 `...(x ? {} : {})` 展开，`undefined` 与 `""` 不等价）；`extras.chartParts` 不收它。
+#[test]
+fn compat_03_chart_without_display_has_neither_preview_text_nor_part_entry() {
+    let dangling = common::docx_with_parts(
+        &chart_paragraph(true),
+        &[("word/_rels/document.xml.rels", rels("charts/missing.xml").as_str())],
+    );
+    let no_series = common::docx_with_parts(
+        &chart_paragraph(true),
+        &[
+            ("word/_rels/document.xml.rels", rels("charts/chart1.xml").as_str()),
+            ("word/charts/chart1.xml", &chart_space("<c:plotArea/>", "")),
+        ],
+    );
+    for (what, docx) in [("悬空关系", dangling), ("无系列", no_series)] {
+        let v = parsed(&docx);
+        let b = &v["blocks"][0];
+        assert_eq!(b["label"], "Chart", "{what}");
+        assert_eq!(b["type"], "passthrough", "{what}");
+        assert!(b.get("chartDisplay").is_none(), "{what}: {b}");
+        assert!(b.get("previewText").is_none(), "{what}: {b}");
+        assert_eq!(v["extras"]["chartParts"], json!({}), "{what}");
+    }
+}
+
+const CX: &str = "http://schemas.microsoft.com/office/drawing/2014/chartex";
+const MC: &str = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+const PIC: &str = "http://schemas.openxmlformats.org/drawingml/2006/picture";
+const PNG_1X1: &str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+const CHARTEX_PART: &str = r#"<cx:chartSpace xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex"><cx:chartData><cx:data id="0"><cx:strDim type="cat"><cx:lvl ptCount="2"><cx:pt idx="0">A</cx:pt><cx:pt idx="1">B</cx:pt></cx:lvl></cx:strDim><cx:numDim type="val"><cx:lvl ptCount="2"><cx:pt idx="0">100</cx:pt><cx:pt idx="1">-40</cx:pt></cx:lvl></cx:numDim></cx:data></cx:chartData><cx:chart><cx:plotArea><cx:plotAreaRegion><cx:series layoutId="sunburst"><cx:tx><cx:txData><cx:v>Extended</cx:v></cx:txData></cx:tx><cx:dataId val="0"/></cx:series></cx:plotAreaRegion></cx:plotArea></cx:chart></cx:chartSpace>"#;
+
+/// chartex 绘图的 `w:r`（放在 `mc:Choice` 里或裸放）。
+fn chartex_run() -> String {
+    format!(
+        r#"<w:r><w:drawing xmlns:wp="{WP}" xmlns:a="{A}" xmlns:r="{R}"><wp:inline><wp:extent cx="2857500" cy="1905000"/><wp:docPr id="1" name="Graphic 1"/><a:graphic><a:graphicData uri="{CX}"><cx:chart xmlns:cx="{CX}" r:id="rIdCx"/></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>"#
+    )
+}
+
+/// 回退图的 `w:r`：1 英寸的图片，extent 故意与 Choice 不同。
+fn fallback_picture_run() -> String {
+    format!(
+        r#"<w:r><w:drawing xmlns:wp="{WP}" xmlns:a="{A}" xmlns:r="{R}" xmlns:pic="{PIC}"><wp:inline><wp:extent cx="914400" cy="914400"/><wp:docPr id="2" name="Picture 2"/><a:graphic><a:graphicData uri="{PIC}"><pic:pic><pic:blipFill><a:blip r:embed="rIdImg"/></pic:blipFill></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>"#
+    )
+}
+
+fn chartex_docx(paragraph: &str) -> Vec<u8> {
+    let rels = format!(
+        r#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdCx" Type="http://schemas.microsoft.com/office/2014/relationships/chartEx" Target="charts/chartEx1.xml"/><Relationship Id="rIdImg" Type="{R}/image" Target="media/image1.png"/></Relationships>"#
+    );
+    let docx = common::docx_with_parts(
+        paragraph,
+        &[
+            ("word/_rels/document.xml.rels", rels.as_str()),
+            ("word/charts/chartEx1.xml", CHARTEX_PART),
+        ],
+    );
+    common::with_binary_part(&docx, "word/media/image1.png", &common::b64(PNG_1X1))
+}
+
+/// R12 的细化（`spec/06`）：chartex 配了 `mc:Fallback` 回退图 → 图片块。图取 Fallback 的 `a:blip`（媒体预取
+/// 对这种 Fallback 放行），尺寸取 Choice 的 `wp:extent`；块上没有 `previewText` / `chartDisplay` / `brokenImage`。
+/// 没有回退图的 chartex 仍是 `Chart` 块：`chartDisplay` 走降级读法，`extras.chartParts` 不收 chartex part。
+#[test]
+fn compat_03_chartex_fallback_picture_becomes_an_image_block() {
+    let with_fallback = format!(
+        r#"<w:p><mc:AlternateContent xmlns:mc="{MC}" xmlns:cx="{CX}"><mc:Choice Requires="cx">{}</mc:Choice><mc:Fallback>{}</mc:Fallback></mc:AlternateContent></w:p>"#,
+        chartex_run(),
+        fallback_picture_run()
+    );
+    let docx = chartex_docx(&with_fallback);
+    // 模型：Image 块，显示模型是回退图、extent 是 Choice 的
+    let mut pkg = Package::open(&docx).expect("open");
+    let doc = Document::rebuild(&mut pkg).expect("rebuild");
+    let Some(Block::Image(img)) = doc.main.first() else {
+        panic!("应是 Image 块：{:?}", doc.main.first())
+    };
+    let d = img.display.as_ref().and_then(Display::as_drawing).expect("DrawingDisplay");
+    assert!(d.picture().is_some(), "显示模型取自 Fallback 里的图片");
+    assert!(d.chart.is_none());
+    assert_eq!(d.extent.map(|e| (e.cx, e.cy)), Some((2_857_500, 1_905_000)), "尺寸取 Choice");
+    // 投影：TS 的 `type: image` 块
+    let v = parsed(&docx);
+    let b = &v["blocks"][0];
+    assert_eq!(b["type"], "image", "{b}");
+    assert_eq!(b["label"], "Image");
+    assert!(
+        b["imageDataUrl"].as_str().is_some_and(|u| u.starts_with("data:image/png;base64,")),
+        "{b}"
+    );
+    assert_eq!((b["imageWidthPx"].as_i64(), b["imageHeightPx"].as_i64()), (Some(300), Some(200)));
+    for absent in ["previewText", "chartDisplay", "brokenImage"] {
+        assert!(b.get(absent).is_none(), "{absent} 不该出现：{b}");
+    }
+    assert_eq!(v["extras"]["chartParts"], json!({}));
+
+    let bare = format!("<w:p>{}</w:p>", chartex_run());
+    let v = parsed(&chartex_docx(&bare));
+    let b = &v["blocks"][0];
+    assert_eq!(b["label"], "Chart", "{b}");
+    assert_eq!(b["previewText"], "", "chartex 的降级读法没有标题");
+    assert_eq!(b["chartDisplay"]["kind"], "pie", "sunburst → pie（TS `CHARTEX_KINDS`）");
+    assert_eq!(b["chartDisplay"]["partPath"], "word/charts/chartEx1.xml");
+    assert_eq!(b["chartDisplay"]["series"], json!([{ "name": "Extended", "values": [100, -40] }]));
+    assert_eq!(v["extras"]["chartParts"], json!({}), "chartex part 不进 chartParts");
 }

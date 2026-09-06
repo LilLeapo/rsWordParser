@@ -83,6 +83,44 @@ pub fn docx_with_body(document_body: &str) -> Vec<u8> {
     w.finish().unwrap().into_inner()
 }
 
+/// base64 解码（测试里塞真实 PNG 字节用）。
+#[allow(dead_code)]
+pub fn b64(s: &str) -> Vec<u8> {
+    const T: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = Vec::new();
+    let mut acc = 0u32;
+    let mut bits = 0u32;
+    for c in s.bytes().filter(|&c| c != b'=') {
+        let Some(v) = T.iter().position(|&t| t == c) else { continue };
+        acc = (acc << 6) | v as u32;
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            out.push((acc >> bits) as u8);
+        }
+    }
+    out
+}
+
+/// 往一份 docx 里追加一个二进制 part。
+#[allow(dead_code)]
+pub fn with_binary_part(docx: &[u8], name: &str, data: &[u8]) -> Vec<u8> {
+    use std::io::{Cursor, Write};
+    let mut zin = zip::ZipArchive::new(Cursor::new(docx.to_vec())).unwrap();
+    let mut w = zip::ZipWriter::new(Cursor::new(Vec::new()));
+    for i in 0..zin.len() {
+        let mut f = zin.by_index(i).unwrap();
+        let n = f.name().to_string();
+        let mut buf = Vec::new();
+        std::io::Read::read_to_end(&mut f, &mut buf).unwrap();
+        w.start_file(n, zip::write::SimpleFileOptions::default()).unwrap();
+        w.write_all(&buf).unwrap();
+    }
+    w.start_file(name, zip::write::SimpleFileOptions::default()).unwrap();
+    w.write_all(data).unwrap();
+    w.finish().unwrap().into_inner()
+}
+
 /// 取 docx 里一个 part 的 DOM（`xpath_asserts!` 用；独立成函数，跳转得到声明处）。
 #[allow(dead_code)]
 pub fn xpath_dom(docx: &[u8], part: &str) -> rsword::xml::Dom {

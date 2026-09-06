@@ -1,9 +1,10 @@
 //! `diff-parse`（`TEST-03`）：对每个 `synthetic/*.docx` 运行 `compat_ts` → JSON，与 `*.expected.json` 按
 //! `COMPAT-09` 规则差分；输出按 JSON 路径聚合的差异计数与首个样例；`KNOWN_DIFFS.md` 里的模式跳过并单独计数；
-//! 有未知差异时退出码 1（CI 门 `TEST-10`）。
+//! 有未知差异时退出码 1（CI 门 `TEST-10`）；`--max-unknown N` 是还没关上的门的棘轮：未知差异不超过 N 就放行，
+//! 每落地一个任务就把 N 往下拧，归零后删掉参数。
 //!
 //! ```text
-//! diff-parse [--corpus DIR] [--scope text|fields|tables|drawing|hf|embedded|all] [--known FILE] [--doc PREFIX] [--show N] [--json] [--by-doc]
+//! diff-parse [--corpus DIR] [--scope text|fields|tables|drawing|hf|embedded|all] [--known FILE] [--doc PREFIX] [--show N] [--json] [--by-doc] [--max-unknown N]
 //! ```
 
 use std::path::{Path, PathBuf};
@@ -63,16 +64,19 @@ struct Args {
     show: usize,
     json: bool,
     by_doc: bool,
+    /// 放行的未知差异上限（棘轮）；缺省 0。
+    max_unknown: usize,
 }
 
 fn usage() -> ! {
     eprintln!(
-        "用法: diff-parse [--corpus DIR] [--scope text|fields|tables|drawing|hf|embedded|all] [--known KNOWN_DIFFS.md] [--doc PREFIX] [--show N] [--json] [--by-doc]\n\
+        "用法: diff-parse [--corpus DIR] [--scope text|fields|tables|drawing|hf|embedded|all] [--known KNOWN_DIFFS.md] [--doc PREFIX] [--show N] [--json] [--by-doc] [--max-unknown N]\n\
          scope: text = M1 门（纯文本段落），fields = M2 门（再加字段 / 范围 / 批注），\n\
                 tables = M3 门（再加表格），\n\
                 drawing = M4 门（全部文档，只计绘图域**路径**），\n\
                 hf = M5 门（全部文档，只计页眉页脚域**路径**），\n\
                 embedded = M6 门（全部文档，只计嵌入对象域：路径或所在块），all = 全部语料\n\
+         --max-unknown N: 未知差异不超过 N 就退出码 0（还没关上的门在 CI 里的棘轮；归零后删掉），缺省 0\n\
          缺省 corpus = <仓库根>/corpus/synthetic，scope = all，known = 编进库里的 KNOWN_DIFFS.md，show = 3"
     );
     std::process::exit(2)
@@ -87,6 +91,7 @@ fn parse_args() -> Args {
         show: 3,
         json: false,
         by_doc: false,
+        max_unknown: 0,
     };
     let mut it = std::env::args().skip(1);
     while let Some(arg) = it.next() {
@@ -109,6 +114,9 @@ fn parse_args() -> Args {
             "--show" => a.show = it.next().and_then(|s| s.parse().ok()).unwrap_or_else(|| usage()),
             "--json" => a.json = true,
             "--by-doc" => a.by_doc = true,
+            "--max-unknown" => {
+                a.max_unknown = it.next().and_then(|s| s.parse().ok()).unwrap_or_else(|| usage())
+            }
             "-h" | "--help" => usage(),
             _ => usage(),
         }
@@ -289,7 +297,20 @@ fn main() -> ExitCode {
             }
         }
     }
-    if report.unknown > 0 || failed_open > 0 { ExitCode::from(1) } else { ExitCode::SUCCESS }
+    if report.unknown > args.max_unknown || failed_open > 0 {
+        if args.max_unknown > 0 && !args.json {
+            println!("diff-parse: 未知差异 {} 超过预算 {}", report.unknown, args.max_unknown);
+        }
+        ExitCode::from(1)
+    } else {
+        if args.max_unknown > 0 && !args.json {
+            println!(
+                "diff-parse: 未知差异 {} 在预算 {} 内（棘轮）",
+                report.unknown, args.max_unknown
+            );
+        }
+        ExitCode::SUCCESS
+    }
 }
 
 #[allow(dead_code)]

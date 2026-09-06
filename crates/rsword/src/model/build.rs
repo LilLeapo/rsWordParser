@@ -1318,7 +1318,16 @@ impl<'a> Builder<'a> {
 /// 只有 R15 / R17 / R18 这些「段里就一个图形」的分类会用到它。
 fn graphic_display(dom: &Dom, facts: &ParagraphFacts) -> Option<Display> {
     if let Some(d) = facts.drawings.first() {
-        return Some(Display::Drawing(Box::new(drawing_display(dom, d.node))));
+        let Some(fallback) = d.fallback_picture else {
+            return Some(Display::Drawing(Box::new(drawing_display(dom, d.node))));
+        };
+        // chartex 的回退图（R12 → Image）：图取 `mc:Fallback`，尺寸取 `mc:Choice`——Word 排版占的是
+        // 图表的位置，回退图只是替身（真实 Word 文件里两者的 extent 相同；TS 同样读第一个 `wp:extent`）。
+        let mut display = drawing_display(dom, fallback);
+        if let Some(ext) = drawing_display(dom, d.node).extent {
+            display.extent = Some(ext);
+        }
+        return Some(Display::Drawing(Box::new(display)));
     }
     let vml = facts.picts.first().map(|p| p.node).or_else(|| facts.objects.first().copied())?;
     Some(Display::Vml(Box::new(vml_display(dom, vml))))

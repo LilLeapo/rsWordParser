@@ -9,6 +9,7 @@ use std::ops::Range;
 
 use serde_json::{Map, Value, json};
 
+use super::chart;
 use super::decl::{
     NumberingOut, auto_space, i32_of, jc_align, list_kind, parse_int, strip_hash, tab_stops,
     u32_of, val_text,
@@ -69,6 +70,8 @@ pub(super) struct Ctx<'a> {
     first_page_break: Option<u32>,
     /// 正文引用的其他 part（外部文本框 part）：[`Ctx::switch`] 用。
     aux: &'a AuxProjMap<'a>,
+    /// 主 part 的图表关系表（任务 6.2）；页眉页脚 / 外部 part 的上下文里是空表——关系 id 是按 part 的。
+    pub charts: &'a chart::ChartMap<'a>,
     disp_cache: RefCell<HashMap<(String, StyleType), StyleDisp>>,
 }
 
@@ -121,6 +124,7 @@ impl<'a> Ctx<'a> {
             sections,
             first_page_break,
             aux: empty_aux(),
+            charts: chart::empty_charts(),
             disp_cache: RefCell::new(HashMap::new()),
         }
     }
@@ -128,6 +132,12 @@ impl<'a> Ctx<'a> {
     /// 挂上"正文引用的其他 part"表（`parsed_doc_of` 建）。
     pub(super) fn with_aux(mut self, aux: &'a AuxProjMap<'a>) -> Ctx<'a> {
         self.aux = aux;
+        self
+    }
+
+    /// 挂上主 part 的图表关系表（`parsed_doc_of` 建）。
+    pub(super) fn with_charts(mut self, charts: &'a chart::ChartMap<'a>) -> Ctx<'a> {
+        self.charts = charts;
         self
     }
 
@@ -151,6 +161,7 @@ impl<'a> Ctx<'a> {
             sections: self.sections.clone(),
             first_page_break: None,
             aux: self.aux,
+            charts: chart::empty_charts(),
             disp_cache: RefCell::new(HashMap::new()),
         })
     }
@@ -805,10 +816,16 @@ fn paragraph_block(
                 }
                 o
             }
+            // `COMPAT-03` 图表块（任务 6.2）：`chartDisplay` 与 `previewText` 只在 part 解析出 display 时有；
+            // 没有的块只剩 `label: "Chart"`（`chart::chart_block`）。TS 对图表块不取段落文字。
+            ProtectedKind::Chart => {
+                let mut o = passthrough(o, "Chart");
+                chart::chart_block(ctx, pb, &mut o);
+                o
+            }
             kind => {
                 let label = match kind {
                     ProtectedKind::Equation => "Equation",
-                    ProtectedKind::Chart => "Chart",
                     ProtectedKind::SmartArt => "SmartArt",
                     ProtectedKind::Ole => "Embedded object",
                     ProtectedKind::Rule => "Drawing object",
