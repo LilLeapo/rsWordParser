@@ -403,7 +403,8 @@ crate 名 `rsword`；nightly 与 cargo-fuzz 已装）。已决的政策见 §8 �
 | 1 | ~~语料基线~~ 已决（2026-09-04）：接受当前基线，不重导。`manifest.jsonl` 首行记着 `f105f36` + 32 个脏文件 + 导出时间；复核过影响面：32 个里只有 `packages/docx-engine/src/generate.ts`（三处 hunk 全在 `patchTableCellTexts`）与 `tests/nested-table-edit.test.ts` 在引擎内，其余 29 个在 `apps/docs`，碰不到解析与保存输出 | 后续若改了 genoffice 的 `docx-engine` 再重导；重导前先比对 `manifest.jsonl` 首行与 genoffice 当时状态 |
 | 2 | ~~`m1.15-diff-tools` 何时并入 `main`~~ 已并入（2026-09-04） | M2 直接从 `main` 开分支 |
 | 3 | ~~M2 计划文档~~ 已写：`spec/13-m2-plan.md`（10 个任务 + 从 M1 带过来的债 + 5 条风险提示）；M4 计划见 `spec/15-m4-plan.md`（8 个任务，与 M2 并行） | 开工前复核第 1 条（语料基线）对 2.5 / 2.6 差分基准的影响 |
-| 4 | ~~`RES-04` toggle 与 `RES-10` 节继承的 fixture 观察值~~ **已完成**（2026-09-06，Word 网页版，见 `fixtures/resolve/README.md` 的实测记录）：六份 fixture 全部 `verified = true`，`RES-04` 的规则按实测改写为 `ToggleRule::WordObserved`（原来的"最具体胜出"在六份里错了三份），`spec/07` 的 `RES-04` 条目同步重写。M5 门第 4 条**通过**。<br>② `pageColor` 要不要同时写 `w:displayBackgroundShape`：**已决**——要写。复核 TS 的 `patch.ts` 时发现它其实也写（`if (options.pageColor && !xml.includes('<w:displayBackgroundShape'))`），当时那条备注记错了；5.6a 按写实现 | 两个没实测到的角记在 `fixtures/resolve/README.md`：docDefaults 为 true 而段落样式显式关掉、以及 `b` 之外的八个 toggle |
+| 4 | ~~`RES-04` toggle 与 `RES-10` 节继承的 fixture 观察值~~ **已完成**（2026-09-06，Word 网页版，见 `fixtures/resolve/README.md` 的实测记录）：八份 fixture 全部 `verified = true`，`RES-04` 的规则按实测改写（原来的"最具体胜出"在前六份里错了三份，补测的第七份又推翻了"九个 toggle 一视同仁"，于是规则改成按字段选），`spec/07` 的 `RES-04` 条目同步重写。M5 门第 4 条**通过**。<br>② `pageColor` 要不要同时写 `w:displayBackgroundShape`：**已决**——要写。复核 TS 的 `patch.ts` 时发现它其实也写（`if (options.pageColor && !xml.includes('<w:displayBackgroundShape'))`），当时那条备注记错了；5.6a 按写实现 | 当时列的两个角都已补测（见上）；剩下的未决部分转成第 5 条 |
+| 5 | **`RES-04` toggle 规则还有一块没定**：`strike` / `caps` / `smallCaps` / `dstrike` 不抵消这条只在 **Word 网页版**上测过，与 ECMA-376 §17.7.3 的字面冲突最大，值得在桌面版复核一次（十分钟，步骤写在 `docs/06-toggle-open-question.md` 第 4 节）。**不挡进度**：语料 + 真实文档共 24,177 个 run 里撞上歧义的是 0 个，生产代码也还没有人调 `Resolver::run` | 复核前不要再拿网页版读数改规则；`corpus/real` 里放进真实文档后，把歧义频率探针固化成常驻测量 |
 
 ---
 
@@ -884,7 +885,7 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
 | 1 | `--scope hf` 0 未知差异，`text` / `fields` / `tables` / `drawing` 继续为 0 | **通过**（573 / 226 / 253 / 320 / 573 份，五道门都是 0） |
 | 2 | 被 M5 选项阻塞的 48 份保存用例全部等价或登记；跳过只剩 20 份 | **通过**（162 份里 138 等价、4 份 `INTENTIONAL`、20 份跳过 = 图表 6 + 图片 4 + 墨迹 8 + `partXml` 1 + `replaceImage` 1，全属 M6 / M7） |
 | 3 | 43 份带页眉页脚的语料：改页眉后只重写那个 part，其他条目 CRC 与压缩字节不变 | **通过**（43 / 43。9 份页眉里一个文本段落都没有——整个页眉只有一张图或一张表——改用 `InsertBlock`） |
-| 4 | `RES-04` / `RES-10` 的 fixture 通过 `TEST-08` | **通过**（2026-09-06 Word 网页版实测；六份 fixture 全部 `verified = true`，`RES-04` 的规则按实测改写） |
+| 4 | `RES-04` / `RES-10` 的 fixture 通过 `TEST-08` | **通过**（2026-09-06 Word 网页版实测；八份 fixture 全部 `verified = true`，`RES-04` 的规则按实测改写成按字段分的表；未决部分见 `docs/06-toggle-open-question.md`） |
 | 5 | 4 份页眉页脚 / 节的病态输入解析成功、局部降级、无编辑保存字节相同 | **通过**（`PKG_REL_MISSING` / `PKG_OPAQUE_PART` + `EDIT_TARGET_OPAQUE` / `PROP_BAD_VALUE` + 几何回退 / `MOD_TOO_DEEP`） |
 
 - [x] **5.1 节属性表**（`schema/props/section.toml`，`types.toml` + 12 枚举 / 8 结构体）：`SectionProps`
@@ -1024,7 +1025,7 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
     九个 toggle 字段的枚举、`RunProps` 读写与常量由新宏 `toggle_fields!` 一张表展开。
     接线时抓到一处：linked 补缺层（`H1Char` 这类壳从 `w:link` 的段落样式取 `b`）不在字符样式链
     自己的 `rPr` 里，漏了它 toggle 就丢值——现在它作为字符侧的最后一层参与。
-  - `tools/gen-fixtures`（新 workspace 成员）生成六份最小 docx 到 `fixtures/resolve/**`：
+  - `tools/gen-fixtures`（新 workspace 成员）生成六份最小 docx 到 `fixtures/resolve/**`（5.8b 又补两份，见下）：
     段落样式 b + 字符样式 b、docDefaults b + 段落样式 b、basedOn 两层都 b、表格样式 firstRow b +
     段落样式 b、直接 `w:b w:val="0"` 覆盖、两节文档第二节无 header 引用。生成可重复
     （固定时间戳，内容没变就不写），已存在的 `expected.toml` **不覆盖**。

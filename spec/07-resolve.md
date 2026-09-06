@@ -35,7 +35,7 @@ Provenance = Direct | CharStyle(StyleId) | ParaStyle(StyleId) | NumberingLevel{n
 
 toggle 属性：`b bCs i iCs caps smallCaps strike dstrike outline shadow emboss imprint vanish`（ECMA-376 §17.7.3；`specVanish` 不是 toggle）。
 
-**不采用** `child ?? parent` 合并。**规则按真实 Word 实测定案**（2026-09-06，Word 网页版，六份 fixture，记录在 `fixtures/resolve/README.md`）：
+**不采用** `child ?? parent` 合并。**规则按真实 Word 实测定案**（2026-09-06，Word 网页版，八份 fixture，记录在 `fixtures/resolve/README.md`；仍未定死的部分见 `docs/06-toggle-open-question.md`）：
 
 1. run 直接格式指定 → 用直接值（实测与规范一致）。
 2. 否则**按字段选规则**（实测发现 Word 对同一类属性并不同待遇）：
@@ -54,7 +54,7 @@ toggle 属性：`b bCs i iCs caps smallCaps strike dstrike outline shadow emboss
    每个**层级**先按"子覆盖父"取一个值（`basedOn` 链内**不**计次数），层级之间才做异或。
    段落样式层在链里一处都没声明时**取 docDefaults 的值**——每个段落都有样式（没写 `w:pStyle` 就是 Normal），样式链的根是 docDefaults，于是 docDefaults 的值在两处各出现一次、自己抵消。一个反直觉的推论：docDefaults 写 `b=true`、段落样式写 `w:b w:val="0"` 时，Word 显示**加粗**（已实测）。
 3. **与 ECMA-376 §17.7.3 的差异**：规范说的是"层级各样式中值为 true 的次数"，实测是"层级数"——`basedOn` 链上两层都 `b=true` 时 Word 仍然加粗。这属于 [MS-OI29500] 记录的 Word 偏差一类（该文档也记了 docDefaults、表格样式、多层 basedOn 的处理与 Word 版本相关）。
-4. 没测到的角：`vanish`（Word 网页版把隐藏文字照常显示，观察不到）、`bCs` / `iCs`（要 RTL 文本）。另外**只在 Word 网页版上测过**，桌面版是另一套渲染实现。都记在 `fixtures/resolve/README.md`。
+4. 没测到的角：`vanish`（Word 网页版把隐藏文字照常显示，观察不到）、`bCs` / `iCs`（要 RTL 文本）。另外**只在 Word 网页版上测过**，桌面版是另一套渲染实现。完整的未决清单与复核步骤见 **`docs/06-toggle-open-question.md`**，读数见 `fixtures/resolve/README.md`。
 
 **来源（`RES-01`）**：toggle 的有效值可能由多个层级异或得出，那个值谁都没单独写过，所以来源是 `Provenance::Toggle { levels }`（`levels` 按最具体到最不具体列出参与的层）。只有一个层级参与、且有效值就是它写的那个值时才指那一层；直接格式一票定音时是 `Direct`。"只有 docDefaults 声明"也落到 `Toggle`——段落样式层会把 docDefaults 的值再贡献一次。
 
@@ -134,7 +134,7 @@ fixtures/resolve/<area>/<case>/
 | ID | 用例 |
 | --- | --- |
 | RES-02 | basedOn 环不死循环；最后一个 default 胜出；`outlineLvl 9` 阻断 |
-| RES-04 | 五个 toggle fixture |
+| RES-04 | 七个 toggle fixture（`b` / `i` 走异或，`strike` 一族走最具体胜出） |
 | RES-05 | 空 EA 槽 + `themeFontLang ja` → Yu Mincho；`themeColor accent1 + tint 99` 与 Word 显示一致（允许 ±1/255 误差） |
 | RES-06 | `w:rtl` run 只读 `bCs`，`w:b` 被忽略 |
 | RES-08 | `tblLook w:val="04A0"` 解出 firstRow / firstColumn / noVBand（= 横向条带开、纵向条带关），属性形式优先于位；重复 `w:tcW` 取最后一个；重复 `tblBorders` / `tcBorders` 按边合并后者胜；`trHeight` 截到 31680；全语料的列宽与格跨度与 TS 一致 |

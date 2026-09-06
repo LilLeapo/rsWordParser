@@ -1,5 +1,8 @@
 # `resolve` 校准 fixture（`RES-12` / `TEST-08`，任务 5.8）
 
+> 还没定死的那一块（`strike` 一族只在 Word 网页版测过）与下一步怎么测，见
+> **`docs/06-toggle-open-question.md`**。本文只管 fixture 本身怎么用、怎么填。
+
 这里的每个目录是一份**最小 docx** 加一张断言表：
 
 ```
@@ -43,7 +46,7 @@ fixtures/resolve/<域>/<用例>/
    child-overrides-parent）。换规则后若不再全等，**不是回归**：按路径登记到
    `bind/compat_ts/KNOWN_DIFFS.md`，理由写"Word 实测为准"。
 
-## 六份 fixture
+## 八份 fixture
 
 | 目录 | 看什么 |
 | --- | --- |
@@ -52,11 +55,13 @@ fixtures/resolve/<域>/<用例>/
 | `toggle/based-on-two-levels` | `basedOn` 链上两层都 `b` |
 | `toggle/table-first-row` | 表格样式 `firstRow` 的 `b` 与段落样式的 `b` 叠加（`RES-08` 的表格视图） |
 | `toggle/direct-off` | 直接 `w:b w:val="0"` 压住样式的 `b`（两种规则都该说不加粗，用来验对照组） |
+| `toggle/docdefaults-and-para-off` | `docDefaults` 的 `b` 与段落样式**显式关掉**的 `b=0`（5.8b 补测） |
+| `toggle/other-toggles` | `i` / `strike` / `caps` / `smallCaps` / `dstrike` / `vanish` 各自两层都声明（5.8b 补测，推翻了"九个 toggle 一视同仁"） |
 | `sections/inherit-default` | 第二节没有 `headerReference` 时第二页的页眉 |
 
 ## 实测记录
 
-**2026-09-06，Word 网页版（office.com / OneDrive，浏览器 Chrome，macOS）。** 六份文档全部上传到
+**2026-09-06，Word 网页版（office.com / OneDrive，浏览器 Chrome，macOS）。** 八份文档全部上传到
 OneDrive 后用 Word 网页版打开，逐段把光标放进去，读功能区"加粗"按钮的按下状态与字体名框
 （加粗时显示"宋体 (粗体)"）。两处各复核一次：把光标移开再移回、以及双击选中整个词后重读。
 
@@ -97,7 +102,7 @@ OneDrive 后用 Word 网页版打开，逐段把光标放进去，读功能区"�
 
 ### 结论二：`b` / `i` 的层级异或规则
 
-原来激活的"最具体的声明胜出"（也是 TS 参考实现的行为）在六份里错了三份。实测出来的规则是
+原来激活的"最具体的声明胜出"（也是 TS 参考实现的行为）在前六份里错了三份。实测出来的规则是
 `resolve::toggle::ToggleRule::WordObserved`，已激活：
 
 ```text
