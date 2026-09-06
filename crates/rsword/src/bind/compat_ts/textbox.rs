@@ -385,6 +385,21 @@ fn invisible_empty_shapes(ctx: &Ctx<'_>, drawings: &[&DrawingDisplay]) -> bool {
 }
 
 /// 段落里能提取出的框（TS `extractTextboxes`，`shapes` 与 `pictures` 都开）。
+/// SmartArt 段落里的其他绘图（照片 / 形状）→ `textboxes[]`（TS 对多绘图的图示段落调 `extractTextboxes`，
+/// 形状与图片都开；任务 6.3）。`drawings` 是整段的顶层绘图，图示自己没有 `wps` / `pic` 内容、不出框。
+pub(super) fn sibling_boxes(
+    ctx: &Ctx<'_>,
+    para_node: NodeId,
+    docx_index: usize,
+    drawings: &[&DrawingDisplay],
+) -> Vec<Value> {
+    let first_page = ctx.first_page(para_node, docx_index);
+    boxes_of(ctx, para_node, first_page, drawings, &[])
+        .into_iter()
+        .map(|b| Value::Object(b.json))
+        .collect()
+}
+
 fn boxes_of(
     ctx: &Ctx<'_>,
     para_node: NodeId,

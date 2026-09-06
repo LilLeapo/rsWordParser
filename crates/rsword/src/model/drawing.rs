@@ -14,6 +14,7 @@
 
 use crate::model::block::Block;
 use crate::model::custgeom::{CustomGeom, custom_geom};
+use crate::model::diagram::{CanvasDisplay, canvas_display};
 use crate::model::facts::DrawingKind;
 use crate::model::vml::VmlDisplay;
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
@@ -65,6 +66,19 @@ pub struct DrawingDisplay {
     /// `a:graphicData` 里的 `c:chart` / `cx:chart`：图表 part 的引用（M6 6.1）。part 本身在
     /// `Document.chart_parts`，按 `rel_id` 经 `Document.chart_by_rel` 找。
     pub chart: Option<ChartRef>,
+    /// `dgm:relIds`：SmartArt 两个 part 的引用（M6 6.3）。part 在 `Document.diagram_parts`，
+    /// 按 `rel_id`（`@r:dm`）经 `Document.diagram_by_rel` 找。
+    pub diagram: Option<DiagramRef>,
+    /// `lc:lockedCanvas`：绘图画布的子坐标系与形状（M6 6.3；`model::diagram`）。
+    pub canvas: Option<Box<CanvasDisplay>>,
+}
+
+/// `dgm:relIds`：一个绘图对 SmartArt part 的引用。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DiagramRef {
+    pub node: NodeId,
+    /// `@r:dm`（数据 part）；写丢了 → `None`（TS 同样解析不出图示）。
+    pub rel_id: Option<String>,
 }
 
 /// `c:chart r:id` / `cx:chart r:id`：一个绘图对图表 part 的引用。
@@ -372,6 +386,8 @@ pub fn drawing_display(dom: &Dom, drawing: NodeId) -> DrawingDisplay {
         pictures: Vec::new(),
         shapes: Vec::new(),
         chart: None,
+        diagram: None,
+        canvas: None,
     };
     let mut pic_nodes: Vec<(NodeId, Option<usize>)> = Vec::new();
     // 组的下标要在遍历时跟着走，所以这里用带父组的显式栈，而不是 `walk`。
@@ -394,6 +410,13 @@ pub fn drawing_display(dom: &Dom, drawing: NodeId) -> DrawingDisplay {
                         rel_id: attr(dom, n, NsId::R, LocalName::Id),
                         chartex: ns == NsId::Cx,
                     });
+                }
+                (NsId::Dgm, LocalName::RelIds) if d.diagram.is_none() => {
+                    d.diagram =
+                        Some(DiagramRef { node: n, rel_id: attr(dom, n, NsId::R, LocalName::Dm) });
+                }
+                (NsId::Lc, LocalName::LockedCanvas) if d.canvas.is_none() => {
+                    d.canvas = Some(Box::new(canvas_display(dom, n)));
                 }
                 (NsId::Wps, LocalName::Wsp) => d.shapes.push(shape_display(dom, n, false, parent)),
                 (NsId::Wpg, LocalName::Wgp | LocalName::GrpSp) => {
@@ -565,7 +588,7 @@ fn body_pr(dom: &Dom, node: NodeId) -> BodyPr {
     }
 }
 
-fn xy(dom: &Dom, node: NodeId) -> Option<(i64, i64)> {
+pub(crate) fn xy(dom: &Dom, node: NodeId) -> Option<(i64, i64)> {
     Some((num(dom, node, LocalName::X)?, num(dom, node, LocalName::Y)?))
 }
 
@@ -716,11 +739,11 @@ fn doc_pr(dom: &Dom, node: NodeId) -> DocPr {
     }
 }
 
-fn extent_of(dom: &Dom, node: NodeId) -> Option<Extent> {
+pub(crate) fn extent_of(dom: &Dom, node: NodeId) -> Option<Extent> {
     Some(Extent { cx: num(dom, node, LocalName::Cx)?, cy: num(dom, node, LocalName::Cy)? })
 }
 
-fn rect_frac(dom: &Dom, node: NodeId) -> RectFrac {
+pub(crate) fn rect_frac(dom: &Dom, node: NodeId) -> RectFrac {
     let side = |l: LocalName| num(dom, node, l).unwrap_or(0);
     RectFrac {
         l: side(LocalName::L),
@@ -730,11 +753,11 @@ fn rect_frac(dom: &Dom, node: NodeId) -> RectFrac {
     }
 }
 
-fn attr(dom: &Dom, node: NodeId, ns: NsId, local: LocalName) -> Option<String> {
+pub(crate) fn attr(dom: &Dom, node: NodeId, ns: NsId, local: LocalName) -> Option<String> {
     dom.attr_value(node, QName::new(ns, local)).map(|s| s.trim().to_string())
 }
 
-fn num(dom: &Dom, node: NodeId, local: LocalName) -> Option<i64> {
+pub(crate) fn num(dom: &Dom, node: NodeId, local: LocalName) -> Option<i64> {
     attr(dom, node, NsId::None, local)?.parse().ok()
 }
 
@@ -747,7 +770,7 @@ fn flag(dom: &Dom, node: NodeId, local: LocalName) -> Option<bool> {
     }
 }
 
-fn text_of(dom: &Dom, node: NodeId) -> Option<String> {
+pub(crate) fn text_of(dom: &Dom, node: NodeId) -> Option<String> {
     let mut s = String::new();
     for c in dom.semantic_children(node) {
         if let Some(t) = dom.text(c) {
@@ -800,6 +823,8 @@ fn eff_ns(dom: &Dom, node: NodeId) -> NsId {
         Some("wp") => NsId::Wp,
         Some("c") => NsId::C,
         Some("cx") => NsId::Cx,
+        Some("dgm") => NsId::Dgm,
+        Some("lc") => NsId::Lc,
         Some("pic") => NsId::Pic,
         Some("a") => NsId::A,
         _ => name.ns,

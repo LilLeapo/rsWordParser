@@ -15,6 +15,7 @@ use crate::model::classify::{
     BodyClass, ParaClass, classify_body_child, classify_paragraph, text_kind,
 };
 use crate::model::decl::{FontTable, Numbering, Settings, Styles};
+use crate::model::diagram::DiagramPart;
 use crate::model::drawing::{Display, drawing_display};
 use crate::model::facts::ParagraphFacts;
 use crate::model::hf::HfPart;
@@ -61,6 +62,10 @@ pub struct Document {
     /// 绘图侧的引用是 `DrawingDisplay.chart`（`rel_id`），经 [`Document::chart_by_rel`] 到这里。
     pub chart_parts: BTreeMap<PartId, ChartPart>,
     pub chart_by_rel: BTreeMap<String, PartId>,
+    /// 主 part 引用的 SmartArt（按**数据 part** 的 `PartId`，任务 6.3）。绘图侧的引用是
+    /// `DrawingDisplay.diagram`（`@r:dm`），经 [`Document::diagram_by_rel`] 到这里。
+    pub diagram_parts: BTreeMap<PartId, DiagramPart>,
+    pub diagram_by_rel: BTreeMap<String, PartId>,
     /// 主 part 的内容流映射（`SPAN-01`）。
     pub flows: FlowMap,
     /// 主 part 的字段索引（`FLD-02`）。与投影同寿命：`rebuild` / `refresh_blocks` 都重建它。
@@ -169,6 +174,43 @@ impl Document {
         for (_, id) in &chart_rels {
             let _ = pkg.dom(*id);
         }
+        // SmartArt（`dgm:relIds/@r:dm`，任务 6.3）：数据 part 走关系；绘图 part 优先走数据 part 自己的
+        // `diagramDrawing` 关系（ECMA-376 没有它，是 Word 2007 的扩展，真实文档都写），没有再按 TS 的
+        // 路径约定 `data{N}.xml → drawing{N}.xml`。两个 part 都在这里解析。
+        let mut diagram_rels: Vec<(String, PartId, Option<PartId>)> = Vec::new();
+        let mut diagram_rels_missing: Vec<String> = Vec::new();
+        for r in pkg.part(main).rels.of_kind(RelType::DiagramData) {
+            let RelTarget::Internal(u) = &r.target else { continue };
+            match pkg.find(u) {
+                Some(data) => {
+                    let by_rel =
+                        pkg.part(data).rels.of_kind(RelType::DiagramDrawing).find_map(|d| match &d
+                            .target
+                        {
+                            RelTarget::Internal(u) => pkg.find(u),
+                            RelTarget::External(_) => None,
+                        });
+                    let drawing = by_rel.or_else(|| {
+                        let name = u.as_str();
+                        let (dir, file) = name.rsplit_once('/').unwrap_or(("", name));
+                        let n = file.strip_prefix("data")?.strip_suffix(".xml")?;
+                        if !n.chars().all(|c| c.is_ascii_digit()) {
+                            return None;
+                        }
+                        let sep = if dir.is_empty() { "" } else { "/" };
+                        pkg.find_name(&format!("{dir}{sep}drawing{n}.xml"))
+                    });
+                    diagram_rels.push((r.id.clone(), data, drawing));
+                }
+                None => diagram_rels_missing.push(format!("{}（{}）", r.id, u.as_str())),
+            }
+        }
+        for (_, data, drawing) in &diagram_rels {
+            let _ = pkg.dom(*data);
+            if let Some(d) = drawing {
+                let _ = pkg.dom(*d);
+            }
+        }
 
         let mut warnings = Vec::new();
         let dom_of = |id: Option<PartId>| id.and_then(|id| pkg.part(id).dom());
@@ -183,6 +225,29 @@ impl Document {
                 DiagCode::PkgRelMissing,
                 format!("图表关系 {rid} 指向的 part 不在包里"),
             ));
+        }
+        for rid in diagram_rels_missing {
+            warnings.push(Diagnostic::pre_existing(
+                main,
+                None,
+                DiagCode::PkgRelMissing,
+                format!("SmartArt 数据关系 {rid} 指向的 part 不在包里"),
+            ));
+        }
+        let mut diagram_parts = BTreeMap::new();
+        let mut diagram_by_rel = BTreeMap::new();
+        for (rel_id, data, drawing) in diagram_rels {
+            diagram_by_rel.insert(rel_id, data);
+            if diagram_parts.contains_key(&data) {
+                continue;
+            }
+            let dp = DiagramPart::build(
+                data,
+                pkg.part(data).dom(),
+                drawing.map(|d| (d, pkg.part(d).dom())),
+                &mut warnings,
+            );
+            diagram_parts.insert(data, dp);
         }
         // 图表颜色按文档的配色方案解（没有 theme part 时按内建 Office 调色板，`RES-05`）
         let scheme = theme
@@ -298,13 +363,10 @@ impl Document {
         // 留一条诊断让编辑器能说"这张图表的数据丢了"
         for b in Blocks::over(&blocks) {
             let Block::Protected(pb) = b else { continue };
-            let Some(chart) =
-                pb.display.as_ref().and_then(Display::as_drawing).and_then(|d| d.chart.as_ref())
-            else {
-                continue;
-            };
-            let dangling = chart.rel_id.as_ref().is_none_or(|rid| !chart_by_rel.contains_key(rid));
-            if dangling {
+            let Some(d) = pb.display.as_ref().and_then(Display::as_drawing) else { continue };
+            if let Some(chart) = d.chart.as_ref()
+                && chart.rel_id.as_ref().is_none_or(|rid| !chart_by_rel.contains_key(rid))
+            {
                 warnings.push(Diagnostic::pre_existing(
                     main,
                     dom.node(chart.node).lex.as_ref().map(|l| l.range.clone()),
@@ -312,6 +374,20 @@ impl Document {
                     match &chart.rel_id {
                         Some(rid) => format!("图表引用的关系 {rid} 不存在"),
                         None => "图表引用没有 r:id".to_string(),
+                    },
+                ));
+            }
+            // SmartArt 的 `@r:dm` 悬空同理（`smartart-ole__006`）：块仍是 `SmartArt` 芯片，没有文字与形状
+            if let Some(dg) = d.diagram.as_ref()
+                && dg.rel_id.as_ref().is_none_or(|rid| !diagram_by_rel.contains_key(rid))
+            {
+                warnings.push(Diagnostic::pre_existing(
+                    main,
+                    dom.node(dg.node).lex.as_ref().map(|l| l.range.clone()),
+                    DiagCode::PkgRelMissing,
+                    match &dg.rel_id {
+                        Some(rid) => format!("SmartArt 引用的关系 {rid} 不存在"),
+                        None => "SmartArt 引用没有 r:dm".to_string(),
                     },
                 ));
             }
@@ -326,6 +402,8 @@ impl Document {
             aux_flows,
             chart_parts,
             chart_by_rel,
+            diagram_parts,
+            diagram_by_rel,
             styles,
             numbering,
             theme,
@@ -434,6 +512,7 @@ fn section_props_block(node: NodeId, sdt: Option<&SdtInfo>, revs: &[Revision]) -
         kind: ProtectedKind::SectionProps,
         preview: String::new(),
         display: None,
+        siblings: Vec::new(),
         sdt: sdt.cloned(),
         revisions: revs.to_vec(),
     })
@@ -580,6 +659,7 @@ impl<'a> Builder<'a> {
                 kind: ProtectedKind::TooDeep,
                 preview: String::new(),
                 display: None,
+                siblings: Vec::new(),
                 sdt: sdt.cloned(),
                 revisions: revs.to_vec(),
             }));
@@ -615,6 +695,7 @@ impl<'a> Builder<'a> {
                             kind: ProtectedKind::Invisible,
                             preview: String::new(),
                             display: None,
+                            siblings: Vec::new(),
                             sdt: Some(info),
                             revisions: revs.to_vec(),
                         }));
@@ -626,6 +707,7 @@ impl<'a> Builder<'a> {
                     kind: ProtectedKind::BodyBreak { page },
                     preview: String::new(),
                     display: None,
+                    siblings: Vec::new(),
                     sdt: sdt.cloned(),
                     revisions: revs.to_vec(),
                 })),
@@ -656,6 +738,7 @@ impl<'a> Builder<'a> {
                         kind: ProtectedKind::Unknown(name),
                         preview: self.preview(node),
                         display: None,
+                        siblings: Vec::new(),
                         sdt: sdt.cloned(),
                         revisions: revs.to_vec(),
                     }));
@@ -721,6 +804,7 @@ impl<'a> Builder<'a> {
                 kind,
                 preview: self.preview(p),
                 display: graphic_display(dom, &facts),
+                siblings: graphic_siblings(dom, &facts),
                 sdt: sdt.cloned(),
                 revisions,
             }),
@@ -1158,6 +1242,7 @@ impl<'a> Builder<'a> {
                 kind: ProtectedKind::TooDeep,
                 preview: String::new(),
                 display: None,
+                siblings: Vec::new(),
                 sdt: None,
                 revisions: Vec::new(),
             })];
@@ -1331,6 +1416,16 @@ fn graphic_display(dom: &Dom, facts: &ParagraphFacts) -> Option<Display> {
     }
     let vml = facts.picts.first().map(|p| p.node).or_else(|| facts.objects.first().copied())?;
     Some(Display::Vml(Box::new(vml_display(dom, vml))))
+}
+
+/// 段落里第一个之外的顶层绘图（`ProtectedBlock::siblings`）：SmartArt / 画布旁边的照片与形状。
+fn graphic_siblings(dom: &Dom, facts: &ParagraphFacts) -> Vec<Display> {
+    facts
+        .drawings
+        .iter()
+        .skip(1)
+        .map(|d| Display::Drawing(Box::new(drawing_display(dom, d.node))))
+        .collect()
 }
 
 fn xml_space_preserved(dom: &Dom, node: NodeId) -> bool {

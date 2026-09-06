@@ -477,8 +477,7 @@ fn compat_05_textbox_paragraphs_are_surfaced() {
 /// 单元格 run 上），浮动的照样进；锚定的位置按 `wp:align` / `wp:posOffset` 出 `posH` / `posXPx`。
 #[test]
 fn compat_05_hf_images() {
-    // 1x1 的 PNG
-    const PNG: &str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    const PNG: &str = common::PNG_1X1;
     let drawing_inline = concat!(
         r#"<w:r><w:drawing><wp:inline><wp:extent cx="381000" cy="190500"/>"#,
         r#"<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">"#,

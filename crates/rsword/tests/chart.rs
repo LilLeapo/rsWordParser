@@ -547,7 +547,6 @@ fn compat_03_chart_without_display_has_neither_preview_text_nor_part_entry() {
 const CX: &str = "http://schemas.microsoft.com/office/drawing/2014/chartex";
 const MC: &str = "http://schemas.openxmlformats.org/markup-compatibility/2006";
 const PIC: &str = "http://schemas.openxmlformats.org/drawingml/2006/picture";
-const PNG_1X1: &str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 const CHARTEX_PART: &str = r#"<cx:chartSpace xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex"><cx:chartData><cx:data id="0"><cx:strDim type="cat"><cx:lvl ptCount="2"><cx:pt idx="0">A</cx:pt><cx:pt idx="1">B</cx:pt></cx:lvl></cx:strDim><cx:numDim type="val"><cx:lvl ptCount="2"><cx:pt idx="0">100</cx:pt><cx:pt idx="1">-40</cx:pt></cx:lvl></cx:numDim></cx:data></cx:chartData><cx:chart><cx:plotArea><cx:plotAreaRegion><cx:series layoutId="sunburst"><cx:tx><cx:txData><cx:v>Extended</cx:v></cx:txData></cx:tx><cx:dataId val="0"/></cx:series></cx:plotAreaRegion></cx:plotArea></cx:chart></cx:chartSpace>"#;
 
 /// chartex 绘图的 `w:r`（放在 `mc:Choice` 里或裸放）。
@@ -575,7 +574,7 @@ fn chartex_docx(paragraph: &str) -> Vec<u8> {
             ("word/charts/chartEx1.xml", CHARTEX_PART),
         ],
     );
-    common::with_binary_part(&docx, "word/media/image1.png", &common::b64(PNG_1X1))
+    common::with_binary_part(&docx, "word/media/image1.png", &common::b64(common::PNG_1X1))
 }
 
 /// R12 的细化（`spec/06`）：chartex 配了 `mc:Fallback` 回退图 → 图片块。图取 Fallback 的 `a:blip`（媒体预取

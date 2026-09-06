@@ -16,6 +16,7 @@ mod blocks;
 mod box_json;
 mod chart;
 mod decl;
+mod diagram;
 pub mod diff;
 mod hf;
 mod image;
@@ -41,7 +42,13 @@ pub fn parsed_doc(pkg: &mut Package) -> Result<Value> {
     let doc = Document::rebuild(pkg)?;
     // 先把媒体读出来：之后整条投影链路只有 DOM 的不可变借用（`bind::compat_ts::media`）。
     // 页眉页脚 part 各一张表——图片关系按 part 解析（`PKG-05`）。
-    let aux: Vec<PartId> = doc.hf_parts.keys().copied().collect();
+    // SmartArt 绘图 part 的图片填充按那个 part 的关系解，所以也各要一张表（任务 6.3）
+    let aux: Vec<PartId> = doc
+        .hf_parts
+        .keys()
+        .copied()
+        .chain(doc.diagram_parts.values().filter_map(|d| d.drawing))
+        .collect();
     let media = MediaSet::build(pkg, doc.main_part, &aux);
     Ok(parsed_doc_of(pkg, &doc, &media))
 }
@@ -82,9 +89,11 @@ pub fn parsed_doc_of(pkg: &Package, doc: &Document, media: &MediaSet) -> Value {
         .collect();
     // 主 part 引用的图表 part（任务 6.2）：块上的 `chartDisplay` 与 `extras.chartParts` 都从这张表查
     let charts = chart::chart_map(pkg, doc);
+    let diagrams = diagram::diagram_map(pkg, doc, media);
     let ctx = blocks::Ctx::new(dom, doc, &resolver, &idx, rels, &numbering, &media.main)
         .with_aux(&aux)
-        .with_charts(&charts);
+        .with_charts(&charts)
+        .with_diagrams(&diagrams);
     let (elements, blocks) = blocks::body(&ctx);
     let chart_parts = chart::chart_parts_json(&ctx);
 

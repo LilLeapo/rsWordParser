@@ -208,6 +208,7 @@ impl<'a> Builder<'a> {
                 kind: ProtectedKind::TooDeep,
                 preview: String::new(),
                 display: None,
+                siblings: Vec::new(),
                 sdt: sdt.cloned(),
                 revisions: revs.to_vec(),
             });

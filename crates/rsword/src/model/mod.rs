@@ -24,6 +24,7 @@ pub mod aux;
 pub mod chart;
 pub mod custgeom;
 pub mod decl;
+pub mod diagram;
 pub mod drawing;
 pub mod facts;
 pub mod hf;
@@ -52,9 +53,10 @@ pub use decl::{
     LevelOverride, Num, Numbering, OwnHeadingLevel, Settings, Style, StyleType, Styles,
     TableStylePr,
 };
+pub use diagram::{CanvasDisplay, DiagramLine, DiagramPart, DiagramPicture, DiagramShape};
 pub use drawing::{
-    AnchorGeom, ChartRef, Display, Dist, DocPr, DrawingDisplay, Extent, ImageDisplay, LineDisplay,
-    Position, RectFrac, Wrap,
+    AnchorGeom, ChartRef, DiagramRef, Display, Dist, DocPr, DrawingDisplay, Extent, ImageDisplay,
+    LineDisplay, Position, RectFrac, Wrap,
 };
 pub use facts::{
     DrawingFacts, DrawingKind, MathFacts, ParagraphFacts, PictFacts, PictKind, RevisionFacts,

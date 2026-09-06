@@ -580,6 +580,8 @@ mod tests {
     fn drawing(cx: i64) -> DrawingDisplay {
         DrawingDisplay {
             chart: None,
+            diagram: None,
+            canvas: None,
             node: NodeId(0),
             kind: crate::model::DrawingKind::Picture,
             anchor: None,

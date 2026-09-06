@@ -123,8 +123,11 @@ pub struct ProtectedBlock {
     pub kind: ProtectedKind,
     /// 可见文本预览（最多 80 个字符），供编辑器显示占位。
     pub preview: String,
-    /// 显示载荷（`MOD-11`）：细横线 / 嵌入对象的 VML，图表与 SmartArt 的载荷在 M6。
+    /// 显示载荷（`MOD-11`）：段落里第一个图形——细横线 / 嵌入对象的 VML、图表 / SmartArt / 画布的绘图。
     pub display: Option<Display>,
+    /// 段落里**其余**顶层绘图的显示模型（`R13`：SmartArt 旁的照片 / 形状各有自己的锚点），文档序。
+    /// 只有段落分类建的保护块会填；表格 / 节属性 / 过深等结构块恒为空。
+    pub siblings: Vec<Display>,
     pub sdt: Option<SdtInfo>,
     pub revisions: Vec<Revision>,
 }

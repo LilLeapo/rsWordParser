@@ -304,7 +304,10 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `XML-09` 已理解集合 | `wps wpg wp14 w14 w15 cx`（`docs/03` §4.4） | 加 `c14`（Word 2010 图表扩展；`xml/mce.rs` `DEFAULT_UNDERSTOOD`） | 图表 part 的 `c:style` 一律包在 `mc:AlternateContent` 里：Choice 是 `c14:style`（101–148），Fallback 是 `c:style`（1–48）。Word 2010+ 与 TS 读的都是 Choice；语料 `m6-chart__043` 两支故意不一致，走 Fallback 会把调色板认成灰阶（6.1） |
 | `MOD-05` R12 chartex 回退图 | 「`ChartEx` 且有 Fallback 图 → `Image`」 | 图取 `mc:Fallback` 里的 `a:blip`，**尺寸取 `mc:Choice` 的 `wp:extent`**（`graphic_display`）；回退图的媒体解析不出来时是 `brokenImage` 的 `Image` 块，不退回图表芯片 | Word 排版占的是图表的位置，回退图只是替身（真实 Word 文件两处 extent 相同，TS 也读段落里第一个 `wp:extent`）。TS 在媒体解析失败时回到 `extractChart`，本引擎的分类不看媒体（分层：媒体在 compat）——只影响回退图坏掉的病态文档（6.2） |
 | `XML-10` 语义遍历与媒体预取 | 媒体只从语义子树收 rId | `compat_ts/media.rs` 的 `collect_rids` 再走一遍原始树：Choice 里是 `cx:chart` 的 `mc:AlternateContent`，其 `mc:Fallback` 里的 `a:blip` / `v:imagedata` 也预取 | R12 要画的就是那张未生效分支里的图；别的 Fallback 仍不看（未生效 Choice 里的坏 rId 不算悬空引用，`hf-images__011` 一类照旧）（6.2） |
-| `TEST-10` 门的 CI 形态 | 「对应域 diff 为 0」 | 还没关上的门用 `diff-parse --max-unknown N` 做棘轮：未知差异 ≤ N 放行，每落地一个任务往下拧，归零后删掉参数 | 门一建就进 CI，回归有人拦，数字有地方掉；`.github/workflows/ci.yml` 第七步（6.2 起 214） |
+| `MOD-11` SmartArt 绘图 part 的定位 | 「路径由数据 part 路径 `data(\d*).xml → drawing$1.xml` 替换（TS 约定）」 | 先看数据 part 自己的 `diagramDrawing` 关系（`http://schemas.microsoft.com/office/2007/relationships/diagramDrawing`），没有再按路径约定 | 真实 Word 文档都写这条关系，路径只是 TS 没解析 `.rels` 时的替代；两种都认（6.3） |
+| `MOD-11` SmartArt 绘图 part 的颜色 | 「`schemeClr` 查主题原值不做变换、缺省 `9AB5E4`——照抄 TS」 | 颜色走 `RES-05`（全部写法与 `lumMod` 等变换），槽位解不出时同样给 `9AB5E4`；别名 `tx1 / bg1` 认 | Word 写进 `dsp` 的颜色常带 `hueOff / satOff / lumOff`（多为 0），按定义解才是那张图的颜色；语料里没有带变换的样本，与 TS 无差异（6.3） |
+| `MOD-05` R14 没有 `wp:extent` 的画布 | — | 显示尺寸退回 `a:chExt` 原值（缩放 1），仍是 `Drawing object` + `diagramDisplay`；TS 放弃画布改取第一张图 | `wp:inline` 缺 `wp:extent` 是畸形文档，TS 的图片是兜底而非规则；`m6-canvas__006` 五条路径登记在 `KNOWN_DIFFS.md`（6.3） |
+| `TEST-10` 门的 CI 形态 | 「对应域 diff 为 0」 | 还没关上的门用 `diff-parse --max-unknown N` 做棘轮：未知差异 ≤ N 放行，每落地一个任务往下拧，归零后删掉参数 | 门一建就进 CI，回归有人拦，数字有地方掉；`.github/workflows/ci.yml` 第七步（6.2 起 214，6.3 起 170） |
 | `XML-09` `mc:Choice/@Requires` | 前缀按作用域解析 | 作用域里解析不到时，退一步看**分支子树内**有没有声明这个前缀 | 合成语料常把 `xmlns:wps` 写在 `wps:wsp` 元素自己身上，`Requires="wps"` 于是在 `mc:Choice` 处解析不出来、整段退到 VML Fallback（16 份文档）。意图毫无歧义，按分支内的声明认；前缀在**任何地方**都没声明的情况（`numbering-defs__012`）行为不变，仍是已知差异 |
 | `PKG-06` | 唯一路径函数 | `uri::resolve` 唯一；`parse_rels` 在目标不存在且写法为 `../` 时按 `_rels/` 目录再解析一次 | 兼容相对 `_rels/` 写目标的生成器（验收清单要求三种写法解析到同一 part） |
 | `XML-01` 转码 part | "Clean 拷贝的是转码后的字节" | 同；被改写时 XML 声明的 `encoding` 改为 `UTF-8` | 否则声明与字节不一致 |
@@ -1130,7 +1133,23 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   `m6-chartex__008` 的图片块全部归零；剩下的是 6.3–6.8 的公式 / 画布 / SmartArt / 墨迹 / OLE），`all` 452 → 246，前五道门仍 0。
   `tests/chart.rs` 加四个：语料 94 份图表文档（88 个 `chartDisplay`、80 个 part 原文）的图表域差异为 0；构造用例钉字段换名 / 原字节 / 无 display 无 `previewText` /
   chartex 回退图与裸 chartex。`b64` / `with_binary_part` 挪进 `tests/common`。452 个测试。
-- [ ] **6.3 SmartArt 与绘图画布**（`model/diagram.rs`、`bind/compat_ts/diagram.rs`）：数据 part 文字树、绘图 part 形状、`lc:lockedCanvas` 缩放；分栏启发式只在 compat。
+- [x] **6.3 SmartArt 与绘图画布**（`model/diagram.rs`、`bind/compat_ts/diagram.rs`，2026-09-06）：`DiagramPart { data, drawing, text,
+  shapes }` / `DiagramShape`（EMU 与颜色**容器节点**，与 M4 `FillDisplay` 同一约定）/ `CanvasDisplay { ch_off, ch_ext, shapes }`；
+  `Document.diagram_parts` + `diagram_by_rel`（`@r:dm`）与图表同一模式；`DrawingDisplay.diagram` / `.canvas`；
+  `ProtectedBlock.siblings`（段落里其余顶层绘图的显示模型，R13 的照片 / 形状邻居）。数据 part：`dgm:pt` 去掉
+  pres / parTrans / sibTrans，`dgm:cxn` 无 type 或 parOf 按 `srcOrd` 建树，根按首次出现序先序（显式栈 + `seen`），
+  孤立点按文件序追加——`m6-smartart__010` 的环与自指、hostile `diagram-cyclic-cxn` 的 5,000 点都过。绘图 part
+  优先走数据 part 的 `diagramDrawing` 关系，没有再按 TS 的 `data{N}.xml → drawing{N}.xml` 约定（§8）；图片填充按
+  绘图 part 自己的关系解（`MediaSet` 的 aux 表多了绘图 part）。compat：SmartArt 块 `previewText` = 节点文字
+  （没有则不给）、`diagramDisplay` = 绘图 part 形状（连线允许零宽 / 零高，`lnWPx` 缺省 1，解不出的主题槽位给
+  `9AB5E4`）、多绘图段落里 `textboxes[]`（`textbox::sibling_boxes` 复用 M4 的框提取）与图示自己的
+  `offsetXEmu / offsetYEmu / floating`；画布块 label `Drawing object`，子坐标系缩放到 `wp:extent`，`rect` 不记，
+  渐变等权平均，`a:pic` 走主 part 媒体，LO 对齐的溢出文本分栏（`stack_overflowing_columns`：逐字拆分 + 按 y 排序），
+  `previewText` = 各形状文字，锚定只给 `offsetXEmu`、`wrapNone` / `behindDoc` → `floating`；没有 `wp:extent` 的画布
+  按 `chExt` 原尺寸画（`m6-canvas__006` 登记 `KNOWN_DIFFS`）。`embedded` 214 → **170 / 70 份**（SmartArt / 画布域 0），
+  `all` 246 → 202，CI 棘轮拧到 170。`tests/diagram.rs` 八个：语料 23 份图示文档差异 0；构造的 SmartArt（连线 / 图片
+  填充 / accent2 / 零尺寸 / `phClr`，关系与路径两种定位）、邻居照片与锚定偏移、悬空关系；画布（缩放 1/3、两列
+  逐字拆分的 y 序手算、渐变 `800080`、锚定偏移、无 extent）；模型侧；两份 hostile。`PNG_1X1` 挪进 `tests/common`。
 - [ ] **6.4 OLE 与文字同段的 run 投影**（`bind/compat_ts/image.rs`）：`SegmentKind::Object` → run 图片；`OleDisplay` 进 `Segment.display`。
 - [ ] **6.5 公式与 ruby**（`model/math.rs`、`model/omml/{mathml,latex}.rs`）：`FormulaDisplay`、`runs[].math`、`runs[].ruby`；两个转换器逐字移植且迭代实现。
 - [ ] **6.6 图表的保存**（`edit/chart_ops.rs`、`save/parts.rs`）：`SetChartData` 只改缓存文本；`NewBlock::Chart` 新建 part + 工作簿 + 关系；`ReplacePartXml / Bytes`。

@@ -31,6 +31,6 @@ jobs:
       # TEST-10 M5 门：全部用例里页眉页脚域（hfParts / header* / footer* / watermarkText）的差分为 0
       - run: cargo run -p diff-parse -- --scope hf
       # TEST-10 M6 门：全部用例里嵌入对象域（chartDisplay / diagramDisplay / formulaDisplay / inks / 嵌入块上的字段）的差分为 0。
-      # 门还没关上：--max-unknown 是棘轮，每落地一个 M6 任务往下拧（6.2 后 214），6.9 归零时删掉参数
-      - run: cargo run -p diff-parse -- --scope embedded --max-unknown 214
+      # 门还没关上：--max-unknown 是棘轮，每落地一个 M6 任务往下拧（6.2 后 214，6.3 后 170），6.9 归零时删掉参数
+      - run: cargo run -p diff-parse -- --scope embedded --max-unknown 170
   # fuzz 在 .github/workflows/fuzz.yml（手动 / 每周），不挂在每次 push 上。

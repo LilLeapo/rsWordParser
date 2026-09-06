@@ -16,6 +16,7 @@
 | `field-display__015` | 框内段落 `runs[*].link` | 目标带反斜杠的 `HYPERLINK` 字段：TS 不给链接，本引擎给 | TS 的 `convertibleHyperlink` 正则是 `"([^"\\]+)"`，目标里有反斜杠就整个不认（Windows 路径 `file:///C:\Users\…`）。引号里的反斜杠是字面量、开关只在引号外有意义，所以本引擎照常折出链接，地址原样保留 | 本引擎（功能更强；TS 那条正则是保守回避） |
 | `wordart-vml__004` | `blocks[*].textboxes[*].paras[*].runs[*]` | VML 文本框里的随文图片：TS 输出空 run，本引擎给出图片 run | TS 只在**宿主**段落上预取媒体（`stripTextboxes` 之后），框里的 `a:blip` 拿不到 dataURL 就把整个 run 丢了；Word 是画得出这张图的 | 本引擎（TS 的缺陷不跟随） |
 | `hf-images__011` | `headerImages[*]` / `hfParts.*.images[*]` 的 `floating` / `wrap` / `pos*` | 页眉里的 `mc:Choice Requires="wps"` 而 `wps` 前缀**没有声明**（Choice 里也没用到 `wps:` 元素）：本引擎按 `XML-09` 走 `mc:Fallback`（里面是随文副本），TS 用正则直接取 Choice（锚定副本） | 同 `numbering-defs__012` 一条：`Requires` 里的前缀必须在作用域内声明（ECMA-376 Part 3 §10.2.1），没声明就不算"理解"。真实 Word 文档都会声明 `wps`，这份是 TS 测试生成器造出来的 | 本引擎（规范行为） |
+| `m6-canvas__006` | `blocks[0]` 的 `type` / `label` / `imageDataUrl` / `previewText` / `diagramDisplay` | 没有 `wp:extent` 的画布：TS 放弃画布、拿画布里第一张图当 `Image` 块；本引擎按画布投影，显示尺寸退回子坐标系 `a:chExt` 的原尺寸（缩放 1） | `wp:inline` 没有 `wp:extent` 是畸形文档（schema 里它是必填的），TS 那条路是 `extractLockedCanvas` 返回 null 后的兜底，不是有意的显示规则；画布里的形状与文字仍然是真相 | 本引擎（功能更强） |
 | `emf-image__*`（4 份） | 任何 `dataUrl` | TS 把 EMF 渲染成 PNG（导出工具打的占位 `data:image/png;base64,EMFPNG`），本引擎输出 EMF 原字节的 dataURL 并标 `MediaKind::Metafile` | `docs/03` §3.5 冻结：EMF/WMF/EMZ/WMZ 与 TIFF 的转换是可插拔服务，不在 Rust 侧做，由 TS / 渲染端继续转 | 本引擎（有意不同）；语料里 4 份 metafile 媒体全在这些文档 |
 
 ## 定位辅助 part 的差别（不算差异，测试里已对齐）
@@ -38,6 +39,11 @@ balance-dbcs-spacing__*  blocks[*].runs[*].charSpacingTwips       # TS 按双字
 *                        blocks[*].format.charIndents*            # 字符单位缩进（显示层）
 inline-image-mixed__009* blocks[*].runs[*].rawRPr                 # 源文件写 <w:rPr></w:rPr>，TS 重序列化成 <w:rPr/>
 emf-image__*             blocks[*].imageDataUrl                   # EMF 不在 Rust 侧渲染（docs/03 §3.5）
+m6-canvas__006*          blocks[0].type                           # 没有 wp:extent 的画布：TS 退成第一张图，本引擎按画布画（6.3）
+m6-canvas__006*          blocks[0].label                          # 同上
+m6-canvas__006*          blocks[0].imageDataUrl                   # 同上
+m6-canvas__006*          blocks[0].previewText                    # 同上
+m6-canvas__006*          blocks[0].diagramDisplay*                # 同上
 emf-image__*             *image.dataUrl                           # 同上，表格 / run 内的图片
 field-display__015*      *paras[*].runs[*].link                   # 目标带反斜杠的 HYPERLINK，TS 的正则不认，本引擎照折
 wordart-vml__004*        blocks[*].textboxes[*].paras[*].runs[*]  # TS 没给框里的随文图片预取媒体，整个 run 丢了

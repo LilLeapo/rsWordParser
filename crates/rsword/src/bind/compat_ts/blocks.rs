@@ -14,6 +14,7 @@ use super::decl::{
     NumberingOut, auto_space, i32_of, jc_align, list_kind, parse_int, strip_hash, tab_stops,
     u32_of, val_text,
 };
+use super::diagram;
 use super::image;
 use super::media::MediaMap;
 use super::textbox;
@@ -72,6 +73,8 @@ pub(super) struct Ctx<'a> {
     aux: &'a AuxProjMap<'a>,
     /// 主 part 的图表关系表（任务 6.2）；页眉页脚 / 外部 part 的上下文里是空表——关系 id 是按 part 的。
     pub charts: &'a chart::ChartMap<'a>,
+    /// 主 part 的 SmartArt 关系表（任务 6.3），同上。
+    pub diagrams: &'a diagram::DiagramMap<'a>,
     disp_cache: RefCell<HashMap<(String, StyleType), StyleDisp>>,
 }
 
@@ -125,6 +128,7 @@ impl<'a> Ctx<'a> {
             first_page_break,
             aux: empty_aux(),
             charts: chart::empty_charts(),
+            diagrams: diagram::empty_diagrams(),
             disp_cache: RefCell::new(HashMap::new()),
         }
     }
@@ -138,6 +142,12 @@ impl<'a> Ctx<'a> {
     /// 挂上主 part 的图表关系表（`parsed_doc_of` 建）。
     pub(super) fn with_charts(mut self, charts: &'a chart::ChartMap<'a>) -> Ctx<'a> {
         self.charts = charts;
+        self
+    }
+
+    /// 挂上主 part 的 SmartArt 关系表（`parsed_doc_of` 建）。
+    pub(super) fn with_diagrams(mut self, diagrams: &'a diagram::DiagramMap<'a>) -> Ctx<'a> {
+        self.diagrams = diagrams;
         self
     }
 
@@ -162,6 +172,7 @@ impl<'a> Ctx<'a> {
             first_page_break: None,
             aux: self.aux,
             charts: chart::empty_charts(),
+            diagrams: diagram::empty_diagrams(),
             disp_cache: RefCell::new(HashMap::new()),
         })
     }
@@ -823,10 +834,31 @@ fn paragraph_block(
                 chart::chart_block(ctx, pb, &mut o);
                 o
             }
+            // `COMPAT-03` SmartArt 与画布（任务 6.3）：R13 / R14 都是 `SmartArt` 种类，按绘图分——段落里
+            // 有 `lc:lockedCanvas` 的走画布（TS 的 `<lc:lockedCanvas` 分支，label `Drawing object`），
+            // 否则是图示（`previewText` / `diagramDisplay` / 同段其他绘图的 `textboxes`）。
+            ProtectedKind::SmartArt => {
+                let canvas = std::iter::once(pb.display.as_ref())
+                    .flatten()
+                    .chain(pb.siblings.iter())
+                    .filter_map(Display::as_drawing)
+                    .find(|d| d.canvas.is_some());
+                match canvas {
+                    Some(d) => {
+                        let mut o = passthrough(o, "Drawing object");
+                        diagram::canvas_block(ctx, d, &mut o);
+                        o
+                    }
+                    None => {
+                        let mut o = passthrough(o, "SmartArt");
+                        diagram::smart_art_block(ctx, p, pb, &mut o);
+                        o
+                    }
+                }
+            }
             kind => {
                 let label = match kind {
                     ProtectedKind::Equation => "Equation",
-                    ProtectedKind::SmartArt => "SmartArt",
                     ProtectedKind::Ole => "Embedded object",
                     ProtectedKind::Rule => "Drawing object",
                     _ => "Paragraph",

@@ -83,6 +83,10 @@ pub fn docx_with_body(document_body: &str) -> Vec<u8> {
     w.finish().unwrap().into_inner()
 }
 
+/// 1×1 的 PNG（base64）：测试里塞真实图片字节用，配 [`b64`] / [`with_binary_part`]。
+#[allow(dead_code)]
+pub const PNG_1X1: &str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
 /// base64 解码（测试里塞真实 PNG 字节用）。
 #[allow(dead_code)]
 pub fn b64(s: &str) -> Vec<u8> {
