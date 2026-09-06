@@ -87,6 +87,7 @@ pub(crate) fn materialize(s: &mut EditSession, block: NewBlock) -> Result<NewBlo
         NewBlock::Chart { chart, extent_emu } => {
             NewBlock::Xml(insert_chart_parts(s, &chart, extent_emu)?)
         }
+        NewBlock::Image(img) => NewBlock::Xml(super::media_ops::image_paragraph(s, &img)?),
         NewBlock::Wrapped { wrapper, block } => {
             NewBlock::Wrapped { wrapper, block: Box::new(materialize(s, *block)?) }
         }
@@ -184,19 +185,7 @@ fn prefix_or_decl(ctx: &NamespaceContext, ns: NsId, default: &str, uri: &str) ->
 
 /// `EDIT-06`：主 part 里全部 `wp:docPr/@id` 的最大值 + 1（TS 从 8000 起计数，差分容忍）。
 fn next_doc_pr_id(dom: &Dom) -> i64 {
-    let mut max = 0i64;
-    for n in dom.semantic_descendants(dom.root()) {
-        let Some(name) = dom.name(n) else { continue };
-        if name.local != LocalName::DocPr || !dom.is_ns(n, NsId::Wp, "wp") {
-            continue;
-        }
-        if let Some(v) = dom.attr_value(n, QName::new(NsId::None, LocalName::Id))
-            && let Ok(id) = v.trim().parse::<i64>()
-        {
-            max = max.max(id);
-        }
-    }
-    max + 1
+    super::media_ops::next_doc_pr_id(dom)
 }
 
 /// JS `String(number)` 的数字写法：整数不带小数点。

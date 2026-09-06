@@ -86,6 +86,9 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
             s.replace_part_bytes(part, bytes)?;
             Ok(MutationResult::default())
         }
+        EditOp::ReplaceImageMedia { drawing, bytes, mime } => {
+            s.replace_image_media(drawing, bytes, &mime)
+        }
     }
 }
 
@@ -180,6 +183,7 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
         EditOp::SetChartData { .. }
         | EditOp::ReplacePartXml { .. }
         | EditOp::ReplacePartBytes { .. } => Vec::new(),
+        EditOp::ReplaceImageMedia { drawing, .. } => vec![(None, *drawing)],
         // 节与页眉页脚：目标是 `w:sectPr` 或整个 part，不在内容控件里（任务 5.5）
         EditOp::SetSectionProps { .. }
         | EditOp::SetHeaderFooter { .. }
@@ -994,7 +998,9 @@ pub(super) fn new_block_element(dom: &Dom, block: NewBlock) -> NewElement {
     match block {
         NewBlock::Xml(e) => e,
         // 每个接收 `NewBlock` 的入口都先过 `chart_ops::materialize`（建 part、换成 `Xml`）
-        NewBlock::Chart { .. } => unreachable!("NewBlock::Chart 必须先经 chart_ops::materialize"),
+        NewBlock::Chart { .. } | NewBlock::Image(_) => {
+            unreachable!("NewBlock::Chart / Image 必须先经 chart_ops::materialize")
+        }
         NewBlock::Table { rows, cols, widths, style, header } => {
             super::table_ops::new_table(rows, cols, widths, style, header)
         }

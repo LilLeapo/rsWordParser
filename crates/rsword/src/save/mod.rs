@@ -7,6 +7,7 @@
 
 pub mod options;
 pub mod package_writer;
+pub mod prune;
 pub mod serialize;
 pub mod validate;
 

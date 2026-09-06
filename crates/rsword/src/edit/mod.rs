@@ -12,6 +12,7 @@
 
 pub mod chart_ops;
 pub mod inline;
+pub mod media_ops;
 pub mod ops;
 pub mod plan;
 pub mod pos;
@@ -21,6 +22,7 @@ pub mod table_ops;
 
 pub use chart_ops::{ChartPatch, ChartSeriesPatch, NewChart, NewChartKind, NewChartSeries};
 pub use inline::{NewInline, NewLinkTarget, NewMarker, NewRevision, NewRun};
+pub use media_ops::{ImageWrap, NewImage, ParaSpacing, PosOffset};
 pub use plan::{MutationPlan, MutationResult};
 pub use pos::{InlinePos, Loc, Utf16Offset, inline_spans, locate};
 pub use session::EditSession;
@@ -119,6 +121,8 @@ pub enum NewBlock {
     /// 新图表（任务 6.6）：图表 part + 内嵌工作簿 + 关系 + 绘图段落。`extent_emu` 缺省 5486400 × 3200400。
     /// 进入 `InsertBlock` 时先由 `chart_ops::materialize` 建好 part、换成 `Xml` 段落。
     Chart { chart: NewChart, extent_emu: Option<(i64, i64)> },
+    /// 新图片（任务 6.7）：媒体 part（相同字节只建一个）+ `image` 关系 + 段落（随文或锚定）。
+    Image(NewImage),
 }
 
 /// `EDIT-03 AddComment` 的内容。`text` 里的 `\n` 分段。
@@ -213,6 +217,9 @@ pub enum EditOp {
     ReplacePartXml { part: PartId, xml: String },
     /// 整个 part 换成给定字节（TS `partBinary`）。只接受已存在的 part，主 part 除外。
     ReplacePartBytes { part: PartId, bytes: Vec<u8> },
+    /// `EDIT-04 ReplaceImageMedia`（TS `xml.replaceImage`，任务 6.7）：`drawing` 子树里第一个 `a:blip` 改指新媒体
+    /// （字节按内容去重落成媒体 part），删裁剪窗、清填充窗、删 `svgBlip` 扩展。
+    ReplaceImageMedia { drawing: NodeId, bytes: Vec<u8>, mime: String },
 
     // ---- 节与页眉页脚（`EDIT-03`，任务 5.5）--------------------------------------------------
     /// `EDIT-03 SetSectionProps`：给定 `w:sectPr` 按 `PROP-06` 合并（未建模的子元素原字节不动，

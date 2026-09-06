@@ -311,6 +311,10 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `ReplacePartXml` / `ReplacePartBytes` 的目标 | TS `partXml` / `partBinary` 对不存在的路径静默忽略 | 不存在 → `EDIT_TARGET_MISSING`；`ReplacePartXml` 对二进制 part → `EDIT_TARGET_OPAQUE`；主 part 不能按二进制换 | 同上：写错路径是调用方的 bug，不该无声无息（6.6） |
 | 新绘图的 `wp:docPr/@id` | — | `EDIT-06`：主 part 里最大值 + 1，`@name` = `Chart {id}`；TS 从 8000 起 | 分配细节，`COMPAT-09` 在保存差分里容忍 `wp:docPr` / `pic:cNvPr` 的 `@id` / `@name`（6.6） |
 | 内嵌工作簿的内容类型 | — | `[Content_Types]` 的 `Default Extension="xlsx"`（缺了才补） | 二进制 part 按扩展名声明是包规范的常规做法，也是 Word 自己的写法（6.6） |
+| 资源回收的范围 | `spec/17` 6.7「只删本次会话让引用数归零的关系」 | 照规范：`prune_orphans` 只动**本次会话**造成的孤儿（写前基线里被引用、或本会话新加的关系）；原本就没人引用的 part / 关系一个字节不动 | TS `cleanupDocxOwnedResources` 把文件里原有的孤儿也一并删掉。文件是真相：用户没碰过的东西不该在一次保存里消失（可能是别的工具留下的、或被我们认不出的引用方式指着）；要清理就显式做（6.7） |
+| 新媒体 part 的名字与去重表的归属 | `spec/17` 6.7 `MediaStore::add(pkg, bytes, mime) -> MediaId` | `EditSession::add_media(bytes, mime) -> rId`，part 名 `word/media/image{N}.{ext}`（TS `aidocs{N}`） | 去重表是会话状态（要随事务回滚），`MediaStore` 是只读解析视图；路径不进 `documentXml`，差分无影响（6.7） |
+| 新图片段落的 `pPr` | `spec/17` 6.7「`spacing` / `jc` 走 `plan_apply_para_props`」 | 直接写在新段落模板里（`w:spacing` 在 `w:jc` 之前） | 整棵子树是 `New`，没有要合并的旧容器，`PROP-05` 顺序由构造保证；`plan_apply_*` 只管改**已有**属性容器（6.7） |
+| `replaceImage` 的目标里没有 `a:blip` | — | 不动 + `EDIT_UNSUPPORTED` 诊断（TS `retargetImageBlip` 静默返回原 XML，媒体照样加进包里） | 调用方拿到诊断才知道换图没生效；我们也不为它分配媒体（6.7） |
 | `TEST-10` 门的 CI 形态 | 「对应域 diff 为 0」 | 还没关上的门用 `diff-parse --max-unknown N` 做棘轮：未知差异 ≤ N 放行，每落地一个任务往下拧，归零后删掉参数 | 门一建就进 CI，回归有人拦，数字有地方掉；`.github/workflows/ci.yml` 第七步（6.2 起 214，6.3 起 170） |
 | `XML-09` `mc:Choice/@Requires` | 前缀按作用域解析 | 作用域里解析不到时，退一步看**分支子树内**有没有声明这个前缀 | 合成语料常把 `xmlns:wps` 写在 `wps:wsp` 元素自己身上，`Requires="wps"` 于是在 `mc:Choice` 处解析不出来、整段退到 VML Fallback（16 份文档）。意图毫无歧义，按分支内的声明认；前缀在**任何地方**都没声明的情况（`numbering-defs__012`）行为不变，仍是已知差异 |
 | `PKG-06` | 唯一路径函数 | `uri::resolve` 唯一；`parse_rels` 在目标不存在且写法为 `../` 时按 `_rels/` 目录再解析一次 | 兼容相对 `_rels/` 写目标的生成器（验收清单要求三种写法解析到同一 part） |
@@ -1193,6 +1197,29 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   `partBinary` 1 全部等价）。`tests/chart_ops.rs` 七个：新图表的 part / `.rels` / 工作簿 / 内容类型 / 重解析 / xlsx 单元格 /
   其他条目 CRC 不变；两个图表的编号与饼图无轴；TS `patchChartPartXml` 两例（含「只有缓存文本变了」的字节回替校验）；
   三种无文字标题的注入；chartex 拒绝与事务回滚；整 part 替换（XML / 二进制 / 缺失 / 非良构）。
-- [ ] **6.7 媒体写侧**（`package/media.rs`、`edit/media_ops.rs`、`save/prune.rs`）：`MediaStore::add` 去重、`NewBlock::Image`、`ReplaceImageMedia`、编辑引起的孤儿回收。
+- [x] **6.7 媒体写侧：新图片、`replaceImage`、资源回收**（`edit/media_ops.rs`、`save/prune.rs`，2026-09-06）：
+  `EditSession::add_media(bytes, mime) -> rId`——同一会话里**相同字节只建一个 part**（`(mime, hash)` 去重表
+  `media_by_content`），part 名 `word/media/image{N}.{ext}`（第一个空闲 N，`add_binary_part` + `Default` 内容类型），主 part
+  `image` 关系；`NewBlock::Image(NewImage { bytes, mime, extent_emu, align, wrap: Option<ImageWrap>, pos_offset_emu, z_order,
+  rot_deg, flip_h, flip_v, para_spacing })` 由 `chart_ops::materialize` 同一入口换成绘图段落（TS `embedImage` 模板：无 `wrap`
+  → `wp:inline`，有 → `wp:anchor`，九种 `ImageWrap` 按 TS `applyImageWrap` 映成 positionH 对齐 / `posOffset` / `wrapSquare`
+  `bothSides` / `wrapTopAndBottom` / `wrapNone` + `behindDoc`、`relativeHeight = 251658240 + z`；`wp:effectExtent` 取旋转外接框；
+  `a:xfrm` 的 `rot` / `flipH` / `flipV`；`pPr` 的 `spacing` / `jc` 直接在新段落模板里，§8），`wp:docPr/@id` 按 `EDIT-06`。
+  `EditOp::ReplaceImageMedia { drawing, bytes, mime }`（TS `xml.replaceImage`）：第一个 `a:blip` 的 `r:embed` 改指新媒体
+  （`r:link` 删掉）、删第一个 `a:srcRect`、`a:fillRect` 属性清空、删任何前缀的 `svgBlip` 所在 `a:ext` 与空掉的 `a:extLst`；
+  没有 `a:blip` → 不动 + `EDIT_UNSUPPORTED` 诊断。**资源回收**（`SaveOptions.prune_orphans: Option<bool>`，缺省开；
+  `save/prune.rs`）：`Package::save` 之前在事务里跑——对本次会话写过的内容 part（`rel_baseline`：第一次 `commit_plan` /
+  `replace_part_xml` 之前记下的「被引用 rId」与「关系 id」），TS `DOCUMENT_OWNED_REL_TYPES` 那几种关系里**现在**没人引用
+  （`Deleted` 子树不算，不活跃的 `mc:Fallback` 算）、且写之前有人引用或是本会话新加的 → 删关系（`.rels` DOM 里 `Deleted`）；
+  目标 part 在 `word/media|charts|embeddings|diagrams` 下 → 沿它的关系走出候选子图，候选之外仍有关系指进来的目标（及其可达）
+  留下，其余删 part（`Part.deleted`，写包时跳过原 zip 条目）连它的 `.rels` 与 `[Content_Types]` 的 `Override`；原本就是孤儿的
+  part 一个字节不动（§8）。compat：`kind:"image"` → `InsertBlock{Image}`（px × 9525、`wrap` / `posOffsetEmu` / `paraSpacing` /
+  `zOrder` / `rotDeg` / `flipH` / `flipV`）；`xml` 块的 `replaceImage` → `InsertBlock{Xml}` 之后对新块里第一个带 `a:blip` 的
+  节点补一批 `ReplaceImageMedia`。**保存语料 164 → 181 等价、跳过 40 → 23**（image 11 + `replaceImage` 6 全部等价，剩下的
+  全是墨迹）。`tests/media_ops.rs` 六个（zip 级）：同字节两次只一个媒体 part / 旋转 `effectExtent` / `pPr` / `Default`；五种
+  `wrap` 的锚定形态与 `posOffset` / `relativeHeight`；替换后旧媒体与关系回收、反复替换只剩最新一份；`r:link` 变内嵌、
+  `svgBlip` 扩展与 svg 媒体一起回收、无 `a:blip` 的目标不动 + 诊断；删图表段落 → chart part / `.rels` / 工作簿 / Override /
+  关系全消失而其他条目 CRC 不变；两段共用一张图删一段保留、删两段回收、预先存在的孤儿 part 与关系原样、`prune_orphans:
+  false` 全留。`tests/embedded.rs` 的 OLE 删除用例改为断言二进制 part 与关系被回收。
 - [ ] **6.8 墨迹**（`model/ink.rs`、`edit/ink_ops.rs`）：`inks[]` 读侧、`RemoveInks` + `InsertInk`、墨迹对分类与坐标流不可见。
 - [ ] **6.9 恶意输入、fuzz、全域收尾与 M6 门**：6 份 hostile、`fuzz_embedded`、100 × 10 随机序列、40 处零散差异修掉或登记、`--scope embedded` 与 `--scope all` 进 CI。

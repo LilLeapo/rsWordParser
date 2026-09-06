@@ -118,6 +118,8 @@ pub struct Part {
     pub rels_part: Option<PartId>,
     /// 本次会话整体替换过（`ReplacePartXml` / `ReplacePartBytes`）：保存时整份写出，哪怕 DOM 一个节点都不脏。
     pub replaced: bool,
+    /// 本次会话删掉了（资源回收，`SAVE-07` `prune_orphans`）：保存时不写它的 zip 条目，查找也找不到它。
+    pub deleted: bool,
     dom: PartDom,
 }
 
@@ -209,6 +211,7 @@ impl Package {
                 rels: Rels::default(),
                 rels_part: None,
                 replaced: false,
+                deleted: false,
                 dom: PartDom::NotXml,
             });
         }
@@ -403,7 +406,7 @@ impl Package {
 
     /// 本次会话新建的 part（`SAVE-05`），按创建顺序。
     pub fn new_parts(&self) -> impl Iterator<Item = PartId> + '_ {
-        self.parts.iter().filter(|p| p.is_new()).map(|p| p.id)
+        self.parts.iter().filter(|p| p.is_new() && !p.deleted).map(|p| p.id)
     }
 
     /// `SAVE-05`：登记一个新的 XML part。
@@ -446,6 +449,7 @@ impl Package {
             rels: Rels::default(),
             rels_part: None,
             replaced: false,
+            deleted: false,
             dom: PartDom::Parsed(Box::new(dom)),
         });
         self.by_uri.insert(uri, id);
@@ -476,6 +480,7 @@ impl Package {
             rels: Rels::default(),
             rels_part: None,
             replaced: false,
+            deleted: false,
             dom: PartDom::Bytes(bytes),
         });
         self.by_uri.insert(uri, id);
@@ -518,6 +523,17 @@ impl Package {
     pub(crate) fn snapshot_part(&self, id: PartId) -> PartImage {
         let p = &self.parts[id.idx()];
         PartImage { dom: p.dom.clone(), is_xml: p.is_xml, replaced: p.replaced, flavor: p.flavor }
+    }
+
+    /// 资源回收（`SAVE-07` `prune_orphans`）：删掉一个 part。zip 条目不再写出，`find` 找不到它；
+    /// `Part` 记录本身留在表里（`PartId` 不重排）。
+    pub(crate) fn remove_part(&mut self, id: PartId) {
+        let part = &mut self.parts[id.idx()];
+        part.deleted = true;
+        let uri = part.uri.clone();
+        if self.by_uri.get(&uri) == Some(&id) {
+            self.by_uri.remove(&uri);
+        }
     }
 
     pub(crate) fn restore_part(&mut self, id: PartId, image: PartImage) {

@@ -94,6 +94,11 @@ pub struct SaveOptions {
     pub theme_colors: Option<ThemeColorsSave>,
     /// 样式 upsert。
     pub style_upserts: Vec<StyleUpsertSave>,
+
+    // ---- 6.7：资源回收 ----
+    /// 保存时回收**本次会话**让引用数归零的图片 / 图表 / 图示 / OLE / 超链接关系与它们的 part 子图
+    /// （`save/prune.rs`）。`None` = 开（缺省）；原本就是孤儿的 part 一个字节不动（TS 会一并删掉，`docs/04` §8）。
+    pub prune_orphans: Option<bool>,
 }
 
 impl SaveOptions {

@@ -31,6 +31,11 @@ pub struct EditSession {
     /// 第一次写某个 part 之前记下的字段缺陷数（按诊断代码）。`FLD-13` 用它区分
     /// "输入本来如此"与"编辑造成"：保存前重建，某个代码多出来的就是引擎干的。
     field_baseline: HashMap<PartId, HashMap<DiagCode, usize>>,
+    /// 第一次写某个 part 之前记下的「正文引用的 rId」与「当时已有的关系 id」（资源回收，`save/prune.rs`）：
+    /// 保存时只回收本次会话让引用数归零的关系——原本就没人引用的关系不动。
+    pub(crate) rel_baseline: HashMap<PartId, crate::save::prune::RelBaseline>,
+    /// 本次会话按内容去重的媒体：`(mime, 字节哈希)` → 主 part 的 `rId`（`add_media`）。
+    pub(crate) media_by_content: HashMap<(String, u64), String>,
     diagnostics: Vec<Diagnostic>,
     /// 事务期间每个被写入 part 的写前镜像（`EDIT-05`）。
     txn: Option<Snapshot>,
@@ -83,6 +88,8 @@ impl EditSession {
             spans: HashMap::new(),
             fields: HashMap::new(),
             field_baseline: HashMap::new(),
+            rel_baseline: HashMap::new(),
+            media_by_content: HashMap::new(),
             diagnostics: Vec::new(),
             txn: None,
         })
@@ -221,6 +228,26 @@ impl EditSession {
     }
 
     /// `FLD-13`：在第一次写 `part` 之前记下解析期的字段缺陷，并把诊断报一次。
+    /// 资源回收的写前基线（见 `save/prune.rs`）：第一次写 `part` 之前记下它引用的 rId 与它当时的关系 id。
+    fn ensure_rel_baseline(&mut self, part: PartId) -> Result<()> {
+        if self.rel_baseline.contains_key(&part) {
+            return Ok(());
+        }
+        let rel_ids: std::collections::HashSet<String> =
+            self.pkg.part(part).rels.iter().map(|r| r.id.clone()).collect();
+        let referenced = match self.pkg.dom(part)? {
+            Some(dom) => crate::save::prune::referenced_rids(dom),
+            None => std::collections::HashSet::new(),
+        };
+        self.rel_baseline.insert(part, crate::save::prune::RelBaseline { referenced, rel_ids });
+        Ok(())
+    }
+
+    /// 记一条诊断（编辑操作里的局部降级）。
+    pub(crate) fn push_diagnostic(&mut self, diag: Diagnostic) {
+        self.record(vec![diag]);
+    }
+
     fn ensure_field_baseline(&mut self, part: PartId) -> Result<()> {
         if self.field_baseline.contains_key(&part) {
             return Ok(());
@@ -727,6 +754,10 @@ impl EditSession {
         if touches_main {
             self.rebuild()?;
         }
+        // 6.7：回收本次会话让引用数归零的资源（关系 + part 子图 + `[Content_Types]` Override）
+        if opts.prune_orphans.unwrap_or(true) {
+            self.transaction(|s| s.prune_orphans().map(|_| ()))?;
+        }
         self.pkg.save()
     }
 
@@ -829,6 +860,7 @@ impl EditSession {
                 format!("{} 不是 XML part，不能按 XML 替换", self.pkg.part(part).uri),
             ));
         }
+        self.ensure_rel_baseline(part)?;
         let image = self.pkg.snapshot_part(part);
         if let Some(txn) = &mut self.txn {
             txn.remember_part(part, image);
@@ -892,6 +924,7 @@ impl EditSession {
         let part = plan.part;
         self.ensure_spans(part)?;
         self.ensure_field_baseline(part)?;
+        self.ensure_rel_baseline(part)?;
         let dom = self.pkg.dom_mut(part)?.ok_or_else(|| {
             Error::edit(DiagCode::EditPlanInvalid, format!("part#{} 不是 XML part", part.0))
         })?;

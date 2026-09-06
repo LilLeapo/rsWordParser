@@ -1177,3 +1177,5 @@ sty
 nor
 limLoc
 lstStyle
+extLst
+svgBlip

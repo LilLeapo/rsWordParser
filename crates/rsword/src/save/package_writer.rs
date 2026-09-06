@@ -20,6 +20,7 @@ impl Package {
     pub fn dirty_parts(&self) -> Vec<PartId> {
         self.parts()
             .iter()
+            .filter(|p| !p.deleted)
             .filter(|p| {
                 p.replaced || p.dom().is_some_and(|d| d.node(d.root()).dirty != Dirty::Clean)
             })
@@ -27,9 +28,11 @@ impl Package {
             .collect()
     }
 
-    /// 有脏节点，或有本次会话新建的 part（`SAVE-05`）。
+    /// 有脏节点，或有本次会话新建 / 删除的 part（`SAVE-05` / 资源回收）。
     pub fn is_dirty(&self) -> bool {
-        !self.dirty_parts().is_empty() || self.new_parts().next().is_some()
+        !self.dirty_parts().is_empty()
+            || self.new_parts().next().is_some()
+            || self.parts().iter().any(|p| p.deleted)
     }
 
     /// 写回整个包。`SAVE-01` 步骤 1 / 2 / 5 / 6：无脏节点直接返回原字节；校验（`SAVE-02`，调试构建下
@@ -37,7 +40,10 @@ impl Package {
     pub fn save(&mut self) -> Result<Vec<u8>> {
         let mut dirty = self.dirty_parts();
         let fresh: Vec<PartId> = self.new_parts().collect();
-        if dirty.is_empty() && fresh.is_empty() {
+        // 资源回收删掉的原有条目：写包时跳过
+        let removed: Vec<u32> =
+            self.parts().iter().filter(|p| p.deleted && !p.is_new()).map(|p| p.zip_index).collect();
+        if dirty.is_empty() && fresh.is_empty() && removed.is_empty() {
             return Ok(self.original_bytes().to_vec());
         }
         // 新 part 整份都要写（它的 DOM 是从文本解析出来的，根节点是 `Clean`）
@@ -92,6 +98,9 @@ impl Package {
             zip::ZipWriter::new(Cursor::new(Vec::with_capacity(self.original_bytes().len())));
         let deflate = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
         for (index, name, is_dir) in entries {
+            if removed.contains(&index) {
+                continue;
+            }
             if let Some((.., bytes)) = replaced.iter().find(|(_, i, _)| *i == index) {
                 writer
                     .start_file(name.as_str(), deflate)

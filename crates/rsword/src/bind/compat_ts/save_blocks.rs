@@ -9,7 +9,8 @@
 //! | `xml` | `InsertBlock{Xml}`；带 `docxIndex` 时先插后删原块 |
 //! | 缺失的 original | `DeleteBlock` |
 //! | `chart` | `InsertBlock{NewBlock::Chart}`（图表 part + 工作簿 + 关系 + 绘图段落，6.6） |
-//! | `image` | M1 不支持 → `Err(EDIT_UNSUPPORTED)`（6.7） |
+//! | `image` | `InsertBlock{NewBlock::Image}`（媒体 part 按内容去重 + `image` 关系 + 随文 / 锚定段落，6.7） |
+//! | `xml` + `replaceImage` | 先 `InsertBlock{Xml}`，再对新块 `ReplaceImageMedia`（6.7） |
 //! | `SaveOptions.partXml` / `partBinary` | `ReplacePartXml` / `ReplacePartBytes`（只接受已存在的 part，6.6） |
 //! | `SaveOptions.savedAt` / `removePersonalInfo` | 翻成 [`SaveOptions`]，由 `save_with` 执行（`SAVE-07`） |
 //! | 其余 `SaveOptions` | M1 不支持 → `Err(EDIT_UNSUPPORTED)` |
@@ -28,8 +29,9 @@ use crate::diag::DiagCode;
 use crate::edit::ops;
 use crate::edit::ops::ppr_of;
 use crate::edit::{
-    BlockPos, EditContext, EditOp, EditSession, NewBlock, NewChart, NewChartKind, NewChartSeries,
-    NewComment, NewInline, NewLinkTarget, NewMarker, NewRevision, NewRun,
+    BlockPos, EditContext, EditOp, EditSession, ImageWrap, NewBlock, NewChart, NewChartKind,
+    NewChartSeries, NewComment, NewImage, NewInline, NewLinkTarget, NewMarker, NewRevision, NewRun,
+    ParaSpacing, PosOffset,
 };
 use crate::error::{Error, Result};
 use crate::model::{HfKind, HfVariant};
@@ -87,11 +89,18 @@ enum Item<'a> {
         xml: &'a str,
         docx_index: Option<usize>,
         revision: Option<&'a Value>,
+        /// TS `replaceImage {base64, mime}`：块插好后把它第一个 `a:blip` 换成新媒体（任务 6.7）。
+        replace_image: Option<&'a Value>,
     },
     /// TS `kind:"chart"`：新图表（任务 6.6）。
     Chart {
         chart: &'a Value,
         extent: Option<&'a Value>,
+        revision: Option<&'a Value>,
+    },
+    /// TS `kind:"image"`：新图片（任务 6.7）。
+    Image {
+        image: &'a Value,
         revision: Option<&'a Value>,
     },
 }
@@ -484,6 +493,7 @@ pub fn apply_save_blocks(
             heading_ids: &heading_ids,
             list_style: list_style.as_deref(),
             link_rels: &no_rels,
+            replace_images: Vec::new(),
         };
         for (key, hf) in &hf_json.slots {
             let blocks = planner.hf_blocks(hf)?;
@@ -522,12 +532,14 @@ pub fn apply_save_blocks(
                 items.push(Item::Generated(blk, revision));
             }
             Some("xml") => {
-                if fb.get("replaceImage").is_some() {
-                    return Err(unsupported("xml.replaceImage（媒体 part 分配）在 M3"));
-                }
                 let xml = s_of(fb, "xml").ok_or_else(|| unsupported("xml 缺 xml"))?;
                 let docx_index = fb["docxIndex"].as_u64().map(|d| d as usize);
-                items.push(Item::Xml { xml, docx_index, revision });
+                let replace_image = fb.get("replaceImage").filter(|r| r.is_object());
+                items.push(Item::Xml { xml, docx_index, revision, replace_image });
+            }
+            Some("image") => {
+                let image = fb.get("image").ok_or_else(|| unsupported("image 缺 image"))?;
+                items.push(Item::Image { image, revision });
             }
             Some("chart") => {
                 let chart = fb.get("chart").ok_or_else(|| unsupported("chart 缺 chart"))?;
@@ -566,16 +578,46 @@ pub fn apply_save_blocks(
             heading_ids: &heading_ids,
             list_style: list_style.as_deref(),
             link_rels: &link_rels,
+            replace_images: Vec::new(),
         };
-        planner.build_ops(&items, &visible)?
+        let ops = planner.build_ops(&items, &visible)?;
+        (ops, std::mem::take(&mut planner.replace_images))
     };
+    let (ops, replace_images) = ops;
     let n = ops.len();
-    session.apply_all(ops, &EditContext::default())?;
+    let results = session.apply_all(ops, &EditContext::default())?;
+    // `replaceImage`：块插好了，找到它第一个带 `a:blip` 的新块换媒体（TS 在插入前改字符串；我们改 DOM）
+    let mut extra_ops = Vec::new();
+    for (op_indices, (bytes, mime)) in replace_images {
+        let dom = session.dom();
+        let target = op_indices.iter().find_map(|&i| {
+            let node = results.get(i)?.created.first().copied().flatten()?;
+            dom.semantic_descendants(node)
+                .any(|n| dom.is(n, QName::new(NsId::A, LocalName::Blip)))
+                .then_some(node)
+        });
+        match target {
+            Some(drawing) => extra_ops.push(EditOp::ReplaceImageMedia { drawing, bytes, mime }),
+            None => {
+                return Err(Error::edit(
+                    DiagCode::EditPlanInvalid,
+                    "replaceImage：插入的 xml 块里没有 a:blip",
+                ));
+            }
+        }
+    }
+    let n = n + extra_ops.len();
+    if !extra_ops.is_empty() {
+        session.apply_all(extra_ops, &EditContext::default())?;
+    }
     // 条目列表在块之后应用：删掉的批注要连"块重发出来的"标记一起清掉
     let extra = apply_entry_lists(session, &lists)? + apply_part_replacements(session, &lists)?;
     save_options.section_hf = resolve_section_hf(session, pending_section_hf)?;
     Ok(SaveBlocksOutcome { unchanged: false, ops: n + extra, save_options })
 }
+
+/// 一个 `replaceImage`：产生它的 `InsertBlock` 在 op 列表里的下标们 + 新媒体（字节、mime）。
+type ReplaceImageJob = (Vec<usize>, (Vec<u8>, String));
 
 struct Planner<'a> {
     dom: &'a mut Dom,
@@ -586,6 +628,9 @@ struct Planner<'a> {
     list_style: Option<&'a str>,
     /// 新外链的 `href` → 刚分配的 `rId`（`EDIT-06`）。
     link_rels: &'a HashMap<String, String>,
+    /// `xml` 块的 `replaceImage`：这些下标的 `InsertBlock` 建出的块里，第一个带 `a:blip` 的换成新媒体
+    /// （块插好、拿到节点之后才能做，`apply_save_blocks` 收尾）。
+    replace_images: Vec<ReplaceImageJob>,
 }
 
 /// generated 块里需要新建关系的外部链接：有 `href`、不是文内锚点、没带 `rId`。
@@ -727,8 +772,9 @@ impl Planner<'_> {
                             }
                         }
                     }
-                    Item::Xml { xml, docx_index, revision } => {
+                    Item::Xml { xml, docx_index, revision, replace_image } => {
                         let frags = self.fragment_blocks(xml)?;
+                        let first_op = ops.len();
                         match docx_index {
                             Some(d) => {
                                 let old = self.nodes[*d];
@@ -738,9 +784,13 @@ impl Planner<'_> {
                                         block: wrap_revision(NewBlock::Xml(frag), *revision),
                                     });
                                 }
+                                let inserted: Vec<usize> = (first_op..ops.len()).collect();
                                 ops.push(EditOp::DeleteBlock { part: None, node: old });
                                 handled.insert(*d);
                                 candidates.retain(|&c| c != *d);
+                                if let Some(ri) = replace_image {
+                                    self.replace_images.push((inserted, replace_media_of(ri)?));
+                                }
                             }
                             None => {
                                 for frag in frags {
@@ -749,12 +799,20 @@ impl Planner<'_> {
                                         block: wrap_revision(NewBlock::Xml(frag), *revision),
                                     });
                                 }
+                                if let Some(ri) = replace_image {
+                                    let inserted: Vec<usize> = (first_op..ops.len()).collect();
+                                    self.replace_images.push((inserted, replace_media_of(ri)?));
+                                }
                             }
                         }
                     }
                     Item::Chart { chart, extent, revision } => ops.push(EditOp::InsertBlock {
                         at: anchor,
                         block: wrap_revision(chart_block(chart, *extent)?, *revision),
+                    }),
+                    Item::Image { image, revision } => ops.push(EditOp::InsertBlock {
+                        at: anchor,
+                        block: wrap_revision(image_block(image)?, *revision),
                     }),
                 }
             }
@@ -1264,6 +1322,51 @@ fn chart_block(chart: &Value, extent: Option<&Value>) -> Result<NewBlock> {
         },
         extent_emu,
     })
+}
+
+/// TS `replaceImage {base64, mime}` → 字节与 MIME。
+fn replace_media_of(v: &Value) -> Result<(Vec<u8>, String)> {
+    let b64 = s_of(v, "base64").ok_or_else(|| unsupported("replaceImage 缺 base64"))?;
+    let bytes = crate::package::media::base64_decode(b64)
+        .ok_or_else(|| unsupported("replaceImage.base64 不是 base64"))?;
+    Ok((bytes, s_of(v, "mime").unwrap_or("image/png").to_string()))
+}
+
+/// TS `NewImage` → [`NewBlock::Image`]：px → EMU（× 9525），九种 `wrap`，`posOffsetEmu`，`zOrder`，旋转 / 翻转，`paraSpacing`。
+fn image_block(v: &Value) -> Result<NewBlock> {
+    let (bytes, mime) = replace_media_of(v)?;
+    let num = |k: &str| v.get(k).and_then(Value::as_f64);
+    let (w, h) = (num("widthPx").unwrap_or(1.0), num("heightPx").unwrap_or(1.0));
+    let wrap = match s_of(v, "wrap") {
+        None => None,
+        Some(w) => {
+            Some(ImageWrap::parse(w).ok_or_else(|| unsupported(format!("image.wrap {w:?}")))?)
+        }
+    };
+    let pos_offset_emu = v.get("posOffsetEmu").filter(|p| p.is_object()).map(|p| PosOffset {
+        x: p.get("x").and_then(Value::as_f64).unwrap_or(0.0).round() as i64,
+        y: p.get("y").and_then(Value::as_f64).unwrap_or(0.0).round() as i64,
+        page: s_of(p, "relativeTo") == Some("page"),
+    });
+    let para_spacing = v.get("paraSpacing").filter(|p| p.is_object()).map(|p| ParaSpacing {
+        before_twips: p.get("beforeTwips").and_then(Value::as_f64).map(|x| x.round() as i64),
+        after_twips: p.get("afterTwips").and_then(Value::as_f64).map(|x| x.round() as i64),
+        line_twips: p.get("lineTwips").and_then(Value::as_f64).map(|x| x.round() as i64),
+        line_rule: s_of(p, "lineRule").map(str::to_string),
+    });
+    Ok(NewBlock::Image(NewImage {
+        bytes,
+        mime,
+        extent_emu: (crate::edit::media_ops::px_to_emu(w), crate::edit::media_ops::px_to_emu(h)),
+        align: s_of(v, "align").map(str::to_string),
+        wrap,
+        pos_offset_emu,
+        z_order: num("zOrder").map(|z| z.round() as i64),
+        rot_deg: num("rotDeg").map(|d| d.round() as i64),
+        flip_h: truthy(v, "flipH"),
+        flip_v: truthy(v, "flipV"),
+        para_spacing,
+    }))
 }
 
 /// TS `partXml` / `partBinary`：按 zip 路径整体替换 part。TS 对不存在的路径静默忽略；这里是

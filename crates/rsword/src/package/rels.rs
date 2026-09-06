@@ -212,6 +212,14 @@ impl Rels {
         self.list.push(rel);
     }
 
+    /// 删掉一条关系（`.rels` DOM 里的节点已经 `Deleted` 之后同步内存视图）。
+    pub(crate) fn remove(&mut self, id: &str) -> Option<Relationship> {
+        let i = self.by_id.remove(id)?;
+        let rel = self.list.remove(i);
+        self.by_id = self.list.iter().enumerate().map(|(i, r)| (r.id.clone(), i)).collect();
+        Some(rel)
+    }
+
     /// 内部目标（`Internal`）的 part 路径。
     pub fn target_uri(&self, id: &str) -> Option<&PartUri> {
         match &self.by_id(id)?.target {

@@ -231,10 +231,11 @@ fn edit_02_text_edits_step_around_the_ole_atom_and_deletion_removes_the_run() {
     let main = pkg.main_part();
     let xml = pkg.dom(main).unwrap().unwrap().src().to_string();
     assert!(!xml.contains("<w:object"), "整个 w:r 连对象一起消失：{xml}");
-    assert!(
-        pkg.find_name("word/embeddings/oleObject1.bin").is_some(),
-        "二进制 part 还在（孤儿，6.7 回收）"
-    );
+    // 本次会话让 `rIdOle` 的引用归零 → 关系与二进制 part 随保存回收（6.7 `prune_orphans`）
+    assert!(pkg.find_name("word/embeddings/oleObject1.bin").is_none(), "孤儿二进制 part 被回收");
+    let rels = pkg.find_name("word/_rels/document.xml.rels").expect("rels");
+    let rels_xml = pkg.dom(rels).unwrap().unwrap().src().to_string();
+    assert!(!rels_xml.contains(r#"Id="rIdOle""#), "OLE 关系回收：{rels_xml}");
     // 剩下的 `ab` / `cd` 两个 run 格式相同，投影按 TS 的规则合并成一个
     let v = parsed(&saved);
     let runs = v["blocks"][0]["runs"].as_array().expect("runs");
