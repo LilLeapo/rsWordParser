@@ -9,7 +9,8 @@ const engineRoot = resolve(here, '..')
 export default defineConfig({
   root: engineRoot,
   test: {
-    include: ['tests/**/*.test.ts', 'export-golden.tmp/hostile.export.test.ts'],
+    // export-golden.tmp*/：run.sh 用固定目录，try.sh 每次一个带 pid 后缀的目录；本目录里所有 *.export.test.ts 都算
+    include: ['tests/**/*.test.ts', 'export-golden.tmp*/*.export.test.ts'],
     testTimeout: 120_000,
     hookTimeout: 120_000,
     // 顺序执行：<文件>__<序号> 编号稳定，去重索引无竞争

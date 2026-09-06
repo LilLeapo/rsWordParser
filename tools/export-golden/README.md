@@ -22,9 +22,13 @@
 ## 运行
 
 ```sh
-GENOFFICE_DIR=~/code/genoffice tools/export-golden/run.sh          # 全部
-tools/export-golden/run.sh tests/text-patch.test.ts                 # 只跑部分测试文件
+GENOFFICE_DIR=~/code/genoffice tools/export-golden/run.sh          # 全部（会先清空 corpus/synthetic 与 corpus/hostile 再重建）
+tools/export-golden/try.sh embedded-graphics.export.test.ts        # 只跑一个 *.export.test.ts，产物进临时目录，不碰 corpus/
 ```
+
+`run.sh` 带过滤参数（`run.sh tests/text-patch.test.ts`）也会先清空 corpus，只适合在一次性检查里用；开发新的
+导出用例文件一律用 `try.sh`。本目录里每个 `*.export.test.ts` 都会被 `run.sh` 一起跑（`vitest.config.ts` 的
+include 是 `export-golden.tmp*/*.export.test.ts`）。
 
 前提：genoffice 已 `npm install`（根 `node_modules/.bin/vitest` 存在）；Node ≥ 22（`node:zlib` 的 `crc32`）。
 
