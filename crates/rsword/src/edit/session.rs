@@ -6,7 +6,9 @@ use crate::diag::{DiagCode, Diagnostic};
 use crate::error::{Error, Result};
 use crate::model::Document;
 use crate::model::block::TextBlock;
-use crate::package::{Package, PartFlavor, PartId, PartUri, RelTarget, RelType, Relationship};
+use crate::package::{
+    Package, PartFlavor, PartId, PartImage, PartUri, RelTarget, RelType, Relationship,
+};
 use crate::save::SaveOptions;
 use crate::span::{FieldIndex, SpanIndex, is_content_item, plan_save, plan_update};
 use crate::xml::{Dom, LocalName, NewElement, NodeEdit, NodeId, NsId, QName, Target};
@@ -39,15 +41,32 @@ pub struct EditSession {
 /// 没碰过的 part 不付克隆代价。投影用整体 `rebuild` 恢复。
 #[derive(Default)]
 pub(crate) struct Snapshot {
-    doms: Vec<(PartId, Dom, Option<SpanIndex>)>,
+    images: Vec<(PartId, Image)>,
+}
+
+/// 一个 part 的写前镜像：节点级编辑记 DOM（与范围索引），整体替换记整个 part。
+enum Image {
+    Dom(Box<Dom>, Option<SpanIndex>),
+    Part(PartImage),
 }
 
 impl Snapshot {
     /// 第一次写 `part` 时记下写前镜像（DOM 与范围索引一起，它们合起来是规范状态）。
     fn remember(&mut self, part: PartId, dom: &Dom, spans: Option<&SpanIndex>) {
-        if !self.doms.iter().any(|(p, ..)| *p == part) {
-            self.doms.push((part, dom.clone(), spans.cloned()));
+        if !self.has(part) {
+            self.images.push((part, Image::Dom(Box::new(dom.clone()), spans.cloned())));
         }
+    }
+
+    /// 第一次整体替换 `part` 之前记下整个 part（`ReplacePartXml` / `ReplacePartBytes`）。
+    fn remember_part(&mut self, part: PartId, image: PartImage) {
+        if !self.has(part) {
+            self.images.push((part, Image::Part(image)));
+        }
+    }
+
+    fn has(&self, part: PartId) -> bool {
+        self.images.iter().any(|(p, _)| *p == part)
     }
 }
 
@@ -401,7 +420,11 @@ impl EditSession {
     }
 
     /// `[Content_Types].xml` 里加一条 `Override`（缺内容类型 part 时只记诊断）。
-    fn add_content_type_override(&mut self, uri: &PartUri, content_type: &str) -> Result<()> {
+    pub(crate) fn add_content_type_override(
+        &mut self,
+        uri: &PartUri,
+        content_type: &str,
+    ) -> Result<()> {
         let Some(ct_part) = self.pkg.content_types_part() else {
             self.record(vec![Diagnostic::invariant_violation(
                 self.pkg.main_part(),
@@ -450,7 +473,7 @@ impl EditSession {
     /// `SAVE-05`：part 的 `.rels`，没有就建（`<dir>/_rels/<name>.rels`）。
     ///
     /// `.rels` 靠 `[Content_Types].xml` 的 `Default Extension="rels"` 声明类型，缺了就补一条。
-    fn ensure_rels_part(&mut self, part: PartId) -> Result<PartId> {
+    pub(crate) fn ensure_rels_part(&mut self, part: PartId) -> Result<PartId> {
         if let Some(p) = self.pkg.part(part).rels_part {
             return Ok(p);
         }
@@ -477,8 +500,13 @@ impl EditSession {
 
     /// `[Content_Types].xml` 缺 `Default Extension="rels"` 时补一条。
     fn ensure_rels_default_type(&mut self) -> Result<()> {
+        self.ensure_default_type("rels", "application/vnd.openxmlformats-package.relationships+xml")
+    }
+
+    /// `[Content_Types].xml` 缺某个扩展名的 `Default` 时补一条（`.rels` / `.xlsx` / 媒体扩展名）。
+    pub(crate) fn ensure_default_type(&mut self, ext: &str, content_type: &str) -> Result<()> {
         let Some(ct_part) = self.pkg.content_types_part() else { return Ok(()) };
-        if self.pkg.content_types().default_for_extension("rels").is_some() {
+        if self.pkg.content_types().default_for_extension(ext).is_some() {
             return Ok(());
         }
         let dom = self
@@ -494,10 +522,9 @@ impl EditSession {
                 QName::new(dom.name(root).map(|q| q.ns).unwrap_or(NsId::None), LocalName::UDefault)
             });
         let none = |l: LocalName| QName::new(NsId::None, l);
-        let node = NewElement::new(name).with_attr(none(LocalName::UExtension), "rels").with_attr(
-            none(LocalName::ContentType),
-            "application/vnd.openxmlformats-package.relationships+xml",
-        );
+        let node = NewElement::new(name)
+            .with_attr(none(LocalName::UExtension), ext)
+            .with_attr(none(LocalName::ContentType), content_type);
         let first = dom.children(root).first().copied();
         let mut plan = MutationPlan::new(ct_part);
         plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(root), before: first, node });
@@ -506,7 +533,7 @@ impl EditSession {
     }
 
     /// 给 `part` 的 `.rels` 追加一条关系（内部或外部），返回分配到的 `rId`。
-    fn add_relationship(
+    pub(crate) fn add_relationship(
         &mut self,
         part: PartId,
         kind: RelType,
@@ -761,21 +788,101 @@ impl EditSession {
 
     /// 把快照里的每个写前镜像放回去，并重建投影。
     fn restore(&mut self, snap: Snapshot) -> Result<()> {
-        for (part, image, spans) in snap.doms {
-            if let Some(dom) = self.pkg.dom_mut(part)? {
-                *dom = image;
-            }
-            match spans {
-                Some(idx) => {
-                    self.spans.insert(part, idx);
+        for (part, image) in snap.images {
+            match image {
+                Image::Dom(image, spans) => {
+                    if let Some(dom) = self.pkg.dom_mut(part)? {
+                        *dom = *image;
+                    }
+                    match spans {
+                        Some(idx) => {
+                            self.spans.insert(part, idx);
+                        }
+                        None => {
+                            self.spans.remove(&part);
+                        }
+                    }
                 }
-                None => {
+                Image::Part(image) => {
+                    self.pkg.restore_part(part, image);
                     self.spans.remove(&part);
                 }
             }
             self.fields.remove(&part); // 投影，重建即可
         }
         self.rebuild()
+    }
+
+    /// `ReplacePartXml`：整个 XML part 换成 `xml`（TS `partXml`）。只接受**已存在**的 XML part：
+    /// 不存在 → `EDIT_TARGET_MISSING`（TS 静默忽略，`docs/04` §8），二进制 part → `EDIT_TARGET_OPAQUE`。
+    /// 新内容经解析成为该 part 的新 DOM（良构校验），关系与内容类型不动；投影整体重建。
+    pub(crate) fn replace_part_xml(&mut self, part: PartId, xml: &str) -> Result<()> {
+        if (part.0 as usize) >= self.pkg.parts().len() {
+            return Err(Error::edit(
+                DiagCode::EditTargetMissing,
+                format!("part#{} 不在包里", part.0),
+            ));
+        }
+        if !self.pkg.part(part).is_xml {
+            return Err(Error::edit(
+                DiagCode::EditTargetOpaque,
+                format!("{} 不是 XML part，不能按 XML 替换", self.pkg.part(part).uri),
+            ));
+        }
+        let image = self.pkg.snapshot_part(part);
+        if let Some(txn) = &mut self.txn {
+            txn.remember_part(part, image);
+        }
+        self.pkg.replace_part_xml(part, xml)?;
+        self.spans.remove(&part);
+        self.fields.remove(&part);
+        self.rebuild()
+    }
+
+    /// `ReplacePartBytes`：整个 part 换成给定字节（TS `partBinary`）。主 part 不能换（它的 DOM 是模型的根）。
+    pub(crate) fn replace_part_bytes(&mut self, part: PartId, bytes: Vec<u8>) -> Result<()> {
+        if (part.0 as usize) >= self.pkg.parts().len() {
+            return Err(Error::edit(
+                DiagCode::EditTargetMissing,
+                format!("part#{} 不在包里", part.0),
+            ));
+        }
+        if part == self.pkg.main_part() {
+            return Err(Error::edit(DiagCode::EditUnsupported, "主 part 不能按二进制替换"));
+        }
+        let image = self.pkg.snapshot_part(part);
+        if let Some(txn) = &mut self.txn {
+            txn.remember_part(part, image);
+        }
+        self.pkg.replace_part_bytes(part, bytes);
+        self.spans.remove(&part);
+        self.fields.remove(&part);
+        self.rebuild()
+    }
+
+    /// `SAVE-05`：新建一个二进制 part（内嵌工作簿、媒体），接上关系与按扩展名的 `Default` 内容类型，
+    /// 返回 `(part, rId)`。
+    pub fn add_binary_part(
+        &mut self,
+        owner: PartId,
+        kind: RelType,
+        uri: &str,
+        content_type: &str,
+        bytes: Vec<u8>,
+    ) -> Result<(PartId, String)> {
+        let uri = PartUri::from_entry_name(uri);
+        if self.pkg.find(&uri).is_some() {
+            return Err(Error::edit(DiagCode::EditPlanInvalid, format!("part {uri} 已存在")));
+        }
+        let part = self.pkg.register_new_binary_part(uri.clone(), content_type, bytes)?;
+        let owner_dir = self.pkg.part(owner).uri.dir().to_string();
+        let target =
+            uri.as_str().strip_prefix(&format!("{owner_dir}/")).unwrap_or(uri.as_str()).to_string();
+        let rid = self.add_relationship(owner, kind, &target, RelTarget::Internal(uri.clone()))?;
+        if let Some(ext) = uri.as_str().rsplit_once('.').map(|(_, e)| e.to_string()) {
+            self.ensure_default_type(&ext, content_type)?;
+        }
+        Ok((part, rid))
     }
 
     /// 一个阶段：`validate` → `commit` → 刷新投影 → 记诊断。编辑操作只碰主 part；保存选项

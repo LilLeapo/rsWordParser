@@ -26,6 +26,15 @@ fn ignore_attr(_: &Dom, element: QName, attr: QName) -> bool {
     if attr == QName::new(NsId::Xml, LocalName::Space) {
         return true;
     }
+    // `COMPAT-09`：新绘图的 `wp:docPr/@id`（与由它派生的 `@name`）是分配细节——TS 从 8000 起计数，
+    // 我们按 `EDIT-06` 取最大值 + 1（任务 6.6）；`pic:cNvPr` 同理（6.7）
+    if (element == QName::new(NsId::Wp, LocalName::DocPr)
+        || element == QName::new(NsId::Pic, LocalName::CNvPr))
+        && attr.ns == NsId::None
+        && matches!(attr.local, LocalName::Id | LocalName::Name)
+    {
+        return true;
+    }
     element == QName::w(LocalName::P)
         && (attr.ns == NsId::W14
             || (attr.ns == NsId::W

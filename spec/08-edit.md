@@ -112,7 +112,10 @@ session.save(opts) -> Result<Vec<u8>>
 - `SetSectionProps`：`PROP-06` 于 `sectPr`；修订 `sectPrChange`。
 - `SetHeaderFooter { sect, kind, variant, content }`：part 不存在 → 新建 part（`word/headerN.xml`，关系、内容类型、`sectPr` 的 `headerReference`）；存在 → 其内容替换（`ReplaceBlocks`）。跨 part 的内容用 `rehome`。
 
-**其他 part**：`SetNoteContent`、`SetSdtContent`（`ContentLocked` → `Err(EDIT_SDT_LOCKED)`；有 `data_binding` → `Err(EDIT_SDT_BOUND)`，第一阶段）、`SetChartData`（`chart.ts` 补丁语义）、`SetDocumentSettings`。
+**其他 part**：`SetNoteContent`、`SetSdtContent`（`ContentLocked` → `Err(EDIT_SDT_LOCKED)`；有 `data_binding` → `Err(EDIT_SDT_BOUND)`，第一阶段）、`SetChartData`、`SetDocumentSettings`、`ReplacePartXml` / `ReplacePartBytes`。
+
+- `SetChartData { part, patch: ChartPatch { title, categories, series } }`（`chart.ts` 补丁语义，M6 6.6）：**只改缓存文本**——标题取 `c:title` 里第一个 `a:t`（其余 `a:t` 清空），没有 `a:t` 则 `c:strCache/c:v`，两者都没有（自动标题）→ 在 `c:tx/c:rich/a:p` 的 `a:endParaRPr` 之前注入 `a:r/a:t`，`c:tx` 是无缓存 `strRef` → 整个换成 rich body，没有 `c:tx` → rich body 插为 `c:title` 第一个子元素；系列名 → `c:ser/c:tx` 下第一个 `c:v`；值 → `c:val` 缓存点按 `idx` 改，**缺的点不补**；类别 → 每个系列的 `c:cat` 都改。数据引用 `c:f`、样式、布局一个字节不动；chartex part → `Err(EDIT_UNSUPPORTED)`。验收：`tests/chart_ops.rs`。
+- `ReplacePartXml { part, xml }` / `ReplacePartBytes { part, bytes }`（TS `partXml` / `partBinary`）：整 part 替换，只接受已存在的 part（不存在 → `Err(EDIT_TARGET_MISSING)`），新 XML 经解析成为该 part 的新 DOM，主 part 不能按二进制换；事务回滚覆盖它们。
 
 ## EDIT-04 SaveBlock 兼容映射（第一阶段）
 

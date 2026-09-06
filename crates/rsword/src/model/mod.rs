@@ -18,7 +18,7 @@
 pub mod block;
 pub mod build;
 pub mod classify;
-mod macros;
+pub(crate) mod macros;
 
 pub mod aux;
 pub mod chart;

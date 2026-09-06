@@ -8,7 +8,9 @@
 //! | 多余的 `generated` | `InsertBlock{Paragraph}`，插在下一个 original 之前（sdt 首段前 → sdt 之前） |
 //! | `xml` | `InsertBlock{Xml}`；带 `docxIndex` 时先插后删原块 |
 //! | 缺失的 original | `DeleteBlock` |
-//! | `chart` / `image` | M1 不支持 → `Err(EDIT_UNSUPPORTED)` |
+//! | `chart` | `InsertBlock{NewBlock::Chart}`（图表 part + 工作簿 + 关系 + 绘图段落，6.6） |
+//! | `image` | M1 不支持 → `Err(EDIT_UNSUPPORTED)`（6.7） |
+//! | `SaveOptions.partXml` / `partBinary` | `ReplacePartXml` / `ReplacePartBytes`（只接受已存在的 part，6.6） |
 //! | `SaveOptions.savedAt` / `removePersonalInfo` | 翻成 [`SaveOptions`]，由 `save_with` 执行（`SAVE-07`） |
 //! | 其余 `SaveOptions` | M1 不支持 → `Err(EDIT_UNSUPPORTED)` |
 //!
@@ -26,8 +28,8 @@ use crate::diag::DiagCode;
 use crate::edit::ops;
 use crate::edit::ops::ppr_of;
 use crate::edit::{
-    BlockPos, EditContext, EditOp, EditSession, NewBlock, NewComment, NewInline, NewLinkTarget,
-    NewMarker, NewRevision, NewRun,
+    BlockPos, EditContext, EditOp, EditSession, NewBlock, NewChart, NewChartKind, NewChartSeries,
+    NewComment, NewInline, NewLinkTarget, NewMarker, NewRevision, NewRun,
 };
 use crate::error::{Error, Result};
 use crate::model::{HfKind, HfVariant};
@@ -81,7 +83,17 @@ pub fn bookmark_id_of(name: &str) -> u32 {
 enum Item<'a> {
     Original(usize),
     Generated(&'a Value, Option<&'a Value>),
-    Xml { xml: &'a str, docx_index: Option<usize>, revision: Option<&'a Value> },
+    Xml {
+        xml: &'a str,
+        docx_index: Option<usize>,
+        revision: Option<&'a Value>,
+    },
+    /// TS `kind:"chart"`：新图表（任务 6.6）。
+    Chart {
+        chart: &'a Value,
+        extent: Option<&'a Value>,
+        revision: Option<&'a Value>,
+    },
 }
 
 fn s_of<'a>(v: &'a Value, k: &str) -> Option<&'a str> {
@@ -116,6 +128,10 @@ struct EntryLists {
     comments: Option<Vec<Value>>,
     footnotes: Option<Vec<Value>>,
     endnotes: Option<Vec<Value>>,
+    /// TS `partXml`：zip 路径 → 整份 XML（任务 6.6）。
+    part_xml: Vec<(String, String)>,
+    /// TS `partBinary`：zip 路径 → base64 字节。
+    part_binary: Vec<(String, String)>,
 }
 
 /// 页眉页脚选项的原始 JSON：内容要用 `Planner`（借着主 part 的 DOM）才能翻成 `NewBlock`，
@@ -143,6 +159,19 @@ fn save_options_of(options: &Value) -> Result<(SaveOptions, EntryLists, HfOption
             "comments" => lists.comments = Some(arr(v, "comments")?),
             "footnotes" => lists.footnotes = Some(arr(v, "footnotes")?),
             "endnotes" => lists.endnotes = Some(arr(v, "endnotes")?),
+            "partXml" | "partBinary" => {
+                let obj = v
+                    .as_object()
+                    .ok_or_else(|| unsupported(format!("SaveOptions {k:?} 不是对象")))?;
+                let target =
+                    if k == "partXml" { &mut lists.part_xml } else { &mut lists.part_binary };
+                for (path, content) in obj {
+                    let text = content.as_str().ok_or_else(|| {
+                        unsupported(format!("SaveOptions {k:?}[{path}] 不是字符串"))
+                    })?;
+                    target.push((path.clone(), text.to_string()));
+                }
+            }
             // ---- 5.6：节与包级选项 ----
             "section" => out.section = Some(section_settings_of(v)?),
             "sectionStartType" => out.section_start_type = Some(sect_type_of(v)?),
@@ -500,6 +529,10 @@ pub fn apply_save_blocks(
                 let docx_index = fb["docxIndex"].as_u64().map(|d| d as usize);
                 items.push(Item::Xml { xml, docx_index, revision });
             }
+            Some("chart") => {
+                let chart = fb.get("chart").ok_or_else(|| unsupported("chart 缺 chart"))?;
+                items.push(Item::Chart { chart, extent: fb.get("extentPx"), revision });
+            }
             other => return Err(unsupported(format!("SaveBlock kind {other:?} 在后续里程碑"))),
         }
     }
@@ -508,8 +541,8 @@ pub fn apply_save_blocks(
     let all_original_in_order = items.len() == visible.len()
         && items.iter().zip(&visible).all(|(it, &v)| matches!(it, Item::Original(d) if *d == v));
     if all_original_in_order {
-        // 块没动，但权威条目列表可能要删 / 改条目
-        let extra = apply_entry_lists(session, &lists)?;
+        // 块没动，但权威条目列表可能要删 / 改条目，整 part 替换也照样做（TS 的 isUnchanged 也看它们）
+        let extra = apply_entry_lists(session, &lists)? + apply_part_replacements(session, &lists)?;
         save_options.section_hf = resolve_section_hf(session, pending_section_hf)?;
         let unchanged = extra == 0 && !save_options.forces_save();
         return Ok(SaveBlocksOutcome { unchanged, ops: extra, save_options });
@@ -539,7 +572,7 @@ pub fn apply_save_blocks(
     let n = ops.len();
     session.apply_all(ops, &EditContext::default())?;
     // 条目列表在块之后应用：删掉的批注要连"块重发出来的"标记一起清掉
-    let extra = apply_entry_lists(session, &lists)?;
+    let extra = apply_entry_lists(session, &lists)? + apply_part_replacements(session, &lists)?;
     save_options.section_hf = resolve_section_hf(session, pending_section_hf)?;
     Ok(SaveBlocksOutcome { unchanged: false, ops: n + extra, save_options })
 }
@@ -719,6 +752,10 @@ impl Planner<'_> {
                             }
                         }
                     }
+                    Item::Chart { chart, extent, revision } => ops.push(EditOp::InsertBlock {
+                        at: anchor,
+                        block: wrap_revision(chart_block(chart, *extent)?, *revision),
+                    }),
                 }
             }
             for c in candidates {
@@ -1182,6 +1219,78 @@ impl Planner<'_> {
 }
 
 /// TS：`fb.revision` → 整块包进 `w:ins` / `w:del`（`id` 缺省 TS 写 `0`，这里按 `EDIT-06` 由引擎分配）。
+/// TS `NewChart` → [`NewBlock::Chart`]。`extentPx {w, h}` → EMU（× 9525，至少 1）。
+fn chart_block(chart: &Value, extent: Option<&Value>) -> Result<NewBlock> {
+    let kind = match s_of(chart, "kind") {
+        Some("bar") | None => NewChartKind::Bar,
+        Some("line") => NewChartKind::Line,
+        Some("pie") => NewChartKind::Pie,
+        Some(other) => return Err(unsupported(format!("chart.kind {other:?}"))),
+    };
+    let strings = |v: Option<&Value>| -> Vec<String> {
+        v.and_then(Value::as_array)
+            .map(|a| a.iter().map(|x| x.as_str().unwrap_or_default().to_string()).collect())
+            .unwrap_or_default()
+    };
+    let series = chart
+        .get("series")
+        .and_then(Value::as_array)
+        .map(|a| {
+            a.iter()
+                .map(|ser| NewChartSeries {
+                    name: s_of(ser, "name").unwrap_or_default().to_string(),
+                    values: ser
+                        .get("values")
+                        .and_then(Value::as_array)
+                        .map(|vs| vs.iter().map(Value::as_f64).collect())
+                        .unwrap_or_default(),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let extent_emu = extent.and_then(|e| {
+        let px = |k: &str| e.get(k).and_then(Value::as_f64);
+        Some((
+            (px("w")? * 9525.0).round().max(1.0) as i64,
+            (px("h")? * 9525.0).round().max(1.0) as i64,
+        ))
+    });
+    Ok(NewBlock::Chart {
+        chart: NewChart {
+            kind,
+            title: s_of(chart, "title").map(str::to_string),
+            categories: strings(chart.get("categories")),
+            series,
+        },
+        extent_emu,
+    })
+}
+
+/// TS `partXml` / `partBinary`：按 zip 路径整体替换 part。TS 对不存在的路径静默忽略；这里是
+/// `EDIT_TARGET_MISSING`（`docs/04` §8）。
+fn apply_part_replacements(session: &mut EditSession, lists: &EntryLists) -> Result<usize> {
+    let mut ops = Vec::new();
+    for (path, xml) in &lists.part_xml {
+        let part = session.package().find_name(path).ok_or_else(|| {
+            Error::edit(DiagCode::EditTargetMissing, format!("partXml: {path} 不在包里"))
+        })?;
+        ops.push(EditOp::ReplacePartXml { part, xml: xml.clone() });
+    }
+    for (path, b64) in &lists.part_binary {
+        let part = session.package().find_name(path).ok_or_else(|| {
+            Error::edit(DiagCode::EditTargetMissing, format!("partBinary: {path} 不在包里"))
+        })?;
+        let bytes = crate::package::media::base64_decode(b64)
+            .ok_or_else(|| unsupported(format!("partBinary: {path} 不是 base64")))?;
+        ops.push(EditOp::ReplacePartBytes { part, bytes });
+    }
+    let n = ops.len();
+    if n > 0 {
+        session.apply_all(ops, &EditContext::default())?;
+    }
+    Ok(n)
+}
+
 fn wrap_revision(block: NewBlock, revision: Option<&Value>) -> NewBlock {
     let Some(rev) = revision else { return block };
     let kind = if s_of(rev, "kind") == Some("del") { LocalName::Del } else { LocalName::Ins };

@@ -73,6 +73,30 @@ enum PartDom {
     Parsed(Box<Dom>),
     /// 解析失败：保存原字节（`PKG-11`）。
     Opaque(XmlError),
+    /// 本次会话给定的字节：新建的二进制 part（内嵌工作簿、媒体），或被 `ReplacePartBytes` 整体换掉的 part。
+    Bytes(Vec<u8>),
+}
+
+/// 一个 part 的写前镜像（`EDIT-05`）：整体替换（`ReplacePartXml` / `ReplacePartBytes`）之前由
+/// [`Package::snapshot_part`] 记下，回滚时 [`Package::restore_part`] 放回。字段对外不可见——它就是 `Part` 的
+/// 那几个会被替换改动的字段。
+pub struct PartImage {
+    dom: PartDom,
+    is_xml: bool,
+    replaced: bool,
+    flavor: Option<PartFlavor>,
+}
+
+impl Clone for PartDom {
+    fn clone(&self) -> Self {
+        match self {
+            PartDom::NotXml => PartDom::NotXml,
+            PartDom::Raw(b) => PartDom::Raw(b.clone()),
+            PartDom::Parsed(d) => PartDom::Parsed(d.clone()),
+            PartDom::Opaque(e) => PartDom::Opaque(e.clone()),
+            PartDom::Bytes(b) => PartDom::Bytes(b.clone()),
+        }
+    }
 }
 
 /// 新建 part 的 `zip_index`：原 zip 里没有对应条目（`SAVE-05` / `SAVE-06`：新 part 追加在末尾）。
@@ -92,12 +116,22 @@ pub struct Part {
     pub rels: Rels,
     /// 承载 `rels` 的 `.rels` part。
     pub rels_part: Option<PartId>,
+    /// 本次会话整体替换过（`ReplacePartXml` / `ReplacePartBytes`）：保存时整份写出，哪怕 DOM 一个节点都不脏。
+    pub replaced: bool,
     dom: PartDom,
 }
 
 impl Part {
     pub fn is_opaque(&self) -> bool {
         matches!(self.dom, PartDom::Opaque(_))
+    }
+
+    /// 本次会话给定的字节（新建的二进制 part / 被整体换掉的 part）；其他形态 → `None`。
+    pub fn owned_bytes(&self) -> Option<&[u8]> {
+        match &self.dom {
+            PartDom::Bytes(b) => Some(b),
+            _ => None,
+        }
     }
 
     pub fn is_parsed(&self) -> bool {
@@ -174,6 +208,7 @@ impl Package {
                 flavor: None,
                 rels: Rels::default(),
                 rels_part: None,
+                replaced: false,
                 dom: PartDom::NotXml,
             });
         }
@@ -410,10 +445,87 @@ impl Package {
             flavor,
             rels: Rels::default(),
             rels_part: None,
+            replaced: false,
             dom: PartDom::Parsed(Box::new(dom)),
         });
         self.by_uri.insert(uri, id);
         Ok(id)
+    }
+
+    /// `SAVE-05`：登记一个新的二进制 part（内嵌工作簿、媒体）。内容类型由调用方按扩展名的 `Default` 声明。
+    pub(crate) fn register_new_binary_part(
+        &mut self,
+        uri: PartUri,
+        content_type: &str,
+        bytes: Vec<u8>,
+    ) -> Result<PartId> {
+        if self.by_uri.contains_key(&uri) {
+            return Err(Error::edit(
+                DiagCode::EditPlanInvalid,
+                format!("part {uri} 已存在，不能重复新建"),
+            ));
+        }
+        let id = PartId(u32::try_from(self.parts.len()).expect("part count fits u32"));
+        self.parts.push(Part {
+            id,
+            uri: uri.clone(),
+            zip_index: NO_ZIP_ENTRY,
+            content_type: Some(content_type.to_string()),
+            is_xml: false,
+            flavor: None,
+            rels: Rels::default(),
+            rels_part: None,
+            replaced: false,
+            dom: PartDom::Bytes(bytes),
+        });
+        self.by_uri.insert(uri, id);
+        Ok(id)
+    }
+
+    /// 整体替换一个 XML part 的内容（TS `partXml`）：新内容解析成这个 part 的新 DOM（良构校验在这里），
+    /// 关系与内容类型不动。保存时整份写出。
+    pub(crate) fn replace_part_xml(&mut self, id: PartId, xml: &str) -> Result<()> {
+        let uri = self.parts[id.idx()].uri.to_string();
+        let dom = Dom::parse(id, xml.as_bytes()).map_err(|e| Error::Malformed {
+            part: uri,
+            offset: e.offset,
+            message: e.message,
+        })?;
+        let flavor = sniff_root(xml.as_bytes())
+            .ok()
+            .and_then(|info| info.namespace_uri)
+            .and_then(|uri| NsId::from_uri(&uri))
+            .filter(|(ns, _)| ns.has_strict_uri())
+            .map(|(_, fl)| fl);
+        let part = &mut self.parts[id.idx()];
+        part.dom = PartDom::Parsed(Box::new(dom));
+        part.is_xml = true;
+        part.flavor = flavor;
+        part.replaced = true;
+        Ok(())
+    }
+
+    /// 整体替换一个 part 的字节（TS `partBinary`）：之后它是二进制 part，没有 DOM。
+    pub(crate) fn replace_part_bytes(&mut self, id: PartId, bytes: Vec<u8>) {
+        let part = &mut self.parts[id.idx()];
+        part.dom = PartDom::Bytes(bytes);
+        part.is_xml = false;
+        part.flavor = None;
+        part.replaced = true;
+    }
+
+    /// 整体替换之前的写前镜像（`EDIT-05`）。
+    pub(crate) fn snapshot_part(&self, id: PartId) -> PartImage {
+        let p = &self.parts[id.idx()];
+        PartImage { dom: p.dom.clone(), is_xml: p.is_xml, replaced: p.replaced, flavor: p.flavor }
+    }
+
+    pub(crate) fn restore_part(&mut self, id: PartId, image: PartImage) {
+        let p = &mut self.parts[id.idx()];
+        p.dom = image.dom;
+        p.is_xml = image.is_xml;
+        p.replaced = image.replaced;
+        p.flavor = image.flavor;
     }
 
     pub fn find(&self, uri: &PartUri) -> Option<PartId> {
@@ -532,6 +644,7 @@ impl Package {
         match &self.parts[id.idx()].dom {
             PartDom::Raw(b) => Ok(b.clone()),
             PartDom::Parsed(d) => Ok(d.src_bytes().to_vec()),
+            PartDom::Bytes(b) => Ok(b.clone()),
             PartDom::NotXml | PartDom::Opaque(_) => self.zip.read(self.parts[id.idx()].zip_index),
         }
     }

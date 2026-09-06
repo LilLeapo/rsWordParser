@@ -225,6 +225,27 @@ fn is_http(target: &str) -> bool {
 
 const B64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
+/// 标准 base64 解码（忽略空白与 `=` 填充；碰到表外字符 → `None`）。TS `partBinary` / `image.base64` 用。
+pub fn base64_decode(s: &str) -> Option<Vec<u8>> {
+    const T: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = Vec::with_capacity(s.len() / 4 * 3);
+    let (mut acc, mut bits) = (0u32, 0u32);
+    for c in s.bytes() {
+        if c == b'=' || c.is_ascii_whitespace() {
+            continue;
+        }
+        let v = T.iter().position(|&t| t == c)? as u32;
+        acc = (acc << 6) | v;
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            out.push((acc >> bits) as u8);
+            acc &= (1 << bits) - 1;
+        }
+    }
+    Some(out)
+}
+
 /// 标准 base64（带 `=` 填充）。自己写是为了不给 L0 引第三方依赖。
 fn base64_into(bytes: &[u8], out: &mut String) {
     let (chunks, rest) = bytes.as_chunks::<3>();

@@ -16,11 +16,13 @@ use crate::save::serialize::serialize_with;
 use crate::xml::Dirty;
 
 impl Package {
-    /// 有脏节点的 XML part。
+    /// 有脏节点的 XML part，以及本次会话整体替换过的 part（`ReplacePartXml` / `ReplacePartBytes`）。
     pub fn dirty_parts(&self) -> Vec<PartId> {
         self.parts()
             .iter()
-            .filter(|p| p.dom().is_some_and(|d| d.node(d.root()).dirty != Dirty::Clean))
+            .filter(|p| {
+                p.replaced || p.dom().is_some_and(|d| d.node(d.root()).dirty != Dirty::Clean)
+            })
             .map(|p| p.id)
             .collect()
     }
@@ -57,6 +59,11 @@ impl Package {
         let mut replaced: Vec<(PartId, u32, Vec<u8>)> = Vec::with_capacity(dirty.len());
         for id in dirty {
             let part = self.part(id);
+            // 二进制 part（新建的工作簿 / 媒体，或被 `ReplacePartBytes` 换掉的）：字节就是内容
+            if let Some(bytes) = part.owned_bytes() {
+                replaced.push((id, part.zip_index, bytes.to_vec()));
+                continue;
+            }
             let dom = part.dom().expect("dirty part has a DOM");
             let ctx = NamespaceContext::from_dom(dom, self.flavor_of(id));
             let bytes = serialize_with(dom, Some(&ctx)).map_err(|e| {

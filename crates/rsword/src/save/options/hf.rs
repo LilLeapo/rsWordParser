@@ -36,7 +36,7 @@ use super::SaveOptions;
 macro_rules! hf_slots {
     ($( $field:ident : $kind:ident / $variant:ident = $key:literal ),+ $(,)?) => {
         /// 六个页眉页脚槽的内容（`None` = 这一项不动）。
-        #[derive(Debug, Clone, Default, PartialEq, Eq)]
+        #[derive(Debug, Clone, Default, PartialEq)]
         pub struct HfSlots {
             $(
                 #[doc = concat!("TS `SaveOptions.", $key, "`")]
@@ -81,7 +81,7 @@ hf_slots! {
 }
 
 /// 某一节某个变体的内容（TS `sectionHf[]`）。`sect` 由适配器从 `lastBlockIndex` 解析出来。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SectionHfSave {
     pub sect: NodeId,
     pub kind: HfKind,

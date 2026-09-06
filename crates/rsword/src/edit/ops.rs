@@ -77,6 +77,15 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::SetWatermark { sect, text } => super::section_ops::set_watermark(s, sect, text),
         EditOp::SetPageColor { color } => super::section_ops::set_page_color(s, color),
         EditOp::SetDocumentSettings { patch } => set_document_settings(s, &patch),
+        EditOp::SetChartData { part, patch } => super::chart_ops::set_chart_data(s, part, &patch),
+        EditOp::ReplacePartXml { part, xml } => {
+            s.replace_part_xml(part, &xml)?;
+            Ok(MutationResult::default())
+        }
+        EditOp::ReplacePartBytes { part, bytes } => {
+            s.replace_part_bytes(part, bytes)?;
+            Ok(MutationResult::default())
+        }
     }
 }
 
@@ -167,6 +176,10 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
         EditOp::RemoveComment { .. }
         | EditOp::SetCommentText { .. }
         | EditOp::RemoveBookmark { .. } => Vec::new(),
+        // 图表 part 与整 part 替换：目标是别的 part，不在正文树上（任务 6.6）
+        EditOp::SetChartData { .. }
+        | EditOp::ReplacePartXml { .. }
+        | EditOp::ReplacePartBytes { .. } => Vec::new(),
         // 节与页眉页脚：目标是 `w:sectPr` 或整个 part，不在内容控件里（任务 5.5）
         EditOp::SetSectionProps { .. }
         | EditOp::SetHeaderFooter { .. }
@@ -271,7 +284,7 @@ fn clone_attrs(dom: &Dom, from: NodeId, to: &mut NewElement) {
 }
 
 /// 段文本设为 `text`：有唯一文本子节点 → `SetText`（`w:t` 由序列化补 preserve）；否则替换整个元素。
-fn set_segment_text(dom: &Dom, seg_node: NodeId, text: &str, plan: &mut MutationPlan) {
+pub(super) fn set_segment_text(dom: &Dom, seg_node: NodeId, text: &str, plan: &mut MutationPlan) {
     match sole_text_child(dom, seg_node) {
         Some(tn) => plan.node_edits.push(NodeEdit::SetText { node: tn, text: text.to_string() }),
         None => {
@@ -980,6 +993,8 @@ fn block_site(dom: &Dom, at: BlockAt) -> Result<(NodeId, Option<NodeId>)> {
 pub(super) fn new_block_element(dom: &Dom, block: NewBlock) -> NewElement {
     match block {
         NewBlock::Xml(e) => e,
+        // 每个接收 `NewBlock` 的入口都先过 `chart_ops::materialize`（建 part、换成 `Xml`）
+        NewBlock::Chart { .. } => unreachable!("NewBlock::Chart 必须先经 chart_ops::materialize"),
         NewBlock::Table { rows, cols, widths, style, header } => {
             super::table_ops::new_table(rows, cols, widths, style, header)
         }
@@ -1088,6 +1103,8 @@ table_props_op!(
 );
 
 fn insert_block(s: &mut EditSession, at: BlockPos, block: NewBlock) -> Result<MutationResult> {
+    // 新图表先建 part（图表 / 工作簿 / 关系），块本身换成绘图段落（任务 6.6）
+    let block = super::chart_ops::materialize(s, block)?;
     let part = s.part_or_main(at.part);
     let dom = s.dom_in(at.part)?;
     let (parent, before) = block_site(dom, at.at)?;
@@ -2342,6 +2359,7 @@ fn update_block_field(
     blocks: Vec<NewBlock>,
     ctx: &EditContext,
 ) -> Result<MutationResult> {
+    let blocks = super::chart_ops::materialize_all(s, blocks)?;
     let part = s.main_part();
     let f = field_of(s, id)?;
     if f.lock {

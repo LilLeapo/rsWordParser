@@ -212,6 +212,7 @@ fn replace_part_blocks(
     part: PartId,
     content: Vec<NewBlock>,
 ) -> Result<MutationResult> {
+    let content = super::chart_ops::materialize_all(s, content)?;
     let dom = s.dom_in(Some(part))?;
     let root = dom.root();
     let mut plan = MutationPlan::new(part);

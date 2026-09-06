@@ -307,6 +307,10 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `MOD-11` SmartArt 绘图 part 的定位 | 「路径由数据 part 路径 `data(\d*).xml → drawing$1.xml` 替换（TS 约定）」 | 先看数据 part 自己的 `diagramDrawing` 关系（`http://schemas.microsoft.com/office/2007/relationships/diagramDrawing`），没有再按路径约定 | 真实 Word 文档都写这条关系，路径只是 TS 没解析 `.rels` 时的替代；两种都认（6.3） |
 | `MOD-11` SmartArt 绘图 part 的颜色 | 「`schemeClr` 查主题原值不做变换、缺省 `9AB5E4`——照抄 TS」 | 颜色走 `RES-05`（全部写法与 `lumMod` 等变换），槽位解不出时同样给 `9AB5E4`；别名 `tx1 / bg1` 认 | Word 写进 `dsp` 的颜色常带 `hueOff / satOff / lumOff`（多为 0），按定义解才是那张图的颜色；语料里没有带变换的样本，与 TS 无差异（6.3） |
 | `MOD-05` R14 没有 `wp:extent` 的画布 | — | 显示尺寸退回 `a:chExt` 原值（缩放 1），仍是 `Drawing object` + `diagramDisplay`；TS 放弃画布改取第一张图 | `wp:inline` 缺 `wp:extent` 是畸形文档，TS 的图片是兜底而非规则；`m6-canvas__006` 五条路径登记在 `KNOWN_DIFFS.md`（6.3） |
+| `EDIT-03 SetChartData` 对 chartex | 「chartex part → `Err(EDIT_UNSUPPORTED)`（TS 静默 no-op）」 | 照规范：报错 | 静默吞掉一次编辑比报错更糟；调用方拿到错误就知道这张图只能整 part 替换（6.6） |
+| `ReplacePartXml` / `ReplacePartBytes` 的目标 | TS `partXml` / `partBinary` 对不存在的路径静默忽略 | 不存在 → `EDIT_TARGET_MISSING`；`ReplacePartXml` 对二进制 part → `EDIT_TARGET_OPAQUE`；主 part 不能按二进制换 | 同上：写错路径是调用方的 bug，不该无声无息（6.6） |
+| 新绘图的 `wp:docPr/@id` | — | `EDIT-06`：主 part 里最大值 + 1，`@name` = `Chart {id}`；TS 从 8000 起 | 分配细节，`COMPAT-09` 在保存差分里容忍 `wp:docPr` / `pic:cNvPr` 的 `@id` / `@name`（6.6） |
+| 内嵌工作簿的内容类型 | — | `[Content_Types]` 的 `Default Extension="xlsx"`（缺了才补） | 二进制 part 按扩展名声明是包规范的常规做法，也是 Word 自己的写法（6.6） |
 | `TEST-10` 门的 CI 形态 | 「对应域 diff 为 0」 | 还没关上的门用 `diff-parse --max-unknown N` 做棘轮：未知差异 ≤ N 放行，每落地一个任务往下拧，归零后删掉参数 | 门一建就进 CI，回归有人拦，数字有地方掉；`.github/workflows/ci.yml` 第七步（6.2 起 214，6.3 起 170） |
 | `XML-09` `mc:Choice/@Requires` | 前缀按作用域解析 | 作用域里解析不到时，退一步看**分支子树内**有没有声明这个前缀 | 合成语料常把 `xmlns:wps` 写在 `wps:wsp` 元素自己身上，`Requires="wps"` 于是在 `mc:Choice` 处解析不出来、整段退到 VML Fallback（16 份文档）。意图毫无歧义，按分支内的声明认；前缀在**任何地方**都没声明的情况（`numbering-defs__012`）行为不变，仍是已知差异 |
 | `PKG-06` | 唯一路径函数 | `uri::resolve` 唯一；`parse_rels` 在目标不存在且写法为 `../` 时按 `_rels/` 目录再解析一次 | 兼容相对 `_rels/` 写目标的生成器（验收清单要求三种写法解析到同一 part） |
@@ -1173,7 +1177,22 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   `embedded` 160 → **43 / 12 份**（全是墨迹，6.8），`all` 71，棘轮 43。`tests/math.rs` 七个：语料 60+ 份公式 / ruby
   文档差异 0；TS `math.test.ts` 的 `ommlToMathML` 七例与 `ommlToLatex` 三例照搬并钉逐字输出；公式块 / 文字夹公式 /
   多片段；ruby run 与坐标流原子；`omml-deep` 与 4,000 层构造；公式原子前后 `InsertText` 后 `m:oMath` 字节原样。
-- [ ] **6.6 图表的保存**（`edit/chart_ops.rs`、`save/parts.rs`）：`SetChartData` 只改缓存文本；`NewBlock::Chart` 新建 part + 工作簿 + 关系；`ReplacePartXml / Bytes`。
+- [x] **6.6 图表的保存：`SetChartData`、新建图表、整 part 替换**（`edit/chart_ops.rs`，2026-09-06）：`EditOp::SetChartData
+  { part, patch: ChartPatch }` 按 TS `patchChartPartXml` 的锚定规则只改缓存文本节点（`set_segment_text` 复用；标题的
+  三种无文字形态各有注入方式；缺的缓存点不补；chartex → `EDIT_UNSUPPORTED`，§8）；`NewBlock::Chart { chart, extent_emu }`
+  由 `chart_ops::materialize` 在每个接收 `NewBlock` 的入口（`InsertBlock` / `UpdateBlockField` / 页眉页脚内容）换成绘图段落：
+  `word/charts/chart{N}.xml`（第一个空闲 N，`add_part`）+ `word/charts/embeddings/workbook{N}.xlsx`（新的 `add_binary_part`：
+  `Package::register_new_binary_part` + `Default Extension="xlsx"`）+ 图表 part 自己的 `.rels`（`rId1` 指工作簿，
+  `c:externalData` 引用）+ 主 part 的 `chart` 关系；part 内容按 TS `buildChartPartXml` / `buildChartWorkbookXlsxBase64`
+  的模板生成（`zip` crate 打包），`wp:docPr/@id` 按 `EDIT-06`。`EditOp::ReplacePartXml { part, xml }` / `ReplacePartBytes
+  { part, bytes }`（TS `partXml` / `partBinary`）：`Package::replace_part_xml / replace_part_bytes` + `Part.replaced`
+  （保存时整份写出）+ `PartDom::Bytes`；不存在的 part → 新诊断 `EDIT_TARGET_MISSING`（TS 静默忽略，§8）；事务快照
+  （`Snapshot::remember_part`）让回滚也覆盖整 part 替换。compat：`kind:"chart"` → `InsertBlock{Chart}`（`extentPx` × 9525），
+  `options.partXml / partBinary` → 两个替换操作（isUnchanged 分支也做）；`tests/save_blocks.rs` 的比较对 `wp:docPr` /
+  `pic:cNvPr` 的 `@id` / `@name` 容忍（`COMPAT-09`）。**保存语料 143 → 164 等价、跳过 61 → 40**（chart 13 + `partXml` 7 +
+  `partBinary` 1 全部等价）。`tests/chart_ops.rs` 七个：新图表的 part / `.rels` / 工作簿 / 内容类型 / 重解析 / xlsx 单元格 /
+  其他条目 CRC 不变；两个图表的编号与饼图无轴；TS `patchChartPartXml` 两例（含「只有缓存文本变了」的字节回替校验）；
+  三种无文字标题的注入；chartex 拒绝与事务回滚；整 part 替换（XML / 二进制 / 缺失 / 非良构）。
 - [ ] **6.7 媒体写侧**（`package/media.rs`、`edit/media_ops.rs`、`save/prune.rs`）：`MediaStore::add` 去重、`NewBlock::Image`、`ReplaceImageMedia`、编辑引起的孤儿回收。
 - [ ] **6.8 墨迹**（`model/ink.rs`、`edit/ink_ops.rs`）：`inks[]` 读侧、`RemoveInks` + `InsertInk`、墨迹对分类与坐标流不可见。
 - [ ] **6.9 恶意输入、fuzz、全域收尾与 M6 门**：6 份 hostile、`fuzz_embedded`、100 × 10 随机序列、40 处零散差异修掉或登记、`--scope embedded` 与 `--scope all` 进 CI。

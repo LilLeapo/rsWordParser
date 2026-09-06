@@ -68,6 +68,8 @@ save(session, opts):
 
 `removePersonalInformation`（设置或文档标志为 true 时）：修订与批注的 `w:author` 改为 `Author`、`w:date` 删除；`core.xml` 的 creator/lastModifiedBy 清空；与 TS 行为对齐。
 
+TS 的 `partXml` / `partBinary` 不是 `SaveOptions` 的字段：compat 把它们翻成 `EditOp::ReplacePartXml` / `ReplacePartBytes`（M6 6.6），在 isUnchanged 短路之前应用；被整体替换的 part 保存时整份写出（`Part.replaced`），新建的二进制 part（内嵌工作簿）追加在 zip 末尾（`SAVE-06`）。`inks` / `prune_orphans` 见 6.7 / 6.8。
+
 ## SAVE-08 不变式验证（实现内自检，调试构建）
 
 - 不变式 1：无脏节点时 `save` 不进入序列化路径（断言）。

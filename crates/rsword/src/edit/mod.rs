@@ -10,6 +10,7 @@
 //! 不生成修订；范围标记不做 Anchor 变换（`SPAN-06` 在 M2），删除范围覆盖到标记时标记原地保留并记
 //! `EDIT_ANCHOR_UNMOVED`（`EngineInvariantViolation`）。
 
+pub mod chart_ops;
 pub mod inline;
 pub mod ops;
 pub mod plan;
@@ -18,6 +19,7 @@ pub mod section_ops;
 pub mod session;
 pub mod table_ops;
 
+pub use chart_ops::{ChartPatch, ChartSeriesPatch, NewChart, NewChartKind, NewChartSeries};
 pub use inline::{NewInline, NewLinkTarget, NewMarker, NewRevision, NewRun};
 pub use plan::{MutationPlan, MutationResult};
 pub use pos::{InlinePos, Loc, Utf16Offset, inline_spans, locate};
@@ -103,7 +105,7 @@ impl BlockPos {
 }
 
 /// `InsertBlock` 的内容。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum NewBlock {
     /// 新段落：`props` 为完整的 `w:pPr`（`None` = 无 `pPr`）。
     Paragraph { props: Option<NewElement>, inlines: Vec<NewInline> },
@@ -114,6 +116,9 @@ pub enum NewBlock {
     Xml(NewElement),
     /// 外层包裹（compat 侧显式给出的块级 `w:ins` / `w:del`，属性已填好）里放一个块。
     Wrapped { wrapper: NewElement, block: Box<NewBlock> },
+    /// 新图表（任务 6.6）：图表 part + 内嵌工作簿 + 关系 + 绘图段落。`extent_emu` 缺省 5486400 × 3200400。
+    /// 进入 `InsertBlock` 时先由 `chart_ops::materialize` 建好 part、换成 `Xml` 段落。
+    Chart { chart: NewChart, extent_emu: Option<(i64, i64)> },
 }
 
 /// `EDIT-03 AddComment` 的内容。`text` 里的 `\n` 分段。
@@ -199,6 +204,15 @@ pub enum EditOp {
     SetFieldResultProps { field: FieldId, patch: RunPropsPatch },
     /// `FLD-09`：用给定的块替换块字段的 `separate..end`（生成器在 M7；`w:fldLock` 拒绝）。
     UpdateBlockField { field: FieldId, blocks: Vec<NewBlock> },
+
+    // ---- 图表与 part（`EDIT-03`，任务 6.6）------------------------------------------------------
+    /// `EDIT-03 SetChartData`：改图表 part 里的缓存文本（标题 / 系列名 / 值 / 类别），结构与引用不动
+    /// （`spec/08`「`chart.ts` 补丁语义」）；chartex part → `Err(EDIT_UNSUPPORTED)`。
+    SetChartData { part: PartId, patch: ChartPatch },
+    /// 整个 XML part 换成给定内容（TS `partXml`）。只接受已存在的 XML part（不存在 → `EDIT_TARGET_MISSING`）。
+    ReplacePartXml { part: PartId, xml: String },
+    /// 整个 part 换成给定字节（TS `partBinary`）。只接受已存在的 part，主 part 除外。
+    ReplacePartBytes { part: PartId, bytes: Vec<u8> },
 
     // ---- 节与页眉页脚（`EDIT-03`，任务 5.5）--------------------------------------------------
     /// `EDIT-03 SetSectionProps`：给定 `w:sectPr` 按 `PROP-06` 合并（未建模的子元素原字节不动，
