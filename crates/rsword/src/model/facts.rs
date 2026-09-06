@@ -230,7 +230,11 @@ impl ParagraphFacts {
                 }
                 (NsId::W, LocalName::TxbxContent) => txbx = true,
                 (NsId::W, LocalName::Drawing) if !in_gfx => {
-                    f.drawings.push(drawing_facts(dom, node));
+                    let df = drawing_facts(dom, node);
+                    // 墨迹对分类不可见（TS 在 detect 前 `stripInkRuns`）：被批注的段落仍是可编辑正文
+                    if !df.is_ink {
+                        f.drawings.push(df);
+                    }
                     gfx = true;
                 }
                 (NsId::W, LocalName::Pict) if !in_gfx => {
@@ -428,6 +432,8 @@ fn drawing_facts(dom: &Dom, drawing: NodeId) -> DrawingFacts {
     if f.kind == DrawingKind::ChartEx {
         f.fallback_picture = fallback_picture(dom, drawing);
     }
+    // TS 只认 `wp:anchor` 形态的墨迹 run（`stripInkRuns` 的正则）
+    f.is_ink &= f.anchored;
     f
 }
 

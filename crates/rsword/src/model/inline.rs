@@ -142,6 +142,9 @@ pub enum SegmentKind {
         rt: String,
         base: String,
     },
+    /// `aidocs-ink` 墨迹批注的浮动图片（任务 6.8）：对坐标流不可见（长度 0）、对分类不可见；
+    /// 几何与载荷见 [`crate::model::InkInfo`]（`Document.inks`）。
+    Ink,
     FootnoteRef {
         id: Option<String>,
     },

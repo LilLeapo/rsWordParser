@@ -17,13 +17,27 @@ use rsword::edit::EditSession;
 use rsword::error::Error;
 use rsword::package::{Package, PartId};
 use rsword::xml::canon::first_difference;
-use rsword::xml::{CanonOptions, Dom, LocalName, NsId, QName, canonical, xpath_strings};
+use rsword::xml::{CanonOptions, Dom, LocalName, NodeId, NsId, QName, canonical, xpath_strings};
 use serde_json::Value;
 
 /// 保存后 `w:p` 上的段落 id / rsid 与 TS 输出无关（TS 生成的段落是裸 `<w:p>`，我们复用原节点保留它们）；
 /// `xml:space="preserve"`：`SAVE-03` 对 New `w:t` 一律写，TS 只对自己生成的文本写、逐字片段照抄。
-fn ignore_attr(_: &Dom, element: QName, attr: QName) -> bool {
+fn ignore_attr(dom: &Dom, node: NodeId, attr: QName) -> bool {
+    let Some(element) = dom.name(node) else { return false };
     if attr == QName::new(NsId::Xml, LocalName::Space) {
+        return true;
+    }
+    // 墨迹 run 的 `relativeHeight` 由 `docPr/@id` 派生（TS `251658240 + docPrId`，id 从 9001 起计），
+    // 与 id 一样是分配细节（任务 6.8）；普通锚定图片的 `relativeHeight` 是输入的 z-order，照常比较
+    if element == QName::new(NsId::Wp, LocalName::Anchor)
+        && attr == QName::new(NsId::None, LocalName::RelativeHeight)
+        && dom.children(node).iter().any(|&c| {
+            dom.is(c, QName::new(NsId::Wp, LocalName::DocPr))
+                && dom
+                    .attr_value(c, QName::new(NsId::None, LocalName::Name))
+                    .is_some_and(|v| v.starts_with("aidocs-ink"))
+        })
+    {
         return true;
     }
     // `COMPAT-09`：新绘图的 `wp:docPr/@id`（与由它派生的 `@name`）是分配细节——TS 从 8000 起计数，

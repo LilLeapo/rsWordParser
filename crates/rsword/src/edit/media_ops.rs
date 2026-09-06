@@ -91,8 +91,9 @@ pub struct PosOffset {
 
 const NS_A: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
 const NS_PIC: &str = "http://schemas.openxmlformats.org/drawingml/2006/picture";
-const NS_R: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-const NS_WP: &str = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+pub(crate) const NS_R: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+pub(crate) const NS_WP: &str =
+    "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
 /// Word 的 `relativeHeight` 基数。
 pub const Z_ORDER_BASE: i64 = 251_658_240;
 
@@ -114,10 +115,20 @@ impl EditSession {
     /// `(mime, 哈希)` 去重，TS 同）；part 名 `word/media/image{N}.{ext}`（第一个空闲 N），`[Content_Types]` 缺该
     /// 扩展名的 `Default` 就补。
     pub fn add_media(&mut self, bytes: Vec<u8>, mime: &str) -> Result<String> {
+        self.add_media_with(bytes, mime, true)
+    }
+
+    /// 同 [`Self::add_media`]；`dedup = false` 时总是新建一个 part（墨迹：每条一个 part，TS 同，任务 6.8）。
+    pub(crate) fn add_media_with(
+        &mut self,
+        bytes: Vec<u8>,
+        mime: &str,
+        dedup: bool,
+    ) -> Result<String> {
         let mut h = std::collections::hash_map::DefaultHasher::new();
         bytes.hash(&mut h);
         let key = (mime.to_string(), h.finish());
-        if let Some(rid) = self.media_by_content.get(&key) {
+        if dedup && let Some(rid) = self.media_by_content.get(&key) {
             return Ok(rid.clone());
         }
         let ext = extension_for(mime);
@@ -139,7 +150,9 @@ impl EditSession {
             mime,
             bytes,
         )?;
-        self.media_by_content.insert(key, rid.clone());
+        if dedup {
+            self.media_by_content.insert(key, rid.clone());
+        }
         Ok(rid)
     }
 
@@ -379,7 +392,12 @@ fn anchor_parts(
     (open, format!("{position}\u{0}{wrap_el}"), format!("</{wp}:anchor>"))
 }
 
-fn prefix_or_decl(ctx: &NamespaceContext, ns: NsId, default: &str, uri: &str) -> (String, String) {
+pub(crate) fn prefix_or_decl(
+    ctx: &NamespaceContext,
+    ns: NsId,
+    default: &str,
+    uri: &str,
+) -> (String, String) {
     match ctx.prefix_for(ns) {
         Some(p) if !p.is_empty() => (p.to_string(), String::new()),
         _ => (default.to_string(), format!(r#" xmlns:{default}="{uri}""#)),

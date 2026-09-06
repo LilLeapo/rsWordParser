@@ -28,6 +28,7 @@ pub mod diagram;
 pub mod drawing;
 pub mod facts;
 pub mod hf;
+pub mod ink;
 pub mod inline;
 pub mod math;
 pub mod notes;
@@ -63,6 +64,7 @@ pub use drawing::{
 pub use facts::{
     DrawingFacts, DrawingKind, MathFacts, ParagraphFacts, PictFacts, PictKind, RevisionFacts,
 };
+pub use ink::{INK_NAME_PREFIX, InkInfo};
 pub use inline::{
     AtomKind, BreakKind, Inline, InlineAtom, Link, LinkTarget, OBJECT_REPLACEMENT, RevisionCtx,
     RevisionMeta, Run, Segment, SegmentKind,

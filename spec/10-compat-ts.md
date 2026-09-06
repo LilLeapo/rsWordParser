@@ -133,6 +133,8 @@ TS 的碰撞位移（`allowOverlap=0`）在适配器中复现于 `image.wrap/off
 
 差分工具（`TEST-03`）比较规则：键顺序无关；`undefined` 与缺失等价；浮点按 1e-6；`KNOWN_DIFFS.md` 中列出的路径模式跳过并计数。
 
+保存比较（`COMPAT-08`，`tests/save_blocks.rs`）在规范化文本上容忍**分配细节**：`w:p` 的 `w14:*` / `w:rsid*`、新建 `w:t` 的 `xml:space`、`wp:docPr` / `pic:cNvPr` 的 `@id` 与由它派生的 `@name`（TS 从 8000 / 9000 起计，我们按 `EDIT-06` 最大值 + 1；M6 6.6 / 6.7），以及墨迹锚（`wp:docPr/@name` 以 `aidocs-ink` 开头的 `wp:anchor`）的 `@relativeHeight`（TS `251658240 + docPrId`，同样由 id 派生；6.8）。普通锚定图片的 `relativeHeight` 是输入的 z-order，照常比较。
+
 ## COMPAT-10 表格模型复现
 
 TS `extractTable` 一族（`docs/01` §7；权威定义是 genoffice `src/types.ts` 的 `TableModel` / `TableCell`，`docs/01`

@@ -89,6 +89,8 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::ReplaceImageMedia { drawing, bytes, mime } => {
             s.replace_image_media(drawing, bytes, &mime)
         }
+        EditOp::RemoveInks => s.remove_inks(),
+        EditOp::InsertInk { para, ink } => s.insert_ink(para, &ink),
     }
 }
 
@@ -184,6 +186,9 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
         | EditOp::ReplacePartXml { .. }
         | EditOp::ReplacePartBytes { .. } => Vec::new(),
         EditOp::ReplaceImageMedia { drawing, .. } => vec![(None, *drawing)],
+        // 墨迹：整层删除不在内容控件里定位；追加落在锚点段落上（任务 6.8）
+        EditOp::RemoveInks => Vec::new(),
+        EditOp::InsertInk { para, .. } => vec![(None, *para)],
         // 节与页眉页脚：目标是 `w:sectPr` 或整个 part，不在内容控件里（任务 5.5）
         EditOp::SetSectionProps { .. }
         | EditOp::SetHeaderFooter { .. }

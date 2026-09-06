@@ -315,6 +315,10 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | 新媒体 part 的名字与去重表的归属 | `spec/17` 6.7 `MediaStore::add(pkg, bytes, mime) -> MediaId` | `EditSession::add_media(bytes, mime) -> rId`，part 名 `word/media/image{N}.{ext}`（TS `aidocs{N}`） | 去重表是会话状态（要随事务回滚），`MediaStore` 是只读解析视图；路径不进 `documentXml`，差分无影响（6.7） |
 | 新图片段落的 `pPr` | `spec/17` 6.7「`spacing` / `jc` 走 `plan_apply_para_props`」 | 直接写在新段落模板里（`w:spacing` 在 `w:jc` 之前） | 整棵子树是 `New`，没有要合并的旧容器，`PROP-05` 顺序由构造保证；`plan_apply_*` 只管改**已有**属性容器（6.7） |
 | `replaceImage` 的目标里没有 `a:blip` | — | 不动 + `EDIT_UNSUPPORTED` 诊断（TS `retargetImageBlip` 静默返回原 XML，媒体照样加进包里） | 调用方拿到诊断才知道换图没生效；我们也不为它分配媒体（6.7） |
+| 墨迹媒体的去重 | `spec/17` 6.8「媒体走 `MediaStore::add`」（去重） | `add_media_with(dedup = false)`：每条墨迹一个 part | TS 也是每条一个（`aidocsink{N}.png`）；两笔画出同一张 PNG 只在测试里发生，去重只会让同段第二条的 `r:embed` 与 TS 分叉（`m6-ink__003/024`）。图片的去重不变（6.8） |
+| 墨迹的判据 | TS `stripInkRuns` / `findInkRuns` 的正则要求 `<w:r><w:drawing><wp:anchor` 紧邻（run 不能有 `rPr`） | 结构判据：`w:drawing` 下的 `wp:anchor` 里有 `wp:docPr/@name` 以 `aidocs-ink` 开头，run 里有没有 `w:rPr` 不管 | 前缀才是语义；带 `rPr` 的墨迹 run 在 TS 里会退成图片块，是正则的副作用不是设计（6.8） |
+| 墨迹锚点不是段落 | TS 静默跳过 | 跳过 + `EDIT_BAD_POSITION` 诊断；同样不分配媒体与关系 | 调用方要知道这条墨迹没写进去（6.8） |
+| 墨迹锚的 `relativeHeight`（保存比较） | — | `COMPAT-09`：`tests/save_blocks.rs` 对 `wp:docPr/@name` 以 `aidocs-ink` 开头的 `wp:anchor` 容忍 `@relativeHeight` | TS 写 `251658240 + docPrId`（id 从 9001 起），我们同样由 `EDIT-06` 的 id 派生——和 id 一样是分配细节；普通锚定图片的 `relativeHeight` 是输入的 z-order，照常比较（6.8） |
 | `TEST-10` 门的 CI 形态 | 「对应域 diff 为 0」 | 还没关上的门用 `diff-parse --max-unknown N` 做棘轮：未知差异 ≤ N 放行，每落地一个任务往下拧，归零后删掉参数 | 门一建就进 CI，回归有人拦，数字有地方掉；`.github/workflows/ci.yml` 第七步（6.2 起 214，6.3 起 170） |
 | `XML-09` `mc:Choice/@Requires` | 前缀按作用域解析 | 作用域里解析不到时，退一步看**分支子树内**有没有声明这个前缀 | 合成语料常把 `xmlns:wps` 写在 `wps:wsp` 元素自己身上，`Requires="wps"` 于是在 `mc:Choice` 处解析不出来、整段退到 VML Fallback（16 份文档）。意图毫无歧义，按分支内的声明认；前缀在**任何地方**都没声明的情况（`numbering-defs__012`）行为不变，仍是已知差异 |
 | `PKG-06` | 唯一路径函数 | `uri::resolve` 唯一；`parse_rels` 在目标不存在且写法为 `../` 时按 `_rels/` 目录再解析一次 | 兼容相对 `_rels/` 写目标的生成器（验收清单要求三种写法解析到同一 part） |
@@ -1221,5 +1225,28 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   `svgBlip` 扩展与 svg 媒体一起回收、无 `a:blip` 的目标不动 + 诊断；删图表段落 → chart part / `.rels` / 工作簿 / Override /
   关系全消失而其他条目 CRC 不变；两段共用一张图删一段保留、删两段回收、预先存在的孤儿 part 与关系原样、`prune_orphans:
   false` 全留。`tests/embedded.rs` 的 OLE 删除用例改为断言二进制 part 与关系被回收。
-- [ ] **6.8 墨迹**（`model/ink.rs`、`edit/ink_ops.rs`）：`inks[]` 读侧、`RemoveInks` + `InsertInk`、墨迹对分类与坐标流不可见。
+- [x] **6.8 墨迹**（`model/ink.rs`、`edit/ink_ops.rs`、`bind/compat_ts/ink.rs`，2026-09-06）：读侧 `Document.inks:
+  Vec<InkInfo { para, run, drawing, offset_emu, extent_emu, rel_id, payload }>`，判据 `is_ink_drawing`（`wp:anchor` 里的
+  `wp:docPr/@name` 以 `aidocs-ink` 开头；`DrawingFacts.is_ink` 也补了 `anchored` 条件）；墨迹 run **对分类与坐标流不可见**：
+  `ParagraphFacts.drawings` 剔除（被批注的段落仍是文本块，只含墨迹的段落是空段落不是图片块）、`Run.segments` 里是长度 0 的
+  `SegmentKind::Ink`（`InsertText` 偏移与 TS `runs` 一致）；`collect_inks` 在 `rebuild` 与 `refresh_blocks` 里重算（文本块走
+  segments，图片 / 只读块扫子树——TS 用正则扫每个块的 `originalXml`）；`posOffset` / `cx` / `cy` 按 TS `parseInt || 0`
+  （`lenient_int`）。compat `inks[] { anchorIndex /* 承载段落所在块级元素的 docxIndex，单元格里的算到表格块 */, offsetXPx,
+  offsetYPx, widthPx, heightPx /* EMU / 9525 不取整，整除给整数 */, dataUrl /* 主 part 媒体表，悬空 → null */, payload
+  /* descr 解码，空 → null */ }`。写侧 `SaveOptions.inks: Option<Vec<InkSave { para: NodeId, ink: NewInk { png, width_px,
+  height_px, offset_x_px, offset_y_px, payload } }>>`（权威列表）→ `edit_ops` 里 `EditOp::RemoveInks`（删 `Document.inks` 的
+  全部 run，媒体与关系随 6.7 回收）+ 每条 `EditOp::InsertInk { para, ink }`：TS `anchoredInkRunXml` 模板（positionH column /
+  positionV paragraph、`wrapNone`、`behindDoc=0`、`relativeHeight = 251658240 + id`、`docPr name="aidocs-ink {id}" descr=
+  payload`），`docPr/@id` 按 `EDIT-06`，run 追加在段落**全部内容之后**（自闭合 `<w:p/>` 自然展开）；媒体 `add_media_with(…,
+  dedup = false)`——**每条墨迹一个 part**（TS 同，§8）；锚点不是 `w:p`（表格 / sdt 外壳）→ 跳过 + `EDIT_BAD_POSITION` 诊断，
+  在分配媒体之前判，不留孤儿（`ink__003` / `m6-ink__013` / `m6-ink__015`）。compat：`options.inks` 的 `blockIndex` 是 finalBlocks
+  下标，在块操作全部落定之后经 `element_nodes` 解析成节点（`resolve_inks`，两条路径都做），`inks` 有值即强制保存（TS
+  `isUnchanged` 同）。`tests/save_blocks.rs` 的比较对**墨迹锚**的 `wp:anchor/@relativeHeight` 容忍（由 `docPr/@id` 派生，TS 从
+  9001 起计；普通锚定图片的照常比较）——`CanonOptions.ignore_attr` 因此改成拿节点而不是元素名。**`--scope embedded` 归零
+  （43 → 0），CI 第七步去掉 `--max-unknown`；保存语料 181 → 204 等价、跳过 23 → 0**（剩下 4 份 `INTENTIONAL`）；`all` 71 → 28 /
+  11 份（全是 6.9 的零散项）。`tests/ink.rs` 六个：不可见性与坐标流（`InsertText` 前后、`refresh` 后墨迹表不变、保存后 run
+  原样、compat `runs` 无图片 run、只含墨迹的段落 `runs: []`）；`inks[]` 形态（单元格里的锚到表格块、整数 px、`dataUrl`、载荷）；
+  权威列表（模板逐段、重开一致、重复保存不累积、换锚点旧 run 消失、`Some([])` 删并回收媒体与关系、`None` 字节相同）；自闭合
+  空段 + 同段两条各一个 part；表格锚点跳过无孤儿 + 诊断；`hostile/ink-garbage`（悬空 `r:embed` → `dataUrl: null`、`&quot;` /
+  `&amp;` 解码、非数字 `posOffset` → 0、无编辑保存字节相同）。`tests/model.rs` 的 `("m6-ink__", "kind")` 已删。
 - [ ] **6.9 恶意输入、fuzz、全域收尾与 M6 门**：6 份 hostile、`fuzz_embedded`、100 × 10 随机序列、40 处零散差异修掉或登记、`--scope embedded` 与 `--scope all` 进 CI。

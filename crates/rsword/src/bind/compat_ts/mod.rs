@@ -20,6 +20,7 @@ mod diagram;
 pub mod diff;
 mod hf;
 mod image;
+mod ink;
 mod json;
 mod math;
 pub mod media;
@@ -104,7 +105,8 @@ pub fn parsed_doc_of(pkg: &Package, doc: &Document, media: &MediaSet) -> Value {
     o.insert("footnotes".into(), decl::notes_json(doc, &resolver, false));
     o.insert("endnotes".into(), decl::notes_json(doc, &resolver, true));
     o.insert("sources".into(), decl::sources_json(doc));
-    o.insert("inks".into(), Value::Array(Vec::new()));
+    let element_nodes = doc.body.map(|b| blocks::element_nodes(dom, b)).unwrap_or_default();
+    o.insert("inks".into(), ink::inks_json(&ctx, &element_nodes));
     o.insert("themeFonts".into(), decl::theme_fonts_json(doc, &resolver));
     o.insert("themeColors".into(), decl::theme_colors_json(doc));
     if let Some(ft) = decl::font_table_json(doc) {

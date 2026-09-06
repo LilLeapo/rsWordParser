@@ -48,7 +48,7 @@ OLE / 公式 / 墨迹的模型与投影、图表与媒体的写侧、`inks` / `p
 保护 / 奇偶页眉 / 批注 / 注释）翻成编辑操作；**在页眉页脚 /
 注释 / 批注 / 外部文本框 part 里编辑段落**（位置带 `PartId`），改节属性、整体替换或新建页眉页脚
 part、挂"同前"引用、写删文字水印、设页面底色与文档级开关。
-**不能**：绘图的**编辑**与写回（M7，读侧已完成）、图表 / 图片 / 墨迹的写侧（M6 / M7）、
+**不能**：绘图的**编辑**与写回（M7，读侧已完成；图表 / 图片 / 墨迹的写侧已在 M6 6.6–6.8 落地）、
 块字段生成器与修订生成（M7）；
 **新建分节符**（给某段加 `sectPr` 断节）也不在 M5（§8 有偏差记录）。
 
@@ -61,11 +61,11 @@ part、挂"同前"引用、写删文字水印、设页面底色与文档级开�
 | L2 范围 `span/` | 完成（范围部分） | `FlowId` / `FlowMap`、内容序列（`SPAN-01`）、`Anchor` / `Affinity`、九种 `RangeKind`、按流构建与配对诊断、文档序 `compare`、按容器倒排、编辑期变换与整体删除策略（`SPAN-06/07`）、物化与保存前校验（`SPAN-08/09`）、拆分 / 合并容器时的锚点重定位 | `SPAN-10` 的另一半：范围端点**落在字段指令区内**时移到原子边界（插入侧已按同一规则处理，端点侧还没做） |
 | L2 字段 `span/field/` | 完成 | `FieldSpan` 配对（复杂 / 简单 / 嵌套 / 跨段 / 未闭合诊断）、指令 tokenizer 与 76 个关键字的策略表、`w:ffData` 读写、`FLD-13` 基线校验、`fuzz_instr` | 块字段生成器（`FLD-09` 的内容重算，M7） |
 | L3 属性表 `semantic/props/` | 完成 | 32 张表由 TOML 生成（读 / 写 / diff / patch / merge / `plan_apply_*`）、按 flavor 编解码、`Val::Raw` 降级、`PROP-05` 顺序；表格三组表 `TableProps`（含 `tblPrEx`）/ `RowProps` / `CellProps` 与边框 / 边距子表、`MeasureOrPercent` codec（3.1）；节表 `SectionProps` 与四张子表（5.1，`para.toml` 的 `sect_pr` 已接表） | — |
-| L3 模型 `model/` | 文本 + 表格 + 字段 + 批注 / 注释 + 绘图 | `Document::rebuild`、块分类 R01–R19（含 R09 字段块）、段落坐标流（`Run`/`Segment`，UTF-16）、`Inline::Field` 与透明字段、`ParagraphFacts`、**表格模型**（`TableBlock / Row / Cell`，穿透 sdt 与修订包裹，声明网格，表格修订，> 64 层 TooDeep，`MOD_TABLE_SHAPE` 诊断；3.2）、跨表格的 `blocks()` / `paragraphs()` / `block_path()`、**内容控件**（`SdtInfo`：16 种控件 / 四态锁 / 数据绑定 / docPart / 占位符；3.3）、绘图 / 形状 / VML 显示模型（`Segment.display` / `ProtectedBlock.display` / `ImageBlock.display`）、声明模型（styles / numbering / theme / settings / fontTable / comments / footnotes / endnotes）、**节模型**（`SectionInfo` + `section_of` + `SectPropsChange`，5.2）、**页眉页脚 / 注释 / 批注的内容流**（`HfPart` / `AuxFlows` / `Note.blocks` / `Comment.blocks`，5.3）、**参考文献源**（`customXml` 里的 `b:Sources`，5.7）、**图表 part 模型**（`ChartPart` / `ChartDisplay`：种类 / 标题 / 类别 / 系列 / 颜色 / 调色板，chartex 降级；`Document.chart_parts` + `DrawingDisplay.chart`，6.1）、**SmartArt 与画布模型**（`DiagramPart` 数据 part 文字树 + 绘图 part 形状、`CanvasDisplay` 子坐标系，`ProtectedBlock.siblings`，6.3）、**公式模型**（`FormulaDisplay`：片段 / token / MathML / LaTeX，两个迭代转换器 `model/omml`，6.5） | 墨迹的模型（M6 6.8） |
+| L3 模型 `model/` | 文本 + 表格 + 字段 + 批注 / 注释 + 绘图 | `Document::rebuild`、块分类 R01–R19（含 R09 字段块）、段落坐标流（`Run`/`Segment`，UTF-16）、`Inline::Field` 与透明字段、`ParagraphFacts`、**表格模型**（`TableBlock / Row / Cell`，穿透 sdt 与修订包裹，声明网格，表格修订，> 64 层 TooDeep，`MOD_TABLE_SHAPE` 诊断；3.2）、跨表格的 `blocks()` / `paragraphs()` / `block_path()`、**内容控件**（`SdtInfo`：16 种控件 / 四态锁 / 数据绑定 / docPart / 占位符；3.3）、绘图 / 形状 / VML 显示模型（`Segment.display` / `ProtectedBlock.display` / `ImageBlock.display`）、声明模型（styles / numbering / theme / settings / fontTable / comments / footnotes / endnotes）、**节模型**（`SectionInfo` + `section_of` + `SectPropsChange`，5.2）、**页眉页脚 / 注释 / 批注的内容流**（`HfPart` / `AuxFlows` / `Note.blocks` / `Comment.blocks`，5.3）、**参考文献源**（`customXml` 里的 `b:Sources`，5.7）、**图表 part 模型**（`ChartPart` / `ChartDisplay`：种类 / 标题 / 类别 / 系列 / 颜色 / 调色板，chartex 降级；`Document.chart_parts` + `DrawingDisplay.chart`，6.1）、**SmartArt 与画布模型**（`DiagramPart` 数据 part 文字树 + 绘图 part 形状、`CanvasDisplay` 子坐标系，`ProtectedBlock.siblings`，6.3）、**公式模型**（`FormulaDisplay`：片段 / token / MathML / LaTeX，两个迭代转换器 `model/omml`，6.5）、**墨迹**（`Document.inks` / `InkInfo`，`SegmentKind::Ink` 长度 0、对分类不可见，6.8） | — |
 | resolve `resolve/` | 首版 + 表格 + 节 | 样式链（basedOn / link）、docDefaults 层叠、每字段 `Provenance`、主题字体与颜色、符号字体解码、heading 级别、DrawingML 颜色算法、**节视图**（`RES-10` 的六槽继承与有效变体，5.2）；**表格视图**（`tblLook`、表格样式链的条件格式、边框 / 边距回退、行高截断、`ColumnView` 的四条列宽启发式与 `hMerge` 折叠、`RES-03` 第 4 层；3.4） | toggle 规则里 `strike` 一族只在 Word 网页版测过、`vanish` 与 `bCs` / `iCs` 没测到（`docs/06-toggle-open-question.md`）、补全 Wingdings 2/3 与 Webdings 映射表 |
 | L4 编辑 `edit/` | 段落 / 范围 / 字段操作齐了，单元格内可编辑 | `EditSession`（含范围索引）、`InlinePos` 定位、`MutationPlan` plan/validate/commit、按 part 回滚的事务（DOM + 索引）、`InsertText`、`DeleteRange`（同段）、`SetRunProps`、`SetParaProps`、`ReplaceInlines`、`ReplaceParaProps`、`InsertBlock`/`DeleteBlock`/`MoveBlock`、`SPAN-06/07` 锚点维护、`AddComment`/`RemoveComment`/`SetCommentText`（含 `SAVE-05` 新建 part）、`SplitParagraph`/`MergeWithNext`、`AddBookmark`/`RemoveBookmark`、`InsertField`/`SetLinkTarget`/`ToggleCheckbox`/`SetFormText`/`SetFieldResultProps`/`UpdateBlockField`；**单元格内编辑**（`InlinePos.para` 可为任意深度的 `w:p`，容器级刷新，格尾自动保持 `w:p`；3.6）、`SetTableProps`/`SetRowProps`/`SetCellProps`（3.7）、**行列结构操作**（`InsertRow`/`DeleteRow`/`InsertColumn`/`DeleteColumn`/`MergeCells`/`NewBlock::Table`，声明网格几何 + 书签列区间维护；3.8）；**位置带 `PartId`**（`InlinePos { part, para, offset }` 与 `BlockPos { part, at }`，段落 / 块 / 范围 / 字段操作在页眉页脚 / 注释 / 批注 / 外部文本框 part 里原样可用，只有主 part 才有的 id 显式拒绝；5.5a）、**节与页眉页脚操作**（`SetSectionProps`/`SetHeaderFooter`/`LinkHeaderFooter`/`SetWatermark`/`SetPageColor`/`SetDocumentSettings`，含按 `SAVE-05` 新建 `header{N}.xml`；5.5b） | 新建分节符、绘图的编辑与写回、块字段生成器与修订生成（M7） |
-| 保存 `save/` | 六步齐了 | `SAVE-01` 六步编排（含第 3 步 Span 物化）、`SAVE-02` 子集校验（未绑定前缀、`PROP-05` 顺序、`SPAN-09` 范围检查）、`SAVE-05` 新建 part（追加在 zip 末尾；批注 / 注释 / **页眉页脚** / `settings.xml` / **样式 / 编号 / 主题 / customXml**）、扩展命名空间声明、`w:t` preserve、`raw_copy_file` 写回、`SaveOptions`（`saved_at`、`remove_personal_info`、`remove_date_and_time`、批注与注释的权威列表；**节 / 页码 / 首页不同 / 页面底色 / 保护 / 奇偶页眉 / 六个页眉页脚槽 / 逐节页眉页脚 / 水印**翻成 5.5 的编辑操作，5.6；**参考文献 / 编号追加 / 主题 / 样式 upsert** 各翻成声明 part 的计划，5.7）、**图表写侧**（`SetChartData` 只改缓存文本、`NewBlock::Chart` 建图表 part + 内嵌工作簿 + 关系、`ReplacePartXml / ReplacePartBytes` 整 part 替换，新建二进制 part 走 `PartDom::Bytes`，6.6）、**媒体写侧**（`NewBlock::Image` 去重媒体 + 随文 / 九种锚定、`ReplaceImageMedia`、保存前 `prune_orphans` 回收本次会话造成的孤儿关系 / part / `.rels` / Override，6.7） | 墨迹（M6 6.8） |
-| 兼容 `bind/compat_ts/` | 文本 + 表格 + 字段 + 批注 / 注释 + 绘图 + 页眉页脚 | `parsed_doc` 整份 `ParsedDoc`（含 `extras`、UTF-16 索引、sdt 拆分）、字段折叠 run 与 `fieldDisplay` / `fieldLabel`、`comments` / `footnotes` / `endnotes` / `commentIds` / `noteRef`、`apply_save_blocks`（original / generated / xml 块）、容忍差分；**表格模型**（`blocks[*].table` 全部字段与 `styles.*.tableDisplay`，含 TS 的 `attachRawTablePr` / 深度 8 扁平化 / `tableSummary` 三处半解析；3.5）、整个绘图域（`image*` / `textboxes[]` / `rule*` / `oleProgId`）、**整个页眉页脚域**（`hfParts` / 六变体 / `hfParagraphs` 的样式层与表格行 / `hfImages` / 水印 / 矢量装饰合成 SVG；5.4）、跨 part 内容流（`Ctx::switch`，外部文本框 part）、**图表块**（`chartDisplay` / `previewText` / `extras.chartParts` 原文、chartex 回退图 → 图片块；6.2）、**SmartArt 与画布块**（`previewText` 节点文字树、`diagramDisplay` 形状 / 缩放 / 分栏、邻居绘图的 `textboxes`；6.3）、**OLE run**（同 run 多图形按 TS `splitImageRun` 拆分、字段包裹的对象、单元格里的对象；6.4）、**公式与 ruby**（`formulaDisplay` 的 tokens / mathml / omml / latex、`runs[].math`、`runs[].ruby`；6.5） | 墨迹（M6 6.8） |
+| 保存 `save/` | 六步齐了 | `SAVE-01` 六步编排（含第 3 步 Span 物化）、`SAVE-02` 子集校验（未绑定前缀、`PROP-05` 顺序、`SPAN-09` 范围检查）、`SAVE-05` 新建 part（追加在 zip 末尾；批注 / 注释 / **页眉页脚** / `settings.xml` / **样式 / 编号 / 主题 / customXml**）、扩展命名空间声明、`w:t` preserve、`raw_copy_file` 写回、`SaveOptions`（`saved_at`、`remove_personal_info`、`remove_date_and_time`、批注与注释的权威列表；**节 / 页码 / 首页不同 / 页面底色 / 保护 / 奇偶页眉 / 六个页眉页脚槽 / 逐节页眉页脚 / 水印**翻成 5.5 的编辑操作，5.6；**参考文献 / 编号追加 / 主题 / 样式 upsert** 各翻成声明 part 的计划，5.7）、**图表写侧**（`SetChartData` 只改缓存文本、`NewBlock::Chart` 建图表 part + 内嵌工作簿 + 关系、`ReplacePartXml / ReplacePartBytes` 整 part 替换，新建二进制 part 走 `PartDom::Bytes`，6.6）、**媒体写侧**（`NewBlock::Image` 去重媒体 + 随文 / 九种锚定、`ReplaceImageMedia`、保存前 `prune_orphans` 回收本次会话造成的孤儿关系 / part / `.rels` / Override，6.7）、**墨迹**（`SaveOptions.inks` 权威列表 → `RemoveInks` + `InsertInk`，每条一个媒体 part，6.8） | — |
+| 兼容 `bind/compat_ts/` | 文本 + 表格 + 字段 + 批注 / 注释 + 绘图 + 页眉页脚 | `parsed_doc` 整份 `ParsedDoc`（含 `extras`、UTF-16 索引、sdt 拆分）、字段折叠 run 与 `fieldDisplay` / `fieldLabel`、`comments` / `footnotes` / `endnotes` / `commentIds` / `noteRef`、`apply_save_blocks`（original / generated / xml 块）、容忍差分；**表格模型**（`blocks[*].table` 全部字段与 `styles.*.tableDisplay`，含 TS 的 `attachRawTablePr` / 深度 8 扁平化 / `tableSummary` 三处半解析；3.5）、整个绘图域（`image*` / `textboxes[]` / `rule*` / `oleProgId`）、**整个页眉页脚域**（`hfParts` / 六变体 / `hfParagraphs` 的样式层与表格行 / `hfImages` / 水印 / 矢量装饰合成 SVG；5.4）、跨 part 内容流（`Ctx::switch`，外部文本框 part）、**图表块**（`chartDisplay` / `previewText` / `extras.chartParts` 原文、chartex 回退图 → 图片块；6.2）、**SmartArt 与画布块**（`previewText` 节点文字树、`diagramDisplay` 形状 / 缩放 / 分栏、邻居绘图的 `textboxes`；6.3）、**OLE run**（同 run 多图形按 TS `splitImageRun` 拆分、字段包裹的对象、单元格里的对象；6.4）、**公式与 ruby**（`formulaDisplay` 的 tokens / mathml / omml / latex、`runs[].math`、`runs[].ruby`；6.5）、**墨迹**（`inks[]`、`options.inks` 的 `blockIndex` 在块操作落定后解析；6.8） | — |
 
 ## 公开 API 边界（今天可用的）
 
@@ -103,8 +103,8 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
-| 源码行数 / 文件数 | 65,344 行 / 153 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 489（单元 + 集成，35 个集成测试文件） | `cargo test --workspace` |
+| 源码行数 / 文件数 | 66,184 行 / 157 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
+| 测试数 | 496（单元 + 集成，36 个集成测试文件） | `cargo test --workspace` |
 | 语料 | 799 份 synthetic（每份带 `expected.json`；其中 226 份是 M6 的嵌入对象语料 `m6-*`）+ 208 份 `save.<k>.json` + 32 份 hostile（含 4 份绘图、2 份表格、4 份页眉页脚 / 节、6 份嵌入对象） | `ls corpus/*` |
 | 往返字节保真 | 593 份文档、3,140 个 XML part 全部字节相同（3 个 part 按预期解析失败：两份不闭合 XML + 二进制页眉） | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
@@ -131,15 +131,15 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 批注与注释 | 语料 11 份带批注（17 条）、5 条注释条目；13 个用例（三部件关联、结构条目、`commentIds` 三形态、`noteRef` 编号、`SAVE-05` 新建 part、三个编辑操作、compat 权威列表） | `cargo test -p rsword --test notes` |
 
 全域差异按域聚合（差异点，6.5 后实测 71；m6.0a 扩充语料时 452）：**嵌入对象域 43 / 12 份**（M6 的工作面，
-`--scope embedded`，CI 里以 `--max-unknown 43` 做棘轮：剩下的全是墨迹 `m6-ink`——`inks[]` 15、`runs[]` 14、`m6-ink__012`
-的图片块 14，6.8 收；**图表域**（6.2）、**SmartArt / 画布域**（6.3）、**OLE 域**（6.4）与**公式 / ruby 域**（6.5）已归零——
+`--scope embedded` **已归零（6.8 后）**，CI 第七步不再带 `--max-unknown`；**图表域**（6.2）、**SmartArt / 画布域**（6.3）、
+**OLE 域**（6.4）、**公式 / ruby 域**（6.5）与**墨迹域**（6.8）全部归零——
 `chartDisplay` 88、`extras.chartParts` 80、`diagramDisplay` 13、`formulaDisplay` 41、`runs[].math` / `runs[].ruby`、
 `m6-chartex__008` 的图片块、图示与画布的 `previewText` / `label` / `textboxes`、OLE 的 run 图片与字段包裹）、
 **零散 32 / 14 份**（M6 6.9 收尾：Strict 改写 13 已登记候选、`TooDeep` 块形态 4、
 `shape-extraction__014` 的未声明 `wps` 前缀 4、同 run 两张图 3、`pageBreakBefore` 2、WordArt 3、其余 3）。
 文本域、字段与 Span 域、表格域、绘图域、页眉页脚域五道门都是 0（嵌入对象文档 / 块已按 `spec/17` 门第 1 条的边界剔除）。
-保存侧 **181 / 208 等价**（6.7 后），跳过 23 份全是墨迹（6.8）；图表 13、`partXml` 7、`partBinary` 1、图片 11、
-`replaceImage` 6 已等价。
+保存侧 **204 / 208 等价、0 跳过**（6.8 后；剩下 4 份是 `INTENTIONAL`）：图表 13、`partXml` 7、`partBinary` 1、图片 11、
+`replaceImage` 6、墨迹 23 全部等价。
 
 ## 与 TS 有意不同的地方
 
@@ -160,6 +160,8 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 权威列表删掉批注后 | 空掉的 `commentReference` run 整个删掉 | TS 留一个 `<w:r></w:r>`（`comments__001.save.2` 因此不等价，见 `INTENTIONAL`；共 4 份） |
 | 保存前的资源回收 | 只删**本次会话**让引用数归零的关系 / part（`prune_orphans`，缺省开） | TS `cleanupDocxOwnedResources` 连文件里原有的孤儿也删；用户没碰过的东西不该在一次保存里消失 |
 | `replaceImage` 目标没有 `a:blip` | 不动 + `EDIT_UNSUPPORTED` 诊断，不分配媒体 | TS 静默返回原 XML 但媒体照样加进包 |
+| 墨迹锚点不是段落 | 跳过 + `EDIT_BAD_POSITION` 诊断，不分配媒体 | TS 静默跳过 |
+| 墨迹的判据 | `wp:anchor` 里 `docPr/@name` 以 `aidocs-ink` 开头即算，run 带 `rPr` 也算 | TS 正则要求 `<w:r><w:drawing>` 紧邻 |
 
 解析侧的已登记差异（数字 / 符号字体 / 表格显示等）在 `crates/rsword/src/bind/compat_ts/KNOWN_DIFFS.md`。
 
@@ -184,26 +186,26 @@ let bytes = s.save_with(&outcome.save_options)?;
   表格的修订生成（`tblPrChange` / `trPr/ins` 等，M7）、整表再生成的原生等价物（M7）。
 - **绘图**：读侧完整（显示模型 + 投影 + 门）；写侧有新图片（随文 / 锚定）、`xml.replaceImage` 与保存前的
   孤儿回收（6.7），还没有的是 `applyImageZOrder` 的 `relativeHeight` 回写（M7）。另外几块按分层留给后面：页眉页脚里的图片（M5）、
-  墨迹的**内容**（M6 6.8）。图表（6.1 / 6.2）与 SmartArt / 画布（6.3）的模型与投影都在：92 份图表语料的
+  墨迹读写都在（6.8：`inks[]` + `SaveOptions.inks`）。图表（6.1 / 6.2）与 SmartArt / 画布（6.3）的模型与投影都在：92 份图表语料的
   `chartDisplay` / `extras.chartParts` / `previewText`、23 份图示语料的 `previewText` / `diagramDisplay` / `textboxes`
   与 TS 无差异，chartex 回退图成图片块，画布按子坐标系缩放并做 LO 对齐的分栏。外部文本框 part 与单元格里的
   锚定形状与图片都已可用。
 - **保存选项**：已支持 `savedAt` / `removePersonalInfo` / `removeDateAndTime` / `comments` / `footnotes` /
   `endnotes`、节、页眉页脚、水印、页面颜色、页码、编号、样式 upsert、保护、主题（M5）、`partXml` / `partBinary`
-  与 `kind:"chart"`（6.6）、`kind:"image"` / `replaceImage`（6.7）；`inks` 仍是 `EditUnsupported`（6.8）。
+  与 `kind:"chart"`（6.6）、`kind:"image"` / `replaceImage`（6.7）、`inks`（6.8）——TS `SaveOptions` 已全部覆盖。
 - **修订生成**：`EditContext.track_changes` 字段存在但被忽略（M7）。
 
 ## 如何验证
 
 ```sh
 cargo fmt --all --check && cargo clippy --workspace --all-targets   # 零告警
-cargo test --workspace && cargo test --workspace --release          # 489 个测试，两种构建
+cargo test --workspace && cargo test --workspace --release          # 496 个测试，两种构建
 cargo run -p diff-parse -- --scope text                             # M1 门第一条：0 未知差异
 cargo run -p diff-parse -- --scope fields                           # M2 门：字段与 Span 域 0 未知差异
 cargo run -p diff-parse -- --scope tables                           # M3 门：表格域 0 未知差异
 cargo run -p diff-parse -- --scope drawing                          # M4 门：绘图域路径 0 未知差异
 cargo run -p diff-parse -- --scope hf                               # M5 门：页眉页脚域路径 0 未知差异
-cargo run -p diff-parse -- --scope embedded                         # M6 门（进行中）：嵌入对象域 420 → 0
+cargo run -p diff-parse -- --scope embedded                         # M6 门：嵌入对象域 0 未知差异
 cd fuzz && cargo +nightly fuzz run fuzz_instr -- -max_total_time=600 # M2 门：指令 tokenizer 无崩溃
 cargo test -p rsword --test edit                                    # M1 门第二条：其他条目 CRC 不变
 cargo test -p rsword --test save_validate                           # M1 门第三条：Strict 改字仍 Strict

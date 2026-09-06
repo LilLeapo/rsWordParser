@@ -62,6 +62,8 @@ pub struct Document {
     /// 绘图侧的引用是 `DrawingDisplay.chart`（`rel_id`），经 [`Document::chart_by_rel`] 到这里。
     pub chart_parts: BTreeMap<PartId, ChartPart>,
     pub chart_by_rel: BTreeMap<String, PartId>,
+    /// 主 part 里的墨迹批注（`aidocs-ink` 浮动图片 run，任务 6.8），文档序；对分类与坐标流不可见。
+    pub inks: Vec<crate::model::ink::InkInfo>,
     /// 主 part 引用的 SmartArt（按**数据 part** 的 `PartId`，任务 6.3）。绘图侧的引用是
     /// `DrawingDisplay.diagram`（`@r:dm`），经 [`Document::diagram_by_rel`] 到这里。
     pub diagram_parts: BTreeMap<PartId, DiagramPart>,
@@ -392,10 +394,12 @@ impl Document {
                 ));
             }
         }
+        let inks = crate::model::ink::collect_inks(dom, &blocks);
         Ok(Document {
             main_part: main,
             body,
             main: blocks,
+            inks,
             sections,
             hf_parts,
             hf_by_rel,
@@ -488,6 +492,8 @@ impl Document {
         // 节是块序的投影：刷新一个段落可能加上或去掉它的 `pPr/sectPr`，所以一起重算
         // （块数不变，`block_range` 的下标还有效；块增删走 `structure_changed` 的整体重建）
         self.sections = crate::model::section::build_sections(dom, &self.main, &mut warnings);
+        // 墨迹表同理是块的投影：刷新的段落可能多了或少了墨迹 run
+        self.inks = crate::model::ink::collect_inks(dom, &self.main);
         self.warnings.extend(warnings);
         self.fields = fields;
         self.spans = spans;
@@ -1349,6 +1355,10 @@ impl<'a> Builder<'a> {
                 SegmentKind::Sym { font, code }
             }
             LocalName::Drawing => {
+                // 墨迹对坐标流不可见：长度 0 的段（TS 在 detect 前把整个 run 剥掉，任务 6.8）
+                if crate::model::ink::is_ink_drawing(dom, node) {
+                    return SegmentKind::Ink;
+                }
                 text.push(OBJECT_REPLACEMENT);
                 let anchored = dom
                     .semantic_children(node)

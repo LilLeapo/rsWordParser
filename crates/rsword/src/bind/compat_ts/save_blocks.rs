@@ -29,9 +29,9 @@ use crate::diag::DiagCode;
 use crate::edit::ops;
 use crate::edit::ops::ppr_of;
 use crate::edit::{
-    BlockPos, EditContext, EditOp, EditSession, ImageWrap, NewBlock, NewChart, NewChartKind,
-    NewChartSeries, NewComment, NewImage, NewInline, NewLinkTarget, NewMarker, NewRevision, NewRun,
-    ParaSpacing, PosOffset,
+    BlockPos, EditContext, EditOp, EditSession, ImageWrap, InkSave, NewBlock, NewChart,
+    NewChartKind, NewChartSeries, NewComment, NewImage, NewInk, NewInline, NewLinkTarget,
+    NewMarker, NewRevision, NewRun, ParaSpacing, PosOffset,
 };
 use crate::error::{Error, Result};
 use crate::model::{HfKind, HfVariant};
@@ -141,6 +141,8 @@ struct EntryLists {
     part_xml: Vec<(String, String)>,
     /// TS `partBinary`：zip 路径 → base64 字节。
     part_binary: Vec<(String, String)>,
+    /// TS `inks`（权威列表，任务 6.8）：`blockIndex` 是 finalBlocks 下标，块操作落定后才能解析成节点。
+    inks: Option<Vec<Value>>,
 }
 
 /// 页眉页脚选项的原始 JSON：内容要用 `Planner`（借着主 part 的 DOM）才能翻成 `NewBlock`，
@@ -168,6 +170,7 @@ fn save_options_of(options: &Value) -> Result<(SaveOptions, EntryLists, HfOption
             "comments" => lists.comments = Some(arr(v, "comments")?),
             "footnotes" => lists.footnotes = Some(arr(v, "footnotes")?),
             "endnotes" => lists.endnotes = Some(arr(v, "endnotes")?),
+            "inks" => lists.inks = Some(arr(v, "inks")?),
             "partXml" | "partBinary" => {
                 let obj = v
                     .as_object()
@@ -556,6 +559,7 @@ pub fn apply_save_blocks(
         // 块没动，但权威条目列表可能要删 / 改条目，整 part 替换也照样做（TS 的 isUnchanged 也看它们）
         let extra = apply_entry_lists(session, &lists)? + apply_part_replacements(session, &lists)?;
         save_options.section_hf = resolve_section_hf(session, pending_section_hf)?;
+        save_options.inks = resolve_inks(session, lists.inks.as_deref())?;
         let unchanged = extra == 0 && !save_options.forces_save();
         return Ok(SaveBlocksOutcome { unchanged, ops: extra, save_options });
     }
@@ -613,6 +617,7 @@ pub fn apply_save_blocks(
     // 条目列表在块之后应用：删掉的批注要连"块重发出来的"标记一起清掉
     let extra = apply_entry_lists(session, &lists)? + apply_part_replacements(session, &lists)?;
     save_options.section_hf = resolve_section_hf(session, pending_section_hf)?;
+    save_options.inks = resolve_inks(session, lists.inks.as_deref())?;
     Ok(SaveBlocksOutcome { unchanged: false, ops: n + extra, save_options })
 }
 
@@ -2013,6 +2018,43 @@ fn resolve_section_hf(
             Ok(SectionHfSave { sect, kind, variant: HfVariant::Default, blocks })
         })
         .collect()
+}
+
+/// TS `inks`：块操作之后把每条的 `blockIndex`（finalBlocks 下标）解析成锚点节点（TS 逐个最终块注入）。
+/// 锚点不是段落的条目照样传下去——`InsertInk` 自己跳过并记诊断，不分配媒体（TS `^<w:p` 检查在分配之前）。
+fn resolve_inks(session: &EditSession, inks: Option<&[Value]>) -> Result<Option<Vec<InkSave>>> {
+    let Some(list) = inks else { return Ok(None) };
+    let body = session
+        .document()
+        .body
+        .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, "文档没有 w:body"))?;
+    let nodes = blocks::element_nodes(session.dom(), body);
+    list.iter()
+        .map(|v| {
+            let idx =
+                v["blockIndex"].as_u64().ok_or_else(|| unsupported("inks 条目缺 blockIndex"))?
+                    as usize;
+            let para = *nodes.get(idx).ok_or_else(|| {
+                Error::edit(DiagCode::EditBadPosition, format!("inks.blockIndex {idx} 越界"))
+            })?;
+            let b64 = s_of(v, "base64").ok_or_else(|| unsupported("inks 条目缺 base64"))?;
+            let png = crate::package::media::base64_decode(b64)
+                .ok_or_else(|| unsupported("inks.base64 不是合法的 base64"))?;
+            let f = |k: &str| v[k].as_f64().unwrap_or(0.0);
+            Ok(InkSave {
+                para,
+                ink: NewInk {
+                    png,
+                    width_px: f("widthPx"),
+                    height_px: f("heightPx"),
+                    offset_x_px: f("offsetXPx"),
+                    offset_y_px: f("offsetYPx"),
+                    payload: v.get("payload").and_then(Value::as_str).map(str::to_string),
+                },
+            })
+        })
+        .collect::<Result<Vec<_>>>()
+        .map(Some)
 }
 
 /// 一个块级元素里的 `w:sectPr`：自己就是，或者在 `w:pPr` 里。

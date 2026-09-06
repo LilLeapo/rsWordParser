@@ -12,8 +12,8 @@ use crate::xml::{Dirty, Dom, NodeId, NodeKind};
 
 /// 规范化选项。
 pub struct CanonOptions<'a> {
-    /// `(元素名, 属性名) -> 是否忽略该属性`。
-    pub ignore_attr: &'a dyn Fn(&Dom, QName, QName) -> bool,
+    /// `(元素节点, 属性名) -> 是否忽略该属性`（拿节点而不是元素名：有的容忍要看子元素，比如墨迹锚的 `relativeHeight`）。
+    pub ignore_attr: &'a dyn Fn(&Dom, NodeId, QName) -> bool,
 }
 
 impl Default for CanonOptions<'_> {
@@ -86,7 +86,7 @@ pub fn canonical(dom: &Dom, root: NodeId, opts: &CanonOptions<'_>) -> String {
                             .attrs
                             .iter()
                             .filter(|a| {
-                                a.name.ns != NsId::Xmlns && !(opts.ignore_attr)(dom, e.name, a.name)
+                                a.name.ns != NsId::Xmlns && !(opts.ignore_attr)(dom, id, a.name)
                             })
                             .map(|a| (qname_str(dom, a.name), dom.attr_str(a).into_owned()))
                             .collect();

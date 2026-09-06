@@ -9,9 +9,8 @@ use rsword::model::{Block, Document, Inline, OBJECT_REPLACEMENT, SegmentKind, Te
 use rsword::package::Package;
 use serde_json::Value;
 
-/// 已知差异（`src/bind/compat_ts/KNOWN_DIFFS.md`）。`kind` 一项：TS 在分类前把 `aidocs-ink` 墨迹 run 从
-/// 段落里剥掉（段落仍是可编辑正文），本引擎在 M6 6.8 落地前把只含墨迹的段落当图片块——6.8 收口后删除这条。
-const KNOWN_DIFFS: &[(&str, &str)] = &[("symbol-fonts__", "text"), ("m6-ink__", "kind")];
+/// 已知差异（`src/bind/compat_ts/KNOWN_DIFFS.md`）。
+const KNOWN_DIFFS: &[(&str, &str)] = &[("symbol-fonts__", "text")];
 
 #[derive(Default)]
 struct Stats {

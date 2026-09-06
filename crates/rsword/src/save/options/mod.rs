@@ -28,7 +28,7 @@ pub use hf::{HfSlots, SectionHfSave};
 pub use section::{PgNumTypeOption, ProtectionOption, SectionSaveSettings, WriteProtectionOption};
 
 use crate::diag::Diagnostic;
-use crate::edit::{EditOp, MutationPlan};
+use crate::edit::{EditOp, InkSave, MutationPlan};
 use crate::error::Result;
 use crate::model::SectionOwner;
 use crate::package::{Package, PartFlavor, PartId, RelType};
@@ -95,6 +95,11 @@ pub struct SaveOptions {
     /// 样式 upsert。
     pub style_upserts: Vec<StyleUpsertSave>,
 
+    // ---- 6.8：墨迹 ----
+    /// 墨迹批注的**权威列表**（TS `inks`）：`Some` → 删掉全部已有墨迹 run，再按列表逐条追加
+    /// （`EditOp::RemoveInks` + `InsertInk`；旧媒体与关系随资源回收消失）；`Some(vec![])` 只删；`None` 不动。
+    pub inks: Option<Vec<InkSave>>,
+
     // ---- 6.7：资源回收 ----
     /// 保存时回收**本次会话**让引用数归零的图片 / 图表 / 图示 / OLE / 超链接关系与它们的 part 子图
     /// （`save/prune.rs`）。`None` = 开（缺省）；原本就是孤儿的 part 一个字节不动（TS 会一并删掉，`docs/04` §8）。
@@ -128,6 +133,7 @@ impl SaveOptions {
             || self.theme_fonts.is_some()
             || self.theme_colors.is_some()
             || !self.style_upserts.is_empty()
+            || self.inks.is_some()
     }
 }
 
@@ -162,6 +168,11 @@ pub(crate) fn edit_ops(
     let patch = settings_patch(opts);
     if !patch.is_empty() {
         ops.push(EditOp::SetDocumentSettings { patch });
+    }
+    // 6.8：墨迹层整体重发（TS 对每个最终块 `stripInkRuns` 再注入）
+    if let Some(inks) = &opts.inks {
+        ops.push(EditOp::RemoveInks);
+        ops.extend(inks.iter().map(|e| EditOp::InsertInk { para: e.para, ink: e.ink.clone() }));
     }
     (ops, created)
 }

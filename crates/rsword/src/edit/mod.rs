@@ -11,6 +11,7 @@
 //! `EDIT_ANCHOR_UNMOVED`（`EngineInvariantViolation`）。
 
 pub mod chart_ops;
+pub mod ink_ops;
 pub mod inline;
 pub mod media_ops;
 pub mod ops;
@@ -21,6 +22,7 @@ pub mod session;
 pub mod table_ops;
 
 pub use chart_ops::{ChartPatch, ChartSeriesPatch, NewChart, NewChartKind, NewChartSeries};
+pub use ink_ops::{InkSave, NewInk};
 pub use inline::{NewInline, NewLinkTarget, NewMarker, NewRevision, NewRun};
 pub use media_ops::{ImageWrap, NewImage, ParaSpacing, PosOffset};
 pub use plan::{MutationPlan, MutationResult};
@@ -220,6 +222,13 @@ pub enum EditOp {
     /// `EDIT-04 ReplaceImageMedia`（TS `xml.replaceImage`，任务 6.7）：`drawing` 子树里第一个 `a:blip` 改指新媒体
     /// （字节按内容去重落成媒体 part），删裁剪窗、清填充窗、删 `svgBlip` 扩展。
     ReplaceImageMedia { drawing: NodeId, bytes: Vec<u8>, mime: String },
+
+    // ---- 墨迹（`SAVE-07 inks`，任务 6.8）--------------------------------------------------------
+    /// 删掉主 part 里全部 `aidocs-ink` 墨迹 run（`Document.inks`）；它们的媒体与关系随保存时的资源回收消失。
+    RemoveInks,
+    /// 在段落 `para` 的全部内容之后追加一条墨迹 run（TS `anchoredInkRunXml`；`docPr/@id` 按 `EDIT-06`，
+    /// 媒体每条一个 part）。`para` 不是 `w:p`（表格 / sdt 外壳）→ 跳过 + 诊断，不分配媒体与关系。
+    InsertInk { para: NodeId, ink: NewInk },
 
     // ---- 节与页眉页脚（`EDIT-03`，任务 5.5）--------------------------------------------------
     /// `EDIT-03 SetSectionProps`：给定 `w:sectPr` 按 `PROP-06` 合并（未建模的子元素原字节不动，
