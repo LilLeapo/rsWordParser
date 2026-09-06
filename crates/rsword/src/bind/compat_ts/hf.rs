@@ -397,6 +397,7 @@ fn box_contents(block: &Block) -> Vec<(&[Block], bool)> {
                     }
                 }
             }
+            Display::Formula(_) => {}
             Display::Vml(v) => {
                 for sh in &v.shapes {
                     if sh.content.is_empty() {

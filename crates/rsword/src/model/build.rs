@@ -801,9 +801,15 @@ impl<'a> Builder<'a> {
         let block = match class {
             ParaClass::Protected(kind) => Block::Protected(ProtectedBlock {
                 node: p,
-                kind,
+                kind: kind.clone(),
                 preview: self.preview(p),
-                display: graphic_display(dom, &facts),
+                // 公式段落的载荷是公式本身（6.5）；其余保护块是段落里第一个图形
+                display: match kind {
+                    ProtectedKind::Equation => Some(Display::Formula(Box::new(
+                        crate::model::math::formula_display(dom, p, facts.visible_text),
+                    ))),
+                    _ => graphic_display(dom, &facts),
+                },
                 siblings: graphic_siblings(dom, &facts),
                 sdt: sdt.cloned(),
                 revisions,
@@ -1359,12 +1365,10 @@ impl<'a> Builder<'a> {
             }
             LocalName::Ruby => {
                 text.push(OBJECT_REPLACEMENT);
-                let rt = dom
-                    .semantic_children(node)
-                    .find(|&c| dom.is(c, w(LocalName::Rt)))
-                    .map(|rt| self.preview(rt))
-                    .unwrap_or_default();
-                SegmentKind::Ruby { rt }
+                SegmentKind::Ruby {
+                    rt: crate::model::math::ruby_part_text(dom, node, LocalName::Rt),
+                    base: crate::model::math::ruby_part_text(dom, node, LocalName::RubyBase),
+                }
             }
             LocalName::FootnoteReference => {
                 text.push(OBJECT_REPLACEMENT);

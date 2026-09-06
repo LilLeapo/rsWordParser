@@ -17,6 +17,7 @@ use super::decl::{
 use super::diagram;
 use super::image;
 use super::json::set_some;
+use super::math;
 use super::media::MediaMap;
 use super::textbox;
 use super::utf16::Utf16Index;
@@ -880,9 +881,14 @@ fn paragraph_block(
                 set_some!(&mut o, "styleId" => style, "fieldDisplay" => field_display(ctx, p, toc));
                 o
             }
+            // `COMPAT-07` 公式块（任务 6.5）：`previewText` 是 token 拼接，不是段落文字
+            ProtectedKind::Equation => {
+                let mut o = passthrough(o, "Equation");
+                math::formula_block(ctx, pb, &mut o);
+                o
+            }
             kind => {
                 let label = match kind {
-                    ProtectedKind::Equation => "Equation",
                     ProtectedKind::Ole => "Embedded object",
                     ProtectedKind::Rule => "Drawing object",
                     _ => "Paragraph",
@@ -1904,14 +1910,16 @@ pub(super) fn runs_json(ctx: &Ctx<'_>, tb: &TextBlock) -> Vec<Map<String, Value>
     for inline in &tb.inlines {
         match inline {
             Inline::Run(run) => runs.extend(run_jsons(ctx, run, para_disp)),
-            Inline::Atom(a) => {
-                if let AtomKind::BareBreak { kind } = &a.kind {
+            Inline::Atom(a) => match &a.kind {
+                AtomKind::BareBreak { kind } => {
                     let mut o = Map::new();
                     set(&mut o, "text", break_char(*kind));
                     runs.push(o);
                 }
-                // Math / Other：TS 的公式 run 需要 OMML token 串（M3）
-            }
+                // 文字夹公式（R19）：每个 `m:oMath` 是一个原子 run（任务 6.5）
+                AtomKind::Math => runs.push(math::math_run(ctx, a.node)),
+                _ => {}
+            },
             Inline::Field { id, result } => {
                 if let Some(r) = field_run_json(ctx, *id, result, para_disp) {
                     runs.push(r);
@@ -2174,6 +2182,15 @@ fn run_json_segs(
         }
         set(&mut nr, "kind", if endnote { "endnote" } else { "footnote" });
         set(&mut o, "noteRef", Value::Object(nr));
+        comment_ids(ctx, run, &mut o);
+        return Some(o);
+    }
+    // `w:ruby`：TS 见到它就只出 `{ text: 被注正文, ruby }`，同 run 的其他子节点与 `w:rPr` 都不看（任务 6.5）
+    if let Some((node, rt, base)) = segs.iter().find_map(|s| match &s.kind {
+        SegmentKind::Ruby { rt, base } => Some((s.node, rt, base)),
+        _ => None,
+    }) {
+        let mut o = math::ruby_run(ctx, node, rt, base);
         comment_ids(ctx, run, &mut o);
         return Some(o);
     }

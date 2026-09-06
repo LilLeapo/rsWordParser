@@ -29,7 +29,9 @@ pub mod drawing;
 pub mod facts;
 pub mod hf;
 pub mod inline;
+pub mod math;
 pub mod notes;
+pub mod omml;
 pub mod sdt;
 pub mod section;
 pub mod sources;
@@ -65,6 +67,7 @@ pub use inline::{
     AtomKind, BreakKind, Inline, InlineAtom, Link, LinkTarget, OBJECT_REPLACEMENT, RevisionCtx,
     RevisionMeta, Run, Segment, SegmentKind,
 };
+pub use math::FormulaDisplay;
 pub use notes::{Comment, Comments, Note, NoteKind, Notes, RichRun};
 // `SdtInfo` 从 `block` 一并导出（它是 `Block` 的字段）
 pub use aux::AuxFlows;

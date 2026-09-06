@@ -16,6 +16,7 @@ use crate::model::block::Block;
 use crate::model::custgeom::{CustomGeom, custom_geom};
 use crate::model::diagram::{CanvasDisplay, canvas_display};
 use crate::model::facts::DrawingKind;
+use crate::model::math::FormulaDisplay;
 use crate::model::vml::VmlDisplay;
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
@@ -29,20 +30,29 @@ pub enum Display {
     Drawing(Box<DrawingDisplay>),
     /// `w:pict` / `w:object`（含 OLE 信息）
     Vml(Box<VmlDisplay>),
+    /// 公式段落（R11）的 `m:oMath` 片段、token、MathML / LaTeX（M6 6.5，`model::math`）。
+    Formula(Box<FormulaDisplay>),
 }
 
 impl Display {
     pub fn as_drawing(&self) -> Option<&DrawingDisplay> {
         match self {
             Display::Drawing(d) => Some(d),
-            Display::Vml(_) => None,
+            _ => None,
         }
     }
 
     pub fn as_vml(&self) -> Option<&VmlDisplay> {
         match self {
             Display::Vml(v) => Some(v),
-            Display::Drawing(_) => None,
+            _ => None,
+        }
+    }
+
+    pub fn as_formula(&self) -> Option<&FormulaDisplay> {
+        match self {
+            Display::Formula(f) => Some(f),
+            _ => None,
         }
     }
 }

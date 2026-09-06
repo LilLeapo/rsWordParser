@@ -1161,7 +1161,18 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   六个：语料 OLE 文档差异 0；构造的同 run 拆分 / 只有对象的段落与预览失效 / 字段包裹（另有 PAGE 字段时仍是字段芯片）/
   单元格；`EDIT-02`：在原子前后 `InsertText` 后保存 `w:object` 子树与 OLE 关系原字节不动，`DeleteRange` 盖住原子 →
   整 run 消失、二进制 part 留作孤儿。
-- [ ] **6.5 公式与 ruby**（`model/math.rs`、`model/omml/{mathml,latex}.rs`）：`FormulaDisplay`、`runs[].math`、`runs[].ruby`；两个转换器逐字移植且迭代实现。
+- [x] **6.5 公式与 ruby**（`model/math.rs`、`model/omml/{mod,mathml,latex}.rs`、`bind/compat_ts/math.rs`，2026-09-06）：
+  `FormulaDisplay { fragments, tokens, mathml, latex }` 挂 `Display::Formula`（`Display` 第三个变体，`as_formula`）；
+  `mathml` 只在段落没有可见正文时算（TS：oMathPara 旁还有 run 的段落只保留平铺 token 条），`latex` 只在单片段且
+  子集之内。两个转换器是 TS `math.ts` 的逐字移植，**迭代**实现：任务栈（`Eval(item)` 展开子项 + `Finish(item, arity)`）
+  与结果栈，`Item` 把「槽位 / 行 / 矩阵行 / `\binom` / `\left…\right`」都当成可求值的项；hostile `omml-deep` 与构造的
+  4,000 层分式都过。`latex_symbols!` 宏展开符号 / 重音 / n 元三张反查表（同一字符第一个名字赢）。R19 的 `m:oMath`
+  原子 → run `{ text: token 拼接, math: { omml: 原字节 } }`；`w:ruby` → run `{ text: 被注正文, ruby: { rt, xml } }`，
+  不带格式键（TS 见到 ruby 就只出这两个字段），`SegmentKind::Ruby { rt, base }` 各取直接 `w:r/w:t`。两条 TS 缺陷
+  按路径登记：单元格里的公式 run TS 丢、单元格里的 ruby TS 只留正文（`m6-omml__033` / `m6-ruby__005`）。
+  `embedded` 160 → **43 / 12 份**（全是墨迹，6.8），`all` 71，棘轮 43。`tests/math.rs` 七个：语料 60+ 份公式 / ruby
+  文档差异 0；TS `math.test.ts` 的 `ommlToMathML` 七例与 `ommlToLatex` 三例照搬并钉逐字输出；公式块 / 文字夹公式 /
+  多片段；ruby run 与坐标流原子；`omml-deep` 与 4,000 层构造；公式原子前后 `InsertText` 后 `m:oMath` 字节原样。
 - [ ] **6.6 图表的保存**（`edit/chart_ops.rs`、`save/parts.rs`）：`SetChartData` 只改缓存文本；`NewBlock::Chart` 新建 part + 工作簿 + 关系；`ReplacePartXml / Bytes`。
 - [ ] **6.7 媒体写侧**（`package/media.rs`、`edit/media_ops.rs`、`save/prune.rs`）：`MediaStore::add` 去重、`NewBlock::Image`、`ReplaceImageMedia`、编辑引起的孤儿回收。
 - [ ] **6.8 墨迹**（`model/ink.rs`、`edit/ink_ops.rs`）：`inks[]` 读侧、`RemoveInks` + `InsertInk`、墨迹对分类与坐标流不可见。

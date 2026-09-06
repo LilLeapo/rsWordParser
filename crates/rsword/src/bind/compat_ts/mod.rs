@@ -21,6 +21,7 @@ pub mod diff;
 mod hf;
 mod image;
 mod json;
+mod math;
 pub mod media;
 pub mod save_blocks;
 mod table;

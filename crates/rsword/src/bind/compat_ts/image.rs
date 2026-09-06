@@ -132,6 +132,7 @@ pub(super) fn block_image_run(ctx: &Ctx<'_>, display: &Display) -> Option<Map<St
     let img = match display {
         Display::Drawing(_) => drawing_run_image(ctx, display)?,
         Display::Vml(_) => vml_run_image(ctx, display)?,
+        Display::Formula(_) => return None,
     };
     let mut o = Map::new();
     set(&mut o, "text", "");

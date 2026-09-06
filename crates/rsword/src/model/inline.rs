@@ -137,8 +137,10 @@ pub enum SegmentKind {
     },
     Pict,
     Object,
+    /// `w:ruby`：注音文字与被注的正文（各取直接 `w:r/w:t`，TS `rubyPartText`）。坐标流里是 1 个原子。
     Ruby {
         rt: String,
+        base: String,
     },
     FootnoteRef {
         id: Option<String>,
@@ -188,7 +190,7 @@ pub struct InlineAtom {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AtomKind {
-    /// `m:oMath` / `m:oMathPara`（占位，`FormulaDisplay` 在 M3）。
+    /// `m:oMath`（R19 文字夹公式的段落里的一个公式原子；整段公式是 R11 的保护块）。
     Math,
     /// run 外的 `w:br`。
     BareBreak {

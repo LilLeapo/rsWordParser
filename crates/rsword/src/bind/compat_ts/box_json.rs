@@ -793,7 +793,7 @@ fn nested_paras(ctx: &Ctx<'_>, content: &[Block]) -> Vec<Value> {
                     Some(Display::Vml(v)) => {
                         v.shapes.iter().map(|s| s.content.as_slice()).collect()
                     }
-                    None => continue,
+                    Some(Display::Formula(_)) | None => continue,
                 };
                 for blocks in inner {
                     if blocks.is_empty() {
