@@ -1,0 +1,80 @@
+# RES-04 toggle 校准（任务 5.8 的补测）：`b` 之外的 toggle 是不是同一条规则。
+# 观察值来自真实 Word，见 fixtures/resolve/README.md 的实测记录。
+#
+# **结论：不是。** `i` 与 `b` 一样按层级异或；`strike` / `caps` / `smallCaps` / `dstrike`
+# 在 Word 网页版里**不异或**——两层都声明时效果照样是开的，也就是"最具体的声明胜出"。
+# `vanish` 测不出来：Word 网页版把隐藏文字照样显示出来，看不出开没开。
+#
+# 每段两个 run：`twice` 带字符样式（段落样式 + 字符样式 = 两层），`once` 不带（一层）。
+# `prop` 是被测的属性名，`on` 是 Word 里那个 run 到底有没有这个效果。
+
+doc = "toggle/other-toggles"
+
+[[run]]
+# 段落样式 i + 字符样式 i：两层 → 功能区"倾斜"未按下，视觉也不斜
+text = "i twice"
+prop = "italic"
+on = false
+verified = true
+
+[[run]]
+# 只有段落样式 i：一层 → 斜体
+text = "i once"
+prop = "italic"
+on = true
+verified = true
+
+[[run]]
+# 两层 → **仍然有删除线**（与 b / i 不同）
+text = "strike twice"
+prop = "strike"
+on = true
+verified = true
+
+[[run]]
+text = "strike once"
+prop = "strike"
+on = true
+verified = true
+
+[[run]]
+# 两层 → 仍然全大写（辅助树里读到的就是 "CAPS TWICE"）
+text = "caps twice"
+prop = "caps"
+on = true
+verified = true
+
+[[run]]
+text = "caps once"
+prop = "caps"
+on = true
+verified = true
+
+[[run]]
+# 两层 → 仍然是小型大写
+text = "smallcaps twice"
+prop = "smallCaps"
+on = true
+verified = true
+
+[[run]]
+text = "smallcaps once"
+prop = "smallCaps"
+on = true
+verified = true
+
+[[run]]
+# 两层 → 仍然有删除线
+text = "dstrike twice"
+prop = "dstrike"
+on = true
+verified = true
+
+[[run]]
+text = "dstrike once"
+prop = "dstrike"
+on = true
+verified = true
+
+# `vanish` 两条不写断言：Word 网页版把隐藏文字照常显示，观察不到开关状态。
+# 引擎按 `strike` 一族处理（最具体胜出），理由见 README 的"还没测到的角"。

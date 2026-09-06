@@ -32,7 +32,7 @@ Span 索引与 Anchor 变换 / 物化（2.1–2.3）、字段子系统与它的�
 5.8 resolve 校准（**Word 实测已完成**）、5.9 恶意输入与随机序列**已落地**——**页眉页脚域清零**，
 `diff-parse --scope hf` 是第五道门（573 份 0 未知差异，已接 CI）；编辑位置带 `PartId`，
 页眉页脚 part 可读可改可新建。**九个任务与五条门全部完成**（2026-09-06 补上了 5.8 的 Word 实测：`RES-04` 的 toggle 规则
-按实测改写为 `ToggleRule::WordObserved`，原来的"最具体胜出"在六份 fixture 里错了三份）。任务分解见
+按实测改写：`b` / `i` 走层级异或，`caps` / `strike` 一族仍是最具体胜出，八份 fixture 全部 `verified = true`）。任务分解见
 `spec/16-m5-plan.md`，逐条进度见 `docs/04` §14。
 
 现在这套代码能：打开任意语料文档、输出与 TS 兼容的 `ParsedDoc` JSON（含整个绘图域：图片、文本框
@@ -99,8 +99,8 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
-| 源码行数 / 文件数 | 56,977 行 / 135 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 435（单元 + 集成，29 个集成测试文件） | `cargo test --workspace` |
+| 源码行数 / 文件数 | 57,345 行 / 135 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
+| 测试数 | 438（单元 + 集成，29 个集成测试文件） | `cargo test --workspace` |
 | 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 26 份 hostile（含 4 份绘图、2 份表格、4 份页眉页脚 / 节） | `ls corpus/*` |
 | 往返字节保真 | 593 份文档、3,140 个 XML part 全部字节相同（3 个 part 按预期解析失败：两份不闭合 XML + 二进制页眉） | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
@@ -187,7 +187,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 ```sh
 cargo fmt --all --check && cargo clippy --workspace --all-targets   # 零告警
-cargo test --workspace && cargo test --workspace --release          # 435 个测试，两种构建
+cargo test --workspace && cargo test --workspace --release          # 438 个测试，两种构建
 cargo run -p diff-parse -- --scope text                             # M1 门第一条：0 未知差异
 cargo run -p diff-parse -- --scope fields                           # M2 门：字段与 Span 域 0 未知差异
 cargo run -p diff-parse -- --scope tables                           # M3 门：表格域 0 未知差异

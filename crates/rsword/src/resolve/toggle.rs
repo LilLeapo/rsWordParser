@@ -23,7 +23,7 @@ use crate::semantic::props::{RunProps, RunPropsField};
 /// }
 /// ```
 macro_rules! toggle_fields {
-    ($( $field:ident => $accessor:ident ),+ $(,)?) => {
+    ($( $field:ident => $accessor:ident : $rule:ident ),+ $(,)?) => {
         /// `RES-04` 的 toggle 字段（`specVanish` 不是 toggle）。
         pub const TOGGLE_FIELDS: &[RunPropsField] = &[$( RunPropsField::$field ),+];
 
@@ -42,19 +42,31 @@ macro_rules! toggle_fields {
                 _ => {}
             }
         }
+
+        /// 这个字段用哪条规则。**按字段分**是实测逼出来的：见 [`ToggleRule`] 的说明。
+        pub fn active_rule(field: RunPropsField) -> ToggleRule {
+            match field {
+                $( RunPropsField::$field => ToggleRule::$rule, )+
+                _ => ToggleRule::MostSpecificWins,
+            }
+        }
     };
 }
 
 toggle_fields! {
-    Bold => bold,
-    BoldCs => bold_cs,
-    Italic => italic,
-    ItalicCs => italic_cs,
-    Caps => caps,
-    SmallCaps => small_caps,
-    Strike => strike,
-    Dstrike => dstrike,
-    Vanish => vanish,
+    // 实测按层级异或
+    Bold => bold : WordObserved,
+    Italic => italic : WordObserved,
+    // 复杂脚本孪生：没单独实测，跟着各自的本体走（`RES-06` 只决定读哪一个，不决定怎么合成）
+    BoldCs => bold_cs : WordObserved,
+    ItalicCs => italic_cs : WordObserved,
+    // 实测**不**异或：两层都声明时效果照样是开的
+    Caps => caps : MostSpecificWins,
+    SmallCaps => small_caps : MostSpecificWins,
+    Strike => strike : MostSpecificWins,
+    Dstrike => dstrike : MostSpecificWins,
+    // 观察不到（Word 网页版把隐藏文字照常显示）；按 strike 一族处理，也是 TS 的行为
+    Vanish => vanish : MostSpecificWins,
 }
 
 /// 可选的 toggle 合成规则。
@@ -86,9 +98,14 @@ pub enum ToggleRule {
     WordObserved,
 }
 
-/// 当前激活的规则：[`ToggleRule::WordObserved`]（2026-09-06 的 Word 实测，
-/// `fixtures/resolve/toggle/*/expected.toml` 六份 fixture 全部 `verified = true`）。
-pub const ACTIVE_TOGGLE_RULE: ToggleRule = ToggleRule::WordObserved;
+/// 规则**按字段选**，见 [`active_rule`] 与 `toggle_fields!` 那张表。
+///
+/// 2026-09-06 的 Word 实测（八份 fixture）发现同一份规范里的 toggle 属性在 Word 里并不同待遇：
+/// `b` / `i` 按层级异或，`caps` / `smallCaps` / `strike` / `dstrike` 却是"最具体的声明胜出"。
+/// 所以没有单一的"当前规则"。
+pub fn rule_of(field: RunPropsField) -> ToggleRule {
+    active_rule(field)
+}
 
 /// 一个 toggle 字段的各层声明。链都是**叶 → 根**（与 `Resolver::chain` 同序）。
 #[derive(Debug, Clone, Default)]
@@ -237,6 +254,34 @@ mod tests {
         assert_eq!(resolve_toggle(rule, &layers(None, &[], &[t], None)), Some(true));
         // 谁都没声明 → 未声明
         assert_eq!(resolve_toggle(rule, &layers(None, &[], &[], None)), None);
+    }
+
+    /// 2026-09-06 的补测：同一份规范里的 toggle 在 Word 里并不同待遇。
+    #[test]
+    fn res_04_rule_is_chosen_per_field() {
+        for f in [
+            RunPropsField::Bold,
+            RunPropsField::Italic,
+            RunPropsField::BoldCs,
+            RunPropsField::ItalicCs,
+        ] {
+            assert_eq!(active_rule(f), ToggleRule::WordObserved, "{f:?}");
+        }
+        for f in [
+            RunPropsField::Caps,
+            RunPropsField::SmallCaps,
+            RunPropsField::Strike,
+            RunPropsField::Dstrike,
+            RunPropsField::Vanish,
+        ] {
+            assert_eq!(active_rule(f), ToggleRule::MostSpecificWins, "{f:?}");
+        }
+        // 两层都声明 true：`b` 抵消掉，`strike` 照样是开的
+        let t = Some(true);
+        let (ch, pa) = ([t], [t]);
+        let l = layers(None, &ch, &pa, None);
+        assert_eq!(resolve_toggle(active_rule(RunPropsField::Bold), &l), Some(false));
+        assert_eq!(resolve_toggle(active_rule(RunPropsField::Strike), &l), Some(true));
     }
 
     #[test]

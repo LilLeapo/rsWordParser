@@ -35,7 +35,7 @@ pub use table::{
     TblLookFlags, ViewCell,
 };
 pub use toggle::{
-    ACTIVE_TOGGLE_RULE, TOGGLE_FIELDS, ToggleLayers, ToggleRule, resolve_toggle, set_toggle,
+    TOGGLE_FIELDS, ToggleLayers, ToggleRule, active_rule, resolve_toggle, rule_of, set_toggle,
     toggle_of,
 };
 
@@ -329,9 +329,9 @@ impl<'a> Resolver<'a> {
         }
         apply(&mut props, direct, Provenance::Direct);
 
-        // RES-04：toggle 字段单独合成一遍——它们**不**按上面的"最具体胜出"层叠，而是按
-        // `resolve::toggle` 里那条 Word 实测规则在层级之间异或（`fixtures/resolve/toggle/*`）。
-        // 换规则只改 `ACTIVE_TOGGLE_RULE` 一行；这里只负责把各层的声明按层喂进去。
+        // RES-04：toggle 字段单独合成一遍，规则**按字段**选（`resolve::toggle` 的
+        // `toggle_fields!` 表）。实测发现 Word 对同一类属性并不同待遇：`b` / `i` 按层级异或，
+        // `caps` / `strike` 一族仍是"最具体胜出"。这里只负责把各层的声明按层喂进去。
         for &f in toggle::TOGGLE_FIELDS {
             // 字符样式一侧：链自身各层，末尾再接 linked 补缺层（它只带链没声明的字段，
             // 所以接在后面不影响链内的优先级；漏了它 `H1Char` 这类 linked 壳就丢掉 `b`）
@@ -354,7 +354,7 @@ impl<'a> Resolver<'a> {
                     .and_then(Styles::doc_default_rpr)
                     .and_then(|dd| toggle::toggle_of(dd, f)),
             };
-            let value = toggle::resolve_toggle(toggle::ACTIVE_TOGGLE_RULE, &layers);
+            let value = toggle::resolve_toggle(toggle::active_rule(f), &layers);
             toggle::set_toggle(&mut props, f, value);
             // 来源要跟着改：异或出来的值可能哪一层都没写过，继续指着某一层就是撒谎
             if value.is_some() {

@@ -378,7 +378,7 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `PROP-08` `SectionProps` 清单 | `headerReference*, footerReference*, footnotePr, endnotePr, type, pgSz, pgMar, pgBorders, lnNumType, pgNumType, cols, formProt, vAlign, titlePg, textDirection, bidi, rtlGutter, docGrid` | 另建模 `noEndnote`（同类 OnOff，写回要用）；**不**建模 `paperSrc` 与 `printerSettings` | 前者是清单的遗漏（它就夹在 `vAlign` 与 `titlePg` 之间）；后两个是打印机硬件配置，编辑器与 resolve 都不用，不建模就原字节留在原位（`PROP-06`），需要时补一行即可 |
 | `PROP-09` 枚举容错 | 字面不匹配 → `Val::Raw` + 诊断 | `ST_HdrFtr` 额外收非 schema 的 `odd` | Word 之外的生成器用 `w:type="odd"` 表示"缺省页"，TS 与 Word 都当 default（`docs/01` §12）。当成 `Raw` 只会白记一条 `PROP_BAD_VALUE`，而 `RES-10` 照样得把它当 default |
 | `RES-01` toggle 的 `Provenance` | 每个字段一个来源 | toggle 由多个层级异或得出时是 `Provenance::Toggle { levels }` | 异或出来的值谁都没单独写过（两层各写一次 `true`，有效值是 `false`），指着任何一层都是撒谎。只有一个层级参与、且有效值就是它写的那个值时才指那一层。"只有 docDefaults 声明"也落到 `Toggle`——段落样式层会把 docDefaults 的值再贡献一次 |
-| `RES-04` toggle（ECMA-376 §17.7.3） | 奇偶跨越"样式层级中的每一个样式" | 奇偶只跨**层级**（docDefaults / 段落样式 / 表格样式 / 字符样式）；层级内部的 `basedOn` 链是普通的"子覆盖父"。另：段落样式层在链里一处都没声明时取 docDefaults 的值 | **2026-09-06 Word 网页版实测**（`fixtures/resolve/README.md` 有完整记录与方法）：`basedOn` 链上两层都 `b=true` 时 Word 仍然加粗，说明链内不计次数；"整份文档只有 docDefaults 声明 `b=true`"时 Word **不加粗**，只有"docDefaults 在两处各出现一次、自己抵消"这个模型对得上。TS 参考实现用的是"最具体胜出"，六份 fixture 里错了三份——按验收政策以 Word 为准 |
+| `RES-04` toggle（ECMA-376 §17.7.3） | 十三个 toggle 属性同一套奇偶规则 | **按字段分**：`b` / `i`（与孪生 `bCs` / `iCs`）按层级异或，`caps` / `smallCaps` / `strike` / `dstrike` / `vanish` 是"最具体的声明胜出"。异或的那条只跨**层级**，层级内部的 `basedOn` 链是普通的"子覆盖父"；段落样式层在链里一处都没声明时取 docDefaults 的值 | **2026-09-06 Word 网页版实测**（`fixtures/resolve/README.md` 有完整记录与方法）：`basedOn` 链上两层都 `b=true` 时 Word 仍然加粗，说明链内不计次数；"整份文档只有 docDefaults 声明 `b=true`"时 Word **不加粗**，只有"docDefaults 在两处各出现一次、自己抵消"这个模型对得上。补测的 `other-toggles` 又发现 `strike` / `caps` / `smallCaps` / `dstrike` 两层都声明时效果照样是开的——同一份规范里的 toggle，Word 并不同待遇。TS 参考实现全用"最具体胜出"，八份 fixture 里错了三份——按验收政策以 Word 为准。**只在 Word 网页版测过**，桌面版值得复核 |
 | `MOD-10` `SectionGeom`（5.1 的决定） | 能解析的尺寸照原值给（`w:h="-1"` → `-1`） | 尺寸不是正数时回退缺省纸张 | `ST_TwipsMeasure` 是无符号的，`-1` 本来就不合法；而 `SectionGeom` 的每个消费者（列宽启发式、图片缩放、`body_width`）都拿它做版面算术，负数会一路传下去。声明值仍原样留在 `props` 里，写回不受影响——回退只发生在几何视图。hostile `sectpr-bad-values` 是这条的验收 |
 | `MOD-11` VML 框的摊平表 | 未规定深度 | `vml_display` 穿过的 `w:txbxContent` 超过 8 层就截断（`too_deep` → `MOD_TOO_DEEP`）；`Builder` 建框内容也是 8 层预算 | 摊平表把更深的层重复列出，规模 O(n²)；建内容那条递归每层压几 KB 属性结构体，33 层就把 2 MiB 测试栈用光。语料里框套框最多 2 层（`textbox-edit__012`），Word 的界面根本做不出更深的。hostile `hf-deep-txbx` 套了 3000 层 |
 | `SAVE-07` `sources` 选项（TS `buildSourcesXml`） | 新建的 `b:Sources` 同时声明 `xmlns:b` 与一个同 URI 的默认命名空间 | 只声明 `xmlns:b` | 两个绑定指同一个命名空间，但默认绑定会让新加的子元素序列化成不带前缀的 `<Source>`。语义完全相同（Word 与本引擎都按命名空间认），带前缀的形态更好读，也和 Word 自己写出来的一致 |
@@ -1032,8 +1032,8 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
     "目录都登记了"的检查）。每条断言带 `verified`：`true` 才真断言，`false` 只打印"引擎说 X、
     文件里占位 Y"。**故意不拿引擎自己的输出去填期望值**——那是自证，比没有断言更糟。
   - `fixtures/resolve/README.md` 写清为什么只能靠 Word、怎么填、以及**实测记录**。
-  - **2026-09-06 的实测结论**（Word 网页版，六份文档逐段读功能区"加粗"按钮的按下状态与
-    字体名框，两处各复核一次）：原来激活的"最具体胜出"**在六份里错了三份**。实测规则是
+  - **2026-09-06 的实测结论**（Word 网页版，八份文档逐段读功能区按钮的按下状态、字体名框
+    与渲染，两处各复核一次）：原来激活的"最具体胜出"**在前六份里错了三份**。实测规则是
     `有效值 = docDefaults ⊕ 段落样式层 ⊕ 表格样式层 ⊕ 字符样式层`，层级内部（`basedOn` 链）
     是普通的"子覆盖父"、**不计次数**；段落样式层在链里一处都没声明时取 docDefaults 的值
     （每个段落都有样式，样式链的根是 docDefaults，于是 docDefaults 自己抵消自己——
@@ -1041,6 +1041,12 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
     与 ECMA-376 §17.7.3 的差异：规范说"层级各样式中为 true 的次数"，实测是"层级数"。
     `ToggleRule::WordObserved` 已激活，`spec/07` 的 `RES-04` 条目按实测重写。
     `RES-10` 的节继承实测与引擎一致（第二节无引用 → 显示第一节的页眉）。
+  - **补测两个角之后又改了一次**：`docdefaults-and-para-off` 证实了模型最反直觉的那个推论
+    （段落样式明写 `w:b w:val="0"`、docDefaults 写 `true` → Word **加粗**）；但
+    `other-toggles` 发现 **`strike` / `caps` / `smallCaps` / `dstrike` 根本不异或**——
+    两层都声明时效果照样是开的。所以规则改成**按字段选**（`toggle_fields!` 那张表）：
+    `b` / `i` 与孪生的 `bCs` / `iCs` 走层级异或，其余走"最具体胜出"。`vanish` 观察不到
+    （Word 网页版把隐藏文字照常显示），按 `strike` 一族处理。
   - **影响面要说清楚**：这条规则只作用于 `resolve` 这个公开只读视图。`compat_ts` 的
     `runs[].bold` 发的是 run 自己 `w:rPr` 的声明值（复现 TS 形态），不走 `Resolver::run`；
     `tests/resolve.rs` 的 `StyleDisplay` 比的是每个样式自己的链合并，也不走 toggle 规则。

@@ -193,6 +193,24 @@ fn expected_runs(doc: &str, rows: &[(&str, &str)]) -> String {
     s
 }
 
+/// `other-toggles` 的断言表：`bold` 之外的属性用 `on` 这一列记（`i` / `strike` / `caps` …）。
+fn expected_other(rows: &[(String, String)]) -> String {
+    let mut s = String::new();
+    s.push_str("# RES-04 toggle 校准（任务 5.8 的补测）：`b` 之外的 toggle 是不是同一条规则。\n");
+    s.push_str("# 每段两个 run：带字符样式的（段落样式 + 字符样式 = 两层）与不带的（一层）。\n");
+    s.push_str("# `on` 填 Word 里那个 run 到底有没有这个效果（斜体 / 删除线 / 大写 …）。\n");
+    s.push_str("# 观察方法与结论见 fixtures/resolve/README.md。\n\n");
+    s.push_str("doc = \"toggle/other-toggles\"\n\n");
+    for (text, note) in rows {
+        s.push_str("[[run]]\n");
+        s.push_str(&format!("# {note}\n"));
+        s.push_str(&format!("text = {text:?}\n"));
+        s.push_str("on = false\n");
+        s.push_str("verified = false\n\n");
+    }
+    s
+}
+
 fn fixtures() -> Vec<Fixture> {
     let mut out = Vec::new();
 
@@ -329,6 +347,74 @@ fn fixtures() -> Vec<Fixture> {
                 ("style b, no direct", "样式 b=true → true"),
             ],
         ),
+    });
+
+    // ⑦ docDefaults b=true 而段落样式显式关掉（`w:b w:val="0"`）——模型说 T ⊕ F = T（加粗）
+    out.push(Fixture {
+        dir: "toggle/docdefaults-and-para-off",
+        styles: styles(concat!(
+            r#"<w:docDefaults><w:rPrDefault><w:rPr><w:b/></w:rPr></w:rPrDefault></w:docDefaults>"#,
+            r#"<w:style w:type="paragraph" w:styleId="POff"><w:name w:val="P Off"/>"#,
+            r#"<w:rPr><w:b w:val="0"/></w:rPr></w:style>"#,
+        )),
+        doc: document(&format!(
+            "{}{}{}",
+            para(Some("POff"), &[(None, "", "docDefaults b + para b=0")]),
+            para(None, &[(None, "", "docDefaults b only")]),
+            SECT
+        )),
+        extra: Vec::new(),
+        expected: expected_runs(
+            "toggle/docdefaults-and-para-off",
+            &[
+                (
+                    "docDefaults b + para b=0",
+                    "docDefaults b=true 与段落样式 b=false 异或 → 模型说加粗",
+                ),
+                ("docDefaults b only", "同一份文档里的对照：只有 docDefaults → 实测不加粗"),
+            ],
+        ),
+    });
+
+    // ⑧ `b` 之外的 toggle：每个属性一段，段内两个 run——带字符样式的（两层，模型说关）
+    //    与不带的（一层，模型说开）。段落样式与字符样式都只声明这一个属性
+    let others: [(&str, &str); 6] = [
+        ("i", "i"),
+        ("strike", "strike"),
+        ("caps", "caps"),
+        ("smallCaps", "smallcaps"),
+        ("dstrike", "dstrike"),
+        ("vanish", "vanish"),
+    ];
+    let mut other_styles = String::new();
+    let mut other_body = String::new();
+    let mut other_rows: Vec<(String, String)> = Vec::new();
+    for (tag, name) in others {
+        other_styles.push_str(&format!(
+            concat!(
+                r#"<w:style w:type="paragraph" w:styleId="P{n}"><w:name w:val="P {n}"/>"#,
+                r#"<w:rPr><w:{t}/></w:rPr></w:style>"#,
+                r#"<w:style w:type="character" w:styleId="C{n}"><w:name w:val="C {n}"/>"#,
+                r#"<w:rPr><w:{t}/></w:rPr></w:style>"#,
+            ),
+            n = name,
+            t = tag
+        ));
+        let twice = format!("{name} twice");
+        let once = format!("{name} once");
+        other_body.push_str(&para(
+            Some(&format!("P{name}")),
+            &[(Some(&format!("C{name}")), "", &twice), (None, "", &once)],
+        ));
+        other_rows.push((twice, format!("段落样式 {tag} + 字符样式 {tag}：两层 → 模型说关")));
+        other_rows.push((once, format!("只有段落样式 {tag}：一层 → 模型说开")));
+    }
+    out.push(Fixture {
+        dir: "toggle/other-toggles",
+        styles: styles(&other_styles),
+        doc: document(&format!("{other_body}{SECT}")),
+        extra: Vec::new(),
+        expected: expected_other(&other_rows),
     });
 
     // ⑥ 两节文档，第二节没有页眉引用（`RES-10` 的继承）

@@ -26,12 +26,16 @@ fn fixture_dir(rel: &str) -> PathBuf {
     common::repo_root().join("fixtures/resolve").join(rel)
 }
 
-/// 一条 run 断言：**按文本**找 run（不是按下标——填表的人看到的是那句话，不是第几个 run），
-/// 比对 `bold`，`source` 给了就连来源一起比（`RES-01` 的 `Provenance`，如 `ParaStyle:PBold`）。
+/// 一条 run 断言：**按文本**找 run（不是按下标——填表的人看到的是那句话，不是第几个 run）。
+///
+/// 默认比 `bold`；`prop` 给了就比那个 toggle（`italic` / `strike` / `caps` …，值填在 `on`）。
+/// `source` 给了就连来源一起比（`RES-01` 的 `Provenance`，如 `ParaStyle:PBold`）。
 #[derive(Debug)]
 struct RunRow {
     text: String,
-    bold: bool,
+    /// 被测的 toggle 属性名；`None` = `bold`。
+    prop: Option<String>,
+    on: bool,
     source: Option<String>,
     verified: bool,
 }
@@ -53,7 +57,12 @@ fn rows_of(v: &toml::Value) -> (Vec<RunRow>, Vec<SectionRow>) {
             a.iter()
                 .map(|r| RunRow {
                     text: r["text"].as_str().expect("text").to_string(),
-                    bold: r["bold"].as_bool().expect("bold"),
+                    prop: r.get("prop").and_then(toml::Value::as_str).map(str::to_string),
+                    on: r
+                        .get("bold")
+                        .or_else(|| r.get("on"))
+                        .and_then(toml::Value::as_bool)
+                        .expect("bold 或 on"),
                     source: r.get("source").and_then(toml::Value::as_str).map(str::to_string),
                     verified: r.get("verified").and_then(toml::Value::as_bool).unwrap_or(false),
                 })
@@ -80,7 +89,7 @@ fn rows_of(v: &toml::Value) -> (Vec<RunRow>, Vec<SectionRow>) {
 /// 引擎对这份 fixture 的回答。
 struct Answers {
     /// `(run 文本, 有效 bold, bold 的来源)`，文档序（含表格里的段落）。
-    runs: Vec<(String, bool, String)>,
+    runs: Vec<(String, EffectiveToggles, String)>,
     /// 每节 default 页眉的文本与继承来源。
     sections: Vec<(String, i64)>,
 }
@@ -118,7 +127,7 @@ fn answers(dir: &Path) -> Answers {
             }
             let eff = r.run_in_table(cell_rpr, para_style, run.props.style.as_deref(), &run.props);
             let source = provenance_str(&eff.source(rsword::semantic::props::RunPropsField::Bold));
-            runs.push((text.to_string(), eff.props.bold == Some(true), source));
+            runs.push((text.to_string(), toggles_of(&eff.props), source));
         }
     }
     let mut sections = Vec::new();
@@ -136,6 +145,28 @@ fn answers(dir: &Path) -> Answers {
         sections.push((text, from));
     }
     Answers { runs, sections }
+}
+
+/// 九个 toggle 的有效值，按 `expected.toml` 的 `prop` 名字查。
+type EffectiveToggles = Vec<(&'static str, bool)>;
+
+/// `RunProps` → `(属性名, 是否为真)`。名字用 OOXML 的元素名，填表的人照抄即可。
+fn toggles_of(p: &RunProps) -> EffectiveToggles {
+    use rsword::semantic::props::RunPropsField as F;
+    [
+        ("bold", F::Bold),
+        ("italic", F::Italic),
+        ("boldCs", F::BoldCs),
+        ("italicCs", F::ItalicCs),
+        ("caps", F::Caps),
+        ("smallCaps", F::SmallCaps),
+        ("strike", F::Strike),
+        ("dstrike", F::Dstrike),
+        ("vanish", F::Vanish),
+    ]
+    .into_iter()
+    .map(|(name, f)| (name, rsword::resolve::toggle_of(p, f) == Some(true)))
+    .collect()
 }
 
 /// `Provenance` → `expected.toml` 里的写法（`ParaStyle:PBold` / `Direct` / `DocDefaults` …）。
@@ -181,19 +212,26 @@ fn check(rel: &str) {
 
     for row in &runs {
         let found = got.runs.iter().find(|(t, _, _)| t == &row.text);
-        let (_, bold, source) = found.unwrap_or_else(|| {
-            panic!("{rel}: 文档里找不到文本 {:?}；引擎看到的是 {:?}", row.text, got.runs)
+        let (_, toggles, source) = found.unwrap_or_else(|| {
+            let texts: Vec<&String> = got.runs.iter().map(|(t, ..)| t).collect();
+            panic!("{rel}: 文档里找不到文本 {:?}；引擎看到的是 {texts:?}", row.text)
         });
+        let prop = row.prop.as_deref().unwrap_or("bold");
+        let got_on = toggles
+            .iter()
+            .find(|(n, _)| *n == prop)
+            .unwrap_or_else(|| panic!("{rel}: 不认识的属性 {prop:?}"))
+            .1;
         if row.verified {
-            assert_eq!(*bold, row.bold, "{rel}: run {:?} 的 bold", row.text);
+            assert_eq!(got_on, row.on, "{rel}: run {:?} 的 {prop}", row.text);
             if let Some(want) = &row.source {
                 assert_eq!(source, want, "{rel}: run {:?} 的 bold 来源", row.text);
             }
         } else {
             pending += 1;
             eprintln!(
-                "  [待 Word 校准] {rel} run {:?}: 引擎说 bold={bold}（来源 {source}），文件里占位 {}",
-                row.text, row.bold
+                "  [待 Word 校准] {rel} run {:?} 的 {prop}: 引擎说 {got_on}，文件里占位 {}（bold 来源 {source}）",
+                row.text, row.on
             );
         }
     }
@@ -259,6 +297,8 @@ macro_rules! fixture_tests {
 
 fixture_tests! {
     res_04_para_and_char => "toggle/para-and-char",
+    res_04_docdefaults_and_para_off => "toggle/docdefaults-and-para-off",
+    res_04_other_toggles => "toggle/other-toggles",
     res_04_docdefaults_and_para => "toggle/docdefaults-and-para",
     res_04_based_on_two_levels => "toggle/based-on-two-levels",
     res_04_table_first_row => "toggle/table-first-row",

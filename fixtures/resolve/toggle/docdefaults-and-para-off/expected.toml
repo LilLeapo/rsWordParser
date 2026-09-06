@@ -1,0 +1,20 @@
+# RES-04 toggle 校准（任务 5.8 的补测）。观察值来自真实 Word，见 fixtures/resolve/README.md。
+#
+# 补的是"docDefaults 为 true 而段落样式显式关掉"这个角。结果与模型一致，而且相当反直觉：
+# 段落样式明写 `w:b w:val="0"`，Word 照样显示加粗——因为 docDefaults 的 true 与它异或。
+
+doc = "toggle/docdefaults-and-para-off"
+
+[[run]]
+# docDefaults(b=true) ⊕ 段落样式(b=false) → 加粗
+text = "docDefaults b + para b=0"
+bold = true
+source = "Toggle:ParaStyle:POff+DocDefaults"
+verified = true
+
+[[run]]
+# 同一份文档里的对照：只有 docDefaults → 不加粗（复现 docdefaults-and-para 的观察）
+text = "docDefaults b only"
+bold = false
+source = "Toggle:DocDefaults"
+verified = true

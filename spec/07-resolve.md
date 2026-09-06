@@ -38,22 +38,29 @@ toggle 属性：`b bCs i iCs caps smallCaps strike dstrike outline shadow emboss
 **不采用** `child ?? parent` 合并。**规则按真实 Word 实测定案**（2026-09-06，Word 网页版，六份 fixture，记录在 `fixtures/resolve/README.md`）：
 
 1. run 直接格式指定 → 用直接值（实测与规范一致）。
-2. 否则：
+2. 否则**按字段选规则**（实测发现 Word 对同一类属性并不同待遇）：
+
+   | 字段 | 规则 |
+   | --- | --- |
+   | `b` / `i`（与孪生的 `bCs` / `iCs`） | 层级异或 |
+   | `caps` / `smallCaps` / `strike` / `dstrike` / `vanish` | 最具体的声明胜出 |
+
+   层级异或是：
 
    ```text
    有效值 = docDefaults ⊕ 段落样式层 ⊕ 表格样式层 ⊕ 字符样式层
    ```
 
    每个**层级**先按"子覆盖父"取一个值（`basedOn` 链内**不**计次数），层级之间才做异或。
-   段落样式层在链里一处都没声明时**取 docDefaults 的值**——每个段落都有样式（没写 `w:pStyle` 就是 Normal），样式链的根是 docDefaults，于是 docDefaults 的值在两处各出现一次、自己抵消。
+   段落样式层在链里一处都没声明时**取 docDefaults 的值**——每个段落都有样式（没写 `w:pStyle` 就是 Normal），样式链的根是 docDefaults，于是 docDefaults 的值在两处各出现一次、自己抵消。一个反直觉的推论：docDefaults 写 `b=true`、段落样式写 `w:b w:val="0"` 时，Word 显示**加粗**（已实测）。
 3. **与 ECMA-376 §17.7.3 的差异**：规范说的是"层级各样式中值为 true 的次数"，实测是"层级数"——`basedOn` 链上两层都 `b=true` 时 Word 仍然加粗。这属于 [MS-OI29500] 记录的 Word 偏差一类（该文档也记了 docDefaults、表格样式、多层 basedOn 的处理与 Word 版本相关）。
-4. **只测了 `b`**，其余八个 toggle 按同一规则处理；`docDefaults=true` 且段落样式显式 `w:val="0"` 这个角没有实测。两条都记在 `fixtures/resolve/README.md` 的"还没测到的角"。
+4. 没测到的角：`vanish`（Word 网页版把隐藏文字照常显示，观察不到）、`bCs` / `iCs`（要 RTL 文本）。另外**只在 Word 网页版上测过**，桌面版是另一套渲染实现。都记在 `fixtures/resolve/README.md`。
 
 **来源（`RES-01`）**：toggle 的有效值可能由多个层级异或得出，那个值谁都没单独写过，所以来源是 `Provenance::Toggle { levels }`（`levels` 按最具体到最不具体列出参与的层）。只有一个层级参与、且有效值就是它写的那个值时才指那一层；直接格式一票定音时是 `Direct`。"只有 docDefaults 声明"也落到 `Toggle`——段落样式层会把 docDefaults 的值再贡献一次。
 
-**实现**（任务 5.8）：`resolve::toggle::resolve_toggle(rule, &ToggleLayers { direct, char_chain, table, para_chain, doc_default })`，规则由 `ToggleRule` 参数化。激活的是 `WordObserved`（上面那条实测规则）；`MostSpecificWins`（最具体胜出，M1 起的行为，也是 TS `display` 的行为）与 `OddParity`（规范字面）保留在枚举里备查，各有单测。层叠（`Resolver::run_in_table`）按层把各层声明喂给它，所以换规则只改 `ACTIVE_TOGGLE_RULE` 一行。九个 toggle 字段的枚举、读写与常量由 `toggle_fields!` 一张表展开。
+**实现**（任务 5.8）：`resolve::toggle::resolve_toggle(rule, &ToggleLayers { direct, char_chain, table, para_chain, doc_default })`，规则由 `ToggleRule` 参数化、**按字段选**（`active_rule(field)`，表在 `toggle_fields!` 里）。`WordObserved`（层级异或）、`MostSpecificWins`（最具体胜出，M1 起的行为，也是 TS `display` 的行为）与 `OddParity`（规范字面）三条都实现了，各有单测。层叠（`Resolver::run_in_table`）按层把各层声明喂给它，所以换规则只改 `ACTIVE_TOGGLE_RULE` 一行。九个 toggle 字段的枚举、读写与常量由 `toggle_fields!` 一张表展开。
 
-**校准已完成**：`fixtures/resolve/toggle/*` 五份 + `fixtures/resolve/sections/*` 一份，六份最小 docx 由 `cargo run -p gen-fixtures` 生成，观察值来自真实 Word，`expected.toml` 全部 `verified = true`，`tests/resolve_fixtures.rs` 全绿。原来激活的 `MostSpecificWins` 在六份里错了三份。
+**校准已完成**：`fixtures/resolve/toggle/*` 七份 + `fixtures/resolve/sections/*` 一份，八份最小 docx 由 `cargo run -p gen-fixtures` 生成，观察值来自真实 Word，`expected.toml` 全部 `verified = true`，`tests/resolve_fixtures.rs` 全绿。原来激活的 `MostSpecificWins` 在前六份里错了三份；补测的两份又逼出了按字段分的那张表。
 
 **影响面**：这条规则只作用于 `resolve` 这个公开只读视图。`bind/compat_ts` 的 `runs[].bold` 发的是 run 自己 `w:rPr` 的声明值（复现 TS 的形态），不走 `Resolver::run`；`tests/resolve.rs` 的 `StyleDisplay` 比的是每个样式自己的链合并，也不走 toggle 规则。所以换规则后五道差分门与保存语料的数字一个没变——语料并不覆盖这条路径（语料里 `docDefaults` 带 `w:b` 的文档为 0 份）。
 

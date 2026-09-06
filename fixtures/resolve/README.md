@@ -73,8 +73,29 @@ OneDrive 后用 Word 网页版打开，逐段把光标放进去，读功能区"�
 | `toggle/direct-off` | `direct b=0 over style b` | 直接 b=0 压样式 b | 不加粗 |
 | | `style b, no direct` | 段落样式 b | 加粗 |
 | `sections/inherit-default` | 第二页页眉 | 第二节无 `headerReference` | **显示"第一节页眉"** |
+| `toggle/docdefaults-and-para-off` | `docDefaults b + para b=0` | docDefaults b + 段落样式 b=false | **加粗**（段落样式明写"不加粗"，Word 照样加粗） |
+| | `docDefaults b only` | 只有 docDefaults b | 不加粗（复现上一条） |
+| `toggle/other-toggles` | `i twice` / `i once` | 段落样式 + 字符样式 / 只有段落样式 | **不斜 / 斜**（与 `b` 同规则） |
+| | `strike twice` / `strike once` | 同上 | **都有删除线**（**不**异或） |
+| | `caps twice` / `caps once` | 同上 | **都是大写**（不异或） |
+| | `smallcaps twice` / `smallcaps once` | 同上 | **都是小型大写**（不异或） |
+| | `dstrike twice` / `dstrike once` | 同上 | **都有删除线**（不异或） |
+| | `vanish twice` / `vanish once` | 同上 | **观察不到**：Word 网页版把隐藏文字照常显示 |
 
-### 结论：`RES-04` 的规则按实测改写
+### 结论一：同一份规范里的 toggle，Word 并不同待遇
+
+`b` 与 `i` 按层级异或；`caps` / `smallCaps` / `strike` / `dstrike` **不异或**——两层都声明时
+效果照样是开的，也就是"最具体的声明胜出"。所以引擎的规则**按字段选**
+（`resolve::toggle` 的 `toggle_fields!` 那张表），没有单一的"当前规则"：
+
+| 字段 | 规则 | 依据 |
+| --- | --- | --- |
+| `b` / `i` | `WordObserved`（层级异或） | 实测 |
+| `bCs` / `iCs` | `WordObserved` | 未单独实测，跟着各自的本体走 |
+| `caps` / `smallCaps` / `strike` / `dstrike` | `MostSpecificWins` | 实测 |
+| `vanish` | `MostSpecificWins` | 观察不到，按 `strike` 一族处理（也是 TS 的行为） |
+
+### 结论二：`b` / `i` 的层级异或规则
 
 原来激活的"最具体的声明胜出"（也是 TS 参考实现的行为）在六份里错了三份。实测出来的规则是
 `resolve::toggle::ToggleRule::WordObserved`，已激活：
@@ -100,10 +121,11 @@ OneDrive 后用 Word 网页版打开，逐段把光标放进去，读功能区"�
 
 ### 还没测到的角
 
-- **docDefaults 为 true、段落样式显式关掉**（`w:b w:val="0"`）。模型说 `T ⊕ F = T`（加粗），
-  但没有实测。真遇到再补一份 fixture。
-- 其余八个 toggle（`i` / `caps` / `smallCaps` / `strike` / `dstrike` / `bCs` / `iCs` / `vanish`）
-  按同一规则处理，只测了 `b`。ECMA-376 把它们归为同一类，Word 没有理由分开处理，但没有实测。
+- **`vanish`**：Word 网页版把隐藏文字照常显示，看不出开关状态。引擎按 `strike` 一族处理。
+- **`bCs` / `iCs`**：复杂脚本孪生，要 `w:rtl` 的阿拉伯文 / 希伯来文才看得见，没测。
+  跟着 `b` / `i` 走。
+- **只在 Word 网页版上测过**。桌面版 Word 的渲染是另一套实现，`strike` 一族不异或这条
+  尤其值得在桌面版上复核一次——它与 ECMA-376 §17.7.3 的字面表述冲突最大。
 
 ### 换规则影响到哪
 
