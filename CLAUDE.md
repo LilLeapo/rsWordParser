@@ -54,8 +54,8 @@ genoffice 的 TS 引擎是参考实现。目标是**功能等价或更强**，�
 | `crates/rsword/schema/` | `local_names.txt`（名字表）、`props/*.toml`（属性表） |
 | `tools/diff-parse`、`tools/xpath-assert`、`tools/gen-fixtures` | 差分、XPath 断言、`fixtures/resolve` 生成（workspace 成员） |
 | `fixtures/resolve` | `RES-12` 校准 fixture：文档我们生成，**观察值来自真实 Word**（见那里的 README） |
-| `corpus/synthetic` | 573 份 docx + `*.expected.json`（TS `ParsedDoc`）+ 162 份 `*.save.<k>.json`（`SaveBlock[]` + 期望 `documentXml`） |
-| `corpus/hostile` | 26 份恶意 / 畸形输入（`TEST-09`） |
+| `corpus/synthetic` | 799 份 docx + `*.expected.json`（TS `ParsedDoc`）+ 208 份 `*.save.<k>.json`（`SaveBlock[]` + 期望 `documentXml`）；`m6-*` 是 M6 的嵌入对象语料 |
+| `corpus/hostile` | 32 份恶意 / 畸形输入（`TEST-09`） |
 | `fuzz/` | `fuzz_xml`、`fuzz_zip`（不在 workspace 内） |
 
 ## 命令
@@ -70,10 +70,12 @@ cargo run -p diff-parse -- --scope fields   # M2 门：再加字段 / 范围 / �
 cargo run -p diff-parse -- --scope tables   # M3 门：再加含表格的文档（按文档筛），仍须为 0
 cargo run -p diff-parse -- --scope drawing  # M4 门：绘图域**路径**（不是按文档筛），仍须为 0
 cargo run -p diff-parse -- --scope hf       # M5 门：页眉页脚域**路径**，仍须为 0
+cargo run -p diff-parse -- --scope embedded # M6 门（进行中）：嵌入对象域（路径 + 期望块 label），目标 0
 cargo run -p diff-parse -- --scope all --json          # 全域差距排名
 cargo run -p xpath-assert -- a.docx '//w:p[1]/w:r/w:t/text()'
 cd fuzz && cargo +nightly fuzz run fuzz_xml -- -max_total_time=600      # 另有 fuzz_zip / fuzz_instr
-GENOFFICE_DIR=~/code/genoffice tools/export-golden/run.sh   # 重导语料（改期望值的唯一合法途径）
+GENOFFICE_DIR=~/code/genoffice tools/export-golden/run.sh   # 重导语料（改期望值的唯一合法途径；重导后按 tools/export-golden/README「重导的稳定性与噪音」还原噪音）
+tools/export-golden/try.sh <name>.export.test.ts             # 开发新的导出用例文件：只跑它，产物进临时目录，不碰 corpus/
 ```
 
 ## 工作约定

@@ -27,6 +27,10 @@ const KNOWN_BROKEN: &[(&str, usize)] = &[
     ("rels-missing-target.docx", 1),
     // hostile：绘图里的关系全是悬空的（`a:blip` 与 `v:imagedata` 各一处；`wps:txbx` 不是媒体）
     ("drawing-missing-rels.docx", 2),
+    // hostile：墨迹 run 的 `r:embed` 悬空（M6 6.8 的病态输入，`spec/17`）
+    ("ink-garbage.docx", 1),
+    // M6 语料 B9：OLE 预览 `v:imagedata r:id` 悬空且段落有文字；TS 保字节不保预览
+    ("m6-ole__005.docx", 1),
 ];
 
 #[derive(Default)]

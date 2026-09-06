@@ -1,4 +1,4 @@
-# 05 · 现状快照（2026-09-05）
+# 05 · 现状快照（2026-09-06）
 
 这份文档回答"现在能做什么、不能做什么、数字是多少"。任务清单在 `docs/04-dev-plan.md`，规范在 `spec/`。
 数字都可以用文末的命令复现；改动代码后请一并更新这里。
@@ -104,20 +104,21 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
 | 源码行数 / 文件数 | 57,345 行 / 135 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 438（单元 + 集成，29 个集成测试文件） | `cargo test --workspace` |
-| 语料 | 573 份 synthetic（每份带 `expected.json`）+ 162 份 `save.<k>.json` + 26 份 hostile（含 4 份绘图、2 份表格、4 份页眉页脚 / 节） | `ls corpus/*` |
+| 测试数 | 439（单元 + 集成，29 个集成测试文件） | `cargo test --workspace` |
+| 语料 | 799 份 synthetic（每份带 `expected.json`；其中 226 份是 M6 的嵌入对象语料 `m6-*`）+ 208 份 `save.<k>.json` + 32 份 hostile（含 4 份绘图、2 份表格、4 份页眉页脚 / 节、6 份嵌入对象） | `ls corpus/*` |
 | 往返字节保真 | 593 份文档、3,140 个 XML part 全部字节相同（3 个 part 按预期解析失败：两份不闭合 XML + 二进制页眉） | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
 | 模型对照 | 445 段类型 / styleId、387 段坐标流文本、22 项列表、9 项级别 | `tests/model.rs` |
 | resolve 对照 | 86,465 项 `StyleDisplay`、2,326 项 heading 级别、2,897 项 linked shell | `tests/resolve.rs` |
-| 解析差分（文本域） | 226 份用例（2.6 起含带批注 / 注释的文档），156 处已登记差异，**0 处未知差异** | `cargo run -p diff-parse -- --scope text` |
-| 解析差分（字段与 Span 域，M2 门） | 253 份用例（文本域 + 字段 / 标记 / 批注 / 注释），**0 处未知差异** | `cargo run -p diff-parse -- --scope fields` |
-| 解析差分（表格域，M3 门） | 320 份用例（字段域 + 表格，含单元格里的锚定形状与图片），**0 处未知差异** | `cargo run -p diff-parse -- --scope tables` |
-| 解析差分（页眉页脚域，M5 门） | 573 份用例，**0 处未知差异**（按**路径**筛） | `cargo run -p diff-parse -- --scope hf` |
-| 解析差分（全域） | 573 份里 29 份有未知差异、62 个差异点（M6 的工作面） | `cargo run -p diff-parse -- --scope all` |
+| 解析差分（文本域） | 256 份用例（2.6 起含带批注 / 注释的文档；嵌入对象文档剔除），156 处已登记差异，**0 处未知差异** | `cargo run -p diff-parse -- --scope text` |
+| 解析差分（字段与 Span 域，M2 门） | 283 份用例（文本域 + 字段 / 标记 / 批注 / 注释），**0 处未知差异** | `cargo run -p diff-parse -- --scope fields` |
+| 解析差分（表格域，M3 门） | 352 份用例（字段域 + 表格，含单元格里的锚定形状与图片），**0 处未知差异** | `cargo run -p diff-parse -- --scope tables` |
+| 解析差分（页眉页脚域，M5 门） | 799 份用例，**0 处未知差异**（按**路径**筛，嵌入对象块上的差异剔除） | `cargo run -p diff-parse -- --scope hf` |
+| 解析差分（嵌入对象域，M6 门，**进行中**） | 799 份用例，182 份有未知差异、420 个差异点（按路径 + 期望块的 label 筛） | `cargo run -p diff-parse -- --scope embedded` |
+| 解析差分（全域） | 799 份里 196 份有未知差异、452 个差异点（嵌入对象域 420 + 零散 32） | `cargo run -p diff-parse -- --scope all` |
 | resolve 校准 fixture | 8 份（7 个 toggle + 1 个节继承）全部 `verified = true`，观察值来自 2026-09-06 的 Word 网页版实测（方法与结论见 `fixtures/resolve/README.md`，未决部分见 `docs/06-toggle-open-question.md`） | `cargo test -p rsword --test resolve_fixtures` |
 | 页眉页脚 / 节的随机序列 | 10 份语料 × 100 步（页眉段落内联编辑 + 五个节 / 页眉页脚操作）：986 次生效、10 次被拒，每步 `refresh == rebuild`、无引擎不变式破坏 | `cargo test -p rsword --test hf_ops -- --nocapture` |
-| 保存差分 | 162 份 TS 保存用例：138 份与 `saveDocx` 等价（其中 41 份逐字节相同）、4 份有意不同、20 份跳过 | `tests/save_blocks.rs` |
+| 保存差分 | 208 份 TS 保存用例：143 份与 `saveDocx` 等价（其中 43 份逐字节相同）、4 份有意不同、61 份跳过（全属 M6） | `tests/save_blocks.rs` |
 | 节与页眉页脚 | 573 份 588 个节（与 TS `readSections` 逐份一致）；43 份带页眉页脚 part（47 个 part / 63 个块，`rId` 集合与 `hasPageNumber` 与 TS 一致）；26 个注释 / 批注条目 32 个块 | `cargo test -p rsword --test section --test hf --test notes -- --nocapture` |
 | 节与页眉页脚的编辑操作 | 14 个用例（`SAVE-05` 页眉版、已有 part 只重写该 part、`PROP-05/06` 插入位置与原字节、Strict 水印拒绝、六个操作各一组 XPath 断言、`MOD-13` oracle；另加 4 份 hostile 与 `TEST-07` 的 10 × 100 步随机序列） | `cargo test -p rsword --test hf_ops` |
 | 跨 part 编辑 | **43 / 43** 份带页眉页脚的语料（M5 门第 3 条）：改页眉后只重写该 part，其他条目 CRC 与压缩字节不变，正文投影不变 | `cargo test -p rsword --test hf -- --nocapture` |
@@ -129,15 +130,13 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 段落 / 书签 / 字段操作 | 17 个用例（`SPAN-06` 拆分与合并、`EDIT-06` 书签分配、`FLD-09`/`10`/`12` 各自的验收行） | `cargo test -p rsword --test para_ops` |
 | 批注与注释 | 语料 11 份带批注（17 条）、5 条注释条目；13 个用例（三部件关联、结构条目、`commentIds` 三形态、`noteRef` 编号、`SAVE-05` 新建 part、三个编辑操作、compat 权威列表） | `cargo test -p rsword --test notes` |
 
-全域差异按域聚合（差异点，5.7 之后实测 62）：**块分类连带项与 run 44**
-（`previewText` 12、`runs[]` 11、`runs[].text` 5、`label` 4 …；多半是图表与公式段落的连带，
-分类对了就跟着归零）、**Strict 改写 12**（`extra__mixed-flavor` 与 `extra__strict-minimal` 的
-`internal.*` 与 `extras.elements[*]`：TS 装载时把 Strict 改写为 Transitional，已按路径登记）、
-**公式 4 与图表 2**（M6）。
-**表格域**（单元格里的锚定形状与图片，M3 与 M4 的交叉地带）与**页眉页脚域**都已归零。
-文本域、字段与 Span 域、表格域、绘图域、页眉页脚域五道门都是 0。
-保存侧 20 份跳过按里程碑（实测，按选项分组去重）：**M6 / M7 20 份**（图表 6 + 图片 4 + 墨迹 8 + `partXml` 1 +
-`replaceImage` 1）——5.6 与 5.7 一起关掉了 48 份里的全部。
+全域差异按域聚合（差异点，m6.0a 扩充语料后实测 452）：**嵌入对象域 420 / 182 份**（M6 的工作面，
+`--scope embedded`：`previewText` 94、`chartDisplay` 88、`extras.chartParts` 80、`formulaDisplay` 41、`runs[]` 41、`inks[]` 15、
+`diagramDisplay` 13、`label` 11 …；按语料前缀 `m6-chart` 188、`m6-omml` 82、`m6-ink` 43、`m6-canvas` 25、`m6-smartart` 16、
+`m6-chartex` 14、`m6-ruby` 14、旧语料 30）、**零散 32 / 14 份**（M6 6.9 收尾：Strict 改写 13 已登记候选、`TooDeep` 块形态 4、
+`shape-extraction__014` 的未声明 `wps` 前缀 4、同 run 两张图 3、`pageBreakBefore` 2、WordArt 3、其余 3）。
+文本域、字段与 Span 域、表格域、绘图域、页眉页脚域五道门都是 0（嵌入对象文档 / 块已按 `spec/17` 门第 1 条的边界剔除）。
+保存侧 61 份跳过全属 M6（图表 13 + 图片 11 + 墨迹 23 + `partXml` 7 + `partBinary` 1 + `replaceImage` 6）。
 
 ## 与 TS 有意不同的地方
 
@@ -197,6 +196,7 @@ cargo run -p diff-parse -- --scope fields                           # M2 门：�
 cargo run -p diff-parse -- --scope tables                           # M3 门：表格域 0 未知差异
 cargo run -p diff-parse -- --scope drawing                          # M4 门：绘图域路径 0 未知差异
 cargo run -p diff-parse -- --scope hf                               # M5 门：页眉页脚域路径 0 未知差异
+cargo run -p diff-parse -- --scope embedded                         # M6 门（进行中）：嵌入对象域 420 → 0
 cd fuzz && cargo +nightly fuzz run fuzz_instr -- -max_total_time=600 # M2 门：指令 tokenizer 无崩溃
 cargo test -p rsword --test edit                                    # M1 门第二条：其他条目 CRC 不变
 cargo test -p rsword --test save_validate                           # M1 门第三条：Strict 改字仍 Strict

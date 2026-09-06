@@ -1085,6 +1085,18 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
 工作树 `../rsWordParser-m6`。开工基线（2026-09-06 实测）：`diff-parse --scope all` 62 处 / 29 份，其中嵌入对象域 22 处 / 12 份
 （公式 8 + 行内公式 4 + 图表 3 + SmartArt / 缺 part 的 `previewText` 5 + OLE 同段 2），其余 40 处是没有归属的零散差异（6.9）；
 保存语料 138 / 162 等价，剩下的 20 份跳过全属 M6（chart 6 + image 4 + inks 8 + partXml 1 + replaceImage 1）。M6 门五条见 `spec/17`。
+**m6.0a 扩充语料后**（2026-09-06，799 份 / 208 份保存用例 / 32 份 hostile）：`--scope embedded` 420 处 / 182 份，`--scope all`
+452 / 196（本域之外 32 / 14），保存 143 / 208 等价、61 份被 M6 阻塞；五道既有的门仍为 0。
+
+- [x] **m6.0 语料与工具**：`tools/export-golden/try.sh`（单文件导出到临时目录）、`M6-CORPUS.md`（给 codex / kimi 的任务书）、
+  `docs/07-real-word-corpus.md`（桌面 Word 语料清单）。**m6.0a** 两位 agent 的 `embedded-graphics.export.test.ts` /
+  `embedded-text.export.test.ts` + 6 份 hostile；重导时发现录制器按哈希去重、vitest 文件顺序不稳会让既有 stem 漂移
+  （`resource-cleanup__001` 整份换名），`vitest.config.ts` 按 `file-order.ts`（首次导出的实际顺序）固定顺序，新源文档
+  加 `<!--stem-->` 注释保证字节唯一，`outputSha256` / 随机盐 / zip 时间戳这类噪音还原成 HEAD（README「重导的稳定性与噪音」）。
+  **m6.0b** `compat_ts::embedded_kind / is_embedded_case / is_embedded_diff`：M1–M3 的门按文档剔除嵌入对象文档，
+  `drawing` / `hf` 剔除落在嵌入对象块上的差异，新增 `--scope embedded`（未进 CI，6.2 接）。三处测试登记：
+  `media.rs` 的 `ink-garbage` / `m6-ole__005` 悬空引用、`model.rs` 的 `m6-ink__` 块类型（TS 剥墨迹 run，6.8 收口后删）、
+  `xml_roundtrip.rs` 的 `chart-part-malformed` 必须解析失败。
 
 - [ ] **6.1 图表 part 的模型**（`model/chart.rs`）：图表 part 有自己的 DOM，`ChartDisplay` 是投影；`c:` 与 chartex；TS 单测夹具搬成 `tests/fixtures/chart/*.xml`。
 - [ ] **6.2 图表投影与 `--scope embedded`**（`bind/compat_ts/chart.rs`、`diff.rs`、`tools/diff-parse`）：`chartDisplay` / `extras.chartParts` / `previewText` 的有无；R12 的 chartex Fallback 图；CI。
