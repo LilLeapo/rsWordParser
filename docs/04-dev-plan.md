@@ -454,6 +454,12 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
 | 2.9 | 字段与段落操作：`InsertField`、`SetLinkTarget`、`ToggleCheckbox`、`SplitParagraph`、`MergeWithNext` 等 | `FLD-09`–`FLD-12`、`EDIT-03` | 各自的验收行 |
 | 2.10 | `fuzz_instr` 与 M2 门 | `TEST-08`、`TEST-10` | 字段与 Span 域 diff 为 0；10 分钟无崩溃 |
 
+**M7 计划**（2026-09-06 写成，`spec/18-m7-plan.md`）：M7 是 M6 之后的串行里程碑，内容 = 历次里程碑明确推给 M7 的东西的
+总和——修订生成（`track_changes`）与接受 / 拒绝、`EditOp` 全集补齐（`InsertAtom` / 注释与 sdt 内容 / 跨段删除 / 跨 part 搬移）、
+分节符增删、既有绘图的编辑与 z-order 回写、块字段生成器（TOC / SEQ / INDEX）与 `latexToOmml`、空白文档模板、`TEST-07`
+1,000 序列与 `fuzz_edit`；另建议把 JS 绑定（M8 的前提）收进来，形态待拍板。六条门、11 个任务、修订生成规则表与 13 条风险都在
+那份文件里；逐条进度开工后记 §16。基线数字写作时 M6 只到 6.2，开工前按并入后的 `main` 重测。
+
 **M1 遗留债的处置**：事务快照已改成覆盖事务碰过的每个 part（`edit/session.rs`，单元测试
 `edit_05_transaction_rolls_back_every_touched_part`）；投影刷新遇到不在正文顶层的段落改为整体重建，不再留过期投影。
 剩下两条要等对应里程碑：`DeleteRange` 对字段结构段的"原地保留"要 2.4 的 `FieldSpan` 才能真正删对；

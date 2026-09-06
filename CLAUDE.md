@@ -15,8 +15,8 @@
 3. `docs/04-dev-plan.md` —— 执行计划：§5.1 M1 已完成清单、§5.2 M1 门、§8 实现偏差、§9 待决、§10 M2 及以后的排期、§11 M2 逐条进度、§12 M3 逐条进度、§13 M4 逐条进度、§14 M5 逐条进度、§15 M6 逐条进度。
 4. `docs/01-ts-parser-reference.md` 与 genoffice 源码 —— **参考实现，不是验收权威**（见下）。
 
-`spec/12-m0-m1-plan.md`、`spec/13-m2-plan.md`、`spec/14-m3-plan.md`、`spec/15-m4-plan.md`、`spec/16-m5-plan.md`、`spec/17-m6-plan.md` 是里程碑任务分解（# / 任务 / 规范 / DoD）。
-M0–M5 已全部并入 `main`；M5（页眉页脚 / 节 / 声明 part / resolve 校准）**九个任务与五条门全部完成**（`RES-04` 的 toggle 规则已按 2026-09-06 的 Word 实测校准）。逐条进度与门的实测见 `docs/04` §14。**M6**（嵌入对象：图表 / SmartArt / 画布 / OLE / 公式 / 墨迹、媒体写侧）在 `m6-embedded` 进行中（工作树 `../rsWordParser-m6`），任务分解 `spec/17`，逐条进度见 `docs/04` §15。
+`spec/12-m0-m1-plan.md`、`spec/13-m2-plan.md`、`spec/14-m3-plan.md`、`spec/15-m4-plan.md`、`spec/16-m5-plan.md`、`spec/17-m6-plan.md`、`spec/18-m7-plan.md` 是里程碑任务分解（# / 任务 / 规范 / DoD）。
+M0–M6 已全部并入 `main`；M5（页眉页脚 / 节 / 声明 part / resolve 校准）**九个任务与五条门全部完成**（`RES-04` 的 toggle 规则已按 2026-09-06 的 Word 实测校准），逐条进度与门的实测见 `docs/04` §14。**M6**（嵌入对象：图表 / SmartArt / 画布 / OLE / 公式 / 墨迹、媒体写侧）**九个任务与五条门全部完成**（2026-09-06；八道 `diff-parse` 门含 `--scope all` 都在 CI），逐条进度与门的实测见 `docs/04` §15。**M7**（`spec/18`）计划于 2026-09-06 写成、尚未开工，开工前按并入 M6 后的 `main` 重测基线。
 
 ## TS 不是权威
 
