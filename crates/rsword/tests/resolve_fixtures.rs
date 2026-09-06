@@ -149,6 +149,10 @@ fn provenance_str(p: &rsword::resolve::Provenance) -> String {
         P::NumberingLevel { num_id, ilvl } => format!("NumberingLevel:{num_id}:{ilvl}"),
         P::DocDefaults => "DocDefaults".into(),
         P::Theme => "Theme".into(),
+        // `RES-04`：多个层级异或出来的值，`+` 连接参与的层（最具体在前）
+        P::Toggle { levels } => {
+            format!("Toggle:{}", levels.iter().map(provenance_str).collect::<Vec<_>>().join("+"))
+        }
         P::Default => "Default".into(),
     }
 }

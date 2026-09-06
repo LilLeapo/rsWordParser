@@ -15,4 +15,5 @@ verified = true
 # 只有段落样式 PBold(b=true) → 加粗
 text = "style b, no direct"
 bold = true
+source = "ParaStyle:PBold"
 verified = true

@@ -56,6 +56,13 @@ pub enum Provenance {
     },
     DocDefaults,
     Theme,
+    /// `RES-04`：toggle 属性由**多个层级异或**得出，没有单一来源。
+    ///
+    /// 两个层级各声明一次 `true` 时有效值是 `false`——那个 `false` 谁都没写过，指向任何一层
+    /// 都是撒谎。`levels` 按最具体到最不具体列出参与异或的那些层，供界面解释"为什么不加粗"。
+    Toggle {
+        levels: Vec<Provenance>,
+    },
     /// 未声明，取 Word 缺省。
     Default,
 }
@@ -216,6 +223,55 @@ impl<'a> Resolver<'a> {
 
     /// `RES-03` 第 4 层：表格样式（整表 + 命中的条件格式，见 [`TableView::cell`] 的 `rpr`）在段落样式链
     /// 之后、字符样式链之前生效。`table` 为 `None` 时与 [`Resolver::run`] 等价。
+    /// `RES-04` 的来源：直接格式一票定音时就是 `Direct`；只有一个层级参与、且有效值就是它
+    /// 声明的那个值时指那一层；**否则**是 [`Provenance::Toggle`]——异或出来的值谁都没单独写过。
+    ///
+    /// "只有 docDefaults 声明"也落到 `Toggle`：Word 的规则里段落样式层会把 docDefaults 的值
+    /// 再贡献一次（每个段落都有样式，样式链的根是 docDefaults），所以有效值是 `false` 而
+    /// docDefaults 写的是 `true`，指着 docDefaults 同样是撒谎。
+    fn toggle_source(
+        &self,
+        l: &toggle::ToggleLayers<'_>,
+        para_chain: &[&Style],
+        char_chain: &[&Style],
+        in_table: bool,
+        value: bool,
+        cascaded: Option<Provenance>,
+    ) -> Provenance {
+        // 叶字符样式的 id：linked 补缺层归它
+        let char_leaf_id = char_chain.first().and_then(|s| s.id()).unwrap_or_default();
+        if l.direct.is_some() {
+            return Provenance::Direct;
+        }
+        // `chain` 可能比 `styles` 长一格：字符样式一侧末尾接了 linked 补缺层，它不在链里，
+        // 归属的是叶字符样式自己（与层叠里 `apply` 标的来源一致）
+        let leaf = |chain: &[Option<bool>],
+                    styles: &[&Style],
+                    fallback: &str,
+                    make: fn(String) -> Provenance| {
+            chain.iter().position(|v| v.is_some()).map(|i| {
+                let id = styles.get(i).and_then(|s| s.id()).unwrap_or(fallback).to_string();
+                (make(id), chain[i].expect("position 找到的就是 Some"))
+            })
+        };
+        // 参与的层级，最具体到最不具体
+        let mut levels: Vec<(Provenance, bool)> = Vec::new();
+        levels.extend(leaf(l.char_chain, char_chain, char_leaf_id, Provenance::CharStyle));
+        if in_table && let Some(v) = l.table {
+            levels.push((Provenance::TableStyle { style: String::new(), cond: None }, v));
+        }
+        levels.extend(leaf(l.para_chain, para_chain, "", Provenance::ParaStyle));
+        if let Some(v) = l.doc_default {
+            levels.push((Provenance::DocDefaults, v));
+        }
+        match levels.as_slice() {
+            [] => cascaded.unwrap_or(Provenance::Default),
+            // 唯一一层，且有效值就是它写的那个 → 指它
+            [(p, v)] if *v == value => p.clone(),
+            _ => Provenance::Toggle { levels: levels.into_iter().map(|(p, _)| p).collect() },
+        }
+    }
+
     pub fn run_in_table(
         &self,
         table: Option<&RunProps>,
@@ -273,10 +329,9 @@ impl<'a> Resolver<'a> {
         }
         apply(&mut props, direct, Provenance::Direct);
 
-        // RES-04：toggle 字段单独合成一遍。规则在 `resolve::toggle` 里参数化，激活的那条
-        // （`MostSpecificWins`）与上面的层叠结果相同，所以这一段今天不改变任何取值；
-        // 换成 `OddParity` 时改的只有 `ACTIVE_TOGGLE_RULE` 一行（`fixtures/resolve/toggle/*`
-        // 的 Word 观察值填好之前不许换）
+        // RES-04：toggle 字段单独合成一遍——它们**不**按上面的"最具体胜出"层叠，而是按
+        // `resolve::toggle` 里那条 Word 实测规则在层级之间异或（`fixtures/resolve/toggle/*`）。
+        // 换规则只改 `ACTIVE_TOGGLE_RULE` 一行；这里只负责把各层的声明按层喂进去。
         for &f in toggle::TOGGLE_FIELDS {
             // 字符样式一侧：链自身各层，末尾再接 linked 补缺层（它只带链没声明的字段，
             // 所以接在后面不影响链内的优先级；漏了它 `H1Char` 这类 linked 壳就丢掉 `b`）
@@ -299,11 +354,19 @@ impl<'a> Resolver<'a> {
                     .and_then(Styles::doc_default_rpr)
                     .and_then(|dd| toggle::toggle_of(dd, f)),
             };
-            toggle::set_toggle(
-                &mut props,
-                f,
-                toggle::resolve_toggle(toggle::ACTIVE_TOGGLE_RULE, &layers),
-            );
+            let value = toggle::resolve_toggle(toggle::ACTIVE_TOGGLE_RULE, &layers);
+            toggle::set_toggle(&mut props, f, value);
+            // 来源要跟着改：异或出来的值可能哪一层都没写过，继续指着某一层就是撒谎
+            if value.is_some() {
+                sources[f as usize] = Some(self.toggle_source(
+                    &layers,
+                    &para_chain,
+                    &char_chain,
+                    table.is_some(),
+                    value == Some(true),
+                    sources[f as usize].clone(),
+                ));
+            }
         }
 
         // RES-06：cs = 直接 rtl ?? 字符样式链 rtl ?? 段落样式链 rtl ?? false

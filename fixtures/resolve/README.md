@@ -92,6 +92,12 @@ OneDrive 后用 Word 网页版打开，逐段把光标放进去，读功能区"�
   不加粗就是这么来的——两条候选规则都预测加粗，只有这个模型对得上。
 - 直接格式一票定音，与两条候选规则一致。
 
+### 来源（`RES-01`）
+
+异或出来的值谁都没单独写过，所以 `Provenance` 是 `Toggle { levels }`，`levels` 按最具体到
+最不具体列出参与的层。`expected.toml` 的 `source` 字段把它写成 `Toggle:CharStyle:CBold+ParaStyle:PBold`
+这样，一起断言。只有一个层级参与、且有效值就是它写的那个值时才指那一层。
+
 ### 还没测到的角
 
 - **docDefaults 为 true、段落样式显式关掉**（`w:b w:val="0"`）。模型说 `T ⊕ F = T`（加粗），

@@ -9,10 +9,13 @@ doc = "toggle/para-and-char"
 # 段落样式 PBold(b=true) + 字符样式 CBold(b=true)：两个层级，偶数次 → 不加粗
 text = "para b + char b"
 bold = false
+# 这个 false 谁都没单独写过：两层各写了一次 true，异或掉了
+source = "Toggle:CharStyle:CBold+ParaStyle:PBold"
 verified = true
 
 [[run]]
 # 只有段落样式 PBold(b=true)：一个层级，奇数次 → 加粗
 text = "para b only"
 bold = true
+source = "ParaStyle:PBold"
 verified = true

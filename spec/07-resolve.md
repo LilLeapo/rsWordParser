@@ -49,6 +49,8 @@ toggle 属性：`b bCs i iCs caps smallCaps strike dstrike outline shadow emboss
 3. **与 ECMA-376 §17.7.3 的差异**：规范说的是"层级各样式中值为 true 的次数"，实测是"层级数"——`basedOn` 链上两层都 `b=true` 时 Word 仍然加粗。这属于 [MS-OI29500] 记录的 Word 偏差一类（该文档也记了 docDefaults、表格样式、多层 basedOn 的处理与 Word 版本相关）。
 4. **只测了 `b`**，其余八个 toggle 按同一规则处理；`docDefaults=true` 且段落样式显式 `w:val="0"` 这个角没有实测。两条都记在 `fixtures/resolve/README.md` 的"还没测到的角"。
 
+**来源（`RES-01`）**：toggle 的有效值可能由多个层级异或得出，那个值谁都没单独写过，所以来源是 `Provenance::Toggle { levels }`（`levels` 按最具体到最不具体列出参与的层）。只有一个层级参与、且有效值就是它写的那个值时才指那一层；直接格式一票定音时是 `Direct`。"只有 docDefaults 声明"也落到 `Toggle`——段落样式层会把 docDefaults 的值再贡献一次。
+
 **实现**（任务 5.8）：`resolve::toggle::resolve_toggle(rule, &ToggleLayers { direct, char_chain, table, para_chain, doc_default })`，规则由 `ToggleRule` 参数化。激活的是 `WordObserved`（上面那条实测规则）；`MostSpecificWins`（最具体胜出，M1 起的行为，也是 TS `display` 的行为）与 `OddParity`（规范字面）保留在枚举里备查，各有单测。层叠（`Resolver::run_in_table`）按层把各层声明喂给它，所以换规则只改 `ACTIVE_TOGGLE_RULE` 一行。九个 toggle 字段的枚举、读写与常量由 `toggle_fields!` 一张表展开。
 
 **校准已完成**：`fixtures/resolve/toggle/*` 五份 + `fixtures/resolve/sections/*` 一份，六份最小 docx 由 `cargo run -p gen-fixtures` 生成，观察值来自真实 Word，`expected.toml` 全部 `verified = true`，`tests/resolve_fixtures.rs` 全绿。原来激活的 `MostSpecificWins` 在六份里错了三份。
