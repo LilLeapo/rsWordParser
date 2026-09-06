@@ -1,23 +1,19 @@
-# RES-04 toggle 校准（任务 5.8）。观察值必须来自真实 Word：
-# 在 Word 里打开同目录的 doc.docx，看每段那句话到底加不加粗，把 bold 填成
-# true / false，并把 verified 改成 true。verified = false 的条目测试只记不断言。
-# 观察方法与 Word 版本记在 fixtures/resolve/README.md。
+# RES-04 toggle 校准（任务 5.8）。观察值来自真实 Word，见 fixtures/resolve/README.md 的实测记录。
+#
+# 两条都不加粗。第二条尤其关键：整份文档只有 docDefaults 声明了 b=true，Word 仍然不加粗。
+# 解释见 README——每个段落都有样式（没写 pStyle 就是 Normal），而样式链的根是 docDefaults，
+# 所以 docDefaults 的值在"docDefaults 层"与"段落样式层"各出现一次，自己把自己抵消掉。
 
 doc = "toggle/docdefaults-and-para"
 
 [[run]]
-# docDefaults b=true 与段落样式 b=true 异或 → false？
+# docDefaults(b=true) + 段落样式 PBold(b=true)：两层 → 不加粗
 text = "docDefaults b + para b"
 bold = false
-# source 可选：填了就连 bold 的来源一起断言（Direct / ParaStyle:PBold / …）
-# source = "ParaStyle:PBold"
-verified = false
+verified = true
 
 [[run]]
-# 只有 docDefaults b=true → true
+# 只有 docDefaults(b=true)：段落样式层继承到同一个 true，两层 → 不加粗
 text = "docDefaults b only"
 bold = false
-# source 可选：填了就连 bold 的来源一起断言（Direct / ParaStyle:PBold / …）
-# source = "ParaStyle:PBold"
-verified = false
-
+verified = true

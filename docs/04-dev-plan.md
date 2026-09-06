@@ -377,6 +377,7 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `PROP-05` CT_SectPr | `headerReference/footerReference`（0–6 个，顺序任意），然后 sequence | 两者共用 `order` 的第 0 格（`"a\|b"` 写法），因此 `order_index` 对两者都返回 0 | 它们是 schema 里的一个可重复组（EG_HdrFtrReferences），**组内顺序自由**，Word 按 default / first / even 的逻辑顺序写、两种元素会交错。分别编号会让 `SAVE-02` 的 PROP-05 单调性检查把合法的 `<ftr/><hdr/>` 判成乱序；同一格表达的正是"彼此之间无序、整组在其他子元素之前"，新引用也就插在已有引用之后、`w:footnotePr` 之前 |
 | `PROP-08` `SectionProps` 清单 | `headerReference*, footerReference*, footnotePr, endnotePr, type, pgSz, pgMar, pgBorders, lnNumType, pgNumType, cols, formProt, vAlign, titlePg, textDirection, bidi, rtlGutter, docGrid` | 另建模 `noEndnote`（同类 OnOff，写回要用）；**不**建模 `paperSrc` 与 `printerSettings` | 前者是清单的遗漏（它就夹在 `vAlign` 与 `titlePg` 之间）；后两个是打印机硬件配置，编辑器与 resolve 都不用，不建模就原字节留在原位（`PROP-06`），需要时补一行即可 |
 | `PROP-09` 枚举容错 | 字面不匹配 → `Val::Raw` + 诊断 | `ST_HdrFtr` 额外收非 schema 的 `odd` | Word 之外的生成器用 `w:type="odd"` 表示"缺省页"，TS 与 Word 都当 default（`docs/01` §12）。当成 `Raw` 只会白记一条 `PROP_BAD_VALUE`，而 `RES-10` 照样得把它当 default |
+| `RES-04` toggle（ECMA-376 §17.7.3） | 奇偶跨越"样式层级中的每一个样式" | 奇偶只跨**层级**（docDefaults / 段落样式 / 表格样式 / 字符样式）；层级内部的 `basedOn` 链是普通的"子覆盖父"。另：段落样式层在链里一处都没声明时取 docDefaults 的值 | **2026-09-06 Word 网页版实测**（`fixtures/resolve/README.md` 有完整记录与方法）：`basedOn` 链上两层都 `b=true` 时 Word 仍然加粗，说明链内不计次数；"整份文档只有 docDefaults 声明 `b=true`"时 Word **不加粗**，只有"docDefaults 在两处各出现一次、自己抵消"这个模型对得上。TS 参考实现用的是"最具体胜出"，六份 fixture 里错了三份——按验收政策以 Word 为准 |
 | `MOD-10` `SectionGeom`（5.1 的决定） | 能解析的尺寸照原值给（`w:h="-1"` → `-1`） | 尺寸不是正数时回退缺省纸张 | `ST_TwipsMeasure` 是无符号的，`-1` 本来就不合法；而 `SectionGeom` 的每个消费者（列宽启发式、图片缩放、`body_width`）都拿它做版面算术，负数会一路传下去。声明值仍原样留在 `props` 里，写回不受影响——回退只发生在几何视图。hostile `sectpr-bad-values` 是这条的验收 |
 | `MOD-11` VML 框的摊平表 | 未规定深度 | `vml_display` 穿过的 `w:txbxContent` 超过 8 层就截断（`too_deep` → `MOD_TOO_DEEP`）；`Builder` 建框内容也是 8 层预算 | 摊平表把更深的层重复列出，规模 O(n²)；建内容那条递归每层压几 KB 属性结构体，33 层就把 2 MiB 测试栈用光。语料里框套框最多 2 层（`textbox-edit__012`），Word 的界面根本做不出更深的。hostile `hf-deep-txbx` 套了 3000 层 |
 | `SAVE-07` `sources` 选项（TS `buildSourcesXml`） | 新建的 `b:Sources` 同时声明 `xmlns:b` 与一个同 URI 的默认命名空间 | 只声明 `xmlns:b` | 两个绑定指同一个命名空间，但默认绑定会让新加的子元素序列化成不带前缀的 `<Source>`。语义完全相同（Word 与本引擎都按命名空间认），带前缀的形态更好读，也和 Word 自己写出来的一致 |
@@ -401,7 +402,7 @@ crate 名 `rsword`；nightly 与 cargo-fuzz 已装）。已决的政策见 §8 �
 | 1 | ~~语料基线~~ 已决（2026-09-04）：接受当前基线，不重导。`manifest.jsonl` 首行记着 `f105f36` + 32 个脏文件 + 导出时间；复核过影响面：32 个里只有 `packages/docx-engine/src/generate.ts`（三处 hunk 全在 `patchTableCellTexts`）与 `tests/nested-table-edit.test.ts` 在引擎内，其余 29 个在 `apps/docs`，碰不到解析与保存输出 | 后续若改了 genoffice 的 `docx-engine` 再重导；重导前先比对 `manifest.jsonl` 首行与 genoffice 当时状态 |
 | 2 | ~~`m1.15-diff-tools` 何时并入 `main`~~ 已并入（2026-09-04） | M2 直接从 `main` 开分支 |
 | 3 | ~~M2 计划文档~~ 已写：`spec/13-m2-plan.md`（10 个任务 + 从 M1 带过来的债 + 5 条风险提示）；M4 计划见 `spec/15-m4-plan.md`（8 个任务，与 M2 并行） | 开工前复核第 1 条（语料基线）对 2.5 / 2.6 差分基准的影响 |
-| 4 | **仍需项目负责人出手一件事**：`RES-04` toggle 与 `RES-10` 节继承的 fixture **观察值必须来自真实 Word**。5.8 已经把六份最小 docx、断言表骨架、参数化的 `resolve_toggle`（两条候选规则都实现并有单测）与测试 harness 都做好了，`fixtures/resolve/README.md` 写清了打开哪个文件、看哪一句话、填哪一格。**只差在 Word 里打开一次并把结果填进 `expected.toml`**（顺手记下 Word 版本）。填好之前 `verified = false` 的条目只记不断言，M5 门第 4 条挂起。<br>② `pageColor` 要不要同时写 `w:displayBackgroundShape`：**已决**——要写。复核 TS 的 `patch.ts` 时发现它其实也写（`if (options.pageColor && !xml.includes('<w:displayBackgroundShape'))`），当时那条备注记错了；5.6a 按写实现，Word 不打开这个开关就不画 `w:background` | 观察值回来后：全绿则 `ACTIVE_TOGGLE_RULE` 不动；有红则以 Word 为准换规则，并按 `spec/07` 的 `RES-04` 改写规范条目 |
+| 4 | ~~`RES-04` toggle 与 `RES-10` 节继承的 fixture 观察值~~ **已完成**（2026-09-06，Word 网页版，见 `fixtures/resolve/README.md` 的实测记录）：六份 fixture 全部 `verified = true`，`RES-04` 的规则按实测改写为 `ToggleRule::WordObserved`（原来的"最具体胜出"在六份里错了三份），`spec/07` 的 `RES-04` 条目同步重写。M5 门第 4 条**通过**。<br>② `pageColor` 要不要同时写 `w:displayBackgroundShape`：**已决**——要写。复核 TS 的 `patch.ts` 时发现它其实也写（`if (options.pageColor && !xml.includes('<w:displayBackgroundShape'))`），当时那条备注记错了；5.6a 按写实现 | 两个没实测到的角记在 `fixtures/resolve/README.md`：docDefaults 为 true 而段落样式显式关掉、以及 `b` 之外的八个 toggle |
 
 ---
 
@@ -882,7 +883,7 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
 | 1 | `--scope hf` 0 未知差异，`text` / `fields` / `tables` / `drawing` 继续为 0 | **通过**（573 / 226 / 253 / 320 / 573 份，五道门都是 0） |
 | 2 | 被 M5 选项阻塞的 48 份保存用例全部等价或登记；跳过只剩 20 份 | **通过**（162 份里 138 等价、4 份 `INTENTIONAL`、20 份跳过 = 图表 6 + 图片 4 + 墨迹 8 + `partXml` 1 + `replaceImage` 1，全属 M6 / M7） |
 | 3 | 43 份带页眉页脚的语料：改页眉后只重写那个 part，其他条目 CRC 与压缩字节不变 | **通过**（43 / 43。9 份页眉里一个文本段落都没有——整个页眉只有一张图或一张表——改用 `InsertBlock`） |
-| 4 | `RES-04` / `RES-10` 的 fixture 通过 `TEST-08` | **挂起**：脚手架全就位（六份 docx、参数化规则、harness），**只差在真实 Word 里观察一次**。见 5.8 与 §9 第 4 条 |
+| 4 | `RES-04` / `RES-10` 的 fixture 通过 `TEST-08` | **通过**（2026-09-06 Word 网页版实测；六份 fixture 全部 `verified = true`，`RES-04` 的规则按实测改写） |
 | 5 | 4 份页眉页脚 / 节的病态输入解析成功、局部降级、无编辑保存字节相同 | **通过**（`PKG_REL_MISSING` / `PKG_OPAQUE_PART` + `EDIT_TARGET_OPAQUE` / `PROP_BAD_VALUE` + 几何回退 / `MOD_TOO_DEEP`） |
 
 - [x] **5.1 节属性表**（`schema/props/section.toml`，`types.toml` + 12 枚举 / 8 结构体）：`SectionProps`
@@ -1013,7 +1014,7 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
     断言 + **重解析后** `parsed_doc` 的 `sources` / `numbering[numId]` / `themeFonts` /
     `themeColors` / `styles[styleId]` 等于请求值（这是这些 part 唯一的 oracle），
     两种新建 part 之后其他条目的原压缩数据不变。
-- [~] **5.8 resolve 校准**（机械部分已完成，**观察值等 Word**）
+- [x] **5.8 resolve 校准**（脚手架 + **Word 实测已完成**）
   - `resolve/toggle.rs`：`resolve_toggle(rule, &ToggleLayers { direct, char_chain, table,
     para_chain, doc_default })`，规则由 `ToggleRule` 参数化——`MostSpecificWins`（M1 起的行为，
     也是 TS `display` 的行为）与 ECMA-376 §17.7.3 的 `OddParity` 都实现了并有单测。
@@ -1029,9 +1030,21 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   - `tests/resolve_fixtures.rs`：每个 fixture 目录一个 `#[test]`（`fixture_tests!` 展开，另有一个
     "目录都登记了"的检查）。每条断言带 `verified`：`true` 才真断言，`false` 只打印"引擎说 X、
     文件里占位 Y"。**故意不拿引擎自己的输出去填期望值**——那是自证，比没有断言更糟。
-  - `fixtures/resolve/README.md` 写清为什么只能靠 Word（§17.7.3 的奇偶规则与 [MS-OI29500] 的
-    Word 偏差对不上）、怎么填、填完怎么处理 `tests/resolve.rs` 可能出现的不等（按路径登记，
-    Word 为准）。**剩下的就是在 Word 里打开一次。**
+  - `fixtures/resolve/README.md` 写清为什么只能靠 Word、怎么填、以及**实测记录**。
+  - **2026-09-06 的实测结论**（Word 网页版，六份文档逐段读功能区"加粗"按钮的按下状态与
+    字体名框，两处各复核一次）：原来激活的"最具体胜出"**在六份里错了三份**。实测规则是
+    `有效值 = docDefaults ⊕ 段落样式层 ⊕ 表格样式层 ⊕ 字符样式层`，层级内部（`basedOn` 链）
+    是普通的"子覆盖父"、**不计次数**；段落样式层在链里一处都没声明时取 docDefaults 的值
+    （每个段落都有样式，样式链的根是 docDefaults，于是 docDefaults 自己抵消自己——
+    "整份文档只有 docDefaults 声明 b=true"实测**不加粗**，两条候选规则都预测加粗）。
+    与 ECMA-376 §17.7.3 的差异：规范说"层级各样式中为 true 的次数"，实测是"层级数"。
+    `ToggleRule::WordObserved` 已激活，`spec/07` 的 `RES-04` 条目按实测重写。
+    `RES-10` 的节继承实测与引擎一致（第二节无引用 → 显示第一节的页眉）。
+  - **影响面要说清楚**：这条规则只作用于 `resolve` 这个公开只读视图。`compat_ts` 的
+    `runs[].bold` 发的是 run 自己 `w:rPr` 的声明值（复现 TS 形态），不走 `Resolver::run`；
+    `tests/resolve.rs` 的 `StyleDisplay` 比的是每个样式自己的链合并，也不走 toggle 规则。
+    所以换规则后五道门与保存语料一个数字都没变——**这不是"语料证明了新规则安全"**，
+    而是语料压根不覆盖这条路径（`docDefaults` 里带 `w:b` 的语料文档为 0 份）。
 - [x] **5.9 恶意输入、随机序列与 M5 门**
   - `corpus/hostile` 加 4 份（生成器进 `tools/export-golden/hostile.export.test.ts`）：
     `hf-dangling-reference`（引用不存在的 `r:id` → 新增 `PKG_REL_MISSING` 诊断，槽读成"没声明"，

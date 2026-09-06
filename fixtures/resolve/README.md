@@ -15,10 +15,11 @@ fixtures/resolve/<域>/<用例>/
 - **`RES-04` toggle 属性**（`b` / `i` / `caps` / `strike` …）。ECMA-376 §17.7.3 说样式层级里为
   `true` 的次数为奇数才是 `true`，再与 `docDefaults` 异或——也就是"段落样式加粗 + 字符样式加粗
   = 不加粗"。[MS-OI29500] 又记录了 Word 在 `docDefaults`、表格样式、多层 `basedOn` 上的一串偏差，
-  且与 Word 版本有关。本引擎目前用的是"最具体的声明胜出"（`resolve::toggle::ToggleRule`
-  的 `MostSpecificWins`，也是 TS 参考实现的行为）。
+  且与 Word 版本有关。本引擎**已按实测校准**为 `resolve::toggle::ToggleRule::WordObserved`
+  （见下面的实测记录）；`MostSpecificWins`（TS 参考实现的行为）与 `OddParity`（规范字面）
+  仍保留在枚举里备查。
 - **`RES-10` 节的页眉页脚继承**：一节自己没有 `w:headerReference` 时，Word 到底继续显示上一节的
-  页眉，还是显示空的。
+  页眉，还是显示空的。**实测：继续显示上一节的**，与本引擎一致。
 
 **不能用引擎自己的输出去填期望值**——那是自证，比没有断言更糟。所以每条断言带 `verified`：
 
@@ -55,12 +56,54 @@ fixtures/resolve/<域>/<用例>/
 
 ## 实测记录
 
-> 还没有观察值。填的人请补：Word 版本（如 `Microsoft 365 版本 2408，macOS 14.6`）、观察日期、
-> 每份 fixture 看到的结果，以及与 ECMA-376 §17.7.3 / [MS-OI29500] 的差异。
+**2026-09-06，Word 网页版（office.com / OneDrive，浏览器 Chrome，macOS）。** 六份文档全部上传到
+OneDrive 后用 Word 网页版打开，逐段把光标放进去，读功能区"加粗"按钮的按下状态与字体名框
+（加粗时显示"宋体 (粗体)"）。两处各复核一次：把光标移开再移回、以及双击选中整个词后重读。
 
-- [ ] `toggle/para-and-char`
-- [ ] `toggle/docdefaults-and-para`
-- [ ] `toggle/based-on-two-levels`
-- [ ] `toggle/table-first-row`
-- [ ] `toggle/direct-off`
-- [ ] `sections/inherit-default`
+| fixture | 段落 | 声明 | Word |
+| --- | --- | --- | --- |
+| `toggle/para-and-char` | `para b + char b` | 段落样式 b + 字符样式 b | **不加粗** |
+| | `para b only` | 段落样式 b | 加粗 |
+| `toggle/docdefaults-and-para` | `docDefaults b + para b` | docDefaults b + 段落样式 b | **不加粗** |
+| | `docDefaults b only` | 只有 docDefaults b | **不加粗** |
+| `toggle/based-on-two-levels` | `basedOn b + derived b` | basedOn 链上两层都 b | **加粗** |
+| | `base b only` | 段落样式 b | 加粗 |
+| `toggle/table-first-row` | `table firstRow b + para b` | 表格样式 firstRow b + 段落样式 b | **不加粗** |
+| | `table body + para b` | 段落样式 b | 加粗 |
+| `toggle/direct-off` | `direct b=0 over style b` | 直接 b=0 压样式 b | 不加粗 |
+| | `style b, no direct` | 段落样式 b | 加粗 |
+| `sections/inherit-default` | 第二页页眉 | 第二节无 `headerReference` | **显示"第一节页眉"** |
+
+### 结论：`RES-04` 的规则按实测改写
+
+原来激活的"最具体的声明胜出"（也是 TS 参考实现的行为）在六份里错了三份。实测出来的规则是
+`resolve::toggle::ToggleRule::WordObserved`，已激活：
+
+```text
+有效值 = docDefaults ⊕ 段落样式层 ⊕ 表格样式层 ⊕ 字符样式层
+```
+
+- 奇偶只发生在**层级之间**。层级内部（`basedOn` 链）是普通的"子覆盖父"——`based-on-two-levels`
+  两层都 `b=true` 仍然加粗，说明链内不计次数。**这一条与 ECMA-376 §17.7.3 的字面表述不同**：
+  规范说的是"层级各样式中为 true 的次数"，实测是"层级数"。属于 [MS-OI29500] 记录的 Word 偏差一类。
+- 段落样式层有一处要留神：**链里一处都没声明时，它取 docDefaults 的值**。每个段落都有样式
+  （没写 `w:pStyle` 就是 Normal），而样式链的根是 docDefaults，于是 docDefaults 的值在
+  "docDefaults 层"与"段落样式层"各出现一次、自己把自己抵消掉。`docDefaults b only` 那一条
+  不加粗就是这么来的——两条候选规则都预测加粗，只有这个模型对得上。
+- 直接格式一票定音，与两条候选规则一致。
+
+### 还没测到的角
+
+- **docDefaults 为 true、段落样式显式关掉**（`w:b w:val="0"`）。模型说 `T ⊕ F = T`（加粗），
+  但没有实测。真遇到再补一份 fixture。
+- 其余八个 toggle（`i` / `caps` / `smallCaps` / `strike` / `dstrike` / `bCs` / `iCs` / `vanish`）
+  按同一规则处理，只测了 `b`。ECMA-376 把它们归为同一类，Word 没有理由分开处理，但没有实测。
+
+### 换规则影响到哪
+
+只影响 `resolve` 这个**公开只读视图**（编辑器消费的那份有效属性）。`bind/compat_ts` 的
+`runs[].bold` 发的是 run 自己 `w:rPr` 里的**声明值**（复现 TS 的形态），根本不走
+`Resolver::run`；`tests/resolve.rs` 那 86,465 项 `StyleDisplay` 比的是每个样式自己的链合并，
+也不走 toggle 规则。所以换规则之后五道差分门与保存语料一个数字都没变——
+**这不是"语料证明了新规则安全"**，而是语料压根不覆盖这条路径。语料里没有任何一份文档
+在两个不同层级声明同一个 toggle（`docDefaults` 里带 `w:b` 的文档为 0 份）。

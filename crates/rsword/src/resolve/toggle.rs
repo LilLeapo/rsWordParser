@@ -67,11 +67,28 @@ pub enum ToggleRule {
     /// ECMA-376 §17.7.3 的字面规则：**样式层级**里为 `true` 的次数为奇数则为 `true`，
     /// 再与 docDefaults 异或；直接格式（run 自己的 `rPr`）仍然一票定音。
     OddParity,
+    /// **Word 实测规则**（2026-09-06，Word 网页版，`fixtures/resolve/toggle/*`）。
+    ///
+    /// 奇偶只发生在**层级之间**，层级内部（`basedOn` 链）是普通的"子覆盖父"：
+    ///
+    /// ```text
+    /// 有效值 = docDefaults ⊕ 段落样式层 ⊕ 表格样式层 ⊕ 字符样式层
+    /// ```
+    ///
+    /// 段落样式层有一处要留神：**链里一处都没声明时，它取 docDefaults 的值**。理由是每个段落
+    /// 都有样式（没写 `w:pStyle` 就是 Normal），而样式链的根是 docDefaults——于是 docDefaults
+    /// 的值在"docDefaults 层"与"段落样式层"各出现一次，自己把自己抵消掉。实测正是如此：
+    /// 整份文档只有 docDefaults 声明 `b=true` 时，Word 显示**不加粗**。
+    ///
+    /// 与 ECMA-376 §17.7.3 的差异：规范说奇偶跨越"样式层级中的每一个样式"，实测里
+    /// `basedOn` 链上两层都 `b=true` 仍然加粗，说明链内不计次数。这属于
+    /// [MS-OI29500] 记录的 Word 偏差一类。
+    WordObserved,
 }
 
-/// 当前激活的规则。换成 [`ToggleRule::OddParity`] 之前必须有真实 Word 的观察值
-/// （`fixtures/resolve/toggle/*/expected.toml` 的 `verified = true`）。
-pub const ACTIVE_TOGGLE_RULE: ToggleRule = ToggleRule::MostSpecificWins;
+/// 当前激活的规则：[`ToggleRule::WordObserved`]（2026-09-06 的 Word 实测，
+/// `fixtures/resolve/toggle/*/expected.toml` 六份 fixture 全部 `verified = true`）。
+pub const ACTIVE_TOGGLE_RULE: ToggleRule = ToggleRule::WordObserved;
 
 /// 一个 toggle 字段的各层声明。链都是**叶 → 根**（与 `Resolver::chain` 同序）。
 #[derive(Debug, Clone, Default)]
@@ -118,6 +135,19 @@ pub fn resolve_toggle(rule: ToggleRule, l: &ToggleLayers<'_>) -> Option<bool> {
             }
             let odd = styles.iter().filter(|&&v| v).count() % 2 == 1;
             Some(odd ^ l.doc_default.unwrap_or(false))
+        }
+        ToggleRule::WordObserved => {
+            // 每个层级先按"子覆盖父"取一个值（链内不计次数），再层级之间异或
+            let leaf = |chain: &[Option<bool>]| chain.iter().copied().flatten().next();
+            // 段落样式层没声明时取 docDefaults（每个段落都有样式，样式链的根是 docDefaults）
+            let para = leaf(l.para_chain).or(l.doc_default);
+            let character = leaf(l.char_chain);
+            if l.doc_default.is_none() && para.is_none() && character.is_none() && l.table.is_none()
+            {
+                return None;
+            }
+            let on = |v: Option<bool>| v.unwrap_or(false);
+            Some(on(l.doc_default) ^ on(para) ^ on(l.table) ^ on(character))
         }
     }
 }
@@ -179,6 +209,34 @@ mod tests {
         // 样式层一层都没声明 → 直接用 docDefaults（不异或自己）
         let l = layers(None, &[None], &[None], Some(true));
         assert_eq!(resolve_toggle(rule, &l), Some(true));
+    }
+
+    /// 2026-09-06 在 Word 网页版上实测的十条（`fixtures/resolve/toggle/*`）。
+    /// 这一组就是 `WordObserved` 规则的定义式：改规则先过这一关。
+    #[test]
+    fn res_04_word_observed_matches_the_fixtures() {
+        let rule = ToggleRule::WordObserved;
+        let t = Some(true);
+        // ① 段落样式 b + 字符样式 b → 不加粗；只有段落样式 → 加粗
+        assert_eq!(resolve_toggle(rule, &layers(None, &[t], &[t], None)), Some(false));
+        assert_eq!(resolve_toggle(rule, &layers(None, &[], &[t], None)), Some(true));
+        // ② docDefaults b + 段落样式 b → 不加粗；**只有 docDefaults b 也不加粗**
+        assert_eq!(resolve_toggle(rule, &layers(None, &[], &[t], t)), Some(false));
+        assert_eq!(resolve_toggle(rule, &layers(None, &[], &[], t)), Some(false));
+        // ③ basedOn 链上两层都 b → 仍然加粗（链内不计次数）
+        assert_eq!(resolve_toggle(rule, &layers(None, &[], &[t, t], None)), Some(true));
+        assert_eq!(resolve_toggle(rule, &layers(None, &[], &[t], None)), Some(true));
+        // ④ 表格样式 firstRow b + 段落样式 b → 不加粗；非首行 → 加粗
+        let para_only = [t];
+        let mut tbl = layers(None, &[], &para_only, None);
+        tbl.table = t;
+        assert_eq!(resolve_toggle(rule, &tbl), Some(false));
+        assert_eq!(resolve_toggle(rule, &layers(None, &[], &[t], None)), Some(true));
+        // ⑤ 直接 w:b w:val="0" 压住样式的 b → 不加粗；没有直接格式 → 加粗
+        assert_eq!(resolve_toggle(rule, &layers(Some(false), &[], &[t], None)), Some(false));
+        assert_eq!(resolve_toggle(rule, &layers(None, &[], &[t], None)), Some(true));
+        // 谁都没声明 → 未声明
+        assert_eq!(resolve_toggle(rule, &layers(None, &[], &[], None)), None);
     }
 
     #[test]
