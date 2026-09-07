@@ -195,7 +195,7 @@ fn generate_edited_real_documents() {
             .unwrap();
             Ok(None) // 已自己写文件；下面补一行清单
         });
-        if top_text_paras(&EditSession::open(&bytes).unwrap()).first().is_some() {
+        if !top_text_paras(&EditSession::open(&bytes).unwrap()).is_empty() {
             rows.push(Row {
                 file: format!("{}--ink.docx", path.file_stem().unwrap().to_string_lossy()),
                 base: format!("{}/{}", path.parent().unwrap().file_name().unwrap().to_string_lossy(), path.file_name().unwrap().to_string_lossy()),
