@@ -295,6 +295,11 @@ impl Tracker {
         Some(k)
     }
 
+    /// `w:delText → w:t`、`w:delInstrText → w:instrText`（拒绝删除修订时改回去，7.4）。
+    pub(crate) fn rename_to_live(plan: &mut MutationPlan, dom: &Dom, root: NodeId) {
+        rename_text(plan, dom, root, false);
+    }
+
     /// `w:t → w:delText`、`w:instrText → w:delInstrText`（run 进 `w:del` 之后必须改名，
     /// 否则 Word 会把删除的文字当正文显示）。反方向（拒绝修订）用同一张表。
     pub(crate) fn rename_to_deleted(plan: &mut MutationPlan, dom: &Dom, root: NodeId) {

@@ -743,6 +743,58 @@ pub(crate) fn delete_column(
     s.commit_plan(plan)
 }
 
+/// 一个 `w:tc` 在网格里的 `(起始列, 跨度)`（7.4 的格接受 / 拒绝用）。
+pub(super) fn cell_column(s: &EditSession, table: NodeId, cell: NodeId) -> Option<(u32, u32)> {
+    let t = table_of(s, table).ok()?;
+    let geo = geometry(t);
+    geo.rows.iter().find_map(|row| {
+        row.cells.iter().find(|&&(n, _, _)| n == cell).map(|&(_, start, span)| (start, span))
+    })
+}
+
+/// 一个格被单独删掉时，把它的网格跨度与宽度并进同行的邻格（左邻优先，行首取右邻），
+/// 保住「一行的网格宽度 = `tblGrid` 列数」（`MOD-07` / `SAVE-02` 的 `SAVE_TABLE_GRID`）。
+/// 7.4 拒绝 `cellIns` / 接受 `cellDel` 时，只有一行少一个格的情况走这里。
+pub(super) fn absorb_cell_width(
+    s: &EditSession,
+    table: NodeId,
+    cell: NodeId,
+    plan: &mut MutationPlan,
+) {
+    let Ok(t) = table_of(s, table) else { return };
+    let geo = geometry(t);
+    let Some(row) = geo.rows.iter().find(|r| r.cells.iter().any(|&(n, _, _)| n == cell)) else {
+        return;
+    };
+    let i = row.cells.iter().position(|&(n, _, _)| n == cell).expect("checked above");
+    let pick = if i > 0 { row.cells.get(i - 1) } else { row.cells.get(i + 1) };
+    let Some(&(neighbour, _, nspan)) = pick else { return };
+    let width = {
+        let dom = s.dom();
+        let tc_pr = child_named(dom, cell, LocalName::TcPr);
+        crate::semantic::props::read_cell_props(dom, tc_pr, &mut Vec::new())
+            .width
+            .as_ref()
+            .and_then(TblWidth::twips)
+            .unwrap_or(0)
+    };
+    let span = row.cells[i].2;
+    patch_cell_span(s, neighbour, Some(nspan + span), width, plan);
+}
+
+/// 每一行在第 `col` 列上的那个 `w:tc`（`(行节点, 格节点)`）。
+pub(super) fn column_cells(s: &EditSession, table: NodeId, col: u32) -> Vec<(NodeId, NodeId)> {
+    let Ok(t) = table_of(s, table) else { return Vec::new() };
+    let geo = geometry(t);
+    geo.rows.iter().filter_map(|row| row.cell_at(col).map(|i| (row.node, row.cells[i].0))).collect()
+}
+
+/// `w:tblGrid` 的 `w:gridCol` 节点，按列序。
+pub(super) fn grid_cols(s: &EditSession, table: NodeId) -> Vec<NodeId> {
+    let Ok(t) = table_of(s, table) else { return Vec::new() };
+    geometry(t).grid.iter().map(|&(n, _)| n).collect()
+}
+
 // ---- MergeCells ---------------------------------------------------------------------------------
 
 pub(crate) fn merge_cells(

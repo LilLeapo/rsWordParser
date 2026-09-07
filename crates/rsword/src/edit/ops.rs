@@ -113,6 +113,10 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         }
         EditOp::RemoveInks => s.remove_inks(),
         EditOp::InsertInk { para, ink } => s.insert_ink(para, &ink),
+        EditOp::AcceptRevision { rev } => super::revision_ops::one(s, rev, true),
+        EditOp::RejectRevision { rev } => super::revision_ops::one(s, rev, false),
+        EditOp::AcceptAll { author } => super::revision_ops::all(s, author.as_deref(), true),
+        EditOp::RejectAll { author } => super::revision_ops::all(s, author.as_deref(), false),
     }
 }
 
@@ -241,6 +245,12 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
         | EditOp::SetWatermark { .. }
         | EditOp::SetPageColor { .. }
         | EditOp::SetDocumentSettings { .. } => Vec::new(),
+        // 接受 / 拒绝修订按 `RevisionId` 定位；内容控件的锁不该阻止它（改的是修订标记，
+        // 不是用户在控件里的输入），逐条落地时该拒的由 `plan_job` 自己拒
+        EditOp::AcceptRevision { .. }
+        | EditOp::RejectRevision { .. }
+        | EditOp::AcceptAll { .. }
+        | EditOp::RejectAll { .. } => Vec::new(),
     };
     for (part, node) in targets {
         let dom = s.dom_in(part)?;
@@ -1857,7 +1867,7 @@ fn move_block(
 
 /// `EDIT-03` 表格通则：**单元格最后一个块必须是 `w:p`**（Word 的约束）。计划生效后 `container`
 /// （只管 `w:tc`）的末尾不是段落时，追加一个 `New` 空 `w:p`。`removed` 是这次计划里要删除 / 搬走的节点。
-fn keep_cell_paragraph(
+pub(super) fn keep_cell_paragraph(
     dom: &Dom,
     container: NodeId,
     removed: Option<NodeId>,
@@ -2612,6 +2622,24 @@ fn merge_with_next(
         t.para_mark(&mut plan, dom, para, LocalName::Del);
         return s.commit_plan(plan);
     }
+    let _ = next;
+    let plan = plan_merge_with_next(s, at, para)?
+        .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, "下一个块不是段落"))?;
+    s.commit_plan(plan)
+}
+
+/// 无追踪的"与下一段合并"计划（`SPAN-06` 合并行）。下一个块不是同容器的段落 → `None`。
+/// 7.4 接受段落标记的删除时复用它。
+pub(super) fn plan_merge_with_next(
+    s: &EditSession,
+    at: Option<PartId>,
+    para: NodeId,
+) -> Result<Option<MutationPlan>> {
+    let part = s.part_or_main(at);
+    let dom = s.dom_in(at)?;
+    let Some(next) = next_element_sibling(dom, para).filter(|&n| dom.is(n, w(LocalName::P))) else {
+        return Ok(None);
+    };
     let offset = crate::span::content_len(dom, para);
     let mut plan = MutationPlan::new(part);
     plan.structure_changed = true;
@@ -2628,7 +2656,11 @@ fn merge_with_next(
         plan.node_edits.push(NodeEdit::Move { node: c, parent: Target::Node(para), before: None });
     }
     plan.node_edits.push(NodeEdit::Delete(next));
-    s.commit_plan(plan)
+    // 格里的最后一段被合走后要补一个空 `w:p`（表格通则）
+    if let Some(parent) = dom.parent(next) {
+        keep_cell_paragraph(dom, parent, Some(next), &mut plan);
+    }
+    Ok(Some(plan))
 }
 
 // ---- 书签（`EDIT-03` AddBookmark / RemoveBookmark，任务 2.9）-----------------------------------

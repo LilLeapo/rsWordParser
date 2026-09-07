@@ -18,6 +18,7 @@ pub mod media_ops;
 pub mod ops;
 pub mod plan;
 pub mod pos;
+pub(crate) mod revision_ops;
 pub mod section_ops;
 pub mod session;
 pub mod table_ops;
@@ -251,6 +252,15 @@ pub enum EditOp {
     SetPageColor { color: Option<String> },
     /// `EDIT-03 SetDocumentSettings`：`word/settings.xml` 按 `PROP-06` 合并（part 不存在就建）。
     SetDocumentSettings { patch: SettingsPatch },
+    /// `EDIT-03 AcceptRevision`：接受一条修订（`Document.revisions` 里的 id）。
+    AcceptRevision { rev: crate::model::RevisionId },
+    /// `EDIT-03 RejectRevision`：拒绝一条修订。
+    RejectRevision { rev: crate::model::RevisionId },
+    /// `EDIT-03 AcceptAll`：接受全部修订；`author` 给定时只接受那个作者的
+    /// （编辑器按作者接受，`docs/03` §8.2 之外的扩展，登记在 `docs/04` §8）。
+    AcceptAll { author: Option<String> },
+    /// `EDIT-03 RejectAll`：拒绝全部修订；`author` 同上。
+    RejectAll { author: Option<String> },
 }
 
 /// `SetLinkTarget` 要改哪个链接。

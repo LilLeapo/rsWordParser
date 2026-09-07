@@ -362,3 +362,703 @@ fn edit_03_set_track_revisions() {
         "重解析读得回来"
     );
 }
+
+// ---- 7.4：接受 / 拒绝修订 ----------------------------------------------------------------------
+
+use common::fingerprint::{diff_str, fingerprint};
+
+fn accept_all(bytes: &[u8], author: Option<&str>) -> EditSession {
+    let mut s = EditSession::open(bytes).expect("open");
+    s.apply(EditOp::AcceptAll { author: author.map(str::to_string) }, &EditContext::default())
+        .expect("AcceptAll");
+    s
+}
+
+fn reject_all(bytes: &[u8], author: Option<&str>) -> EditSession {
+    let mut s = EditSession::open(bytes).expect("open");
+    s.apply(EditOp::RejectAll { author: author.map(str::to_string) }, &EditContext::default())
+        .expect("RejectAll");
+    s
+}
+
+/// 门 3：真实 Word 的四态对照件。我们对 `tracked.docx` 做 `AcceptAll` / `RejectAll`，
+/// 指纹应分别与 Word 自己「接受所有修订」/「拒绝所有修订」另存的文档相等
+/// （`fixtures/revisions/README.md`）。
+#[test]
+fn gate_3_word_accept_reject_fixtures() {
+    let dir = common::repo_root().join("fixtures/revisions");
+    let mut cases: Vec<String> = std::fs::read_dir(&dir)
+        .unwrap()
+        .filter_map(|d| d.ok())
+        .filter(|d| d.path().is_dir())
+        .map(|d| d.file_name().to_string_lossy().to_string())
+        .collect();
+    cases.sort();
+    assert_eq!(cases.len(), 4, "四个 case：{cases:?}");
+    for case in cases {
+        let read = |name: &str| std::fs::read(dir.join(&case).join(name)).expect(name);
+        let tracked = read("tracked.docx");
+        let want_accept = fingerprint(&EditSession::open(&read("accepted.docx")).unwrap());
+        let want_reject = fingerprint(&EditSession::open(&read("rejected.docx")).unwrap());
+        // Word 自己的四态里两个视图都不再有修订，所以两个视图相同——直接比 accept 那一半
+        let got_accept = fingerprint(&accept_all(&tracked, None));
+        if let Some((x, y)) = diff_str(&want_accept.accept, &got_accept.accept) {
+            panic!("{case}：AcceptAll 与 Word 的 accepted.docx 不同\n  Word: {x}\n  我们: {y}");
+        }
+        let got_reject = fingerprint(&reject_all(&tracked, None));
+        if let Some((x, y)) = diff_str(&want_reject.accept, &got_reject.accept) {
+            panic!("{case}：RejectAll 与 Word 的 rejected.docx 不同\n  Word: {x}\n  我们: {y}");
+        }
+    }
+}
+
+/// 门 2：语料里每一份带修订的文档都能 `AcceptAll` / `RejectAll`，之后重解析
+/// `Document.revisions` 为空、没有引擎不变式违规。
+#[test]
+fn gate_2_accept_reject_all_corpus() {
+    let mut checked = 0usize;
+    for path in revision_docs() {
+        let bytes = std::fs::read(&path).unwrap();
+        let name = short(&path);
+        let Ok(probe) = EditSession::open(&bytes) else { continue };
+        if probe.document().revisions.is_empty() {
+            continue;
+        }
+        // `w:cellMerge` 的拒绝方向不支持（`spec/18`「不在 M7」）
+        let has_cell_merge =
+            probe.document().revisions.entries().iter().any(|e| e.kind == RevKind::CellMerge);
+        checked += 1;
+        for accept in [true, false] {
+            if !accept && has_cell_merge {
+                continue;
+            }
+            let mut s = EditSession::open(&bytes).unwrap();
+            let op = if accept {
+                EditOp::AcceptAll { author: None }
+            } else {
+                EditOp::RejectAll { author: None }
+            };
+            s.apply(op, &EditContext::default())
+                .unwrap_or_else(|e| panic!("{name} accept={accept}: {e}"));
+            assert!(
+                !s.diagnostics()
+                    .iter()
+                    .any(|d| d.origin == rsword::ValidationOrigin::EngineInvariantViolation),
+                "{name} accept={accept}: {:?}",
+                s.diagnostics()
+            );
+            let saved = s.save().unwrap_or_else(|e| panic!("{name} accept={accept} 保存: {e}"));
+            let re = EditSession::open(&saved)
+                .unwrap_or_else(|e| panic!("{name} accept={accept} 重解析: {e}"));
+            let left: Vec<&str> =
+                re.document().revisions.entries().iter().map(|e| e.kind.as_str()).collect();
+            assert!(left.is_empty(), "{name} accept={accept}: 还剩修订 {left:?}");
+        }
+    }
+    assert!(checked >= 16, "只检查了 {checked} 份带修订的语料");
+}
+
+/// `AcceptAll { author }` 只动那个作者的；另一个作者的修订一条不少。
+#[test]
+fn accept_all_filters_by_author() {
+    let bytes = std::fs::read(
+        common::repo_root().join("fixtures/revisions/tracked-two-authors/tracked.docx"),
+    )
+    .unwrap();
+    let base = EditSession::open(&bytes).unwrap();
+    let authors = base.document().revisions.authors();
+    let (a, b) = (authors[0].to_string(), authors[1].to_string());
+    let before_b = base.document().revisions.by_author(&b).count();
+    let s = accept_all(&bytes, Some(&a));
+    let idx = &s.document().revisions;
+    assert_eq!(idx.by_author(&a).count(), 0, "{a} 的修订都处理掉了");
+    assert_eq!(idx.by_author(&b).count(), before_b, "{b} 的修订一条不少");
+}
+
+/// 单条接受 / 拒绝：`AcceptRevision` 只动那一条。
+#[test]
+fn accept_one_revision() {
+    let bytes = std::fs::read(common::corpus_dir("real").join("revisions2/rev-insert-delete.docx"))
+        .unwrap();
+    let mut s = EditSession::open(&bytes).unwrap();
+    let before = s.document().revisions.len();
+    let first = s.document().revisions.entries()[0].id;
+    s.apply(EditOp::AcceptRevision { rev: first }, &EditContext::default()).expect("接受一条");
+    assert_eq!(s.document().revisions.len(), before - 1, "只少一条");
+}
+
+/// 拒绝 `rPrChange` 时**整体**换回快照的子元素，连本引擎没建模的子元素也回来。
+#[test]
+fn reject_run_props_change_restores_unmodeled_children() {
+    let docx = common::docx_with_body(concat!(
+        r#"<w:p><w:r><w:rPr><w:b/><w:rPrChange w:id="1" w:author="A" w:date="2026-01-01T00:00:00Z">"#,
+        r#"<w:rPr><w:i/><w:oMath/></w:rPr></w:rPrChange></w:rPr><w:t>字</w:t></w:r></w:p>"#,
+    ));
+    let mut s = EditSession::open(&docx).unwrap();
+    let rev = s.document().revisions.entries()[0].id;
+    s.apply(EditOp::RejectRevision { rev }, &EditContext::default()).expect("拒绝");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//w:r/w:rPr/w:b)", ["0"]),
+            ("count(//w:r/w:rPr/w:i)", ["1"]),
+            // `w:oMath` 在 `rPr` 里是本引擎没建模的字段，整体克隆把它也带回来了
+            ("count(//w:r/w:rPr/w:oMath)", ["1"]),
+            ("count(//w:rPrChange)", ["0"]),
+        ]
+    );
+}
+
+/// 接受段落标记的删除 = 无追踪的 `MergeWithNext`；拒绝只去掉标记。
+#[test]
+fn para_mark_delete_accept_merges() {
+    let body = concat!(
+        r#"<w:p><w:pPr><w:rPr><w:del w:id="1" w:author="A" w:date="2026-01-01T00:00:00Z"/></w:rPr></w:pPr>"#,
+        r#"<w:r><w:t>前</w:t></w:r></w:p>"#,
+        r#"<w:p><w:r><w:t>后</w:t></w:r></w:p>"#,
+    );
+    let docx = common::docx_with_body(body);
+    let mut s = EditSession::open(&docx).unwrap();
+    let rev = s.document().revisions.entries()[0].id;
+    s.apply(EditOp::AcceptRevision { rev }, &EditContext::default()).expect("接受");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//w:body/w:p)", ["1"]),
+            ("//w:p/w:r/w:t/text()", ["前", "后"]),
+            ("count(//w:pPr/w:rPr/w:del)", ["0"]),
+        ]
+    );
+
+    let mut s = EditSession::open(&docx).unwrap();
+    let rev = s.document().revisions.entries()[0].id;
+    s.apply(EditOp::RejectRevision { rev }, &EditContext::default()).expect("拒绝");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [("count(//w:body/w:p)", ["2"]), ("count(//w:pPr/w:rPr/w:del)", ["0"]),]
+    );
+}
+
+/// 先内层后外层：`w:ins` 里套 `w:del`，接受时先接受 `del`（内容消失）再解包 `ins`。
+#[test]
+fn inner_first_ins_wrapping_del() {
+    let docx = common::docx_with_body(concat!(
+        r#"<w:p><w:ins w:id="1" w:author="A" w:date="2026-01-01T00:00:00Z">"#,
+        r#"<w:r><w:t>留下</w:t></w:r>"#,
+        r#"<w:del w:id="2" w:author="A" w:date="2026-01-01T00:00:00Z">"#,
+        r#"<w:r><w:delText>删掉</w:delText></w:r></w:del></w:ins></w:p>"#,
+    ));
+    let s = accept_all(&docx, None);
+    let mut s = s;
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [("count(//w:ins)", ["0"]), ("count(//w:del)", ["0"]), ("//w:p/w:r/w:t/text()", ["留下"]),]
+    );
+    // 拒绝：外层的插入整段撤掉，什么都不剩
+    let mut s = reject_all(&docx, None);
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [("count(//w:p/w:r)", ["0"]), ("count(//w:ins)", ["0"]),]
+    );
+}
+
+/// 搬移：接受 = 来源内容消失、落点解包；范围标记一起删。
+#[test]
+fn move_revision_accept_and_reject() {
+    let bytes = std::fs::read(common::corpus_dir("real").join("revisions2/rev-move.docx")).unwrap();
+    let mut s = accept_all(&bytes, None);
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//w:moveFrom)", ["0"]),
+            ("count(//w:moveTo)", ["0"]),
+            ("count(//w:moveFromRangeStart)", ["0"]),
+            ("count(//w:moveToRangeStart)", ["0"]),
+            ("count(//w:moveFromRangeEnd)", ["0"]),
+            ("count(//w:moveToRangeEnd)", ["0"]),
+        ]
+    );
+    let mut s = reject_all(&bytes, None);
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//w:moveFrom)", ["0"]),
+            ("count(//w:moveTo)", ["0"]),
+            ("count(//w:delText)", ["0"]),
+        ]
+    );
+}
+
+// ---- 门 2 的另一半：`MOD-09` 每种修订，Accept / Reject 各一条 XPath ---------------------------
+
+const D: &str = r#"w:author="甲" w:date="2026-01-01T00:00:00Z""#;
+
+/// 一份构造文档 + 一个方向：断言索引里有这种修订，处理完之后 XPath 符合预期。
+fn check(label: &str, body: &str, kind: RevKind, accept: bool, checks: &[(&str, &[&str])]) {
+    let docx = common::docx_with_body(body);
+    let s = EditSession::open(&docx).unwrap_or_else(|e| panic!("{label}: {e}"));
+    assert!(
+        s.document().revisions.entries().iter().any(|e| e.kind == kind),
+        "{label}: 索引里没有 {kind}，只有 {:?}",
+        s.document().revisions.entries().iter().map(|e| e.kind.as_str()).collect::<Vec<_>>()
+    );
+    let mut s = if accept { accept_all(&docx, None) } else { reject_all(&docx, None) };
+    let out = s.save().unwrap_or_else(|e| panic!("{label} {accept}: 保存 {e}"));
+    let dom = common::xpath_dom(&out, "word/document.xml");
+    for (expr, want) in checks {
+        let got = rsword::xml::xpath::eval_strings(&dom, expr)
+            .unwrap_or_else(|e| panic!("{label}: XPath `{expr}` {e}"));
+        let want: Vec<String> = want.iter().map(|s| s.to_string()).collect();
+        assert_eq!(got, want, "{label} accept={accept}: `{expr}`");
+    }
+    // 处理完之后一条修订都不该剩
+    let re = EditSession::open(&out).unwrap();
+    let left: Vec<&str> =
+        re.document().revisions.entries().iter().map(|e| e.kind.as_str()).collect();
+    assert!(left.is_empty(), "{label} accept={accept}: 还剩 {left:?}");
+}
+
+/// 内容包裹八种（块级与 run 级各四种）。
+#[test]
+fn mod_09_content_wrappers_accept_reject() {
+    let cases: [(&str, String, RevKind, &str); 4] = [
+        (
+            "块级 w:ins",
+            format!(r#"<w:ins w:id="1" {D}><w:p><w:r><w:t>新块</w:t></w:r></w:p></w:ins>"#),
+            RevKind::Insert,
+            "新块",
+        ),
+        (
+            "块级 w:del",
+            format!(
+                r#"<w:del w:id="1" {D}><w:p><w:r><w:delText>旧块</w:delText></w:r></w:p></w:del>"#
+            ),
+            RevKind::Delete,
+            "旧块",
+        ),
+        (
+            "块级 w:moveFrom",
+            format!(
+                r#"<w:moveFrom w:id="1" {D}><w:p><w:r><w:delText>搬走</w:delText></w:r></w:p></w:moveFrom>"#
+            ),
+            RevKind::MoveFrom,
+            "搬走",
+        ),
+        (
+            "块级 w:moveTo",
+            format!(r#"<w:moveTo w:id="1" {D}><w:p><w:r><w:t>搬来</w:t></w:r></w:p></w:moveTo>"#),
+            RevKind::MoveTo,
+            "搬来",
+        ),
+    ];
+    for (label, body, kind, text) in cases {
+        // 插入类：接受 = 内容留下（解包），拒绝 = 内容消失
+        let kept = matches!(kind, RevKind::Insert | RevKind::MoveTo);
+        let body = format!("{body}<w:p><w:r><w:t>尾</w:t></w:r></w:p>");
+        check(
+            label,
+            &body,
+            kind,
+            true,
+            &[
+                ("count(//w:ins)", &["0"]),
+                ("count(//w:del)", &["0"]),
+                ("count(//w:moveFrom)", &["0"]),
+                ("count(//w:moveTo)", &["0"]),
+                ("count(//w:body/w:p)", &[if kept { "2" } else { "1" }]),
+                ("count(//w:delText)", &["0"]),
+            ],
+        );
+        check(
+            label,
+            &body,
+            kind,
+            false,
+            &[
+                ("count(//w:body/w:p)", &[if kept { "1" } else { "2" }]),
+                ("count(//w:delText)", &["0"]),
+            ],
+        );
+        let _ = text;
+    }
+}
+
+/// run 级四种。
+#[test]
+fn mod_09_run_wrappers_accept_reject() {
+    let cases: [(&str, String, RevKind, bool); 4] = [
+        (
+            "run w:ins",
+            format!(r#"<w:ins w:id="1" {D}><w:r><w:t>甲</w:t></w:r></w:ins>"#),
+            RevKind::RunInsert,
+            true,
+        ),
+        (
+            "run w:del",
+            format!(r#"<w:del w:id="1" {D}><w:r><w:delText>甲</w:delText></w:r></w:del>"#),
+            RevKind::RunDelete,
+            false,
+        ),
+        (
+            "run w:moveFrom",
+            format!(
+                r#"<w:moveFrom w:id="1" {D}><w:r><w:delText>甲</w:delText></w:r></w:moveFrom>"#
+            ),
+            RevKind::RunMoveFrom,
+            false,
+        ),
+        (
+            "run w:moveTo",
+            format!(r#"<w:moveTo w:id="1" {D}><w:r><w:t>甲</w:t></w:r></w:moveTo>"#),
+            RevKind::RunMoveTo,
+            true,
+        ),
+    ];
+    for (label, inner, kind, kept_on_accept) in cases {
+        let body = format!("<w:p>{inner}<w:r><w:t>乙</w:t></w:r></w:p>");
+        let accept_text: &[&str] = if kept_on_accept { &["甲", "乙"] } else { &["乙"] };
+        let reject_text: &[&str] = if kept_on_accept { &["乙"] } else { &["甲", "乙"] };
+        check(
+            label,
+            &body,
+            kind,
+            true,
+            &[("//w:p/w:r/w:t/text()", accept_text), ("count(//w:delText)", &["0"])],
+        );
+        check(
+            label,
+            &body,
+            kind,
+            false,
+            &[("//w:p/w:r/w:t/text()", reject_text), ("count(//w:delText)", &["0"])],
+        );
+    }
+}
+
+/// 段落标记四种。
+#[test]
+fn mod_09_para_marks_accept_reject() {
+    let two = |mark: &str| {
+        format!(
+            "<w:p><w:pPr><w:rPr>{mark}</w:rPr></w:pPr><w:r><w:t>前</w:t></w:r></w:p>\
+             <w:p><w:r><w:t>后</w:t></w:r></w:p>"
+        )
+    };
+    let cases: [(&str, String, RevKind, bool); 4] = [
+        (
+            "pPr/rPr/w:ins",
+            two(&format!(r#"<w:ins w:id="1" {D}/>"#)),
+            RevKind::ParaMarkInsert,
+            false,
+        ),
+        ("pPr/rPr/w:del", two(&format!(r#"<w:del w:id="1" {D}/>"#)), RevKind::ParaMarkDelete, true),
+        (
+            "pPr/rPr/w:moveFrom",
+            two(&format!(r#"<w:moveFrom w:id="1" {D}/>"#)),
+            RevKind::ParaMarkMoveFrom,
+            true,
+        ),
+        (
+            "pPr/rPr/w:moveTo",
+            two(&format!(r#"<w:moveTo w:id="1" {D}/>"#)),
+            RevKind::ParaMarkMoveTo,
+            false,
+        ),
+    ];
+    for (label, body, kind, merge_on_accept) in cases {
+        let paras = |merged: bool| if merged { "1" } else { "2" };
+        check(
+            label,
+            &body,
+            kind,
+            true,
+            &[("count(//w:body/w:p)", &[paras(merge_on_accept)]), ("count(//w:pPr/w:rPr)", &["0"])],
+        );
+        check(
+            label,
+            &body,
+            kind,
+            false,
+            &[
+                ("count(//w:body/w:p)", &[paras(!merge_on_accept)]),
+                ("count(//w:pPr/w:rPr)", &["0"]),
+            ],
+        );
+    }
+}
+
+/// 属性快照八种 + `numberingChange`。
+#[test]
+fn mod_09_props_changes_accept_reject() {
+    // rPrChange
+    check(
+        "rPrChange",
+        &format!(
+            r#"<w:p><w:r><w:rPr><w:b/><w:rPrChange w:id="1" {D}><w:rPr><w:i/></w:rPr></w:rPrChange></w:rPr><w:t>字</w:t></w:r></w:p>"#
+        ),
+        RevKind::RunPropsChange,
+        true,
+        &[("count(//w:rPr/w:b)", &["1"]), ("count(//w:rPr/w:i)", &["0"])],
+    );
+    check(
+        "rPrChange",
+        &format!(
+            r#"<w:p><w:r><w:rPr><w:b/><w:rPrChange w:id="1" {D}><w:rPr><w:i/></w:rPr></w:rPrChange></w:rPr><w:t>字</w:t></w:r></w:p>"#
+        ),
+        RevKind::RunPropsChange,
+        false,
+        &[("count(//w:rPr/w:b)", &["0"]), ("count(//w:rPr/w:i)", &["1"])],
+    );
+    // pPrChange
+    let ppr = format!(
+        r#"<w:p><w:pPr><w:jc w:val="center"/><w:pPrChange w:id="1" {D}><w:pPr><w:jc w:val="right"/></w:pPr></w:pPrChange></w:pPr><w:r><w:t>段</w:t></w:r></w:p>"#
+    );
+    check(
+        "pPrChange",
+        &ppr,
+        RevKind::ParaPropsChange,
+        true,
+        &[("//w:pPr/w:jc/@w:val", &["center"]), ("count(//w:pPrChange)", &["0"])],
+    );
+    check(
+        "pPrChange",
+        &ppr,
+        RevKind::ParaPropsChange,
+        false,
+        &[("//w:pPr/w:jc/@w:val", &["right"])],
+    );
+    // numberingChange（只有属性、没有内层容器：两个方向都只去掉标记）
+    let num = format!(
+        r#"<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/><w:numberingChange w:id="1" {D} w:original="0"/></w:numPr></w:pPr><w:r><w:t>项</w:t></w:r></w:p>"#
+    );
+    for accept in [true, false] {
+        check(
+            "numberingChange",
+            &num,
+            RevKind::NumberingChange,
+            accept,
+            &[("count(//w:numberingChange)", &["0"]), ("//w:numPr/w:numId/@w:val", &["1"])],
+        );
+    }
+    // sectPrChange
+    let sect = format!(
+        r#"<w:p><w:r><w:t>正文</w:t></w:r></w:p><w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:sectPrChange w:id="1" {D}><w:sectPr><w:pgSz w:w="12240" w:h="15840"/></w:sectPr></w:sectPrChange></w:sectPr>"#
+    );
+    check(
+        "sectPrChange",
+        &sect,
+        RevKind::SectPropsChange,
+        true,
+        &[("//w:sectPr/w:pgSz/@w:w", &["11906"]), ("count(//w:sectPrChange)", &["0"])],
+    );
+    check(
+        "sectPrChange",
+        &sect,
+        RevKind::SectPropsChange,
+        false,
+        &[("//w:sectPr/w:pgSz/@w:w", &["12240"])],
+    );
+}
+
+/// 表格里的五种属性快照与三种单元格标记。
+#[test]
+fn mod_09_table_revisions_accept_reject() {
+    let table = |tbl_pr: &str, grid: &str, tr_pr: &str, tbl_pr_ex: &str, tc_pr: &str| {
+        format!(
+            r#"<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/>{tbl_pr}</w:tblPr>
+               <w:tblGrid><w:gridCol w:w="4000"/><w:gridCol w:w="4000"/>{grid}</w:tblGrid>
+               <w:tr>{tbl_pr_ex}<w:trPr>{tr_pr}</w:trPr>
+               <w:tc><w:tcPr><w:tcW w:w="4000" w:type="dxa"/>{tc_pr}</w:tcPr>
+               <w:p><w:r><w:t>A1</w:t></w:r></w:p></w:tc>
+               <w:tc><w:tcPr><w:tcW w:w="4000" w:type="dxa"/></w:tcPr>
+               <w:p><w:r><w:t>B1</w:t></w:r></w:p></w:tc></w:tr></w:tbl>
+               <w:p><w:r><w:t>尾</w:t></w:r></w:p>"#
+        )
+    };
+    // tblPrChange
+    let body = table(
+        &format!(
+            r#"<w:tblPrChange w:id="1" {D}><w:tblPr><w:tblStyle w:val="旧"/></w:tblPr></w:tblPrChange>"#
+        ),
+        "",
+        "",
+        "",
+        "",
+    );
+    check(
+        "tblPrChange",
+        &body,
+        RevKind::TablePropsChange,
+        true,
+        &[("count(//w:tblPr/w:tblStyle)", &["0"]), ("count(//w:tblPrChange)", &["0"])],
+    );
+    check(
+        "tblPrChange",
+        &body,
+        RevKind::TablePropsChange,
+        false,
+        &[("//w:tblPr/w:tblStyle/@w:val", &["旧"])],
+    );
+    // tblGridChange
+    let body = table(
+        "",
+        r#"<w:tblGridChange w:id="1"><w:tblGrid><w:gridCol w:w="3000"/><w:gridCol w:w="5000"/></w:tblGrid></w:tblGridChange>"#,
+        "",
+        "",
+        "",
+    );
+    check(
+        "tblGridChange",
+        &body,
+        RevKind::TableGridChange,
+        true,
+        &[("count(/w:document/w:body/w:tbl/w:tblGrid/w:gridCol)", &["2"])],
+    );
+    check(
+        "tblGridChange",
+        &body,
+        RevKind::TableGridChange,
+        false,
+        &[("/w:document/w:body/w:tbl/w:tblGrid/w:gridCol/@w:w", &["3000", "5000"])],
+    );
+    // trPrChange
+    let body = table(
+        "",
+        "",
+        &format!(r#"<w:trPrChange w:id="1" {D}><w:trPr><w:tblHeader/></w:trPr></w:trPrChange>"#),
+        "",
+        "",
+    );
+    check(
+        "trPrChange",
+        &body,
+        RevKind::RowPropsChange,
+        true,
+        &[("count(//w:trPr/w:tblHeader)", &["0"])],
+    );
+    check(
+        "trPrChange",
+        &body,
+        RevKind::RowPropsChange,
+        false,
+        &[("count(//w:trPr/w:tblHeader)", &["1"])],
+    );
+    // tblPrExChange
+    let body = table(
+        "",
+        "",
+        "",
+        &format!(
+            r#"<w:tblPrEx><w:tblCellMar><w:left w:w="10" w:type="dxa"/></w:tblCellMar><w:tblPrExChange w:id="1" {D}><w:tblPrEx/></w:tblPrExChange></w:tblPrEx>"#
+        ),
+        "",
+    );
+    check(
+        "tblPrExChange",
+        &body,
+        RevKind::TablePropsExChange,
+        true,
+        &[("count(//w:tblPrExChange)", &["0"]), ("count(//w:tblPrEx/w:tblCellMar)", &["1"])],
+    );
+    check(
+        "tblPrExChange",
+        &body,
+        RevKind::TablePropsExChange,
+        false,
+        &[
+            // 旧值是空的 → 整个 `w:tblPrEx` 去掉（真实 Word 的形态）
+            ("count(//w:tblPrEx)", &["0"]),
+        ],
+    );
+    // tcPrChange
+    let body = table(
+        "",
+        "",
+        "",
+        "",
+        &format!(
+            r#"<w:tcPrChange w:id="1" {D}><w:tcPr><w:tcW w:w="1234" w:type="dxa"/></w:tcPr></w:tcPrChange>"#
+        ),
+    );
+    check(
+        "tcPrChange",
+        &body,
+        RevKind::CellPropsChange,
+        true,
+        &[("//w:tr/w:tc[1]/w:tcPr/w:tcW/@w:w", &["4000"])],
+    );
+    check(
+        "tcPrChange",
+        &body,
+        RevKind::CellPropsChange,
+        false,
+        &[("//w:tr/w:tc[1]/w:tcPr/w:tcW/@w:w", &["1234"])],
+    );
+    // cellIns / cellDel：接受 / 拒绝的方向相反，整列都带标记 → 网格也少一列
+    for (label, mark, kind, cell_gone_on_accept) in [
+        ("cellIns", format!(r#"<w:cellIns w:id="1" {D}/>"#), RevKind::CellInsert, false),
+        ("cellDel", format!(r#"<w:cellDel w:id="1" {D}/>"#), RevKind::CellDelete, true),
+    ] {
+        let body = table("", "", "", "", &mark);
+        // 只有一行 → 带标记的那个格就是"整列"，格没了网格也少一列
+        let n = |gone: bool| if gone { "1" } else { "2" };
+        check(
+            label,
+            &body,
+            kind,
+            true,
+            &[
+                ("count(//w:tr/w:tc)", &[n(cell_gone_on_accept)]),
+                ("count(/w:document/w:body/w:tbl/w:tblGrid/w:gridCol)", &[n(cell_gone_on_accept)]),
+            ],
+        );
+        check(
+            label,
+            &body,
+            kind,
+            false,
+            &[
+                ("count(//w:tr/w:tc)", &[n(!cell_gone_on_accept)]),
+                ("count(/w:document/w:body/w:tbl/w:tblGrid/w:gridCol)", &[n(!cell_gone_on_accept)]),
+            ],
+        );
+    }
+    // cellMerge：接受 = 去标记；拒绝不支持（`vMergeOrig` 待真实 Word 校准）
+    let body = table("", "", "", "", &format!(r#"<w:cellMerge w:id="1" {D} w:vMerge="cont"/>"#));
+    check(
+        "cellMerge",
+        &body,
+        RevKind::CellMerge,
+        true,
+        &[("count(//w:cellMerge)", &["0"]), ("count(//w:tr/w:tc)", &["2"])],
+    );
+    let docx = common::docx_with_body(&body);
+    let mut s = EditSession::open(&docx).unwrap();
+    let err = s
+        .apply(EditOp::RejectAll { author: None }, &EditContext::default())
+        .expect_err("cellMerge 的拒绝方向不支持");
+    assert!(
+        matches!(&err, rsword::Error::Edit { code, .. } if *code == rsword::DiagCode::EditUnsupported),
+        "{err}"
+    );
+    let fresh = EditSession::open(&docx).unwrap();
+    assert_eq!(
+        fresh.document().revisions.len(),
+        s.document().revisions.len(),
+        "EDIT-05：被拒后状态不变"
+    );
+}

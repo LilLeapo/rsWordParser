@@ -17,8 +17,10 @@ use rsword::model::RevKind;
 use rsword::semantic::props::{Change, Jc, ParaPropsPatch, RunPropsPatch, Val};
 use rsword::xml::NodeId;
 
-const A: &str = "作者甲";
-const B: &str = "作者乙";
+// 语料里已经有「作者甲」/「作者乙」的修订：测试用的作者名要与它们不同，
+// 否则按作者过滤的 oracle 会把语料自带的修订也一起处理掉
+const A: &str = "M7 甲";
+const B: &str = "M7 乙";
 const DATE: &str = "2026-09-07T10:00:00Z";
 
 fn tracked(author: &str) -> EditContext {
@@ -61,14 +63,26 @@ fn oracle(body: &str, what: &str, op: impl Fn(&EditSession) -> EditOp) {
     track.apply(track_op, &tracked(A)).unwrap_or_else(|e| panic!("{what} 追踪：{e}"));
     let track_fp = fingerprint(&track);
 
-    // ① 拒绝还原
+    // ①' / ②' 视图代理（便宜的信号）
     if let Some((x, y)) = diff_str(&before.reject, &track_fp.reject) {
         panic!("{what}：拒绝视图没回到操作前\n  操作前: {x}\n  追踪后: {y}");
     }
-    // ② 接受等价
     if let Some((x, y)) = diff_str(&plain_fp.accept, &track_fp.accept) {
         panic!("{what}：接受视图与不追踪不同\n  不追踪: {x}\n  追踪: {y}");
     }
+    // ① **真的** `RejectAll { author: A }` → 回到操作前
+    let mut rej = open(body);
+    rej.apply(op(&rej), &tracked(A)).expect("追踪重放");
+    rej.apply(EditOp::RejectAll { author: Some(A.into()) }, &EditContext::default())
+        .unwrap_or_else(|e| panic!("{what} RejectAll: {e}"));
+    assert_fingerprint_eq!(before, fingerprint(&rej), "{what}：RejectAll 没回到操作前");
+    // ② **真的** `AcceptAll` → 等于不追踪做一遍
+    let mut acc = open(body);
+    acc.apply(op(&acc), &tracked(A)).expect("追踪重放");
+    // 只接受**本次**操作的作者：语料本来就带别人的修订，不追踪那条路也没动它们
+    acc.apply(EditOp::AcceptAll { author: Some(A.into()) }, &EditContext::default())
+        .unwrap_or_else(|e| panic!("{what} AcceptAll: {e}"));
+    assert_fingerprint_eq!(plain_fp, fingerprint(&acc), "{what}：AcceptAll 与不追踪不同");
     // ③ 往返：保存 → 重解析，两个视图都不变，且确实生成了修订
     let saved = track.save().unwrap_or_else(|e| panic!("{what} 保存：{e}"));
     let reopened = EditSession::open(&saved).unwrap_or_else(|e| panic!("{what} 重解析：{e}"));
@@ -465,18 +479,38 @@ fn oracle_on(bytes: &[u8], what: &str, op: impl Fn(&EditSession) -> Option<EditO
         .unwrap_or_else(|e| panic!("{what}：不追踪成功、追踪失败 {e}"));
     let track_fp = fingerprint(&track);
 
-    if let Some((x, y)) = diff_str(&before.reject, &track_fp.reject) {
-        panic!("{what}：拒绝视图没回到操作前\n  操作前: {x}\n  追踪后: {y}");
-    }
-    if let Some((x, y)) = diff_str(&plain_fp.accept, &track_fp.accept) {
-        panic!("{what}：接受视图与不追踪不同\n  不追踪: {x}\n  追踪: {y}");
-    }
+    // 语料上只跑**真的** `RejectAll` / `AcceptAll`（门 1 的正式形态）。视图代理是 7.4 落地
+    // 之前的脚手架，它对"接受段落标记的删除"这类结构变化只是近似建模，语料里各式各样的
+    // 段落属性组合会让近似和真实结果对不上——真实的那两条才是判据。
+    let mut rej = EditSession::open(bytes).expect("open");
+    rej.apply(op(&rej).expect("同一份文档"), &tracked(A)).expect("追踪重放");
+    rej.apply(EditOp::RejectAll { author: Some(A.into()) }, &EditContext::default())
+        .unwrap_or_else(|e| panic!("{what} RejectAll: {e}"));
+    assert_fingerprint_eq!(before, fingerprint(&rej), "{what}：RejectAll 没回到操作前");
+    let mut acc = EditSession::open(bytes).expect("open");
+    acc.apply(op(&acc).expect("同一份文档"), &tracked(A)).expect("追踪重放");
+    // 只接受**本次**操作的作者：语料本来就带别人的修订，不追踪那条路也没动它们
+    acc.apply(EditOp::AcceptAll { author: Some(A.into()) }, &EditContext::default())
+        .unwrap_or_else(|e| panic!("{what} AcceptAll: {e}"));
+    assert_fingerprint_eq!(plain_fp, fingerprint(&acc), "{what}：AcceptAll 与不追踪不同");
     let saved = track.save().unwrap_or_else(|e| panic!("{what} 保存：{e}"));
     let reopened = EditSession::open(&saved).unwrap_or_else(|e| panic!("{what} 重解析：{e}"));
     if let Some((view, x, y)) = track_fp.diff(&fingerprint(&reopened)) {
         panic!("{what}：往返后指纹变了\n  视图 {view}\n  保存前: {x}\n  重解析: {y}");
     }
     true
+}
+
+/// 这棵子树里**一条未解决的修订都没有**。
+///
+/// 门 1 的 oracle 要求这次操作产生的修订能按作者单独拒绝 / 接受，而 Word 的模型里
+/// **一个容器只能带一条同类修订**（`w:rPr` 只有一份 `rPrChange`、一行只有一个
+/// `w:ins` / `w:del`）。容器上已经有别人未解决的修订时，我们这次的改动挂不上自己的标记，
+/// 也就无法单独回退——那不是缺陷，是 `*PrChange` / 行标记模型本身的性质（登记在 `docs/04` §8）。
+fn revision_free(s: &EditSession, node: NodeId) -> bool {
+    let Some(dom) = s.package().part(s.document().main_part).dom() else { return true };
+    let inside = |n: NodeId| n == node || dom.ancestors(n).any(|a| a == node);
+    !s.document().revisions.entries().iter().any(|e| inside(e.node()))
 }
 
 /// 文本域语料里第一个够长、且在 body 顶层的文本段落。
@@ -514,6 +548,9 @@ fn gate_1_oracles_over_corpus() {
         }),
         ("SetRunProps", |s| {
             let (p, _) = first_long_para(s)?;
+            if !revision_free(s, p) {
+                return None;
+            }
             Some(EditOp::SetRunProps {
                 from: InlinePos::new(p, 1),
                 to: InlinePos::new(p, 3),
@@ -522,6 +559,9 @@ fn gate_1_oracles_over_corpus() {
         }),
         ("SetParaProps", |s| {
             let (p, _) = first_long_para(s)?;
+            if !revision_free(s, p) {
+                return None;
+            }
             Some(EditOp::SetParaProps {
                 part: None,
                 para: p,
@@ -1156,6 +1196,8 @@ fn gate_1_oracles_over_table_corpus() {
     let ops: [CorpusOp; 5] = [
         ("InsertRow", |s| Some(EditOp::InsertRow { table: any_table(s)?, at: 1, template: None })),
         ("DeleteRow", |s| Some(EditOp::DeleteRow { table: any_table(s)?, at: 0 })),
+        // 容器上已经有未解决的 `tblPrChange` 时，再改属性不新建快照（Word 也是这样：
+        // 一个容器只留最早的那份旧值），那次改动就没法按作者单独拒绝——跳过这种文档
         ("SetTableProps", |s| {
             Some(EditOp::SetTableProps {
                 table: any_table(s)?,
@@ -1216,16 +1258,21 @@ fn plain_para(s: &EditSession) -> Option<NodeId> {
     s.document()
         .main
         .iter()
-        .find_map(|b| b.as_text().filter(|t| t.text().encode_utf16().count() >= 6))
+        .filter_map(|b| b.as_text().filter(|t| t.text().encode_utf16().count() >= 6))
         .map(|t| t.node)
+        .find(|&n| revision_free(s, n))
 }
 
-/// 顶层的第一张表（可能在 sdt 里，所以走 `blocks()`）。
+/// 顶层第一张至少两行、且不带未解决修订的表（见 [`revision_free`]）。
 fn any_table(s: &EditSession) -> Option<NodeId> {
-    s.document().main.iter().find_map(|b| match b {
-        rsword::model::Block::Table(t) if t.rows.len() >= 2 => Some(t.node),
-        _ => None,
-    })
+    s.document()
+        .main
+        .iter()
+        .filter_map(|b| match b {
+            rsword::model::Block::Table(t) if t.rows.len() >= 2 => Some(t.node),
+            _ => None,
+        })
+        .find(|&n| revision_free(s, n))
 }
 
 /// 追踪时 `SetHeaderFooter`：在页眉 part 里按段落规则 del + ins。

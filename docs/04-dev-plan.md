@@ -429,6 +429,11 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `ModelFingerprint`（`spec/18` 分层决策 3）「表格几何」 | 含 `w:tblGrid` | **`w:tblGrid` 不进指纹**；可见几何取 `w:tc/w:tcW` 与单元格结构 | 追踪与不追踪时网格的存活期不同（见上一条），同一个视图里比不了。列宽仍在指纹里——它在每个 `w:tc` 的 `tcW` 上；`w:tblGridChange` 由 `tests/tracked_ops.rs` 的 XPath 单独断言 |
 | `ModelFingerprint` 的「接受视图」 | — | 段落标记被删、内容也空了的段落**整段消失**；每一行都被删的表格整张消失 | 那正是「接受段落标记的删除」与「接受整表删除」的结果。不这样建模，追踪删块与不追踪删块的接受视图就差一个空壳 |
 | 视图代理 vs `SPAN-07` | — | `tests/tracked_ops.rs` 的语料 oracle 在删块时只取**没有范围标记**的文档 | 不追踪删一个块会按 `SPAN-07` 把落在里面的批注 / 书签整条删掉；追踪时内容还在、标记必须留着（拒绝要能回来）。两者只有在**真的** `AcceptAll`（7.4）之后才等价，两个视图比不出来。7.4 落地后这条限制取消 |
+| `spec/18` 7.4「`ParaMarkDelete` Accept = 无追踪的 `MergeWithNext`」 | 一律合并 | 段落里**内容也没剩下**时整段删掉，只在还有内容时才合并 | 两件事不一样：合并保留**本段**的属性（下一段的样式会丢），而"这一段整个被删掉 / 整个是插进来的"应该让下一段原样留着。这条让「追踪着 `DeleteBlock` 一个段落 → 接受」与「不追踪 `DeleteBlock`」严格相等（门 1 的 oracle ②）。段落标记排在内容之后处理（见下一条），所以判断时看到的就是内容解决之后的样子 |
+| `spec/18` 7.4 的处理顺序「文档序、先内层后外层」 | 一条序 | 先内层后外层的文档序，**再把段落标记整体挪到最后** | 解决段落标记可能是"与下一段合并"，那要等这一段的内容先处理完。两组内部各自保持 `iter_inner_first` 的次序，`w:ins` 套 `w:del` 的内外顺序不受影响 |
+| `spec/18` 7.4「`NumberingChange` Reject = `numPr` 换成快照」 | 有快照 | 两个方向都只删标记 | `w:numberingChange`（§17.13.5.14，已废弃）只有 `w:original` 属性，**没有内层容器**，无从还原。语料里 0 份 |
+| `MOD-09` 属性快照与行标记的"一个容器一条" | — | 容器上已经有别人未解决的同类修订时，我们这次的改动挂不上自己的标记，也就无法按作者单独回退 | Word 的模型如此：`w:rPr` 只有一份 `rPrChange`、一行只有一个 `w:ins` / `w:del`。`tests/tracked_ops.rs` 的语料 oracle 因此只挑"子树里一条未解决修订都没有"的目标（`revision_free`） |
+| `w:tblPrEx` 与 `ModelFingerprint` | — | 不进指纹；空掉的 `w:tblPrEx` / `w:rPr` / `w:tcPr` 等属性容器在修订解决后整个去掉 | `fixtures/revisions/table-and-move/tracked.docx` 有 6 个 `w:tblPrEx`，Word 的 `accepted` / `rejected` **一个都没有**（含没带 `*Change` 的那 3 个）——那是 Word 另存时的归一化，本引擎不动未编辑的字节（不变式 1）。"空容器一起去掉"这条与 Word 一致，指纹不比 `tblPrEx` 是因为剩下的差异是归一化而不是修订语义 |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -1387,9 +1392,9 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
 
 | # | 条件 | 状态 |
 | --- | --- | --- |
-| 1 | 修订三条 oracle（拒绝还原 / 接受等价 / 往返）对每个可追踪操作 × 语料样本通过 | 未开始（7.1 已备好索引） |
-| 2 | `MOD-09` 每种修订 Accept / Reject 各一条 XPath；21 份带修订语料 `AcceptAll` / `RejectAll` 后 `revisions` 为空 | 未开始 |
-| 3 | `fixtures/revisions` 四个 case 的 `AcceptAll` / `RejectAll` 与 Word 自己另存的 `accepted` / `rejected` 指纹相等 | 未开始（fixture 已就位） |
+| 1 | 修订三条 oracle（拒绝还原 / 接受等价 / 往返）对每个可追踪操作 × 语料样本通过 | **通过**（`tests/tracked_ops.rs`：七个内联 / 段落操作 + 五个表格 / 块操作，40 份文本语料与 ≥ 10 份表格语料；7.4 起跑真的 `AcceptAll` / `RejectAll`） |
+| 2 | `MOD-09` 每种修订 Accept / Reject 各一条 XPath；带修订的语料 `AcceptAll` / `RejectAll` 后 `revisions` 为空 | **通过**（`tests/revisions.rs`：24 种 × 两个方向，17 份带修订语料两个方向都跑） |
+| 3 | `fixtures/revisions` 四个 case 的 `AcceptAll` / `RejectAll` 与 Word 自己另存的 `accepted` / `rejected` 指纹相等 | **通过**（`gate_3_word_accept_reject_fixtures`） |
 | 4 | 保存差分跳过数保持 0，比较范围扩到每个被改写的 XML part | 未开始（7.0①② 按 2026-09-07 的决定推迟到 7.9 前，与重导一起做一次） |
 | 5 | `TEST-07` 1,000 条随机序列 + `fuzz_edit` 10 分钟 | 未开始 |
 | 6 | 八道 `diff-parse` 门继续为 0；6 份新 hostile 满足 `TEST-09` 三条 | hostile 6 份**已通过**（`tests/revisions.rs`）；八道门待收尾时复测 |
@@ -1498,3 +1503,27 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   段落整段消失、整表被删时表也消失（§8）。`tests/tracked_ops.rs` 加到 **41** 个用例，含
   `gate_1_oracles_over_table_corpus`（≥ 10 份带表格的语料 × 5 个操作）与 `EDIT-03` 表格验收行的追踪版。
   **555 测试**（调试 + 发布）、九道门仍为 0、保存语料 204 / 208 等价 0 跳过、clippy 零告警。
+
+- [x] **7.4 接受 / 拒绝修订**（`edit/revision_ops.rs`，2026-09-07）：四个新操作
+  `AcceptRevision` / `RejectRevision` / `AcceptAll { author }` / `RejectAll { author }`。核心是一张
+  **`accept_reject!` 表**（24 行 = `RevKind` 的全部种类 → 接受动作 / 拒绝动作），动作只有八种：
+  `Unwrap` / `UnwrapLive`（解包，后者顺手把 `w:delText` 改回 `w:t`）/ `Drop` / `DropMark` / `Merge` /
+  `Restore(容器, 不动的字段)` / `DropCell` / `Unsupported`。`trPr/w:ins|w:del` 另走 `row_actions`——
+  标记在行属性里，动的是**整行**（最后一行走了连表一起走）。
+  顺序：`iter_inner_first()` 的文档序（`w:ins` 套 `w:del` 先处理 `del`），**段落标记整体排到最后**（§8）。
+  整批在一个事务里（`EditSession::apply` 的事务边界），前面的步骤删掉的子树后面自动跳过（`alive`）。
+  几处要点：拒绝 `*PrChange` 用快照子元素的**整体克隆**（未建模的子元素也回来，`tests/revisions.rs`
+  用 `rPr` 里的 `w:oMath` 验这一条）；搬移的两半按 `pair` 成对处理，范围标记连同**范围本身**从
+  `SpanIndex` 里摘掉（否则 `SPAN-09` 会在保存时按索引把标记重新物化出来——这是实现时踩到的第一个坑）；
+  `CellInsert` 拒绝 / `CellDelete` 接受时整列都带标记就连 `w:gridCol` 一起删，否则把宽度并进邻格
+  （新的 `table_ops::absorb_cell_width`），保住「行的网格宽度 = `tblGrid` 列数」；空掉的属性容器整个去掉
+  （真实 Word 的形态，§8）。
+  **门 1 升级成正式形态**：`tests/tracked_ops.rs` 的 oracle 现在跑**真的** `RejectAll { author: A }`
+  与 `AcceptAll { author: A }`，视图代理只留在手写的小用例上（语料上删掉——它对结构变化只是近似建模）。
+  **门 2**：`tests/revisions.rs` 的 `gate_2_accept_reject_all_corpus` 对每份带修订的语料两个方向都跑，
+  重解析后 `revisions` 为空、无引擎不变式违规；`mod_09_*_accept_reject` 四个用例按 `accept_reject!`
+  同一张表覆盖 24 种修订 × 两个方向的 XPath。**门 3 通过**：`gate_3_word_accept_reject_fixtures`
+  对四个 case 的 `tracked.docx` 做 `AcceptAll` / `RejectAll`，`ModelFingerprint` 与 Word 自己
+  「接受所有修订」/「拒绝所有修订」另存的 `accepted.docx` / `rejected.docx` 相等。
+  五条偏差登记在 §8。**568 测试**（调试 + 发布）、九道门仍为 0、保存语料 204 / 208 等价 0 跳过、
+  clippy 零告警。

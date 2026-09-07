@@ -335,15 +335,11 @@ impl Walker<'_> {
                         LocalName::TrPr,
                         &[LocalName::Ins, LocalName::Del],
                     );
-                    let ex = props_in_view(
-                        self.dom,
-                        child(self.dom, node, LocalName::TblPrEx),
-                        self.view,
-                        LocalName::TblPrExChange,
-                        LocalName::TblPrEx,
-                        &[],
-                    );
-                    self.out.push_str(&format!("TR{{{props}|X={ex}\n"));
+                    // `w:tblPrEx`（行级的表属性覆盖）**不进指纹**：Word 另存时会把与表属性
+                    // 重复的那些整个丢掉（`fixtures/revisions/table-and-move` 的 `tracked.docx`
+                    // 有 6 个，`accepted` / `rejected` 一个都没有，含没带 `*Change` 的那 3 个），
+                    // 而本引擎不动未编辑的字节（不变式 1）。比它等于比 Word 的归一化行为。
+                    self.out.push_str(&format!("TR{{{props}\n"));
                     self.descend(node);
                     self.flush_para();
                     self.out.push_str("}TR\n");
