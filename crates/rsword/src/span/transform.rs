@@ -32,6 +32,13 @@ pub struct SpanPolicy {
     pub splits: Vec<ContainerSplit>,
     /// 两个容器合成一个（`MergeWithNext`）：`SPAN-06` 的合并行。
     pub merges: Vec<ContainerMerge>,
+    /// **原地重包**的内容项（`spec/18` 7.2 的追踪删除 / 插入）：这个内容项被搬进一个**新建的**
+    /// `w:ins` / `w:del` 里，而那个包裹就插在它原来的位置上。
+    ///
+    /// 容器的内容序列长度因此**不变**（一个 `w:r` 换成一个包着它的 `w:del`），锚点一个都不该动。
+    /// 通用推导看不出这一点：它只看见"插入一个新元素 + 搬走一个内容项"，会把两侧的锚点各挪一格。
+    /// 列在这里的项，它的 `Move` 与它那个包裹的 `Insert` 都不计入内容序列变化。
+    pub rewraps: Vec<NodeId>,
     /// 被拆成两半的内容项（`split_run`）。
     ///
     /// 拆分与"在边界插入新内容"在 DOM 上一样（都是在某个边界插入一个元素），语义上不同：
@@ -61,6 +68,7 @@ impl SpanPolicy {
         !self.keep_orphan_comments
             && self.rescan.is_empty()
             && self.split_items.is_empty()
+            && self.rewraps.is_empty()
             && self.splits.is_empty()
             && self.merges.is_empty()
     }
@@ -406,7 +414,9 @@ fn derive(dom: &Dom, edits: &[NodeEdit], policy: &SpanPolicy) -> ContentDelta {
             }
             NodeEdit::Insert { parent: Target::Node(p), before, node } => {
                 d.structural = true;
-                if new_is_content_item(node.name) {
+                // 原地重包的包裹：它顶替被搬进去的那个内容项，序列长度不变
+                let rewrap = before.is_some_and(|b| policy.rewraps.contains(&b));
+                if new_is_content_item(node.name) && !rewrap {
                     insert_item(dom, &mut d, *p, *before);
                 }
             }
@@ -423,8 +433,11 @@ fn derive(dom: &Dom, edits: &[NodeEdit], policy: &SpanPolicy) -> ContentDelta {
             }
             NodeEdit::Move { node, parent, before } => {
                 d.structural = true;
-                // 从被拆 / 合的容器里搬出来的项：别记成删除（那会把留在原容器的锚点算错）
-                if !container_of(dom, *node).is_some_and(|c| relocated.contains(&c)) {
+                // 从被拆 / 合的容器里搬出来的项、以及原地重包的项：别记成删除
+                // （前者的锚点由 `map_container_change` 整体重定位，后者根本没动位置）
+                if !container_of(dom, *node).is_some_and(|c| relocated.contains(&c))
+                    && !policy.rewraps.contains(node)
+                {
                     remove_item(dom, &mut d, *node);
                 }
                 if let Target::Node(p) = parent
@@ -433,11 +446,13 @@ fn derive(dom: &Dom, edits: &[NodeEdit], policy: &SpanPolicy) -> ContentDelta {
                     insert_item(dom, &mut d, *p, *before);
                 }
             }
-            // 新建父节点下的插入不影响已有锚点；属性与文本变更不改内容序列
+            // 新建父节点下的插入不影响已有锚点；属性、文本与改名都不改内容序列
+            // （改名只用在 run 内的文本元素上：`w:t → w:delText`，内容项还是那个 `w:r`）
             NodeEdit::Insert { .. }
             | NodeEdit::InsertClone { .. }
             | NodeEdit::SetAttr { .. }
             | NodeEdit::RemoveAttr { .. }
+            | NodeEdit::Rename { .. }
             | NodeEdit::SetText { .. } => {}
         }
     }

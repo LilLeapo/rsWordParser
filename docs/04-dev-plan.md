@@ -420,6 +420,9 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `spec/18` 7.1 `RevKind` 21 种 | `MOD-09` 16 + run 级 5 | **24 种**：多 `TablePropsExChange`、`ParaMarkMoveFrom`、`ParaMarkMoveTo` | `w:tblPrExChange` 不在 `MOD-09` 的清单里，但真实 Word 的表格修订一定写它（`fixtures/revisions/table-and-move/tracked.docx` 3 处、`corpus/real/revisions2/rev-table.docx` 2 处），门第 3 条要求接受 / 拒绝后一个标记不剩。`pPr/rPr` 里的 `w:moveFrom` / `w:moveTo` 与 `w:del` / `w:ins` 对段落标记的作用相同，但另立种类才说得清它是搬移的一部分 |
 | `MOD-09` 搬移的配对 | 按 `w:moveFromRangeStart/@w:name` 配对 | **只配内容那一半**；段落标记上的 `w:moveFrom` / `w:moveTo` 不配对 | 真实 Word 把段落标记的搬移标记写在范围标记**之外**（`corpus/real/revisions2/rev-move.docx`：`w:moveFrom w:id="0"` 在 `w:moveFromRangeStart w:id="1"` 之前），按 `@w:name` 根本罩不住；而标记的接受 / 拒绝与 `ParaMarkDelete` / `ParaMarkInsert` 完全一样，本来就不需要孪生 |
 | `COMPAT-04` 段落的 `revExtras` | — | 索引里单元格内段落也有 `ParaMarkDelete` / `ParaPropsChange`，TS 的 `paraMarkDel` / `pPrChangeInfo` 只出现在**顶层**段落块上 | TS 的表格投影不带段落 `revExtras`（`corpus/real/_round3/_resaved/rev-table--insertrow-resaved-by-word.docx` 里两处删除的单元格段落标记 TS 一条都没给），run 级修订它倒是照给。这是 TS 的缺口，我们不跟随；`tests/revisions.rs` 的索引 ↔ 投影对照因此对这两种只比顶层段落 |
+| `spec/18` 7.2「`w:del` 包住覆盖到的 run」 | 与 Word 同形：连着的几个 run 共用一个 `w:del` | **一个内容项一个包裹** | 容器的内容序列长度因此**不变**（一个 `w:r` 换成一个包着它的 `w:del`），范围锚点一个都不用动——这正是「追踪删除不移动锚点」要的。合并成一个包裹会让 N 个内容项变成 1 个，`SPAN-06` 的通用推导只能看见「插入一个 + 搬走 N 个」，两侧锚点各挪一格。新增 `SpanPolicy::rewraps` 让推导跳过这两条编辑。形态上多几个 `w:del`，语义与接受 / 拒绝的结果完全一样，`ModelFingerprint` 本来就忽略 run 边界 |
+| `spec/18` 7.2「落在他人 `w:ins` 内插入 → 拆开外层」 | 一律拆开 | 插入点是那个 `w:ins` 的**直接**子位置时拆开；嵌在更深的容器里（超链接 / smartTag）时退化成内层再套一个 `w:ins` | 拆开要把外层的尾部子节点搬进克隆出来的右半，只有插入点就在那一层时位置才明确。退化形态合法，接受 / 拒绝的结果也对，只有「按作者拒绝外层」会连带撤掉内层——语料里没有这种嵌套，真出现时是 7.4 的登记项 |
+| `EDIT-03 ReplaceParaProps`（追踪时） | `props = None` → 段落没有 `w:pPr` | 留一个只装 `w:pPrChange` 的空 `w:pPr` | 旧值快照总得有地方放。不追踪时行为不变 |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -1419,3 +1422,26 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   `iter_inner_first` 从最内层开始、不爆栈；插字后 id 与种类不变、整体重建后也不变；无会话从 0 编号；
   跨 part 的 `max_w_id`；两作者文档的 `by_author` 全覆盖；`SetDocumentSettings` 写出 `w:trackRevisions` 并能重解析。
   **514 测试**（调试 + 发布）、八道门仍为 0、clippy 零告警。
+
+- [x] **7.2a 修订生成：内联与段落**（`edit/track.rs`、`edit/ops.rs`、`xml/plan.rs`、`span/transform.rs`，2026-09-07）：
+  `Tracker` 是 **plan 阶段的辅助**，不是新的执行阶段（分层决策 1）——包裹 / 改名 / 快照都是普通 `NodeEdit`，
+  `MutationPlan` 不加字段。`w:id` 从 `Document.revisions.max_w_id() + 1` 起顺序发（`EDIT-06`，跨 part）；
+  `w:date` 是 `RevisionAuthor.date` 的原串（引擎没有时钟）。新增三个基础件：**`NodeEdit::Rename`**
+  （`w:t → w:delText`、`w:instrText → w:delInstrText`；`validate` / `apply_edits` / `SPAN-06` 各一条分支，
+  改名不改内容序列）、**`SpanPolicy::rewraps`**（见 §8）、**`DiagCode::EditInDeleted` / `RevNotTracked`**。
+  `TrackSite`（`Clean` / `OwnIns` / `OtherIns` / `Deleted`）从位置往上走到段落为止，判定同作者规则。
+  落地的七个操作：`InsertText`（自己的 `w:ins` 里直接插；别人的拆开外层夹在中间；`w:del` 里
+  `Err(EDIT_IN_DELETED)`；否则新建 `w:ins`）、`DeleteRange`（**内容不删**，逐项包 `w:del` + 改名；
+  自己插的真删、空掉的 `w:ins` 壳一起删；别人插的 `w:del` 嵌在 `w:ins` 里；已在 `w:del` 里的不动；
+  `offset_delta` 为 0、坐标流长度不变、范围标记不动）、`SetRunProps`（先快照 `w:rPrChange` 再打补丁，
+  两个阶段——补丁要看到已有的 `rPrChange` 才会把新元素放在它前面，`PROP-05`）、`SetParaProps` /
+  `ReplaceParaProps`（`w:pPrChange`，快照排除 `w:rPr` / `w:sectPr`，`in_change = false`）、
+  `SplitParagraph`（前段 `pPr/rPr/w:ins`，在克隆 `pPr` 之后加，否则后段会跟着带上）、
+  `MergeWithNext`（**不合并**，只在本段打 `pPr/rPr/w:del`）。
+  **验收**：`tests/common/fingerprint.rs` 的 `ModelFingerprint`（分层决策 3）算 accept / reject 两个视图，
+  于是门 1 的三条 oracle **不必等 7.4** 就能验：reject 视图回到操作前、accept 视图等于不追踪做一遍、
+  保存重解析后两视图不变且修订条目齐全。`tests/tracked_ops.rs` 18 个用例：七个操作各一组 oracle、
+  `gate_1_oracles_over_corpus` 在 40 份语料 × 7 个操作上跑同样三条、`EDIT-03` 的四条验收行、
+  同作者规则五种各一条、`rPrChange` / `pPrChange` 记旧值、修订 `w:id` 互不相同。
+  **532 测试**（调试 + 发布）、八道门仍为 0、clippy 零告警。7.2b（字段类操作、`ReplaceInlines` 的坐标流 diff、
+  compat 的 `rPrChange` 重发）另起一提交。

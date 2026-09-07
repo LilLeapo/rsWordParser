@@ -23,6 +23,7 @@ use crate::xml::{
 use super::inline::{Emitter, has_control_chars, sanitize_text, text_segments};
 use super::plan::{MutationPlan, MutationResult};
 use super::pos::{InlinePos, Loc, inline_spans, locate, utf16_to_byte};
+use super::track::{TrackSite, Tracker, err_in_deleted, site_of};
 use super::{
     BlockAt, BlockPos, EditContext, EditOp, EditSession, LinkRef, NewBlock, NewInline, NewRun,
 };
@@ -33,10 +34,12 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
     match op {
         EditOp::InsertText { at, text, props } => insert_text(s, at, &text, props, ctx),
         EditOp::DeleteRange { from, to } => delete_range(s, from, to, ctx),
-        EditOp::SetRunProps { from, to, patch } => set_run_props(s, from, to, &patch),
+        EditOp::SetRunProps { from, to, patch } => set_run_props(s, from, to, &patch, ctx),
         EditOp::ReplaceInlines { part, para, inlines } => replace_inlines(s, part, para, &inlines),
-        EditOp::SetParaProps { part, para, patch } => set_para_props(s, part, para, &patch),
-        EditOp::ReplaceParaProps { part, para, props } => replace_para_props(s, part, para, props),
+        EditOp::SetParaProps { part, para, patch } => set_para_props(s, part, para, &patch, ctx),
+        EditOp::ReplaceParaProps { part, para, props } => {
+            replace_para_props(s, part, para, props, ctx)
+        }
         EditOp::InsertRow { table, at, template } => {
             super::table_ops::insert_row(s, table, at, template)
         }
@@ -55,8 +58,8 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::AddComment { from, to, comment } => add_comment(s, from, to, &comment),
         EditOp::RemoveComment { id } => remove_comment(s, &id),
         EditOp::SetCommentText { id, text, done } => set_comment_text(s, &id, &text, done),
-        EditOp::SplitParagraph { at } => split_paragraph(s, at),
-        EditOp::MergeWithNext { part, para } => merge_with_next(s, part, para),
+        EditOp::SplitParagraph { at } => split_paragraph(s, at, ctx),
+        EditOp::MergeWithNext { part, para } => merge_with_next(s, part, para, ctx),
         EditOp::AddBookmark { name, from, to } => add_bookmark(s, &name, from, to),
         EditOp::RemoveBookmark { name } => remove_bookmark(s, &name),
         EditOp::InsertField { at, field } => insert_field(s, at, &field, ctx),
@@ -347,6 +350,7 @@ fn append_edits(plan: &mut MutationPlan, mut edits: Vec<NodeEdit>) {
             NodeEdit::Replace { .. }
             | NodeEdit::ReplaceClone { .. }
             | NodeEdit::Delete(_)
+            | NodeEdit::Rename { .. }
             | NodeEdit::SetText { .. } => {}
         }
     }
@@ -463,6 +467,17 @@ fn split_at(
     loc: Loc,
     result: &mut MutationResult,
 ) -> Result<Option<(NodeId, NodeId)>> {
+    split_at_maybe_deleted(s, at, loc, result, false)
+}
+
+/// 同上；`in_deleted` 为真时允许在已删除的文字里拆分（追踪路径要把已删区间也切齐）。
+fn split_at_maybe_deleted(
+    s: &mut EditSession,
+    at: InlinePos,
+    loc: Loc,
+    result: &mut MutationResult,
+    in_deleted: bool,
+) -> Result<Option<(NodeId, NodeId)>> {
     let (inline, segment, byte) = match loc {
         Loc::Boundary { .. } => return Ok(None),
         Loc::InRun { inline, segment } => (inline, segment, 0),
@@ -471,8 +486,8 @@ fn split_at(
     let para = at.para;
     let tb = text_block(s, at.part, para)?;
     let Inline::Run(run) = &tb.inlines[inline] else { unreachable!("InRun/InText point at runs") };
-    if in_deleted_run(run) || run.segments[segment].kind == SegmentKind::DelText {
-        return Err(unsupported("位置在已删除文本内（修订编辑在 M7）"));
+    if !in_deleted && (in_deleted_run(run) || run.segments[segment].kind == SegmentKind::DelText) {
+        return Err(unsupported("位置在已删除文本内（不追踪时不能在删除区里编辑）"));
     }
     let run_node = run.node;
     let plan = split_run(s, at.part, para, run, segment, byte);
@@ -645,10 +660,31 @@ fn insert_text(
     let tb = text_block(s, at.part, at.para)?;
     let loc = locate(tb, at.offset)?;
 
-    // 路径 1：紧邻 / 落在 Text 段 → 直接写该 w:t 的文本节点
+    // 追踪时先看位置落在什么修订包裹里（`spec/18` 7.2 的同作者规则）
+    let mut tracker = Tracker::new(s.document(), ctx);
+    let dom0 = s.dom_in(at.part)?;
+    if let Some(t) = &tracker {
+        let probe = match loc {
+            Loc::Boundary { .. } => at.para,
+            Loc::InRun { inline, .. } | Loc::InText { inline, .. } => {
+                tb.inlines[inline].node().unwrap_or(at.para)
+            }
+        };
+        if matches!(site_of(dom0, probe, at.para, &t.author), TrackSite::Deleted(_)) {
+            return Err(err_in_deleted());
+        }
+    }
+    // 路径 1：紧邻 / 落在 Text 段 → 直接写该 w:t 的文本节点。
+    // 追踪时只有落在**本作者自己的** `w:ins` 里才能这么做（Word：自己插的可以接着改）
+    let own_ins = |seg: NodeId| {
+        tracker
+            .as_ref()
+            .is_none_or(|t| matches!(site_of(dom0, seg, at.para, &t.author), TrackSite::OwnIns(_)))
+    };
     if props.is_none()
         && !has_control_chars(&text)
         && let Some((seg_node, seg_text, byte)) = direct_text_target(tb, &loc)
+        && own_ins(seg_node)
     {
         let new_text = format!("{}{}{}", &seg_text[..byte], text, &seg_text[byte..]);
         let mut plan = MutationPlan::new(part);
@@ -675,10 +711,15 @@ fn insert_text(
     let mut plan = MutationPlan::new(part);
     plan.touch(at.para);
     plan.diagnostics = diags;
+    // 追踪：新 run 进 `w:ins`（同作者规则见 `plan_ins_site`）
+    let (run_parent, run_before) = match &mut tracker {
+        None => (Target::Node(parent), before),
+        Some(t) => plan_ins_site(&mut plan, dom, t, at.para, parent, before)?,
+    };
     let k = plan.node_edits.len();
     plan.node_edits.push(NodeEdit::Insert {
-        parent: Target::Node(parent),
-        before,
+        parent: run_parent,
+        before: run_before,
         node: NewElement::new(w(LocalName::R)),
     });
     match inherit.and_then(|r| rpr_of(dom, r)) {
@@ -719,6 +760,70 @@ fn insert_text(
     Ok(result)
 }
 
+/// 追踪时新 run 该落在哪里（`spec/18` 7.2「同作者规则」）：
+///
+/// - 本作者自己的 `w:ins` 里 → 直接插，不套第二层；
+/// - 别人的 `w:ins` 里 → **拆开**外层（属性克隆、换新 `w:id`），把新的 `w:ins` 夹在中间——
+///   否则按作者拒绝时会把两个人的字一起撤掉；
+/// - 其余 → 新建一个 `w:ins` 包住。
+fn plan_ins_site(
+    plan: &mut MutationPlan,
+    dom: &Dom,
+    t: &mut Tracker,
+    para: NodeId,
+    parent: NodeId,
+    before: Option<NodeId>,
+) -> Result<(Target, Option<NodeId>)> {
+    let wrap = |plan: &mut MutationPlan, t: &mut Tracker, parent: NodeId, before| {
+        let k = plan.node_edits.len();
+        plan.node_edits.push(NodeEdit::Insert {
+            parent: Target::Node(parent),
+            before,
+            node: t.marker(LocalName::Ins),
+        });
+        (Target::New(k), None)
+    };
+    match site_of(dom, parent, para, &t.author) {
+        TrackSite::Deleted(_) => Err(err_in_deleted()),
+        TrackSite::OwnIns(_) => Ok((Target::Node(parent), before)),
+        // 位置嵌在别人 `w:ins` 内更深的容器里（超链接、smartTag …）：拆不动外层，
+        // 退化成内层再套一个 `w:ins`（形态合法，接受 / 拒绝都正确，只是按作者拒绝外层会连带）
+        TrackSite::OtherIns(ins) if ins != parent => Ok(wrap(plan, t, parent, before)),
+        TrackSite::OtherIns(ins) => {
+            let gp = dom.parent(ins).ok_or_else(|| unsupported("w:ins 没有父节点"))?;
+            let kids: Vec<NodeId> = live_children(dom, ins).collect();
+            let cut = before.and_then(|b| kids.iter().position(|&k| k == b));
+            match cut {
+                // 落在末尾：整个 `w:ins` 之后另起一个
+                None => Ok(wrap(plan, t, gp, next_sibling(dom, ins))),
+                // 落在开头：整个 `w:ins` 之前另起一个
+                Some(0) => Ok(wrap(plan, t, gp, Some(ins))),
+                Some(i) => {
+                    let after = next_sibling(dom, ins);
+                    let (target, _) = wrap(plan, t, gp, after);
+                    // 右半：同名同属性、新 `w:id`；插在同一个 `before` 上 → 落在我们这一段之后
+                    let k2 = plan.node_edits.len();
+                    let right = t.clone_marker(dom, ins);
+                    plan.node_edits.push(NodeEdit::Insert {
+                        parent: Target::Node(gp),
+                        before: after,
+                        node: right,
+                    });
+                    for &c in &kids[i..] {
+                        plan.node_edits.push(NodeEdit::Move {
+                            node: c,
+                            parent: Target::New(k2),
+                            before: None,
+                        });
+                    }
+                    Ok((target, None))
+                }
+            }
+        }
+        TrackSite::Clean => Ok(wrap(plan, t, parent, before)),
+    }
+}
+
 // ---- DeleteRange ------------------------------------------------------------------------------
 
 fn delete_range(
@@ -749,6 +854,9 @@ fn delete_range(
     plan.touch(from.para);
     if a == b {
         return s.commit_plan(plan);
+    }
+    if ctx.track_changes.is_some() {
+        return delete_range_tracked(s, from, to, ctx);
     }
     let dom = s.dom_in(from.part)?;
     let fields = &s.document().fields;
@@ -830,6 +938,115 @@ fn delete_range(
     s.commit_plan(plan)
 }
 
+/// 追踪时的 `DeleteRange`（`spec/18` 7.2）：**内容不删**，覆盖到的每个内容项原地包进
+/// `w:del`，`w:t → w:delText`、`w:instrText → w:delInstrText`。
+///
+/// 三条与不追踪相反的性质：坐标流长度不变（`w:delText` 照样占位）、`offset_delta` 为 0、
+/// 范围标记一个都不动（`SPAN-06` 的删除规则**不**调用，见 `SpanPolicy::rewraps`）。
+///
+/// 同作者规则：本作者自己插的（`w:ins` 在本作者名下）真删；别人插的 → `w:del` 嵌在那个
+/// `w:ins` 里（包裹插在 run 原来的位置，父节点就是 `w:ins`，天然嵌进去）；已经在 `w:del`
+/// 里的不动。
+fn delete_range_tracked(
+    s: &mut EditSession,
+    from: InlinePos,
+    to: InlinePos,
+    ctx: &EditContext,
+) -> Result<MutationResult> {
+    let part = s.part_or_main(from.part);
+    let (a, b) = (from.offset.0, to.offset.0);
+    let mut result = MutationResult::default();
+    // 两端先拆 run（拆分不改坐标），之后区间里的 run 要么整个在内要么整个在外
+    for off in [to.offset, from.offset] {
+        let loc = locate(text_block(s, from.part, from.para)?, off)?;
+        split_at_maybe_deleted(s, from, loc, &mut result, true)?;
+    }
+    let mut t = Tracker::new(s.document(), ctx).expect("调用方已确认在追踪");
+    let tb = text_block(s, from.part, from.para)?;
+    let spans = inline_spans(tb);
+    let dom = s.dom_in(from.part)?;
+    let fields =
+        s.document().fields_in(part).ok_or_else(|| unsupported("这个 part 没有字段索引"))?;
+    let mut plan = MutationPlan::new(part);
+    plan.span.keep_orphan_comments = ctx.keep_orphan_comments;
+    plan.touch(from.para);
+    let mut kept_structure = 0usize;
+    // `(节点, 真删还是标删)`，文档序
+    let mut items: Vec<(NodeId, bool)> = Vec::new();
+    for (inline, span) in tb.inlines.iter().zip(&spans) {
+        if span.end <= a || span.start >= b {
+            continue;
+        }
+        match inline {
+            Inline::Atom(atom) => items.push((atom.node, false)),
+            // `FLD-07`：原子形态字段被覆盖 → begin..end 整段进 `w:del`（条目 / 结果都留着）
+            Inline::Field { id, .. } => {
+                for n in fields.all_nodes(*id) {
+                    items.push((n, false));
+                }
+            }
+            Inline::Run(run) => {
+                // 已经在删除区里：不动（不套第二层）
+                if matches!(site_of(dom, run.node, from.para, &t.author), TrackSite::Deleted(_)) {
+                    continue;
+                }
+                let structural = run.segments.iter().any(|sg| is_structural(&sg.kind));
+                if structural
+                    && run.field.is_none()
+                    && run.segments.iter().any(|sg| {
+                        is_field_structure(&sg.kind) && fields.field_of(run.node).is_none()
+                    })
+                {
+                    kept_structure += 1;
+                    continue;
+                }
+                // 本作者自己插的 → 真删（Word：自己插的字删掉就没了）
+                let own =
+                    matches!(site_of(dom, run.node, from.para, &t.author), TrackSite::OwnIns(_));
+                items.push((run.node, own));
+            }
+        }
+    }
+    // 真删掉自己插的内容之后，空掉的 `w:ins` 壳一起删（Word 不留空包裹）
+    let dropped: Vec<NodeId> = items.iter().filter(|(_, d)| *d).map(|&(n, _)| n).collect();
+    let mut empty_wrappers: Vec<NodeId> = Vec::new();
+    for &n in &dropped {
+        if let TrackSite::OwnIns(ins) = site_of(dom, n, from.para, &t.author)
+            && !empty_wrappers.contains(&ins)
+            && live_children(dom, ins).all(|c| dropped.contains(&c))
+        {
+            empty_wrappers.push(ins);
+        }
+    }
+    for (node, drop_it) in items {
+        if drop_it {
+            // 壳整个删掉就不用再删它的孩子
+            let covered =
+                empty_wrappers.iter().any(|&ins| dom.is_ancestor_or_self(ins, node) && ins != node);
+            if !covered {
+                plan.node_edits.push(NodeEdit::Delete(node));
+            }
+            continue;
+        }
+        t.wrap_item(&mut plan, dom, node, LocalName::Del);
+        Tracker::rename_to_deleted(&mut plan, dom, node);
+    }
+    for ins in empty_wrappers {
+        plan.node_edits.push(NodeEdit::Delete(ins));
+    }
+    if kept_structure > 0 {
+        plan.diagnostics.push(Diagnostic::invariant_violation(
+            part,
+            None,
+            DiagCode::EditAnchorUnmoved,
+            format!("删除范围内有 {kept_structure} 个未闭合 / 畸形字段的结构 run 原地保留"),
+        ));
+    }
+    // `offset_delta` 不写：追踪时内容还在坐标流里
+    result.absorb(s.commit_plan(plan)?);
+    Ok(result)
+}
+
 // ---- SetRunProps ------------------------------------------------------------------------------
 
 fn set_run_props(
@@ -837,6 +1054,7 @@ fn set_run_props(
     from: InlinePos,
     to: InlinePos,
     patch: &RunPropsPatch,
+    ctx: &EditContext,
 ) -> Result<MutationResult> {
     if from.part != to.part {
         return Err(Error::edit(DiagCode::EditBadPosition, "SetRunProps 两端不在同一个 part"));
@@ -854,6 +1072,11 @@ fn set_run_props(
     for off in [to.offset, from.offset] {
         let loc = locate(text_block(s, from.part, from.para)?, off)?;
         split_at(s, from, loc, &mut result)?;
+    }
+    // 阶段 C0（追踪）：范围内每个还没有 `rPrChange` 的 run 记下旧格式（`spec/08`）。
+    // 单独一个阶段：补丁要看到已经存在的 `w:rPrChange`，才能把新元素放在它**前面**（`PROP-05`）
+    if let Some(plan) = plan_run_props_change(s, from, a, b, ctx)? {
+        result.absorb(s.commit_plan(plan)?);
     }
     // 阶段 C：范围内的每个非零宽 run 按 PROP-06 计划 rPr 变更
     let tb = text_block(s, from.part, from.para)?;
@@ -875,6 +1098,50 @@ fn set_run_props(
     Ok(result)
 }
 
+/// 追踪时 `[a, b)` 里每个 run 的 `w:rPrChange` 旧值快照。不追踪 → `None`。
+fn plan_run_props_change(
+    s: &EditSession,
+    from: InlinePos,
+    a: u32,
+    b: u32,
+    ctx: &EditContext,
+) -> Result<Option<MutationPlan>> {
+    let Some(mut t) = Tracker::new(s.document(), ctx) else { return Ok(None) };
+    let tb = text_block(s, from.part, from.para)?;
+    let spans = inline_spans(tb);
+    let dom = s.dom_in(from.part)?;
+    let mut plan = MutationPlan::new(s.part_or_main(from.part));
+    plan.touch(from.para);
+    for (inline, span) in tb.inlines.iter().zip(&spans) {
+        if span.start < a || span.end > b || span.start == span.end {
+            continue;
+        }
+        let Inline::Run(run) = inline else { continue };
+        match rpr_of(dom, run.node) {
+            Some(rpr) => {
+                t.snapshot(&mut plan, dom, rpr, LocalName::RPrChange, LocalName::RPr, &[]);
+            }
+            None => {
+                // 没有 `rPr`：旧格式全是继承来的，快照是一个空的 `w:rPr`
+                let k = plan.node_edits.len();
+                plan.node_edits.push(NodeEdit::Insert {
+                    parent: Target::Node(run.node),
+                    before: live_children(dom, run.node).next(),
+                    node: NewElement::new(w(LocalName::RPr)),
+                });
+                let change =
+                    t.marker(LocalName::RPrChange).with_child(NewElement::new(w(LocalName::RPr)));
+                plan.node_edits.push(NodeEdit::Insert {
+                    parent: Target::New(k),
+                    before: None,
+                    node: change,
+                });
+            }
+        }
+    }
+    Ok((!plan.is_empty()).then_some(plan))
+}
+
 // ---- 段落属性与 compat 路径 ---------------------------------------------------------------------
 
 fn require_paragraph(dom: &Dom, para: NodeId) -> Result<()> {
@@ -893,13 +1160,65 @@ fn set_para_props(
     part: Option<PartId>,
     para: NodeId,
     patch: &ParaPropsPatch,
+    ctx: &EditContext,
 ) -> Result<MutationResult> {
+    require_paragraph(s.dom_in(part)?, para)?;
+    let mut result = MutationResult::default();
+    // 追踪：先把旧值快照成 `w:pPrChange`（`SAVE-04`），再打补丁——两个阶段，补丁看到的
+    // `pPr` 里已经有 `pPrChange`，`order` 会把新元素放在它前面（`PROP-05`）
+    if let Some(plan) = plan_para_props_change(s, part, para, ctx)? {
+        result.absorb(s.commit_plan(plan)?);
+    }
     let dom = s.dom_in(part)?;
-    require_paragraph(dom, para)?;
     let mut plan = MutationPlan::new(s.part_or_main(part));
     plan.touch(para);
     plan.node_edits = plan_apply_para_props(dom, para, ppr_of(dom, para), patch, s.flavor_in(part));
-    s.commit_plan(plan)
+    result.absorb(s.commit_plan(plan)?);
+    Ok(result)
+}
+
+/// 追踪时段落属性变更的旧值快照（`w:pPrChange`）。不追踪 → `None`。
+fn plan_para_props_change(
+    s: &EditSession,
+    part: Option<PartId>,
+    para: NodeId,
+    ctx: &EditContext,
+) -> Result<Option<MutationPlan>> {
+    let Some(mut t) = Tracker::new(s.document(), ctx) else { return Ok(None) };
+    let dom = s.dom_in(part)?;
+    let mut plan = MutationPlan::new(s.part_or_main(part));
+    plan.touch(para);
+    match ppr_of(dom, para) {
+        Some(ppr) => {
+            t.snapshot(
+                &mut plan,
+                dom,
+                ppr,
+                LocalName::PPrChange,
+                LocalName::PPr,
+                // `in_change = false`：段落标记的 `rPr` 与段落级 `sectPr` 不进快照（`para.toml`）
+                &[LocalName::RPr, LocalName::SectPr],
+            );
+        }
+        None => {
+            // 没有 `pPr`：旧值全是默认，快照是一个空的 `w:pPr`
+            let before = live_children(dom, para).next();
+            let k = plan.node_edits.len();
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::Node(para),
+                before,
+                node: NewElement::new(w(LocalName::PPr)),
+            });
+            let change =
+                t.marker(LocalName::PPrChange).with_child(NewElement::new(w(LocalName::PPr)));
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::New(k),
+                before: None,
+                node: change,
+            });
+        }
+    }
+    Ok((!plan.is_empty()).then_some(plan))
 }
 
 fn emit_inlines(dom: &Dom, inlines: &[NewInline]) -> Vec<NewElement> {
@@ -943,25 +1262,49 @@ fn replace_para_props(
     part: Option<PartId>,
     para: NodeId,
     props: Option<NewElement>,
+    ctx: &EditContext,
 ) -> Result<MutationResult> {
+    require_paragraph(s.dom_in(part)?, para)?;
+    let mut result = MutationResult::default();
+    // 追踪：快照先做进**旧**的 `pPr`，第二阶段再把那个 `w:pPrChange` 搬进新的 `pPr`——
+    // 整份替换会把旧容器删掉，克隆源必须在它还活着的时候取
+    if let Some(plan) = plan_para_props_change(s, part, para, ctx)? {
+        result.absorb(s.commit_plan(plan)?);
+    }
+    let tracked = ctx.track_changes.is_some();
     let dom = s.dom_in(part)?;
-    require_paragraph(dom, para)?;
     let mut plan = MutationPlan::new(s.part_or_main(part));
     plan.touch(para);
     let first = live_children(dom, para).next();
+    let old_ppr = ppr_of(dom, para);
+    let change = old_ppr
+        .filter(|_| tracked)
+        .and_then(|p| live_children(dom, p).find(|&c| dom.is(c, w(LocalName::PPrChange))));
+    let k = plan.node_edits.len();
+    match (props, change) {
+        (Some(p), _) => plan.node_edits.push(NodeEdit::Insert {
+            parent: Target::Node(para),
+            before: first,
+            node: p,
+        }),
+        // 追踪时即使调用方要求"没有 pPr"，也得留一个装快照的空壳
+        (None, Some(_)) => plan.node_edits.push(NodeEdit::Insert {
+            parent: Target::Node(para),
+            before: first,
+            node: NewElement::new(w(LocalName::PPr)),
+        }),
+        (None, None) => {}
+    }
+    if let Some(c) = change {
+        plan.node_edits.push(NodeEdit::Move { node: c, parent: Target::New(k), before: None });
+    }
     for c in live_children(dom, para) {
         if dom.is(c, w(LocalName::PPr)) {
             plan.node_edits.push(NodeEdit::Delete(c));
         }
     }
-    if let Some(p) = props {
-        plan.node_edits.push(NodeEdit::Insert {
-            parent: Target::Node(para),
-            before: first,
-            node: p,
-        });
-    }
-    s.commit_plan(plan)
+    result.absorb(s.commit_plan(plan)?);
+    Ok(result)
 }
 
 // ---- 块级 -------------------------------------------------------------------------------------
@@ -1816,7 +2159,11 @@ fn refuse_block_field_result(s: &EditSession, para: NodeId) -> Result<()> {
     Ok(())
 }
 
-fn split_paragraph(s: &mut EditSession, at: InlinePos) -> Result<MutationResult> {
+fn split_paragraph(
+    s: &mut EditSession,
+    at: InlinePos,
+    ctx: &EditContext,
+) -> Result<MutationResult> {
     let part = s.part_or_main(at.part);
     // 块字段与它的结果段落只在主 part 有索引（`FLD-08`）
     if at.part.is_none() {
@@ -1893,6 +2240,18 @@ fn split_paragraph(s: &mut EditSession, at: InlinePos) -> Result<MutationResult>
         index += 1;
     }
     result.absorb(s.commit_plan(plan)?);
+
+    // 阶段 3（追踪）：拆出来的**前**段的段落标记是新加的 → `pPr/rPr/w:ins`。
+    // 必须在阶段 1 克隆 `pPr` 之后做，否则后段会跟着带上这个标记
+    if let Some(mut t) = Tracker::new(s.document(), ctx) {
+        let dom = s.dom_in(at.part)?;
+        let mut plan = MutationPlan::new(part);
+        plan.touch(at.para);
+        t.para_mark(&mut plan, dom, at.para, LocalName::Ins);
+        if !plan.is_empty() {
+            result.absorb(s.commit_plan(plan)?);
+        }
+    }
     result.structure_changed = true;
     Ok(result)
 }
@@ -1901,6 +2260,7 @@ fn merge_with_next(
     s: &mut EditSession,
     at: Option<PartId>,
     para: NodeId,
+    ctx: &EditContext,
 ) -> Result<MutationResult> {
     let part = s.part_or_main(at);
     require_paragraph(s.dom_in(at)?, para)?;
@@ -1914,6 +2274,13 @@ fn merge_with_next(
         .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, "下一个块不是段落"))?;
     if at.is_none() {
         refuse_block_field_result(s, next)?;
+    }
+    // 追踪：**不合并**，只把本段的段落标记标成删除（`spec/08`；接受后才真的合并）
+    if let Some(mut t) = Tracker::new(s.document(), ctx) {
+        let mut plan = MutationPlan::new(part);
+        plan.touch(para);
+        t.para_mark(&mut plan, dom, para, LocalName::Del);
+        return s.commit_plan(plan);
     }
     let offset = crate::span::content_len(dom, para);
     let mut plan = MutationPlan::new(part);

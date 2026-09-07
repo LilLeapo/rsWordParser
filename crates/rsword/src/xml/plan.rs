@@ -177,6 +177,12 @@ pub enum NodeEdit {
         node: NodeId,
         text: String,
     },
+    /// 给现有元素改名（节点变 `SelfDirty`，子树与属性不动）。修订生成用它把
+    /// `w:t → w:delText`、`w:instrText → w:delInstrText`（`spec/18` 7.2）。
+    Rename {
+        node: NodeId,
+        name: QName,
+    },
     /// 同 part 移动现有子树到 `parent` 的 `before` 之前（`XML-12` 规则 E）。
     Move {
         node: NodeId,
@@ -194,6 +200,7 @@ impl NodeEdit {
                 | NodeEdit::SetAttr { .. }
                 | NodeEdit::RemoveAttr { .. }
                 | NodeEdit::SetText { .. }
+                | NodeEdit::Rename { .. }
                 | NodeEdit::Move { .. }
         )
     }
@@ -263,6 +270,10 @@ impl Dom {
                 }
                 NodeEdit::SetText { node, text } => {
                     self.set_text(*node, text.clone());
+                    None
+                }
+                NodeEdit::Rename { node, name } => {
+                    self.rename_element(*node, *name);
                     None
                 }
                 NodeEdit::Move { node, parent, before } => {

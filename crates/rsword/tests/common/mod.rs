@@ -1,5 +1,7 @@
 //! 语料发现（`TEST-01` 布局）。集成测试共用。
 
+pub mod fingerprint;
+
 use std::path::{Path, PathBuf};
 
 /// 仓库根目录（`crates/rsword/../..`）。

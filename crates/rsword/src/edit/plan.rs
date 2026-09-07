@@ -155,6 +155,11 @@ impl MutationPlan {
                         )));
                     }
                 }
+                NodeEdit::Rename { node, .. } => {
+                    if !is_element(*node) {
+                        return Err(bad(format!("edit[{i}]: 改名的目标 {} 不是活元素", node.0)));
+                    }
+                }
                 NodeEdit::Move { node, parent, before } => {
                     if !live(*node) || dom.parent(*node).is_none() {
                         return Err(bad(format!("edit[{i}]: 移动的节点 {} 无效", node.0)));

@@ -20,6 +20,7 @@ pub mod pos;
 pub mod section_ops;
 pub mod session;
 pub mod table_ops;
+pub(crate) mod track;
 
 pub use chart_ops::{ChartPatch, ChartSeriesPatch, NewChart, NewChartKind, NewChartSeries};
 pub use ink_ops::{InkSave, NewInk};
