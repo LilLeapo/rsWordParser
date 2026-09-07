@@ -16,10 +16,12 @@ pub(crate) mod diff;
 pub mod ink_ops;
 pub mod inline;
 pub mod media_ops;
+pub mod note_ops;
 pub mod ops;
 pub mod plan;
 pub mod pos;
 pub(crate) mod revision_ops;
+pub mod sdt_ops;
 pub mod section_ops;
 pub mod session;
 pub mod table_ops;
@@ -129,6 +131,9 @@ pub enum NewBlock {
     Chart { chart: NewChart, extent_emu: Option<(i64, i64)> },
     /// 新图片（任务 6.7）：媒体 part（相同字节只建一个）+ `image` 关系 + 段落（随文或锚定）。
     Image(NewImage),
+    /// 独立公式段（TS `mathParagraphXml`，7.5）：`omml` 是 `m:oMath` 的**内容**，
+    /// `align` 是 `left` / `center` / `right`。
+    MathPara { omml: NewMath, align: String },
 }
 
 /// `EDIT-03 InsertAtom` 的内容（`spec/18` 7.5）。每一种在坐标流里都恒占 1 个 UTF-16 单位。
@@ -279,6 +284,17 @@ pub enum EditOp {
     SetDocumentSettings { patch: SettingsPatch },
     /// `EDIT-03 InsertAtom`：往坐标流里插一个原子（`spec/18` 7.5）。
     InsertAtom { at: InlinePos, atom: NewAtom },
+    /// `EDIT-03 SetNoteContent`：整条脚注 / 尾注的正文段落换掉（自引用标记 run 保留）。
+    SetNoteContent { endnote: bool, id: String, content: Vec<Vec<NewRun>> },
+    /// `EDIT-03 RemoveNote`：删条目 + 正文里的引用 run。
+    RemoveNote { endnote: bool, id: String },
+    /// `EDIT-03 SetSdtContent`：内联内容控件里的内容整体换掉。
+    SetSdtContent { sdt: NodeId, inlines: Vec<NewInline> },
+    /// `EDIT-03 RemoveSdtShell`：Word 的「删除内容控件」——内容留下，`w:sdt` 消失。
+    RemoveSdtShell { sdt: NodeId },
+    /// `EDIT-03 SetMathTokens`（TS `patchMathTokens`）：按序替换 `m:oMath` 里每个 `m:t` 的文字；
+    /// 个数不等 → `EDIT_MATH_TOKEN_COUNT`。
+    SetMathTokens { math: NodeId, tokens: Vec<String> },
     /// `EDIT-03 AcceptRevision`：接受一条修订（`Document.revisions` 里的 id）。
     AcceptRevision { rev: crate::model::RevisionId },
     /// `EDIT-03 RejectRevision`：拒绝一条修订。

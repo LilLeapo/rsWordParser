@@ -114,6 +114,15 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::RemoveInks => s.remove_inks(),
         EditOp::InsertInk { para, ink } => s.insert_ink(para, &ink),
         EditOp::InsertAtom { at, atom } => super::atom_ops::insert_atom(s, at, &atom, ctx),
+        EditOp::SetNoteContent { endnote, id, content } => {
+            super::note_ops::set_note_content(s, endnote, &id, &content)
+        }
+        EditOp::RemoveNote { endnote, id } => super::note_ops::remove_note(s, endnote, &id),
+        EditOp::SetSdtContent { sdt, inlines } => {
+            super::sdt_ops::set_sdt_content(s, sdt, &inlines, ctx)
+        }
+        EditOp::RemoveSdtShell { sdt } => super::sdt_ops::remove_sdt_shell(s, sdt),
+        EditOp::SetMathTokens { math, tokens } => set_math_tokens(s, math, &tokens),
         EditOp::AcceptRevision { rev } => super::revision_ops::one(s, rev, true),
         EditOp::RejectRevision { rev } => super::revision_ops::one(s, rev, false),
         EditOp::AcceptAll { author } => super::revision_ops::all(s, author.as_deref(), true),
@@ -253,6 +262,12 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
         | EditOp::RejectRevision { .. }
         | EditOp::AcceptAll { .. }
         | EditOp::RejectAll { .. } => Vec::new(),
+        // 注释条目按 id 定位、在别的 part 里；内容控件与公式自己做守卫（`sdt_ops::guard`）
+        EditOp::SetNoteContent { .. }
+        | EditOp::RemoveNote { .. }
+        | EditOp::SetSdtContent { .. }
+        | EditOp::RemoveSdtShell { .. }
+        | EditOp::SetMathTokens { .. } => Vec::new(),
     };
     for (part, node) in targets {
         let dom = s.dom_in(part)?;
@@ -1022,7 +1037,50 @@ fn delete_range(
         ));
     }
     plan.offset_delta.push((from.para, from.offset, -((b - a) as i32)));
-    s.commit_plan(plan)
+    // 覆盖到的注释引用：条目跟着走（`EDIT-03`；追踪时不删——那是接受修订那一刻的事，7.4）
+    let notes = covered_note_refs(dom, tb, &spans, a, b);
+    let mut result = s.commit_plan(plan)?;
+    for (endnote, id) in notes {
+        result.absorb(super::note_ops::drop_references(s, endnote, &id)?);
+        result.absorb(remove_note_entry(s, endnote, &id)?);
+    }
+    Ok(result)
+}
+
+/// `[a, b)` 覆盖到的 `w:footnoteReference` / `w:endnoteReference` 的 `(是尾注, id)`。
+fn covered_note_refs(
+    dom: &Dom,
+    tb: &TextBlock,
+    spans: &[std::ops::Range<u32>],
+    a: u32,
+    b: u32,
+) -> Vec<(bool, String)> {
+    let mut out: Vec<(bool, String)> = Vec::new();
+    for (inline, span) in tb.inlines.iter().zip(spans) {
+        if span.end <= a || span.start >= b {
+            continue;
+        }
+        let Some(node) = inline.node() else { continue };
+        for n in dom.descendants(node) {
+            if dom.node(n).dirty == Dirty::Deleted {
+                continue;
+            }
+            let endnote = if dom.is(n, w(LocalName::FootnoteReference)) {
+                false
+            } else if dom.is(n, w(LocalName::EndnoteReference)) {
+                true
+            } else {
+                continue;
+            };
+            if let Some(id) = dom.attr_value(n, w(LocalName::Id)) {
+                let entry = (endnote, id.into_owned());
+                if !out.contains(&entry) {
+                    out.push(entry);
+                }
+            }
+        }
+    }
+    out
 }
 
 /// 跨段 `DeleteRange`（`spec/18` 7.5）：两端在**同一个内容容器**里时，拆成
@@ -1389,21 +1447,78 @@ fn replace_inlines(
     if ctx.track_changes.is_some() {
         return replace_inlines_tracked(s, part, para, inlines, ctx);
     }
+    replace_container_inlines_in(s, part, para, para, inlines)
+}
+
+/// 主 part 里某个内联容器（段落自己、或段落里的 `w:sdtContent`）的内容整体重写。
+/// `SetSdtContent` 与 `ReplaceInlines` 共用；追踪时走 `ReplaceInlines` 的 diff。
+pub(super) fn replace_container_inlines(
+    s: &mut EditSession,
+    para: NodeId,
+    container: NodeId,
+    inlines: &[NewInline],
+    ctx: &EditContext,
+) -> Result<MutationResult> {
+    if ctx.track_changes.is_some() && container == para {
+        return replace_inlines_tracked(s, None, para, inlines, ctx);
+    }
+    replace_container_inlines_in(s, None, para, container, inlines)
+}
+
+fn replace_container_inlines_in(
+    s: &mut EditSession,
+    part: Option<PartId>,
+    para: NodeId,
+    container: NodeId,
+    inlines: &[NewInline],
+) -> Result<MutationResult> {
+    let dom = s.dom_in(part)?;
     let mut plan = MutationPlan::new(s.part_or_main(part));
     plan.touch(para);
     // 内容（含范围标记）被外部描述整体重写：提交后按新标记重建这个容器的端点（`SPAN-06` rescan）
-    plan.span.rescan.push(para);
-    for c in live_children(dom, para) {
+    plan.span.rescan.push(container);
+    for c in live_children(dom, container) {
         if !dom.is(c, w(LocalName::PPr)) {
             plan.node_edits.push(NodeEdit::Delete(c));
         }
     }
     for e in emit_inlines(dom, inlines) {
         plan.node_edits.push(NodeEdit::Insert {
-            parent: Target::Node(para),
+            parent: Target::Node(container),
             before: None,
             node: e,
         });
+    }
+    s.commit_plan(plan)
+}
+
+/// `EDIT-03 SetMathTokens`（TS `patchMathTokens`）：按序替换 `m:oMath` 里每个 `m:t` 的文字。
+fn set_math_tokens(s: &mut EditSession, math: NodeId, tokens: &[String]) -> Result<MutationResult> {
+    let part = s.main_part();
+    let dom = s.dom();
+    if (math.0 as usize) >= dom.node_count()
+        || dom.node(math).dirty == Dirty::Deleted
+        || !dom.is(math, QName::new(NsId::M, LocalName::OMath))
+    {
+        return Err(Error::edit(DiagCode::EditBadPosition, "目标不是活的 m:oMath"));
+    }
+    let slots: Vec<NodeId> = dom
+        .descendants(math)
+        .filter(|&n| dom.node(n).dirty != Dirty::Deleted)
+        .filter(|&n| dom.is(n, QName::new(NsId::M, LocalName::T)))
+        .collect();
+    if slots.len() != tokens.len() {
+        return Err(Error::edit(
+            DiagCode::EditMathTokenCount,
+            format!("公式有 {} 个 m:t，给了 {} 个 token", slots.len(), tokens.len()),
+        ));
+    }
+    let mut plan = MutationPlan::new(part);
+    if let Some(p) = dom.ancestors(math).find(|&a| dom.is(a, w(LocalName::P))) {
+        plan.touch(p);
+    }
+    for (node, text) in slots.into_iter().zip(tokens) {
+        set_segment_text(dom, node, text, &mut plan);
     }
     s.commit_plan(plan)
 }
@@ -1640,8 +1755,8 @@ pub(super) fn new_block_element(dom: &Dom, block: NewBlock) -> NewElement {
     match block {
         NewBlock::Xml(e) => e,
         // 每个接收 `NewBlock` 的入口都先过 `chart_ops::materialize`（建 part、换成 `Xml`）
-        NewBlock::Chart { .. } | NewBlock::Image(_) => {
-            unreachable!("NewBlock::Chart / Image 必须先经 chart_ops::materialize")
+        NewBlock::Chart { .. } | NewBlock::Image(_) | NewBlock::MathPara { .. } => {
+            unreachable!("NewBlock::Chart / Image / MathPara 必须先经 chart_ops::materialize")
         }
         NewBlock::Table { rows, cols, widths, style, header } => {
             super::table_ops::new_table(rows, cols, widths, style, header)

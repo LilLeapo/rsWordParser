@@ -1555,3 +1555,17 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   九道门仍为 0、保存语料 204 / 208 等价 0 跳过、clippy 零告警。
   7.5b（`SetNoteContent` / `RemoveNote` / `SetSdtContent` / `RemoveSdtShell` / `SetMathTokens` /
   `NewBlock::MathPara`）另起一提交。
+
+- [x] **7.5b 注释内容、内容控件、公式 token 与独立公式段**（`edit/note_ops.rs`、`edit/sdt_ops.rs`、
+  `edit/ops.rs`、`edit/chart_ops.rs`，2026-09-08）：`SetNoteContent`（正文段落整体换，自引用标记 run
+  保住）、`RemoveNote`（删条目 + 正文里的引用 run；run 里只剩引用就整 run 删）、`SetSdtContent`
+  （`w:sdtContent` 里的内联整体换；锁定 → `EDIT_SDT_LOCKED`、数据绑定 → `EDIT_SDT_BOUND`；
+  装块级内容的控件拒绝，请对里面的段落用 `ReplaceInlines`）、`RemoveSdtShell`（内容搬到父节点、
+  `w:sdt` 消失，Word 的「删除内容控件」）、`SetMathTokens`（按序换 `m:t` 的文字，个数不等 →
+  `EDIT_MATH_TOKEN_COUNT`）、`NewBlock::MathPara`（TS `mathParagraphXml` 的形态，走
+  `chart_ops::materialize` 那条"先建好再当 `Xml` 用"的老路）。`ReplaceInlines` 抽出
+  `replace_container_inlines_in`，`SetSdtContent` 与它共用一条实现。
+  **`DeleteRange` 覆盖注释引用原子 → 条目跟着走**（`EDIT-03`；追踪时不删，那是接受修订那一刻的事）。
+  TS `text-patch` 的两个场景在本引擎里就是 `InlinePos { part: 注释 part }` 上的 `InsertText`：
+  `tests/note_sdt_ops.rs` 两条原生等价用例（脚注里的加粗 run 与超链接、批注里的加粗）。
+  10 个用例。**593 测试**（调试 + 发布）、九道门仍为 0、保存语料 204 / 208 等价 0 跳过、clippy 零告警。

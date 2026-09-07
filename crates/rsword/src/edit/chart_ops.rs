@@ -88,6 +88,31 @@ pub(crate) fn materialize(s: &mut EditSession, block: NewBlock) -> Result<NewBlo
             NewBlock::Xml(insert_chart_parts(s, &chart, extent_emu)?)
         }
         NewBlock::Image(img) => NewBlock::Xml(super::media_ops::image_paragraph(s, &img)?),
+        // 独立公式段：先把 LaTeX 转成 OMML，再按 TS `mathParagraphXml` 生成整段
+        NewBlock::MathPara { omml, align } => {
+            let body = match &omml {
+                crate::edit::NewMath::Omml(x) => x.clone(),
+                crate::edit::NewMath::Latex(t) => crate::model::omml::latex_to_omml(t)?,
+            };
+            let xml = crate::model::omml::math_paragraph_xml(&body, &align);
+            let main = s.main_part();
+            let w_uri = NsId::W.uri(s.flavor()).expect("w 有两族 URI");
+            let m_uri = crate::model::omml::NS_M;
+            let xml =
+                xml.replacen("<w:p>", &format!(r#"<w:p xmlns:w="{w_uri}" xmlns:m="{m_uri}">"#), 1);
+            let dom = s
+                .package_mut()
+                .dom_mut(main)?
+                .ok_or_else(|| Error::edit(DiagCode::EditTargetOpaque, "主 part 没有 DOM"))?;
+            let mut frags = crate::xml::parse_fragment(dom, &xml).map_err(|e| {
+                Error::edit(DiagCode::EditPlanInvalid, format!("公式段落解析失败: {e}"))
+            })?;
+            NewBlock::Xml(
+                frags
+                    .pop()
+                    .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "公式段落为空"))?,
+            )
+        }
         NewBlock::Wrapped { wrapper, block } => {
             NewBlock::Wrapped { wrapper, block: Box::new(materialize(s, *block)?) }
         }
