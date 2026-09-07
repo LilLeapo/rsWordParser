@@ -434,6 +434,8 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `spec/18` 7.4「`NumberingChange` Reject = `numPr` 换成快照」 | 有快照 | 两个方向都只删标记 | `w:numberingChange`（§17.13.5.14，已废弃）只有 `w:original` 属性，**没有内层容器**，无从还原。语料里 0 份 |
 | `MOD-09` 属性快照与行标记的"一个容器一条" | — | 容器上已经有别人未解决的同类修订时，我们这次的改动挂不上自己的标记，也就无法按作者单独回退 | Word 的模型如此：`w:rPr` 只有一份 `rPrChange`、一行只有一个 `w:ins` / `w:del`。`tests/tracked_ops.rs` 的语料 oracle 因此只挑"子树里一条未解决修订都没有"的目标（`revision_free`） |
 | `w:tblPrEx` 与 `ModelFingerprint` | — | 不进指纹；空掉的 `w:tblPrEx` / `w:rPr` / `w:tcPr` 等属性容器在修订解决后整个去掉 | `fixtures/revisions/table-and-move/tracked.docx` 有 6 个 `w:tblPrEx`，Word 的 `accepted` / `rejected` **一个都没有**（含没带 `*Change` 的那 3 个）——那是 Word 另存时的归一化，本引擎不动未编辑的字节（不变式 1）。"空容器一起去掉"这条与 Word 一致，指纹不比 `tblPrEx` 是因为剩下的差异是归一化而不是修订语义 |
+| `spec/18` 7.4 的处理顺序（补充） | 段落标记排在内容之后 | 段落标记还要**倒着**处理 | 连续几段都被删时，从后往前解决，每一段看到的"下一段"都已经定型；顺着来的话第一段会先与还没消失的第二段合并，第三段就并不进来了。跨段删除接受后剩几段，就靠这一条 |
+| `SPAN-10` 端点规则的落点 | `span/transform.rs` | `SpanIndex::snap_to_field_atoms`，在建完索引之后跑（`Document::rebuild` 与 `EditSession::ensure_spans` 各一处） | 变换是"编辑对锚点的影响"，而端点落在原子字段内部是**索引本身**的归一化，与有没有编辑无关。只改索引不动 DOM：`SPAN-09` 只物化脏容器，未编辑的文档保存仍然字节相同 |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -1527,3 +1529,29 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   「接受所有修订」/「拒绝所有修订」另存的 `accepted.docx` / `rejected.docx` 相等。
   五条偏差登记在 §8。**568 测试**（调试 + 发布）、九道门仍为 0、保存语料 204 / 208 等价 0 跳过、
   clippy 零告警。
+
+- [x] **7.5a 内联原子、跨段删除、`SPAN-10` 端点、`latexToOmml`**（`edit/atom_ops.rs`、
+  `model/omml/latex_to_omml.rs`、`span/index.rs`、`edit/ops.rs`，2026-09-08）：
+  **`InsertAtom`** 五种原子（`NewAtom`）：`Break`（`w:br`，`clear` 只对文字换行有意义）、
+  `Symbol`（`w:sym`，`w:char` 四位大写十六进制）、`NoteRef`（新条目按 `EDIT-06` 取号、part 不存在
+  按 `SAVE-05` 建，再发引用 run）、`Image`（新的 `media_ops::image_run`：生成整段再取里面的 `w:r`，
+  与 `NewBlock::Image` 共用模板，**不另起段落**）、`Math`（OMML 直接解析，LaTeX 先转）。五种都走
+  `ops` 的边界定位与追踪包裹，坐标流长度恒 +1（`EDIT-02`）。
+  **`latexToOmml` 逐字移植**（TS `math.ts` 724–1087）：递归下降 + 深度上限 256（用户输入，
+  `spec/18` 风险 11），`\\frac` / `\\binom` / `\\sqrt[n]` / 上下标 / n 元运算符 / 重音 / 函数名 /
+  `\\left…\\right` / 六种矩阵环境 / `\\text` 一族全在。`latex.rs` 的三张符号表加了反方向查找
+  （`latex_symbols!` 一张表两个方向），n 元运算符的字符也从那张表取。
+  **对照件 `fixtures/fieldgen/latex.json`**（7.0④）：`tools/export-golden/fieldgen.export.test.ts`
+  把 TS 对 42 条输入的 OMML、11 条报错输入、三种对齐的 `mathParagraphXml` 落盘；
+  `tests/math_latex.rs` 断言逐字相等 —— **42 条一次就全对**，深度 300 的输入 `Err(EDIT_MATH_TOO_DEEP)`
+  不爆栈。
+  **跨段 `DeleteRange`**：两端在同一内容容器时拆成 首段尾部删除 + 中间块 `DeleteBlock` +
+  末段头部删除 + `MergeWithNext` 四步（都在调用方那一个事务里）；跨容器 → 新的
+  `EDIT_CROSS_CONTAINER`。追踪版三段都在、中段与两头带 `w:del`、首段标记带 `w:del`，接受之后
+  与不追踪做一遍相同。这带出 7.4 的一条修正：段落标记要**倒着**处理（§8）。
+  **`SPAN-10` 的另一半**：`SpanIndex::snap_to_field_atoms` —— 端点落在原子字段内部时，
+  起点移到字段之前、终点移到字段之后（与插入侧同一条规则），落点见 §8。
+  `tests/atom_ops.rs` 11 个用例 + `tests/math_latex.rs` 4 个。**583 测试**（调试 + 发布）、
+  九道门仍为 0、保存语料 204 / 208 等价 0 跳过、clippy 零告警。
+  7.5b（`SetNoteContent` / `RemoveNote` / `SetSdtContent` / `RemoveSdtShell` / `SetMathTokens` /
+  `NewBlock::MathPara`）另起一提交。

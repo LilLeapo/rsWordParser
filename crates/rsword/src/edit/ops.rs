@@ -22,7 +22,7 @@ use crate::xml::{
 
 use super::inline::{Emitter, has_control_chars, sanitize_text, text_segments};
 use super::plan::{MutationPlan, MutationResult};
-use super::pos::{InlinePos, Loc, inline_spans, locate, utf16_to_byte};
+use super::pos::{InlinePos, Loc, Utf16Offset, inline_spans, locate, utf16_to_byte};
 use super::track::{TrackSite, Tracker, err_in_deleted, site_of};
 use super::{
     BlockAt, BlockPos, EditContext, EditOp, EditSession, LinkRef, NewBlock, NewInline, NewRun,
@@ -113,6 +113,7 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         }
         EditOp::RemoveInks => s.remove_inks(),
         EditOp::InsertInk { para, ink } => s.insert_ink(para, &ink),
+        EditOp::InsertAtom { at, atom } => super::atom_ops::insert_atom(s, at, &atom, ctx),
         EditOp::AcceptRevision { rev } => super::revision_ops::one(s, rev, true),
         EditOp::RejectRevision { rev } => super::revision_ops::one(s, rev, false),
         EditOp::AcceptAll { author } => super::revision_ops::all(s, author.as_deref(), true),
@@ -197,6 +198,7 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
     let targets: Vec<(Option<PartId>, NodeId)> = match op {
         EditOp::InsertText { at, .. }
         | EditOp::SplitParagraph { at }
+        | EditOp::InsertAtom { at, .. }
         | EditOp::InsertField { at, .. } => vec![pos(at)],
         EditOp::DeleteRange { from, to }
         | EditOp::SetRunProps { from, to, .. }
@@ -280,12 +282,16 @@ fn w(local: LocalName) -> QName {
     QName::w(local)
 }
 
-fn unsupported(msg: &str) -> Error {
+pub(super) fn unsupported(msg: &str) -> Error {
     Error::edit(DiagCode::EditUnsupported, msg)
 }
 
 /// 某个 part 里的文本段落投影（`None` = 主 part，任务 5.5）。
-fn text_block(s: &EditSession, part: Option<PartId>, para: NodeId) -> Result<&TextBlock> {
+pub(super) fn text_block(
+    s: &EditSession,
+    part: Option<PartId>,
+    para: NodeId,
+) -> Result<&TextBlock> {
     s.text_block_in(part, para).ok_or_else(|| {
         Error::edit(
             DiagCode::EditBadPosition,
@@ -876,6 +882,38 @@ fn plan_ins_site(
     }
 }
 
+/// `split_at` 的对外壳（`atom_ops` 用）。
+pub(super) fn split_at_public(
+    s: &mut EditSession,
+    at: InlinePos,
+    loc: Loc,
+    result: &mut MutationResult,
+) -> Result<Option<(NodeId, NodeId)>> {
+    split_at(s, at, loc, result)
+}
+
+/// `boundary_site` 的对外壳（`atom_ops` 用）。
+pub(super) fn boundary_site_public(
+    s: &EditSession,
+    part: Option<PartId>,
+    para: NodeId,
+    index: usize,
+) -> Result<(NodeId, Option<NodeId>, Option<NodeId>)> {
+    boundary_site(s, part, text_block(s, part, para)?, index)
+}
+
+/// `plan_ins_site` 的对外壳（`atom_ops` 用）。
+pub(super) fn plan_ins_site_public(
+    plan: &mut MutationPlan,
+    dom: &Dom,
+    t: &mut Tracker,
+    para: NodeId,
+    parent: NodeId,
+    before: Option<NodeId>,
+) -> Result<(Target, Option<NodeId>)> {
+    plan_ins_site(plan, dom, t, para, parent, before)
+}
+
 // ---- DeleteRange ------------------------------------------------------------------------------
 
 fn delete_range(
@@ -888,10 +926,7 @@ fn delete_range(
         return Err(Error::edit(DiagCode::EditBadPosition, "DeleteRange 两端不在同一个 part"));
     }
     if from.para != to.para {
-        return Err(Error::edit(
-            DiagCode::EditCrossParagraph,
-            "DeleteRange 两端不在同一段落（跨段删除在 M2）",
-        ));
+        return delete_range_cross(s, from, to, ctx);
     }
     let (a, b) = (from.offset.0, to.offset.0);
     if a > b {
@@ -988,6 +1023,62 @@ fn delete_range(
     }
     plan.offset_delta.push((from.para, from.offset, -((b - a) as i32)));
     s.commit_plan(plan)
+}
+
+/// 跨段 `DeleteRange`（`spec/18` 7.5）：两端在**同一个内容容器**里时，拆成
+/// 首段尾部删除 + 中间块 `DeleteBlock` + 末段头部删除 + `MergeWithNext` 四步，
+/// 都在调用方那一个事务里（任一步失败整体回滚）。跨容器 → `Err(EDIT_CROSS_CONTAINER)`。
+///
+/// 追踪时这四步各自按 7.2 / 7.3 的规则留痕：三段都还在，中段与两头的内容带 `w:del`，
+/// 首段的段落标记带 `w:del`（接受之后才真的并成一段）。
+fn delete_range_cross(
+    s: &mut EditSession,
+    from: InlinePos,
+    to: InlinePos,
+    ctx: &EditContext,
+) -> Result<MutationResult> {
+    let dom = s.dom_in(from.part)?;
+    let container = |p: NodeId| crate::span::container_of(dom, p);
+    let (Some(c1), Some(c2)) = (container(from.para), container(to.para)) else {
+        return Err(Error::edit(DiagCode::EditBadPosition, "段落不在内容容器里"));
+    };
+    if c1 != c2 {
+        return Err(Error::edit(
+            DiagCode::EditCrossContainer,
+            "DeleteRange 两端不在同一个内容容器里",
+        ));
+    }
+    // 容器里从首段到末段之间的块（含末段，不含首段）
+    let items: Vec<NodeId> = crate::span::content_children(dom, c1);
+    let (Some(i1), Some(i2)) = (
+        items.iter().position(|&n| n == top_child(dom, c1, from.para)),
+        items.iter().position(|&n| n == top_child(dom, c1, to.para)),
+    ) else {
+        return Err(Error::edit(DiagCode::EditBadPosition, "段落不是容器的直接内容项"));
+    };
+    if i1 >= i2 {
+        return Err(Error::edit(DiagCode::EditBadPosition, "from 段落在 to 段落之后"));
+    }
+    let middles: Vec<NodeId> = items[i1 + 1..i2].to_vec();
+    let first_len = text_block(s, from.part, from.para)?.text().encode_utf16().count() as u32;
+    let mut result = MutationResult::default();
+    // ① 首段：从 `from` 删到段尾
+    if from.offset.0 < first_len {
+        let end = InlinePos { part: from.part, para: from.para, offset: Utf16Offset(first_len) };
+        result.absorb(delete_range(s, from, end, ctx)?);
+    }
+    // ② 中间的块整块删（表格 / 段落都走 `DeleteBlock` 的规则）
+    for m in middles {
+        result.absorb(delete_block(s, from.part, m, ctx)?);
+    }
+    // ③ 末段：从段首删到 `to`
+    if to.offset.0 > 0 {
+        let start = InlinePos { part: to.part, para: to.para, offset: Utf16Offset(0) };
+        result.absorb(delete_range(s, start, to, ctx)?);
+    }
+    // ④ 两段并一段（追踪时只在首段的标记上打 `w:del`）
+    result.absorb(merge_with_next(s, from.part, from.para, ctx)?);
+    Ok(result)
 }
 
 /// 追踪时的 `DeleteRange`（`spec/18` 7.2）：**内容不删**，覆盖到的每个内容项原地包进

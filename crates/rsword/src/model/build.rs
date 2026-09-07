@@ -304,7 +304,9 @@ impl Document {
         let flows = FlowMap::build(dom);
         let mut fields = FieldIndex::build(dom);
         warnings.extend(fields.take_diagnostics());
-        let spans = SpanIndex::build(dom);
+        let mut spans = SpanIndex::build(dom);
+        // `SPAN-10`：端点落在原子字段内部时移到原子边界（7.5）
+        spans.snap_to_field_atoms(dom, &fields);
         let ext_txbx: crate::model::aux::ExtTxbxMap<'_> = txbx_rels
             .iter()
             .filter_map(|(rid, id)| {
@@ -500,7 +502,8 @@ impl Document {
         let dom = pkg.part(main).dom().expect("main part parsed above");
         let rels = &pkg.part(main).rels;
         let fields = FieldIndex::build(dom);
-        let spans = SpanIndex::build(dom);
+        let mut spans = SpanIndex::build(dom);
+        spans.snap_to_field_atoms(dom, &fields);
         let mut missing = Vec::new();
         // 先把路径与上下文取齐，再借出块表——构建器借着 `self.styles`
         let mut work: Vec<RefreshItem> = Vec::new();

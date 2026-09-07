@@ -393,6 +393,21 @@ pub(crate) fn image_paragraph(s: &mut EditSession, img: &NewImage) -> Result<New
     frags.pop().ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "图片段落为空"))
 }
 
+/// 随文图片的 **run**（`InsertAtom::Image`，7.5）：生成整段再把里面的 `w:r` 取出来，
+/// 与 `NewBlock::Image` 共用同一套模板。
+pub(crate) fn image_run(s: &mut EditSession, img: &NewImage) -> Result<NewElement> {
+    let para = image_paragraph(s, img)?;
+    para.children
+        .into_iter()
+        .find_map(|c| match c {
+            crate::xml::NewNode::Element(e) if e.name == QName::new(NsId::W, LocalName::R) => {
+                Some(e)
+            }
+            _ => None,
+        })
+        .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "图片段落里没有 run"))
+}
+
 /// `wp:anchor` 的三段：开标签、`位置 \0 绕排元素`（绕排元素要放在 extent / effectExtent 之后、docPr 之前）、闭标签
 /// （TS `applyImageWrap`）。
 fn anchor_parts(

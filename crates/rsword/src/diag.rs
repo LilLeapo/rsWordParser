@@ -100,6 +100,12 @@ pub enum DiagCode {
     ModTableShape,
     /// `MOD-11`（M6 6.1）：图表 part 里没有任何带缓存值的系列，建不出 `ChartDisplay`（TS 同样返回 null）。
     ChartNoSeries,
+    /// `EDIT-03`（M7 7.5）：LaTeX 源码解析不了（不支持的命令 / 括号不配对 …）。
+    EditMathBadLatex,
+    /// `EDIT-03`（M7 7.5）：LaTeX 嵌套超过 256 层（用户输入的深度上限）。
+    EditMathTooDeep,
+    /// `EDIT-03`（M7 7.5）：`SetMathTokens` 给的 token 个数与 `m:t` 个数不同。
+    EditMathTokenCount,
     /// `EDIT-03`（M7 7.2）：`track_changes` 开着，但位置落在 `w:del` / `w:moveFrom` 里。
     /// Word 不允许在已删除的文字中间打字。
     EditInDeleted,
@@ -134,6 +140,8 @@ pub enum DiagCode {
     EditBadPosition,
     /// `EDIT-03`：同段操作的两端不在同一段落。
     EditCrossParagraph,
+    /// `EDIT-03`（M7 7.5）：跨段删除的两端不在同一个内容容器里（一个在单元格里、一个在正文）。
+    EditCrossContainer,
     /// `EDIT-03`：文本含 XML 非法字符，已剔除。
     EditBadText,
     /// `EDIT-03`（M1）：删除范围覆盖范围标记或字段结构段，标记 / 结构原地保留（Anchor 变换在 M2）。
@@ -199,12 +207,16 @@ impl DiagCode {
             Self::ChartNoSeries => "CHART_NO_SERIES",
             Self::RevUnpairedMove => "REV_UNPAIRED_MOVE",
             Self::EditInDeleted => "EDIT_IN_DELETED",
+            Self::EditMathBadLatex => "EDIT_MATH_BAD_LATEX",
+            Self::EditMathTooDeep => "EDIT_MATH_TOO_DEEP",
+            Self::EditMathTokenCount => "EDIT_MATH_TOKEN_COUNT",
             Self::RevNotTracked => "REV_NOT_TRACKED",
             Self::ResStyleCycle => "RES_STYLE_CYCLE",
             Self::ResBasedOnTypeMismatch => "RES_BASED_ON_TYPE_MISMATCH",
             Self::EditSplitSurrogate => "EDIT_SPLIT_SURROGATE",
             Self::EditBadPosition => "EDIT_BAD_POSITION",
             Self::EditCrossParagraph => "EDIT_CROSS_PARAGRAPH",
+            Self::EditCrossContainer => "EDIT_CROSS_CONTAINER",
             Self::EditBadText => "EDIT_BAD_TEXT",
             Self::EditAnchorUnmoved => "EDIT_ANCHOR_UNMOVED",
             Self::EditPlanInvalid => "EDIT_PLAN_INVALID",

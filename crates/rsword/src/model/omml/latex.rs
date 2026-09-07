@@ -381,16 +381,22 @@ fn char_escape(ch: char) -> Option<&'static str> {
 
 /// 三张 TS 表的反查：符号 / n 元运算符 / 重音 → 命令名（同一字符有多个名字时**第一个**赢）。
 macro_rules! latex_symbols {
-    ($fn:ident: $($name:literal => $ch:literal),+ $(,)?) => {
+    ($fn:ident / $rev:ident: $($name:literal => $ch:literal),+ $(,)?) => {
         /// 字符 → `\命令`（表序，别名取第一个）。
         fn $fn(ch: char) -> Option<&'static str> {
             $( if ch == $ch { return Some($name); } )+
             None
         }
+
+        /// `\命令` → 字符（同一张表的反方向，`latex_to_omml` 用）。
+        pub(super) fn $rev(name: &str) -> Option<char> {
+            $( if name == $name { return Some($ch); } )+
+            None
+        }
     };
 }
 
-latex_symbols! { symbol_command:
+latex_symbols! { symbol_command / symbol_char:
     "alpha" => 'α', "beta" => 'β', "gamma" => 'γ', "delta" => 'δ', "epsilon" => 'ε', "zeta" => 'ζ',
     "eta" => 'η', "theta" => 'θ', "vartheta" => 'ϑ', "iota" => 'ι', "kappa" => 'κ', "lambda" => 'λ',
     "mu" => 'μ', "nu" => 'ν', "xi" => 'ξ', "pi" => 'π', "rho" => 'ρ', "sigma" => 'σ', "tau" => 'τ',
@@ -408,12 +414,12 @@ latex_symbols! { symbol_command:
     "hbar" => 'ℏ', "ell" => 'ℓ', "Re" => 'ℜ', "Im" => 'ℑ', "aleph" => 'ℵ', "therefore" => '∴', "because" => '∵',
 }
 
-latex_symbols! { accent_char_command:
+latex_symbols! { accent_char_command / accent_char:
     "hat" => '\u{0302}', "bar" => '\u{0304}', "vec" => '\u{20D7}', "dot" => '\u{0307}', "ddot" => '\u{0308}',
     "tilde" => '\u{0303}', "check" => '\u{030C}', "breve" => '\u{0306}',
 }
 
-latex_symbols! { nary_char_command:
+latex_symbols! { nary_char_command / nary_char:
     "sum" => '∑', "prod" => '∏', "coprod" => '∐', "bigcup" => '⋃', "bigcap" => '⋂', "int" => '∫',
     "iint" => '∬', "iiint" => '∭', "oint" => '∮',
 }
@@ -430,6 +436,11 @@ fn nary_command(chr: &str) -> Option<&'static str> {
 
 fn accent_command(chr: &str) -> Option<&'static str> {
     single(chr).and_then(accent_char_command)
+}
+
+/// TS `LATEX_FUNCTIONS.has(name)`（`latex_to_omml` 用）。
+pub(super) fn is_latex_function(name: &str) -> bool {
+    LATEX_FUNCTIONS.contains(&name)
 }
 
 /// TS `LATEX_FUNCTIONS`。

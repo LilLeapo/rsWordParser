@@ -10,6 +10,7 @@
 //! 不生成修订；范围标记不做 Anchor 变换（`SPAN-06` 在 M2），删除范围覆盖到标记时标记原地保留并记
 //! `EDIT_ANCHOR_UNMOVED`（`EngineInvariantViolation`）。
 
+pub mod atom_ops;
 pub mod chart_ops;
 pub(crate) mod diff;
 pub mod ink_ops;
@@ -128,6 +129,30 @@ pub enum NewBlock {
     Chart { chart: NewChart, extent_emu: Option<(i64, i64)> },
     /// 新图片（任务 6.7）：媒体 part（相同字节只建一个）+ `image` 关系 + 段落（随文或锚定）。
     Image(NewImage),
+}
+
+/// `EDIT-03 InsertAtom` 的内容（`spec/18` 7.5）。每一种在坐标流里都恒占 1 个 UTF-16 单位。
+#[derive(Debug, Clone, PartialEq)]
+pub enum NewAtom {
+    /// `w:r/w:br`；`clear` 只对文字换行有意义。
+    Break { kind: crate::model::inline::BreakKind, clear: Option<String> },
+    /// `w:r/w:sym`：符号字体里的一个码位（`RES-05` 的反向）。
+    Symbol { font: String, code: u32 },
+    /// 脚注 / 尾注：新建条目（`w:id` 按 `EDIT-06`，part 不存在按 `SAVE-05` 建）+ 引用 run。
+    NoteRef { endnote: bool, content: Vec<Vec<NewRun>> },
+    /// 随文图片：run 内一个 `wp:inline`（不另起段落）。
+    Image(NewImage),
+    /// `m:oMath` 原子。
+    Math(NewMath),
+}
+
+/// 公式的两种给法。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NewMath {
+    /// 现成的 OMML（可以是 `<m:oMath>…</m:oMath>`，也可以只给里面的内容）。
+    Omml(String),
+    /// LaTeX 源码，由 `model::omml::latex_to_omml` 转成 OMML。
+    Latex(String),
 }
 
 /// `EDIT-03 AddComment` 的内容。`text` 里的 `\n` 分段。
@@ -252,6 +277,8 @@ pub enum EditOp {
     SetPageColor { color: Option<String> },
     /// `EDIT-03 SetDocumentSettings`：`word/settings.xml` 按 `PROP-06` 合并（part 不存在就建）。
     SetDocumentSettings { patch: SettingsPatch },
+    /// `EDIT-03 InsertAtom`：往坐标流里插一个原子（`spec/18` 7.5）。
+    InsertAtom { at: InlinePos, atom: NewAtom },
     /// `EDIT-03 AcceptRevision`：接受一条修订（`Document.revisions` 里的 id）。
     AcceptRevision { rev: crate::model::RevisionId },
     /// `EDIT-03 RejectRevision`：拒绝一条修订。

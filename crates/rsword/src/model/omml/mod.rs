@@ -6,6 +6,7 @@
 //! 这里放两者共用的小工具：语义子节点查找、属性包读取、run 文字、XML 转义。
 
 pub mod latex;
+pub mod latex_to_omml;
 pub mod mathml;
 
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
@@ -102,3 +103,8 @@ pub fn tokens(dom: &Dom, omath: NodeId) -> Vec<String> {
         .map(|t| text_of(dom, t))
         .collect()
 }
+
+pub use latex_to_omml::{latex_to_omml, math_paragraph_xml};
+
+/// OMML 的命名空间 URI（Transitional 与 Strict 相同）。
+pub const NS_M: &str = "http://schemas.openxmlformats.org/officeDocument/2006/math";

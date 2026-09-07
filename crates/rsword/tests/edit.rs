@@ -269,7 +269,8 @@ fn edit_03_delete_range_truncates_runs_and_keeps_markers() {
     let dom = pkg.dom(main).unwrap().unwrap();
     assert_eq!(xpath_strings(dom, "count(//w:p[2]//w:fldChar)").unwrap(), ["0"], "字段整个删掉");
     assert_eq!(xpath_strings(dom, "count(//w:p[2]//w:instrText)").unwrap(), ["0"]);
-    // 跨段与越界
+    // 反向跨段与越界。（跨段删除本身从 7.5 起支持，见 `tests/para_ops.rs`；
+    // 这里 `from` 在 `to` 之后，按位置非法拒绝）
     let e = s2
         .apply(
             EditOp::DeleteRange {
@@ -279,7 +280,7 @@ fn edit_03_delete_range_truncates_runs_and_keeps_markers() {
             &ctx,
         )
         .unwrap_err();
-    assert_eq!(edit_code(&e), Some(DiagCode::EditCrossParagraph));
+    assert_eq!(edit_code(&e), Some(DiagCode::EditBadPosition));
     let e = s2
         .apply(
             EditOp::DeleteRange { from: InlinePos::new(p2, 0), to: InlinePos::new(p2, 99) },

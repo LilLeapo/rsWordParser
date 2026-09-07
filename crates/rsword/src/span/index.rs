@@ -254,6 +254,46 @@ impl SpanIndex {
         Builder::new(dom).run()
     }
 
+    /// `SPAN-10` 的另一半：端点落在**原子形态字段的内部**（begin..end 之间）时移到原子边界
+    /// ——起点移到字段之前、终点移到字段之后。与插入侧（`edit::ops::boundary_node`）同一条规则：
+    /// 原子字段在坐标流里只占一个单位，端点停在它中间既表达不出来、物化时也放不回原处。
+    ///
+    /// 在建完索引之后跑一次（`Document::rebuild` 与 `EditSession::ensure_spans` 各一处）。
+    /// 只改索引里的锚点；DOM 里的标记不动——`SPAN-09` 只物化脏容器，未编辑的文档保存仍然字节相同。
+    pub fn snap_to_field_atoms(&mut self, dom: &Dom, fields: &crate::span::field::FieldIndex) {
+        // `(容器, 字段首项下标, 字段末项下标)`
+        let atoms: Vec<(NodeId, u32, u32)> = fields
+            .fields()
+            .iter()
+            .filter(|f| f.is_atomic())
+            .filter_map(|f| {
+                let (head, tail) = (f.form.head(), f.form.tail());
+                let c = crate::span::container_of(dom, head)?;
+                if crate::span::container_of(dom, tail) != Some(c) {
+                    return None;
+                }
+                let hi = crate::span::content_index_of(dom, c, head)?;
+                let ti = crate::span::content_index_of(dom, c, tail)?;
+                (hi < ti).then_some((c, hi, ti))
+            })
+            .collect();
+        if atoms.is_empty() {
+            return;
+        }
+        for span in &mut self.spans {
+            for end in [SpanEnd::Start, SpanEnd::End] {
+                let Some(a) = span.anchor_mut(end) else { continue };
+                let Some(&(_, hi, ti)) = atoms
+                    .iter()
+                    .find(|&&(c, hi, ti)| c == a.container && a.index > hi && a.index <= ti)
+                else {
+                    continue;
+                };
+                a.index = if end == SpanEnd::Start { hi } else { ti + 1 };
+            }
+        }
+    }
+
     pub fn part(&self) -> PartId {
         self.part
     }

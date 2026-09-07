@@ -317,6 +317,8 @@ impl EditSession {
             ));
         };
         let mut index = SpanIndex::build(dom);
+        // `SPAN-10`：端点落在原子字段内部时移到原子边界（与插入侧同一条规则，7.5）
+        index.snap_to_field_atoms(dom, &FieldIndex::build(dom));
         let diags = index.take_diagnostics();
         self.spans.insert(part, index);
         self.record(diags);

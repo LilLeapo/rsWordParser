@@ -158,11 +158,14 @@ pub(crate) fn all(
         .filter(|e| author.is_none_or(|a| e.author() == Some(a)))
         .map(|e| job_of(s, e))
         .collect();
-    // **段落标记放最后**：解决它可能是"与下一段合并"，那要等这一段的内容先处理完
-    // （接受一个被搬走的段落 = 内容消失 + 标记合并 = 整段没了；反过来做就会留下一个空段）。
-    // 两组内部各自保持 `iter_inner_first` 的次序，`w:ins` 套 `w:del` 的内外顺序不受影响
-    let (marks, content): (Vec<Job>, Vec<Job>) =
+    // **段落标记放最后，而且倒着来**。放最后：解决它可能是"与下一段合并"，那要等这一段的
+    // 内容先处理完（接受一个被搬走的段落 = 内容消失 + 标记合并 = 整段没了；反过来做会留下空段）。
+    // 倒着来：连续几段都被删时，从后往前解决，每一段看到的"下一段"都已经定型了——顺着来的话
+    // 第一段会先与还没消失的第二段合并，第三段就并不进来了。
+    // 内容那一组保持 `iter_inner_first` 的次序，`w:ins` 套 `w:del` 的内外顺序不受影响
+    let (mut marks, content): (Vec<Job>, Vec<Job>) =
         picked.into_iter().partition(|j| j.kind.is_para_mark());
+    marks.reverse();
     let jobs: Vec<Job> = content.into_iter().chain(marks).collect();
     apply_jobs(s, jobs, accept)
 }
