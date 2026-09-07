@@ -1,0 +1,1607 @@
+[
+  {
+    "case": "blank/blank-new",
+    "status": "saved; package selfcheck passed; visual review pending",
+    "wordVersion": "16.0 / build 16.0.14334",
+    "started": "2026-09-07T11:34:59.7307047+08:00",
+    "operations": [
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "visualChecked": false,
+    "observation": "A new empty Word document, no text entered.",
+    "selfcheck": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "one empty paragraph and final sectPr only",
+          "passed": true,
+          "actual": [
+            "p",
+            "sectPr"
+          ]
+        },
+        {
+          "name": "part word/styles.xml",
+          "passed": true,
+          "actual": true
+        },
+        {
+          "name": "part word/settings.xml",
+          "passed": true,
+          "actual": true
+        },
+        {
+          "name": "part word/theme/theme1.xml",
+          "passed": true,
+          "actual": true
+        },
+        {
+          "name": "part word/fontTable.xml",
+          "passed": true,
+          "actual": true
+        },
+        {
+          "name": "part word/webSettings.xml",
+          "passed": true,
+          "actual": true
+        }
+      ],
+      "counts": {
+        "p": 1,
+        "ins": 0,
+        "del": 0,
+        "delText": 0,
+        "moveFrom": 0,
+        "moveTo": 0,
+        "moveFromRangeStart": 0,
+        "moveToRangeStart": 0,
+        "moveFromRangeEnd": 0,
+        "moveToRangeEnd": 0,
+        "rPrChange": 0,
+        "pPrChange": 0,
+        "sectPrChange": 0,
+        "tcPrChange": 0,
+        "tblPrChange": 0,
+        "cellMerge": 0,
+        "sectPr": 1,
+        "rowInsert": 0,
+        "rowDelete": 0,
+        "numberingRevision": 0,
+        "anchors": 0,
+        "linkedTextbox": 0
+      },
+      "fieldCodes": []
+    },
+    "pages": 1,
+    "paragraphs": 1,
+    "revisions": 0,
+    "comments": 0,
+    "compatibility": 15,
+    "text": "\r",
+    "path": "C:\\word\\real-word-round2-20260907\\blank\\blank-new.docx",
+    "sha256": "12C0E52924A3A888F3FBF370C88E1DCABE0CCC9765EA5BFE4250A47D28F82E68",
+    "requiredOperationsPassed": true,
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\blank\\blank-new.pdf",
+    "visualReviewCheckpoint": "inspected before close; screenshots recorded separately",
+    "finished": "2026-09-07T11:35:28.91901+08:00"
+  },
+  {
+    "case": "blank/blank-styles-used",
+    "status": "saved; package selfcheck passed; visual review pending",
+    "wordVersion": "16.0 / build 16.0.14334",
+    "started": "2026-09-07T11:35:28.9452527+08:00",
+    "operations": [
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "visualChecked": false,
+    "observation": "Heading 1, Heading 2, Body Text, bulleted and numbered List Paragraphs were used, then all content deleted.",
+    "selfcheck": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "one empty paragraph and final sectPr only",
+          "passed": true,
+          "actual": [
+            "p",
+            "sectPr"
+          ]
+        },
+        {
+          "name": "part word/styles.xml",
+          "passed": true,
+          "actual": true
+        },
+        {
+          "name": "part word/settings.xml",
+          "passed": true,
+          "actual": true
+        },
+        {
+          "name": "part word/theme/theme1.xml",
+          "passed": true,
+          "actual": true
+        },
+        {
+          "name": "part word/fontTable.xml",
+          "passed": true,
+          "actual": true
+        },
+        {
+          "name": "part word/webSettings.xml",
+          "passed": true,
+          "actual": true
+        },
+        {
+          "name": "used style heading 1",
+          "passed": true,
+          "actual": [
+            "<w:name w:val=\"heading 1\" xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" />"
+          ]
+        },
+        {
+          "name": "used style heading 2",
+          "passed": true,
+          "actual": [
+            "<w:name w:val=\"heading 2\" xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" />"
+          ]
+        },
+        {
+          "name": "used style List Paragraph",
+          "passed": true,
+          "actual": [
+            "<w:name w:val=\"List Paragraph\" xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" />"
+          ]
+        }
+      ],
+      "counts": {
+        "p": 1,
+        "ins": 0,
+        "del": 0,
+        "delText": 0,
+        "moveFrom": 0,
+        "moveTo": 0,
+        "moveFromRangeStart": 0,
+        "moveToRangeStart": 0,
+        "moveFromRangeEnd": 0,
+        "moveToRangeEnd": 0,
+        "rPrChange": 0,
+        "pPrChange": 0,
+        "sectPrChange": 0,
+        "tcPrChange": 0,
+        "tblPrChange": 0,
+        "cellMerge": 0,
+        "sectPr": 1,
+        "rowInsert": 0,
+        "rowDelete": 0,
+        "numberingRevision": 0,
+        "anchors": 0,
+        "linkedTextbox": 0
+      },
+      "fieldCodes": []
+    },
+    "pages": 1,
+    "paragraphs": 1,
+    "revisions": 0,
+    "comments": 0,
+    "compatibility": 15,
+    "text": "\r",
+    "path": "C:\\word\\real-word-round2-20260907\\blank\\blank-styles-used.docx",
+    "sha256": "C3FE0B64B9A538F725CCE04D767EE0538A38F96CF228DD04CB0BDB3A016E7683",
+    "requiredOperationsPassed": true,
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\blank\\blank-styles-used.pdf",
+    "visualReviewCheckpoint": "inspected before close; screenshots recorded separately",
+    "finished": "2026-09-07T11:37:06.8832212+08:00"
+  },
+  {
+    "case": "revisions2/rev-insert-delete",
+    "status": "saved; package selfcheck passed; visual review pending",
+    "wordVersion": "16.0 / build 16.0.14334",
+    "started": "2026-09-07T11:37:06.8915946+08:00",
+    "operations": [
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "visualChecked": false,
+    "observation": "Author A inserted one sentence and deleted an original sentence. Author B inserted a separate sentence; revisions remain enabled.",
+    "selfcheck": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "before/after markers",
+          "passed": true,
+          "actual": "before 前文Author A insertion point. Author A inserted this sentence.Author B insertion point. Author B inserted this sentence.after 后文"
+        },
+        {
+          "name": "two insertions, deletion text and two authors",
+          "passed": true,
+          "actual": {
+            "counts": {
+              "p": 6,
+              "ins": 2,
+              "del": 1,
+              "delText": 1,
+              "moveFrom": 0,
+              "moveTo": 0,
+              "moveFromRangeStart": 0,
+              "moveToRangeStart": 0,
+              "moveFromRangeEnd": 0,
+              "moveToRangeEnd": 0,
+              "rPrChange": 0,
+              "pPrChange": 0,
+              "sectPrChange": 0,
+              "tcPrChange": 0,
+              "tblPrChange": 0,
+              "cellMerge": 0,
+              "sectPr": 1,
+              "rowInsert": 0,
+              "rowDelete": 0,
+              "numberingRevision": 0,
+              "anchors": 0,
+              "linkedTextbox": 0
+            },
+            "authors": [
+              "作者甲",
+              "作者乙"
+            ]
+          }
+        }
+      ],
+      "counts": {
+        "p": 6,
+        "ins": 2,
+        "del": 1,
+        "delText": 1,
+        "moveFrom": 0,
+        "moveTo": 0,
+        "moveFromRangeStart": 0,
+        "moveToRangeStart": 0,
+        "moveFromRangeEnd": 0,
+        "moveToRangeEnd": 0,
+        "rPrChange": 0,
+        "pPrChange": 0,
+        "sectPrChange": 0,
+        "tcPrChange": 0,
+        "tblPrChange": 0,
+        "cellMerge": 0,
+        "sectPr": 1,
+        "rowInsert": 0,
+        "rowDelete": 0,
+        "numberingRevision": 0,
+        "anchors": 0,
+        "linkedTextbox": 0
+      },
+      "fieldCodes": []
+    },
+    "pages": 1,
+    "paragraphs": 6,
+    "revisions": 3,
+    "comments": 0,
+    "compatibility": 15,
+    "text": "before 前文\rAuthor A insertion point. Author A inserted this sentence.\r\rAuthor B insertion point. Author B inserted this sentence.\rafter 后文\r\r",
+    "path": "C:\\word\\real-word-round2-20260907\\revisions2\\rev-insert-delete.docx",
+    "sha256": "4CDC419B6024470BEFC43ACD13F146BC9EC33BFF9CEAF1932016834AEF52CD62",
+    "requiredOperationsPassed": true,
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\revisions2\\rev-insert-delete.pdf",
+    "visualReviewCheckpoint": "inspected before close; screenshots recorded separately",
+    "finished": "2026-09-07T11:38:15.7058072+08:00"
+  },
+  {
+    "case": "revisions2/rev-move",
+    "status": "saved; package selfcheck passed; visual review pending",
+    "wordVersion": "16.0 / build 16.0.14334",
+    "started": "2026-09-07T11:38:15.7149179+08:00",
+    "operations": [
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "visualChecked": false,
+    "observation": "With TrackMoves and TrackRevisions enabled, cut the whole original paragraph and pasted immediately before after. Native move markers are checked, never synthesized.",
+    "selfcheck": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "before/after markers",
+          "passed": true,
+          "actual": "before 前文Move this entire original paragraph with several words to the end of the body.Stationary paragraph one remains here.Stationary paragraph two remains here.Move this entire original paragraph with several words to the end of the body.after 后文"
+        },
+        {
+          "name": "tracked move wrappers and paired range markers",
+          "passed": true,
+          "actual": {
+            "p": 7,
+            "ins": 0,
+            "del": 0,
+            "delText": 0,
+            "moveFrom": 2,
+            "moveTo": 2,
+            "moveFromRangeStart": 1,
+            "moveToRangeStart": 1,
+            "moveFromRangeEnd": 1,
+            "moveToRangeEnd": 1,
+            "rPrChange": 0,
+            "pPrChange": 0,
+            "sectPrChange": 0,
+            "tcPrChange": 0,
+            "tblPrChange": 0,
+            "cellMerge": 0,
+            "sectPr": 1,
+            "rowInsert": 0,
+            "rowDelete": 0,
+            "numberingRevision": 0,
+            "anchors": 0,
+            "linkedTextbox": 0
+          }
+        }
+      ],
+      "counts": {
+        "p": 7,
+        "ins": 0,
+        "del": 0,
+        "delText": 0,
+        "moveFrom": 2,
+        "moveTo": 2,
+        "moveFromRangeStart": 1,
+        "moveToRangeStart": 1,
+        "moveFromRangeEnd": 1,
+        "moveToRangeEnd": 1,
+        "rPrChange": 0,
+        "pPrChange": 0,
+        "sectPrChange": 0,
+        "tcPrChange": 0,
+        "tblPrChange": 0,
+        "cellMerge": 0,
+        "sectPr": 1,
+        "rowInsert": 0,
+        "rowDelete": 0,
+        "numberingRevision": 0,
+        "anchors": 0,
+        "linkedTextbox": 0
+      },
+      "fieldCodes": []
+    },
+    "pages": 1,
+    "paragraphs": 6,
+    "revisions": 2,
+    "comments": 0,
+    "compatibility": 15,
+    "text": "before 前文\rStationary paragraph one remains here.\rStationary paragraph two remains here.\rMove this entire original paragraph with several words to the end of the body.\rafter 后文\r\r",
+    "path": "C:\\word\\real-word-round2-20260907\\revisions2\\rev-move.docx",
+    "sha256": "E025CA9B97538460FF57EB613C4B612D615C8DA3F10877ADA8B273199CDFC048",
+    "requiredOperationsPassed": true,
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\revisions2\\rev-move.pdf",
+    "visualReviewCheckpoint": "inspected before close; screenshots recorded separately",
+    "finished": "2026-09-07T11:38:41.2190926+08:00"
+  },
+  {
+    "case": "revisions2/rev-format",
+    "status": "saved; package selfcheck passed; visual review pending",
+    "wordVersion": "16.0 / build 16.0.14334",
+    "started": "2026-09-07T11:38:41.225275+08:00",
+    "operations": [
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "visualChecked": false,
+    "observation": "Tracked bold/red text, centered paragraph with 36 pt left indent, and numbered paragraph.",
+    "selfcheck": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "before/after markers",
+          "passed": true,
+          "actual": "before 前文Run formatting target.Paragraph alignment and indent target.Numbering target.after 后文"
+        },
+        {
+          "name": "run, paragraph and numbering revisions",
+          "passed": true,
+          "actual": {
+            "p": 6,
+            "ins": 0,
+            "del": 0,
+            "delText": 0,
+            "moveFrom": 0,
+            "moveTo": 0,
+            "moveFromRangeStart": 0,
+            "moveToRangeStart": 0,
+            "moveFromRangeEnd": 0,
+            "moveToRangeEnd": 0,
+            "rPrChange": 3,
+            "pPrChange": 2,
+            "sectPrChange": 0,
+            "tcPrChange": 0,
+            "tblPrChange": 0,
+            "cellMerge": 0,
+            "sectPr": 1,
+            "rowInsert": 0,
+            "rowDelete": 0,
+            "numberingRevision": 1,
+            "anchors": 0,
+            "linkedTextbox": 0
+          }
+        }
+      ],
+      "counts": {
+        "p": 6,
+        "ins": 0,
+        "del": 0,
+        "delText": 0,
+        "moveFrom": 0,
+        "moveTo": 0,
+        "moveFromRangeStart": 0,
+        "moveToRangeStart": 0,
+        "moveFromRangeEnd": 0,
+        "moveToRangeEnd": 0,
+        "rPrChange": 3,
+        "pPrChange": 2,
+        "sectPrChange": 0,
+        "tcPrChange": 0,
+        "tblPrChange": 0,
+        "cellMerge": 0,
+        "sectPr": 1,
+        "rowInsert": 0,
+        "rowDelete": 0,
+        "numberingRevision": 1,
+        "anchors": 0,
+        "linkedTextbox": 0
+      },
+      "fieldCodes": []
+    },
+    "pages": 1,
+    "paragraphs": 6,
+    "revisions": 4,
+    "comments": 0,
+    "compatibility": 15,
+    "text": "before 前文\rRun formatting target.\rParagraph alignment and indent target.\rNumbering target.\rafter 后文\r\r",
+    "path": "C:\\word\\real-word-round2-20260907\\revisions2\\rev-format.docx",
+    "sha256": "D893D8C372F9FB6899B1D6E0531A09DAA9082206BF41CC7CDA1B7D55DAE5FCD3",
+    "requiredOperationsPassed": true,
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\revisions2\\rev-format.pdf",
+    "visualReviewCheckpoint": "inspected before close; screenshots recorded separately",
+    "finished": "2026-09-07T11:39:04.8427071+08:00"
+  },
+  {
+    "case": "revisions2/rev-table",
+    "status": "saved; package selfcheck passed; direct Word UI inspected; independent PDF review pending",
+    "method": "_scripts/task-d-table-trial.ps1 (desktop Word COM)",
+    "wordVersion": "16.0",
+    "wordBuild": "16.0.14334",
+    "operations": [
+      {
+        "operation": "insert row before original second row",
+        "status": "ok"
+      },
+      {
+        "operation": "delete original second row",
+        "status": "ok"
+      },
+      {
+        "operation": "merge original first-row cells",
+        "status": "ok"
+      },
+      {
+        "operation": "change table border color to red through native table style",
+        "status": "ok"
+      },
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "started": "2026-09-07T12:25:47.2585407+08:00",
+    "observation": "Native 2x2 table. Black and red table styles differ only in border color. With TrackRevisions and TrackFormatting enabled, inserted a row, deleted an original row, merged first-row cells, and applied the red border table style. Original saved once; PDF exported afterward; document remains open for visual inspection.",
+    "initialBorderColors": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "finalBorderColors": [
+      255,
+      255,
+      255,
+      255,
+      255,
+      255
+    ],
+    "pages": 1,
+    "paragraphs": 13,
+    "revisions": 3,
+    "comments": 0,
+    "compatibility": 15,
+    "text": "before 前文\rOriginal R1 C1\rOriginal R1 C2\r\u0007\r\u0007Inserted row left\r\u0007Inserted row right\r\u0007\r\u0007\r\u0007\r\u0007\r\u0007\rafter 后文\r\r",
+    "path": "C:\\word\\real-word-round2-20260907\\revisions2\\rev-table.docx",
+    "sha256": "C4B062A8EAA0BE0092819BF0ACAE56D1CBA959E4D373355535D78A321B53E466",
+    "requiredOperationsPassed": true,
+    "selfcheck": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "rowInsert",
+          "passed": true,
+          "actual": 1
+        },
+        {
+          "name": "rowDelete",
+          "passed": true,
+          "actual": 1
+        },
+        {
+          "name": "tcPrChange",
+          "passed": true,
+          "actual": 5
+        },
+        {
+          "name": "tblPrChange",
+          "passed": true,
+          "actual": 1
+        },
+        {
+          "name": "gridSpan2",
+          "passed": true,
+          "actual": 2
+        },
+        {
+          "name": "before/after markers",
+          "passed": true,
+          "actual": "before 前文Original R1 C1Original R1 C2Inserted row leftInserted row rightafter 后文"
+        },
+        {
+          "name": "six effective table borders are red",
+          "passed": true,
+          "actual": [
+            {
+              "side": "top",
+              "source": "style",
+              "color": "FF0000",
+              "value": "single"
+            },
+            {
+              "side": "left",
+              "source": "style",
+              "color": "FF0000",
+              "value": "single"
+            },
+            {
+              "side": "bottom",
+              "source": "style",
+              "color": "FF0000",
+              "value": "single"
+            },
+            {
+              "side": "right",
+              "source": "style",
+              "color": "FF0000",
+              "value": "single"
+            },
+            {
+              "side": "insideH",
+              "source": "style",
+              "color": "FF0000",
+              "value": "single"
+            },
+            {
+              "side": "insideV",
+              "source": "style",
+              "color": "FF0000",
+              "value": "single"
+            }
+          ]
+        },
+        {
+          "name": "Word border colors black before and red after",
+          "passed": true,
+          "actual": {
+            "before": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "after": [
+              255,
+              255,
+              255,
+              255,
+              255,
+              255
+            ]
+          }
+        },
+        {
+          "name": "required Word operations succeeded",
+          "passed": true,
+          "actual": []
+        }
+      ],
+      "counts": {
+        "rowInsert": 1,
+        "rowDelete": 1,
+        "tcPrChange": 5,
+        "tblPrChange": 1,
+        "gridSpan2": 2
+      },
+      "fieldCodes": [],
+      "appliedStyleId": "Round2TableBorderRed",
+      "tableProperties": "<w:tblPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblStyle w:val=\"Round2TableBorderRed\" /><w:tblW w:w=\"8306\" w:type=\"dxa\" /><w:tblLayout w:type=\"fixed\" /><w:tblLook w:val=\"04A0\" w:firstRow=\"1\" w:lastRow=\"0\" w:firstColumn=\"1\" w:lastColumn=\"0\" w:noHBand=\"0\" w:noVBand=\"1\" /><w:tblPrChange w:id=\"0\" w:author=\"Administrator\" w:date=\"2026-09-07T12:25:00Z\"><w:tblPr><w:tblStyle w:val=\"Round2TableBorderBlack\" /><w:tblW w:w=\"8306\" w:type=\"dxa\" /><w:tblLayout w:type=\"fixed\" /><w:tblLook w:val=\"04A0\" w:firstRow=\"1\" w:lastRow=\"0\" w:firstColumn=\"1\" w:lastColumn=\"0\" w:noHBand=\"0\" w:noVBand=\"1\" /></w:tblPr></w:tblPrChange></w:tblPr>"
+    },
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\revisions2\\rev-table.pdf",
+    "finished": "2026-09-07T12:25:49.8540693+08:00",
+    "leftOpen": true,
+    "adoption": {
+      "nativeSavedPath": "C:\\word\\real-word-round2-20260907\\_trials\\table-style-probe2\\rev-table.docx",
+      "nativeExportedPdf": "C:\\word\\real-word-round2-20260907\\_previews\\trials\\table-style-probe2.pdf",
+      "oldSha256": "7005EADD1877F9ED8FFE2E23D9D4EF1261EC3E40B2364403C8FB7D2A50BBFCFE",
+      "archive": "C:\\word\\real-word-round2-20260907\\_trials\\d-before-adoption-docx\\revisions2\\rev-table",
+      "method": "Byte copy of a verified native Word first-save output; no package edits or additional Word save.",
+      "closedWithoutAnotherSave": true,
+      "adopted": "2026-09-07T12:31:39.9845503+08:00"
+    },
+    "visualChecked": true
+  },
+  {
+    "case": "revisions2/rev-section",
+    "status": "saved; package selfcheck passed; visual review pending",
+    "wordVersion": "16.0 / build 16.0.14334",
+    "started": "2026-09-07T11:40:11.1420961+08:00",
+    "operations": [
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "visualChecked": false,
+    "observation": "Tracked 54 pt top/left margins and landscape orientation.",
+    "selfcheck": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "before/after markers",
+          "passed": true,
+          "actual": "before 前文Section formatting target.after 后文"
+        },
+        {
+          "name": "section property revision",
+          "passed": true,
+          "actual": 1
+        }
+      ],
+      "counts": {
+        "p": 4,
+        "ins": 0,
+        "del": 0,
+        "delText": 0,
+        "moveFrom": 0,
+        "moveTo": 0,
+        "moveFromRangeStart": 0,
+        "moveToRangeStart": 0,
+        "moveFromRangeEnd": 0,
+        "moveToRangeEnd": 0,
+        "rPrChange": 0,
+        "pPrChange": 0,
+        "sectPrChange": 1,
+        "tcPrChange": 0,
+        "tblPrChange": 0,
+        "cellMerge": 0,
+        "sectPr": 2,
+        "rowInsert": 0,
+        "rowDelete": 0,
+        "numberingRevision": 0,
+        "anchors": 0,
+        "linkedTextbox": 0
+      },
+      "fieldCodes": []
+    },
+    "pages": 1,
+    "paragraphs": 4,
+    "revisions": 1,
+    "comments": 0,
+    "compatibility": 15,
+    "text": "before 前文\rSection formatting target.\rafter 后文\r\r",
+    "path": "C:\\word\\real-word-round2-20260907\\revisions2\\rev-section.docx",
+    "sha256": "2569A7A1D0C5B9850ACD0423ED10FCB0AC0681DC13A0A421A9E564926FD61CC3",
+    "requiredOperationsPassed": true,
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\revisions2\\rev-section.pdf",
+    "visualReviewCheckpoint": "inspected before close; screenshots recorded separately",
+    "finished": "2026-09-07T11:40:37.4429734+08:00"
+  },
+  {
+    "case": "revisions2/rev-accept-reject",
+    "status": "saved; package selfcheck passed; visual review pending",
+    "wordVersion": "16.0 / build 16.0.14334",
+    "started": "2026-09-07T11:40:37.4507358+08:00",
+    "operations": [
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "visualChecked": false,
+    "observation": "Three independent insertion revisions; accepted first, rejected second, third remains pending.",
+    "selfcheck": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "before/after markers",
+          "passed": true,
+          "actual": "before 前文First original anchor. ACCEPTED-INSERTSecond original anchor.Third original anchor. PENDING-INSERTafter 后文"
+        },
+        {
+          "name": "one remaining insertion, accepted retained, rejected absent",
+          "passed": true,
+          "actual": {
+            "counts": {
+              "p": 6,
+              "ins": 1,
+              "del": 0,
+              "delText": 0,
+              "moveFrom": 0,
+              "moveTo": 0,
+              "moveFromRangeStart": 0,
+              "moveToRangeStart": 0,
+              "moveFromRangeEnd": 0,
+              "moveToRangeEnd": 0,
+              "rPrChange": 0,
+              "pPrChange": 0,
+              "sectPrChange": 0,
+              "tcPrChange": 0,
+              "tblPrChange": 0,
+              "cellMerge": 0,
+              "sectPr": 1,
+              "rowInsert": 0,
+              "rowDelete": 0,
+              "numberingRevision": 0,
+              "anchors": 0,
+              "linkedTextbox": 0
+            },
+            "text": "before 前文First original anchor. ACCEPTED-INSERTSecond original anchor.Third original anchor. PENDING-INSERTafter 后文"
+          }
+        }
+      ],
+      "counts": {
+        "p": 6,
+        "ins": 1,
+        "del": 0,
+        "delText": 0,
+        "moveFrom": 0,
+        "moveTo": 0,
+        "moveFromRangeStart": 0,
+        "moveToRangeStart": 0,
+        "moveFromRangeEnd": 0,
+        "moveToRangeEnd": 0,
+        "rPrChange": 0,
+        "pPrChange": 0,
+        "sectPrChange": 0,
+        "tcPrChange": 0,
+        "tblPrChange": 0,
+        "cellMerge": 0,
+        "sectPr": 1,
+        "rowInsert": 0,
+        "rowDelete": 0,
+        "numberingRevision": 0,
+        "anchors": 0,
+        "linkedTextbox": 0
+      },
+      "fieldCodes": []
+    },
+    "pages": 1,
+    "paragraphs": 6,
+    "revisions": 1,
+    "comments": 0,
+    "compatibility": 15,
+    "text": "before 前文\rFirst original anchor. ACCEPTED-INSERT\rSecond original anchor.\rThird original anchor. PENDING-INSERT\rafter 后文\r\r",
+    "path": "C:\\word\\real-word-round2-20260907\\revisions2\\rev-accept-reject.docx",
+    "sha256": "C12863DA796B6F88B809A6C6085161D719D8F4C057FEEF5B874E24D6087B517A",
+    "requiredOperationsPassed": true,
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\revisions2\\rev-accept-reject.pdf",
+    "visualReviewCheckpoint": "inspected before close; screenshots recorded separately",
+    "finished": "2026-09-07T11:41:16.2823792+08:00"
+  },
+  {
+    "case": "revisions2/rev-comment-threads",
+    "status": "saved; package selfcheck incomplete; original retained",
+    "wordVersion": "16.0 / build 16.0.14334",
+    "started": "2026-09-07T11:41:16.2899705+08:00",
+    "operations": [
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "visualChecked": false,
+    "observation": "Three root comments: a resolved thread with two replies, a whole-paragraph comment, and a one-word comment. Reply API: reply.Replies.Add",
+    "selfcheck": {
+      "passed": false,
+      "checks": [
+        {
+          "name": "before/after markers",
+          "passed": true,
+          "actual": "before 前文First threaded anchor.Second comment covers this whole paragraph.Third comment covers the word target.after 后文"
+        },
+        {
+          "name": "five comments with replies and resolved state",
+          "passed": true,
+          "actual": {
+            "comments": 5,
+            "done": 3,
+            "paraIdParents": 2
+          }
+        },
+        {
+          "name": "resolved root has reply-to-reply depth two",
+          "passed": false,
+          "actual": [
+            {
+              "parent": "",
+              "done": "1",
+              "id": "0051026D"
+            },
+            {
+              "parent": "0051026D",
+              "done": "1",
+              "id": "3ED6B836"
+            },
+            {
+              "parent": "0051026D",
+              "done": "1",
+              "id": "4E65B454"
+            },
+            {
+              "parent": "",
+              "done": "0",
+              "id": "2EC3D209"
+            },
+            {
+              "parent": "",
+              "done": "0",
+              "id": "295D5CBE"
+            }
+          ]
+        }
+      ],
+      "counts": {
+        "p": 6,
+        "ins": 0,
+        "del": 0,
+        "delText": 0,
+        "moveFrom": 0,
+        "moveTo": 0,
+        "moveFromRangeStart": 0,
+        "moveToRangeStart": 0,
+        "moveFromRangeEnd": 0,
+        "moveToRangeEnd": 0,
+        "rPrChange": 0,
+        "pPrChange": 0,
+        "sectPrChange": 0,
+        "tcPrChange": 0,
+        "tblPrChange": 0,
+        "cellMerge": 0,
+        "sectPr": 1,
+        "rowInsert": 0,
+        "rowDelete": 0,
+        "numberingRevision": 0,
+        "anchors": 0,
+        "linkedTextbox": 0
+      },
+      "fieldCodes": []
+    },
+    "replyMethod": "reply.Replies.Add",
+    "pages": 1,
+    "paragraphs": 6,
+    "revisions": 0,
+    "comments": 5,
+    "compatibility": 15,
+    "text": "before 前文\rFirst threaded anchor.\rSecond comment covers this whole paragraph.\rThird comment covers the word target.\rafter 后文\r\r",
+    "path": "C:\\word\\real-word-round2-20260907\\revisions2\\rev-comment-threads.docx",
+    "sha256": "22BFBF93798CFBD225BF175DE95710BF66AB33AAED1E5FA7012384D36BB86076",
+    "requiredOperationsPassed": true,
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\revisions2\\rev-comment-threads.pdf",
+    "visualReviewCheckpoint": "inspected before close; screenshots recorded separately",
+    "finished": "2026-09-07T11:41:57.9800874+08:00"
+  },
+  {
+    "case": "fields2/fields-seq-captions",
+    "status": "saved; package selfcheck passed; visual review pending",
+    "wordVersion": "16.0 / build 16.0.14334",
+    "started": "2026-09-07T11:41:57.9872939+08:00",
+    "operations": [
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "visualChecked": false,
+    "observation": "Three 64x32 PNGs displayed at 48x24 pt; native captions use the requested Chinese figure label. Cross-reference points to the label and number of caption 2.",
+    "selfcheck": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "before/after markers",
+          "passed": true,
+          "actual": "before 前文图 1 sample 1图 2 sample 2图 3 sample 3Cross-reference: 图 2after 后文"
+        },
+        {
+          "name": "three SEQ figure fields and a REF",
+          "passed": true,
+          "actual": [
+            " SEQ 图 \\* ARABIC ",
+            " SEQ 图 \\* ARABIC ",
+            " SEQ 图 \\* ARABIC ",
+            " REF _Ref239673734 \\h "
+          ]
+        }
+      ],
+      "counts": {
+        "p": 10,
+        "ins": 0,
+        "del": 0,
+        "delText": 0,
+        "moveFrom": 0,
+        "moveTo": 0,
+        "moveFromRangeStart": 0,
+        "moveToRangeStart": 0,
+        "moveFromRangeEnd": 0,
+        "moveToRangeEnd": 0,
+        "rPrChange": 0,
+        "pPrChange": 0,
+        "sectPrChange": 0,
+        "tcPrChange": 0,
+        "tblPrChange": 0,
+        "cellMerge": 0,
+        "sectPr": 1,
+        "rowInsert": 0,
+        "rowDelete": 0,
+        "numberingRevision": 0,
+        "anchors": 0,
+        "linkedTextbox": 0
+      },
+      "fieldCodes": [
+        " SEQ 图 \\* ARABIC ",
+        " SEQ 图 \\* ARABIC ",
+        " SEQ 图 \\* ARABIC ",
+        " REF _Ref239673734 \\h "
+      ]
+    },
+    "pages": 1,
+    "paragraphs": 10,
+    "revisions": 0,
+    "comments": 0,
+    "compatibility": 15,
+    "text": "before 前文\r/\r图 1 sample 1\r/\r图 2 sample 2\r/\r图 3 sample 3\rCross-reference: 图 2\rafter 后文\r\r",
+    "path": "C:\\word\\real-word-round2-20260907\\fields2\\fields-seq-captions.docx",
+    "sha256": "1A14B871D1F52177A33D9091B00A3C26C7A09319E6F1AC69B7420977DF3BE175",
+    "requiredOperationsPassed": true,
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\fields2\\fields-seq-captions.pdf",
+    "visualReviewCheckpoint": "inspected before close; screenshots recorded separately",
+    "finished": "2026-09-07T11:42:28.4945591+08:00"
+  },
+  {
+    "case": "fields2/fields-index",
+    "status": "saved; package selfcheck passed; visual review pending",
+    "wordVersion": "16.0 / build 16.0.14334",
+    "started": "2026-09-07T11:42:28.5143785+08:00",
+    "operations": [
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "visualChecked": false,
+    "observation": "Marked Alpha, Beta and Gamma as three index entries; inserted and updated an index before after.",
+    "selfcheck": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "before/after markers",
+          "passed": true,
+          "actual": "before 前文Alpha sample.Beta sample.Gamma sample.ＡAlpha, 1ＢBeta, 1ＧGamma, 1after 后文"
+        },
+        {
+          "name": "three XE fields and INDEX",
+          "passed": true,
+          "actual": [
+            " XE \"Alpha\" ",
+            " XE \"Beta\" ",
+            " XE \"Gamma\" ",
+            " INDEX \\h \"M\" \\o \"S\" \\z \"2052\"  "
+          ]
+        }
+      ],
+      "counts": {
+        "p": 13,
+        "ins": 0,
+        "del": 0,
+        "delText": 0,
+        "moveFrom": 0,
+        "moveTo": 0,
+        "moveFromRangeStart": 0,
+        "moveToRangeStart": 0,
+        "moveFromRangeEnd": 0,
+        "moveToRangeEnd": 0,
+        "rPrChange": 0,
+        "pPrChange": 0,
+        "sectPrChange": 0,
+        "tcPrChange": 0,
+        "tblPrChange": 0,
+        "cellMerge": 0,
+        "sectPr": 1,
+        "rowInsert": 0,
+        "rowDelete": 0,
+        "numberingRevision": 0,
+        "anchors": 0,
+        "linkedTextbox": 0
+      },
+      "fieldCodes": [
+        " XE \"Alpha\" ",
+        " XE \"Beta\" ",
+        " XE \"Gamma\" ",
+        " INDEX \\h \"M\" \\o \"S\" \\z \"2052\"  "
+      ]
+    },
+    "pages": 1,
+    "paragraphs": 13,
+    "revisions": 0,
+    "comments": 0,
+    "compatibility": 15,
+    "text": "before 前文\rAlpha sample.\rBeta sample.\rGamma sample.\rＡ\rAlpha, 1\rＢ\rBeta, 1\rＧ\rGamma, 1\r\rafter 后文\r\r",
+    "path": "C:\\word\\real-word-round2-20260907\\fields2\\fields-index.docx",
+    "sha256": "1E98E08C1587A0D0A155F1ED1F9FC53F671BA27A2FA73AAB594912D1A4B669C4",
+    "requiredOperationsPassed": true,
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\fields2\\fields-index.pdf",
+    "visualReviewCheckpoint": "inspected before close; screenshots recorded separately",
+    "finished": "2026-09-07T11:42:54.1209954+08:00"
+  },
+  {
+    "case": "fields2/fields-toc-stale",
+    "status": "saved; package selfcheck passed; direct Word UI inspected; independent PDF review pending",
+    "wordVersion": "16.0 / build 16.0.14334",
+    "started": "2026-09-07T12:29:26.929408+08:00",
+    "operations": [
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "observation": "TOC was updated once with original three-level headings. Only the Original prefix in body headings 1 and 2 was replaced with Changed, preserving native TOC bookmark ranges. TOC was deliberately not updated; bookmark targets and cached field errors are checked.",
+    "selfcheck": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "before/after markers",
+          "passed": true,
+          "actual": "before 前文Original heading one1Original heading two1Original heading three1Changed heading oneFirst body text.Changed heading twoSecond body text.Original heading threeThird body text.after 后文"
+        },
+        {
+          "name": "TOC exists and old cached titles coexist with changed headings",
+          "passed": true,
+          "actual": "before 前文Original heading one1Original heading two1Original heading three1Changed heading oneFirst body text.Changed heading twoSecond body text.Original heading threeThird body text.after 后文"
+        },
+        {
+          "name": "three TOC bookmark targets exist with paired markers",
+          "passed": true,
+          "actual": {
+            "bookmarkStart": 3,
+            "unpairedIds": [],
+            "missingTargets": [],
+            "bookmarkNames": [
+              "_Toc239676586",
+              "_Toc239676587",
+              "_Toc239676588"
+            ],
+            "targets": [
+              "_Toc239676586",
+              "_Toc239676587",
+              "_Toc239676588"
+            ],
+            "references": [
+              {
+                "target": "_Toc239676586",
+                "field": " PAGEREF _Toc239676586 \\h "
+              },
+              {
+                "target": "_Toc239676587",
+                "field": " PAGEREF _Toc239676587 \\h "
+              },
+              {
+                "target": "_Toc239676588",
+                "field": " PAGEREF _Toc239676588 \\h "
+              }
+            ],
+            "bookmarkEnd": 3
+          }
+        },
+        {
+          "name": "cached field results contain no bookmark error",
+          "passed": true,
+          "actual": "before 前文Original heading one1Original heading two1Original heading three1Changed heading oneFirst body text.Changed heading twoSecond body text.Original heading threeThird body text.after 后文"
+        },
+        {
+          "name": "TOC cache retains old labels without bookmark errors after PDF export",
+          "actual": "Original heading one\t1\rOriginal heading two\t1\rOriginal heading three\t1\r",
+          "passed": true
+        }
+      ],
+      "counts": {
+        "p": 13,
+        "ins": 0,
+        "del": 0,
+        "delText": 0,
+        "moveFrom": 0,
+        "moveTo": 0,
+        "moveFromRangeStart": 0,
+        "moveToRangeStart": 0,
+        "moveFromRangeEnd": 0,
+        "moveToRangeEnd": 0,
+        "rPrChange": 0,
+        "pPrChange": 0,
+        "sectPrChange": 0,
+        "tcPrChange": 0,
+        "tblPrChange": 0,
+        "cellMerge": 0,
+        "sectPr": 1,
+        "rowInsert": 0,
+        "rowDelete": 0,
+        "numberingRevision": 0,
+        "anchors": 0,
+        "linkedTextbox": 0,
+        "bookmarkStart": 3,
+        "bookmarkEnd": 3
+      },
+      "fieldCodes": [
+        " PAGEREF _Toc239676586 \\h ",
+        " PAGEREF _Toc239676587 \\h ",
+        " PAGEREF _Toc239676588 \\h ",
+        " TOC \\o \"1-3\" "
+      ]
+    },
+    "tocBefore": "Original heading one\t1\rOriginal heading two\t1\rOriginal heading three\t1\r",
+    "tocAfter": "Original heading one\t1\rOriginal heading two\t1\rOriginal heading three\t1\r",
+    "pages": 1,
+    "paragraphs": 13,
+    "revisions": 0,
+    "comments": 0,
+    "compatibility": 15,
+    "text": "before 前文\rOriginal heading one\t1\rOriginal heading two\t1\rOriginal heading three\t1\r\rChanged heading one\rFirst body text.\rChanged heading two\rSecond body text.\rOriginal heading three\rThird body text.\rafter 后文\r\r",
+    "path": "C:\\word\\real-word-round2-20260907\\fields2\\fields-toc-stale.docx",
+    "sha256": "A3B75A976E79EFBDF1E9CE868D352FE13EEE4E6BE426EC777DC1D4F9BD43C118",
+    "requiredOperationsPassed": true,
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\fields2\\fields-toc-stale.pdf",
+    "tocAfterPdf": "Original heading one\t1\rOriginal heading two\t1\rOriginal heading three\t1\r",
+    "visualReviewCheckpoint": "inspected before close; screenshots recorded separately",
+    "finished": "2026-09-07T12:29:54.9784938+08:00",
+    "adoption": {
+      "nativeSavedPath": "C:\\word\\real-word-round2-20260907\\_trials\\d-layout-retry\\fields2\\fields-toc-stale.docx",
+      "nativeExportedPdf": "C:\\word\\real-word-round2-20260907\\_trials\\d-layout-retry\\_previews\\fields2\\fields-toc-stale.pdf",
+      "oldSha256": "6C1F4A7426F8C754F9166808F2AB4072158B0494C550F8B31A4F873B0ECE66F9",
+      "archive": "C:\\word\\real-word-round2-20260907\\_trials\\d-before-adoption-docx\\fields2\\fields-toc-stale",
+      "method": "Byte copy of a verified native Word first-save output; no package edits or additional Word save.",
+      "closedWithoutAnotherSave": true,
+      "adopted": "2026-09-07T12:31:39.9974983+08:00"
+    },
+    "visualChecked": true
+  },
+  {
+    "case": "fields2/fields-citations",
+    "status": "saved; package selfcheck passed; visual review pending",
+    "wordVersion": "16.0 / build 16.0.14334",
+    "started": "2026-09-07T11:44:05.7750475+08:00",
+    "operations": [
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "visualChecked": false,
+    "observation": "Two document-local bibliography sources, a book and journal article; two native CITATION fields and one BIBLIOGRAPHY field. Sources supplied through Word Bibliography.Sources.Add.",
+    "selfcheck": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "before/after markers",
+          "passed": true,
+          "actual": "before 前文Book citation: (BookAuthor, 2026)Journal citation: (JournalAuthor, 2025)BookAuthor, C. (2026). Corpus Book. Test City: Corpus Press.JournalAuthor, C. (2025). Corpus Journal Article. Corpus Journal, 7(2), 10-18.after 后文"
+        },
+        {
+          "name": "two CITATION fields, bibliography, embedded book and journal sources",
+          "passed": true,
+          "actual": {
+            "sourceTypes": [
+              "Book",
+              "JournalArticle"
+            ],
+            "sourceParts": [
+              "customXml/item1.xml"
+            ],
+            "fields": [
+              " CITATION Round2Book2026 ",
+              " CITATION Round2Journal2025 ",
+              " BIBLIOGRAPHY "
+            ]
+          }
+        }
+      ],
+      "counts": {
+        "p": 8,
+        "ins": 0,
+        "del": 0,
+        "delText": 0,
+        "moveFrom": 0,
+        "moveTo": 0,
+        "moveFromRangeStart": 0,
+        "moveToRangeStart": 0,
+        "moveFromRangeEnd": 0,
+        "moveToRangeEnd": 0,
+        "rPrChange": 0,
+        "pPrChange": 0,
+        "sectPrChange": 0,
+        "tcPrChange": 0,
+        "tblPrChange": 0,
+        "cellMerge": 0,
+        "sectPr": 1,
+        "rowInsert": 0,
+        "rowDelete": 0,
+        "numberingRevision": 0,
+        "anchors": 0,
+        "linkedTextbox": 0
+      },
+      "fieldCodes": [
+        " CITATION Round2Book2026 ",
+        " CITATION Round2Journal2025 ",
+        " BIBLIOGRAPHY "
+      ]
+    },
+    "pages": 1,
+    "paragraphs": 8,
+    "revisions": 0,
+    "comments": 0,
+    "compatibility": 15,
+    "text": "before 前文\rBook citation: (BookAuthor, 2026)\rJournal citation: (JournalAuthor, 2025)\rBookAuthor, C. (2026). Corpus Book. Test City: Corpus Press.\rJournalAuthor, C. (2025). Corpus Journal Article. Corpus Journal, 7(2), 10-18.\r\rafter 后文\r\r",
+    "path": "C:\\word\\real-word-round2-20260907\\fields2\\fields-citations.docx",
+    "sha256": "1FBAD7491E92A6D5C93E259DA2FA6BB970037823D4215B3DFCE1FF254264E168",
+    "requiredOperationsPassed": true,
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\fields2\\fields-citations.pdf",
+    "visualReviewCheckpoint": "inspected before close; screenshots recorded separately",
+    "finished": "2026-09-07T11:44:35.4586649+08:00"
+  },
+  {
+    "case": "fields2/fields-page-in-footer",
+    "status": "saved; package selfcheck passed; visual review pending",
+    "wordVersion": "16.0 / build 16.0.14334",
+    "started": "2026-09-07T11:44:35.4712201+08:00",
+    "operations": [
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "visualChecked": false,
+    "observation": "Three pages separated by two page breaks. Footer uses Chinese page labels with native PAGE and NUMPAGES fields.",
+    "selfcheck": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "before/after markers",
+          "passed": true,
+          "actual": "before 前文Page one body.Page two body.Page three body.after 后文"
+        },
+        {
+          "name": "PAGE and NUMPAGES in footer",
+          "passed": true,
+          "actual": [
+            " PAGE  \\* MERGEFORMAT ",
+            " NUMPAGES  \\* MERGEFORMAT "
+          ]
+        },
+        {
+          "name": "three Word pages",
+          "passed": true,
+          "actual": 3
+        }
+      ],
+      "counts": {
+        "p": 6,
+        "ins": 0,
+        "del": 0,
+        "delText": 0,
+        "moveFrom": 0,
+        "moveTo": 0,
+        "moveFromRangeStart": 0,
+        "moveToRangeStart": 0,
+        "moveFromRangeEnd": 0,
+        "moveToRangeEnd": 0,
+        "rPrChange": 0,
+        "pPrChange": 0,
+        "sectPrChange": 0,
+        "tcPrChange": 0,
+        "tblPrChange": 0,
+        "cellMerge": 0,
+        "sectPr": 1,
+        "rowInsert": 0,
+        "rowDelete": 0,
+        "numberingRevision": 0,
+        "anchors": 0,
+        "linkedTextbox": 0
+      },
+      "fieldCodes": []
+    },
+    "pages": 3,
+    "paragraphs": 8,
+    "revisions": 0,
+    "comments": 0,
+    "compatibility": 15,
+    "text": "before 前文\rPage one body.\r\fPage two body.\r\fPage three body.\rafter 后文\r\r",
+    "path": "C:\\word\\real-word-round2-20260907\\fields2\\fields-page-in-footer.docx",
+    "sha256": "FE49A50778512B80D2B033D39532794478DADFC9F5F631EA342B80FDBD9571F8",
+    "requiredOperationsPassed": true,
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\fields2\\fields-page-in-footer.pdf",
+    "visualReviewCheckpoint": "inspected before close; screenshots recorded separately",
+    "finished": "2026-09-07T11:45:41.8152567+08:00"
+  },
+  {
+    "case": "sections2/sections-breaks-zoo",
+    "status": "saved; package selfcheck passed; visual review pending",
+    "wordVersion": "16.0 / build 16.0.14334",
+    "started": "2026-09-07T11:45:41.8246825+08:00",
+    "operations": [
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "visualChecked": false,
+    "observation": "Five sections with next-page, continuous, even-page, odd-page breaks in that order. Section 3 has Different First Page and an independent first-page header.",
+    "selfcheck": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "before/after markers",
+          "passed": true,
+          "actual": "before 前文Section one.Section 2.Section 3.Section 4.Section 5.after 后文"
+        },
+        {
+          "name": "five sections; continuous, even and odd page types",
+          "passed": true,
+          "actual": [
+            "nextPage (default)",
+            "nextPage (default)",
+            "continuous",
+            "evenPage",
+            "oddPage"
+          ]
+        },
+        {
+          "name": "third section first-page header",
+          "passed": true,
+          "actual": "<w:sectPr w:rsidR=\"003C2967\" w:rsidSect=\"003C2967\" xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:headerReference w:type=\"first\" r:id=\"rId12\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" /><w:type w:val=\"continuous\" /><w:pgSz w:w=\"11906\" w:h=\"16838\" /><w:pgMar w:top=\"1440\" w:right=\"1800\" w:bottom=\"1440\" w:left=\"1800\" w:header=\"851\" w:footer=\"992\" w:gutter=\"0\" /><w:cols w:space=\"425\" /><w:titlePg /><w:docGrid w:type=\"lines\" w:linePitch=\"312\" /></w:sectPr>"
+        }
+      ],
+      "counts": {
+        "p": 12,
+        "ins": 0,
+        "del": 0,
+        "delText": 0,
+        "moveFrom": 0,
+        "moveTo": 0,
+        "moveFromRangeStart": 0,
+        "moveToRangeStart": 0,
+        "moveFromRangeEnd": 0,
+        "moveToRangeEnd": 0,
+        "rPrChange": 0,
+        "pPrChange": 0,
+        "sectPrChange": 0,
+        "tcPrChange": 0,
+        "tblPrChange": 0,
+        "cellMerge": 0,
+        "sectPr": 5,
+        "rowInsert": 0,
+        "rowDelete": 0,
+        "numberingRevision": 0,
+        "anchors": 0,
+        "linkedTextbox": 0
+      },
+      "fieldCodes": []
+    },
+    "pages": 5,
+    "paragraphs": 12,
+    "revisions": 0,
+    "comments": 0,
+    "compatibility": 15,
+    "text": "before 前文\rSection one.\r\fSection 2.\r\fSection 3.\r\fSection 4.\r\fSection 5.\rafter 后文\r\r",
+    "path": "C:\\word\\real-word-round2-20260907\\sections2\\sections-breaks-zoo.docx",
+    "sha256": "021BF8D47345E0556DB42A1D0C16BFC447CE1743C14292DB3C3D86932491F65B",
+    "requiredOperationsPassed": true,
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\sections2\\sections-breaks-zoo.pdf",
+    "visualReviewCheckpoint": "inspected before close; screenshots recorded separately",
+    "finished": "2026-09-07T11:46:30.1053465+08:00"
+  },
+  {
+    "case": "image2/image-z-order",
+    "status": "saved; package selfcheck passed; visual review pending",
+    "wordVersion": "16.0 / build 16.0.14334",
+    "started": "2026-09-07T11:46:30.1322128+08:00",
+    "operations": [
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "visualChecked": false,
+    "observation": "Three overlapping floating PNGs. Brought picture 1 forward to establish a meaningful starting stack, sent picture 1 backward one layer, then brought picture 3 to front. Final bottom-to-top: 2, 1, 3.",
+    "selfcheck": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "before/after markers",
+          "passed": true,
+          "actual": "before 前文Floating images anchor.after 后文"
+        },
+        {
+          "name": "three anchors ordered picture 2 < 1 < 3",
+          "passed": true,
+          "actual": [
+            {
+              "name": "Round2 Picture 3",
+              "relativeHeight": 251660288,
+              "hasRelativeHeight": true
+            },
+            {
+              "name": "Round2 Picture 2",
+              "relativeHeight": 251659264,
+              "hasRelativeHeight": true
+            },
+            {
+              "name": "Round2 Picture 1",
+              "relativeHeight": 251659775,
+              "hasRelativeHeight": true
+            }
+          ]
+        }
+      ],
+      "counts": {
+        "p": 4,
+        "ins": 0,
+        "del": 0,
+        "delText": 0,
+        "moveFrom": 0,
+        "moveTo": 0,
+        "moveFromRangeStart": 0,
+        "moveToRangeStart": 0,
+        "moveFromRangeEnd": 0,
+        "moveToRangeEnd": 0,
+        "rPrChange": 0,
+        "pPrChange": 0,
+        "sectPrChange": 0,
+        "tcPrChange": 0,
+        "tblPrChange": 0,
+        "cellMerge": 0,
+        "sectPr": 1,
+        "rowInsert": 0,
+        "rowDelete": 0,
+        "numberingRevision": 0,
+        "anchors": 3,
+        "linkedTextbox": 0
+      },
+      "fieldCodes": []
+    },
+    "zOrder": [
+      {
+        "name": "Round2 Picture 1",
+        "position": 2
+      },
+      {
+        "name": "Round2 Picture 2",
+        "position": 1
+      },
+      {
+        "name": "Round2 Picture 3",
+        "position": 3
+      }
+    ],
+    "pages": 1,
+    "paragraphs": 4,
+    "revisions": 0,
+    "comments": 0,
+    "compatibility": 15,
+    "text": "before 前文\rFloating images anchor.\rafter 后文\r\r",
+    "path": "C:\\word\\real-word-round2-20260907\\image2\\image-z-order.docx",
+    "sha256": "ADCE5AB0D99F9835C159D86C934084E3FD13FBF5B6B47547838ABC7569C670EA",
+    "requiredOperationsPassed": true,
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\image2\\image-z-order.pdf",
+    "visualReviewCheckpoint": "inspected before close; screenshots recorded separately",
+    "finished": "2026-09-07T11:46:59.1360083+08:00"
+  },
+  {
+    "case": "shapes2/textbox-linked",
+    "status": "saved; package selfcheck passed; direct Word UI inspected; independent PDF review pending",
+    "wordVersion": "16.0 / build 16.0.14334",
+    "started": "2026-09-07T12:29:55.0073812+08:00",
+    "operations": [
+      {
+        "operation": "export PDF after original save",
+        "status": "ok"
+      }
+    ],
+    "observation": "Two 180x90 pt textboxes, explicitly positioned 0/210 pt from the left margin and 25 pt below their anchor paragraph after setting relative coordinate modes. Linked through TextFrame.Next; ten lines entered in the first flow into the second. Native linked textbox markup is inspected.",
+    "selfcheck": {
+      "passed": true,
+      "checks": [
+        {
+          "name": "before/after markers",
+          "passed": true,
+          "actual": "before 前文Line 01: linked story text.Line 02: linked story text.Line 03: linked story text.Line 04: linked story text.Line 05: linked story text.Line 06: linked story text.Line 07: linked story text.Line 08: linked story text.Line 09: linked story text.Line 10: linked story text.Line 01: linked story text.Line 02: linked story text.Line 03: linked story text.Line 04: linked story text.Line 05: linked story text.Line 06: linked story text.Line 07: linked story text.Line 08: linked story text.Line 09: linked story text.Line 10: linked story text.Linked textboxes anchor.after 后文"
+        },
+        {
+          "name": "two native linked textbox representations",
+          "passed": true,
+          "actual": [
+            "<wps:linkedTxbx id=\"1\" seq=\"1\" xmlns:wps=\"http://schemas.microsoft.com/office/word/2010/wordprocessingShape\" />",
+            "<wps:txbx id=\"1\" xmlns:wps=\"http://schemas.microsoft.com/office/word/2010/wordprocessingShape\"><w:txbxContent xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\" /></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\" /></w:rPr><w:t>Line 01: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\" /></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\" /></w:rPr><w:t>Line 02: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\" /></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\" /></w:rPr><w:t>Line 03: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\" /></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\" /></w:rPr><w:t>Line 04: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\" /></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\" /></w:rPr><w:t>Line 05: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\" /></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\" /></w:rPr><w:t>Line 06: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\" /></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\" /></w:rPr><w:t>Line 07: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\" /></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\" /></w:rPr><w:t>Line 08: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\" /></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\" /></w:rPr><w:t>Line 09: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRPr=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\" /></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\" /></w:rPr><w:t>Line 10: linked story text.</w:t></w:r></w:p></w:txbxContent></wps:txbx>"
+          ]
+        }
+      ],
+      "counts": {
+        "p": 24,
+        "ins": 0,
+        "del": 0,
+        "delText": 0,
+        "moveFrom": 0,
+        "moveTo": 0,
+        "moveFromRangeStart": 0,
+        "moveToRangeStart": 0,
+        "moveFromRangeEnd": 0,
+        "moveToRangeEnd": 0,
+        "rPrChange": 0,
+        "pPrChange": 0,
+        "sectPrChange": 0,
+        "tcPrChange": 0,
+        "tblPrChange": 0,
+        "cellMerge": 0,
+        "sectPr": 1,
+        "rowInsert": 0,
+        "rowDelete": 0,
+        "numberingRevision": 0,
+        "anchors": 2,
+        "linkedTextbox": 1
+      },
+      "fieldCodes": []
+    },
+    "linkedStory": "Line 01: linked story text.\rLine 02: linked story text.\rLine 03: linked story text.\rLine 04: linked story text.\rLine 05: linked story text.\rLine 06: linked story text.\rLine 07: linked story text.\rLine 08: linked story text.\rLine 09: linked story text.\rLine 10: linked story text.\r",
+    "pages": 1,
+    "paragraphs": 4,
+    "revisions": 0,
+    "comments": 0,
+    "compatibility": 15,
+    "text": "before 前文\rLinked textboxes anchor.\rafter 后文\r\r",
+    "path": "C:\\word\\real-word-round2-20260907\\shapes2\\textbox-linked.docx",
+    "sha256": "805049AF54FDC7F8A4CDC59F94C1CE87B7149B80683520DF9372FE8C8C11C7C5",
+    "requiredOperationsPassed": true,
+    "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\shapes2\\textbox-linked.pdf",
+    "visualReviewCheckpoint": "inspected before close; screenshots recorded separately",
+    "finished": "2026-09-07T12:30:21.3085325+08:00",
+    "adoption": {
+      "nativeSavedPath": "C:\\word\\real-word-round2-20260907\\_trials\\d-layout-retry\\shapes2\\textbox-linked.docx",
+      "nativeExportedPdf": "C:\\word\\real-word-round2-20260907\\_trials\\d-layout-retry\\_previews\\shapes2\\textbox-linked.pdf",
+      "oldSha256": "FCD2C99679DE6E5D3676F326AEE857BEA15D6DB012B8ADF23E25987E4550706E",
+      "archive": "C:\\word\\real-word-round2-20260907\\_trials\\d-before-adoption-docx\\shapes2\\textbox-linked",
+      "method": "Byte copy of a verified native Word first-save output; no package edits or additional Word save.",
+      "closedWithoutAnotherSave": true,
+      "adopted": "2026-09-07T12:31:40.0005528+08:00"
+    },
+    "visualChecked": true
+  }
+]

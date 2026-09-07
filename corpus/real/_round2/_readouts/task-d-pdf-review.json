@@ -1,0 +1,1927 @@
+{
+  "reviewedAt": "2026-09-07T04:33:24.586500+00:00",
+  "sourceRoot": "C:\\word\\real-word-round2-20260907",
+  "method": "Read-only ZIP CRC, lxml namespace-aware structural inspection and optional Word-exported PDF rendering/text extraction. No Word calls or DOCX changes. visualReviewed remains false until rendered pages are independently viewed.",
+  "requiredCases": 17,
+  "existingFiles": 17,
+  "structurePassed": 16,
+  "pdfsAvailable": 17,
+  "rows": [
+    {
+      "case": "blank/blank-new",
+      "source": "C:\\word\\real-word-round2-20260907\\blank\\blank-new.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "12C0E52924A3A888F3FBF370C88E1DCABE0CCC9765EA5BFE4250A47D28F82E68",
+      "structure": {
+        "passed": true,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 11,
+              "uniqueEntries": 11
+            }
+          },
+          {
+            "requirement": "one empty paragraph and final sectPr only",
+            "passed": true,
+            "actual": [
+              "p",
+              "sectPr"
+            ]
+          },
+          {
+            "requirement": "required standard parts",
+            "passed": true,
+            "actual": {
+              "word/styles.xml": true,
+              "word/settings.xml": true,
+              "word/theme/theme1.xml": true,
+              "word/fontTable.xml": true,
+              "word/webSettings.xml": true
+            }
+          }
+        ],
+        "counts": {
+          "ins": 0,
+          "del": 0,
+          "delText": 0,
+          "moveFrom": 0,
+          "moveTo": 0,
+          "moveFromRangeStart": 0,
+          "moveFromRangeEnd": 0,
+          "moveToRangeStart": 0,
+          "moveToRangeEnd": 0,
+          "rPrChange": 0,
+          "pPrChange": 0,
+          "numPr": 0,
+          "tcPrChange": 0,
+          "tblPrChange": 0,
+          "sectPrChange": 0,
+          "sectPr": 1,
+          "cellMerge": 0,
+          "commentRangeStart": 0,
+          "commentRangeEnd": 0,
+          "rowIns": 0,
+          "rowDel": 0,
+          "numberingRevision": 0
+        },
+        "fieldCodes": [],
+        "fullText": "",
+        "xmlPartsParsed": 11
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\blank\\blank-new.pdf",
+      "pdfSha256": "7E4A5B922DA41593314E36386EA2EF1C6CDB1B498C1FE73F9801B914D9E5FC6D",
+      "pageCount": 1,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/blank--blank-new-page-1.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "",
+          "nonwhitePixelCount": 0,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "7E4A5B922DA41593314E36386EA2EF1C6CDB1B498C1FE73F9801B914D9E5FC6D",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+        "observation": "One completely blank white page. No visible text, marks, header or footer. The blank appearance is expected; the raster has zero pixels below the nonwhite threshold.",
+        "issues": [],
+        "evidence": [
+          "screenshots/task-d-pdf/blank--blank-new-page-1.png"
+        ]
+      }
+    },
+    {
+      "case": "blank/blank-styles-used",
+      "source": "C:\\word\\real-word-round2-20260907\\blank\\blank-styles-used.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "C3FE0B64B9A538F725CCE04D767EE0538A38F96CF228DD04CB0BDB3A016E7683",
+      "structure": {
+        "passed": true,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 12,
+              "uniqueEntries": 12
+            }
+          },
+          {
+            "requirement": "one empty paragraph and final sectPr only",
+            "passed": true,
+            "actual": [
+              "p",
+              "sectPr"
+            ]
+          },
+          {
+            "requirement": "required standard parts",
+            "passed": true,
+            "actual": {
+              "word/styles.xml": true,
+              "word/settings.xml": true,
+              "word/theme/theme1.xml": true,
+              "word/fontTable.xml": true,
+              "word/webSettings.xml": true
+            }
+          },
+          {
+            "requirement": "retained used style heading 1",
+            "passed": true,
+            "actual": [
+              "Normal",
+              "heading 1",
+              "heading 2",
+              "Default Paragraph Font",
+              "Normal Table",
+              "No List",
+              "\u6807\u9898 1 \u5b57\u7b26",
+              "\u6807\u9898 2 \u5b57\u7b26",
+              "Body Text",
+              "\u6b63\u6587\u6587\u672c \u5b57\u7b26",
+              "List Paragraph"
+            ]
+          },
+          {
+            "requirement": "retained used style heading 2",
+            "passed": true,
+            "actual": [
+              "Normal",
+              "heading 1",
+              "heading 2",
+              "Default Paragraph Font",
+              "Normal Table",
+              "No List",
+              "\u6807\u9898 1 \u5b57\u7b26",
+              "\u6807\u9898 2 \u5b57\u7b26",
+              "Body Text",
+              "\u6b63\u6587\u6587\u672c \u5b57\u7b26",
+              "List Paragraph"
+            ]
+          },
+          {
+            "requirement": "retained used style List Paragraph",
+            "passed": true,
+            "actual": [
+              "Normal",
+              "heading 1",
+              "heading 2",
+              "Default Paragraph Font",
+              "Normal Table",
+              "No List",
+              "\u6807\u9898 1 \u5b57\u7b26",
+              "\u6807\u9898 2 \u5b57\u7b26",
+              "Body Text",
+              "\u6b63\u6587\u6587\u672c \u5b57\u7b26",
+              "List Paragraph"
+            ]
+          }
+        ],
+        "counts": {
+          "ins": 0,
+          "del": 0,
+          "delText": 0,
+          "moveFrom": 0,
+          "moveTo": 0,
+          "moveFromRangeStart": 0,
+          "moveFromRangeEnd": 0,
+          "moveToRangeStart": 0,
+          "moveToRangeEnd": 0,
+          "rPrChange": 0,
+          "pPrChange": 0,
+          "numPr": 0,
+          "tcPrChange": 0,
+          "tblPrChange": 0,
+          "sectPrChange": 0,
+          "sectPr": 1,
+          "cellMerge": 0,
+          "commentRangeStart": 0,
+          "commentRangeEnd": 0,
+          "rowIns": 0,
+          "rowDel": 0,
+          "numberingRevision": 0
+        },
+        "fieldCodes": [],
+        "fullText": "",
+        "xmlPartsParsed": 12
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\blank\\blank-styles-used.pdf",
+      "pdfSha256": "CC03AB8D876C0437C16A26C485A65DD6AAE73A596AF3A405C28C639692C30FD5",
+      "pageCount": 1,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/blank--blank-styles-used-page-1.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "",
+          "nonwhitePixelCount": 0,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "CC03AB8D876C0437C16A26C485A65DD6AAE73A596AF3A405C28C639692C30FD5",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+        "observation": "One completely blank white page after the previously styled content was deleted. No visible text or objects. Retained style definitions are established separately by the DOCX structure check.",
+        "issues": [],
+        "evidence": [
+          "screenshots/task-d-pdf/blank--blank-styles-used-page-1.png"
+        ]
+      }
+    },
+    {
+      "case": "revisions2/rev-insert-delete",
+      "source": "C:\\word\\real-word-round2-20260907\\revisions2\\rev-insert-delete.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "4CDC419B6024470BEFC43ACD13F146BC9EC33BFF9CEAF1932016834AEF52CD62",
+      "structure": {
+        "passed": true,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 12,
+              "uniqueEntries": 12
+            }
+          },
+          {
+            "requirement": "before/after markers",
+            "passed": true,
+            "actual": "before \u524d\u6587Author A insertion point. Author A inserted this sentence.Author B insertion point. Author B inserted this sentence.after \u540e\u6587"
+          },
+          {
+            "requirement": "two insertions, deletion with text, two authors",
+            "passed": true,
+            "actual": {
+              "counts": {
+                "ins": 2,
+                "del": 1,
+                "delText": 1,
+                "moveFrom": 0,
+                "moveTo": 0,
+                "moveFromRangeStart": 0,
+                "moveFromRangeEnd": 0,
+                "moveToRangeStart": 0,
+                "moveToRangeEnd": 0,
+                "rPrChange": 0,
+                "pPrChange": 0,
+                "numPr": 0,
+                "tcPrChange": 0,
+                "tblPrChange": 0,
+                "sectPrChange": 0,
+                "sectPr": 1,
+                "cellMerge": 0,
+                "commentRangeStart": 0,
+                "commentRangeEnd": 0,
+                "rowIns": 0,
+                "rowDel": 0,
+                "numberingRevision": 0
+              },
+              "authors": [
+                "\u4f5c\u8005\u4e59",
+                "\u4f5c\u8005\u7532"
+              ]
+            }
+          }
+        ],
+        "counts": {
+          "ins": 2,
+          "del": 1,
+          "delText": 1,
+          "moveFrom": 0,
+          "moveTo": 0,
+          "moveFromRangeStart": 0,
+          "moveFromRangeEnd": 0,
+          "moveToRangeStart": 0,
+          "moveToRangeEnd": 0,
+          "rPrChange": 0,
+          "pPrChange": 0,
+          "numPr": 0,
+          "tcPrChange": 0,
+          "tblPrChange": 0,
+          "sectPrChange": 0,
+          "sectPr": 1,
+          "cellMerge": 0,
+          "commentRangeStart": 0,
+          "commentRangeEnd": 0,
+          "rowIns": 0,
+          "rowDel": 0,
+          "numberingRevision": 0
+        },
+        "fieldCodes": [],
+        "fullText": "before \u524d\u6587Author A insertion point. Author A inserted this sentence.Author B insertion point. Author B inserted this sentence.after \u540e\u6587",
+        "xmlPartsParsed": 12
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\revisions2\\rev-insert-delete.pdf",
+      "pdfSha256": "15BA42259A37B9DEEE1DD5FE72068521FBAD89E03235EA0914E3BDA6BF723964",
+      "pageCount": 1,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/revisions2--rev-insert-delete-page-1.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "before \u524d\u6587\nAuthor A insertion point. Author A inserted this sentence.\nAuthor B insertion point. Author B inserted this sentence.\nafter \u540e\u6587",
+          "nonwhitePixelCount": 4319,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "15BA42259A37B9DEEE1DD5FE72068521FBAD89E03235EA0914E3BDA6BF723964",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+        "observation": "The before/after markers and both Author A and Author B inserted sentences are visible. The deleted original sentence is absent, leaving a blank paragraph. The PDF presents final content without revision colors or author balloons; revision types and authors require the separate DOCX/UI evidence.",
+        "issues": [],
+        "evidence": [
+          "screenshots/task-d-pdf/revisions2--rev-insert-delete-page-1.png"
+        ]
+      }
+    },
+    {
+      "case": "revisions2/rev-move",
+      "source": "C:\\word\\real-word-round2-20260907\\revisions2\\rev-move.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "E025CA9B97538460FF57EB613C4B612D615C8DA3F10877ADA8B273199CDFC048",
+      "structure": {
+        "passed": true,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 12,
+              "uniqueEntries": 12
+            }
+          },
+          {
+            "requirement": "before/after markers",
+            "passed": true,
+            "actual": "before \u524d\u6587Move this entire original paragraph with several words to the end of the body.Stationary paragraph one remains here.Stationary paragraph two remains here.Move this entire original paragraph with several words to the end of the body.after \u540e\u6587"
+          },
+          {
+            "requirement": "native moveFrom",
+            "passed": true,
+            "actual": 2
+          },
+          {
+            "requirement": "native moveTo",
+            "passed": true,
+            "actual": 2
+          },
+          {
+            "requirement": "native moveFromRangeStart",
+            "passed": true,
+            "actual": 1
+          },
+          {
+            "requirement": "native moveFromRangeEnd",
+            "passed": true,
+            "actual": 1
+          },
+          {
+            "requirement": "native moveToRangeStart",
+            "passed": true,
+            "actual": 1
+          },
+          {
+            "requirement": "native moveToRangeEnd",
+            "passed": true,
+            "actual": 1
+          },
+          {
+            "requirement": "moveFrom range IDs paired",
+            "passed": true,
+            "actual": {
+              "start": [
+                "1"
+              ],
+              "end": [
+                "1"
+              ]
+            }
+          },
+          {
+            "requirement": "moveTo range IDs paired",
+            "passed": true,
+            "actual": {
+              "start": [
+                "4"
+              ],
+              "end": [
+                "4"
+              ]
+            }
+          }
+        ],
+        "counts": {
+          "ins": 0,
+          "del": 0,
+          "delText": 0,
+          "moveFrom": 2,
+          "moveTo": 2,
+          "moveFromRangeStart": 1,
+          "moveFromRangeEnd": 1,
+          "moveToRangeStart": 1,
+          "moveToRangeEnd": 1,
+          "rPrChange": 0,
+          "pPrChange": 0,
+          "numPr": 0,
+          "tcPrChange": 0,
+          "tblPrChange": 0,
+          "sectPrChange": 0,
+          "sectPr": 1,
+          "cellMerge": 0,
+          "commentRangeStart": 0,
+          "commentRangeEnd": 0,
+          "rowIns": 0,
+          "rowDel": 0,
+          "numberingRevision": 0
+        },
+        "fieldCodes": [],
+        "fullText": "before \u524d\u6587Move this entire original paragraph with several words to the end of the body.Stationary paragraph one remains here.Stationary paragraph two remains here.Move this entire original paragraph with several words to the end of the body.after \u540e\u6587",
+        "xmlPartsParsed": 12
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\revisions2\\rev-move.pdf",
+      "pdfSha256": "848CF61FA27980400F3EAACF2B3EE7DE7949C6798AB99D27E2AD00B956B8137D",
+      "pageCount": 1,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/revisions2--rev-move-page-1.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "before \u524d\u6587\nStationary paragraph one remains here.\nStationary paragraph two remains here.\nMove this entire original paragraph with several words to the end of the body.\nafter \u540e\u6587",
+          "nonwhitePixelCount": 5826,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "848CF61FA27980400F3EAACF2B3EE7DE7949C6798AB99D27E2AD00B956B8137D",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+        "observation": "Two stationary paragraphs appear first. The moved original paragraph appears after both and immediately before the after marker. Text is readable without overlap. The PDF does not display tracked-move markup; native move tags are verified separately.",
+        "issues": [],
+        "evidence": [
+          "screenshots/task-d-pdf/revisions2--rev-move-page-1.png"
+        ]
+      }
+    },
+    {
+      "case": "revisions2/rev-format",
+      "source": "C:\\word\\real-word-round2-20260907\\revisions2\\rev-format.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "D893D8C372F9FB6899B1D6E0531A09DAA9082206BF41CC7CDA1B7D55DAE5FCD3",
+      "structure": {
+        "passed": true,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 13,
+              "uniqueEntries": 13
+            }
+          },
+          {
+            "requirement": "before/after markers",
+            "passed": true,
+            "actual": "before \u524d\u6587Run formatting target.Paragraph alignment and indent target.Numbering target.after \u540e\u6587"
+          },
+          {
+            "requirement": "rPrChange",
+            "passed": true,
+            "actual": 3
+          },
+          {
+            "requirement": "pPrChange",
+            "passed": true,
+            "actual": 2
+          },
+          {
+            "requirement": "numberingRevision",
+            "passed": true,
+            "actual": 1
+          }
+        ],
+        "counts": {
+          "ins": 0,
+          "del": 0,
+          "delText": 0,
+          "moveFrom": 0,
+          "moveTo": 0,
+          "moveFromRangeStart": 0,
+          "moveFromRangeEnd": 0,
+          "moveToRangeStart": 0,
+          "moveToRangeEnd": 0,
+          "rPrChange": 3,
+          "pPrChange": 2,
+          "numPr": 1,
+          "tcPrChange": 0,
+          "tblPrChange": 0,
+          "sectPrChange": 0,
+          "sectPr": 1,
+          "cellMerge": 0,
+          "commentRangeStart": 0,
+          "commentRangeEnd": 0,
+          "rowIns": 0,
+          "rowDel": 0,
+          "numberingRevision": 1
+        },
+        "fieldCodes": [],
+        "fullText": "before \u524d\u6587Run formatting target.Paragraph alignment and indent target.Numbering target.after \u540e\u6587",
+        "xmlPartsParsed": 13
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\revisions2\\rev-format.pdf",
+      "pdfSha256": "15AFA0ABEA659621182D50A43C653AEC07AC6D21B025F607D4384AFF43CD419E",
+      "pageCount": 1,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/revisions2--rev-format-page-1.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "before \u524d\u6587\nRun formatting target.\nParagraph alignment and indent target.\n1. Numbering target.\nafter \u540e\u6587",
+          "nonwhitePixelCount": 3697,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "15AFA0ABEA659621182D50A43C653AEC07AC6D21B025F607D4384AFF43CD419E",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+        "observation": "Run formatting target is visibly bold red. Paragraph alignment and indent target is centered. Numbering target has a visible 1. marker. Before/after markers remain visible and the lines do not overlap.",
+        "issues": [],
+        "evidence": [
+          "screenshots/task-d-pdf/revisions2--rev-format-page-1.png"
+        ]
+      }
+    },
+    {
+      "case": "revisions2/rev-table",
+      "source": "C:\\word\\real-word-round2-20260907\\revisions2\\rev-table.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "C4B062A8EAA0BE0092819BF0ACAE56D1CBA959E4D373355535D78A321B53E466",
+      "structure": {
+        "passed": true,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 12,
+              "uniqueEntries": 12
+            }
+          },
+          {
+            "requirement": "before/after markers",
+            "passed": true,
+            "actual": "before \u524d\u6587Original R1 C1Original R1 C2Inserted row leftInserted row rightafter \u540e\u6587"
+          },
+          {
+            "requirement": "rowIns",
+            "passed": true,
+            "actual": 1
+          },
+          {
+            "requirement": "rowDel",
+            "passed": true,
+            "actual": 1
+          },
+          {
+            "requirement": "tcPrChange",
+            "passed": true,
+            "actual": 5
+          },
+          {
+            "requirement": "tblPrChange",
+            "passed": true,
+            "actual": 1
+          },
+          {
+            "requirement": "merged cell spans two columns",
+            "passed": true,
+            "actual": [
+              "2",
+              "2"
+            ]
+          }
+        ],
+        "counts": {
+          "ins": 5,
+          "del": 5,
+          "delText": 2,
+          "moveFrom": 0,
+          "moveTo": 0,
+          "moveFromRangeStart": 0,
+          "moveFromRangeEnd": 0,
+          "moveToRangeStart": 0,
+          "moveToRangeEnd": 0,
+          "rPrChange": 0,
+          "pPrChange": 0,
+          "numPr": 0,
+          "tcPrChange": 5,
+          "tblPrChange": 1,
+          "sectPrChange": 0,
+          "sectPr": 1,
+          "cellMerge": 0,
+          "commentRangeStart": 0,
+          "commentRangeEnd": 0,
+          "rowIns": 1,
+          "rowDel": 1,
+          "numberingRevision": 0
+        },
+        "fieldCodes": [],
+        "fullText": "before \u524d\u6587Original R1 C1Original R1 C2Inserted row leftInserted row rightafter \u540e\u6587",
+        "xmlPartsParsed": 12
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\revisions2\\rev-table.pdf",
+      "pdfSha256": "8370476B9A501A19A37F4EC66F85E00E832C5D30735846E1D96E4A52706694AE",
+      "pageCount": 1,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/revisions2--rev-table-page-1.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "before \u524d\u6587\nOriginal R1 C1\nOriginal R1 C2\nInserted row left Inserted row right\nafter \u540e\u6587",
+          "nonwhitePixelCount": 4240,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "8370476B9A501A19A37F4EC66F85E00E832C5D30735846E1D96E4A52706694AE",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+        "observation": "A red-bordered table has one full-width first-row cell containing Original R1 C1 and Original R1 C2 on separate lines, then two cells containing Inserted row left/right. The deleted original second row is absent in this final-content PDF. Before/after markers remain visible, with no clipping or overlap. Native row insertion/deletion, cell-property changes and one table-property change are independently present in the saved DOCX; the PDF itself shows final content without revision markup.",
+        "issues": [],
+        "evidence": [
+          "screenshots/task-d-pdf/revisions2--rev-table-page-1.png"
+        ]
+      }
+    },
+    {
+      "case": "revisions2/rev-section",
+      "source": "C:\\word\\real-word-round2-20260907\\revisions2\\rev-section.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "2569A7A1D0C5B9850ACD0423ED10FCB0AC0681DC13A0A421A9E564926FD61CC3",
+      "structure": {
+        "passed": true,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 12,
+              "uniqueEntries": 12
+            }
+          },
+          {
+            "requirement": "before/after markers",
+            "passed": true,
+            "actual": "before \u524d\u6587Section formatting target.after \u540e\u6587"
+          },
+          {
+            "requirement": "section property change",
+            "passed": true,
+            "actual": 1
+          }
+        ],
+        "counts": {
+          "ins": 0,
+          "del": 0,
+          "delText": 0,
+          "moveFrom": 0,
+          "moveTo": 0,
+          "moveFromRangeStart": 0,
+          "moveFromRangeEnd": 0,
+          "moveToRangeStart": 0,
+          "moveToRangeEnd": 0,
+          "rPrChange": 0,
+          "pPrChange": 0,
+          "numPr": 0,
+          "tcPrChange": 0,
+          "tblPrChange": 0,
+          "sectPrChange": 1,
+          "sectPr": 2,
+          "cellMerge": 0,
+          "commentRangeStart": 0,
+          "commentRangeEnd": 0,
+          "rowIns": 0,
+          "rowDel": 0,
+          "numberingRevision": 0
+        },
+        "fieldCodes": [],
+        "fullText": "before \u524d\u6587Section formatting target.after \u540e\u6587",
+        "xmlPartsParsed": 12
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\revisions2\\rev-section.pdf",
+      "pdfSha256": "44AD4DA3C96F249076A27B0A64A279FC1104126E9BD846CBBCFAF79AE14B9F1D",
+      "pageCount": 1,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/revisions2--rev-section-page-1.png",
+          "sizePt": [
+            841.92,
+            595.32
+          ],
+          "text": "before \u524d\u6587\nSection formatting target.\nafter \u540e\u6587",
+          "nonwhitePixelCount": 1613,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "44AD4DA3C96F249076A27B0A64A279FC1104126E9BD846CBBCFAF79AE14B9F1D",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+        "observation": "One landscape page. Before, Section formatting target, and after are visible near the top left, with no clipping or overlap. Exact margins and tracked section-change markup are established by the separate DOCX check.",
+        "issues": [],
+        "evidence": [
+          "screenshots/task-d-pdf/revisions2--rev-section-page-1.png"
+        ]
+      }
+    },
+    {
+      "case": "revisions2/rev-accept-reject",
+      "source": "C:\\word\\real-word-round2-20260907\\revisions2\\rev-accept-reject.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "C12863DA796B6F88B809A6C6085161D719D8F4C057FEEF5B874E24D6087B517A",
+      "structure": {
+        "passed": true,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 12,
+              "uniqueEntries": 12
+            }
+          },
+          {
+            "requirement": "before/after markers",
+            "passed": true,
+            "actual": "before \u524d\u6587First original anchor. ACCEPTED-INSERTSecond original anchor.Third original anchor. PENDING-INSERTafter \u540e\u6587"
+          },
+          {
+            "requirement": "only pending insertion remains",
+            "passed": true,
+            "actual": 1
+          },
+          {
+            "requirement": "accepted kept, rejected absent, pending kept",
+            "passed": true,
+            "actual": "before \u524d\u6587First original anchor. ACCEPTED-INSERTSecond original anchor.Third original anchor. PENDING-INSERTafter \u540e\u6587"
+          }
+        ],
+        "counts": {
+          "ins": 1,
+          "del": 0,
+          "delText": 0,
+          "moveFrom": 0,
+          "moveTo": 0,
+          "moveFromRangeStart": 0,
+          "moveFromRangeEnd": 0,
+          "moveToRangeStart": 0,
+          "moveToRangeEnd": 0,
+          "rPrChange": 0,
+          "pPrChange": 0,
+          "numPr": 0,
+          "tcPrChange": 0,
+          "tblPrChange": 0,
+          "sectPrChange": 0,
+          "sectPr": 1,
+          "cellMerge": 0,
+          "commentRangeStart": 0,
+          "commentRangeEnd": 0,
+          "rowIns": 0,
+          "rowDel": 0,
+          "numberingRevision": 0
+        },
+        "fieldCodes": [],
+        "fullText": "before \u524d\u6587First original anchor. ACCEPTED-INSERTSecond original anchor.Third original anchor. PENDING-INSERTafter \u540e\u6587",
+        "xmlPartsParsed": 12
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\revisions2\\rev-accept-reject.pdf",
+      "pdfSha256": "78F8D5DF185C18114E70073C21409C608487FFC30C42D070594A5A4F0786F871",
+      "pageCount": 1,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/revisions2--rev-accept-reject-page-1.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "before \u524d\u6587\nFirst original anchor. ACCEPTED-INSERT\nSecond original anchor.\nThird original anchor. PENDING-INSERT\nafter \u540e\u6587",
+          "nonwhitePixelCount": 4142,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "78F8D5DF185C18114E70073C21409C608487FFC30C42D070594A5A4F0786F871",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+        "observation": "First original anchor is followed by ACCEPTED-INSERT. Second original anchor has no REJECTED-INSERT. Third original anchor is followed by PENDING-INSERT. Before/after markers remain visible. The pending revision's native status is verified separately because this PDF shows final content.",
+        "issues": [],
+        "evidence": [
+          "screenshots/task-d-pdf/revisions2--rev-accept-reject-page-1.png"
+        ]
+      }
+    },
+    {
+      "case": "revisions2/rev-comment-threads",
+      "source": "C:\\word\\real-word-round2-20260907\\revisions2\\rev-comment-threads.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "22BFBF93798CFBD225BF175DE95710BF66AB33AAED1E5FA7012384D36BB86076",
+      "structure": {
+        "passed": false,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 16,
+              "uniqueEntries": 16
+            }
+          },
+          {
+            "requirement": "before/after markers",
+            "passed": true,
+            "actual": "before \u524d\u6587First threaded anchor.Second comment covers this whole paragraph.Third comment covers the word target.after \u540e\u6587"
+          },
+          {
+            "requirement": "five comments",
+            "passed": true,
+            "actual": 5
+          },
+          {
+            "requirement": "two reply parent links",
+            "passed": true,
+            "actual": [
+              "0051026D",
+              "0051026D"
+            ]
+          },
+          {
+            "requirement": "resolved thread",
+            "passed": true,
+            "actual": 3
+          },
+          {
+            "requirement": "three root comment threads",
+            "passed": true,
+            "actual": {
+              "0051026D": null,
+              "3ED6B836": "0051026D",
+              "4E65B454": "0051026D",
+              "2EC3D209": null,
+              "295D5CBE": null
+            }
+          },
+          {
+            "requirement": "two nested reply levels",
+            "passed": false,
+            "actual": {
+              "parentMap": {
+                "0051026D": null,
+                "3ED6B836": "0051026D",
+                "4E65B454": "0051026D",
+                "2EC3D209": null,
+                "295D5CBE": null
+              },
+              "maximumReplyDepth": 1,
+              "documentAnchorCount": 5
+            }
+          }
+        ],
+        "counts": {
+          "ins": 0,
+          "del": 0,
+          "delText": 0,
+          "moveFrom": 0,
+          "moveTo": 0,
+          "moveFromRangeStart": 0,
+          "moveFromRangeEnd": 0,
+          "moveToRangeStart": 0,
+          "moveToRangeEnd": 0,
+          "rPrChange": 0,
+          "pPrChange": 0,
+          "numPr": 0,
+          "tcPrChange": 0,
+          "tblPrChange": 0,
+          "sectPrChange": 0,
+          "sectPr": 1,
+          "cellMerge": 0,
+          "commentRangeStart": 5,
+          "commentRangeEnd": 5,
+          "rowIns": 0,
+          "rowDel": 0,
+          "numberingRevision": 0
+        },
+        "fieldCodes": [],
+        "fullText": "before \u524d\u6587First threaded anchor.Second comment covers this whole paragraph.Third comment covers the word target.after \u540e\u6587",
+        "xmlPartsParsed": 16
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\revisions2\\rev-comment-threads.pdf",
+      "pdfSha256": "25EFA86BCD078DE16DCFC2BC14BE4F6C4C1DED824E0C69DEF2189E54AD0D9DD5",
+      "pageCount": 1,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/revisions2--rev-comment-threads-page-1.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "before \u524d\u6587\nFirst threaded anchor.\nSecond comment covers this whole paragraph.\nThird comment covers the word target.\nafter \u540e\u6587",
+          "nonwhitePixelCount": 4185,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "25EFA86BCD078DE16DCFC2BC14BE4F6C4C1DED824E0C69DEF2189E54AD0D9DD5",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+        "observation": "The three body paragraphs for the threaded, whole-paragraph and one-word comment targets are visible between before/after. No comment balloons or reply text appear in this final-content PDF. Comment counts, reply hierarchy and resolved state require the separate DOCX/UI evidence.",
+        "issues": [
+          "The independent DOCX check finds two sibling replies to the root, with maximum reply depth 1; the requested second nesting level was flattened by Word."
+        ],
+        "evidence": [
+          "screenshots/task-d-pdf/revisions2--rev-comment-threads-page-1.png"
+        ]
+      }
+    },
+    {
+      "case": "fields2/fields-seq-captions",
+      "source": "C:\\word\\real-word-round2-20260907\\fields2\\fields-seq-captions.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "1A14B871D1F52177A33D9091B00A3C26C7A09319E6F1AC69B7420977DF3BE175",
+      "structure": {
+        "passed": true,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 12,
+              "uniqueEntries": 12
+            }
+          },
+          {
+            "requirement": "before/after markers",
+            "passed": true,
+            "actual": "before \u524d\u6587\u56fe 1 sample 1\u56fe 2 sample 2\u56fe 3 sample 3Cross-reference: \u56fe 2after \u540e\u6587"
+          },
+          {
+            "requirement": "three SEQ figure captions",
+            "passed": true,
+            "actual": [
+              " SEQ \u56fe \\* ARABIC ",
+              " SEQ \u56fe \\* ARABIC ",
+              " SEQ \u56fe \\* ARABIC "
+            ]
+          },
+          {
+            "requirement": "cross-reference field",
+            "passed": true,
+            "actual": [
+              " SEQ \u56fe \\* ARABIC ",
+              " SEQ \u56fe \\* ARABIC ",
+              " SEQ \u56fe \\* ARABIC ",
+              " REF _Ref239673734 \\h "
+            ]
+          }
+        ],
+        "counts": {
+          "ins": 0,
+          "del": 0,
+          "delText": 0,
+          "moveFrom": 0,
+          "moveTo": 0,
+          "moveFromRangeStart": 0,
+          "moveFromRangeEnd": 0,
+          "moveToRangeStart": 0,
+          "moveToRangeEnd": 0,
+          "rPrChange": 0,
+          "pPrChange": 0,
+          "numPr": 0,
+          "tcPrChange": 0,
+          "tblPrChange": 0,
+          "sectPrChange": 0,
+          "sectPr": 1,
+          "cellMerge": 0,
+          "commentRangeStart": 0,
+          "commentRangeEnd": 0,
+          "rowIns": 0,
+          "rowDel": 0,
+          "numberingRevision": 0
+        },
+        "fieldCodes": [
+          " SEQ \u56fe \\* ARABIC ",
+          " SEQ \u56fe \\* ARABIC ",
+          " SEQ \u56fe \\* ARABIC ",
+          " REF _Ref239673734 \\h "
+        ],
+        "fullText": "before \u524d\u6587\u56fe 1 sample 1\u56fe 2 sample 2\u56fe 3 sample 3Cross-reference: \u56fe 2after \u540e\u6587",
+        "xmlPartsParsed": 11
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\fields2\\fields-seq-captions.pdf",
+      "pdfSha256": "AAD57556DAB83F5AFF49CEE2D99625EE80C902282A91E3667DCB766B5E6C01A0",
+      "pageCount": 1,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/fields2--fields-seq-captions-page-1.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "before \u524d\u6587\n\u56fe 1 sample 1\n\u56fe 2 sample 2\n\u56fe 3 sample 3\nCross-reference: \u56fe 2\nafter \u540e\u6587",
+          "nonwhitePixelCount": 8260,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "AAD57556DAB83F5AFF49CEE2D99625EE80C902282A91E3667DCB766B5E6C01A0",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+        "observation": "Three small blue/yellow images appear vertically, each followed by a figure caption numbered 1, 2, and 3. The cross-reference below the third image displays figure 2. Before/after markers are visible and no labels overlap.",
+        "issues": [],
+        "evidence": [
+          "screenshots/task-d-pdf/fields2--fields-seq-captions-page-1.png"
+        ]
+      }
+    },
+    {
+      "case": "fields2/fields-index",
+      "source": "C:\\word\\real-word-round2-20260907\\fields2\\fields-index.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "1E98E08C1587A0D0A155F1ED1F9FC53F671BA27A2FA73AAB594912D1A4B669C4",
+      "structure": {
+        "passed": true,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 11,
+              "uniqueEntries": 11
+            }
+          },
+          {
+            "requirement": "before/after markers",
+            "passed": true,
+            "actual": "before \u524d\u6587Alpha sample.Beta sample.Gamma sample.\uff21Alpha, 1\uff22Beta, 1\uff27Gamma, 1after \u540e\u6587"
+          },
+          {
+            "requirement": "three XE and one INDEX",
+            "passed": true,
+            "actual": [
+              " XE \"Alpha\" ",
+              " XE \"Beta\" ",
+              " XE \"Gamma\" ",
+              " INDEX \\h \"M\" \\o \"S\" \\z \"2052\"  "
+            ]
+          }
+        ],
+        "counts": {
+          "ins": 0,
+          "del": 0,
+          "delText": 0,
+          "moveFrom": 0,
+          "moveTo": 0,
+          "moveFromRangeStart": 0,
+          "moveFromRangeEnd": 0,
+          "moveToRangeStart": 0,
+          "moveToRangeEnd": 0,
+          "rPrChange": 0,
+          "pPrChange": 0,
+          "numPr": 0,
+          "tcPrChange": 0,
+          "tblPrChange": 0,
+          "sectPrChange": 0,
+          "sectPr": 1,
+          "cellMerge": 0,
+          "commentRangeStart": 0,
+          "commentRangeEnd": 0,
+          "rowIns": 0,
+          "rowDel": 0,
+          "numberingRevision": 0
+        },
+        "fieldCodes": [
+          " XE \"Alpha\" ",
+          " XE \"Beta\" ",
+          " XE \"Gamma\" ",
+          " INDEX \\h \"M\" \\o \"S\" \\z \"2052\"  "
+        ],
+        "fullText": "before \u524d\u6587Alpha sample.Beta sample.Gamma sample.\uff21Alpha, 1\uff22Beta, 1\uff27Gamma, 1after \u540e\u6587",
+        "xmlPartsParsed": 11
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\fields2\\fields-index.pdf",
+      "pdfSha256": "D3B923569DA2B91A64C8D12DD5F2A552BA0BAF309E36B235EA3AEC75D9CCFB21",
+      "pageCount": 1,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/fields2--fields-index-page-1.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "before \u524d\u6587\nAlpha sample.\nBeta sample.\nGamma sample.\n\uff21\nAlpha, 1\n\uff22\nBeta, 1\n\uff27\nGamma, 1\nafter \u540e\u6587",
+          "nonwhitePixelCount": 3102,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "D3B923569DA2B91A64C8D12DD5F2A552BA0BAF309E36B235EA3AEC75D9CCFB21",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+        "observation": "Alpha, Beta, and Gamma sample lines are followed by an alphabetical index with A, B, and G headings. Each indexed term has page number 1. XE field codes are not printed. Before/after markers remain visible.",
+        "issues": [],
+        "evidence": [
+          "screenshots/task-d-pdf/fields2--fields-index-page-1.png"
+        ]
+      }
+    },
+    {
+      "case": "fields2/fields-toc-stale",
+      "source": "C:\\word\\real-word-round2-20260907\\fields2\\fields-toc-stale.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "A3B75A976E79EFBDF1E9CE868D352FE13EEE4E6BE426EC777DC1D4F9BD43C118",
+      "structure": {
+        "passed": true,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 11,
+              "uniqueEntries": 11
+            }
+          },
+          {
+            "requirement": "before/after markers",
+            "passed": true,
+            "actual": "before \u524d\u6587Original heading one1Original heading two1Original heading three1Changed heading oneFirst body text.Changed heading twoSecond body text.Original heading threeThird body text.after \u540e\u6587"
+          },
+          {
+            "requirement": "TOC present",
+            "passed": true,
+            "actual": [
+              " PAGEREF _Toc239676586 \\h ",
+              " PAGEREF _Toc239676587 \\h ",
+              " PAGEREF _Toc239676588 \\h ",
+              " TOC \\o \"1-3\" "
+            ]
+          },
+          {
+            "requirement": "two old cached titles and two changed headings",
+            "passed": true,
+            "actual": "before \u524d\u6587Original heading one1Original heading two1Original heading three1Changed heading oneFirst body text.Changed heading twoSecond body text.Original heading threeThird body text.after \u540e\u6587"
+          },
+          {
+            "requirement": "three TOC page references have paired bookmark targets",
+            "passed": true,
+            "actual": {
+              "references": [
+                "_Toc239676586",
+                "_Toc239676587",
+                "_Toc239676588"
+              ],
+              "bookmarks": {
+                "_Toc239676586": "0",
+                "_Toc239676587": "1",
+                "_Toc239676588": "2"
+              },
+              "missingOrUnpairedTargets": []
+            }
+          }
+        ],
+        "counts": {
+          "ins": 0,
+          "del": 0,
+          "delText": 0,
+          "moveFrom": 0,
+          "moveTo": 0,
+          "moveFromRangeStart": 0,
+          "moveFromRangeEnd": 0,
+          "moveToRangeStart": 0,
+          "moveToRangeEnd": 0,
+          "rPrChange": 0,
+          "pPrChange": 0,
+          "numPr": 0,
+          "tcPrChange": 0,
+          "tblPrChange": 0,
+          "sectPrChange": 0,
+          "sectPr": 1,
+          "cellMerge": 0,
+          "commentRangeStart": 0,
+          "commentRangeEnd": 0,
+          "rowIns": 0,
+          "rowDel": 0,
+          "numberingRevision": 0
+        },
+        "fieldCodes": [
+          " PAGEREF _Toc239676586 \\h ",
+          " PAGEREF _Toc239676587 \\h ",
+          " PAGEREF _Toc239676588 \\h ",
+          " TOC \\o \"1-3\" "
+        ],
+        "fullText": "before \u524d\u6587Original heading one1Original heading two1Original heading three1Changed heading oneFirst body text.Changed heading twoSecond body text.Original heading threeThird body text.after \u540e\u6587",
+        "xmlPartsParsed": 11
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\fields2\\fields-toc-stale.pdf",
+      "pdfSha256": "14091FB948F7CD99B645F48A66536CAB21711B5AEEA344A8063A3D4BE9612B13",
+      "pageCount": 1,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/fields2--fields-toc-stale-page-1.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "before \u524d\u6587\nOriginal heading one .........................................................................................................................................1\nOriginal heading two ................................................................................................................................1\nOriginal heading three ....................................................................................................................1\nChanged heading one\nFirst body text.\nChanged heading two\nSecond body text.\nOriginal heading three\nThird body text.\nafter \u540e\u6587",
+          "nonwhitePixelCount": 12279,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "14091FB948F7CD99B645F48A66536CAB21711B5AEEA344A8063A3D4BE9612B13",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x, compared with saved DOCX cached field text.",
+        "observation": "The TOC retains Original heading one/two/three with page number 1 for all three entries, while the body visibly uses Changed heading one/two and Original heading three. The three body heading levels have distinct sizes and formatting. No undefined-bookmark or other field error is visible. Before/after markers and all body text are readable without overlap. The independent DOCX check confirms all three PAGEREF targets retain paired bookmarks.",
+        "issues": [],
+        "evidence": [
+          "screenshots/task-d-pdf/fields2--fields-toc-stale-page-1.png"
+        ]
+      }
+    },
+    {
+      "case": "fields2/fields-citations",
+      "source": "C:\\word\\real-word-round2-20260907\\fields2\\fields-citations.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "1FBAD7491E92A6D5C93E259DA2FA6BB970037823D4215B3DFCE1FF254264E168",
+      "structure": {
+        "passed": true,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 14,
+              "uniqueEntries": 14
+            }
+          },
+          {
+            "requirement": "before/after markers",
+            "passed": true,
+            "actual": "before \u524d\u6587Book citation: (BookAuthor, 2026)Journal citation: (JournalAuthor, 2025)BookAuthor, C. (2026). Corpus Book. Test City: Corpus Press.JournalAuthor, C. (2025). Corpus Journal Article. Corpus Journal, 7(2), 10-18.after \u540e\u6587"
+          },
+          {
+            "requirement": "two citations and bibliography",
+            "passed": true,
+            "actual": [
+              " CITATION Round2Book2026 ",
+              " CITATION Round2Journal2025 ",
+              " BIBLIOGRAPHY "
+            ]
+          },
+          {
+            "requirement": "embedded book and journal sources",
+            "passed": true,
+            "actual": {
+              "parts": [
+                "customXml/item1.xml"
+              ],
+              "types": [
+                "Book",
+                "JournalArticle"
+              ]
+            }
+          }
+        ],
+        "counts": {
+          "ins": 0,
+          "del": 0,
+          "delText": 0,
+          "moveFrom": 0,
+          "moveTo": 0,
+          "moveFromRangeStart": 0,
+          "moveFromRangeEnd": 0,
+          "moveToRangeStart": 0,
+          "moveToRangeEnd": 0,
+          "rPrChange": 0,
+          "pPrChange": 0,
+          "numPr": 0,
+          "tcPrChange": 0,
+          "tblPrChange": 0,
+          "sectPrChange": 0,
+          "sectPr": 1,
+          "cellMerge": 0,
+          "commentRangeStart": 0,
+          "commentRangeEnd": 0,
+          "rowIns": 0,
+          "rowDel": 0,
+          "numberingRevision": 0
+        },
+        "fieldCodes": [
+          " CITATION Round2Book2026 ",
+          " CITATION Round2Journal2025 ",
+          " BIBLIOGRAPHY "
+        ],
+        "fullText": "before \u524d\u6587Book citation: (BookAuthor, 2026)Journal citation: (JournalAuthor, 2025)BookAuthor, C. (2026). Corpus Book. Test City: Corpus Press.JournalAuthor, C. (2025). Corpus Journal Article. Corpus Journal, 7(2), 10-18.after \u540e\u6587",
+        "xmlPartsParsed": 14
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\fields2\\fields-citations.pdf",
+      "pdfSha256": "782E2EFB42E34CFF352435D5723372913078C8EFFBBD49A5A7A88E14553355BD",
+      "pageCount": 1,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/fields2--fields-citations-page-1.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "before \u524d\u6587\nBook citation: (BookAuthor, 2026)\nJournal citation: (JournalAuthor, 2025)\nBookAuthor, C. (2026). Corpus Book. Test City: Corpus Press.\nJournalAuthor, C. (2025). Corpus Journal Article. Corpus Journal, 7(2), 10-18.\nafter \u540e\u6587",
+          "nonwhitePixelCount": 6975,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "782E2EFB42E34CFF352435D5723372913078C8EFFBBD49A5A7A88E14553355BD",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+        "observation": "Book citation displays (BookAuthor, 2026); journal citation displays (JournalAuthor, 2025). Two bibliography entries follow, containing Corpus Book and Corpus Journal Article, with book/journal titles visibly italicized. Before/after markers remain visible. No field error text appears.",
+        "issues": [],
+        "evidence": [
+          "screenshots/task-d-pdf/fields2--fields-citations-page-1.png"
+        ]
+      }
+    },
+    {
+      "case": "fields2/fields-page-in-footer",
+      "source": "C:\\word\\real-word-round2-20260907\\fields2\\fields-page-in-footer.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "FE49A50778512B80D2B033D39532794478DADFC9F5F631EA342B80FDBD9571F8",
+      "structure": {
+        "passed": true,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 19,
+              "uniqueEntries": 19
+            }
+          },
+          {
+            "requirement": "before/after markers",
+            "passed": true,
+            "actual": "before \u524d\u6587Page one body.Page two body.Page three body.after \u540e\u6587"
+          },
+          {
+            "requirement": "PAGE and NUMPAGES in footer",
+            "passed": true,
+            "actual": [
+              " PAGE  \\* MERGEFORMAT ",
+              " NUMPAGES  \\* MERGEFORMAT "
+            ]
+          }
+        ],
+        "counts": {
+          "ins": 0,
+          "del": 0,
+          "delText": 0,
+          "moveFrom": 0,
+          "moveTo": 0,
+          "moveFromRangeStart": 0,
+          "moveFromRangeEnd": 0,
+          "moveToRangeStart": 0,
+          "moveToRangeEnd": 0,
+          "rPrChange": 0,
+          "pPrChange": 0,
+          "numPr": 0,
+          "tcPrChange": 0,
+          "tblPrChange": 0,
+          "sectPrChange": 0,
+          "sectPr": 1,
+          "cellMerge": 0,
+          "commentRangeStart": 0,
+          "commentRangeEnd": 0,
+          "rowIns": 0,
+          "rowDel": 0,
+          "numberingRevision": 0
+        },
+        "fieldCodes": [],
+        "fullText": "before \u524d\u6587Page one body.Page two body.Page three body.after \u540e\u6587",
+        "xmlPartsParsed": 19
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\fields2\\fields-page-in-footer.pdf",
+      "pdfSha256": "14BA439612BBBE5EF2A42D059E3268CD069BF00D40F8B85A9E8D0ABEC540F80C",
+      "pageCount": 3,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/fields2--fields-page-in-footer-page-1.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "before \u524d\u6587\nPage one body.\n\u7b2c 1 \u9875 / \u5171 3 \u9875",
+          "nonwhitePixelCount": 1852,
+          "totalPixels": 784485
+        },
+        {
+          "page": 2,
+          "png": "screenshots/task-d-pdf/fields2--fields-page-in-footer-page-2.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "Page two body.\n\u7b2c 2 \u9875 / \u5171 3 \u9875",
+          "nonwhitePixelCount": 1421,
+          "totalPixels": 784485
+        },
+        {
+          "page": 3,
+          "png": "screenshots/task-d-pdf/fields2--fields-page-in-footer-page-3.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "Page three body.\nafter \u540e\u6587\n\u7b2c 3 \u9875 / \u5171 3 \u9875",
+          "nonwhitePixelCount": 1816,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "14BA439612BBBE5EF2A42D059E3268CD069BF00D40F8B85A9E8D0ABEC540F80C",
+        "pageNumbers": [
+          1,
+          2,
+          3
+        ],
+        "method": "Independent visual inspection of all three actual Word-exported PDF pages rendered with pypdfium2 at 1.25x.",
+        "observation": "Three portrait pages display Page one body, Page two body, and Page three body respectively. The left-aligned footer is page 1/3, 2/3, and 3/3 in the requested Chinese wording. Before appears on page 1 and after on page 3. Footer text is visible without clipping; a horizontal header rule appears on all three pages.",
+        "issues": [],
+        "evidence": [
+          "screenshots/task-d-pdf/fields2--fields-page-in-footer-page-1.png",
+          "screenshots/task-d-pdf/fields2--fields-page-in-footer-page-2.png",
+          "screenshots/task-d-pdf/fields2--fields-page-in-footer-page-3.png"
+        ]
+      }
+    },
+    {
+      "case": "sections2/sections-breaks-zoo",
+      "source": "C:\\word\\real-word-round2-20260907\\sections2\\sections-breaks-zoo.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "021BF8D47345E0556DB42A1D0C16BFC447CE1743C14292DB3C3D86932491F65B",
+      "structure": {
+        "passed": true,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 20,
+              "uniqueEntries": 20
+            }
+          },
+          {
+            "requirement": "before/after markers",
+            "passed": true,
+            "actual": "before \u524d\u6587Section one.Section 2.Section 3.Section 4.Section 5.after \u540e\u6587"
+          },
+          {
+            "requirement": "five sections",
+            "passed": true,
+            "actual": 5
+          },
+          {
+            "requirement": "next, continuous, even, odd breaks",
+            "passed": true,
+            "actual": [
+              "nextPage",
+              "nextPage",
+              "continuous",
+              "evenPage",
+              "oddPage"
+            ]
+          },
+          {
+            "requirement": "third section different first page and first header",
+            "passed": true,
+            "actual": "<w:sectPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" xmlns:wpc=\"http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas\" xmlns:cx=\"http://schemas.microsoft.com/office/drawing/2014/chartex\" xmlns:cx1=\"http://schemas.microsoft.com/office/drawing/2015/9/8/chartex\" xmlns:cx2=\"http://schemas.microsoft.com/office/drawing/2015/10/21/chartex\" xmlns:cx3=\"http://schemas.microsoft.com/office/drawing/2016/5/9/chartex\" xmlns:cx4=\"http://schemas.microsoft.com/office/drawing/2016/5/10/chartex\" xmlns:cx5=\"http://schemas.microsoft.com/office/drawing/2016/5/11/chartex\" xmlns:cx6=\"http://schemas.microsoft.com/office/drawing/2016/5/12/chartex\" xmlns:cx7=\"http://schemas.microsoft.com/office/drawing/2016/5/13/chartex\" xmlns:cx8=\"http://schemas.microsoft.com/office/drawing/2016/5/14/chartex\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" xmlns:aink=\"http://schemas.microsoft.com/office/drawing/2016/ink\" xmlns:am3d=\"http://schemas.microsoft.com/office/drawing/2017/model3d\" xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\" xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:wp14=\"http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" xmlns:w10=\"urn:schemas-microsoft-com:office:word\" xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\" xmlns:w15=\"http://schemas.microsoft.com/office/word/2012/wordml\" xmlns:w16cex=\"http://schemas.microsoft.com/office/word/2018/wordml/cex\" xmlns:w16cid=\"http://schemas.microsoft.com/office/word/2016/wordml/cid\" xmlns:w16=\"http://schemas.microsoft.com/office/word/2018/wordml\" xmlns:w16sdtdh=\"http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash\" xmlns:w16se=\"http://schemas.microsoft.com/office/word/2015/wordml/symex\" xmlns:wpg=\"http://schemas.microsoft.com/office/word/2010/wordprocessingGroup\" xmlns:wpi=\"http://schemas.microsoft.com/office/word/2010/wordprocessingInk\" xmlns:wne=\"http://schemas.microsoft.com/office/word/2006/wordml\" xmlns:wps=\"http://schemas.microsoft.com/office/word/2010/wordprocessingShape\" w:rsidR=\"003C2967\" w:rsidSect=\"003C2967\"><w:headerReference w:type=\"first\" r:id=\"rId12\"/><w:type w:val=\"continuous\"/><w:pgSz w:w=\"11906\" w:h=\"16838\"/><w:pgMar w:top=\"1440\" w:right=\"1800\" w:bottom=\"1440\" w:left=\"1800\" w:header=\"851\" w:footer=\"992\" w:gutter=\"0\"/><w:cols w:space=\"425\"/><w:titlePg/><w:docGrid w:type=\"lines\" w:linePitch=\"312\"/></w:sectPr>"
+          }
+        ],
+        "counts": {
+          "ins": 0,
+          "del": 0,
+          "delText": 0,
+          "moveFrom": 0,
+          "moveTo": 0,
+          "moveFromRangeStart": 0,
+          "moveFromRangeEnd": 0,
+          "moveToRangeStart": 0,
+          "moveToRangeEnd": 0,
+          "rPrChange": 0,
+          "pPrChange": 0,
+          "numPr": 0,
+          "tcPrChange": 0,
+          "tblPrChange": 0,
+          "sectPrChange": 0,
+          "sectPr": 5,
+          "cellMerge": 0,
+          "commentRangeStart": 0,
+          "commentRangeEnd": 0,
+          "rowIns": 0,
+          "rowDel": 0,
+          "numberingRevision": 0
+        },
+        "fieldCodes": [],
+        "fullText": "before \u524d\u6587Section one.Section 2.Section 3.Section 4.Section 5.after \u540e\u6587",
+        "xmlPartsParsed": 20
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\sections2\\sections-breaks-zoo.pdf",
+      "pdfSha256": "7DAB0AB5EB09CC0BA68E882FBDD62EF368721BA55E19F37922A3238B67E06287",
+      "pageCount": 5,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/sections2--sections-breaks-zoo-page-1.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "before \u524d\u6587\nSection one.",
+          "nonwhitePixelCount": 1319,
+          "totalPixels": 784485
+        },
+        {
+          "page": 2,
+          "png": "screenshots/task-d-pdf/sections2--sections-breaks-zoo-page-2.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "Section 2.\nSection 3.",
+          "nonwhitePixelCount": 1121,
+          "totalPixels": 784485
+        },
+        {
+          "page": 3,
+          "png": "screenshots/task-d-pdf/sections2--sections-breaks-zoo-page-3.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "",
+          "nonwhitePixelCount": 0,
+          "totalPixels": 784485
+        },
+        {
+          "page": 4,
+          "png": "screenshots/task-d-pdf/sections2--sections-breaks-zoo-page-4.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "Section 4.",
+          "nonwhitePixelCount": 826,
+          "totalPixels": 784485
+        },
+        {
+          "page": 5,
+          "png": "screenshots/task-d-pdf/sections2--sections-breaks-zoo-page-5.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "Section 5.\nafter \u540e\u6587",
+          "nonwhitePixelCount": 1170,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "7DAB0AB5EB09CC0BA68E882FBDD62EF368721BA55E19F37922A3238B67E06287",
+        "pageNumbers": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "method": "Independent visual inspection of all five actual Word-exported PDF pages rendered with pypdfium2 at 1.25x.",
+        "observation": "Page 1 has before and Section one. Page 2 contains both Section 2 and Section 3. Page 3 is completely blank, consistent with the following section starting on an even page. Page 4 has Section 4; page 5 has Section 5 and after. The third section's custom first-page header text is not visible on any PDF page; content pages only have an empty header with a horizontal rule.",
+        "issues": [
+          "The DOCX does contain third-section titlePg and a first-page header reference, but that custom text is not rendered on these five pages; section 3 begins continuously on the same page as section 2."
+        ],
+        "evidence": [
+          "screenshots/task-d-pdf/sections2--sections-breaks-zoo-page-1.png",
+          "screenshots/task-d-pdf/sections2--sections-breaks-zoo-page-2.png",
+          "screenshots/task-d-pdf/sections2--sections-breaks-zoo-page-3.png",
+          "screenshots/task-d-pdf/sections2--sections-breaks-zoo-page-4.png",
+          "screenshots/task-d-pdf/sections2--sections-breaks-zoo-page-5.png"
+        ]
+      }
+    },
+    {
+      "case": "image2/image-z-order",
+      "source": "C:\\word\\real-word-round2-20260907\\image2\\image-z-order.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "ADCE5AB0D99F9835C159D86C934084E3FD13FBF5B6B47547838ABC7569C670EA",
+      "structure": {
+        "passed": true,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 12,
+              "uniqueEntries": 12
+            }
+          },
+          {
+            "requirement": "before/after markers",
+            "passed": true,
+            "actual": "before \u524d\u6587Floating images anchor.after \u540e\u6587"
+          },
+          {
+            "requirement": "three anchors",
+            "passed": true,
+            "actual": [
+              {
+                "name": "Round2 Picture 3",
+                "relativeHeight": 251660288
+              },
+              {
+                "name": "Round2 Picture 2",
+                "relativeHeight": 251659264
+              },
+              {
+                "name": "Round2 Picture 1",
+                "relativeHeight": 251659775
+              }
+            ]
+          },
+          {
+            "requirement": "picture 2 behind 1 behind 3",
+            "passed": true,
+            "actual": [
+              {
+                "name": "Round2 Picture 3",
+                "relativeHeight": 251660288
+              },
+              {
+                "name": "Round2 Picture 2",
+                "relativeHeight": 251659264
+              },
+              {
+                "name": "Round2 Picture 1",
+                "relativeHeight": 251659775
+              }
+            ]
+          }
+        ],
+        "counts": {
+          "ins": 0,
+          "del": 0,
+          "delText": 0,
+          "moveFrom": 0,
+          "moveTo": 0,
+          "moveFromRangeStart": 0,
+          "moveFromRangeEnd": 0,
+          "moveToRangeStart": 0,
+          "moveToRangeEnd": 0,
+          "rPrChange": 0,
+          "pPrChange": 0,
+          "numPr": 0,
+          "tcPrChange": 0,
+          "tblPrChange": 0,
+          "sectPrChange": 0,
+          "sectPr": 1,
+          "cellMerge": 0,
+          "commentRangeStart": 0,
+          "commentRangeEnd": 0,
+          "rowIns": 0,
+          "rowDel": 0,
+          "numberingRevision": 0
+        },
+        "fieldCodes": [],
+        "fullText": "before \u524d\u6587Floating images anchor.after \u540e\u6587",
+        "xmlPartsParsed": 11
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\image2\\image-z-order.pdf",
+      "pdfSha256": "65B5F3AB797373D7EB7335E706C8CAE9DA39385FEED24127B5D742B019D03314",
+      "pageCount": 1,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/image2--image-z-order-page-1.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "before \u524d\u6587\nFloating images anchor.\nafter \u540e\u6587",
+          "nonwhitePixelCount": 17139,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "65B5F3AB797373D7EB7335E706C8CAE9DA39385FEED24127B5D742B019D03314",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x, paired with native anchor-order checks.",
+        "observation": "Three copies of the same blue/yellow image overlap in a staircase descending to the right. The bottom-right image visibly covers the overlap in front. Before, Floating images anchor, and after are unobscured. The named picture order 2 behind 1 behind 3 is established by the independent DOCX relativeHeight check.",
+        "issues": [],
+        "evidence": [
+          "screenshots/task-d-pdf/image2--image-z-order-page-1.png"
+        ]
+      }
+    },
+    {
+      "case": "shapes2/textbox-linked",
+      "source": "C:\\word\\real-word-round2-20260907\\shapes2\\textbox-linked.docx",
+      "exists": true,
+      "visualReviewed": true,
+      "sha256": "805049AF54FDC7F8A4CDC59F94C1CE87B7149B80683520DF9372FE8C8C11C7C5",
+      "structure": {
+        "passed": true,
+        "checks": [
+          {
+            "requirement": "ZIP CRC and unique member names",
+            "passed": true,
+            "actual": {
+              "crcError": null,
+              "entries": 11,
+              "uniqueEntries": 11
+            }
+          },
+          {
+            "requirement": "before/after markers",
+            "passed": true,
+            "actual": "before \u524d\u6587Line 01: linked story text.Line 02: linked story text.Line 03: linked story text.Line 04: linked story text.Line 05: linked story text.Line 06: linked story text.Line 07: linked story text.Line 08: linked story text.Line 09: linked story text.Line 10: linked story text.Line 01: linked story text.Line 02: linked story text.Line 03: linked story text.Line 04: linked story text.Line 05: linked story text.Line 06: linked story text.Line 07: linked story text.Line 08: linked story text.Line 09: linked story text.Line 10: linked story text.Linked textboxes anchor.after \u540e\u6587"
+          },
+          {
+            "requirement": "native first and linked textboxes",
+            "passed": true,
+            "actual": [
+              "<wps:txbx xmlns:wps=\"http://schemas.microsoft.com/office/word/2010/wordprocessingShape\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:wpc=\"http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas\" xmlns:cx=\"http://schemas.microsoft.com/office/drawing/2014/chartex\" xmlns:cx1=\"http://schemas.microsoft.com/office/drawing/2015/9/8/chartex\" xmlns:cx2=\"http://schemas.microsoft.com/office/drawing/2015/10/21/chartex\" xmlns:cx3=\"http://schemas.microsoft.com/office/drawing/2016/5/9/chartex\" xmlns:cx4=\"http://schemas.microsoft.com/office/drawing/2016/5/10/chartex\" xmlns:cx5=\"http://schemas.microsoft.com/office/drawing/2016/5/11/chartex\" xmlns:cx6=\"http://schemas.microsoft.com/office/drawing/2016/5/12/chartex\" xmlns:cx7=\"http://schemas.microsoft.com/office/drawing/2016/5/13/chartex\" xmlns:cx8=\"http://schemas.microsoft.com/office/drawing/2016/5/14/chartex\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" xmlns:aink=\"http://schemas.microsoft.com/office/drawing/2016/ink\" xmlns:am3d=\"http://schemas.microsoft.com/office/drawing/2017/model3d\" xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\" xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:wp14=\"http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" xmlns:w10=\"urn:schemas-microsoft-com:office:word\" xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\" xmlns:w15=\"http://schemas.microsoft.com/office/word/2012/wordml\" xmlns:w16cex=\"http://schemas.microsoft.com/office/word/2018/wordml/cex\" xmlns:w16cid=\"http://schemas.microsoft.com/office/word/2016/wordml/cid\" xmlns:w16=\"http://schemas.microsoft.com/office/word/2018/wordml\" xmlns:w16sdtdh=\"http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash\" xmlns:w16se=\"http://schemas.microsoft.com/office/word/2015/wordml/symex\" xmlns:wpg=\"http://schemas.microsoft.com/office/word/2010/wordprocessingGroup\" xmlns:wpi=\"http://schemas.microsoft.com/office/word/2010/wordprocessingInk\" xmlns:wne=\"http://schemas.microsoft.com/office/word/2006/wordml\" id=\"1\"><w:txbxContent><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\"/></w:rPr><w:t>Line 01: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\"/></w:rPr><w:t>Line 02: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\"/></w:rPr><w:t>Line 03: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\"/></w:rPr><w:t>Line 04: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\"/></w:rPr><w:t>Line 05: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\"/></w:rPr><w:t>Line 06: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\"/></w:rPr><w:t>Line 07: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\"/></w:rPr><w:t>Line 08: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\"/></w:rPr><w:t>Line 09: linked story text.</w:t></w:r></w:p><w:p w:rsidR=\"005A4869\" w:rsidRPr=\"005A4869\" w:rsidRDefault=\"005A4869\" w:rsidP=\"005A4869\"><w:pPr><w:rPr><w:sz w:val=\"20\"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val=\"20\"/></w:rPr><w:t>Line 10: linked story text.</w:t></w:r></w:p></w:txbxContent></wps:txbx>",
+              "<wps:linkedTxbx xmlns:wps=\"http://schemas.microsoft.com/office/word/2010/wordprocessingShape\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:wpc=\"http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas\" xmlns:cx=\"http://schemas.microsoft.com/office/drawing/2014/chartex\" xmlns:cx1=\"http://schemas.microsoft.com/office/drawing/2015/9/8/chartex\" xmlns:cx2=\"http://schemas.microsoft.com/office/drawing/2015/10/21/chartex\" xmlns:cx3=\"http://schemas.microsoft.com/office/drawing/2016/5/9/chartex\" xmlns:cx4=\"http://schemas.microsoft.com/office/drawing/2016/5/10/chartex\" xmlns:cx5=\"http://schemas.microsoft.com/office/drawing/2016/5/11/chartex\" xmlns:cx6=\"http://schemas.microsoft.com/office/drawing/2016/5/12/chartex\" xmlns:cx7=\"http://schemas.microsoft.com/office/drawing/2016/5/13/chartex\" xmlns:cx8=\"http://schemas.microsoft.com/office/drawing/2016/5/14/chartex\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" xmlns:aink=\"http://schemas.microsoft.com/office/drawing/2016/ink\" xmlns:am3d=\"http://schemas.microsoft.com/office/drawing/2017/model3d\" xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\" xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:wp14=\"http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" xmlns:w10=\"urn:schemas-microsoft-com:office:word\" xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\" xmlns:w15=\"http://schemas.microsoft.com/office/word/2012/wordml\" xmlns:w16cex=\"http://schemas.microsoft.com/office/word/2018/wordml/cex\" xmlns:w16cid=\"http://schemas.microsoft.com/office/word/2016/wordml/cid\" xmlns:w16=\"http://schemas.microsoft.com/office/word/2018/wordml\" xmlns:w16sdtdh=\"http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash\" xmlns:w16se=\"http://schemas.microsoft.com/office/word/2015/wordml/symex\" xmlns:wpg=\"http://schemas.microsoft.com/office/word/2010/wordprocessingGroup\" xmlns:wpi=\"http://schemas.microsoft.com/office/word/2010/wordprocessingInk\" xmlns:wne=\"http://schemas.microsoft.com/office/word/2006/wordml\" id=\"1\" seq=\"1\"/>"
+            ]
+          },
+          {
+            "requirement": "link ID matches and continuation sequence is 1",
+            "passed": true,
+            "actual": [
+              {
+                "id": "1"
+              },
+              {
+                "id": "1",
+                "seq": "1"
+              }
+            ]
+          }
+        ],
+        "counts": {
+          "ins": 0,
+          "del": 0,
+          "delText": 0,
+          "moveFrom": 0,
+          "moveTo": 0,
+          "moveFromRangeStart": 0,
+          "moveFromRangeEnd": 0,
+          "moveToRangeStart": 0,
+          "moveToRangeEnd": 0,
+          "rPrChange": 0,
+          "pPrChange": 0,
+          "numPr": 0,
+          "tcPrChange": 0,
+          "tblPrChange": 0,
+          "sectPrChange": 0,
+          "sectPr": 1,
+          "cellMerge": 0,
+          "commentRangeStart": 0,
+          "commentRangeEnd": 0,
+          "rowIns": 0,
+          "rowDel": 0,
+          "numberingRevision": 0
+        },
+        "fieldCodes": [],
+        "fullText": "before \u524d\u6587Line 01: linked story text.Line 02: linked story text.Line 03: linked story text.Line 04: linked story text.Line 05: linked story text.Line 06: linked story text.Line 07: linked story text.Line 08: linked story text.Line 09: linked story text.Line 10: linked story text.Line 01: linked story text.Line 02: linked story text.Line 03: linked story text.Line 04: linked story text.Line 05: linked story text.Line 06: linked story text.Line 07: linked story text.Line 08: linked story text.Line 09: linked story text.Line 10: linked story text.Linked textboxes anchor.after \u540e\u6587",
+        "xmlPartsParsed": 11
+      },
+      "pdf": "C:\\word\\real-word-round2-20260907\\_previews\\shapes2\\textbox-linked.pdf",
+      "pdfSha256": "BC69EED0DBA78706333DE3EC982ABF2C693F6E4DFC5CCD3278110E614EE3E8E1",
+      "pageCount": 1,
+      "pages": [
+        {
+          "page": 1,
+          "png": "screenshots/task-d-pdf/shapes2--textbox-linked-page-1.png",
+          "sizePt": [
+            595.32,
+            841.92
+          ],
+          "text": "before \u524d\u6587\nLinked textboxes anchor.\nLine 01: linked story text. Line 06: linked story text.\nLine 02: linked story text. Line 07: linked story text.\nLine 03: linked story text. Line 08: linked story text.\nLine 04: linked story text. Line 09: linked story text.\nLine 05: linked story text. Line 10: linked story text.\nafter \u540e\u6587",
+          "nonwhitePixelCount": 10815,
+          "totalPixels": 784485
+        }
+      ],
+      "visualReview": {
+        "pdfSha256": "BC69EED0DBA78706333DE3EC982ABF2C693F6E4DFC5CCD3278110E614EE3E8E1",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x, paired with native linked-textbox structure checks.",
+        "observation": "The left textbox contains Line 01 through Line 05; the right textbox contains Line 06 through Line 10, establishing visible story overflow. Both frames are aligned side by side below the before marker and Linked textboxes anchor body line. The after marker is below both frames. All ten text lines, frame boundaries and body markers are fully readable with no overlap or clipping. Native linked-textbox IDs and the continuation sequence are checked separately in DOCX structure.",
+        "issues": [],
+        "evidence": [
+          "screenshots/task-d-pdf/shapes2--textbox-linked-page-1.png"
+        ]
+      }
+    }
+  ]
+}

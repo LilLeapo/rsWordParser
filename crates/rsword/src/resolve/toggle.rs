@@ -54,19 +54,20 @@ macro_rules! toggle_fields {
 }
 
 toggle_fields! {
-    // 实测按层级异或
-    Bold => bold : WordObserved,
-    Italic => italic : WordObserved,
+    // 桌面 Word 实测（2026-09-07，Office LTSC 2021）：样式层级之间异或，docDefaults 只是无人声明时的底值
+    Bold => bold : WordDesktop,
+    Italic => italic : WordDesktop,
     // 复杂脚本孪生：没单独实测，跟着各自的本体走（`RES-06` 只决定读哪一个，不决定怎么合成）
-    BoldCs => bold_cs : WordObserved,
-    ItalicCs => italic_cs : WordObserved,
-    // 实测**不**异或：两层都声明时效果照样是开的
-    Caps => caps : MostSpecificWins,
-    SmallCaps => small_caps : MostSpecificWins,
-    Strike => strike : MostSpecificWins,
+    BoldCs => bold_cs : WordDesktop,
+    ItalicCs => italic_cs : WordDesktop,
+    // 桌面版同样异或（网页版 2026-09-06 读到的是"两层都声明照样开"，与桌面版不同——桌面版为准）
+    Caps => caps : WordDesktop,
+    SmallCaps => small_caps : WordDesktop,
+    Strike => strike : WordDesktop,
+    // 桌面版实测：两层都声明**仍然**有双删除线，不异或
     Dstrike => dstrike : MostSpecificWins,
-    // 观察不到（Word 网页版把隐藏文字照常显示）；按 strike 一族处理，也是 TS 的行为
-    Vanish => vanish : MostSpecificWins,
+    // 桌面版实测：两层都声明的句子可见、一层的被隐藏 → 异或（网页版观察不到）
+    Vanish => vanish : WordDesktop,
 }
 
 /// 可选的 toggle 合成规则。
@@ -95,7 +96,25 @@ pub enum ToggleRule {
     /// 与 ECMA-376 §17.7.3 的差异：规范说奇偶跨越"样式层级中的每一个样式"，实测里
     /// `basedOn` 链上两层都 `b=true` 仍然加粗，说明链内不计次数。这属于
     /// [MS-OI29500] 记录的 Word 偏差一类。
+    ///
+    /// **只在 Word 网页版观察到**（2026-09-06）。桌面版（2026-09-07）在 docDefaults 的处理上与它不同，
+    /// 见 [`ToggleRule::WordDesktop`]；保留备查，不再是任何字段的激活规则。
     WordObserved,
+    /// **桌面 Word 实测规则**（2026-09-07，Office LTSC 2021 16.0.14334，`fixtures/resolve/toggle/*` 八份，
+    /// 读数与截图在 `corpus/real/_round2/TOGGLE.md`）：
+    ///
+    /// ```text
+    /// 有效值 = 有样式层级声明时：段落样式层 ⊕ 表格样式层 ⊕ 字符样式层（只算声明了的层级）
+    ///          一层都没声明时：docDefaults
+    /// ```
+    ///
+    /// 与网页版的差别只在 docDefaults：桌面版里它**不参与异或**，只是没人声明时的底值——
+    /// 「只有 docDefaults 写 b」加粗，「docDefaults b + 段落样式 b」加粗，「docDefaults b + 段落样式 b=0」不加粗。
+    /// 层级内部（`basedOn` 链）仍是"子覆盖父"，链上两层都 `b` 照样加粗。这与 [MS-OI29500] 对 docDefaults
+    /// 的记载一致（docDefaults 的 toggle 不参与奇偶计数）。
+    ///
+    /// fixture 没有 `settings.xml`，Word 以兼容模式 12 打开；兼容模式 15 下是否相同还没测（`docs/06`）。
+    WordDesktop,
 }
 
 /// 规则**按字段选**，见 [`active_rule`] 与 `toggle_fields!` 那张表。
@@ -165,6 +184,16 @@ pub fn resolve_toggle(rule: ToggleRule, l: &ToggleLayers<'_>) -> Option<bool> {
             }
             let on = |v: Option<bool>| v.unwrap_or(false);
             Some(on(l.doc_default) ^ on(para) ^ on(l.table) ^ on(character))
+        }
+        ToggleRule::WordDesktop => {
+            let leaf = |chain: &[Option<bool>]| chain.iter().copied().flatten().next();
+            let levels = [leaf(l.para_chain), l.table, leaf(l.char_chain)];
+            let declared: Vec<bool> = levels.iter().copied().flatten().collect();
+            if declared.is_empty() {
+                // 一层都没声明：docDefaults 就是普通的底值，不异或自己
+                return l.doc_default;
+            }
+            Some(declared.into_iter().fold(false, |acc, v| acc ^ v))
         }
     }
 }
@@ -256,7 +285,34 @@ mod tests {
         assert_eq!(resolve_toggle(rule, &layers(None, &[], &[], None)), None);
     }
 
-    /// 2026-09-06 的补测：同一份规范里的 toggle 在 Word 里并不同待遇。
+    /// 2026-09-07 桌面 Word（Office LTSC 2021）的二十五个测点（`corpus/real/_round2/TOGGLE.md`）。
+    /// 这一组就是 `WordDesktop` 规则的定义式：改规则先过这一关。
+    #[test]
+    fn res_04_word_desktop_matches_the_fixtures() {
+        let rule = ToggleRule::WordDesktop;
+        let (t, f) = (Some(true), Some(false));
+        // 段落样式 b + 字符样式 b → 不加粗；只有段落样式 → 加粗
+        assert_eq!(resolve_toggle(rule, &layers(None, &[t], &[t], None)), Some(false));
+        assert_eq!(resolve_toggle(rule, &layers(None, &[], &[t], None)), Some(true));
+        // docDefaults b + 段落样式 b → **加粗**；只有 docDefaults b → **加粗**（与网页版读数相反）
+        assert_eq!(resolve_toggle(rule, &layers(None, &[], &[t], t)), Some(true));
+        assert_eq!(resolve_toggle(rule, &layers(None, &[], &[], t)), Some(true));
+        // docDefaults b + 段落样式 b=0 → 不加粗
+        assert_eq!(resolve_toggle(rule, &layers(None, &[], &[f], t)), Some(false));
+        // basedOn 链上两层都 b → 加粗（链内不计次数）
+        assert_eq!(resolve_toggle(rule, &layers(None, &[], &[t, t], None)), Some(true));
+        // 表格样式 firstRow b + 段落样式 b → 不加粗；非首行 → 加粗
+        let para_only = [t];
+        let mut tbl = layers(None, &[], &para_only, None);
+        tbl.table = t;
+        assert_eq!(resolve_toggle(rule, &tbl), Some(false));
+        // 直接 w:b w:val="0" 压住样式的 b
+        assert_eq!(resolve_toggle(rule, &layers(Some(false), &[], &[t], None)), Some(false));
+        // 谁都没声明 → 未声明
+        assert_eq!(resolve_toggle(rule, &layers(None, &[], &[], None)), None);
+    }
+
+    /// 桌面版实测：同一份规范里的 toggle 在 Word 里并不同待遇——只有 `dstrike` 不异或。
     #[test]
     fn res_04_rule_is_chosen_per_field() {
         for f in [
@@ -264,24 +320,20 @@ mod tests {
             RunPropsField::Italic,
             RunPropsField::BoldCs,
             RunPropsField::ItalicCs,
-        ] {
-            assert_eq!(active_rule(f), ToggleRule::WordObserved, "{f:?}");
-        }
-        for f in [
             RunPropsField::Caps,
             RunPropsField::SmallCaps,
             RunPropsField::Strike,
-            RunPropsField::Dstrike,
             RunPropsField::Vanish,
         ] {
-            assert_eq!(active_rule(f), ToggleRule::MostSpecificWins, "{f:?}");
+            assert_eq!(active_rule(f), ToggleRule::WordDesktop, "{f:?}");
         }
-        // 两层都声明 true：`b` 抵消掉，`strike` 照样是开的
+        assert_eq!(active_rule(RunPropsField::Dstrike), ToggleRule::MostSpecificWins);
+        // 两层都声明 true：`strike` 抵消掉，`dstrike` 照样是开的
         let t = Some(true);
         let (ch, pa) = ([t], [t]);
         let l = layers(None, &ch, &pa, None);
-        assert_eq!(resolve_toggle(active_rule(RunPropsField::Bold), &l), Some(false));
-        assert_eq!(resolve_toggle(active_rule(RunPropsField::Strike), &l), Some(true));
+        assert_eq!(resolve_toggle(active_rule(RunPropsField::Strike), &l), Some(false));
+        assert_eq!(resolve_toggle(active_rule(RunPropsField::Dstrike), &l), Some(true));
     }
 
     #[test]

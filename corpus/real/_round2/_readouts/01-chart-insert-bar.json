@@ -1,0 +1,45 @@
+﻿{
+    "file":  "01-chart-insert-bar.docx",
+    "compat":  15,
+    "paragraphs":  7,
+    "text":  "before 前文\r/\r我的标题示例\r自定义标题后的正文\r\rafter 后文\r\r",
+    "inlineShapes":  1,
+    "shapes":  0,
+    "charts":  [
+                   {
+                       "title":  "季度销售",
+                       "type":  51,
+                       "series":  [
+                                      {
+                                          "categories":  [
+                                                             "Q1",
+                                                             "Q2",
+                                                             "Q3"
+                                                         ],
+                                          "values":  [
+                                                         120,
+                                                         88.5,
+                                                         96
+                                                     ],
+                                          "name":  "华东"
+                                      },
+                                      {
+                                          "categories":  [
+                                                             "Q1",
+                                                             "Q2",
+                                                             "Q3"
+                                                         ],
+                                          "values":  [
+                                                         70,
+                                                         null,
+                                                         110
+                                                     ],
+                                          "name":  "华南"
+                                      }
+                                  ]
+                   }
+               ],
+    "shapeDetails":  [
+
+                     ]
+}

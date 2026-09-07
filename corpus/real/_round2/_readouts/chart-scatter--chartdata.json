@@ -1,0 +1,45 @@
+﻿{
+    "file":  "chart-scatter--chartdata.docx",
+    "compat":  15,
+    "paragraphs":  4,
+    "text":  "before 前文\r/\rafter 后文\r\r",
+    "inlineShapes":  1,
+    "shapes":  0,
+    "charts":  [
+                   {
+                       "title":  "标题已改 rsword",
+                       "type":  -4169,
+                       "series":  [
+                                      {
+                                          "categories":  [
+                                                             1,
+                                                             2,
+                                                             3
+                                                         ],
+                                          "values":  [
+                                                         10,
+                                                         20,
+                                                         30
+                                                     ],
+                                          "name":  "改名系列"
+                                      },
+                                      {
+                                          "categories":  [
+                                                             1,
+                                                             2,
+                                                             3
+                                                         ],
+                                          "values":  [
+                                                         15,
+                                                         25,
+                                                         35
+                                                     ],
+                                          "name":  "Series 2"
+                                      }
+                                  ]
+                   }
+               ],
+    "shapeDetails":  [
+
+                     ]
+}

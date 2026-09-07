@@ -405,11 +405,20 @@ pub(crate) fn prefix_or_decl(
 }
 
 /// `EDIT-06`：主 part 里全部 `wp:docPr/@id` 的最大值 + 1。
+///
+/// 扫**全部**未删节点，包括本引擎不理解的 `mc:Choice` 分支与 `mc:Fallback`：id 的唯一性是整个 part 的事，
+/// 与 MCE 选哪支无关。Word 原生墨迹（`Requires="wpi"`）的 `wp:docPr id="1"` 就藏在语义遍历看不见的分支里，
+/// 与新图片撞号后 Word 弹恢复提示（真实 Word 第二轮核对，`corpus/real/_round2/EDITED.md`）。
 pub(crate) fn next_doc_pr_id(dom: &Dom) -> i64 {
     let mut max = 0i64;
-    for n in dom.semantic_descendants(dom.root()) {
-        let Some(name) = dom.name(n) else { continue };
-        if name.local != LocalName::DocPr || !dom.is_ns(n, NsId::Wp, "wp") {
+    let mut stack = vec![dom.root()];
+    while let Some(n) = stack.pop() {
+        if dom.node(n).dirty == crate::xml::Dirty::Deleted {
+            continue;
+        }
+        let Some(e) = dom.element(n) else { continue };
+        stack.extend(e.children.iter().rev());
+        if e.name.local != LocalName::DocPr || !dom.is_ns(n, NsId::Wp, "wp") {
             continue;
         }
         if let Some(v) = dom.attr_value(n, QName::new(NsId::None, LocalName::Id))

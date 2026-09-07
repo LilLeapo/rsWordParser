@@ -1,0 +1,45 @@
+﻿{
+    "file":  "chart-in-table--insertrow.docx",
+    "compat":  15,
+    "paragraphs":  13,
+    "text":  "before 前文\r/\r\u0007Cell 2\r\u0007\r\u0007\r\u0007\r\u0007\r\u0007Cell 3\r\u0007Cell 4\r\u0007\r\u0007\rafter 后文\r\r",
+    "inlineShapes":  1,
+    "shapes":  0,
+    "charts":  [
+                   {
+                       "title":  "销售统计",
+                       "type":  51,
+                       "series":  [
+                                      {
+                                          "categories":  [
+                                                             "Category 1",
+                                                             "Category 2",
+                                                             "Category 3"
+                                                         ],
+                                          "values":  [
+                                                         10,
+                                                         20,
+                                                         30
+                                                     ],
+                                          "name":  "Series 1"
+                                      },
+                                      {
+                                          "categories":  [
+                                                             "Category 1",
+                                                             "Category 2",
+                                                             "Category 3"
+                                                         ],
+                                          "values":  [
+                                                         15,
+                                                         25,
+                                                         35
+                                                     ],
+                                          "name":  "Series 2"
+                                      }
+                                  ]
+                   }
+               ],
+    "shapeDetails":  [
+
+                     ]
+}

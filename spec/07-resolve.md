@@ -35,26 +35,27 @@ Provenance = Direct | CharStyle(StyleId) | ParaStyle(StyleId) | NumberingLevel{n
 
 toggle 属性：`b bCs i iCs caps smallCaps strike dstrike outline shadow emboss imprint vanish`（ECMA-376 §17.7.3；`specVanish` 不是 toggle）。
 
-**不采用** `child ?? parent` 合并。**规则按真实 Word 实测定案**（2026-09-06，Word 网页版，八份 fixture，记录在 `fixtures/resolve/README.md`；仍未定死的部分见 `docs/06-toggle-open-question.md`）：
+**不采用** `child ?? parent` 合并。**规则按真实 Word 实测定案**（**2026-09-07，桌面版 Word / Office LTSC 2021 16.0.14334**，八份 fixture 二十五个测点，读数见 `fixtures/resolve/README.md` 与 `corpus/real/_round2/TOGGLE.md`；2026-09-06 的网页版读数在其中 7 个测点上与桌面版不同，**以桌面版为准**。未定死的部分见 `docs/06-toggle-open-question.md`）：
 
 1. run 直接格式指定 → 用直接值（实测与规范一致）。
 2. 否则**按字段选规则**（实测发现 Word 对同一类属性并不同待遇）：
 
    | 字段 | 规则 |
    | --- | --- |
-   | `b` / `i`（与孪生的 `bCs` / `iCs`） | 层级异或 |
-   | `caps` / `smallCaps` / `strike` / `dstrike` / `vanish` | 最具体的声明胜出 |
+   | `b` / `i`（与孪生的 `bCs` / `iCs`）、`caps` / `smallCaps` / `strike` / `vanish` | 层级异或（`WordDesktop`） |
+   | `dstrike` | 最具体的声明胜出（**唯一的例外**：两层都声明时桌面 Word 照样画双删除线） |
 
    层级异或是：
 
    ```text
-   有效值 = docDefaults ⊕ 段落样式层 ⊕ 表格样式层 ⊕ 字符样式层
+   有样式层级声明时：有效值 = 段落样式层 ⊕ 表格样式层 ⊕ 字符样式层（只算**声明了**的层级）
+   一层都没声明时：  有效值 = docDefaults
    ```
 
    每个**层级**先按"子覆盖父"取一个值（`basedOn` 链内**不**计次数），层级之间才做异或。
-   段落样式层在链里一处都没声明时**取 docDefaults 的值**——每个段落都有样式（没写 `w:pStyle` 就是 Normal），样式链的根是 docDefaults，于是 docDefaults 的值在两处各出现一次、自己抵消。一个反直觉的推论：docDefaults 写 `b=true`、段落样式写 `w:b w:val="0"` 时，Word 显示**加粗**（已实测）。
+   **`docDefaults` 不参与异或**，它只是没有任何样式层级声明时的底值——所以"整份文档只有 docDefaults 写 `b=true`"是**加粗**的，"docDefaults `b=true` + 段落样式 `b=true`"也是加粗的，而"docDefaults `b=true` + 段落样式 `w:b w:val="0"`"不加粗（都已在桌面版实测）。
 3. **与 ECMA-376 §17.7.3 的差异**：规范说的是"层级各样式中值为 true 的次数"，实测是"层级数"——`basedOn` 链上两层都 `b=true` 时 Word 仍然加粗。这属于 [MS-OI29500] 记录的 Word 偏差一类（该文档也记了 docDefaults、表格样式、多层 basedOn 的处理与 Word 版本相关）。
-4. 没测到的角：`vanish`（Word 网页版把隐藏文字照常显示，观察不到）、`bCs` / `iCs`（要 RTL 文本）。另外**只在 Word 网页版上测过**，桌面版是另一套渲染实现。完整的未决清单与复核步骤见 **`docs/06-toggle-open-question.md`**，读数见 `fixtures/resolve/README.md`。
+4. 没测到的角：`bCs` / `iCs`（要 RTL 文本）；八份 fixture 没有 `settings.xml`，Word 以**兼容模式 12** 打开，兼容模式 15 下是否相同**未测**；两轮实测都是 LTSC 2021，Microsoft 365 未测。完整的未决清单见 **`docs/06-toggle-open-question.md`**，读数见 `fixtures/resolve/README.md`。
 
 **来源（`RES-01`）**：toggle 的有效值可能由多个层级异或得出，那个值谁都没单独写过，所以来源是 `Provenance::Toggle { levels }`（`levels` 按最具体到最不具体列出参与的层）。只有一个层级参与、且有效值就是它写的那个值时才指那一层；直接格式一票定音时是 `Direct`。"只有 docDefaults 声明"也落到 `Toggle`——段落样式层会把 docDefaults 的值再贡献一次。
 

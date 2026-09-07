@@ -1,0 +1,22 @@
+﻿{
+    "version":  "16.0",
+    "build":  "16.0.14334",
+    "product":  {
+                    "ProductName":  "Microsoft Office",
+                    "ProductVersion":  "16.0.14334.20848",
+                    "FileVersion":  "16.0.14334.20848"
+                },
+    "windows":  {
+                    "ProductName":  "Windows 10 Pro",
+                    "DisplayVersion":  "23H2",
+                    "CurrentBuild":  "22631",
+                    "UBR":  3155
+                },
+    "office":  {
+                   "ProductReleaseIds":  "ProPlus2021Volume",
+                   "VersionToReport":  "16.0.14334.20848",
+                   "Platform":  "x64"
+               },
+    "date":  "2026-09-07T10:10:41.0714049+08:00",
+    "hwnd":  null
+}

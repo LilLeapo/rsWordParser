@@ -1,0 +1,39 @@
+﻿{
+    "collection":  "InlineShapes",
+    "charts":  [
+                   {
+                       "title":  "销售统计",
+                       "type":  57,
+                       "series":  [
+                                      {
+                                          "categories":  [
+                                                             "Category 1",
+                                                             "Category 2",
+                                                             "Category 3"
+                                                         ],
+                                          "values":  [
+                                                         10,
+                                                         20,
+                                                         30
+                                                     ],
+                                          "name":  "Series 1"
+                                      },
+                                      {
+                                          "categories":  [
+                                                             "Category 1",
+                                                             "Category 2",
+                                                             "Category 3"
+                                                         ],
+                                          "values":  [
+                                                         15,
+                                                         25,
+                                                         35
+                                                     ],
+                                          "name":  "Series 2"
+                                      }
+                                  ]
+                   }
+               ],
+    "file":  "large-report.docx",
+    "index":  3
+}

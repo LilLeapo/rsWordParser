@@ -149,7 +149,7 @@ fn generate_edited_real_documents() {
                 },
                 &ctx,
             )?;
-            Ok(Some("第一个文字段落之后多了一块 144 × 72 pt 的纯色小图，四周型环绕靠右".into()))
+            Ok(Some("第一个文字段落之后多了一块 108 × 54 pt 的纯色小图，四周型环绕靠右".into()))
         });
         // 3. 首段后插一张柱形图
         variant(&mut rows, path, &bytes, "newchart", |s| {
@@ -261,12 +261,18 @@ fn generate_edited_real_documents() {
         });
         variant(&mut rows, path, &bytes, "mergecells", |s| {
             let Some(t) = s.document().tables().next() else { return Ok(None) };
-            if t.rows.first().map_or(0, |r| r.cells.len()) < 2 {
+            // 找第一行前两格还没合并的行（首行常是已合并的标题行，合并已合并的格是幂等操作，看不出变化）
+            let Some(row) = t.rows.iter().position(|r| {
+                r.cells.len() >= 2 && r.cells.iter().take(2).all(|c| c.grid_span() == 1)
+            }) else {
                 return Ok(None);
-            }
+            };
             let node = t.node;
-            s.apply(EditOp::MergeCells { table: node, from: (0, 0), to: (0, 1) }, &ctx)?;
-            Ok(Some("第一张表格首行的前两格合并成一格（文字连在一起）".into()))
+            s.apply(
+                EditOp::MergeCells { table: node, from: (row as u32, 0), to: (row as u32, 1) },
+                &ctx,
+            )?;
+            Ok(Some(format!("第一张表格第 {} 行的前两格合并成一格（文字连在一起）", row + 1)))
         });
         // 9. 页眉：默认页眉整体替换
         variant(&mut rows, path, &bytes, "header", |s| {

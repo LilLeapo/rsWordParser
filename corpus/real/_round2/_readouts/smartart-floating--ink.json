@@ -1,0 +1,43 @@
+﻿{
+    "file":  "smartart-floating--ink.docx",
+    "compat":  15,
+    "paragraphs":  4,
+    "text":  "before 前文\r\rafter 后文\r\r",
+    "inlineShapes":  0,
+    "shapes":  3,
+    "charts":  [
+
+               ],
+    "shapeDetails":  [
+                         {
+                             "width":  96,
+                             "wrap":  0,
+                             "name":  "Picture 2",
+                             "type":  13,
+                             "height":  48,
+                             "top":  -0.35,
+                             "left":  320.25,
+                             "relativeHorizontal":  0
+                         },
+                         {
+                             "width":  120,
+                             "wrap":  3,
+                             "name":  "aidocs-ink 3",
+                             "type":  13,
+                             "height":  30,
+                             "top":  -3.75,
+                             "left":  15,
+                             "relativeHorizontal":  2
+                         },
+                         {
+                             "width":  300,
+                             "wrap":  0,
+                             "name":  "Diagram 1",
+                             "type":  24,
+                             "height":  180,
+                             "top":  0,
+                             "left":  0,
+                             "relativeHorizontal":  0
+                         }
+                     ]
+}

@@ -1,0 +1,5 @@
+﻿{
+    "before":  false,
+    "during":  true,
+    "method":  "Temporarily use Word local UserName for task D authors; restore false after creation"
+}

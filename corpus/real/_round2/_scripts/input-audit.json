@@ -1,0 +1,504 @@
+{
+  "schemaVersion": 1,
+  "auditDate": "2026-09-07",
+  "auditMethod": "Read-only filesystem, ZIP members, SHA-256 and XML parsing. No Word application was run or controlled for this audit. Desktop observation fields remain null.",
+  "inputsRoot": "C:/word/round2-work-20260907/real-word-round2-inputs",
+  "baselineArchive": "C:/word/real-word-corpus-20260906.zip",
+  "baselineArchiveRoot": "real-word-corpus-20260906/",
+  "counts": {
+    "roundtripDocx": 9,
+    "roundtripSourceDocx": 3,
+    "roundtripTransformedDocx": 6,
+    "fixtureDocx": 8,
+    "manifestRows": 955,
+    "generatedManifestRows": 944,
+    "actualEditedDocx": 944,
+    "skippedManifestRows": 11,
+    "uniqueBaselinePaths": 110,
+    "baselinePathsMissingFromArchive": 0
+  },
+  "countsByOperation": [
+    {
+      "op": "chartdata",
+      "Count": 26
+    },
+    {
+      "op": "comment",
+      "Count": 110
+    },
+    {
+      "op": "deleteblock",
+      "Count": 110
+    },
+    {
+      "op": "header",
+      "Count": 110
+    },
+    {
+      "op": "ink",
+      "Count": 110
+    },
+    {
+      "op": "insert",
+      "Count": 110
+    },
+    {
+      "op": "insertrow",
+      "Count": 6
+    },
+    {
+      "op": "mergecells",
+      "Count": 6
+    },
+    {
+      "op": "newchart",
+      "Count": 110
+    },
+    {
+      "op": "newimage",
+      "Count": 110
+    },
+    {
+      "op": "replaceimage",
+      "Count": 26
+    },
+    {
+      "op": "split",
+      "Count": 110
+    }
+  ],
+  "skipped": [
+    {
+      "base": "chart/chartex-boxwhisker-2.docx",
+      "expect": "",
+      "file": "chartex-boxwhisker-2--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-boxwhisker.docx",
+      "expect": "",
+      "file": "chartex-boxwhisker--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-funnel-2.docx",
+      "expect": "",
+      "file": "chartex-funnel-2--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-funnel.docx",
+      "expect": "",
+      "file": "chartex-funnel--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-histogram-2.docx",
+      "expect": "",
+      "file": "chartex-histogram-2--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-histogram.docx",
+      "expect": "",
+      "file": "chartex-histogram--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-sunburst-2.docx",
+      "expect": "",
+      "file": "chartex-sunburst-2--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-sunburst.docx",
+      "expect": "",
+      "file": "chartex-sunburst--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-treemap.docx",
+      "expect": "",
+      "file": "chartex-treemap--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-waterfall-2.docx",
+      "expect": "",
+      "file": "chartex-waterfall-2--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-waterfall.docx",
+      "expect": "",
+      "file": "chartex-waterfall--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    }
+  ],
+  "roundtrip": [
+    {
+      "file": "01-chart-insert-bar.docx",
+      "sha256": "8ABEF72865D1795C2A09B65B73EDF4BE85569F73EF7A84F7F4BD772380BE802B",
+      "compatibilitySetting": "15",
+      "workbookParts": [
+        "word/charts/embeddings/workbook1.xlsx"
+      ],
+      "duplicateDefaultExtensions": []
+    },
+    {
+      "file": "01-text-source.docx",
+      "sha256": "DFCDE85859C057D6C93E95A991A360B41ACB2B98DBA8D0F2EEF4CAEDC37FFA6A",
+      "compatibilitySetting": "15",
+      "workbookParts": [],
+      "duplicateDefaultExtensions": [],
+      "baselineArchiveMember": "text/text-custom-styles.docx",
+      "byteIdenticalToBaselineArchive": true
+    },
+    {
+      "file": "02-chart-setdata.docx",
+      "sha256": "EAF839EEDF187B61B3E71D3FA9BC240C4CD3D2C357E05EA586A4134CCD9803E4",
+      "compatibilitySetting": "15",
+      "workbookParts": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "duplicateDefaultExtensions": []
+    },
+    {
+      "file": "02-chart-source.docx",
+      "sha256": "C62B982160004C32CC9EEEE579B7BF48090BA7A0824E69F9AF5D9036576D4E21",
+      "compatibilitySetting": "15",
+      "workbookParts": [
+        "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+      ],
+      "duplicateDefaultExtensions": [],
+      "baselineArchiveMember": "chart/chart-column.docx",
+      "byteIdenticalToBaselineArchive": true
+    },
+    {
+      "file": "03-image-insert-inline-and-square.docx",
+      "sha256": "2140F6681ACE032A3789C09A4489C50334D8F8812A74DD320C54727B7B342FB8",
+      "compatibilitySetting": "15",
+      "workbookParts": [],
+      "duplicateDefaultExtensions": []
+    },
+    {
+      "file": "04-image-replace.docx",
+      "sha256": "9782AD48F85FC53574E6B9B52A81D47DBB124F9CDE1A70B839864410C58DA778",
+      "compatibilitySetting": "15",
+      "workbookParts": [],
+      "duplicateDefaultExtensions": []
+    },
+    {
+      "file": "04-image-source.docx",
+      "sha256": "A8AEFAA7F5598D5128965D75E8A873AF63395819C8451A7B539583068166A4CB",
+      "compatibilitySetting": "15",
+      "workbookParts": [],
+      "duplicateDefaultExtensions": [],
+      "baselineArchiveMember": "image/image-wrap-square.docx",
+      "byteIdenticalToBaselineArchive": true
+    },
+    {
+      "file": "05-ink-insert.docx",
+      "sha256": "12E4CD4F1719FEB437E6CA15ADFCBD341FEEB7D7F925D3C42A36F28E5148A249",
+      "compatibilitySetting": "15",
+      "workbookParts": [],
+      "duplicateDefaultExtensions": []
+    },
+    {
+      "file": "06-chart-insert-line-pie.docx",
+      "sha256": "1E8F10BE4456152D20EF39E12E409BAEBE1756D7943F8078683B2FF12C8C692D",
+      "compatibilitySetting": "15",
+      "workbookParts": [
+        "word/charts/embeddings/workbook1.xlsx",
+        "word/charts/embeddings/workbook2.xlsx"
+      ],
+      "duplicateDefaultExtensions": []
+    }
+  ],
+  "chartSetdataReadOnlyInputEvidence": {
+    "file": "02-chart-setdata.docx",
+    "cachedTitle": "\u5df2\u6539\u6807\u9898 Edited",
+    "cachedFirstSeriesName": "\u6539\u540d\u7cfb\u5217",
+    "cachedFirstSeriesValues": [
+      9,
+      8,
+      7
+    ],
+    "embeddedWorkbookPart": "word/embeddings/Microsoft_Excel_Worksheet.xlsx",
+    "embeddedWorkbookSheet": "ChartData",
+    "embeddedWorkbookFirstSeriesName": "Series 1",
+    "embeddedWorkbookFirstSeriesCells": [
+      "B2",
+      "B3",
+      "B4"
+    ],
+    "embeddedWorkbookFirstSeriesValues": [
+      10,
+      20,
+      30
+    ],
+    "wordRefreshObserved": null
+  },
+  "toggleWebReference": "fixtures/README-fixtures.md, 2026-09-06 Word web observation table",
+  "toggleRequiredRows": [
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "i twice",
+      "property": "Italic",
+      "declaredStyles": "paragraph Pi + character Ci",
+      "priorWeb": false,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "i once",
+      "property": "Italic",
+      "declaredStyles": "paragraph Pi",
+      "priorWeb": true,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "strike twice",
+      "property": "StrikeThrough",
+      "declaredStyles": "paragraph Pstrike + character Cstrike",
+      "priorWeb": true,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "strike once",
+      "property": "StrikeThrough",
+      "declaredStyles": "paragraph Pstrike",
+      "priorWeb": true,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "caps twice",
+      "property": "AllCaps",
+      "declaredStyles": "paragraph Pcaps + character Ccaps",
+      "priorWeb": true,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "caps once",
+      "property": "AllCaps",
+      "declaredStyles": "paragraph Pcaps",
+      "priorWeb": true,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "smallcaps twice",
+      "property": "SmallCaps",
+      "declaredStyles": "paragraph Psmallcaps + character Csmallcaps",
+      "priorWeb": true,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "smallcaps once",
+      "property": "SmallCaps",
+      "declaredStyles": "paragraph Psmallcaps",
+      "priorWeb": true,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "dstrike twice",
+      "property": "DoubleStrikeThrough",
+      "declaredStyles": "paragraph Pdstrike + character Cdstrike",
+      "priorWeb": true,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "dstrike once",
+      "property": "DoubleStrikeThrough",
+      "declaredStyles": "paragraph Pdstrike",
+      "priorWeb": true,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "vanish twice",
+      "property": "Hidden",
+      "declaredStyles": "paragraph Pvanish + character Cvanish",
+      "priorWeb": null,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "vanish once",
+      "property": "Hidden",
+      "declaredStyles": "paragraph Pvanish",
+      "priorWeb": null,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-para-and-char.docx",
+      "sentence": "para b + char b",
+      "property": "Bold",
+      "declaredStyles": "paragraph PBold + character CBold",
+      "priorWeb": false,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-para-and-char.docx",
+      "sentence": "para b only",
+      "property": "Bold",
+      "declaredStyles": "paragraph PBold",
+      "priorWeb": true,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-docdefaults-and-para.docx",
+      "sentence": "docDefaults b + para b",
+      "property": "Bold",
+      "declaredStyles": "docDefaults b + paragraph PBold",
+      "priorWeb": false,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-docdefaults-and-para.docx",
+      "sentence": "docDefaults b only",
+      "property": "Bold",
+      "declaredStyles": "docDefaults b; no pStyle",
+      "priorWeb": false,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-docdefaults-and-para-off.docx",
+      "sentence": "docDefaults b + para b=0",
+      "property": "Bold",
+      "declaredStyles": "docDefaults b + paragraph POff b=0",
+      "priorWeb": true,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-docdefaults-and-para-off.docx",
+      "sentence": "docDefaults b only",
+      "property": "Bold",
+      "declaredStyles": "docDefaults b; no pStyle",
+      "priorWeb": false,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-based-on-two-levels.docx",
+      "sentence": "basedOn b + derived b",
+      "property": "Bold",
+      "declaredStyles": "paragraph Derived b; basedOn Base b",
+      "priorWeb": true,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-based-on-two-levels.docx",
+      "sentence": "base b only",
+      "property": "Bold",
+      "declaredStyles": "paragraph Base b",
+      "priorWeb": true,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-table-first-row.docx",
+      "sentence": "table firstRow b + para b",
+      "property": "Bold",
+      "declaredStyles": "table TBold firstRow b + paragraph PBold",
+      "priorWeb": false,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-table-first-row.docx",
+      "sentence": "table body + para b",
+      "property": "Bold",
+      "declaredStyles": "table TBold body without b + paragraph PBold",
+      "priorWeb": true,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-direct-off.docx",
+      "sentence": "direct b=0 over style b",
+      "property": "Bold",
+      "declaredStyles": "paragraph PBold + direct b=0",
+      "priorWeb": false,
+      "desktopWord": null
+    },
+    {
+      "file": "toggle-direct-off.docx",
+      "sentence": "style b, no direct",
+      "property": "Bold",
+      "declaredStyles": "paragraph PBold",
+      "priorWeb": true,
+      "desktopWord": null
+    },
+    {
+      "file": "sections-inherit-default.docx",
+      "sentence": "\u7b2c\u4e8c\u9875\u9875\u7709",
+      "property": "HeaderDefault",
+      "declaredStyles": "section 1 header reference rIdX0; section 2 no headerReference",
+      "priorWeb": "\u7b2c\u4e00\u8282\u9875\u7709",
+      "desktopWord": null
+    }
+  ],
+  "toggleExtraControl": {
+    "file": "toggle-table-first-row.docx",
+    "sentence": "after table",
+    "property": "Bold",
+    "declaredStyles": "no pStyle or rPr; optional unstyled control",
+    "priorWeb": null,
+    "desktopWord": null
+  },
+  "inconsistencies": [
+    {
+      "source": "_roundtrip/README.md opening paragraphs and source descriptions",
+      "detail": "Stale synthetic-source and missing-workbook text is contradicted by its final correction and actual files. Three source files are SHA-256 identical to previous real Word corpus originals; 02 source and setdata both contain an embedded workbook."
+    },
+    {
+      "source": "08-real-word-round2.md B2-a count",
+      "detail": "Nine root DOCX include three source files and six transformed samples. Record all nine as requested, not nine transformed plus sources."
+    },
+    {
+      "source": "08-real-word-round2.md C comparison summary",
+      "detail": "The summary 'b / i two levels cancel' is not sufficient for basedOn, docDefaults and table cases. Use the exact per-sentence web results in README-fixtures.md; notably basedOn twice is ON, docDefaults-only is OFF, docDefaults plus paragraph b=0 is ON."
+    },
+    {
+      "source": "fixtures/toggle-other-toggles.docx",
+      "detail": "Each twice/once pair consists of adjacent runs in the same paragraph, with no whitespace between runs. Measure the specified run or text range, never the entire paragraph."
+    },
+    {
+      "source": "_roundtrip/edited/manifest.json",
+      "detail": "Contains 955 rows, of which 11 ChartEx chartdata rows explicitly have skipped status and no file. Required 944 measurements correspond exactly to generated rows; skips are not missing-input failures."
+    }
+  ],
+  "priorArtifacts": [
+    "real-word-corpus-20260906/README.md",
+    "real-word-corpus-20260906/OBSERVED.md",
+    "real-word-corpus-20260906/ROUNDTRIP.md",
+    "real-word-corpus-20260906/_scripts/inspect-roundtrip.ps1",
+    "real-word-corpus-20260906/_scripts/roundtrip-word.ps1",
+    "real-word-corpus-20260906/_scripts/word-ui-case.ps1",
+    "real-word-corpus-20260906/_scripts/final-gaps.md",
+    "real-word-corpus-20260906/_scripts/corpus-audit.json"
+  ],
+  "priorEnvironmentReported": {
+    "office": "Office LTSC Professional Plus 2021 x64",
+    "clickToRunVersion": "16.0.14334.20848",
+    "wordObjectModelVersion": "16.0",
+    "wordObjectModelBuild": "16.0.14334",
+    "windows": "Windows 11 Pro 10.0.22631",
+    "isCurrentSessionVerified": false
+  }
+}

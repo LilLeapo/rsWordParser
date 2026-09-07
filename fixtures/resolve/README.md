@@ -124,13 +124,43 @@ OneDrive 后用 Word 网页版打开，逐段把光标放进去，读功能区"�
 最不具体列出参与的层。`expected.toml` 的 `source` 字段把它写成 `Toggle:CharStyle:CBold+ParaStyle:PBold`
 这样，一起断言。只有一个层级参与、且有效值就是它写的那个值时才指那一层。
 
+### 桌面版复核（2026-09-07，**现行规则以这一轮为准**）
+
+**Office LTSC Professional Plus 2021 x64，16.0.14334.20848，Windows 11**。八份 fixture 由 Windows 侧代理逐句读
+`Selection.Font` 两次，并配页面截图与关键几处的字体对话框截图；读数、证据路径与边界说明在
+`corpus/real/_round2/TOGGLE.md`，截图在 `corpus/real/_round2/screenshots/toggle-*`。二十五个测点里 **7 个与网页版不同**：
+
+| fixture | 句子 | 网页版（2026-09-06） | **桌面版（2026-09-07，以此为准）** |
+| --- | --- | --- | --- |
+| `toggle/other-toggles` | `strike twice` | 有删除线 | **没有**（异或） |
+| | `caps twice` | 全大写 | **不大写**（异或） |
+| | `smallcaps twice` | 小型大写 | **不是**（异或） |
+| | `dstrike twice` | 有双删除线 | 有双删除线（**不异或**，唯一的例外） |
+| | `vanish twice` / `vanish once` | 观察不到 | **可见 / 被隐藏**（异或） |
+| `toggle/docdefaults-and-para` | `docDefaults b + para b` | 不加粗 | **加粗** |
+| | `docDefaults b only` | 不加粗 | **加粗** |
+| `toggle/docdefaults-and-para-off` | `docDefaults b + para b=0` | 加粗 | **不加粗** |
+
+于是规则改成 `ToggleRule::WordDesktop`：**异或只发生在样式层级之间（段落样式层 ⊕ 表格样式层 ⊕ 字符样式层），
+`docDefaults` 不参与异或，只是一层都没声明时的底值**；层级内部的 `basedOn` 链仍是"子覆盖父"。
+只有 `dstrike` 例外，仍走 `MostSpecificWins`——两层都声明时桌面 Word 照样画双删除线（字体对话框截图为证）。
+与网页版规则（`ToggleRule::WordObserved`）的差别只在 `docDefaults` 那一项，两条都保留在枚举里。
+
+**这一轮的边界**（照抄 Windows 侧的说明，不放大）：
+
+- 八份 fixture 没有 `settings.xml`，Word 以**兼容模式 12** 打开（真实 Word 文档是 15）。兼容模式会不会改变
+  toggle 语义**没测**——这是现在最该补的一件，见 `docs/06-toggle-open-question.md`。
+- 重复读数以对象模型为主，没有对每一句手动开两次字体对话框；对话框截图只覆盖
+  `strike twice` / `dstrike twice` / `vanish once`。
+- `vanish` 两句在 `expected.toml` 里断言不了：带 `vanish` 的段落被 `MOD-05` 的 R08 整段判成隐藏块
+  （`Protected(Invisible)`，与 TS `staysVanished` 一致），模型里没有 run 可查。读数记在这里与 `docs/06`。
+
 ### 还没测到的角
 
-- **`vanish`**：Word 网页版把隐藏文字照常显示，看不出开关状态。引擎按 `strike` 一族处理。
 - **`bCs` / `iCs`**：复杂脚本孪生，要 `w:rtl` 的阿拉伯文 / 希伯来文才看得见，没测。
   跟着 `b` / `i` 走。
-- **只在 Word 网页版上测过**。桌面版 Word 的渲染是另一套实现，`strike` 一族不异或这条
-  尤其值得在桌面版上复核一次——它与 ECMA-376 §17.7.3 的字面表述冲突最大。
+- **兼容模式 15**：见上。
+- **Microsoft 365**：两轮都是 LTSC 2021，M365 的渲染没测。
 
 ### 换规则影响到哪
 

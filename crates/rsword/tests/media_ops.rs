@@ -465,3 +465,25 @@ fn save_07_prunes_only_what_this_session_orphaned() {
     assert!(media_entries(&kept).iter().any(|n| n == "word/media/image1.png"));
     assert!(text(&kept, "word/_rels/document.xml.rels").contains(r#"Id="rId10""#));
 }
+
+/// `EDIT-06`：`wp:docPr/@id` 的分配要看**全部**分支——Word 原生墨迹的 `docPr` 在 `mc:Choice Requires="wpi"` 里，
+/// 语义遍历看不见它；撞号会让 Word 弹恢复提示（真实 Word 第二轮核对，`ink-pen--newimage` 等 9 份）。
+#[test]
+fn edit_06_doc_pr_id_skips_ids_hidden_in_unknown_mce_branches() {
+    let mc = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+    let wpi = "http://schemas.microsoft.com/office/word/2010/wordprocessingInk";
+    let body = format!(
+        r#"<w:p><w:r><w:t>文字</w:t></w:r><w:r><mc:AlternateContent xmlns:mc="{mc}"><mc:Choice Requires="wpi" xmlns:wpi="{wpi}"><w:drawing xmlns:wp="{WP}"><wp:anchor><wp:extent cx="1" cy="1"/><wp:docPr id="7" name="墨迹 7"/></wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict/></mc:Fallback></mc:AlternateContent></w:r></w:p>"#
+    );
+    let src = common::docx_with_body(&body);
+    let mut s = open(&src);
+    let p = first_para(&s);
+    s.apply(
+        EditOp::InsertBlock { at: BlockPos::after(p), block: NewBlock::Image(image(png())) },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let doc = text(&s.save().unwrap(), "word/document.xml");
+    assert!(doc.contains(r#"<wp:docPr id="8" name="Picture 8"/>"#), "{doc}");
+    assert!(doc.contains(r#"<wp:docPr id="7" name="墨迹 7"/>"#), "原生墨迹原字节不动");
+}

@@ -1,0 +1,694 @@
+{
+  "helper": "toggle-read.ps1/v1",
+  "sessionId": "round2-20260907-live",
+  "measuredAt": "2026-09-07T10:44:27.0016915+08:00",
+  "file": "toggle-other-toggles.docx",
+  "fullName": "C:\\word\\round2-work-20260907\\real-word-round2-inputs\\fixtures\\toggle-other-toggles.docx",
+  "wordVersion": "16.0",
+  "wordBuild": "16.0.14334",
+  "compatibilityMode": 12,
+  "visible": true,
+  "documentSavedFlag": true,
+  "originalView": {
+    "ShowHiddenText": false,
+    "ShowAll": false
+  },
+  "rows": [
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "i twice",
+      "property": "Italic",
+      "compatibilityMode": 12,
+      "readMethod": "Selection.Font property at a collapsed caret inside the sentence, twice",
+      "declaredStyles": "paragraph Pi + character Ci",
+      "priorWeb": false,
+      "desktopWord": false,
+      "samples": [
+        {
+          "read": 1,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "same-as-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面文字直立，未显示倾斜。"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 0,
+      "rangeEnd": 7,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:44:19.0833239+08:00",
+      "uiObservation": "页面文字直立，未显示倾斜。"
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "i once",
+      "property": "Italic",
+      "compatibilityMode": 12,
+      "readMethod": "Selection.Font property at a collapsed caret inside the sentence, twice",
+      "declaredStyles": "paragraph Pi",
+      "priorWeb": true,
+      "desktopWord": true,
+      "samples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 9,
+          "selectionEnd": 9,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 9,
+          "selectionEnd": 9,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "same-as-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面文字倾斜，与同段前一句直立形成对照。"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 7,
+      "rangeEnd": 13,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:44:19.8369473+08:00",
+      "uiObservation": "页面文字倾斜，与同段前一句直立形成对照。"
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "strike twice",
+      "property": "StrikeThrough",
+      "compatibilityMode": 12,
+      "readMethod": "Selection.Font property at a collapsed caret inside the sentence, twice",
+      "declaredStyles": "paragraph Pstrike + character Cstrike",
+      "priorWeb": true,
+      "desktopWord": false,
+      "samples": [
+        {
+          "read": 1,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 16,
+          "selectionEnd": 16,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 16,
+          "selectionEnd": 16,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "different-from-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面未显示单删除线；关键字体对话框中的删除线复选框未勾选。"
+        },
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-strike-twice-font-1-1.jpg",
+          "scope": "one recorded Font-dialog inspection for this case"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 14,
+      "rangeEnd": 26,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:44:20.565901+08:00",
+      "uiObservation": "页面未显示单删除线；关键字体对话框中的删除线复选框未勾选。"
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "strike once",
+      "property": "StrikeThrough",
+      "compatibilityMode": 12,
+      "readMethod": "Selection.Font property at a collapsed caret inside the sentence, twice",
+      "declaredStyles": "paragraph Pstrike",
+      "priorWeb": true,
+      "desktopWord": true,
+      "samples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 28,
+          "selectionEnd": 28,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 28,
+          "selectionEnd": 28,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "same-as-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面显示单删除线。"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 26,
+      "rangeEnd": 37,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:44:21.2351151+08:00",
+      "uiObservation": "页面显示单删除线。"
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "caps twice",
+      "property": "AllCaps",
+      "compatibilityMode": 12,
+      "readMethod": "Selection.Font property at a collapsed caret inside the sentence, twice",
+      "declaredStyles": "paragraph Pcaps + character Ccaps",
+      "priorWeb": true,
+      "desktopWord": false,
+      "samples": [
+        {
+          "read": 1,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 40,
+          "selectionEnd": 40,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 40,
+          "selectionEnd": 40,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "different-from-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面仍显示小写 caps twice。"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 38,
+      "rangeEnd": 48,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:44:21.9749392+08:00",
+      "uiObservation": "页面仍显示小写 caps twice。"
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "caps once",
+      "property": "AllCaps",
+      "compatibilityMode": 12,
+      "readMethod": "Two actual Selection.Font.AllCaps readings at collapsed position 50, using explicitly identified Word range 48..57; bypassed helper's case-sensitive text check because Word returned CAPS ONCE.",
+      "declaredStyles": "paragraph Pcaps",
+      "priorWeb": true,
+      "desktopWord": true,
+      "samples": [
+        {
+          "selectionStart": 50,
+          "raw": -1,
+          "read": 1,
+          "value": true,
+          "selectionEnd": 50
+        },
+        {
+          "selectionStart": 50,
+          "raw": -1,
+          "read": 2,
+          "value": true,
+          "selectionEnd": 50
+        }
+      ],
+      "consistent": true,
+      "comparison": "same-as-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面显示 CAPS ONCE；补测两次 AllCaps=-1。"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 48,
+      "rangeEnd": 57,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": null,
+      "supersededLookupError": "System.Management.Automation.RuntimeException: Word Find returned an unexpected range for: caps once",
+      "measuredRangeText": "CAPS ONCE",
+      "measurementSource": "_scripts/toggle-caps-direct.json",
+      "uiObservation": "页面显示 CAPS ONCE；补测两次 AllCaps=-1。",
+      "supersededLookupAt": "2026-09-07T10:44:22.6755724+08:00",
+      "observationTimeNote": "The direct supplement JSON does not contain a measurement timestamp; the preceding failed lookup timestamp is retained separately."
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "smallcaps twice",
+      "property": "SmallCaps",
+      "compatibilityMode": 12,
+      "readMethod": "Selection.Font property at a collapsed caret inside the sentence, twice",
+      "declaredStyles": "paragraph Psmallcaps + character Csmallcaps",
+      "priorWeb": true,
+      "desktopWord": false,
+      "samples": [
+        {
+          "read": 1,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 60,
+          "selectionEnd": 60,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 60,
+          "selectionEnd": 60,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "different-from-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面显示普通小写 smallcaps twice。"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 58,
+      "rangeEnd": 73,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:44:22.6983578+08:00",
+      "uiObservation": "页面显示普通小写 smallcaps twice。"
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "smallcaps once",
+      "property": "SmallCaps",
+      "compatibilityMode": 12,
+      "readMethod": "Selection.Font property at a collapsed caret inside the sentence, twice",
+      "declaredStyles": "paragraph Psmallcaps",
+      "priorWeb": true,
+      "desktopWord": true,
+      "samples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 75,
+          "selectionEnd": 75,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 75,
+          "selectionEnd": 75,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "same-as-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面显示小型大写 SMALLCAPS ONCE。"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 73,
+      "rangeEnd": 87,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:44:23.3802287+08:00",
+      "uiObservation": "页面显示小型大写 SMALLCAPS ONCE。"
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "dstrike twice",
+      "property": "DoubleStrikeThrough",
+      "compatibilityMode": 12,
+      "readMethod": "Selection.Font property at a collapsed caret inside the sentence, twice",
+      "declaredStyles": "paragraph Pdstrike + character Cdstrike",
+      "priorWeb": true,
+      "desktopWord": true,
+      "samples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 90,
+          "selectionEnd": 90,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 90,
+          "selectionEnd": 90,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "same-as-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面显示双删除线；关键字体对话框中的双删除线复选框已勾选。"
+        },
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-dstrike-twice-font-1.jpg",
+          "scope": "one recorded Font-dialog inspection for this case"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 88,
+      "rangeEnd": 101,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:44:24.1001539+08:00",
+      "uiObservation": "页面显示双删除线；关键字体对话框中的双删除线复选框已勾选。"
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "dstrike once",
+      "property": "DoubleStrikeThrough",
+      "compatibilityMode": 12,
+      "readMethod": "Selection.Font property at a collapsed caret inside the sentence, twice",
+      "declaredStyles": "paragraph Pdstrike",
+      "priorWeb": true,
+      "desktopWord": true,
+      "samples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 103,
+          "selectionEnd": 103,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 103,
+          "selectionEnd": 103,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "same-as-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面显示双删除线。"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 101,
+      "rangeEnd": 113,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:44:24.8252542+08:00",
+      "uiObservation": "页面显示双删除线。"
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "vanish twice",
+      "property": "Hidden",
+      "compatibilityMode": 12,
+      "readMethod": "Selection.Font.Hidden with the entire sentence selected twice; collapsed caret is not used",
+      "declaredStyles": "paragraph Pvanish + character Cvanish",
+      "priorWeb": null,
+      "desktopWord": false,
+      "samples": [
+        {
+          "read": 1,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 114,
+          "selectionEnd": 126,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 114,
+          "selectionEnd": 126,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "web-unknown",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "关闭隐藏文字显示后，该句仍然可见；整句两次 Hidden=0。"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 114,
+      "rangeEnd": 126,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:44:25.561756+08:00",
+      "uiObservation": "关闭隐藏文字显示后，该句仍然可见；整句两次 Hidden=0。"
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "vanish once",
+      "property": "Hidden",
+      "compatibilityMode": 12,
+      "readMethod": "Selection.Font.Hidden with the entire sentence selected twice; collapsed caret is not used",
+      "declaredStyles": "paragraph Pvanish",
+      "priorWeb": null,
+      "desktopWord": true,
+      "samples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 126,
+          "selectionEnd": 137,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 126,
+          "selectionEnd": 137,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "web-unknown",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "关闭隐藏文字显示后，该句不显示；整句两次 Hidden=-1，关键字体对话框的隐藏复选框已勾选。"
+        },
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-vanish-once-font-1.jpg",
+          "scope": "one recorded Font-dialog inspection for this case"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 126,
+      "rangeEnd": 137,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:44:26.2873839+08:00",
+      "uiObservation": "关闭隐藏文字显示后，该句不显示；整句两次 Hidden=-1，关键字体对话框的隐藏复选框已勾选。"
+    }
+  ],
+  "note": "Final report annotations add actual UI evidence to recorded measurements. No document was opened, saved or changed during report preparation. Font-dialog evidence applies only to specifically linked cases.",
+  "uiReview": {
+    "reviewedAt": "2026-09-07T10:47:29.7611241+08:00",
+    "method": "Main operator's actual Word page/ribbon observations and selected Font-dialog inspections, supported by reviewed screenshot files. Two object-model readings are retained per case; not two manual Font-dialog checks for each case.",
+    "compatibilityEvidence": "Actual Word Document.CompatibilityMode=12 in this file's recorded readout."
+  }
+}

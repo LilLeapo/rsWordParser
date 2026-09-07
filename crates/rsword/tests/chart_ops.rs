@@ -498,3 +498,91 @@ fn edit_03_replace_part_xml_and_bytes() {
         .unwrap_err();
     assert!(matches!(err, Error::Malformed { .. }), "{err}");
 }
+
+/// 真实 Word 的「无标题」图表（`corpus/real/chart/chart-no-title.docx`）连 `c:title` 元素都没有：
+/// 建一个插在 `c:chart` 最前面（`CT_Chart` 顺序），而不是把标题请求静默丢掉（TS 丢，`docs/04` §8）。
+/// 桌面 Word 第二轮核对里这份的标题没出来，就是这个洞（`corpus/real/_round2/EDITED.md`）。
+#[test]
+fn edit_03_set_chart_data_creates_a_missing_title_element() {
+    let src = std::fs::read(common::corpus_dir("real").join("chart/chart-no-title.docx")).unwrap();
+    assert!(
+        !text(&src, "word/charts/chart1.xml").contains("<c:title>"),
+        "底稿本来就不该有 c:title"
+    );
+    let mut s = open(&src);
+    let part = chart_part_of(&s);
+    s.apply(
+        EditOp::SetChartData {
+            part,
+            patch: ChartPatch { title: Some("新标题".into()), ..Default::default() },
+        },
+        &EditContext::default(),
+    )
+    .expect("patch");
+    let patched = text(&s.save().expect("save"), "word/charts/chart1.xml");
+    assert!(patched.contains("<a:t>新标题</a:t>"), "{patched}");
+    let title_at = patched.find("<c:title>").expect("新建的 c:title");
+    assert!(title_at < patched.find("<c:plotArea>").unwrap(), "c:title 要在 c:plotArea 之前");
+    assert!(
+        title_at < patched.find("<c:autoTitleDeleted").unwrap(),
+        "CT_Chart 顺序：c:title 在 c:autoTitleDeleted 之前"
+    );
+    // 重解析读得回来
+    let mut pkg = Package::open(&s.save().expect("save")).expect("reopen");
+    let doc = rsword::model::Document::rebuild(&mut pkg).expect("rebuild");
+    let cp = doc.chart_parts.values().next().expect("chart part");
+    assert_eq!(cp.display.as_ref().and_then(|d| d.title.as_deref()), Some("新标题"));
+}
+
+/// 散点 / 气泡图把 y 值放在 `c:yVal` 而不是 `c:val`：读侧一直认它，写侧以前只认 `c:val`，
+/// 于是「读得出来的值改不动」（真实 Word 第二轮核对的三份 mismatch）。
+#[test]
+fn edit_03_set_chart_data_patches_y_values_of_scatter_charts() {
+    for (name, has_bubble) in [("chart-scatter", false), ("chart-bubble", true)] {
+        let src =
+            std::fs::read(common::corpus_dir("real").join(format!("chart/{name}.docx"))).unwrap();
+        let before = text(&src, "word/charts/chart1.xml");
+        assert!(
+            before.contains("<c:yVal>") && !before.contains("<c:val>"),
+            "{name}: 底稿用 c:yVal"
+        );
+        let mut s = open(&src);
+        let part = chart_part_of(&s);
+        s.apply(
+            EditOp::SetChartData {
+                part,
+                patch: ChartPatch {
+                    series: Some(vec![Some(ChartSeriesPatch {
+                        name: Some("改名系列".into()),
+                        values: Some(vec![Some(11.0), Some(21.0), Some(31.0)]),
+                    })]),
+                    ..Default::default()
+                },
+            },
+            &EditContext::default(),
+        )
+        .expect("patch");
+        let patched = text(&s.save().expect("save"), "word/charts/chart1.xml");
+        let seg = |tag: &str| {
+            patched
+                .split_once(&format!("<c:{tag}>"))
+                .and_then(|(_, rest)| rest.split_once(&format!("</c:{tag}>")))
+                .map(|(inner, _)| inner.to_string())
+                .unwrap_or_else(|| panic!("{name}: 没有 c:{tag}"))
+        };
+        let y = seg("yVal");
+        for v in ["11", "21", "31"] {
+            assert!(y.contains(&format!("<c:v>{v}</c:v>")), "{name}: {v} in {y}");
+        }
+        assert!(patched.contains("<c:v>改名系列</c:v>"), "{name}");
+        // 气泡大小是另一条缓存，不该被 values 动到
+        if has_bubble {
+            let size = seg("bubbleSize");
+            assert!(size.contains("<c:v>3</c:v>"), "气泡大小原样：{size}");
+        }
+        // x 值同样不动
+        let x = seg("xVal");
+        assert!(!x.contains("<c:v>11</c:v>"), "{name}: x 值不该被改：{x}");
+        assert!(x.contains("<c:v>1</c:v>"), "{name}: x 值原样：{x}");
+    }
+}

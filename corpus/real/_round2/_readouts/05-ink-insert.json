@@ -1,0 +1,33 @@
+﻿{
+    "file":  "05-ink-insert.docx",
+    "compat":  15,
+    "paragraphs":  6,
+    "text":  "before 前文\r我的标题示例\r自定义标题后的正文\r\rafter 后文\r\r",
+    "inlineShapes":  0,
+    "shapes":  2,
+    "charts":  [
+
+               ],
+    "shapeDetails":  [
+                         {
+                             "width":  150,
+                             "wrap":  3,
+                             "name":  "aidocs-ink 1",
+                             "type":  13,
+                             "height":  60,
+                             "top":  -7.5,
+                             "left":  30,
+                             "relativeHorizontal":  2
+                         },
+                         {
+                             "width":  150,
+                             "wrap":  3,
+                             "name":  "aidocs-ink 2",
+                             "type":  13,
+                             "height":  60,
+                             "top":  15,
+                             "left":  225,
+                             "relativeHorizontal":  2
+                         }
+                     ]
+}

@@ -1,0 +1,84 @@
+﻿{
+    "date":  "2026-09-07T12:33:21.4114044+08:00",
+    "useLocalUserInfoBeforeCleanup":  false,
+    "useLocalUserInfoRestored":  false,
+    "originalUseLocalUserInfo":  false,
+    "userName":  "Administrator",
+    "userInitials":  "A",
+    "closed":  [
+                   {
+                       "savedFlagBeforeClose":  false,
+                       "path":  "C:\\word\\real-word-round2-20260907\\_resaved\\fields-toc--split-resaved-by-word.docx",
+                       "sha256":  "CBC6AB4911FA29709EDCC9ACA10FBDF5CBCA1045595B57F78DF7F2CE745658D9",
+                       "hashRetained":  true,
+                       "closeMethod":  "wdDoNotSaveChanges"
+                   },
+                   {
+                       "savedFlagBeforeClose":  false,
+                       "path":  "C:\\word\\real-word-round2-20260907\\_resaved\\ink-pen--newchart-resaved-by-word.docx",
+                       "sha256":  "E5E63DB93E1F5A5CB14D029CA35EB02CADA4EAAB2AD1D17FD6CA38A6F26A46CC",
+                       "hashRetained":  true,
+                       "closeMethod":  "wdDoNotSaveChanges"
+                   },
+                   {
+                       "savedFlagBeforeClose":  true,
+                       "path":  "C:\\word\\real-word-round2-20260907\\_resaved\\ink-pen--newimage-resaved-by-word.docx",
+                       "sha256":  "30BAF97037153FA5FB5B7C8C6675870D6B2D1BBD9E489CEC50CEB7D226462F12",
+                       "hashRetained":  true,
+                       "closeMethod":  "wdDoNotSaveChanges"
+                   },
+                   {
+                       "savedFlagBeforeClose":  true,
+                       "path":  "C:\\word\\real-word-round2-20260907\\_resaved\\ink-pen--ink-resaved-by-word.docx",
+                       "sha256":  "2A41CB73A0B4866280C5F3B510BEACDA3AA45D5B3522D03AE052B9D093089E69",
+                       "hashRetained":  true,
+                       "closeMethod":  "wdDoNotSaveChanges"
+                   },
+                   {
+                       "savedFlagBeforeClose":  true,
+                       "path":  "C:\\word\\real-word-round2-20260907\\_resaved\\ink-highlighter--newimage-resaved-by-word.docx",
+                       "sha256":  "7737253BE6AAC957FD9E7C77B4C4642892CB5B4C1EE8BC5F5D23C7272E7B7FA7",
+                       "hashRetained":  true,
+                       "closeMethod":  "wdDoNotSaveChanges"
+                   },
+                   {
+                       "savedFlagBeforeClose":  false,
+                       "path":  "C:\\word\\real-word-round2-20260907\\_resaved\\ink-highlighter--newchart-resaved-by-word.docx",
+                       "sha256":  "7B4E2A98DD45572FB91C8DCB74305A698D144E6D48B490F67570ECC77DF24D3F",
+                       "hashRetained":  true,
+                       "closeMethod":  "wdDoNotSaveChanges"
+                   },
+                   {
+                       "savedFlagBeforeClose":  true,
+                       "path":  "C:\\word\\real-word-round2-20260907\\_resaved\\ink-highlighter--ink-resaved-by-word.docx",
+                       "sha256":  "5EEDCEA2A6B2533389491C961608B2F0732A1132C24AA22FED40D400C04F35AB",
+                       "hashRetained":  true,
+                       "closeMethod":  "wdDoNotSaveChanges"
+                   },
+                   {
+                       "savedFlagBeforeClose":  true,
+                       "path":  "C:\\word\\real-word-round2-20260907\\_resaved\\ink-to-shape--newimage-resaved-by-word.docx",
+                       "sha256":  "EA5AF35E6DB3BC2BFB8D6AC1C9AEB2217F95089311C13C02F59867CB0DCDF502",
+                       "hashRetained":  true,
+                       "closeMethod":  "wdDoNotSaveChanges"
+                   },
+                   {
+                       "savedFlagBeforeClose":  false,
+                       "path":  "C:\\word\\real-word-round2-20260907\\_resaved\\ink-to-shape--newchart-resaved-by-word.docx",
+                       "sha256":  "382252BB42D481D75B4D01317F1B923C85034723F75DA72805A3E3DF3C802BAF",
+                       "hashRetained":  true,
+                       "closeMethod":  "wdDoNotSaveChanges"
+                   },
+                   {
+                       "savedFlagBeforeClose":  true,
+                       "path":  "C:\\word\\real-word-round2-20260907\\_resaved\\ink-to-shape--ink-resaved-by-word.docx",
+                       "sha256":  "D8F6CF0EA7EF902D344DAB413637C58C601780F30A1912F0539F18D435103AC1",
+                       "hashRetained":  true,
+                       "closeMethod":  "wdDoNotSaveChanges"
+                   }
+               ],
+    "remainingDocuments":  [
+
+                           ],
+    "note":  "Only the ten explicitly inventoried task-owned documents were closed. Their saved bytes were unchanged. Other Word and Excel processes were not controlled."
+}

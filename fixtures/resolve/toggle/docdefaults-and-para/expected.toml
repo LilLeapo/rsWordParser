@@ -9,14 +9,14 @@ doc = "toggle/docdefaults-and-para"
 [[run]]
 # docDefaults(b=true) + 段落样式 PBold(b=true)：两层 → 不加粗
 text = "docDefaults b + para b"
-bold = false
-source = "Toggle:ParaStyle:PBold+DocDefaults"
+bold = true
+source = "ParaStyle:PBold"
 verified = true
 
 [[run]]
 # 只有 docDefaults(b=true)：段落样式层继承到同一个 true，两层 → 不加粗
 text = "docDefaults b only"
-bold = false
+bold = true
 # 段落样式层把 docDefaults 的值再贡献一次，自己抵消自己——所以来源不是 DocDefaults
-source = "Toggle:DocDefaults"
+source = "DocDefaults"
 verified = true

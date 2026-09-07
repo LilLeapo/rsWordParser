@@ -229,8 +229,10 @@ impl<'a> Resolver<'a> {
     /// "只有 docDefaults 声明"也落到 `Toggle`：Word 的规则里段落样式层会把 docDefaults 的值
     /// 再贡献一次（每个段落都有样式，样式链的根是 docDefaults），所以有效值是 `false` 而
     /// docDefaults 写的是 `true`，指着 docDefaults 同样是撒谎。
+    #[allow(clippy::too_many_arguments)]
     fn toggle_source(
         &self,
+        rule: toggle::ToggleRule,
         l: &toggle::ToggleLayers<'_>,
         para_chain: &[&Style],
         char_chain: &[&Style],
@@ -261,7 +263,11 @@ impl<'a> Resolver<'a> {
             levels.push((Provenance::TableStyle { style: String::new(), cond: None }, v));
         }
         levels.extend(leaf(l.para_chain, para_chain, "", Provenance::ParaStyle));
-        if let Some(v) = l.doc_default {
+        // 桌面 Word 的规则（`ToggleRule::WordDesktop`）里 docDefaults 不参与异或：有样式层级声明时它就不在场，
+        // 一层都没声明时它是唯一来源
+        if let Some(v) = l.doc_default
+            && (levels.is_empty() || rule != toggle::ToggleRule::WordDesktop)
+        {
             levels.push((Provenance::DocDefaults, v));
         }
         match levels.as_slice() {
@@ -359,6 +365,7 @@ impl<'a> Resolver<'a> {
             // 来源要跟着改：异或出来的值可能哪一层都没写过，继续指着某一层就是撒谎
             if value.is_some() {
                 sources[f as usize] = Some(self.toggle_source(
+                    toggle::active_rule(f),
                     &layers,
                     &para_chain,
                     &char_chain,

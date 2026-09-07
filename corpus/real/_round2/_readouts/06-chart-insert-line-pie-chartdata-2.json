@@ -1,0 +1,53 @@
+﻿{
+    "file":  "06-chart-insert-line-pie.docx",
+    "index":  2,
+    "before":  {
+                   "title":  "趋势",
+                   "type":  65,
+                   "series":  [
+                                  {
+                                      "categories":  [
+                                                         "一月",
+                                                         "二月",
+                                                         "三月"
+                                                     ],
+                                      "values":  [
+                                                     3,
+                                                     5,
+                                                     2
+                                                 ],
+                                      "name":  "系列1"
+                                  }
+                              ]
+               },
+    "activation":  "ok",
+    "cells":  [
+                  "",
+                  "系列1",
+                  "一月",
+                  3,
+                  "二月",
+                  5,
+                  "三月",
+                  2
+              ],
+    "after":  {
+                  "title":  "趋势",
+                  "type":  65,
+                  "series":  [
+                                 {
+                                     "categories":  [
+                                                        "一月",
+                                                        "二月",
+                                                        "三月"
+                                                    ],
+                                     "values":  [
+                                                    3,
+                                                    5,
+                                                    2
+                                                ],
+                                     "name":  "系列1"
+                                 }
+                             ]
+              }
+}

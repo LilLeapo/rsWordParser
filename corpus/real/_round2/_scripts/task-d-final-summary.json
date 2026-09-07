@@ -1,0 +1,14 @@
+{
+  "cases": 17,
+  "exactWordVersion": "16.0.14334.20848",
+  "directUiVerified": 17,
+  "independentPdfVisualVerified": 17,
+  "originalSelfcheckPassed": 16,
+  "originalSelfcheckUnavailable": 0,
+  "independentStructurePassed": 16,
+  "authoredHashRetained": 17,
+  "pendingUi": [],
+  "pendingPdfVisual": [],
+  "originalErrorsRetained": [],
+  "note": "Review coverage is separate from requirement conformance. No blanket all-D-passed conclusion is made."
+}

@@ -419,22 +419,30 @@ pub(crate) fn set_chart_data(
     let dom = s.dom_in(Some(part))?;
     let root = dom.root();
     let mut plan = MutationPlan::new(part);
-    if let Some(title) = &patch.title
-        && let Some(t) = dom.semantic_descendants(root).find(|&n| dom.is(n, c(LocalName::Title)))
-    {
-        let mut texts: Vec<NodeId> =
-            dom.semantic_descendants(t).filter(|&n| dom.is(n, a(LocalName::T))).collect();
-        if texts.is_empty() {
-            // strRef 标题把文字放在 c:strCache/c:v 里
-            texts = dom.semantic_descendants(t).filter(|&n| dom.is(n, c(LocalName::V))).collect();
-        }
-        if texts.is_empty() {
-            inject_title(dom, t, title, &mut plan);
-        } else {
-            for (i, tn) in texts.into_iter().enumerate() {
-                let text = if i == 0 { title.as_str() } else { "" };
-                super::ops::set_segment_text(dom, tn, text, &mut plan);
+    if let Some(title) = &patch.title {
+        match dom.semantic_descendants(root).find(|&n| dom.is(n, c(LocalName::Title))) {
+            Some(t) => {
+                let mut texts: Vec<NodeId> =
+                    dom.semantic_descendants(t).filter(|&n| dom.is(n, a(LocalName::T))).collect();
+                if texts.is_empty() {
+                    // strRef 标题把文字放在 c:strCache/c:v 里
+                    texts = dom
+                        .semantic_descendants(t)
+                        .filter(|&n| dom.is(n, c(LocalName::V)))
+                        .collect();
+                }
+                if texts.is_empty() {
+                    inject_title(dom, t, title, &mut plan);
+                } else {
+                    for (i, tn) in texts.into_iter().enumerate() {
+                        let text = if i == 0 { title.as_str() } else { "" };
+                        super::ops::set_segment_text(dom, tn, text, &mut plan);
+                    }
+                }
             }
+            // 整个 `c:title` 都没有（Word 的「无标题」图表就是删掉这个元素，`corpus/real/chart/chart-no-title`）：
+            // 按 `CT_Chart` 的顺序建一个插在 `c:chart` 的最前面。TS 在这里什么都不做，请求被静默丢弃（`docs/04` §8）
+            None => new_title(dom, root, title, &mut plan),
         }
     }
     let sers: Vec<NodeId> =
@@ -448,8 +456,11 @@ pub(crate) fn set_chart_data(
             {
                 super::ops::set_segment_text(dom, v, name, &mut plan);
             }
+            // 散点 / 气泡图把 y 值放在 `c:yVal`（`ChartPart::build` 的读侧同样是 `c:val ?? c:yVal`）：
+            // 只认 `c:val` 会让「读得出来的值改不动」（`corpus/real/chart/chart-scatter` 等，`docs/04` §8）
             if let Some(values) = &sp.values
                 && let Some(val) = child(dom, ser, c(LocalName::Val))
+                    .or_else(|| child(dom, ser, c(LocalName::YVal)))
             {
                 let texts: Vec<Option<String>> = values.iter().map(|v| v.map(num)).collect();
                 point_edits(dom, val, &texts, &mut plan);
@@ -487,6 +498,38 @@ fn point_edits(dom: &Dom, container: NodeId, texts: &[Option<String>], plan: &mu
             super::ops::set_segment_text(dom, v, text, plan);
         }
     }
+}
+
+/// 整个 `c:title` 元素都不存在：新建一个带文字的标题，按 `CT_Chart` 的顺序插在 `c:chart` 的最前面。
+fn new_title(dom: &Dom, root: NodeId, text: &str, plan: &mut MutationPlan) {
+    let Some(chart) = dom.semantic_descendants(root).find(|&n| dom.is(n, c(LocalName::Chart)))
+    else {
+        return;
+    };
+    let title = NewElement::new(c(LocalName::Title))
+        .with_child(
+            NewElement::new(c(LocalName::Tx)).with_child(
+                NewElement::new(c(LocalName::Rich))
+                    .with_child(NewElement::new(a(LocalName::BodyPr)))
+                    .with_child(NewElement::new(a(LocalName::LstStyle)))
+                    .with_child(
+                        NewElement::new(a(LocalName::P)).with_child(
+                            NewElement::new(a(LocalName::R))
+                                .with_child(NewElement::new(a(LocalName::T)).with_text(text)),
+                        ),
+                    ),
+            ),
+        )
+        .with_child(
+            NewElement::new(c(LocalName::Overlay))
+                .with_attr(QName::new(NsId::None, LocalName::Val), "0"),
+        );
+    let first = dom.semantic_children(chart).next();
+    plan.node_edits.push(NodeEdit::Insert {
+        parent: Target::Node(chart),
+        before: first,
+        node: title,
+    });
 }
 
 /// 没有文字的标题（自动标题 / 无缓存的 strRef）：给它一个带文字的 run。

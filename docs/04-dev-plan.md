@@ -319,6 +319,9 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | 墨迹的判据 | TS `stripInkRuns` / `findInkRuns` 的正则要求 `<w:r><w:drawing><wp:anchor` 紧邻（run 不能有 `rPr`） | 结构判据：`w:drawing` 下的 `wp:anchor` 里有 `wp:docPr/@name` 以 `aidocs-ink` 开头，run 里有没有 `w:rPr` 不管 | 前缀才是语义；带 `rPr` 的墨迹 run 在 TS 里会退成图片块，是正则的副作用不是设计（6.8） |
 | 墨迹锚点不是段落 | TS 静默跳过 | 跳过 + `EDIT_BAD_POSITION` 诊断；同样不分配媒体与关系 | 调用方要知道这条墨迹没写进去（6.8） |
 | 内联容器嵌套过深的段落 | `MOD-07`「块容器超过 64 层的子树降级为 `TooDeep`」；内联容器过深时原来只把那个容器换成一个 `Other` 原子、段落仍是 `Text` | 整段降级为 `Protected(TooDeep)`（`Builder.inline_too_deep`，宿主段落连带） | 深处的文字没进内联模型，段落若仍可编辑，一次 `ReplaceInlines` 就会把它们无声删掉；只读 + 字节原样才安全。TS 对解析不了的段落也是整段 passthrough（`hostile-input__005`，6.9） |
+| `EDIT-06` `wp:docPr/@id` 的扫描范围 | 语义遍历（`mc:Choice` 只看生效的那支） | 扫**全部**未删节点，含不理解的 `mc:Choice` 与 `mc:Fallback` | id 的唯一性是整个 part 的事，与 MCE 选哪支无关。Word 原生墨迹（`Requires="wpi"`）的 `docPr id="1"` 就藏在语义遍历看不见的分支里，撞号后 Word 打开弹恢复提示——桌面 Word 第二轮核对里 9 份失败全是这个（`corpus/real/_round2/EDITED.md`） |
+| `EDIT-03 SetChartData` 的值容器 | TS `patchChartPartXml` 只认 `c:val` | `c:val`，没有时退到 `c:yVal`（散点 / 气泡图） | 读侧（`ChartPart::build`）一直是 `c:val ?? c:yVal`，写侧只认 `c:val` 会让「读得出来的值改不动」；TS 自己的读侧也是两者都认，写侧漏了 |
+| `EDIT-03 SetChartData` 遇到没有 `c:title` 元素的图表 | TS 什么都不做（请求静默丢弃） | 按 `CT_Chart` 顺序新建一个 `c:title` 插在 `c:chart` 最前 | 与 chartex / `ReplacePart` 同一条政策：静默吞掉一次编辑比报错或补全更糟。Word 的「无标题」图表就是删掉这个元素（`corpus/real/chart/chart-no-title`） |
 | `XML-09` 理解的命名空间 | `DEFAULT_UNDERSTOOD` = wps / wpg / wp14 / w14 / w15 / cx / c14 | 加 **`wpc`**（真实 Word 的绘图画布 `mc:Choice Requires="wpc"`），画布按 `chOff = 0` 的组处理 | 不理解就走 Fallback 的 VML `v:group`：颜色是 Word 算好的小写 hex、坐标是 VML 的，DrawingML 独有的字段全丢。本引擎会画 `wps:wsp` / `pic:pic`，画布只是给它们一个坐标系，理应算理解（`corpus/real/canvas-*`，2026-09-07） |
 | 墨迹锚的 `relativeHeight`（保存比较） | — | `COMPAT-09`：`tests/save_blocks.rs` 对 `wp:docPr/@name` 以 `aidocs-ink` 开头的 `wp:anchor` 容忍 `@relativeHeight` | TS 写 `251658240 + docPrId`（id 从 9001 起），我们同样由 `EDIT-06` 的 id 派生——和 id 一样是分配细节；普通锚定图片的 `relativeHeight` 是输入的 z-order，照常比较（6.8） |
 | `TEST-10` 门的 CI 形态 | 「对应域 diff 为 0」 | 还没关上的门用 `diff-parse --max-unknown N` 做棘轮：未知差异 ≤ N 放行，每落地一个任务往下拧，归零后删掉参数 | 门一建就进 CI，回归有人拦，数字有地方掉；`.github/workflows/ci.yml` 第七步（6.2 起 214，6.3 起 170） |
@@ -399,7 +402,7 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `PROP-08` `SectionProps` 清单 | `headerReference*, footerReference*, footnotePr, endnotePr, type, pgSz, pgMar, pgBorders, lnNumType, pgNumType, cols, formProt, vAlign, titlePg, textDirection, bidi, rtlGutter, docGrid` | 另建模 `noEndnote`（同类 OnOff，写回要用）；**不**建模 `paperSrc` 与 `printerSettings` | 前者是清单的遗漏（它就夹在 `vAlign` 与 `titlePg` 之间）；后两个是打印机硬件配置，编辑器与 resolve 都不用，不建模就原字节留在原位（`PROP-06`），需要时补一行即可 |
 | `PROP-09` 枚举容错 | 字面不匹配 → `Val::Raw` + 诊断 | `ST_HdrFtr` 额外收非 schema 的 `odd` | Word 之外的生成器用 `w:type="odd"` 表示"缺省页"，TS 与 Word 都当 default（`docs/01` §12）。当成 `Raw` 只会白记一条 `PROP_BAD_VALUE`，而 `RES-10` 照样得把它当 default |
 | `RES-01` toggle 的 `Provenance` | 每个字段一个来源 | toggle 由多个层级异或得出时是 `Provenance::Toggle { levels }` | 异或出来的值谁都没单独写过（两层各写一次 `true`，有效值是 `false`），指着任何一层都是撒谎。只有一个层级参与、且有效值就是它写的那个值时才指那一层。"只有 docDefaults 声明"也落到 `Toggle`——段落样式层会把 docDefaults 的值再贡献一次 |
-| `RES-04` toggle（ECMA-376 §17.7.3） | 十三个 toggle 属性同一套奇偶规则 | **按字段分**：`b` / `i`（与孪生 `bCs` / `iCs`）按层级异或，`caps` / `smallCaps` / `strike` / `dstrike` / `vanish` 是"最具体的声明胜出"。异或的那条只跨**层级**，层级内部的 `basedOn` 链是普通的"子覆盖父"；段落样式层在链里一处都没声明时取 docDefaults 的值 | **2026-09-06 Word 网页版实测**（`fixtures/resolve/README.md` 有完整记录与方法）：`basedOn` 链上两层都 `b=true` 时 Word 仍然加粗，说明链内不计次数；"整份文档只有 docDefaults 声明 `b=true`"时 Word **不加粗**，只有"docDefaults 在两处各出现一次、自己抵消"这个模型对得上。补测的 `other-toggles` 又发现 `strike` / `caps` / `smallCaps` / `dstrike` 两层都声明时效果照样是开的——同一份规范里的 toggle，Word 并不同待遇。TS 参考实现全用"最具体胜出"，八份 fixture 里错了三份——按验收政策以 Word 为准。**只在 Word 网页版测过**，桌面版值得复核 |
+| `RES-04` toggle（ECMA-376 §17.7.3） | 十三个 toggle 属性同一套奇偶规则 | **按字段分**（2026-09-07 桌面 Word 实测改写）：`b` / `i` / `bCs` / `iCs` / `caps` / `smallCaps` / `strike` / `vanish` 按层级异或（`docDefaults` **不**参与，只是无人声明时的底值），只有 `dstrike` 是"最具体的声明胜出"。异或的那条只跨**层级**，层级内部的 `basedOn` 链是普通的"子覆盖父"；段落样式层在链里一处都没声明时取 docDefaults 的值 | **2026-09-06 Word 网页版实测**（`fixtures/resolve/README.md` 有完整记录与方法）：`basedOn` 链上两层都 `b=true` 时 Word 仍然加粗，说明链内不计次数；"整份文档只有 docDefaults 声明 `b=true`"时 Word **不加粗**，只有"docDefaults 在两处各出现一次、自己抵消"这个模型对得上。补测的 `other-toggles` 又发现 `strike` / `caps` / `smallCaps` / `dstrike` 两层都声明时效果照样是开的——同一份规范里的 toggle，Word 并不同待遇。TS 参考实现全用"最具体胜出"，八份 fixture 里错了三份——按验收政策以 Word 为准。**只在 Word 网页版测过**，桌面版值得复核 |
 | `MOD-10` `SectionGeom`（5.1 的决定） | 能解析的尺寸照原值给（`w:h="-1"` → `-1`） | 尺寸不是正数时回退缺省纸张 | `ST_TwipsMeasure` 是无符号的，`-1` 本来就不合法；而 `SectionGeom` 的每个消费者（列宽启发式、图片缩放、`body_width`）都拿它做版面算术，负数会一路传下去。声明值仍原样留在 `props` 里，写回不受影响——回退只发生在几何视图。hostile `sectpr-bad-values` 是这条的验收 |
 | `MOD-11` VML 框的摊平表 | 未规定深度 | `vml_display` 穿过的 `w:txbxContent` 超过 8 层就截断（`too_deep` → `MOD_TOO_DEEP`）；`Builder` 建框内容也是 8 层预算 | 摊平表把更深的层重复列出，规模 O(n²)；建内容那条递归每层压几 KB 属性结构体，33 层就把 2 MiB 测试栈用光。语料里框套框最多 2 层（`textbox-edit__012`），Word 的界面根本做不出更深的。hostile `hf-deep-txbx` 套了 3000 层 |
 | `SAVE-07` `sources` 选项（TS `buildSourcesXml`） | 新建的 `b:Sources` 同时声明 `xmlns:b` 与一个同 URI 的默认命名空间 | 只声明 `xmlns:b` | 两个绑定指同一个命名空间，但默认绑定会让新加的子元素序列化成不带前缀的 `<Source>`。语义完全相同（Word 与本引擎都按命名空间认），带前缀的形态更好读，也和 Word 自己写出来的一致 |
@@ -1282,6 +1285,23 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   EMF 预览、Strict 单位改写、拆成三段的 REF 指令、单元格里的 OLE / 公式、图示箭头的 `tint`、Word 另存后墨迹 run 带 rPr）。
   规格修正两处（`docs/07`）：真 Word 写 `wpc:wpc` 不写 `lc:lockedCanvas`；装饰性图片是 `adec:decorative`。CI 加第九步
   `diff-parse --corpus corpus/real`。
+- [x] **真实 Word 第二轮：Word 验收本引擎的输出 + toggle 桌面复核 + M7 语料**（2026-09-07，任务书 `docs/08`，交付报告
+  `corpus/real/_round2/`）：Windows 侧（同一台 LTSC 2021）用 Word 打开本引擎写出的 **944 份编辑后文档**（12 种编辑 × 110 份真实底稿，
+  `tests/real_edits.rs` 生成）与 9 份往返样本，另做桌面版 toggle 复核与 17 份 M7 语料。**逐项复核过交付**（用户要求默认它有错）：
+  110 份任务 A 底稿全部带 `Application=Microsoft Office Word`、兼容模式 15、rsid；944 行读数里 935 ok / 9 error 的分布、
+  4 条 chartdata mismatch、z-order 栈序、工作簿回刷都用包内 XML 独立复算过，**结论与报告一致**；报告自己列出的边界
+  （900 份未做目视抽检、批注两层嵌套未达成、fixture 以兼容模式 12 打开）如实照收。**它抓到三个真 bug**：
+  ① `wp:docPr/@id` 只扫语义遍历，撞上 Word 原生墨迹藏在 `Requires="wpi"` 分支里的 `id="1"` → Word 弹恢复提示（9 份失败全是它，
+  `next_doc_pr_id` 改扫全部未删节点，§8）；② `SetChartData` 写侧只认 `c:val`，散点 / 气泡图的 `c:yVal` 改不动（读侧一直两者都认，§8）；
+  ③ 图表没有 `c:title` 元素时标题请求被静默丢弃（新建一个插在 `c:chart` 最前，§8）。另有两条是我们清单自己写错
+  （新图片实际 108 × 54 pt 不是 144 × 72 pt；`mergecells` 挑的首行本来就已合并），已改 `tests/real_edits.rs`。
+  **toggle 规则按桌面版重写**（`ToggleRule::WordDesktop`）：网页版读数在 7 个测点上是错的——`strike` / `caps` / `smallCaps` / `vanish`
+  与 `b` / `i` 一样异或（只有 `dstrike` 例外），`docDefaults` 不参与异或只是底值；八份 fixture 的 `expected.toml` 与
+  `spec/07` `RES-04` 一并改写，`docs/06` 的第 1 件未决事项关闭、新开"兼容模式 15 未测"。**M7 语料 17 份**接进
+  `corpus/real/{blank,revisions2,fields2,sections2,image2,shapes2}`（空白文档、修订动物园含 moveFrom/moveTo 与
+  `tcPrChange` / `sectPrChange` / 接受拒绝、SEQ / XE+INDEX / 过期 TOC / CITATION / 页脚 PAGE、四种分节符、z-order、链接文本框）。
+  真实语料 124 → 194 份（含 53 份 Word 另存件），三条往返门 194 / 194 通过；新增的 48 处 TS 差分全是**已登记**的
+  `FLD-08` 块字段结果段落差异（原登记把块下标写死成 `blocks[9]`，改成按路径登记）。
 - [x] **6.9 恶意输入、fuzz、全域收尾与 M6 门**（2026-09-06）：六份 hostile（m6.0a 已进语料）补上共同底线的用例——解析成功、
   无引擎不变式破坏、无编辑保存字节相同（`tests/embedded.rs`；各域的降级断言早在 6.1–6.8 的测试里）；`fuzz/fuzz_targets/
   fuzz_embedded.rs`（任意字节 → `Dom::parse` → `ChartPart::build` / `diagram_text` / `diagram_shapes` / 每个 `m:oMath` 的 `tokens` /
