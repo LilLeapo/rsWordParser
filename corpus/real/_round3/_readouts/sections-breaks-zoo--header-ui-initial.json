@@ -1,0 +1,70 @@
+{
+    "file":  "sections-breaks-zoo--header.docx",
+    "base":  "sections2/sections-breaks-zoo.docx",
+    "op":  "header",
+    "expect":  "最后一节的默认页眉只剩一行「rsword 页眉」（原有页眉内容被替换；首页 / 偶数页页眉若有则不动）",
+    "timestamp":  "2026-09-07T14:46:48.1953925+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\sections-breaks-zoo--header.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  12,
+                    "tables":  0,
+                    "comments":  0,
+                    "inline_shapes":  0,
+                    "shapes":  0,
+                    "first_table_rows":  null,
+                    "first_table_cells":  null,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+
+                       ],
+    "text":  "before 前文\rSection one.\r\fSection 2.\r\fSection 3.\r\fSection 4.\r\fSection 5.\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+                    {
+                        "section":  1,
+                        "primary":  "\r",
+                        "first":  "\r",
+                        "even":  "\r"
+                    },
+                    {
+                        "section":  2,
+                        "primary":  "\r",
+                        "first":  "\r",
+                        "even":  "\r"
+                    },
+                    {
+                        "section":  3,
+                        "primary":  "\r",
+                        "first":  "Section three first-page header\r",
+                        "even":  "\r"
+                    },
+                    {
+                        "section":  4,
+                        "primary":  "\r",
+                        "first":  "Section three first-page header\r",
+                        "even":  "\r"
+                    },
+                    {
+                        "section":  5,
+                        "primary":  "rsword 页眉\r",
+                        "first":  "Section three first-page header\r",
+                        "even":  "\r"
+                    }
+                ],
+    "tables":  [
+
+               ],
+    "errors":  [
+
+               ]
+}

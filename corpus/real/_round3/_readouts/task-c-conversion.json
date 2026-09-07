@@ -1,0 +1,17 @@
+﻿{
+    "workingSha256Before":  "EDF8658B565D681CBA211DBBD1A6382FE8222E7993270F5788DAE7F385E74BAA",
+    "sourcePath":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\fixtures\\toggle-other-toggles.docx",
+    "sourceCompatibilityMode":  12,
+    "workingPath":  "C:\\word\\round3-work-20260907\\toggle-other-toggles-conversion-working.docx",
+    "sourceSha256":  "EDF8658B565D681CBA211DBBD1A6382FE8222E7993270F5788DAE7F385E74BAA",
+    "method":  "Byte-identical working copy; actual Word UI File \u003e Info \u003e Convert \u003e OK; Word COM SaveAs2 to separate output.",
+    "convertedPath":  "C:\\word\\real-word-round3-20260907\\_resaved\\toggle-other-toggles-converted.docx",
+    "convertedSha256":  "54FCDCFBFE876732D994D937149771DD3F6003DDBE402A8AE122BCBF8D213C9C",
+    "convertedCompatibilityMode":  15,
+    "uiEvidence":  [
+                       "screenshots/c-convert-mode12-before-0.jpg",
+                       "screenshots/c-convert-info-ready-0.jpg",
+                       "screenshots/c-convert-action-0.jpg",
+                       "screenshots/c-convert-completed-0.jpg"
+                   ]
+}

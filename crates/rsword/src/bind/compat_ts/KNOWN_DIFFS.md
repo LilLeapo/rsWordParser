@@ -26,7 +26,7 @@
 | 任意 | `styles.*.display.indentChars` | TS `withCharIndents` 在样式显示模型里也用字号换算字符单位缩进 | 与 `blocks[*].format.charIndents*` 同一条：需字体度量，属显示层 | 暂放行 |
 | `fields-*`（`corpus/real`，块字段的结果段落） | 结果区内段落的 `type` / `label` / `previewText` / `runs` / `rawPPr` / `format` / `fieldDisplay` | TOC / INDEX / BIBLIOGRAPHY 这类**块字段**的结果区里，本引擎按 `FLD-08` 把整段区间保护成 `Protected(FieldBlockResult)`（passthrough）；TS 没有 R09，它逐段判定，于是"自己不含 `fldChar` / `instrText`"的结果段落在 TS 那边是普通可编辑段落，带 `format` 的制表位与悬挂缩进 | `docs/04` §8 早已登记的同一条（"TS 没有 R09：它逐段判定"）：字段结果整体是一个原子，逐段可编辑会让重发的结果与字段结构脱节 | 本引擎（`FLD-08`） |
 | `fields-toc`（`corpus/real`） | 交叉引用段落 | 真实 Word 把 `REF ChapterOne \h \* MERGEFORMAT` 的指令拆成三个 `w:instrText`（首个只有一个空格）：TS `fieldLabel` 只看第一个，关键字为空 → 整段 passthrough `Field (TOC/page number/etc.)`；本引擎把连续 `instrText` 攒起来认出 REF，按可折叠字段给出可编辑 run + `instrField` | 与 `PAGE` 被拆成 `PA` + `GE` 同一条：指令是拼起来的文本，不是第一个片段 | 本引擎（功能更强） |
-| `ink-pen` / `ink-highlighter` / `ink-to-shape` / `ink-math`（`corpus/real`） | `blocks[*].runs*` | Word 原生墨迹：`mc:Choice Requires="wpi"` 里是 `w14:contentPart`（InkML part），`mc:Fallback` 是 Word 自己栅格化的 PNG。`wpi` 不在本引擎理解的命名空间里（`XML-09`），走 Fallback → 墨迹成为 run 级图片；TS 剥掉 Fallback 后在 Choice 里找不到 `pic:pic`，什么都不画 | Word 渲染的是笔迹；不会画 InkML 的消费者拿到的最好结果就是 Word 留下的栅格。InkML part 原字节保留 | 本引擎（功能更强） |
+| `ink-pen` / `ink-highlighter` / `ink-to-shape` / `ink-math` / `ink-to-shape-2`（`corpus/real`） | `blocks[*].runs*`；墨迹独占一段时还有 `blocks[*].label` / `textboxes` / `previewText` / `decorative` | Word 原生墨迹：`mc:Choice Requires="wpi"` 里是 `w14:contentPart`（InkML part），`mc:Fallback` 是 Word 自己栅格化的 PNG。`wpi` 不在本引擎理解的命名空间里（`XML-09`），走 Fallback → 墨迹成为 run 级图片；TS 剥掉 Fallback 后在 Choice 里找不到 `pic:pic`，什么都不画 | Word 渲染的是笔迹；不会画 InkML 的消费者拿到的最好结果就是 Word 留下的栅格。InkML part 原字节保留 | 本引擎（功能更强） |
 | `*-resaved-by-word`、`05-ink-insert`（`corpus/real/_roundtrip`） | `blocks[*].runs[*]`、`inks*` | 本引擎写的 `aidocs-ink` 墨迹层：经 Word 另存后 run 多了 `w:rPr`（`w:noProof`）与 rsid；以真实 Word 文档为底稿直接生成时，根上没声明的 `xmlns:a` / `xmlns:pic` 被序列化器提到新 run 上（`<w:r xmlns:a=…>`）。TS `stripInkRuns` / `findInkRuns` 的正则要求 `<w:r><w:drawing>` 紧邻，两种情况都不再认它是墨迹，当成两张图片 | `docs/04` §8「墨迹的判据」：前缀才是语义；墨迹层应当在 Word 一次另存后仍然可编辑 | 本引擎（功能更强） |
 | `image-emf`（`corpus/real`） | `blocks[*].imageDataUrl`、`brokenImage`、`previewText`、`type` | TS 的 metafile 转换器返回 null → `brokenImage` passthrough；本引擎给 EMF 原字节的 dataURL 图片块 | 同 `emf-image__*`：转换是可插拔服务，不在 Rust 侧做 | 本引擎（有意不同） |
 | `ole-*`（`corpus/real`） | `blocks[*].imageDataUrl`、`blocks[*].table.rows[*][*].richParas[*].runs[*].image.dataUrl` | OLE 预览是 EMF / WMF：TS 转不出来就不给 `dataUrl`，本引擎给原字节 dataURL | 同上 | 本引擎（有意不同） |
@@ -87,6 +87,10 @@ ink-pen*                 blocks[*].runs*                          # Word 原生�
 ink-highlighter*         blocks[*].runs*                          # 同上
 ink-to-shape*            blocks[*].runs*                          # 同上
 ink-math*                blocks[*].runs*                          # 同上
+ink-to-shape-2*          blocks[*].label                          # 同上：墨迹独占一段时差异落在块本身（我们按 Fallback 的 VML 出框，TS 出 Drawing object）
+ink-to-shape-2*          blocks[*].textboxes*                     # 同上
+ink-to-shape-2*          blocks[*].previewText                    # 同上
+ink-to-shape-2*          blocks[*].decorative                     # 同上
 *-resaved-by-word*       blocks[*].runs[*]                        # Word 另存后 aidocs-ink run 带了 rPr，TS 正则不再认它是墨迹
 *-resaved-by-word*       inks*                                    # 同上
 05-ink-insert*           blocks[*].runs[*]                        # 以真 Word 文档为底稿生成的墨迹 run 根上带 xmlns 声明，TS 正则同样不认

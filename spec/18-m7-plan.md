@@ -47,10 +47,25 @@ trPr/ins|del / cellIns|cellDel / sectPrChange`），并且**拒绝全部修订�
    「每种修订各一用例」）；语料里 21 份带修订的文档（run 级 12、`pPrChange` 4、move 4、表格 2、段落标记 1；`revisions__*` /
    `table-revisions__*` 13 个 stem）逐份 `AcceptAll` 与 `RejectAll` 成功、`SAVE-02` 无 `EngineInvariantViolation`、重解析后
    `Document.revisions` 为空。
-3. **真实 Word 对照**（`fixtures/revisions/<case>/{tracked.docx, accepted.docx, rejected.docx, expected.toml}`，`TEST-08` 同一
-   机制）：≥ 3 个 case（run 插删 + 格式改；段落拆合 + `pPrChange`；表格行列 + 移动），我们对 `tracked.docx` 做 `AcceptAll` /
-   `RejectAll` 的 `ModelFingerprint` 与 Word 自己「接受所有修订」/「拒绝所有修订」另存的文档相等。**依赖真实 Word**（项目负责人
-   操作，见「依赖与被阻塞」）。
+3. **真实 Word 对照**（`fixtures/revisions/<case>/{base,tracked,accepted,rejected}.docx`，`TEST-08` 同一机制）：我们对
+   `tracked.docx` 做 `AcceptAll` / `RejectAll` 的 `ModelFingerprint` 与 Word 自己「接受所有修订」/「拒绝所有修订」另存的文档相等。
+   **fixture 已就位**（2026-09-07 第三轮，`docs/09`）：四个 case `run-edits`（run 插删 + `rPrChange`）、`para-split-merge`
+   （拆合 + `pPrChange`）、`table-and-move`（表格行列 + 跟踪移动 + `tcPrChange` / `tblGridChange` / `tblPrExChange`）、
+   `tracked-two-authors`（两个作者，验 `AcceptAll { author }` 的过滤），每个四态齐全，说明见 `fixtures/revisions/README.md`，
+   制作记录见 `corpus/real/_round3/REVISIONS.md`。**写测试前必须知道的三条 Word 实测行为**：
+
+   - **`ModelFingerprint` 必须忽略 run 边界**：拒绝一处 `rPrChange` 后 Word 不会把切开的 run 合并回去
+     （`run-edits/rejected.docx` 那段是三个 run，字符与 `base.docx` 完全一致）。按 run 逐个比较会误判。
+   - **Word 的「拒绝所有修订」不撤销单元格合并**：`table-and-move/rejected.docx` 行数与文字都回到 `base`，但首行仍是
+     合并的一格（`w:gridSpan="2"`）。所以 7.4 的 `CellMerge` Reject 目前 `Err(EDIT_UNSUPPORTED)` 与 Word 并不冲突——
+     Word 自己也不还原；要么照 Word 做（删标记、保留合并），要么把差异登记进 `docs/04` §8。
+   - **批注没有真正的两层嵌套**：在界面上对一条回复再点「答复」，Word 保存出来的 `w15:paraIdParent` 仍指向线程根
+     （`corpus/real/revisions2/comment-nesting.docx`：5 条批注、3 条根、最大深度 1）。M7 不需要支持嵌套线程。
+
+   7.6 / 7.7 的「人工核对」也换成了同一机制：`fixtures/word-ops/{insert-next-page,delete-break,z-order,move-resize}/`
+   是 Word 自己做那个操作的 `before` / `after` 两份，实现后直接与 `after.docx` 比形态，不再需要等人打开看
+   （已复算的形态变化见 `fixtures/word-ops/README.md`；其中 **删掉分节符后由后一节的页面设置接管**，与 7.6 写的
+   「合并后取后节属性」一致）。
 4. **保存差分**（`COMPAT-08`）：`tests/save_blocks.rs` 跳过数保持 0（M6 门第 2 条），比较范围从 `documentXml` 扩到**每个被改写的
    XML part**（7.0 重导语料记录 `changedParts`）；新增的比较项全部等价或登记 `INTENTIONAL`。`apps/docs/tests/ai-track-revisions.test.ts`
    的 10 个场景与 `revisions.test.ts`「tracked change save fidelity」的 4 个场景各有一条原生等价测试。

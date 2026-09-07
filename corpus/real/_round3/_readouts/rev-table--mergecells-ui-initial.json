@@ -1,0 +1,44 @@
+{
+    "file":  "rev-table--mergecells.docx",
+    "base":  "revisions2/rev-table.docx",
+    "op":  "mergecells",
+    "expect":  "第一张表格第 2 行的前两格合并成一格（文字连在一起）",
+    "timestamp":  "2026-09-07T14:46:32.4524606+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\rev-table--mergecells.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  13,
+                    "tables":  1,
+                    "comments":  0,
+                    "inline_shapes":  0,
+                    "shapes":  0,
+                    "first_table_rows":  3,
+                    "first_table_cells":  4,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+
+                       ],
+    "text":  "before 前文\rOriginal R1 C1\rOriginal R1 C2\r\u0007\r\u0007Inserted row left\rInserted row right\r\u0007\r\u0007Original R2 C1\r\u0007Original R2 C2\r\u0007\r\u0007\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+                   {
+                       "text":  "Original R1 C1\rOriginal R1 C2\r\u0007\r\u0007Inserted row left\rInserted row right\r\u0007\r\u0007Original R2 C1\r\u0007Original R2 C2\r\u0007\r\u0007",
+                       "cells":  4
+                   }
+               ],
+    "errors":  [
+
+               ]
+}

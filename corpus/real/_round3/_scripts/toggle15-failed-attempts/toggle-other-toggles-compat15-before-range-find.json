@@ -1,0 +1,522 @@
+{
+    "helper":  "task-c-read.ps1/v1",
+    "variant":  "supplied-compat15",
+    "file":  "toggle-other-toggles-compat15.docx",
+    "fullName":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\fixtures\\toggle-other-toggles-compat15.docx",
+    "sourceSha256":  "CBFE2A90EA224181AB472A9E8E88314B25BA4697AD8E72F5E2A1582EA250DC9E",
+    "sourceSha256AfterRead":  "CBFE2A90EA224181AB472A9E8E88314B25BA4697AD8E72F5E2A1582EA250DC9E",
+    "referenceSha256":  "698B3CD0A007CA0BC04C36DB03B0A97B1D60046540748B60103C0FD6E0B4708F",
+    "wordVersion":  "16.0",
+    "wordBuild":  "16.0.14334",
+    "compatibilityMode":  15,
+    "documentSavedFlag":  true,
+    "originalView":  {
+                         "showHiddenText":  false,
+                         "showAll":  false
+                     },
+    "rows":  [
+                 {
+                     "file":  "toggle-other-toggles-compat15.docx",
+                     "baseFile":  "toggle-other-toggles.docx",
+                     "sentence":  "i twice",
+                     "property":  "Italic",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  false,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+                                     {
+                                         "read":  1,
+                                         "raw":  0,
+                                         "value":  false,
+                                         "selectionStart":  2,
+                                         "selectionEnd":  2,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     },
+                                     {
+                                         "read":  2,
+                                         "raw":  0,
+                                         "value":  false,
+                                         "selectionStart":  2,
+                                         "selectionEnd":  2,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     }
+                                 ],
+                     "desktopWord":  false,
+                     "consistent":  true,
+                     "comparisonWithRound2":  "same",
+                     "readMethod":  "Selection.Font property with caret two characters into sentence twice",
+                     "rangeStart":  0,
+                     "rangeEnd":  7,
+                     "actualText":  "i twice",
+                     "matchedCase":  "exact",
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  null,
+                     "observedAt":  "2026-09-07T14:14:04.3343487+08:00"
+                 },
+                 {
+                     "file":  "toggle-other-toggles-compat15.docx",
+                     "baseFile":  "toggle-other-toggles.docx",
+                     "sentence":  "i once",
+                     "property":  "Italic",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  true,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+                                     {
+                                         "read":  1,
+                                         "raw":  -1,
+                                         "value":  true,
+                                         "selectionStart":  9,
+                                         "selectionEnd":  9,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     },
+                                     {
+                                         "read":  2,
+                                         "raw":  -1,
+                                         "value":  true,
+                                         "selectionStart":  9,
+                                         "selectionEnd":  9,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     }
+                                 ],
+                     "desktopWord":  true,
+                     "consistent":  true,
+                     "comparisonWithRound2":  "same",
+                     "readMethod":  "Selection.Font property with caret two characters into sentence twice",
+                     "rangeStart":  7,
+                     "rangeEnd":  13,
+                     "actualText":  "i once",
+                     "matchedCase":  "exact",
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  null,
+                     "observedAt":  "2026-09-07T14:14:04.9066414+08:00"
+                 },
+                 {
+                     "file":  "toggle-other-toggles-compat15.docx",
+                     "baseFile":  "toggle-other-toggles.docx",
+                     "sentence":  "strike twice",
+                     "property":  "StrikeThrough",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  false,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+
+                                 ],
+                     "desktopWord":  null,
+                     "consistent":  false,
+                     "comparisonWithRound2":  "unread",
+                     "readMethod":  "Selection.Font property with caret two characters into sentence twice",
+                     "rangeStart":  null,
+                     "rangeEnd":  null,
+                     "actualText":  null,
+                     "matchedCase":  null,
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  "System.Management.Automation.RuntimeException: Sentence is not unique: strike twice",
+                     "observedAt":  "2026-09-07T14:14:05.4425088+08:00"
+                 },
+                 {
+                     "file":  "toggle-other-toggles-compat15.docx",
+                     "baseFile":  "toggle-other-toggles.docx",
+                     "sentence":  "strike once",
+                     "property":  "StrikeThrough",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  true,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+
+                                 ],
+                     "desktopWord":  null,
+                     "consistent":  false,
+                     "comparisonWithRound2":  "unread",
+                     "readMethod":  "Selection.Font property with caret two characters into sentence twice",
+                     "rangeStart":  null,
+                     "rangeEnd":  null,
+                     "actualText":  null,
+                     "matchedCase":  null,
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  "System.Management.Automation.RuntimeException: Sentence is not unique: strike once",
+                     "observedAt":  "2026-09-07T14:14:05.4537634+08:00"
+                 },
+                 {
+                     "file":  "toggle-other-toggles-compat15.docx",
+                     "baseFile":  "toggle-other-toggles.docx",
+                     "sentence":  "caps twice",
+                     "property":  "AllCaps",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  false,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+
+                                 ],
+                     "desktopWord":  null,
+                     "consistent":  false,
+                     "comparisonWithRound2":  "unread",
+                     "readMethod":  "Selection.Font property with caret two characters into sentence twice",
+                     "rangeStart":  null,
+                     "rangeEnd":  null,
+                     "actualText":  null,
+                     "matchedCase":  null,
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  "System.Management.Automation.RuntimeException: Sentence is not unique: caps twice",
+                     "observedAt":  "2026-09-07T14:14:05.4634514+08:00"
+                 },
+                 {
+                     "file":  "toggle-other-toggles-compat15.docx",
+                     "baseFile":  "toggle-other-toggles.docx",
+                     "sentence":  "caps once",
+                     "property":  "AllCaps",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  true,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+                                     {
+                                         "read":  1,
+                                         "raw":  0,
+                                         "value":  false,
+                                         "selectionStart":  80,
+                                         "selectionEnd":  80,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     },
+                                     {
+                                         "read":  2,
+                                         "raw":  0,
+                                         "value":  false,
+                                         "selectionStart":  80,
+                                         "selectionEnd":  80,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     }
+                                 ],
+                     "desktopWord":  false,
+                     "consistent":  true,
+                     "comparisonWithRound2":  "different",
+                     "readMethod":  "Selection.Font property with caret two characters into sentence twice",
+                     "rangeStart":  78,
+                     "rangeEnd":  87,
+                     "actualText":  "caps once",
+                     "matchedCase":  "exact",
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  null,
+                     "observedAt":  "2026-09-07T14:14:05.4734993+08:00"
+                 },
+                 {
+                     "file":  "toggle-other-toggles-compat15.docx",
+                     "baseFile":  "toggle-other-toggles.docx",
+                     "sentence":  "smallcaps twice",
+                     "property":  "SmallCaps",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  false,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+                                     {
+                                         "read":  1,
+                                         "raw":  0,
+                                         "value":  false,
+                                         "selectionStart":  60,
+                                         "selectionEnd":  60,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     },
+                                     {
+                                         "read":  2,
+                                         "raw":  0,
+                                         "value":  false,
+                                         "selectionStart":  60,
+                                         "selectionEnd":  60,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     }
+                                 ],
+                     "desktopWord":  false,
+                     "consistent":  true,
+                     "comparisonWithRound2":  "same",
+                     "readMethod":  "Selection.Font property with caret two characters into sentence twice",
+                     "rangeStart":  58,
+                     "rangeEnd":  73,
+                     "actualText":  "smallcaps twice",
+                     "matchedCase":  "exact",
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  null,
+                     "observedAt":  "2026-09-07T14:14:06.0025619+08:00"
+                 },
+                 {
+                     "file":  "toggle-other-toggles-compat15.docx",
+                     "baseFile":  "toggle-other-toggles.docx",
+                     "sentence":  "smallcaps once",
+                     "property":  "SmallCaps",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  true,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+                                     {
+                                         "read":  1,
+                                         "raw":  -1,
+                                         "value":  true,
+                                         "selectionStart":  75,
+                                         "selectionEnd":  75,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     },
+                                     {
+                                         "read":  2,
+                                         "raw":  -1,
+                                         "value":  true,
+                                         "selectionStart":  75,
+                                         "selectionEnd":  75,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     }
+                                 ],
+                     "desktopWord":  true,
+                     "consistent":  true,
+                     "comparisonWithRound2":  "same",
+                     "readMethod":  "Selection.Font property with caret two characters into sentence twice",
+                     "rangeStart":  73,
+                     "rangeEnd":  87,
+                     "actualText":  "smallcaps once",
+                     "matchedCase":  "exact",
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  null,
+                     "observedAt":  "2026-09-07T14:14:06.5051315+08:00"
+                 },
+                 {
+                     "file":  "toggle-other-toggles-compat15.docx",
+                     "baseFile":  "toggle-other-toggles.docx",
+                     "sentence":  "dstrike twice",
+                     "property":  "DoubleStrikeThrough",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  true,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+                                     {
+                                         "read":  1,
+                                         "raw":  -1,
+                                         "value":  true,
+                                         "selectionStart":  90,
+                                         "selectionEnd":  90,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     },
+                                     {
+                                         "read":  2,
+                                         "raw":  -1,
+                                         "value":  true,
+                                         "selectionStart":  90,
+                                         "selectionEnd":  90,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     }
+                                 ],
+                     "desktopWord":  true,
+                     "consistent":  true,
+                     "comparisonWithRound2":  "same",
+                     "readMethod":  "Selection.Font property with caret two characters into sentence twice",
+                     "rangeStart":  88,
+                     "rangeEnd":  101,
+                     "actualText":  "dstrike twice",
+                     "matchedCase":  "exact",
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  null,
+                     "observedAt":  "2026-09-07T14:14:07.0252238+08:00"
+                 },
+                 {
+                     "file":  "toggle-other-toggles-compat15.docx",
+                     "baseFile":  "toggle-other-toggles.docx",
+                     "sentence":  "dstrike once",
+                     "property":  "DoubleStrikeThrough",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  true,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+                                     {
+                                         "read":  1,
+                                         "raw":  -1,
+                                         "value":  true,
+                                         "selectionStart":  103,
+                                         "selectionEnd":  103,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     },
+                                     {
+                                         "read":  2,
+                                         "raw":  -1,
+                                         "value":  true,
+                                         "selectionStart":  103,
+                                         "selectionEnd":  103,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     }
+                                 ],
+                     "desktopWord":  true,
+                     "consistent":  true,
+                     "comparisonWithRound2":  "same",
+                     "readMethod":  "Selection.Font property with caret two characters into sentence twice",
+                     "rangeStart":  101,
+                     "rangeEnd":  113,
+                     "actualText":  "dstrike once",
+                     "matchedCase":  "exact",
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  null,
+                     "observedAt":  "2026-09-07T14:14:07.5333341+08:00"
+                 },
+                 {
+                     "file":  "toggle-other-toggles-compat15.docx",
+                     "baseFile":  "toggle-other-toggles.docx",
+                     "sentence":  "vanish twice",
+                     "property":  "Hidden",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  false,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+                                     {
+                                         "read":  1,
+                                         "raw":  0,
+                                         "value":  false,
+                                         "selectionStart":  114,
+                                         "selectionEnd":  126,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     },
+                                     {
+                                         "read":  2,
+                                         "raw":  0,
+                                         "value":  false,
+                                         "selectionStart":  114,
+                                         "selectionEnd":  126,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     }
+                                 ],
+                     "desktopWord":  false,
+                     "consistent":  true,
+                     "comparisonWithRound2":  "same",
+                     "readMethod":  "Selection.Font.Hidden with entire sentence selected twice, hidden display disabled",
+                     "rangeStart":  114,
+                     "rangeEnd":  126,
+                     "actualText":  "vanish twice",
+                     "matchedCase":  "exact",
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  null,
+                     "observedAt":  "2026-09-07T14:14:08.0386266+08:00"
+                 },
+                 {
+                     "file":  "toggle-other-toggles-compat15.docx",
+                     "baseFile":  "toggle-other-toggles.docx",
+                     "sentence":  "vanish once",
+                     "property":  "Hidden",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  true,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+                                     {
+                                         "read":  1,
+                                         "raw":  -1,
+                                         "value":  true,
+                                         "selectionStart":  126,
+                                         "selectionEnd":  137,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     },
+                                     {
+                                         "read":  2,
+                                         "raw":  -1,
+                                         "value":  true,
+                                         "selectionStart":  126,
+                                         "selectionEnd":  137,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     }
+                                 ],
+                     "desktopWord":  true,
+                     "consistent":  true,
+                     "comparisonWithRound2":  "same",
+                     "readMethod":  "Selection.Font.Hidden with entire sentence selected twice, hidden display disabled",
+                     "rangeStart":  126,
+                     "rangeEnd":  137,
+                     "actualText":  "vanish once",
+                     "matchedCase":  "exact",
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  null,
+                     "observedAt":  "2026-09-07T14:14:08.5464779+08:00"
+                 }
+             ],
+    "measuredAt":  "2026-09-07T14:14:09.0950761+08:00",
+    "note":  "Reads current document only; no open, save, conversion or close. GUI evidence remains unverified until actual screenshots are added. Selection remains at last measured point."
+}

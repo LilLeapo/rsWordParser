@@ -1,0 +1,76 @@
+﻿{
+    "case":  "move-resize",
+    "stage":  "after",
+    "path":  "C:\\word\\real-word-round3-20260907\\revfix\\move-resize\\after.docx",
+    "sha256":  "27E38D223755CE0673E05631380B31A7010F6B406252615A74B13B8A8A8066E0",
+    "sourcePath":  "C:\\word\\real-word-round3-20260907\\revfix\\move-resize\\before.docx",
+    "sourceSha256":  "388B5528F408DB3819498F34FCA4B8DD1616206D92379801F65F2E11F490CA10",
+    "operations":  [
+                       "Opened unchanged before.docx independently.",
+                       "Moved native floating picture 2cm right/down and halved width with aspect ratio locked through Word shape properties; precise COM equivalent, not a mouse drag."
+                   ],
+    "readout":  {
+                    "text":  "before 前文\rPicture anchor.\rafter 后文\r\r",
+                    "paragraphs":  [
+                                       {
+                                           "text":  "before 前文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "Picture anchor.\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "after 后文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       }
+                                   ],
+                    "revisions":  [
+
+                                  ],
+                    "revisionCount":  0,
+                    "sections":  [
+                                     {
+                                         "index":  1,
+                                         "start":  0,
+                                         "end":  37,
+                                         "orientation":  0,
+                                         "sectionStart":  2
+                                     }
+                                 ],
+                    "shapes":  [
+                                   {
+                                       "name":  "Round3 Picture 1",
+                                       "left":  56.8,
+                                       "top":  81.4,
+                                       "width":  60,
+                                       "height":  30,
+                                       "relativeHorizontal":  0,
+                                       "relativeVertical":  2,
+                                       "zOrder":  1,
+                                       "wrap":  0
+                                   }
+                               ],
+                    "pages":  1,
+                    "compatibility":  15,
+                    "trackMoves":  true,
+                    "trackFormatting":  true,
+                    "trackRevisions":  false
+                },
+    "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\revfix\\move-resize\\after.pdf",
+    "date":  "2026-09-07T13:57:59.9724242+08:00",
+    "method":  "Native Windows Word COM; DOCX saved once at this path; PDF export and current-document UI inspection afterward without save back.",
+    "uiPending":  true
+}

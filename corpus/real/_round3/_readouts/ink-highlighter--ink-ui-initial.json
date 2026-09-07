@@ -1,0 +1,74 @@
+{
+    "file":  "ink-highlighter--ink.docx",
+    "base":  "ink/ink-highlighter.docx",
+    "op":  "ink",
+    "expect":  "第一个文字段落**前方**压着一块 120 × 30 pt 的纯色浮动图片（偏移 15 / −3.75 pt），文字不被挤开",
+    "timestamp":  "2026-09-07T14:05:03.1483999+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\ink-highlighter--ink.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  4,
+                    "tables":  0,
+                    "comments":  0,
+                    "inline_shapes":  0,
+                    "shapes":  2,
+                    "first_table_rows":  null,
+                    "first_table_cells":  null,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+                           {
+                               "collection":  "Shapes",
+                               "index":  1,
+                               "type":  13,
+                               "width":  120,
+                               "height":  30,
+                               "name":  "aidocs-ink 2",
+                               "left":  15,
+                               "top":  -3.75,
+                               "relative_horizontal":  2,
+                               "relative_vertical":  2,
+                               "wrap_type":  3,
+                               "z_order":  1,
+                               "errors":  [
+
+                                          ]
+                           },
+                           {
+                               "collection":  "Shapes",
+                               "index":  2,
+                               "type":  23,
+                               "width":  157.4,
+                               "height":  0,
+                               "name":  "Ink 1",
+                               "left":  4.4,
+                               "top":  8.15,
+                               "relative_horizontal":  2,
+                               "relative_vertical":  2,
+                               "wrap_type":  3,
+                               "z_order":  2,
+                               "errors":  [
+
+                                          ]
+                           }
+                       ],
+    "text":  "before 前文\r这是一段用于观察原生墨迹的文字。\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+
+               ],
+    "errors":  [
+
+               ]
+}

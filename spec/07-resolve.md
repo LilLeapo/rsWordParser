@@ -55,7 +55,7 @@ toggle 属性：`b bCs i iCs caps smallCaps strike dstrike outline shadow emboss
    每个**层级**先按"子覆盖父"取一个值（`basedOn` 链内**不**计次数），层级之间才做异或。
    **`docDefaults` 不参与异或**，它只是没有任何样式层级声明时的底值——所以"整份文档只有 docDefaults 写 `b=true`"是**加粗**的，"docDefaults `b=true` + 段落样式 `b=true`"也是加粗的，而"docDefaults `b=true` + 段落样式 `w:b w:val="0"`"不加粗（都已在桌面版实测）。
 3. **与 ECMA-376 §17.7.3 的差异**：规范说的是"层级各样式中值为 true 的次数"，实测是"层级数"——`basedOn` 链上两层都 `b=true` 时 Word 仍然加粗。这属于 [MS-OI29500] 记录的 Word 偏差一类（该文档也记了 docDefaults、表格样式、多层 basedOn 的处理与 Word 版本相关）。
-4. 没测到的角：`bCs` / `iCs`（要 RTL 文本）；八份 fixture 没有 `settings.xml`，Word 以**兼容模式 12** 打开，兼容模式 15 下是否相同**未测**；两轮实测都是 LTSC 2021，Microsoft 365 未测。完整的未决清单见 **`docs/06-toggle-open-question.md`**，读数见 `fixtures/resolve/README.md`。
+4. 兼容模式无关：2026-09-07 第三轮用只多一个 `settings.xml`（`compatibilityMode = 15`）的 `doc-compat15.docx` 重测 25 个测点，读数与模式 12 **逐条相同**，另有 Word 自己「转换」出来的第三方交叉验证。没测到的角只剩 `bCs` / `iCs`（要 RTL 文本）与 Microsoft 365（三轮都是 LTSC 2021，项目负责人决定不测）。清单见 **`docs/06-toggle-open-question.md`**，读数见 `fixtures/resolve/README.md`。
 
 **来源（`RES-01`）**：toggle 的有效值可能由多个层级异或得出，那个值谁都没单独写过，所以来源是 `Provenance::Toggle { levels }`（`levels` 按最具体到最不具体列出参与的层）。只有一个层级参与、且有效值就是它写的那个值时才指那一层；直接格式一票定音时是 `Direct`。"只有 docDefaults 声明"也落到 `Toggle`——段落样式层会把 docDefaults 的值再贡献一次。
 

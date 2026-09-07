@@ -153,8 +153,9 @@ OneDrive 后用 Word 网页版打开，逐段把光标放进去，读功能区"�
 
 **这一轮的边界**（照抄 Windows 侧的说明，不放大）：
 
-- 八份 fixture 没有 `settings.xml`，Word 以**兼容模式 12** 打开（真实 Word 文档是 15）。兼容模式会不会改变
-  toggle 语义**没测**——这是现在最该补的一件，见 `docs/06-toggle-open-question.md`。
+- ~~八份 fixture 以兼容模式 12 打开，模式 15 未测~~ → **已复测（2026-09-07 第三轮）**：`doc-compat15.docx` 的
+  25 个测点与模式 12 **逐条相同**；另把模式 12 那份用 Word「文件 → 信息 → 转换」升到 15，12 个测点三方一致。
+  读数见 `corpus/real/_round3/TOGGLE15.md`。**规则与兼容模式无关。**
 - 重复读数以对象模型为主，没有对每一句手动开两次字体对话框；对话框截图只覆盖
   `strike twice` / `dstrike twice` / `vanish once`。
 - `vanish` 两句在 `expected.toml` 里断言不了：带 `vanish` 的段落被 `MOD-05` 的 R08 整段判成隐藏块
@@ -164,8 +165,7 @@ OneDrive 后用 Word 网页版打开，逐段把光标放进去，读功能区"�
 
 - **`bCs` / `iCs`**：复杂脚本孪生，要 `w:rtl` 的阿拉伯文 / 希伯来文才看得见，没测。
   跟着 `b` / `i` 走。
-- **兼容模式 15**：见上。
-- **Microsoft 365**：两轮都是 LTSC 2021，M365 的渲染没测。
+- **Microsoft 365**：三轮都是 LTSC 2021，M365 的渲染没测（项目负责人决定不测）。
 
 ### 换规则影响到哪
 

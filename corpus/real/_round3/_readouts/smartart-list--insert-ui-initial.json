@@ -1,0 +1,41 @@
+{
+    "file":  "smartart-list--insert.docx",
+    "base":  "smartart/smartart-list.docx",
+    "op":  "insert",
+    "expect":  "第一个文字段落以「rsword✎ 」开头，其余一切不变",
+    "timestamp":  "2026-09-07T14:32:24.1001461+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\smartart-list--insert.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  4,
+                    "tables":  0,
+                    "comments":  0,
+                    "inline_shapes":  1,
+                    "shapes":  0,
+                    "first_table_rows":  null,
+                    "first_table_cells":  null,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+
+                       ],
+    "text":  "rsword✎ before 前文\r/\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+
+               ],
+    "errors":  [
+
+               ]
+}

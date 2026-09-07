@@ -1,0 +1,641 @@
+{
+  "reviewedAt": "2026-09-07T06:29:53.705156+00:00",
+  "method": "Independent read-only review of prior/current raw JSON, hashes, converted DOCX CRC/XML, Markdown row structure and saved screenshots. No Word actions and no Task B report access.",
+  "visualScope": "Seven critical Font/conversion screenshots independently viewed and hash-bound below. Table, inherited header and converted-page screenshots also visually inspected; remaining page observations are attributed to the root operator.",
+  "reportSha256": "34FF4A8112963493891AB274A8B313BA9360C07ED37052656069CED47C951B54",
+  "summarySha256": "A1DE5E4013E25C254C4DECC00229F5E1E30185113772AA9F8D875C0F948A1AC4",
+  "conversionRecordSha256": "409CC94B729B81E6D94A5317F42A7650256E61A2947EC29C77B88E929F6963B4",
+  "checks": [
+    {
+      "check": "25 preserved prior points across eight fixtures",
+      "passed": true,
+      "actual": null
+    },
+    {
+      "check": "Every prior raw readout hash still matches round2",
+      "passed": true,
+      "actual": null
+    },
+    {
+      "check": "25 unique supplied-mode15 points exactly match round2 scope",
+      "passed": true,
+      "actual": null
+    },
+    {
+      "check": "Nine readout documents retain current source and reference hashes",
+      "passed": true,
+      "actual": null
+    },
+    {
+      "check": "All37 points have two independently validated consistent mode15 readings",
+      "passed": true,
+      "actual": null
+    },
+    {
+      "check": "All25 supplied plus12 converted readings match round2",
+      "passed": true,
+      "actual": null
+    },
+    {
+      "check": "Converted scope is exactly the12 other-toggle points",
+      "passed": true,
+      "actual": null
+    },
+    {
+      "check": "Summary preserves every raw primary measurement",
+      "passed": true,
+      "actual": null
+    },
+    {
+      "check": "Conversion source and initial working copy are byte-identical",
+      "passed": true,
+      "actual": null
+    },
+    {
+      "check": "Conversion output hash matches actual saved DOCX and source12/output15 COM modes",
+      "passed": true,
+      "actual": null
+    },
+    {
+      "check": "Converted DOCX CRC/XML and persisted compatibility15 setting",
+      "passed": true,
+      "actual": {
+        "xmlParts": 13
+      }
+    },
+    {
+      "check": "25 summary rows have actual referenced UI files",
+      "passed": true,
+      "actual": null
+    },
+    {
+      "check": "Seven independently viewed critical screenshots retain observed bytes",
+      "passed": true,
+      "actual": null
+    },
+    {
+      "check": "Markdown has25 complete five-column primary rows without embedded bare CR",
+      "passed": true,
+      "actual": null
+    },
+    {
+      "check": "Report primary and converted agreement summary is accurate",
+      "passed": true,
+      "actual": null
+    }
+  ],
+  "measurements": [
+    {
+      "file": "sections-inherit-default-compat15.docx",
+      "sentence": "第二页页眉",
+      "property": "HeaderDefault",
+      "raw": [
+        "第一节页眉\r",
+        "第一节页眉\r"
+      ],
+      "value": "第一节页眉",
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-based-on-two-levels-compat15.docx",
+      "sentence": "basedOn b + derived b",
+      "property": "Bold",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-based-on-two-levels-compat15.docx",
+      "sentence": "base b only",
+      "property": "Bold",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-direct-off-compat15.docx",
+      "sentence": "direct b=0 over style b",
+      "property": "Bold",
+      "raw": [
+        0,
+        0
+      ],
+      "value": false,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-direct-off-compat15.docx",
+      "sentence": "style b, no direct",
+      "property": "Bold",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-docdefaults-and-para-compat15.docx",
+      "sentence": "docDefaults b + para b",
+      "property": "Bold",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-docdefaults-and-para-compat15.docx",
+      "sentence": "docDefaults b only",
+      "property": "Bold",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-docdefaults-and-para-off-compat15.docx",
+      "sentence": "docDefaults b + para b=0",
+      "property": "Bold",
+      "raw": [
+        0,
+        0
+      ],
+      "value": false,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-docdefaults-and-para-off-compat15.docx",
+      "sentence": "docDefaults b only",
+      "property": "Bold",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-compat15.docx",
+      "sentence": "i twice",
+      "property": "Italic",
+      "raw": [
+        0,
+        0
+      ],
+      "value": false,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-compat15.docx",
+      "sentence": "i once",
+      "property": "Italic",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-compat15.docx",
+      "sentence": "strike twice",
+      "property": "StrikeThrough",
+      "raw": [
+        0,
+        0
+      ],
+      "value": false,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-compat15.docx",
+      "sentence": "strike once",
+      "property": "StrikeThrough",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-compat15.docx",
+      "sentence": "caps twice",
+      "property": "AllCaps",
+      "raw": [
+        0,
+        0
+      ],
+      "value": false,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-compat15.docx",
+      "sentence": "caps once",
+      "property": "AllCaps",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-compat15.docx",
+      "sentence": "smallcaps twice",
+      "property": "SmallCaps",
+      "raw": [
+        0,
+        0
+      ],
+      "value": false,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-compat15.docx",
+      "sentence": "smallcaps once",
+      "property": "SmallCaps",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-compat15.docx",
+      "sentence": "dstrike twice",
+      "property": "DoubleStrikeThrough",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-compat15.docx",
+      "sentence": "dstrike once",
+      "property": "DoubleStrikeThrough",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-compat15.docx",
+      "sentence": "vanish twice",
+      "property": "Hidden",
+      "raw": [
+        0,
+        0
+      ],
+      "value": false,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-compat15.docx",
+      "sentence": "vanish once",
+      "property": "Hidden",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-para-and-char-compat15.docx",
+      "sentence": "para b + char b",
+      "property": "Bold",
+      "raw": [
+        0,
+        0
+      ],
+      "value": false,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-para-and-char-compat15.docx",
+      "sentence": "para b only",
+      "property": "Bold",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-table-first-row-compat15.docx",
+      "sentence": "table firstRow b + para b",
+      "property": "Bold",
+      "raw": [
+        0,
+        0
+      ],
+      "value": false,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-table-first-row-compat15.docx",
+      "sentence": "table body + para b",
+      "property": "Bold",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-converted.docx",
+      "sentence": "i twice",
+      "property": "Italic",
+      "raw": [
+        0,
+        0
+      ],
+      "value": false,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-converted.docx",
+      "sentence": "i once",
+      "property": "Italic",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-converted.docx",
+      "sentence": "strike twice",
+      "property": "StrikeThrough",
+      "raw": [
+        0,
+        0
+      ],
+      "value": false,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-converted.docx",
+      "sentence": "strike once",
+      "property": "StrikeThrough",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-converted.docx",
+      "sentence": "caps twice",
+      "property": "AllCaps",
+      "raw": [
+        0,
+        0
+      ],
+      "value": false,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-converted.docx",
+      "sentence": "caps once",
+      "property": "AllCaps",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-converted.docx",
+      "sentence": "smallcaps twice",
+      "property": "SmallCaps",
+      "raw": [
+        0,
+        0
+      ],
+      "value": false,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-converted.docx",
+      "sentence": "smallcaps once",
+      "property": "SmallCaps",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-converted.docx",
+      "sentence": "dstrike twice",
+      "property": "DoubleStrikeThrough",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-converted.docx",
+      "sentence": "dstrike once",
+      "property": "DoubleStrikeThrough",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-converted.docx",
+      "sentence": "vanish twice",
+      "property": "Hidden",
+      "raw": [
+        0,
+        0
+      ],
+      "value": false,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    },
+    {
+      "file": "toggle-other-toggles-converted.docx",
+      "sentence": "vanish once",
+      "property": "Hidden",
+      "raw": [
+        -1,
+        -1
+      ],
+      "value": true,
+      "validRepeatedReading": true,
+      "sameAsRound2": true
+    }
+  ],
+  "evidence": [
+    {
+      "file": "screenshots/c-convert-action-0.jpg",
+      "sha256": "334F237573B0B5BA933FCA90D96135FC54A4086B6214DDB8162BDB77FBD0ED23"
+    },
+    {
+      "file": "screenshots/c-convert-completed-0.jpg",
+      "sha256": "5AB485DB6D0B25F1B4096FAE3829873AA153004A64478EAA95FCCD264B9D2469"
+    },
+    {
+      "file": "screenshots/c-convert-info-ready-0.jpg",
+      "sha256": "3FE5EAC9006AE5DA7350B2B479A9A6B4FEFD22FAF14219BE8E4A89DE23400339"
+    },
+    {
+      "file": "screenshots/c-convert-mode12-before-0.jpg",
+      "sha256": "E28816F14666BD58A9779F93191F13D8926E815F1130128D003692AD81A784D4"
+    },
+    {
+      "file": "screenshots/c-dstrike-twice-font-0.jpg",
+      "sha256": "6CB3DEDEC04C3594DE50A2C5B6921B5F82C9981FB81D1FDCB81B4E520A0D79D0"
+    },
+    {
+      "file": "screenshots/c-sections-inherit-default-compat15-0.jpg",
+      "sha256": "008CA7134CD1ABCBF2B50F6ECAC83D583344DD0EDDEA7356A2C96A12E1EF7611"
+    },
+    {
+      "file": "screenshots/c-strike-twice-font-0.jpg",
+      "sha256": "9CF14EC7B7455B2F3F78E0598BF92FFFF5E4E21D87CCBD3F76092760DBAA86F4"
+    },
+    {
+      "file": "screenshots/c-toggle-based-on-two-levels-compat15-0.jpg",
+      "sha256": "79709FCC8EA6FA4C325883E1FE18FFE328068FFCF094E55C4EC0522C6264A4F5"
+    },
+    {
+      "file": "screenshots/c-toggle-direct-off-compat15-0.jpg",
+      "sha256": "1EAF0F5C83686233E19118FE5F5AC0116A86B8A99FE0D041031EF79F7DB29AA0"
+    },
+    {
+      "file": "screenshots/c-toggle-docdefaults-and-para-compat15-0.jpg",
+      "sha256": "732C1DB006FFA2D17C55C1F122D79199D66878D03F3A9A4E976102B5CF9F2575"
+    },
+    {
+      "file": "screenshots/c-toggle-docdefaults-and-para-off-compat15-0.jpg",
+      "sha256": "270790160A26BE21F05D70F110DC30603BD0D1B98F544964F80CC2CBF71E3BFC"
+    },
+    {
+      "file": "screenshots/c-toggle-other-toggles-compat15-0.jpg",
+      "sha256": "09C9AE63121F446281D61169707AC3463A3F2A71DBC500CA766AD88DE457A0C0"
+    },
+    {
+      "file": "screenshots/c-toggle-para-and-char-compat15-0.jpg",
+      "sha256": "E4BEA505E3B779833FE2C460141F2C505927142237A1F89055D1C19BCDC13A13"
+    },
+    {
+      "file": "screenshots/c-toggle-table-first-row-compat15-0.jpg",
+      "sha256": "17C50DD25E07C299D5BDD45905ADCEFC01E1727AFA252240CE9E1AA6EFB030DF"
+    },
+    {
+      "file": "screenshots/c-vanish-once-font-0.jpg",
+      "sha256": "4F52A6E8A7D7DE4498E9ED888907B933E0076A38B42520D9143158293ABC9A97"
+    }
+  ],
+  "independentVisualReview": [
+    {
+      "file": "screenshots/c-strike-twice-font-0.jpg",
+      "sha256": "9CF14EC7B7455B2F3F78E0598BF92FFFF5E4E21D87CCBD3F76092760DBAA86F4",
+      "observed": "Native Font dialog for strike: single and double strike boxes are unchecked; preview has no strike line.",
+      "current": true
+    },
+    {
+      "file": "screenshots/c-dstrike-twice-font-0.jpg",
+      "sha256": "6CB3DEDEC04C3594DE50A2C5B6921B5F82C9981FB81D1FDCB81B4E520A0D79D0",
+      "observed": "Native Font dialog: double strike checked; single strike unchecked; dstrike preview visibly double-struck.",
+      "current": true
+    },
+    {
+      "file": "screenshots/c-vanish-once-font-0.jpg",
+      "sha256": "4F52A6E8A7D7DE4498E9ED888907B933E0076A38B42520D9143158293ABC9A97",
+      "observed": "Native Font dialog: Hidden checked. The underlying page shows vanish twice and no vanish once.",
+      "current": true
+    },
+    {
+      "file": "screenshots/c-convert-mode12-before-0.jpg",
+      "sha256": "E28816F14666BD58A9779F93191F13D8926E815F1130128D003692AD81A784D4",
+      "observed": "Working document title explicitly shows compatibility mode before conversion. The screenshot alone does not give the numeric12 value; that value comes from COM.",
+      "current": true
+    },
+    {
+      "file": "screenshots/c-convert-info-ready-0.jpg",
+      "sha256": "3FE5EAC9006AE5DA7350B2B479A9A6B4FEFD22FAF14219BE8E4A89DE23400339",
+      "observed": "Word File Info page shows the working filename, Compatibility Mode panel and Convert button.",
+      "current": true
+    },
+    {
+      "file": "screenshots/c-convert-action-0.jpg",
+      "sha256": "334F237573B0B5BA933FCA90D96135FC54A4086B6214DDB8162BDB77FBD0ED23",
+      "observed": "Native Word confirmation states the document will be upgraded to the latest file format, with OK and Cancel buttons.",
+      "current": true
+    },
+    {
+      "file": "screenshots/c-convert-completed-0.jpg",
+      "sha256": "5AB485DB6D0B25F1B4096FAE3829873AA153004A64478EAA95FCCD264B9D2469",
+      "observed": "After conversion the working document title no longer shows compatibility mode; body appearance remains consistent with the preconversion view.",
+      "current": true
+    }
+  ],
+  "preservedHistoricalLimit": "Round2 toggle-para-and-char has no numeric compatibility-mode reading. Its prior titlebar showed compatibility mode; no exact historical number is fabricated.",
+  "passed": true
+}

@@ -1,0 +1,74 @@
+{
+    "file":  "canvas-floating--newimage.docx",
+    "base":  "canvas/canvas-floating.docx",
+    "op":  "newimage",
+    "expect":  "第一个文字段落之后多了一块 108 × 54 pt 的纯色小图，四周型环绕靠右",
+    "timestamp":  "2026-09-07T14:33:02.9419483+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\canvas-floating--newimage.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  5,
+                    "tables":  0,
+                    "comments":  0,
+                    "inline_shapes":  0,
+                    "shapes":  2,
+                    "first_table_rows":  null,
+                    "first_table_cells":  null,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+                           {
+                               "collection":  "Shapes",
+                               "index":  1,
+                               "type":  13,
+                               "width":  108,
+                               "height":  54,
+                               "name":  "Picture 2",
+                               "left":  -999996,
+                               "top":  0,
+                               "relative_horizontal":  2,
+                               "relative_vertical":  2,
+                               "wrap_type":  0,
+                               "z_order":  1,
+                               "errors":  [
+
+                                          ]
+                           },
+                           {
+                               "collection":  "Shapes",
+                               "index":  2,
+                               "type":  20,
+                               "width":  360,
+                               "height":  200,
+                               "name":  "canvas-floating",
+                               "left":  65,
+                               "top":  0,
+                               "relative_horizontal":  0,
+                               "relative_vertical":  2,
+                               "wrap_type":  0,
+                               "z_order":  2,
+                               "errors":  [
+
+                                          ]
+                           }
+                       ],
+    "text":  "before 前文\r\r \rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+
+               ],
+    "errors":  [
+
+               ]
+}

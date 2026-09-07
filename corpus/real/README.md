@@ -26,3 +26,10 @@ corpus/real/
   **同一目标有多份时按 `DELIVERY-2026-09-07.md`「推荐版本」表选**：带数字后缀的多半是修正版，无后缀的首版有的是失败试件
   （箱线图例外：首版可见、`-2` 空白）。这些试件都保留——它们同样是 Word 写出的合法文档，往返与差分门照样覆盖。
 - 接入结果见 `docs/04` §15「真实 Word 语料接入」：三条门 124 / 124 通过，TS 差分 0 处未知（登记 235 处）。
+
+- **2026-09-07 第三轮（收尾）**（任务书 `docs/09-real-word-round3.md`，报告在 `_round3/`）：同一台 LTSC 2021。
+  ① Word 自己做「接受 / 拒绝所有修订」与四种编辑操作的对照件 → 已接进 `fixtures/revisions/` 与 `fixtures/word-ops/`
+  （M7 门第 3 条的 oracle，说明见那两个目录的 `README.md`）；② 1544 份编辑后文档复验（`_round3/EDITED3.md`），
+  第二轮的 9 份恢复提示与 4 份图表 mismatch 全部通过；③ 兼容模式 15 下重测 toggle（`_round3/TOGGLE15.md`，25/25 与模式 12 相同）；
+  ④ 补缺两份：`ink/ink-to-shape-2.docx`（一笔仍未转成圆，工具限制，保留试件）、`revisions2/comment-nesting.docx`
+  （Word 保存出来的回复只有一层——这是 OOXML 的事实，见 `spec/18` 门第 3 条）。

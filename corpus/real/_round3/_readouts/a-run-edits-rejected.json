@@ -1,0 +1,66 @@
+﻿{
+    "case":  "run-edits",
+    "stage":  "rejected",
+    "path":  "C:\\word\\real-word-round3-20260907\\revfix\\run-edits\\rejected.docx",
+    "sha256":  "7FC80213F7B88B0755AD8345E3DC6138E4D94CDCC2884B88180777F1704D1895",
+    "sourcePath":  "C:\\word\\real-word-round3-20260907\\revfix\\run-edits\\tracked.docx",
+    "sourceSha256":  "5508D824291428D2D537B6873E725EF5BF55C5E9DA3EE2E1BE3BA3C0EC565281",
+    "operations":  [
+                       "Opened unchanged tracked.docx independently.",
+                       "Word Document.RejectAllRevisions from the same tracked file; not Undo-based."
+                   ],
+    "readout":  {
+                    "text":  "before 前文\r第一句原文。第二句原文。第三句原文。\rafter 后文\r\r",
+                    "paragraphs":  [
+                                       {
+                                           "text":  "before 前文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "第一句原文。第二句原文。第三句原文。\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "after 后文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       }
+                                   ],
+                    "revisions":  [
+
+                                  ],
+                    "revisionCount":  0,
+                    "sections":  [
+                                     {
+                                         "index":  1,
+                                         "start":  0,
+                                         "end":  39,
+                                         "orientation":  0,
+                                         "sectionStart":  2
+                                     }
+                                 ],
+                    "shapes":  [
+
+                               ],
+                    "pages":  1,
+                    "compatibility":  15,
+                    "trackMoves":  true,
+                    "trackFormatting":  true,
+                    "trackRevisions":  true
+                },
+    "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\revfix\\run-edits\\rejected.pdf",
+    "date":  "2026-09-07T13:47:51.2372782+08:00",
+    "method":  "Native Windows Word COM; DOCX saved once at this path; PDF export and current-document UI inspection afterward without save back.",
+    "uiPending":  true
+}

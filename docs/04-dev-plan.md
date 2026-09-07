@@ -319,6 +319,7 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | 墨迹的判据 | TS `stripInkRuns` / `findInkRuns` 的正则要求 `<w:r><w:drawing><wp:anchor` 紧邻（run 不能有 `rPr`） | 结构判据：`w:drawing` 下的 `wp:anchor` 里有 `wp:docPr/@name` 以 `aidocs-ink` 开头，run 里有没有 `w:rPr` 不管 | 前缀才是语义；带 `rPr` 的墨迹 run 在 TS 里会退成图片块，是正则的副作用不是设计（6.8） |
 | 墨迹锚点不是段落 | TS 静默跳过 | 跳过 + `EDIT_BAD_POSITION` 诊断；同样不分配媒体与关系 | 调用方要知道这条墨迹没写进去（6.8） |
 | 内联容器嵌套过深的段落 | `MOD-07`「块容器超过 64 层的子树降级为 `TooDeep`」；内联容器过深时原来只把那个容器换成一个 `Other` 原子、段落仍是 `Text` | 整段降级为 `Protected(TooDeep)`（`Builder.inline_too_deep`，宿主段落连带） | 深处的文字没进内联模型，段落若仍可编辑，一次 `ReplaceInlines` 就会把它们无声删掉；只读 + 字节原样才安全。TS 对解析不了的段落也是整段 passthrough（`hostile-input__005`，6.9） |
+| `EDIT-03 DeleteBlock` 删到跨段字段的一端 | `spec/08` 只说"`Deleted`" | 块里只有某个字段的一端（另一端在块外）→ `Err(EDIT_SPLIT_FIELD)`，状态不动 | 删了会把另一端留成孤儿，`FLD_STRAY_END` 是引擎自己造成的缺陷，于是**每次**保存都失败、整个会话再也存不下去。`EDIT-05` 的"拒绝即无副作用"比"先接受后锁死"好得多；要删整个字段走 `UpdateBlockField`（真实 Word 语料 `fields-toc-stale` 的 TOC 横跨四个块，`docs/09` 第三轮发现） |
 | `EDIT-06` `wp:docPr/@id` 的扫描范围 | 语义遍历（`mc:Choice` 只看生效的那支） | 扫**全部**未删节点，含不理解的 `mc:Choice` 与 `mc:Fallback` | id 的唯一性是整个 part 的事，与 MCE 选哪支无关。Word 原生墨迹（`Requires="wpi"`）的 `docPr id="1"` 就藏在语义遍历看不见的分支里，撞号后 Word 打开弹恢复提示——桌面 Word 第二轮核对里 9 份失败全是这个（`corpus/real/_round2/EDITED.md`） |
 | `EDIT-03 SetChartData` 的值容器 | TS `patchChartPartXml` 只认 `c:val` | `c:val`，没有时退到 `c:yVal`（散点 / 气泡图） | 读侧（`ChartPart::build`）一直是 `c:val ?? c:yVal`，写侧只认 `c:val` 会让「读得出来的值改不动」；TS 自己的读侧也是两者都认，写侧漏了 |
 | `EDIT-03 SetChartData` 遇到没有 `c:title` 元素的图表 | TS 什么都不做（请求静默丢弃） | 按 `CT_Chart` 顺序新建一个 `c:title` 插在 `c:chart` 最前 | 与 chartex / `ReplacePart` 同一条政策：静默吞掉一次编辑比报错或补全更糟。Word 的「无标题」图表就是删掉这个元素（`corpus/real/chart/chart-no-title`） |
@@ -1302,6 +1303,25 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   `tcPrChange` / `sectPrChange` / 接受拒绝、SEQ / XE+INDEX / 过期 TOC / CITATION / 页脚 PAGE、四种分节符、z-order、链接文本框）。
   真实语料 124 → 194 份（含 53 份 Word 另存件），三条往返门 194 / 194 通过；新增的 48 处 TS 差分全是**已登记**的
   `FLD-08` 块字段结果段落差异（原登记把块下标写死成 `blocks[9]`，改成按路径登记）。
+- [x] **真实 Word 第三轮（收尾）：M7 的 Word 对照件、兼容模式复测、三处修复的复验**（2026-09-07，任务书 `docs/09`，
+  交付报告 `corpus/real/_round3/`）：**逐项复算过交付**——四个修订 case 的"拒绝后逐段文字 == 底稿"「接受后 != 底稿」
+  「接受 / 拒绝后一个修订标记都不剩」我自己算了一遍；四组前后对照的 `sectPr` / `relativeHeight` / `posOffset` / `extent`
+  变化也复算过；批注嵌套与墨迹转形状两项"未达成"独立复核后确认**是 Word / 工具的限制而不是对方偷工**。
+  ① **M7 门第 3 条的 fixture 就位**：`fixtures/revisions/{run-edits,para-split-merge,table-and-move,tracked-two-authors}/`
+  各四态（`base` / `tracked` / `accepted` / `rejected`，全部 Word 自己保存），外加 `fixtures/word-ops/` 四组"Word 自己做
+  这个操作"的前后对照（插 / 删分节符、置于顶层、移动缩放）——把 M7 7.6 / 7.7 原本要人工核对的两项也变成了可自动比对的样本。
+  三条写测试前必须知道的 Word 行为写进了 `spec/18` 门第 3 条（`ModelFingerprint` 要忽略 run 边界；「拒绝所有修订」
+  **不撤销**单元格合并；批注没有真正的两层嵌套）。
+  ② **兼容模式那条未决项关闭**：`gen-fixtures` 新生成只多一个 `settings.xml`（`compatibilityMode = 15`）的
+  `doc-compat15.docx`，25 个测点在模式 15 下与模式 12 **逐条相同**，另有 Word 自己「转换」出来的三方交叉验证——
+  `RES-04` 的规则与兼容模式无关，`docs/06` 这条线上再无未决项。
+  ③ **三处修复得到 Word 确认**：1544 份编辑后文档 open 全 ok；第二轮弹恢复提示的 9 份墨迹文档这一轮 **9 / 9 无提示**；
+  4 份图表文档的标题与 `c:yVal` 都对上了。7 处 `--ink` 计数 mismatch 经我独立复算是**对方检测器的假阳性**
+  （`inks` 是权威列表，数量不变而非 +1）——顺带证实了一件事：Word 另存过我们的墨迹层之后，本引擎的**结构判据**
+  仍然认得它（替换而非叠加），当初不用正则是对的。
+  ④ 它还抓到一个新的真 bug：`DeleteBlock` 删掉块字段的一端后**保存时**才报 `FLD_STRAY_END`，会话从此存不下去
+  （`fields-toc-stale--deleteblock` 生成失败）。改成 apply 时就拒绝（§8，回归测试在 `tests/field.rs`）。
+  真实语料 194 → 266 份，九道门全部 0 未知差异（新增 4 处已登记：墨迹独占一段时差异落在块本身）。
 - [x] **6.9 恶意输入、fuzz、全域收尾与 M6 门**（2026-09-06）：六份 hostile（m6.0a 已进语料）补上共同底线的用例——解析成功、
   无引擎不变式破坏、无编辑保存字节相同（`tests/embedded.rs`；各域的降级断言早在 6.1–6.8 的测试里）；`fuzz/fuzz_targets/
   fuzz_embedded.rs`（任意字节 → `Dom::parse` → `ChartPart::build` / `diagram_text` / `diagram_shapes` / 每个 `m:oMath` 的 `tokens` /

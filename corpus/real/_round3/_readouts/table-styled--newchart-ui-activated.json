@@ -1,0 +1,97 @@
+{
+    "file":  "table-styled--newchart.docx",
+    "base":  "table/table-styled.docx",
+    "op":  "newchart",
+    "expect":  "第一个文字段落之后多了一张簇状柱形图「rsword 新图表」（甲 3 / 乙 1 / 丙 2）；右键「编辑数据」能打开内嵌工作簿",
+    "timestamp":  "2026-09-07T14:35:20.7453538+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\table-styled--newchart.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  23,
+                    "tables":  1,
+                    "comments":  0,
+                    "inline_shapes":  1,
+                    "shapes":  0,
+                    "first_table_rows":  3,
+                    "first_table_cells":  8,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+                   {
+                       "collection":  "InlineShapes",
+                       "index":  1,
+                       "shape_type":  12,
+                       "has_chart":  -1,
+                       "detection":  "has_chart",
+                       "detection_error":  null,
+                       "before":  {
+                                      "title":  "rsword 新图表",
+                                      "series_name":  "系列 A",
+                                      "first_series_values":  [
+                                                                  3,
+                                                                  1,
+                                                                  2
+                                                              ],
+                                      "errors":  [
+
+                                                 ]
+                                  },
+                       "activation":  "ok",
+                       "activation_error":  null,
+                       "workbook_name":  "Microsoft Word 中的图表",
+                       "workbook_first_sheet":  "Sheet1",
+                       "workbook_used_range_values":  [
+                                                          [
+                                                              "",
+                                                              "系列 A"
+                                                          ],
+                                                          [
+                                                              "甲",
+                                                              3
+                                                          ],
+                                                          [
+                                                              "乙",
+                                                              1
+                                                          ],
+                                                          [
+                                                              "丙",
+                                                              2
+                                                          ]
+                                                      ],
+                       "workbook_read_error":  null,
+                       "workbook_close_error":  null,
+                       "after":  {
+                                     "title":  "rsword 新图表",
+                                     "series_name":  "系列 A",
+                                     "first_series_values":  [
+                                                                 3,
+                                                                 1,
+                                                                 2
+                                                             ],
+                                     "errors":  [
+
+                                                ]
+                                 },
+                       "values_changed_after_activate":  false
+                   }
+               ],
+    "shape_geometry":  [
+
+                       ],
+    "text":  "before 前文\r/\rR1 C1\rR1 C2\r\u0007R1 C3\r\u0007\r\u0007R2 C1\r\u0007R2 C2\r\u0007R2 C3\r\u0007\r\u0007R3 C1\r\u0007R3 C2\r\u0007N11\r\u0007N12\r\u0007\r\u0007N21\r\u0007N22\r\u0007\r\u0007R3 C3\r\u0007\r\u0007\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+
+               ],
+    "errors":  [
+
+               ]
+}

@@ -1,0 +1,15 @@
+﻿{
+    "comments":  [
+
+                 ],
+    "compat":  15,
+    "sha256":  "CFEF5A80050920542270726F418C959C3C7D0F9C72676C334B4B511CEE4233D4",
+    "file":  "ink2/ink-to-shape-2.docx",
+    "shapes":  [
+                   {
+                       "autoShapeType":  -2,
+                       "name":  "Ink 1",
+                       "type":  23
+                   }
+               ]
+}

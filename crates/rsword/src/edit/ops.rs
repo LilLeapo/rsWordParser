@@ -1136,6 +1136,24 @@ fn delete_block(s: &mut EditSession, part: Option<PartId>, node: NodeId) -> Resu
     if (node.0 as usize) >= dom.node_count() || dom.node(node).dirty == Dirty::Deleted {
         return Err(Error::edit(DiagCode::EditBadPosition, "块不存在或已删除"));
     }
+    // `FLD-13`：这个块里带着某个字段的一端、另一端在块外（TOC / INDEX / BIBLIOGRAPHY 这类跨段的块字段
+    // 最常见）。删掉它会把另一端留成孤儿，`FLD_STRAY_END` 是引擎自己造成的缺陷，于是**每次**保存都失败、
+    // 整个会话再也存不下去。在这里拒绝，`EDIT-05` 保证状态一点没动；要删整个字段请走 `UpdateBlockField`。
+    // （真实 Word 语料 `fields-toc-stale` 撞到的，`docs/09` 第三轮。）
+    if let Some(idx) = s.document().fields_in(s.part_or_main(part)) {
+        let inside = |n: NodeId| n == node || dom.ancestors(n).any(|a| a == node);
+        if let Some(f) =
+            idx.fields().iter().find(|f| inside(f.form.head()) != inside(f.form.tail()))
+        {
+            return Err(Error::edit(
+                DiagCode::EditSplitField,
+                format!(
+                    "这个块只含 {:?} 字段的一端，删掉它会让另一端变成孤儿；要删整个字段请用 UpdateBlockField",
+                    f.keyword()
+                ),
+            ));
+        }
+    }
     let mut plan = MutationPlan::new(s.part_or_main(part));
     plan.structure_changed = true;
     plan.node_edits.push(NodeEdit::Delete(node));

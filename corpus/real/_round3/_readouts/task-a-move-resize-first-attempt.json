@@ -1,0 +1,6 @@
+﻿{
+    "stack":  "at New-RevisionStage, C:\\word\\real-word-round3-20260907\\_scripts\\task-a.ps1: line 118\r\nat \u003cScriptBlock\u003e, \u003cNo file\u003e: line 1\r\nat \u003cScriptBlock\u003e, C:\\word\\real-word-round3-20260907\\_scripts\\word-worker.ps1: line 25",
+    "ok":  false,
+    "error":  "Specified cast is not valid.",
+    "id":  "a-move-resize-after"
+}

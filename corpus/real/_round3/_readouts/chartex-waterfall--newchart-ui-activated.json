@@ -1,0 +1,174 @@
+{
+    "file":  "chartex-waterfall--newchart.docx",
+    "base":  "chart/chartex-waterfall.docx",
+    "op":  "newchart",
+    "expect":  "第一个文字段落之后多了一张簇状柱形图「rsword 新图表」（甲 3 / 乙 1 / 丙 2）；右键「编辑数据」能打开内嵌工作簿",
+    "timestamp":  "2026-09-07T14:49:56.6269535+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\chartex-waterfall--newchart.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  5,
+                    "tables":  0,
+                    "comments":  0,
+                    "inline_shapes":  1,
+                    "shapes":  1,
+                    "first_table_rows":  null,
+                    "first_table_cells":  null,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+                   {
+                       "collection":  "InlineShapes",
+                       "index":  1,
+                       "shape_type":  12,
+                       "has_chart":  -1,
+                       "detection":  "has_chart",
+                       "detection_error":  null,
+                       "before":  {
+                                      "title":  "rsword 新图表",
+                                      "series_name":  "系列 A",
+                                      "first_series_values":  [
+                                                                  3,
+                                                                  1,
+                                                                  2
+                                                              ],
+                                      "errors":  [
+
+                                                 ]
+                                  },
+                       "activation":  "ok",
+                       "activation_error":  null,
+                       "workbook_name":  "Microsoft Word 中的图表",
+                       "workbook_first_sheet":  "Sheet1",
+                       "workbook_used_range_values":  [
+                                                          [
+                                                              "",
+                                                              "系列 A"
+                                                          ],
+                                                          [
+                                                              "甲",
+                                                              3
+                                                          ],
+                                                          [
+                                                              "乙",
+                                                              1
+                                                          ],
+                                                          [
+                                                              "丙",
+                                                              2
+                                                          ]
+                                                      ],
+                       "workbook_read_error":  null,
+                       "workbook_close_error":  null,
+                       "after":  {
+                                     "title":  "rsword 新图表",
+                                     "series_name":  "系列 A",
+                                     "first_series_values":  [
+                                                                 3,
+                                                                 1,
+                                                                 2
+                                                             ],
+                                     "errors":  [
+
+                                                ]
+                                 },
+                       "values_changed_after_activate":  false
+                   },
+                   {
+                       "collection":  "Shapes",
+                       "index":  1,
+                       "shape_type":  3,
+                       "has_chart":  -1,
+                       "detection":  "has_chart",
+                       "detection_error":  null,
+                       "before":  {
+                                      "title":  "销售统计",
+                                      "series_name":  "Value",
+                                      "first_series_values":  null,
+                                      "errors":  [
+                                                     {
+                                                         "stage":  "chart.first_series_values",
+                                                         "error":  {
+                                                                       "message":  "Chart first-series Values returned null.",
+                                                                       "exception":  "System.Management.Automation.RuntimeException: Chart first-series Values returned null.",
+                                                                       "error_record":  "Chart first-series Values returned null.\r\nAt C:\\word\\real-word-round3-20260907\\_scripts\\edited3-common.ps1:104 char:34\r\n+ ... ull -eq $values) { throw \u0027Chart first-series Values returned null.\u0027 }\r\n+                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : OperationStopped: (Chart first-series Values returned null.:String) [], RuntimeException\r\n    + FullyQualifiedErrorId : Chart first-series Values returned null.",
+                                                                       "hresult":  -2146233087,
+                                                                       "category":  "OperationStopped: (Chart first-series Values returned null.:String) [], RuntimeException",
+                                                                       "fully_qualified_error_id":  "Chart first-series Values returned null."
+                                                                   }
+                                                     }
+                                                 ]
+                                  },
+                       "activation":  "ok",
+                       "activation_error":  null,
+                       "workbook_name":  "Microsoft Word 中的图表",
+                       "workbook_first_sheet":  "Sheet1",
+                       "workbook_used_range_values":  [
+                                                          [
+                                                              "Category",
+                                                              "Subcategory",
+                                                              null,
+                                                              "Value"
+                                                          ],
+                                                          [
+                                                              "Group A",
+                                                              "Item 1",
+                                                              null,
+                                                              10
+                                                          ],
+                                                          [
+                                                              "Group A",
+                                                              "Item 2",
+                                                              null,
+                                                              20
+                                                          ],
+                                                          [
+                                                              "Group B",
+                                                              "Item 3",
+                                                              null,
+                                                              30
+                                                          ]
+                                                      ],
+                       "workbook_read_error":  null,
+                       "workbook_close_error":  null,
+                       "after":  {
+                                     "title":  "销售统计",
+                                     "series_name":  "Value",
+                                     "first_series_values":  null,
+                                     "errors":  [
+                                                    {
+                                                        "stage":  "chart.first_series_values",
+                                                        "error":  {
+                                                                      "message":  "Chart first-series Values returned null.",
+                                                                      "exception":  "System.Management.Automation.RuntimeException: Chart first-series Values returned null.",
+                                                                      "error_record":  "Chart first-series Values returned null.\r\nAt C:\\word\\real-word-round3-20260907\\_scripts\\edited3-common.ps1:104 char:34\r\n+ ... ull -eq $values) { throw \u0027Chart first-series Values returned null.\u0027 }\r\n+                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : OperationStopped: (Chart first-series Values returned null.:String) [], RuntimeException\r\n    + FullyQualifiedErrorId : Chart first-series Values returned null.",
+                                                                      "hresult":  -2146233087,
+                                                                      "category":  "OperationStopped: (Chart first-series Values returned null.:String) [], RuntimeException",
+                                                                      "fully_qualified_error_id":  "Chart first-series Values returned null."
+                                                                  }
+                                                    }
+                                                ]
+                                 },
+                       "values_changed_after_activate":  null
+                   }
+               ],
+    "shape_geometry":  [
+
+                       ],
+    "text":  "before 前文\r/\r/\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+
+               ],
+    "errors":  [
+
+               ]
+}

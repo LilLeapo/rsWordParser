@@ -105,9 +105,9 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
-| 源码行数 / 文件数 | 67,514 行 / 160 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 502（单元 + 集成，39 个集成测试文件） | `cargo test --workspace` |
-| 语料 | **194 份真实 Word 文档**（`corpus/real`：任务 A 110 + M7 语料 17 + 往返样本 14 + Word 另存件 53，2026-09-07 两轮）+ 799 份 synthetic（每份带 `expected.json`；其中 226 份是 M6 的嵌入对象语料 `m6-*`）+ 208 份 `save.<k>.json` + 32 份 hostile（含 4 份绘图、2 份表格、4 份页眉页脚 / 节、6 份嵌入对象） | `ls corpus/*` |
+| 源码行数 / 文件数 | 67,591 行 / 160 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
+| 测试数 | 503（单元 + 集成，39 个集成测试文件） | `cargo test --workspace` |
+| 语料 | **266 份真实 Word 文档**（`corpus/real`，2026-09-07 三轮）+ **32 份 Word 对照 fixture**（`fixtures/{revisions,word-ops}`：Word 自己做操作的前后 / 四态）+ 799 份 synthetic（每份带 `expected.json`；其中 226 份是 M6 的嵌入对象语料 `m6-*`）+ 208 份 `save.<k>.json` + 32 份 hostile（含 4 份绘图、2 份表格、4 份页眉页脚 / 节、6 份嵌入对象） | `ls corpus/*` |
 | 往返字节保真 | 593 份文档、3,140 个 XML part 全部字节相同（3 个 part 按预期解析失败：两份不闭合 XML + 二进制页眉） | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
 | 模型对照 | 445 段类型 / styleId、387 段坐标流文本、22 项列表、9 项级别 | `tests/model.rs` |
@@ -121,8 +121,9 @@ let bytes = s.save_with(&outcome.save_options)?;
 | resolve 校准 fixture | 8 份（7 个 toggle + 1 个节继承）全部 `verified = true`，观察值来自 2026-09-06 的 Word 网页版实测（方法与结论见 `fixtures/resolve/README.md`，未决部分见 `docs/06-toggle-open-question.md`） | `cargo test -p rsword --test resolve_fixtures` |
 | 页眉页脚 / 节的随机序列 | 10 份语料 × 100 步（页眉段落内联编辑 + 五个节 / 页眉页脚操作）：986 次生效、10 次被拒，每步 `refresh == rebuild`、无引擎不变式破坏 | `cargo test -p rsword --test hf_ops -- --nocapture` |
 | 保存差分 | 208 份 TS 保存用例：204 份与 `saveDocx` 等价（其中 43 份逐字节相同）、4 份有意不同、0 份跳过 | `tests/save_blocks.rs` |
-| **真实 Word 语料** | 194 份（Office LTSC 2021 桌面 Word 写出，两轮：`docs/07` 任务 A 110 + `docs/08` 的 M7 语料 17 + 往返样本 14 + Word 另存件 53）：全部 XML part 往返字节相同、无编辑保存字节相同、改一字后其他条目 CRC 不变；TS 差分 0 处未知（登记 389 处，绝大多数是 TS 不认画布 / 原生墨迹 / EMF、以及 `FLD-08` 块字段结果段落的差异） |
-| **Word 验收本引擎的输出** | 944 份编辑后文档（12 种编辑 × 110 份真实底稿）由桌面 Word 逐份打开：935 份正常、9 份因 `wp:docPr/@id` 撞号弹恢复提示（已修）；4 条图表 mismatch 也是真 bug（`c:yVal`、缺 `c:title`，已修）。见 `corpus/real/_round2/EDITED.md` | `cargo test -p rsword --test xml_roundtrip --test save`、`cargo run -p diff-parse -- --corpus corpus/real` |
+| **真实 Word 语料** | 266 份（Office LTSC 2021 桌面 Word 写出，三轮：`docs/07` 任务 A 110 + M7 语料 17 + 往返样本 14 + Word 另存件 123 + 收尾轮 2）：全部 XML part 往返字节相同、无编辑保存字节相同、改一字后其他条目 CRC 不变；TS 差分 0 处未知（登记 547 处） | `cargo test -p rsword --test xml_roundtrip --test save`、`cargo run -p diff-parse -- --corpus corpus/real` |
+| **Word 验收本引擎的输出** | 1544 份编辑后文档（12 种编辑 × 180 份真实底稿）由桌面 Word 逐份打开：**open 全部 ok**；第二轮那 9 份 `docPr` 撞号与 4 份图表 mismatch 都已修并在第三轮 9/9、4/4 复验通过。见 `corpus/real/_round3/EDITED3.md` |
+| **Word 对照 fixture** | `fixtures/revisions/` 四个 case 各 `base`/`tracked`/`accepted`/`rejected`（Word 自己「接受 / 拒绝所有修订」的结果，M7 门第 3 条的 oracle）；`fixtures/word-ops/` 四组 Word 自己做操作的 `before`/`after`（插 / 删分节符、置于顶层、移动缩放） | `fixtures/{revisions,word-ops}/README.md` | `cargo test -p rsword --test xml_roundtrip --test save`、`cargo run -p diff-parse -- --corpus corpus/real` |
 | 嵌入对象的随机序列 | 5 份图表 + 5 份图片语料 × 100 步（图表数据 / 新图表 / 新图片 / 换图 / 墨迹增删 / 删块 / 插字）：633 次生效、0 次被拒、36 次保存，每步 `refresh == rebuild`、保存后无新的悬空关系与孤儿 part | `cargo test -p rsword --test embedded_ops -- --nocapture` |
 | 节与页眉页脚 | 573 份 588 个节（与 TS `readSections` 逐份一致）；43 份带页眉页脚 part（47 个 part / 63 个块，`rId` 集合与 `hasPageNumber` 与 TS 一致）；26 个注释 / 批注条目 32 个块 | `cargo test -p rsword --test section --test hf --test notes -- --nocapture` |
 | 节与页眉页脚的编辑操作 | 14 个用例（`SAVE-05` 页眉版、已有 part 只重写该 part、`PROP-05/06` 插入位置与原字节、Strict 水印拒绝、六个操作各一组 XPath 断言、`MOD-13` oracle；另加 4 份 hostile 与 `TEST-07` 的 10 × 100 步随机序列） | `cargo test -p rsword --test hf_ops` |
@@ -201,7 +202,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 ```sh
 cargo fmt --all --check && cargo clippy --workspace --all-targets   # 零告警
-cargo test --workspace && cargo test --workspace --release          # 502 个测试，两种构建
+cargo test --workspace && cargo test --workspace --release          # 503 个测试，两种构建
 cargo run -p diff-parse -- --scope text                             # M1 门第一条：0 未知差异
 cargo run -p diff-parse -- --scope fields                           # M2 门：字段与 Span 域 0 未知差异
 cargo run -p diff-parse -- --scope tables                           # M3 门：表格域 0 未知差异
@@ -209,7 +210,7 @@ cargo run -p diff-parse -- --scope drawing                          # M4 门：�
 cargo run -p diff-parse -- --scope hf                               # M5 门：页眉页脚域路径 0 未知差异
 cargo run -p diff-parse -- --scope embedded                         # M6 门：嵌入对象域 0 未知差异
 cargo run -p diff-parse -- --scope all                              # 第八道门（M6 6.9）：全域 0 未知差异
-cargo run -p diff-parse -- --corpus corpus/real                     # 真实 Word 语料（194 份）：0 未知差异
+cargo run -p diff-parse -- --corpus corpus/real                     # 真实 Word 语料（266 份）：0 未知差异
 cargo test -p rsword --test real_edits -- --ignored                 # 重新生成给 Word 验收的编辑后文档
 cd fuzz && cargo +nightly fuzz run fuzz_embedded -- -max_total_time=600 # M6 门第 4 条：图表 / 图示 / OMML / 画布解析无崩溃
 cd fuzz && cargo +nightly fuzz run fuzz_instr -- -max_total_time=600 # M2 门：指令 tokenizer 无崩溃

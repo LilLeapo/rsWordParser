@@ -1,0 +1,57 @@
+{
+    "file":  "math-matrix--ink.docx",
+    "base":  "math/math-matrix.docx",
+    "op":  "ink",
+    "expect":  "第一个文字段落**前方**压着一块 120 × 30 pt 的纯色浮动图片（偏移 15 / −3.75 pt），文字不被挤开",
+    "timestamp":  "2026-09-07T14:35:22.4318343+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\math-matrix--ink.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  4,
+                    "tables":  0,
+                    "comments":  0,
+                    "inline_shapes":  0,
+                    "shapes":  1,
+                    "first_table_rows":  null,
+                    "first_table_cells":  null,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+                           {
+                               "collection":  "Shapes",
+                               "index":  1,
+                               "type":  13,
+                               "width":  120,
+                               "height":  30,
+                               "name":  "aidocs-ink 1",
+                               "left":  15,
+                               "top":  -3.75,
+                               "relative_horizontal":  2,
+                               "relative_vertical":  2,
+                               "wrap_type":  3,
+                               "z_order":  1,
+                               "errors":  [
+
+                                          ]
+                           }
+                       ],
+    "text":  "before 前文\r\r\r𝑎\r𝑏\r𝑐\r𝑑\r\r\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+
+               ],
+    "errors":  [
+
+               ]
+}

@@ -612,3 +612,35 @@ fn compat_03_field_paragraph_is_passthrough_with_display() {
     assert_eq!(b["fieldDisplay"]["level"], 1, "图表目录样式算 1 级");
     assert_eq!(b["fieldDisplay"]["left"], "表 2.1 语法");
 }
+
+/// `FLD-13` / `EDIT-05`：块只含跨段字段的一端时 `DeleteBlock` 当场拒绝，而不是让**每次**保存都栽在
+/// `FLD_STRAY_END` 上（真实 Word 语料 `fields-toc-stale` 的 TOC 横跨四个块，`docs/09` 第三轮发现）。
+#[test]
+fn fld_13_delete_block_refuses_to_strand_a_field_end() {
+    let path = common::corpus_dir("real").join("fields2/fields-toc-stale.docx");
+    let bytes = std::fs::read(&path).expect("真实语料里的 fields-toc-stale.docx");
+    let mut s = EditSession::open(&bytes).expect("open");
+    let blocks: Vec<NodeId> = s
+        .document()
+        .main
+        .iter()
+        .filter(|b| {
+            !matches!(b, rsword::model::Block::Protected(p)
+                if p.kind == rsword::model::ProtectedKind::SectionProps)
+        })
+        .map(rsword::model::Block::node)
+        .collect();
+    // blocks[1] 带着 TOC 的 begin / separate，end 在 blocks[4]
+    let err = s
+        .apply(EditOp::DeleteBlock { part: None, node: blocks[1] }, &EditContext::default())
+        .expect_err("应当拒绝");
+    assert!(matches!(&err, rsword::Error::Edit { code: DiagCode::EditSplitField, .. }), "{err:?}");
+    // 拒绝之后状态没动，保存照旧（以前这里会永远失败）
+    assert_eq!(s.save().expect("save"), bytes, "拒绝的操作不该改动任何字节");
+    // 对照：字段之外的块照样删得掉
+    let mut s = EditSession::open(&bytes).expect("open");
+    let last = *blocks.last().expect("末块");
+    s.apply(EditOp::DeleteBlock { part: None, node: last }, &EditContext::default())
+        .expect("字段之外的块可以删");
+    assert!(s.save().is_ok());
+}

@@ -1,0 +1,1827 @@
+{
+  "status": "Planned samples and read-only source audit; not Word observations.",
+  "input_zip": "C:/word/real-word-round3-inputs-20260907.zip",
+  "input_zip_sha256": "d52dabaaf11627127aa6cbb04398fe84e5f45001fc94851d2e69108ee7aa6c09",
+  "manifest_count": 1556,
+  "generated_count": 1544,
+  "generated_per_operation": {
+    "chartdata": 40,
+    "comment": 178,
+    "deleteblock": 177,
+    "header": 180,
+    "ink": 180,
+    "insert": 180,
+    "insertrow": 15,
+    "mergecells": 15,
+    "newchart": 180,
+    "newimage": 180,
+    "replaceimage": 41,
+    "split": 178
+  },
+  "baseline_count": 180,
+  "baseline_category_counts": {
+    "round2_resaved": 53,
+    "m7": 17,
+    "original": 110
+  },
+  "task_text_discrepancy": "Actual 180 sources = 110 original + 53 round2 resaves + 17 M7; task text 127 omits 53 resaves.",
+  "requested_slots": 61,
+  "available_slots": 60,
+  "unique_selected_count": 60,
+  "selection_groups": {
+    "mandatory": 13,
+    "regular": 36,
+    "m7_extra": 11
+  },
+  "duplicates": {},
+  "unavailable_requested_samples": [
+    {
+      "operation": "chartdata",
+      "group": "m7_extra",
+      "reason": "No chartdata entry exists among the 17 M7 sources in the supplied manifest."
+    }
+  ],
+  "m7_generated_per_operation": {
+    "comment": 15,
+    "deleteblock": 14,
+    "header": 17,
+    "ink": 17,
+    "insert": 17,
+    "insertrow": 1,
+    "mergecells": 1,
+    "newchart": 17,
+    "newimage": 17,
+    "replaceimage": 1,
+    "split": 15
+  },
+  "selected": [
+    {
+      "base": "ink/ink-pen.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5757 108 \u00d7 54 pt \u7684\u7eaf\u8272\u5c0f\u56fe\uff0c\u56db\u5468\u578b\u73af\u7ed5\u9760\u53f3",
+      "file": "ink-pen--newimage.docx",
+      "op": "newimage",
+      "status": "generated",
+      "selection_group": "mandatory",
+      "domain": "ink",
+      "m7_source": false
+    },
+    {
+      "base": "ink/ink-pen.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5f20\u7c07\u72b6\u67f1\u5f62\u56fe\u300crsword \u65b0\u56fe\u8868\u300d\uff08\u7532 3 / \u4e59 1 / \u4e19 2\uff09\uff1b\u53f3\u952e\u300c\u7f16\u8f91\u6570\u636e\u300d\u80fd\u6253\u5f00\u5185\u5d4c\u5de5\u4f5c\u7c3f",
+      "file": "ink-pen--newchart.docx",
+      "op": "newchart",
+      "status": "generated",
+      "selection_group": "mandatory",
+      "domain": "ink",
+      "m7_source": false
+    },
+    {
+      "base": "ink/ink-pen.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "file": "ink-pen--ink.docx",
+      "op": "ink",
+      "status": "generated",
+      "selection_group": "mandatory",
+      "domain": "ink",
+      "m7_source": false
+    },
+    {
+      "base": "ink/ink-highlighter.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5757 108 \u00d7 54 pt \u7684\u7eaf\u8272\u5c0f\u56fe\uff0c\u56db\u5468\u578b\u73af\u7ed5\u9760\u53f3",
+      "file": "ink-highlighter--newimage.docx",
+      "op": "newimage",
+      "status": "generated",
+      "selection_group": "mandatory",
+      "domain": "ink",
+      "m7_source": false
+    },
+    {
+      "base": "ink/ink-highlighter.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5f20\u7c07\u72b6\u67f1\u5f62\u56fe\u300crsword \u65b0\u56fe\u8868\u300d\uff08\u7532 3 / \u4e59 1 / \u4e19 2\uff09\uff1b\u53f3\u952e\u300c\u7f16\u8f91\u6570\u636e\u300d\u80fd\u6253\u5f00\u5185\u5d4c\u5de5\u4f5c\u7c3f",
+      "file": "ink-highlighter--newchart.docx",
+      "op": "newchart",
+      "status": "generated",
+      "selection_group": "mandatory",
+      "domain": "ink",
+      "m7_source": false
+    },
+    {
+      "base": "ink/ink-highlighter.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "file": "ink-highlighter--ink.docx",
+      "op": "ink",
+      "status": "generated",
+      "selection_group": "mandatory",
+      "domain": "ink",
+      "m7_source": false
+    },
+    {
+      "base": "ink/ink-to-shape.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5757 108 \u00d7 54 pt \u7684\u7eaf\u8272\u5c0f\u56fe\uff0c\u56db\u5468\u578b\u73af\u7ed5\u9760\u53f3",
+      "file": "ink-to-shape--newimage.docx",
+      "op": "newimage",
+      "status": "generated",
+      "selection_group": "mandatory",
+      "domain": "ink",
+      "m7_source": false
+    },
+    {
+      "base": "ink/ink-to-shape.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5f20\u7c07\u72b6\u67f1\u5f62\u56fe\u300crsword \u65b0\u56fe\u8868\u300d\uff08\u7532 3 / \u4e59 1 / \u4e19 2\uff09\uff1b\u53f3\u952e\u300c\u7f16\u8f91\u6570\u636e\u300d\u80fd\u6253\u5f00\u5185\u5d4c\u5de5\u4f5c\u7c3f",
+      "file": "ink-to-shape--newchart.docx",
+      "op": "newchart",
+      "status": "generated",
+      "selection_group": "mandatory",
+      "domain": "ink",
+      "m7_source": false
+    },
+    {
+      "base": "ink/ink-to-shape.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "file": "ink-to-shape--ink.docx",
+      "op": "ink",
+      "status": "generated",
+      "selection_group": "mandatory",
+      "domain": "ink",
+      "m7_source": false
+    },
+    {
+      "base": "chart/chart-no-title.docx",
+      "expect": "\u56fe\u8868\u6807\u9898\u53d8\u6210\u300c\u6807\u9898\u5df2\u6539 rsword\u300d\uff0c\u7b2c\u4e00\u7cfb\u5217\u6539\u540d\u300c\u6539\u540d\u7cfb\u5217\u300d\u3001\u503c 11 / 21 / 31\uff08\u5185\u5d4c\u5de5\u4f5c\u7c3f**\u672a\u6539**\u2014\u2014\u8bf7\u8bb0\u5f55\u300c\u7f16\u8f91\u6570\u636e\u300d\u540e Word \u662f\u5426\u7528\u5de5\u4f5c\u7c3f\u65e7\u503c\u5237\u56de\u56fe\u8868\uff09",
+      "file": "chart-no-title--chartdata.docx",
+      "op": "chartdata",
+      "status": "generated",
+      "selection_group": "mandatory",
+      "domain": "chart",
+      "m7_source": false
+    },
+    {
+      "base": "chart/chart-scatter.docx",
+      "expect": "\u56fe\u8868\u6807\u9898\u53d8\u6210\u300c\u6807\u9898\u5df2\u6539 rsword\u300d\uff0c\u7b2c\u4e00\u7cfb\u5217\u6539\u540d\u300c\u6539\u540d\u7cfb\u5217\u300d\u3001\u503c 11 / 21 / 31\uff08\u5185\u5d4c\u5de5\u4f5c\u7c3f**\u672a\u6539**\u2014\u2014\u8bf7\u8bb0\u5f55\u300c\u7f16\u8f91\u6570\u636e\u300d\u540e Word \u662f\u5426\u7528\u5de5\u4f5c\u7c3f\u65e7\u503c\u5237\u56de\u56fe\u8868\uff09",
+      "file": "chart-scatter--chartdata.docx",
+      "op": "chartdata",
+      "status": "generated",
+      "selection_group": "mandatory",
+      "domain": "chart",
+      "m7_source": false
+    },
+    {
+      "base": "chart/chart-scatter-lines.docx",
+      "expect": "\u56fe\u8868\u6807\u9898\u53d8\u6210\u300c\u6807\u9898\u5df2\u6539 rsword\u300d\uff0c\u7b2c\u4e00\u7cfb\u5217\u6539\u540d\u300c\u6539\u540d\u7cfb\u5217\u300d\u3001\u503c 11 / 21 / 31\uff08\u5185\u5d4c\u5de5\u4f5c\u7c3f**\u672a\u6539**\u2014\u2014\u8bf7\u8bb0\u5f55\u300c\u7f16\u8f91\u6570\u636e\u300d\u540e Word \u662f\u5426\u7528\u5de5\u4f5c\u7c3f\u65e7\u503c\u5237\u56de\u56fe\u8868\uff09",
+      "file": "chart-scatter-lines--chartdata.docx",
+      "op": "chartdata",
+      "status": "generated",
+      "selection_group": "mandatory",
+      "domain": "chart",
+      "m7_source": false
+    },
+    {
+      "base": "chart/chart-bubble.docx",
+      "expect": "\u56fe\u8868\u6807\u9898\u53d8\u6210\u300c\u6807\u9898\u5df2\u6539 rsword\u300d\uff0c\u7b2c\u4e00\u7cfb\u5217\u6539\u540d\u300c\u6539\u540d\u7cfb\u5217\u300d\u3001\u503c 11 / 21 / 31\uff08\u5185\u5d4c\u5de5\u4f5c\u7c3f**\u672a\u6539**\u2014\u2014\u8bf7\u8bb0\u5f55\u300c\u7f16\u8f91\u6570\u636e\u300d\u540e Word \u662f\u5426\u7528\u5de5\u4f5c\u7c3f\u65e7\u503c\u5237\u56de\u56fe\u8868\uff09",
+      "file": "chart-bubble--chartdata.docx",
+      "op": "chartdata",
+      "status": "generated",
+      "selection_group": "mandatory",
+      "domain": "chart",
+      "m7_source": false
+    },
+    {
+      "base": "chart/chart-column.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4ee5\u300crsword\u270e \u300d\u5f00\u5934\uff0c\u5176\u4f59\u4e00\u5207\u4e0d\u53d8",
+      "file": "chart-column--insert.docx",
+      "op": "insert",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "chart",
+      "m7_source": false
+    },
+    {
+      "base": "smartart/smartart-list.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4ee5\u300crsword\u270e \u300d\u5f00\u5934\uff0c\u5176\u4f59\u4e00\u5207\u4e0d\u53d8",
+      "file": "smartart-list--insert.docx",
+      "op": "insert",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "smartart",
+      "m7_source": false
+    },
+    {
+      "base": "math/math-fraction.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4ee5\u300crsword\u270e \u300d\u5f00\u5934\uff0c\u5176\u4f59\u4e00\u5207\u4e0d\u53d8",
+      "file": "math-fraction--insert.docx",
+      "op": "insert",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "math",
+      "m7_source": false
+    },
+    {
+      "base": "canvas/canvas-floating.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5757 108 \u00d7 54 pt \u7684\u7eaf\u8272\u5c0f\u56fe\uff0c\u56db\u5468\u578b\u73af\u7ed5\u9760\u53f3",
+      "file": "canvas-floating--newimage.docx",
+      "op": "newimage",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "canvas",
+      "m7_source": false
+    },
+    {
+      "base": "ole/ole-icon-3.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5757 108 \u00d7 54 pt \u7684\u7eaf\u8272\u5c0f\u56fe\uff0c\u56db\u5468\u578b\u73af\u7ed5\u9760\u53f3",
+      "file": "ole-icon-3--newimage.docx",
+      "op": "newimage",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "ole",
+      "m7_source": false
+    },
+    {
+      "base": "hf/hf-variants.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5757 108 \u00d7 54 pt \u7684\u7eaf\u8272\u5c0f\u56fe\uff0c\u56db\u5468\u578b\u73af\u7ed5\u9760\u53f3",
+      "file": "hf-variants--newimage.docx",
+      "op": "newimage",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "hf",
+      "m7_source": false
+    },
+    {
+      "base": "fields/fields-toc.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5f20\u7c07\u72b6\u67f1\u5f62\u56fe\u300crsword \u65b0\u56fe\u8868\u300d\uff08\u7532 3 / \u4e59 1 / \u4e19 2\uff09\uff1b\u53f3\u952e\u300c\u7f16\u8f91\u6570\u636e\u300d\u80fd\u6253\u5f00\u5185\u5d4c\u5de5\u4f5c\u7c3f",
+      "file": "fields-toc--newchart.docx",
+      "op": "newchart",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "fields",
+      "m7_source": false
+    },
+    {
+      "base": "image/image-wrap-square.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5f20\u7c07\u72b6\u67f1\u5f62\u56fe\u300crsword \u65b0\u56fe\u8868\u300d\uff08\u7532 3 / \u4e59 1 / \u4e19 2\uff09\uff1b\u53f3\u952e\u300c\u7f16\u8f91\u6570\u636e\u300d\u80fd\u6253\u5f00\u5185\u5d4c\u5de5\u4f5c\u7c3f",
+      "file": "image-wrap-square--newchart.docx",
+      "op": "newchart",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "image",
+      "m7_source": false
+    },
+    {
+      "base": "table/table-styled.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5f20\u7c07\u72b6\u67f1\u5f62\u56fe\u300crsword \u65b0\u56fe\u8868\u300d\uff08\u7532 3 / \u4e59 1 / \u4e19 2\uff09\uff1b\u53f3\u952e\u300c\u7f16\u8f91\u6570\u636e\u300d\u80fd\u6253\u5f00\u5185\u5d4c\u5de5\u4f5c\u7c3f",
+      "file": "table-styled--newchart.docx",
+      "op": "newchart",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "table",
+      "m7_source": false
+    },
+    {
+      "base": "math/math-matrix.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "file": "math-matrix--ink.docx",
+      "op": "ink",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "math",
+      "m7_source": false
+    },
+    {
+      "base": "smartart/smartart-floating.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "file": "smartart-floating--ink.docx",
+      "op": "ink",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "smartart",
+      "m7_source": false
+    },
+    {
+      "base": "ole/ole-excel-embedded.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "file": "ole-excel-embedded--ink.docx",
+      "op": "ink",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "ole",
+      "m7_source": false
+    },
+    {
+      "base": "chart/chart-floating.docx",
+      "expect": "\u6b63\u6587\u7b2c\u4e8c\u4e2a\u5757\uff08\u591a\u534a\u662f\u7279\u5f81\u672c\u8eab\uff09\u6574\u5757\u6d88\u5931\uff0c\u524d\u540e\u6587\u7167\u65e7\uff1b\u6587\u4ef6\u91cc\u5b83\u72ec\u5360\u7684\u5a92\u4f53 / \u56fe\u8868 part \u4e00\u8d77\u6d88\u5931",
+      "file": "chart-floating--deleteblock.docx",
+      "op": "deleteblock",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "chart",
+      "m7_source": false
+    },
+    {
+      "base": "canvas/canvas-picture.docx",
+      "expect": "\u6b63\u6587\u7b2c\u4e8c\u4e2a\u5757\uff08\u591a\u534a\u662f\u7279\u5f81\u672c\u8eab\uff09\u6574\u5757\u6d88\u5931\uff0c\u524d\u540e\u6587\u7167\u65e7\uff1b\u6587\u4ef6\u91cc\u5b83\u72ec\u5360\u7684\u5a92\u4f53 / \u56fe\u8868 part \u4e00\u8d77\u6d88\u5931",
+      "file": "canvas-picture--deleteblock.docx",
+      "op": "deleteblock",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "canvas",
+      "m7_source": false
+    },
+    {
+      "base": "math/math-in-table.docx",
+      "expect": "\u6b63\u6587\u7b2c\u4e8c\u4e2a\u5757\uff08\u591a\u534a\u662f\u7279\u5f81\u672c\u8eab\uff09\u6574\u5757\u6d88\u5931\uff0c\u524d\u540e\u6587\u7167\u65e7\uff1b\u6587\u4ef6\u91cc\u5b83\u72ec\u5360\u7684\u5a92\u4f53 / \u56fe\u8868 part \u4e00\u8d77\u6d88\u5931",
+      "file": "math-in-table--deleteblock.docx",
+      "op": "deleteblock",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "math",
+      "m7_source": false
+    },
+    {
+      "base": "chart/chart-column.docx",
+      "expect": "\u56fe\u8868\u6807\u9898\u53d8\u6210\u300c\u6807\u9898\u5df2\u6539 rsword\u300d\uff0c\u7b2c\u4e00\u7cfb\u5217\u6539\u540d\u300c\u6539\u540d\u7cfb\u5217\u300d\u3001\u503c 11 / 21 / 31\uff08\u5185\u5d4c\u5de5\u4f5c\u7c3f**\u672a\u6539**\u2014\u2014\u8bf7\u8bb0\u5f55\u300c\u7f16\u8f91\u6570\u636e\u300d\u540e Word \u662f\u5426\u7528\u5de5\u4f5c\u7c3f\u65e7\u503c\u5237\u56de\u56fe\u8868\uff09",
+      "file": "chart-column--chartdata.docx",
+      "op": "chartdata",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "chart",
+      "m7_source": false
+    },
+    {
+      "base": "chart/chart-no-legend.docx",
+      "expect": "\u56fe\u8868\u6807\u9898\u53d8\u6210\u300c\u6807\u9898\u5df2\u6539 rsword\u300d\uff0c\u7b2c\u4e00\u7cfb\u5217\u6539\u540d\u300c\u6539\u540d\u7cfb\u5217\u300d\u3001\u503c 11 / 21 / 31\uff08\u5185\u5d4c\u5de5\u4f5c\u7c3f**\u672a\u6539**\u2014\u2014\u8bf7\u8bb0\u5f55\u300c\u7f16\u8f91\u6570\u636e\u300d\u540e Word \u662f\u5426\u7528\u5de5\u4f5c\u7c3f\u65e7\u503c\u5237\u56de\u56fe\u8868\uff09",
+      "file": "chart-no-legend--chartdata.docx",
+      "op": "chartdata",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "chart",
+      "m7_source": false
+    },
+    {
+      "base": "chart/chart-floating.docx",
+      "expect": "\u56fe\u8868\u6807\u9898\u53d8\u6210\u300c\u6807\u9898\u5df2\u6539 rsword\u300d\uff0c\u7b2c\u4e00\u7cfb\u5217\u6539\u540d\u300c\u6539\u540d\u7cfb\u5217\u300d\u3001\u503c 11 / 21 / 31\uff08\u5185\u5d4c\u5de5\u4f5c\u7c3f**\u672a\u6539**\u2014\u2014\u8bf7\u8bb0\u5f55\u300c\u7f16\u8f91\u6570\u636e\u300d\u540e Word \u662f\u5426\u7528\u5de5\u4f5c\u7c3f\u65e7\u503c\u5237\u56de\u56fe\u8868\uff09",
+      "file": "chart-floating--chartdata.docx",
+      "op": "chartdata",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "chart",
+      "m7_source": false
+    },
+    {
+      "base": "image/image-cropped.docx",
+      "expect": "\u90a3\u5f20\u56fe\u7247\u4f4d\u7f6e\u3001\u5927\u5c0f\u3001\u73af\u7ed5\u4e0d\u53d8\uff0c\u5185\u5bb9\u53d8\u6210\u4e00\u5757\u7eaf\u8272\uff1b\u539f\u6765\u7684\u88c1\u526a\u88ab\u53d6\u6d88",
+      "file": "image-cropped--replaceimage.docx",
+      "op": "replaceimage",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "image",
+      "m7_source": false
+    },
+    {
+      "base": "image/image-svg.docx",
+      "expect": "\u90a3\u5f20\u56fe\u7247\u4f4d\u7f6e\u3001\u5927\u5c0f\u3001\u73af\u7ed5\u4e0d\u53d8\uff0c\u5185\u5bb9\u53d8\u6210\u4e00\u5757\u7eaf\u8272\uff1b\u539f\u6765\u7684\u88c1\u526a\u88ab\u53d6\u6d88",
+      "file": "image-svg--replaceimage.docx",
+      "op": "replaceimage",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "image",
+      "m7_source": false
+    },
+    {
+      "base": "chart/chart-pasted-picture.docx",
+      "expect": "\u90a3\u5f20\u56fe\u7247\u4f4d\u7f6e\u3001\u5927\u5c0f\u3001\u73af\u7ed5\u4e0d\u53d8\uff0c\u5185\u5bb9\u53d8\u6210\u4e00\u5757\u7eaf\u8272\uff1b\u539f\u6765\u7684\u88c1\u526a\u88ab\u53d6\u6d88",
+      "file": "chart-pasted-picture--replaceimage.docx",
+      "op": "replaceimage",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "chart",
+      "m7_source": false
+    },
+    {
+      "base": "chart/chart-in-table.docx",
+      "expect": "\u7b2c\u4e00\u5f20\u8868\u683c\u5728\u7b2c 1 \u884c\u4e4b\u540e\u591a\u4e86\u4e00\u884c\u7a7a\u683c\u5b50\uff08\u683c\u5f0f\u7167\u7b2c 1 \u884c\uff09",
+      "file": "chart-in-table--insertrow.docx",
+      "op": "insertrow",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "chart",
+      "m7_source": false
+    },
+    {
+      "base": "math/math-in-table.docx",
+      "expect": "\u7b2c\u4e00\u5f20\u8868\u683c\u5728\u7b2c 1 \u884c\u4e4b\u540e\u591a\u4e86\u4e00\u884c\u7a7a\u683c\u5b50\uff08\u683c\u5f0f\u7167\u7b2c 1 \u884c\uff09",
+      "file": "math-in-table--insertrow.docx",
+      "op": "insertrow",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "math",
+      "m7_source": false
+    },
+    {
+      "base": "ole/ole-in-table.docx",
+      "expect": "\u7b2c\u4e00\u5f20\u8868\u683c\u5728\u7b2c 1 \u884c\u4e4b\u540e\u591a\u4e86\u4e00\u884c\u7a7a\u683c\u5b50\uff08\u683c\u5f0f\u7167\u7b2c 1 \u884c\uff09",
+      "file": "ole-in-table--insertrow.docx",
+      "op": "insertrow",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "ole",
+      "m7_source": false
+    },
+    {
+      "base": "smartart/smartart-in-table.docx",
+      "expect": "\u7b2c\u4e00\u5f20\u8868\u683c\u7b2c 1 \u884c\u7684\u524d\u4e24\u683c\u5408\u5e76\u6210\u4e00\u683c\uff08\u6587\u5b57\u8fde\u5728\u4e00\u8d77\uff09",
+      "file": "smartart-in-table--mergecells.docx",
+      "op": "mergecells",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "smartart",
+      "m7_source": false
+    },
+    {
+      "base": "table/table-styled.docx",
+      "expect": "\u7b2c\u4e00\u5f20\u8868\u683c\u7b2c 2 \u884c\u7684\u524d\u4e24\u683c\u5408\u5e76\u6210\u4e00\u683c\uff08\u6587\u5b57\u8fde\u5728\u4e00\u8d77\uff09",
+      "file": "table-styled--mergecells.docx",
+      "op": "mergecells",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "table",
+      "m7_source": false
+    },
+    {
+      "base": "ole/ole-in-table.docx",
+      "expect": "\u7b2c\u4e00\u5f20\u8868\u683c\u7b2c 1 \u884c\u7684\u524d\u4e24\u683c\u5408\u5e76\u6210\u4e00\u683c\uff08\u6587\u5b57\u8fde\u5728\u4e00\u8d77\uff09",
+      "file": "ole-in-table--mergecells.docx",
+      "op": "mergecells",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "ole",
+      "m7_source": false
+    },
+    {
+      "base": "hf/hf-variants.docx",
+      "expect": "\u6700\u540e\u4e00\u8282\u7684\u9ed8\u8ba4\u9875\u7709\u53ea\u5269\u4e00\u884c\u300crsword \u9875\u7709\u300d\uff08\u539f\u6709\u9875\u7709\u5185\u5bb9\u88ab\u66ff\u6362\uff1b\u9996\u9875 / \u5076\u6570\u9875\u9875\u7709\u82e5\u6709\u5219\u4e0d\u52a8\uff09",
+      "file": "hf-variants--header.docx",
+      "op": "header",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "hf",
+      "m7_source": false
+    },
+    {
+      "base": "sections/sections-three.docx",
+      "expect": "\u6700\u540e\u4e00\u8282\u7684\u9ed8\u8ba4\u9875\u7709\u53ea\u5269\u4e00\u884c\u300crsword \u9875\u7709\u300d\uff08\u539f\u6709\u9875\u7709\u5185\u5bb9\u88ab\u66ff\u6362\uff1b\u9996\u9875 / \u5076\u6570\u9875\u9875\u7709\u82e5\u6709\u5219\u4e0d\u52a8\uff09",
+      "file": "sections-three--header.docx",
+      "op": "header",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "sections",
+      "m7_source": false
+    },
+    {
+      "base": "strict/strict-basic-2.docx",
+      "expect": "\u6700\u540e\u4e00\u8282\u7684\u9ed8\u8ba4\u9875\u7709\u53ea\u5269\u4e00\u884c\u300crsword \u9875\u7709\u300d\uff08\u539f\u6709\u9875\u7709\u5185\u5bb9\u88ab\u66ff\u6362\uff1b\u9996\u9875 / \u5076\u6570\u9875\u9875\u7709\u82e5\u6709\u5219\u4e0d\u52a8\uff09",
+      "file": "strict-basic-2--header.docx",
+      "op": "header",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "strict",
+      "m7_source": false
+    },
+    {
+      "base": "revisions/revisions-comments.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6709\u5b57\u7684\u6bb5\u843d\u5f00\u5934\u51e0\u4e2a\u5b57\u4e0a\u6709\u4e00\u6761\u4f5c\u8005 rsword \u7684\u6279\u6ce8\u300crsword \u6279\u6ce8\u300d",
+      "file": "revisions-comments--comment.docx",
+      "op": "comment",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "revisions",
+      "m7_source": false
+    },
+    {
+      "base": "smartart/smartart-in-table.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6709\u5b57\u7684\u6bb5\u843d\u5f00\u5934\u51e0\u4e2a\u5b57\u4e0a\u6709\u4e00\u6761\u4f5c\u8005 rsword \u7684\u6279\u6ce8\u300crsword \u6279\u6ce8\u300d",
+      "file": "smartart-in-table--comment.docx",
+      "op": "comment",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "smartart",
+      "m7_source": false
+    },
+    {
+      "base": "image/image-cropped.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6709\u5b57\u7684\u6bb5\u843d\u5f00\u5934\u51e0\u4e2a\u5b57\u4e0a\u6709\u4e00\u6761\u4f5c\u8005 rsword \u7684\u6279\u6ce8\u300crsword \u6279\u6ce8\u300d",
+      "file": "image-cropped--comment.docx",
+      "op": "comment",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "image",
+      "m7_source": false
+    },
+    {
+      "base": "text/text-custom-styles.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u591f\u957f\u7684\u6bb5\u843d\u5728\u7b2c 2 \u4e2a\u5b57\u7b26\u540e\u88ab\u62c6\u6210\u4e24\u6bb5\uff08\u7b2c\u4e8c\u6bb5\u7ee7\u627f\u540c\u6837\u7684\u6bb5\u843d\u683c\u5f0f\uff09",
+      "file": "text-custom-styles--split.docx",
+      "op": "split",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "text",
+      "m7_source": false
+    },
+    {
+      "base": "shapes/textbox-shapes-3.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u591f\u957f\u7684\u6bb5\u843d\u5728\u7b2c 2 \u4e2a\u5b57\u7b26\u540e\u88ab\u62c6\u6210\u4e24\u6bb5\uff08\u7b2c\u4e8c\u6bb5\u7ee7\u627f\u540c\u6837\u7684\u6bb5\u843d\u683c\u5f0f\uff09",
+      "file": "textbox-shapes-3--split.docx",
+      "op": "split",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "shapes",
+      "m7_source": false
+    },
+    {
+      "base": "fields/fields-toc.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u591f\u957f\u7684\u6bb5\u843d\u5728\u7b2c 2 \u4e2a\u5b57\u7b26\u540e\u88ab\u62c6\u6210\u4e24\u6bb5\uff08\u7b2c\u4e8c\u6bb5\u7ee7\u627f\u540c\u6837\u7684\u6bb5\u843d\u683c\u5f0f\uff09",
+      "file": "fields-toc--split.docx",
+      "op": "split",
+      "status": "generated",
+      "selection_group": "regular",
+      "domain": "fields",
+      "m7_source": false
+    },
+    {
+      "base": "revisions2/rev-insert-delete.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4ee5\u300crsword\u270e \u300d\u5f00\u5934\uff0c\u5176\u4f59\u4e00\u5207\u4e0d\u53d8",
+      "file": "rev-insert-delete--insert.docx",
+      "op": "insert",
+      "status": "generated",
+      "selection_group": "m7_extra",
+      "domain": "revisions2",
+      "m7_source": true
+    },
+    {
+      "base": "image2/image-z-order.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5757 108 \u00d7 54 pt \u7684\u7eaf\u8272\u5c0f\u56fe\uff0c\u56db\u5468\u578b\u73af\u7ed5\u9760\u53f3",
+      "file": "image-z-order--newimage.docx",
+      "op": "newimage",
+      "status": "generated",
+      "selection_group": "m7_extra",
+      "domain": "image2",
+      "m7_source": true
+    },
+    {
+      "base": "fields2/fields-citations.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5f20\u7c07\u72b6\u67f1\u5f62\u56fe\u300crsword \u65b0\u56fe\u8868\u300d\uff08\u7532 3 / \u4e59 1 / \u4e19 2\uff09\uff1b\u53f3\u952e\u300c\u7f16\u8f91\u6570\u636e\u300d\u80fd\u6253\u5f00\u5185\u5d4c\u5de5\u4f5c\u7c3f",
+      "file": "fields-citations--newchart.docx",
+      "op": "newchart",
+      "status": "generated",
+      "selection_group": "m7_extra",
+      "domain": "fields2",
+      "m7_source": true
+    },
+    {
+      "base": "shapes2/textbox-linked.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "file": "textbox-linked--ink.docx",
+      "op": "ink",
+      "status": "generated",
+      "selection_group": "m7_extra",
+      "domain": "shapes2",
+      "m7_source": true
+    },
+    {
+      "base": "revisions2/rev-move.docx",
+      "expect": "\u6b63\u6587\u7b2c\u4e8c\u4e2a\u5757\uff08\u591a\u534a\u662f\u7279\u5f81\u672c\u8eab\uff09\u6574\u5757\u6d88\u5931\uff0c\u524d\u540e\u6587\u7167\u65e7\uff1b\u6587\u4ef6\u91cc\u5b83\u72ec\u5360\u7684\u5a92\u4f53 / \u56fe\u8868 part \u4e00\u8d77\u6d88\u5931",
+      "file": "rev-move--deleteblock.docx",
+      "op": "deleteblock",
+      "status": "generated",
+      "selection_group": "m7_extra",
+      "domain": "revisions2",
+      "m7_source": true
+    },
+    {
+      "base": "fields2/fields-seq-captions.docx",
+      "expect": "\u90a3\u5f20\u56fe\u7247\u4f4d\u7f6e\u3001\u5927\u5c0f\u3001\u73af\u7ed5\u4e0d\u53d8\uff0c\u5185\u5bb9\u53d8\u6210\u4e00\u5757\u7eaf\u8272\uff1b\u539f\u6765\u7684\u88c1\u526a\u88ab\u53d6\u6d88",
+      "file": "fields-seq-captions--replaceimage.docx",
+      "op": "replaceimage",
+      "status": "generated",
+      "selection_group": "m7_extra",
+      "domain": "fields2",
+      "m7_source": true
+    },
+    {
+      "base": "revisions2/rev-table.docx",
+      "expect": "\u7b2c\u4e00\u5f20\u8868\u683c\u5728\u7b2c 1 \u884c\u4e4b\u540e\u591a\u4e86\u4e00\u884c\u7a7a\u683c\u5b50\uff08\u683c\u5f0f\u7167\u7b2c 1 \u884c\uff09",
+      "file": "rev-table--insertrow.docx",
+      "op": "insertrow",
+      "status": "generated",
+      "selection_group": "m7_extra",
+      "domain": "revisions2",
+      "m7_source": true
+    },
+    {
+      "base": "revisions2/rev-table.docx",
+      "expect": "\u7b2c\u4e00\u5f20\u8868\u683c\u7b2c 2 \u884c\u7684\u524d\u4e24\u683c\u5408\u5e76\u6210\u4e00\u683c\uff08\u6587\u5b57\u8fde\u5728\u4e00\u8d77\uff09",
+      "file": "rev-table--mergecells.docx",
+      "op": "mergecells",
+      "status": "generated",
+      "selection_group": "m7_extra",
+      "domain": "revisions2",
+      "m7_source": true
+    },
+    {
+      "base": "sections2/sections-breaks-zoo.docx",
+      "expect": "\u6700\u540e\u4e00\u8282\u7684\u9ed8\u8ba4\u9875\u7709\u53ea\u5269\u4e00\u884c\u300crsword \u9875\u7709\u300d\uff08\u539f\u6709\u9875\u7709\u5185\u5bb9\u88ab\u66ff\u6362\uff1b\u9996\u9875 / \u5076\u6570\u9875\u9875\u7709\u82e5\u6709\u5219\u4e0d\u52a8\uff09",
+      "file": "sections-breaks-zoo--header.docx",
+      "op": "header",
+      "status": "generated",
+      "selection_group": "m7_extra",
+      "domain": "sections2",
+      "m7_source": true
+    },
+    {
+      "base": "revisions2/rev-comment-threads.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6709\u5b57\u7684\u6bb5\u843d\u5f00\u5934\u51e0\u4e2a\u5b57\u4e0a\u6709\u4e00\u6761\u4f5c\u8005 rsword \u7684\u6279\u6ce8\u300crsword \u6279\u6ce8\u300d",
+      "file": "rev-comment-threads--comment.docx",
+      "op": "comment",
+      "status": "generated",
+      "selection_group": "m7_extra",
+      "domain": "revisions2",
+      "m7_source": true
+    },
+    {
+      "base": "fields2/fields-page-in-footer.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u591f\u957f\u7684\u6bb5\u843d\u5728\u7b2c 2 \u4e2a\u5b57\u7b26\u540e\u88ab\u62c6\u6210\u4e24\u6bb5\uff08\u7b2c\u4e8c\u6bb5\u7ee7\u627f\u540c\u6837\u7684\u6bb5\u843d\u683c\u5f0f\uff09",
+      "file": "fields-page-in-footer--split.docx",
+      "op": "split",
+      "status": "generated",
+      "selection_group": "m7_extra",
+      "domain": "fields2",
+      "m7_source": true
+    }
+  ],
+  "sources": [
+    {
+      "base": "_resaved/01-chart-insert-bar-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/01-chart-insert-bar-resaved-by-word.docx",
+      "source_sha256": "37a414988253a7a95fa5bfadaab070deddb37ce4b494710e06547363509fe703",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/01-text-source-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/01-text-source-resaved-by-word.docx",
+      "source_sha256": "f7a4e97d1bd8204defe9cdd21eb84bc4e073c6dcaef550fa28178aa9815bb3ec",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/02-chart-setdata-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/02-chart-setdata-resaved-by-word.docx",
+      "source_sha256": "11b3c5a4cebe7129d8251c4bc3018dfe1b7b488a9812c97cd450cb78792a1e49",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/02-chart-source-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/02-chart-source-resaved-by-word.docx",
+      "source_sha256": "896bb04758166569d3efd455a8bc0606a4a6eac81a12a27d85a23c129f7acf53",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/03-image-insert-inline-and-square-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/03-image-insert-inline-and-square-resaved-by-word.docx",
+      "source_sha256": "0fd597a3734587ea8d5a3c6fbbe6d88df99fdfa09c63062977025767ce52474b",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/04-image-replace-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/04-image-replace-resaved-by-word.docx",
+      "source_sha256": "e13475f515475d7796b9bb418aebe1e0a95800b84da767d2ae6658873ea7ab8f",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/04-image-source-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/04-image-source-resaved-by-word.docx",
+      "source_sha256": "5b5437a78eff1193f26b71ed525075288b47e082fd803e4cdefb89a59f28b1e0",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/05-ink-insert-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/05-ink-insert-resaved-by-word.docx",
+      "source_sha256": "51ceb8c65ba0b41361a96083cdeb745a5c2df9803470f1b2a546c3dbcce0d20b",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/06-chart-insert-line-pie-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/06-chart-insert-line-pie-resaved-by-word.docx",
+      "source_sha256": "1e71c4b1bd98c4119d19de6c5bf96c2ca5e7ceef4f2799523f1d1803826ef3c2",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/canvas-floating--newimage-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/canvas-floating--newimage-resaved-by-word.docx",
+      "source_sha256": "a7773cc1e643bb4d5a400af6eb602ed1f8f09e335b4e6f84efc2bae1893cb04f",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/canvas-picture--deleteblock-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/canvas-picture--deleteblock-resaved-by-word.docx",
+      "source_sha256": "7a1de5c4b7319b45e8699e738243e1c6e2c24fb0e8e26a90a631a8707d3a90b1",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/chart-column--chartdata-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/chart-column--chartdata-resaved-by-word.docx",
+      "source_sha256": "b382cfb68f14a763b200a9344ef9b7665648e47e14efeab69b4f2d295fb7d7b3",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/chart-column--insert-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/chart-column--insert-resaved-by-word.docx",
+      "source_sha256": "63c829ddcbbc9669c898811715906a66036a72c09ec0c0a025876250ef7ffaea",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/chart-floating--chartdata-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/chart-floating--chartdata-resaved-by-word.docx",
+      "source_sha256": "9a01c993e47f8ea6541a934241c6033d4635df57dc5c54cb534c23dbf454c3c4",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/chart-floating--deleteblock-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/chart-floating--deleteblock-resaved-by-word.docx",
+      "source_sha256": "34057480406309ba66dd2ca30273121c3c27b5e49e8afd08483ec9ee8a98372f",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/chart-in-table--insertrow-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/chart-in-table--insertrow-resaved-by-word.docx",
+      "source_sha256": "007a096f5e18f1cd4d02051e7f28fc9dbf98e4cc25d191e2d4a7ff8dc6a9bf63",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/chart-pasted-picture--replaceimage-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/chart-pasted-picture--replaceimage-resaved-by-word.docx",
+      "source_sha256": "efef47ea258ffdc777e723600b1807a4aefd3b90c5d19ec65a3ec933a7d2d801",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/chart-scatter--chartdata-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/chart-scatter--chartdata-resaved-by-word.docx",
+      "source_sha256": "5760b32b625336ebccf856fe2ded78bcf230f2a4c31328905d7d7c142294ff0a",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/fields-toc--split-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/fields-toc--split-resaved-by-word.docx",
+      "source_sha256": "cbc6ab4911fa29709edcc9aca10fbdf5cbca1045595b57f78df7f2ce745658d9",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/hf-variants--header-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/hf-variants--header-resaved-by-word.docx",
+      "source_sha256": "c5d9afab48c7ae03caaf8c546d4a6d3afa2d37cd123ee7a1ab753bb503446038",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/hf-variants--newimage-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/hf-variants--newimage-resaved-by-word.docx",
+      "source_sha256": "b81074cf826c5fff1f8be097b2133e5abedb9d61a7932bc194e7a8ca6db2a6af",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/image-cropped--comment-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/image-cropped--comment-resaved-by-word.docx",
+      "source_sha256": "d64408b20cf36e0a6feadf532af720c1f3f400483587dda223e4a76f834ba1fc",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/image-cropped--replaceimage-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/image-cropped--replaceimage-resaved-by-word.docx",
+      "source_sha256": "5bd83bac5e6161bd97addb28a8c7f7f08475a924baae3d8002d5dca00b1bddfe",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/image-svg--replaceimage-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/image-svg--replaceimage-resaved-by-word.docx",
+      "source_sha256": "6469c8f1776f2556dc640f48c024b56c2660518204fb2d64b422464dbc8c3b80",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/image-wrap-square--newchart-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/image-wrap-square--newchart-resaved-by-word.docx",
+      "source_sha256": "935ae2e66d9223667e76f518f85f9535031681e0097c7325899f07aa10b14e12",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/ink-highlighter--ink-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/ink-highlighter--ink-resaved-by-word.docx",
+      "source_sha256": "5eedcea2a6b2533389491c961608b2f0732a1132c24aa22fed40d400c04f35ab",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/ink-highlighter--newchart-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/ink-highlighter--newchart-resaved-by-word.docx",
+      "source_sha256": "7b4e2a98dd45572fb91c8dcb74305a698d144e6d48b490f67570ecc77df24d3f",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/ink-highlighter--newimage-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/ink-highlighter--newimage-resaved-by-word.docx",
+      "source_sha256": "7737253be6aac957fd9e7c77b4c4642892cb5b4c1ee8bc5f5d23c7272e7b7fa7",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/ink-pen--ink-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/ink-pen--ink-resaved-by-word.docx",
+      "source_sha256": "2a41cb73a0b4866280c5f3b510beacda3aa45d5b3522d03ae052b9d093089e69",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/ink-pen--newchart-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/ink-pen--newchart-resaved-by-word.docx",
+      "source_sha256": "e5e63db93e1f5a5cb14d029ca35eb02cada4eaab2ad1d17fd6ca38a6f26a46cc",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/ink-pen--newimage-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/ink-pen--newimage-resaved-by-word.docx",
+      "source_sha256": "30baf97037153fa5fb5b7c8c6675870d6b2d1bbd9e489cec50ceb7d226462f12",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/ink-to-shape--ink-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/ink-to-shape--ink-resaved-by-word.docx",
+      "source_sha256": "d8f6cf0ea7ef902d344dab413637c58c601780f30a1912f0539f18d435103ac1",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/ink-to-shape--newchart-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/ink-to-shape--newchart-resaved-by-word.docx",
+      "source_sha256": "382252bb42d481d75b4d01317f1b923c85034723f75da72805a3e3df3c802baf",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/ink-to-shape--newimage-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/ink-to-shape--newimage-resaved-by-word.docx",
+      "source_sha256": "ea5af35e6db3bc2bfb8d6ac1c9aeb2217f95089311c13c02f59867cb0dcdf502",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/math-fraction--insert-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/math-fraction--insert-resaved-by-word.docx",
+      "source_sha256": "59d52fd751baef12f2d2e55293b7ac201adbe84bdb0ccd2310e73a33b8eef254",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/math-in-table--deleteblock-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/math-in-table--deleteblock-resaved-by-word.docx",
+      "source_sha256": "0aab61b413d4cd861348280a2d29b99d73ba5d6074649c0d5cdac1c839f6454f",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/math-in-table--insertrow-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/math-in-table--insertrow-resaved-by-word.docx",
+      "source_sha256": "2f40543f7c0db785f130e03e8c82572dc045437593f57c6122e87a315bd084d1",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/math-matrix--ink-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/math-matrix--ink-resaved-by-word.docx",
+      "source_sha256": "f193328f754b49e25813e8e8760d7e8089f3513303bac81ac18a9caab0d6b15f",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/ole-excel-embedded--ink-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/ole-excel-embedded--ink-resaved-by-word.docx",
+      "source_sha256": "c406bfb6e67ca8e7a1e2a17231cceceb66c5d98e9209945fad2bcb3677eb0f12",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/ole-icon-3--newimage-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/ole-icon-3--newimage-resaved-by-word.docx",
+      "source_sha256": "ee8109e63f0d3238f7e77b2217bef0c5382c8fcee8a56a3d1331fab93252d8c0",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/ole-in-table--insertrow-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/ole-in-table--insertrow-resaved-by-word.docx",
+      "source_sha256": "5ebb9d9ca4c0c01f489996bb290449db28e81a32e02917bd3655ba0d9be46e02",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/ole-in-table--mergecells-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/ole-in-table--mergecells-resaved-by-word.docx",
+      "source_sha256": "f4d0a1a3344e765713b9510696b0595312596f2ed04aff3d7577150e078fce0d",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/revisions-comments--comment-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/revisions-comments--comment-resaved-by-word.docx",
+      "source_sha256": "b302080c61e368b1cd9e5c5930dcea7e95a63ee16e1a59c156717edf021843a9",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/sections-three--header-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/sections-three--header-resaved-by-word.docx",
+      "source_sha256": "7921e2b7fb37df7b4186c5b34de4ee4cbbdaabbb11c2c7dcfb58c61f2b6ce3ef",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/smartart-floating--ink-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/smartart-floating--ink-resaved-by-word.docx",
+      "source_sha256": "8ab03e7fcef2366c7723026e1521b31fe6580e8ea9261b376c468cdd0c978696",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/smartart-in-table--comment-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/smartart-in-table--comment-resaved-by-word.docx",
+      "source_sha256": "ef2cb7b02bc725ac4d59a063c42e29a7e18f153eb6847ef1665936cd740ebc6d",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/smartart-in-table--mergecells-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/smartart-in-table--mergecells-resaved-by-word.docx",
+      "source_sha256": "afb44e1bbd6bf49425072f5b46be68dcaf8ef05b7b86071223a8363e7cfd1f2a",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/smartart-list--insert-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/smartart-list--insert-resaved-by-word.docx",
+      "source_sha256": "ed51e0124e2c55ac75d1e501c06714fd078e297dab10011e2e3e44d30207be70",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/strict-basic-2--header-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/strict-basic-2--header-resaved-by-word.docx",
+      "source_sha256": "36a544fc8d513e4ffbc71914608a2d554733a73f64d3432f9d384b585f4c5727",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/table-styled--mergecells-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/table-styled--mergecells-resaved-by-word.docx",
+      "source_sha256": "ae33d50a2f6c1f2e7802b213be00c5a64afe1190320ade36ed1782a21b1a28b5",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/table-styled--newchart-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/table-styled--newchart-resaved-by-word.docx",
+      "source_sha256": "e380d5919beee198e8380b8bccb059c2975b7f1642c9d3a9b90509374568613d",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/text-custom-styles--split-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/text-custom-styles--split-resaved-by-word.docx",
+      "source_sha256": "02bbe53da16f9babb3a95bd3dab729f5d5d3635e4c245d16230ea404800b9a2a",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "_resaved/textbox-shapes-3--split-resaved-by-word.docx",
+      "source_path": "C:/word/real-word-round2-20260907/_resaved/textbox-shapes-3--split-resaved-by-word.docx",
+      "source_sha256": "c83fb66c5c33a15d5f55b0288437d9062b6492c3fbc8a0b4dd9960a15217390d",
+      "source_category": "round2_resaved"
+    },
+    {
+      "base": "blank/blank-new.docx",
+      "source_path": "C:/word/real-word-round2-20260907/blank/blank-new.docx",
+      "source_sha256": "12c0e52924a3a888f3fbf370c88e1dcabe0ccc9765ea5bfe4250a47d28f82e68",
+      "source_category": "m7"
+    },
+    {
+      "base": "blank/blank-styles-used.docx",
+      "source_path": "C:/word/real-word-round2-20260907/blank/blank-styles-used.docx",
+      "source_sha256": "c3fe0b64b9a538f725cce04d767ee0538a38f96cf228dd04cb0bdb3a016e7683",
+      "source_category": "m7"
+    },
+    {
+      "base": "canvas/canvas-floating.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/canvas/canvas-floating.docx",
+      "source_sha256": "1e2caac37eb936decbb0e7de4be6f86748006de11b0940ac75d86d4ff0871e86",
+      "source_category": "original"
+    },
+    {
+      "base": "canvas/canvas-picture.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/canvas/canvas-picture.docx",
+      "source_sha256": "71f9c832a122c1bc6f17886a8104bf147dda5a590a067d8f2bd4a0b5f07f5cac",
+      "source_category": "original"
+    },
+    {
+      "base": "canvas/canvas-resized-2.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/canvas/canvas-resized-2.docx",
+      "source_sha256": "d80e75c34dfe80a3de91bb5a676c90abf011138e90852be606600fa70144f949",
+      "source_category": "original"
+    },
+    {
+      "base": "canvas/canvas-resized.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/canvas/canvas-resized.docx",
+      "source_sha256": "8e8c78e8d0ce929e3022c8bc768eca4595cf0c0ce65ce56bc869e1f7051294bb",
+      "source_category": "original"
+    },
+    {
+      "base": "canvas/canvas-shapes-2.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/canvas/canvas-shapes-2.docx",
+      "source_sha256": "32d1243dc56ed42ee0e2d0cb25b3ff85da47004cc3034e3e7f17f2d3d21967a1",
+      "source_category": "original"
+    },
+    {
+      "base": "canvas/canvas-shapes-3.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/canvas/canvas-shapes-3.docx",
+      "source_sha256": "c11f6594101d944bfa158a63192510f736e31adac8a28a520e971e6bdfcb3679",
+      "source_category": "original"
+    },
+    {
+      "base": "canvas/canvas-shapes-4.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/canvas/canvas-shapes-4.docx",
+      "source_sha256": "9cc5a0f9f8bdf868e52d1d9ad69556558228e59b31a5447b63984d37f05a3e48",
+      "source_category": "original"
+    },
+    {
+      "base": "canvas/canvas-shapes.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/canvas/canvas-shapes.docx",
+      "source_sha256": "b0d3e15efc3864250a8eef0ae4d67dd6d2ab5a39d3d6ac35a471dbdb109e6cbc",
+      "source_category": "original"
+    },
+    {
+      "base": "canvas/canvas-textbox.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/canvas/canvas-textbox.docx",
+      "source_sha256": "f5d02ab9c2e908eeef5b04ca80cbfb2f5fee48a42ab3690457bce2671e6f6e5a",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-3d.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-3d.docx",
+      "source_sha256": "ad8dfd57c6c460452c6b1700dc10940e95cd9fc84bb6cd75316d1bc6dfb7afa8",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-area.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-area.docx",
+      "source_sha256": "82086464836362476ad385b93d6c389a4948a9063d7cd1bce24ad30493d96b0b",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-bar.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-bar.docx",
+      "source_sha256": "0a217c341848b15b299d7f0b2b4a7eb1f70a3debc8cf21f7ffce16d569b18191",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-bubble.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-bubble.docx",
+      "source_sha256": "3630589c7df9f46072453cf80e60183d2a43a20eb1570778e9470a0246c06265",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-column.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-column.docx",
+      "source_sha256": "c62b982160004c32cc9eeee579b7bf48090ba7a0824e69f9af5d9036576d4e21",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-combo.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-combo.docx",
+      "source_sha256": "eae751fe127cb0ce236999cd4d871fabf5b5fc97ad3e61660ae16769e095ccfe",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-dates.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-dates.docx",
+      "source_sha256": "faf9491c49be50141fca3f74c5717595f298bacc845fb8f4fde8c5e8d16c2bb5",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-doughnut.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-doughnut.docx",
+      "source_sha256": "38e23843b71886df5717e533fc629873198d32e6f204c1eba3e0cbc2a43d91c3",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-floating.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-floating.docx",
+      "source_sha256": "a225310fab114cbddb2aea126b9084dc7c6100acb29f7331e9cf21092baabe82",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-in-table.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-in-table.docx",
+      "source_sha256": "be968364b6a67e4961482d81f1d65a59ca74a3ec06a68531a174c562e5314560",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-legend.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-legend.docx",
+      "source_sha256": "6294b49322b5c9a43cd5bf1062ea22a4f375bae9460b8a86b2932f808ab0b6a9",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-line-plain.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-line-plain.docx",
+      "source_sha256": "769ea81fc746b693052d129c733c907112a827f3f29ed7495eeb62b5208515aa",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-line.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-line.docx",
+      "source_sha256": "c83cad6382f5df9b5de78b0c6fa03ba219f48a1a7200f973e6feb7c47258f426",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-no-legend.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-no-legend.docx",
+      "source_sha256": "8d416b948b954eddc41bb84e26e85dce68b1fd877734e6276d1c713f5032c4ad",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-no-title.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-no-title.docx",
+      "source_sha256": "d26adb278238be26a7e9fc338790b98e833c8bc8b3fe56f1443574ef48d3285a",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-pasted-embedded.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-pasted-embedded.docx",
+      "source_sha256": "cb34f3933f1c394f69f2004ec13ee6871cc9ce63f883390e973a62029d54926c",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-pasted-linked.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-pasted-linked.docx",
+      "source_sha256": "501120a3c7dee2a4a024d88bf3fb63d447d9c372f2f293755dc48689f403129a",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-pasted-picture.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-pasted-picture.docx",
+      "source_sha256": "61bc6a84bdf650ef929b56f082961bc5374cf062e32da4a1e0eee610b52c1e5f",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-percent-stacked.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-percent-stacked.docx",
+      "source_sha256": "ce5f024757f67cb3ac95621f89525f59d0fc3686e21b551cd476d50109844ef0",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-pie.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-pie.docx",
+      "source_sha256": "8e31d05455a025f24cb345e64cc05b5c56c27e6bce67f7f7c08ae1b46fe52139",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-point-color.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-point-color.docx",
+      "source_sha256": "a9b3c10e4c03e3b8efa54856bfdda0f6ad70b70ea65ce68bcda4c6a5be09b01d",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-scatter-lines.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-scatter-lines.docx",
+      "source_sha256": "f9459f81c857314a0b20dda9b19d23f1200b3e6d7bc642f13d3eff36c616b91a",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-scatter.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-scatter.docx",
+      "source_sha256": "c08740960261d1a0baed96e22851574afefe7994d107136937ece8ca95d52da8",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-stacked.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-stacked.docx",
+      "source_sha256": "42a0357d572d7cae5dc801f569817e8cd182f795796717e3f2c56dd351485470",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-style-gray.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-style-gray.docx",
+      "source_sha256": "cd57572e368db0eb1337b52c05a7abc1525ec7b0c442e0b769598b18686588f1",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chart-style.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chart-style.docx",
+      "source_sha256": "51025c3f0e8866b3f5742eee759bfa1dfcb4650a58e1577d2d87743c3b4965e6",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chartex-boxwhisker-2.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chartex-boxwhisker-2.docx",
+      "source_sha256": "6b446be77eb9baa7f1d2981412b156969b728f7084c5263f7192725748bba751",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chartex-boxwhisker.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chartex-boxwhisker.docx",
+      "source_sha256": "819cfadc2d3d89503a767f3de0552a13c24b6ae530a3d42ea76f3271244b5eb3",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chartex-funnel-2.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chartex-funnel-2.docx",
+      "source_sha256": "a44ad9f5a4b1e29564465864fd786a0906e48e180c866e97daf068e86456f199",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chartex-funnel.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chartex-funnel.docx",
+      "source_sha256": "e7cae79894b2bb16d7cd055700c6f5e15d902ef0c8c76e40e94cc33e4d258ee4",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chartex-histogram-2.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chartex-histogram-2.docx",
+      "source_sha256": "b20abf354949ce9873e3786f70939f6ed3a6b133be4e854f0b200f725f3670af",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chartex-histogram.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chartex-histogram.docx",
+      "source_sha256": "2d04d4d26ceb6bdccd76a02aa47fd485d002dea93552715c2c82f8f52a2978f3",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chartex-sunburst-2.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chartex-sunburst-2.docx",
+      "source_sha256": "8e050251603655610d11b986962d1ec697ad34cb72aa30134eec6082c57841af",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chartex-sunburst.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chartex-sunburst.docx",
+      "source_sha256": "803cd325aa0c8229af141c9e805f2fe3f3cf886ff2dba9b45ef6dddb19e7a110",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chartex-treemap.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chartex-treemap.docx",
+      "source_sha256": "59c3615decd85d554f121e7a289f8fb4bd1f71a792ecfc425896da3897142f19",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chartex-waterfall-2.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chartex-waterfall-2.docx",
+      "source_sha256": "0a7b7cc6b8d5a07a12f35afcc0cdb651046d52efacf0a5c27a01d38e5b4e11f6",
+      "source_category": "original"
+    },
+    {
+      "base": "chart/chartex-waterfall.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/chart/chartex-waterfall.docx",
+      "source_sha256": "3f24a09be2def7e5917ad9dda83fad6bfb6f211fe0218c072acb5a557e6f857a",
+      "source_category": "original"
+    },
+    {
+      "base": "fields/fields-toc.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/fields/fields-toc.docx",
+      "source_sha256": "7570e23e7be1533625875c96af95e94396b8b04a4f940bd27242024e03ad8b45",
+      "source_category": "original"
+    },
+    {
+      "base": "fields2/fields-citations.docx",
+      "source_path": "C:/word/real-word-round2-20260907/fields2/fields-citations.docx",
+      "source_sha256": "1fbad7491e92a6d5c93e259da2fa6bb970037823d4215b3dfce1ff254264e168",
+      "source_category": "m7"
+    },
+    {
+      "base": "fields2/fields-index.docx",
+      "source_path": "C:/word/real-word-round2-20260907/fields2/fields-index.docx",
+      "source_sha256": "1e98e08c1587a0d0a155f1ed1f9fc53f671ba27a2fa73aab594912d1a4b669c4",
+      "source_category": "m7"
+    },
+    {
+      "base": "fields2/fields-page-in-footer.docx",
+      "source_path": "C:/word/real-word-round2-20260907/fields2/fields-page-in-footer.docx",
+      "source_sha256": "fe49a50778512b80d2b033d39532794478dadfc9f5f631ea342b80fdbd9571f8",
+      "source_category": "m7"
+    },
+    {
+      "base": "fields2/fields-seq-captions.docx",
+      "source_path": "C:/word/real-word-round2-20260907/fields2/fields-seq-captions.docx",
+      "source_sha256": "1a14b871d1f52177a33d9091b00a3c26c7a09319e6f1ac69b7420977df3be175",
+      "source_category": "m7"
+    },
+    {
+      "base": "fields2/fields-toc-stale.docx",
+      "source_path": "C:/word/real-word-round2-20260907/fields2/fields-toc-stale.docx",
+      "source_sha256": "a3b75a976e79efbdf1e9ce868d352fe13eee4e6be426ec777dc1d4f9bd43c118",
+      "source_category": "m7"
+    },
+    {
+      "base": "hf/hf-variants.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/hf/hf-variants.docx",
+      "source_sha256": "18e2bc53cee008c4e9bf9d02034664e4451a57d82a5e394e011a70d495e3dda5",
+      "source_category": "original"
+    },
+    {
+      "base": "image/image-alt-decorative.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/image/image-alt-decorative.docx",
+      "source_sha256": "23975d9719791026b92867ab858803d40a83004e77f903a8a42ab902fe39d601",
+      "source_category": "original"
+    },
+    {
+      "base": "image/image-behind.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/image/image-behind.docx",
+      "source_sha256": "874bde03d13271ecb991bbacca8f3964af2664c4e4bb49be9a1c3fe29d47e9ed",
+      "source_category": "original"
+    },
+    {
+      "base": "image/image-cropped.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/image/image-cropped.docx",
+      "source_sha256": "e0c38a98cc64fddb5a9efd9a082993db0242500bae8ede3a3d4c041decbe0bc7",
+      "source_category": "original"
+    },
+    {
+      "base": "image/image-emf.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/image/image-emf.docx",
+      "source_sha256": "92b204318bf212d6602b1d8d4cfd7edfdc3efc657e9c6cccd8837b5846e1a644",
+      "source_category": "original"
+    },
+    {
+      "base": "image/image-front.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/image/image-front.docx",
+      "source_sha256": "a4efd76674f3ca82df0e77a57b3ffeb0186db91b14072980b43ca1c068a84491",
+      "source_category": "original"
+    },
+    {
+      "base": "image/image-inline.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/image/image-inline.docx",
+      "source_sha256": "cf5598ef6a3299d018ad8b4c406db9a028566fca36448d6f2ec49815b8301c71",
+      "source_category": "original"
+    },
+    {
+      "base": "image/image-insert-and-link.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/image/image-insert-and-link.docx",
+      "source_sha256": "212255e92315ed48f299ca32ff02ee955dd023d475f65d80df3672ce9e678b93",
+      "source_category": "original"
+    },
+    {
+      "base": "image/image-linked.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/image/image-linked.docx",
+      "source_sha256": "6821970ef5d58a5192ae63bf586d524a08784e78c6d41d9cd41e746c4ee092d5",
+      "source_category": "original"
+    },
+    {
+      "base": "image/image-rotated-2.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/image/image-rotated-2.docx",
+      "source_sha256": "c666df769b9a2b2906b2a48a1e82c8288c57a8ac831c9029d7db2f0e0b303d91",
+      "source_category": "original"
+    },
+    {
+      "base": "image/image-rotated.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/image/image-rotated.docx",
+      "source_sha256": "4be264a965a6fc48b5ed50d12af7ae7c422a7af3eeef24d5f830777f9741d097",
+      "source_category": "original"
+    },
+    {
+      "base": "image/image-svg.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/image/image-svg.docx",
+      "source_sha256": "c51e701f55f5909ac2af799da31c9e75a9db0d875487e5da96ccdf2d4be236d0",
+      "source_category": "original"
+    },
+    {
+      "base": "image/image-top-bottom.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/image/image-top-bottom.docx",
+      "source_sha256": "d65f17dc340f2af8bb8faf985085bf29ccfca3ee6ad3887ab85194c3b9bce3e1",
+      "source_category": "original"
+    },
+    {
+      "base": "image/image-two-in-run.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/image/image-two-in-run.docx",
+      "source_sha256": "1a4fef84205ec2941bfc6af6afbe2d092ac0d32e6b09336aa1b26ed41d4c33dc",
+      "source_category": "original"
+    },
+    {
+      "base": "image/image-wrap-square.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/image/image-wrap-square.docx",
+      "source_sha256": "a8aefaa7f5598d5128965d75e8a873af63395819c8451a7b539583068166a4cb",
+      "source_category": "original"
+    },
+    {
+      "base": "image/image-wrap-tight.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/image/image-wrap-tight.docx",
+      "source_sha256": "76849711931cf5bff7b668489f16ad087f8dcf3ed482639553305751e3a9714b",
+      "source_category": "original"
+    },
+    {
+      "base": "image2/image-z-order.docx",
+      "source_path": "C:/word/real-word-round2-20260907/image2/image-z-order.docx",
+      "source_sha256": "adce5ab0d99f9835c159d86c934084e3fd13fbf5b6b47547838abc7569c670ea",
+      "source_category": "m7"
+    },
+    {
+      "base": "ink/ink-highlighter.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/ink/ink-highlighter.docx",
+      "source_sha256": "09d7cc7bdd8c73584e703fca6561177d541fc0a5d0c8c9adae774e2b0d4f4d9f",
+      "source_category": "original"
+    },
+    {
+      "base": "ink/ink-math.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/ink/ink-math.docx",
+      "source_sha256": "a3b7824d299f1b4a2364d5837925a0d57728acbe62f3e74966987d29f4f4caa4",
+      "source_category": "original"
+    },
+    {
+      "base": "ink/ink-pen.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/ink/ink-pen.docx",
+      "source_sha256": "3e8fdf8d374793d3be389e7dde68ad7d4220fbfc837260b91a2f671956bef56c",
+      "source_category": "original"
+    },
+    {
+      "base": "ink/ink-to-shape.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/ink/ink-to-shape.docx",
+      "source_sha256": "96d79924d7f7158e478e65a96158e116809ef8d57b4beff1ab7d320e8c996b41",
+      "source_category": "original"
+    },
+    {
+      "base": "links/hyperlinks-bookmarks.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/links/hyperlinks-bookmarks.docx",
+      "source_sha256": "2dd3e3fb0eb92a8612bcb28f94393659b764a9d8b7a71ae27cc0ecaf6118e160",
+      "source_category": "original"
+    },
+    {
+      "base": "math/math-builtin.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/math/math-builtin.docx",
+      "source_sha256": "067a6630cdadbf05da06c9a8522d83bd0be7435434eb7d3590a11cb13e03e132",
+      "source_category": "original"
+    },
+    {
+      "base": "math/math-display-two-2.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/math/math-display-two-2.docx",
+      "source_sha256": "85633957fe4de648b22dcc55a3503a24033bedd358cd70bda11e3a6089baca1d",
+      "source_category": "original"
+    },
+    {
+      "base": "math/math-display-two.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/math/math-display-two.docx",
+      "source_sha256": "97d3c5602d21fd0dd60ecb5e37a0aca3e4d835572b097fb08477dc0439434009",
+      "source_category": "original"
+    },
+    {
+      "base": "math/math-fraction.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/math/math-fraction.docx",
+      "source_sha256": "d3859be2930b99a08261b243cf4e062457fc392357634d690dbfd49610453657",
+      "source_category": "original"
+    },
+    {
+      "base": "math/math-in-table.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/math/math-in-table.docx",
+      "source_sha256": "8d0059b03cd1f5a89645c8358b8951e659ab18ab01ba8643f9ae8bf7f33de70b",
+      "source_category": "original"
+    },
+    {
+      "base": "math/math-inline.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/math/math-inline.docx",
+      "source_sha256": "4b8360882dfa3f65f1ed66ce97c6dc2c0dd7594564c09633acab3c0b9d6aeae1",
+      "source_category": "original"
+    },
+    {
+      "base": "math/math-integral.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/math/math-integral.docx",
+      "source_sha256": "8284d04b2f18d2f599837fc04f3a6ab9f5629d3d138fe73f0990f4097bdf6234",
+      "source_category": "original"
+    },
+    {
+      "base": "math/math-latex.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/math/math-latex.docx",
+      "source_sha256": "ee3dfb7d0d516096553585bd2b8efcd372b86360725027fb546b569dcb584e55",
+      "source_category": "original"
+    },
+    {
+      "base": "math/math-linear.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/math/math-linear.docx",
+      "source_sha256": "3433de5d379ff65f9c507e7df035c3c94c29b4735ea148894caac4c486cb7901",
+      "source_category": "original"
+    },
+    {
+      "base": "math/math-matrix.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/math/math-matrix.docx",
+      "source_sha256": "cf529cc4434c3c376926387f32e3e17a82b85c7ac0e07d7e093c4d60ccefcb49",
+      "source_category": "original"
+    },
+    {
+      "base": "math/math-styled-2.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/math/math-styled-2.docx",
+      "source_sha256": "7def3ed8ce64e484434b6702f0193c5790101311d8e08237b0e3a6aeab7501aa",
+      "source_category": "original"
+    },
+    {
+      "base": "math/math-styled.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/math/math-styled.docx",
+      "source_sha256": "ad3c026ab0025cdae719a0ba55e4fe86f1537e6710cbdf4879d19337831d0d15",
+      "source_category": "original"
+    },
+    {
+      "base": "misc/large-report.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/misc/large-report.docx",
+      "source_sha256": "70ced902f90a60505a8445144519c52d17ee7050e7763054e9ced98e68e45b93",
+      "source_category": "original"
+    },
+    {
+      "base": "ole/ole-excel-embedded.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/ole/ole-excel-embedded.docx",
+      "source_sha256": "5b1ed702ee66fb09c3b9be13ced6e39d5d24c1df67e0b47dfae0e763e9dbcb8d",
+      "source_category": "original"
+    },
+    {
+      "base": "ole/ole-excel-linked.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/ole/ole-excel-linked.docx",
+      "source_sha256": "568802bc67a4b4f8c52c16884a9e4af7aa5e8ceb074b7fde14c5bf7ae7ee71e4",
+      "source_category": "original"
+    },
+    {
+      "base": "ole/ole-icon-3.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/ole/ole-icon-3.docx",
+      "source_sha256": "902e32369e40bacddd54a556a1be733ff39d2903dc5cf18ab95c77bc152b93a6",
+      "source_category": "original"
+    },
+    {
+      "base": "ole/ole-icon.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/ole/ole-icon.docx",
+      "source_sha256": "b184de8eb7a54c280f42b265bb747be3846e2cbb12f13f5ff93d16d2458bc3ae",
+      "source_category": "original"
+    },
+    {
+      "base": "ole/ole-in-table.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/ole/ole-in-table.docx",
+      "source_sha256": "651c22b2ca1e4869cf53d503a0614e093af34aaa44c9b75dae5203a41a56ecd5",
+      "source_category": "original"
+    },
+    {
+      "base": "ole/ole-ppt.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/ole/ole-ppt.docx",
+      "source_sha256": "16bbf3696d69eb1aa27920bbb225353bc8fa2cfccffefd436eaea718fc2ec368",
+      "source_category": "original"
+    },
+    {
+      "base": "ole/ole-with-text.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/ole/ole-with-text.docx",
+      "source_sha256": "7f25d78a4e5925052378fa21309dbae93d9c0f3bff034e19b1ab174c5ce12e4c",
+      "source_category": "original"
+    },
+    {
+      "base": "revisions/revisions-comments.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/revisions/revisions-comments.docx",
+      "source_sha256": "0a97c48c761c19d268c8f1db6abbe1a2b9557071575cc8dd97e05c688ec67926",
+      "source_category": "original"
+    },
+    {
+      "base": "revisions2/rev-accept-reject.docx",
+      "source_path": "C:/word/real-word-round2-20260907/revisions2/rev-accept-reject.docx",
+      "source_sha256": "c12863da796b6f88b809a6c6085161d719d8f4c057feef5b874e24d6087b517a",
+      "source_category": "m7"
+    },
+    {
+      "base": "revisions2/rev-comment-threads.docx",
+      "source_path": "C:/word/real-word-round2-20260907/revisions2/rev-comment-threads.docx",
+      "source_sha256": "22bfbf93798cfbd225bf175de95710bf66ab33aaed1e5fa7012384d36bb86076",
+      "source_category": "m7"
+    },
+    {
+      "base": "revisions2/rev-format.docx",
+      "source_path": "C:/word/real-word-round2-20260907/revisions2/rev-format.docx",
+      "source_sha256": "d893d8c372f9fb6899b1d6e0531a09daa9082206bf41cc7cda1b7d55dae5fcd3",
+      "source_category": "m7"
+    },
+    {
+      "base": "revisions2/rev-insert-delete.docx",
+      "source_path": "C:/word/real-word-round2-20260907/revisions2/rev-insert-delete.docx",
+      "source_sha256": "4cdc419b6024470befc43acd13f146bc9ec33bff9ceaf1932016834aef52cd62",
+      "source_category": "m7"
+    },
+    {
+      "base": "revisions2/rev-move.docx",
+      "source_path": "C:/word/real-word-round2-20260907/revisions2/rev-move.docx",
+      "source_sha256": "e025ca9b97538460ff57eb613c4b612d615c8da3f10877ada8b273199cdfc048",
+      "source_category": "m7"
+    },
+    {
+      "base": "revisions2/rev-section.docx",
+      "source_path": "C:/word/real-word-round2-20260907/revisions2/rev-section.docx",
+      "source_sha256": "2569a7a1d0c5b9850acd0423ed10fcb0ac0681dc13a0a421a9e564926fd61cc3",
+      "source_category": "m7"
+    },
+    {
+      "base": "revisions2/rev-table.docx",
+      "source_path": "C:/word/real-word-round2-20260907/revisions2/rev-table.docx",
+      "source_sha256": "c4b062a8eaa0be0092819bf0acae56d1cba959e4d373355535d78a321b53e466",
+      "source_category": "m7"
+    },
+    {
+      "base": "sdt/content-controls-2.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/sdt/content-controls-2.docx",
+      "source_sha256": "6e0d8a8da133308acaaff38a64862bde8ba7d94e547d9380da90a86ccc679940",
+      "source_category": "original"
+    },
+    {
+      "base": "sdt/content-controls.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/sdt/content-controls.docx",
+      "source_sha256": "9cafc117b246c0869ec0aab8d1215d0af5c87e78becbbfeb94ef9f8b80a7193c",
+      "source_category": "original"
+    },
+    {
+      "base": "sections/sections-three.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/sections/sections-three.docx",
+      "source_sha256": "28ada1815cb3b7dc265984a47bf88a59a4665e01dc8c6a01c862577fe1ca798b",
+      "source_category": "original"
+    },
+    {
+      "base": "sections2/sections-breaks-zoo.docx",
+      "source_path": "C:/word/real-word-round2-20260907/sections2/sections-breaks-zoo.docx",
+      "source_sha256": "021bf8d47345e0556db42a1d0c16bfc447ce1743c14292db3c3d86932491f65b",
+      "source_category": "m7"
+    },
+    {
+      "base": "shapes/textbox-shapes-2.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/shapes/textbox-shapes-2.docx",
+      "source_sha256": "257ffce5b358bc3ffc58777d3a339abe9672e4dc04d4b7bfb69d477bc866d72c",
+      "source_category": "original"
+    },
+    {
+      "base": "shapes/textbox-shapes-3.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/shapes/textbox-shapes-3.docx",
+      "source_sha256": "6f3ca640233436b6d5f4b12a50b76ab5e68f95ebd924dc8f05cdbf82f9ab4876",
+      "source_category": "original"
+    },
+    {
+      "base": "shapes/textbox-shapes.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/shapes/textbox-shapes.docx",
+      "source_sha256": "e862da27c2c18d691fb3d5ba7685a30a15ec0acf50563b5ba6a426d532e3df92",
+      "source_category": "original"
+    },
+    {
+      "base": "shapes2/textbox-linked.docx",
+      "source_path": "C:/word/real-word-round2-20260907/shapes2/textbox-linked.docx",
+      "source_sha256": "805049af54fdc7f8a4cdc59f94c1ce87b7149b80683520df9372fe8c8c11c7c5",
+      "source_category": "m7"
+    },
+    {
+      "base": "smartart/smartart-cycle.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/smartart/smartart-cycle.docx",
+      "source_sha256": "5c6219b217810f5fa88f089fcfd3166abcee8d923c1d006a16095822fe36091e",
+      "source_category": "original"
+    },
+    {
+      "base": "smartart/smartart-edited-text.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/smartart/smartart-edited-text.docx",
+      "source_sha256": "124d6ec2be613f4fc8c3ce5957a274d8ac20283f7ab1e0f902f9e1f49aa9c93e",
+      "source_category": "original"
+    },
+    {
+      "base": "smartart/smartart-floating.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/smartart/smartart-floating.docx",
+      "source_sha256": "068438309c6f5f5f9529a775c27dbfd005b7857bae7c9071f42f62796889eaf7",
+      "source_category": "original"
+    },
+    {
+      "base": "smartart/smartart-hierarchy.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/smartart/smartart-hierarchy.docx",
+      "source_sha256": "798fb69703cb11098654529f54f2238003538fa9d8534cd89562f742dd73d21a",
+      "source_category": "original"
+    },
+    {
+      "base": "smartart/smartart-in-table.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/smartart/smartart-in-table.docx",
+      "source_sha256": "1a61dfaf6904f6e2375873ba043493272047288a524e0ec681f71914c161ff7e",
+      "source_category": "original"
+    },
+    {
+      "base": "smartart/smartart-list.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/smartart/smartart-list.docx",
+      "source_sha256": "ebf60da717b178c7694962fed998f7ec2bfb200dd12453f81e6ef5c44f62f591",
+      "source_category": "original"
+    },
+    {
+      "base": "smartart/smartart-picture.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/smartart/smartart-picture.docx",
+      "source_sha256": "099ecdb94902406f2d5e97a2a6f85c4cdd76d3b0177851db9fb1c1a5a194e547",
+      "source_category": "original"
+    },
+    {
+      "base": "smartart/smartart-process.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/smartart/smartart-process.docx",
+      "source_sha256": "7d03fb1e9036c4663ad96468855accce8310e581eeb77f05dc5714ab5131b24b",
+      "source_category": "original"
+    },
+    {
+      "base": "smartart/smartart-styled.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/smartart/smartart-styled.docx",
+      "source_sha256": "9b4eca26d1410c35f90f6553093d51725943371ec9352e1d96d2beb3a770fe92",
+      "source_category": "original"
+    },
+    {
+      "base": "strict/strict-basic-2.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/strict/strict-basic-2.docx",
+      "source_sha256": "8998e3e73cb7e6a11b7e180f6851975623fe07d6857fa4a5643e3507965f2058",
+      "source_category": "original"
+    },
+    {
+      "base": "strict/strict-basic.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/strict/strict-basic.docx",
+      "source_sha256": "e7d7a496b21f30995676a79fed075f13416e97242c9a9906f5baabe544ff1bb6",
+      "source_category": "original"
+    },
+    {
+      "base": "table/table-styled.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/table/table-styled.docx",
+      "source_sha256": "a6ee8750c8163513e69ca4e57e920cb8297b8fdcefabeff84e877e69d8fb41eb",
+      "source_category": "original"
+    },
+    {
+      "base": "text/text-basic-2.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/text/text-basic-2.docx",
+      "source_sha256": "c93551cf94fb0f364ac735d9065ebed922e173bc7277681eec30f393233a58e8",
+      "source_category": "original"
+    },
+    {
+      "base": "text/text-basic.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/text/text-basic.docx",
+      "source_sha256": "af4970cece20968ac5a72b160d7129b5c181f3cb733d1df40fe7b74a77821844",
+      "source_category": "original"
+    },
+    {
+      "base": "text/text-custom-styles.docx",
+      "source_path": "C:/word/round2-work-20260907/baseline/real-word-corpus-20260906/text/text-custom-styles.docx",
+      "source_sha256": "dfcde85859c057d6c93e95a991a360b41acb2b98dba8d0f2eef4caedc37ffa6a",
+      "source_category": "original"
+    }
+  ],
+  "non_generated": [
+    {
+      "base": "chart/chartex-boxwhisker-2.docx",
+      "expect": "",
+      "file": "chartex-boxwhisker-2--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-boxwhisker.docx",
+      "expect": "",
+      "file": "chartex-boxwhisker--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-funnel-2.docx",
+      "expect": "",
+      "file": "chartex-funnel-2--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-funnel.docx",
+      "expect": "",
+      "file": "chartex-funnel--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-histogram-2.docx",
+      "expect": "",
+      "file": "chartex-histogram-2--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-histogram.docx",
+      "expect": "",
+      "file": "chartex-histogram--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-sunburst-2.docx",
+      "expect": "",
+      "file": "chartex-sunburst-2--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-sunburst.docx",
+      "expect": "",
+      "file": "chartex-sunburst--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-treemap.docx",
+      "expect": "",
+      "file": "chartex-treemap--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-waterfall-2.docx",
+      "expect": "",
+      "file": "chartex-waterfall-2--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "chart/chartex-waterfall.docx",
+      "expect": "",
+      "file": "chartex-waterfall--chartdata.docx",
+      "op": "chartdata",
+      "status": "skipped: edit rejected (EDIT_UNSUPPORTED): chartex\uff08cx:chartSpace\uff09\u56fe\u8868\u53ea\u6709\u964d\u7ea7\u663e\u793a\uff0cSetChartData \u4e0d\u652f\u6301"
+    },
+    {
+      "base": "fields2/fields-toc-stale.docx",
+      "expect": "\u6b63\u6587\u7b2c\u4e8c\u4e2a\u5757\uff08\u591a\u534a\u662f\u7279\u5f81\u672c\u8eab\uff09\u6574\u5757\u6d88\u5931\uff0c\u524d\u540e\u6587\u7167\u65e7\uff1b\u6587\u4ef6\u91cc\u5b83\u72ec\u5360\u7684\u5a92\u4f53 / \u56fe\u8868 part \u4e00\u8d77\u6d88\u5931",
+      "file": "fields-toc-stale--deleteblock.docx",
+      "op": "deleteblock",
+      "status": "save failed: engine invariant violated: [FLD_STRAY_END] part#2 (engine invariant violation): \u5b57\u6bb5\u7ed3\u6784\u5728\u672c\u6b21\u7f16\u8f91\u540e\u65b0\u589e\u4e86 1 \u5904 FLD_STRAY_END \u7f3a\u9677"
+    }
+  ]
+}

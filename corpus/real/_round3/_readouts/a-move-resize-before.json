@@ -1,0 +1,75 @@
+﻿{
+    "case":  "move-resize",
+    "stage":  "before",
+    "path":  "C:\\word\\real-word-round3-20260907\\revfix\\move-resize\\before.docx",
+    "sha256":  "388B5528F408DB3819498F34FCA4B8DD1616206D92379801F65F2E11F490CA10",
+    "sourcePath":  null,
+    "sourceSha256":  null,
+    "operations":  [
+                       "Created required baseline with TrackRevisions=false; saved once."
+                   ],
+    "readout":  {
+                    "text":  "before 前文\rPicture anchor.\rafter 后文\r\r",
+                    "paragraphs":  [
+                                       {
+                                           "text":  "before 前文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "Picture anchor.\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "after 后文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       }
+                                   ],
+                    "revisions":  [
+
+                                  ],
+                    "revisionCount":  0,
+                    "sections":  [
+                                     {
+                                         "index":  1,
+                                         "start":  0,
+                                         "end":  37,
+                                         "orientation":  0,
+                                         "sectionStart":  2
+                                     }
+                                 ],
+                    "shapes":  [
+                                   {
+                                       "name":  "Round3 Picture 1",
+                                       "left":  0.15,
+                                       "top":  24.75,
+                                       "width":  120,
+                                       "height":  60,
+                                       "relativeHorizontal":  0,
+                                       "relativeVertical":  2,
+                                       "zOrder":  1,
+                                       "wrap":  0
+                                   }
+                               ],
+                    "pages":  1,
+                    "compatibility":  15,
+                    "trackMoves":  true,
+                    "trackFormatting":  true,
+                    "trackRevisions":  false
+                },
+    "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\revfix\\move-resize\\before.pdf",
+    "date":  "2026-09-07T13:56:59.8571603+08:00",
+    "method":  "Native Windows Word COM; DOCX saved once at this path; PDF export and current-document UI inspection afterward without save back.",
+    "uiPending":  true
+}

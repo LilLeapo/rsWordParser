@@ -1,0 +1,932 @@
+{
+  "generatedUtc": "2026-09-07T07:17:14.627765+00:00",
+  "method": "Read-only ZIP/lxml inspection with SHA-256 of final packages and their parts. Optional independent rendering of existing Word-exported PDFs. No COM, UI control or DOCX modification.",
+  "ink": {
+    "path": "C:\\word\\real-word-round3-20260907\\ink2\\ink-to-shape-2.docx",
+    "sha256": "CFEF5A80050920542270726F418C959C3C7D0F9C72676C334B4B511CEE4233D4",
+    "bytes": 16770,
+    "crcError": null,
+    "duplicateMembers": [],
+    "partHashes": {
+      "[Content_Types].xml": "3C3BD47B8B11CDC2588154FE76D4B73B2F0D1718896EFBDD3BB415397E78FA3D",
+      "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+      "word/document.xml": "29D29265E779E79FAD295CE1A1247A17BB05EB63114EBDEA56312D27E905A457",
+      "word/_rels/document.xml.rels": "779DDA03083472F3F27D0A5914F2E9FE0165B5378634963D19617EBC735D2C97",
+      "word/ink/ink1.xml": "308D816224E898D5000DEEE8EF351D2D5C9D28AC655BB21E5859D37ABB1E8D81",
+      "word/media/image1.png": "E853CC637305FCB956E10F4BD036C072A2AF3C2D906D12BCB3400D77761557ED",
+      "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+      "word/settings.xml": "9B15C12991F1BBCE4285C5B7E31B3918E9DBA25E8334C2AE1D2304BA792D5EDC",
+      "word/styles.xml": "303A749E12079BE3FBBFFBF8790DABE51F1D426F2F789789126D2B93C456E524",
+      "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+      "word/fontTable.xml": "8E1FC3F1AC2FEE8E2539144C0A88BCFD6096BFB33A7FC8E08B29D44B24429D20",
+      "docProps/core.xml": "63543ACDF34D8D0098BA1EF05A16A6EF3D28C890D8807B54633734CDF270ED16",
+      "docProps/app.xml": "1C86356C6D143287CAE03308107E44F7A328414F217AC81BF5A40899205F4107"
+    },
+    "countScope": "All markup-compatibility branches in word/document.xml; counts do not imply all branches render simultaneously.",
+    "counts": {
+      "w14:contentPart": 1,
+      "wps:wsp": 0,
+      "a:prstGeom": 0
+    },
+    "presetGeometries": [],
+    "contentParts": [
+      {
+        "relationshipId": "rId4",
+        "attributes": {
+          "bwMode": "auto",
+          "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id": "rId4"
+        },
+        "path": "/w:document/w:body/w:p[6]/w:r/mc:AlternateContent/mc:Choice/w:drawing/wp:anchor/a:graphic/a:graphicData/w14:contentPart"
+      }
+    ],
+    "bodyText": "before text\n\n\n\n\n\n\n\n\n\n\nafter text\n",
+    "nativeInkParts": [
+      {
+        "part": "word/ink/ink1.xml",
+        "sha256": "308D816224E898D5000DEEE8EF351D2D5C9D28AC655BB21E5859D37ABB1E8D81",
+        "bytes": 1040,
+        "rootTag": "{http://www.w3.org/2003/InkML}ink",
+        "traceCount": 1,
+        "traces": [
+          {
+            "attributes": {
+              "contextRef": "#ctx0",
+              "brushRef": "#br0"
+            },
+            "dataCharacters": 20,
+            "data": "1 1,'840'242,\"277\"79"
+          }
+        ]
+      }
+    ],
+    "nativeInkPartCount": 1,
+    "readableInkTraceCount": 1,
+    "unreadableInkPartCount": 0,
+    "requestedCircleStructureMet": false,
+    "scopeLimitation": "Operator reports exactly one straight drag, not a closed circle. These structural observations cannot establish success or failure of single-stroke circle recognition. The GUI chronology, drawing-tool state and actual drag are recorded separately by the operator."
+  },
+  "comments": {
+    "path": "C:\\word\\real-word-round3-20260907\\comments2\\comment-nesting.docx",
+    "sha256": "531F5FEE471CF1F81BA948D4A8857F1A9A3606675968E2A34C5E13CD7FD0B1E8",
+    "bytes": 16768,
+    "crcError": null,
+    "duplicateMembers": [],
+    "partHashes": {
+      "[Content_Types].xml": "769095D0BF2C8D3431F2A0F56400FBFB946458A7F7D462083ACEF4EFE1F33FE0",
+      "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+      "word/document.xml": "C7C6535123AEE572901FA4AFB821A847ADFFA30965020767478955E619A50B8C",
+      "word/_rels/document.xml.rels": "377FAE4DC11AB0581471A0688F5F7CC2412CB58A4E70B62400850272344883BB",
+      "word/comments.xml": "F1104B3AACA8D0D1BED9A1FB9A49B7F0D3A6AE0C6AC08C1E954E48A201A5E8B6",
+      "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+      "word/settings.xml": "9AE853352E8D24110B05D8650F8B2AF4FB92FCF0676C3DC85361BFABE2407AA2",
+      "word/styles.xml": "93B6169A953AC1A8BE4D305A81D6DBEA8AA014E870C3AEB51532CEB859824173",
+      "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+      "word/commentsExtended.xml": "B3FDAF826A7CE5DF17C958AB0221B99C98B213CE7C19BFF6F1C618362E76B6B5",
+      "word/commentsIds.xml": "AB7F301FB7CE5BC8064D9B9CF047732A19E32E5B7DB9486A6D80515356394779",
+      "word/commentsExtensible.xml": "A7CAE25AC36929C0D8DE04D0865823FC1C2384D070D9D0F958B5E153B29B0ADC",
+      "word/fontTable.xml": "8E1FC3F1AC2FEE8E2539144C0A88BCFD6096BFB33A7FC8E08B29D44B24429D20",
+      "word/people.xml": "C1D8A5F137CE1F250B68505EB790CC0A0457050E739285DECC72DCC88643AF3D",
+      "docProps/core.xml": "B3EF7A48D0BE44F0EE6DB80337A0DDFAB2151EA3B965C920AD8DC1D7853B97A5",
+      "docProps/app.xml": "706725605014B75B5F101B95161D1BDF177EF18E489E1862CC9D179F22A6B6A2"
+    },
+    "commentsXmlPresent": true,
+    "commentsExtendedXmlPresent": true,
+    "comments": [
+      {
+        "commentId": "0",
+        "author": "\u4f5c\u8005\u7532",
+        "date": "2026-09-07T15:11:00Z",
+        "initials": "A",
+        "text": "Root comment 1",
+        "paraIds": [
+          "51680AD1"
+        ],
+        "lastParaId": "51680AD1",
+        "commentsExtended": [
+          {
+            "paraId": "51680AD1",
+            "paraIdParent": null,
+            "doneRaw": "1",
+            "done": true,
+            "commentIds": [
+              "0"
+            ],
+            "parentCommentIds": []
+          }
+        ],
+        "extensionPresent": true,
+        "parentCommentId": null,
+        "parentParaId": null,
+        "done": true,
+        "parentChainFromSelf": [
+          "0"
+        ],
+        "depth": 0,
+        "rootCommentId": "0"
+      },
+      {
+        "commentId": "1",
+        "author": "\u4f5c\u8005\u7532",
+        "date": "2026-09-07T15:12:00Z",
+        "initials": "A",
+        "text": "Reply 1 to root 1.",
+        "paraIds": [
+          "24BAF72A"
+        ],
+        "lastParaId": "24BAF72A",
+        "commentsExtended": [
+          {
+            "paraId": "24BAF72A",
+            "paraIdParent": "51680AD1",
+            "doneRaw": "1",
+            "done": true,
+            "commentIds": [
+              "1"
+            ],
+            "parentCommentIds": [
+              "0"
+            ]
+          }
+        ],
+        "extensionPresent": true,
+        "parentCommentId": "0",
+        "parentParaId": "51680AD1",
+        "done": true,
+        "parentChainFromSelf": [
+          "1",
+          "0"
+        ],
+        "depth": 1,
+        "rootCommentId": "0"
+      },
+      {
+        "commentId": "2",
+        "author": "\u4f5c\u8005\u7532",
+        "date": "2026-09-07T15:12:00Z",
+        "initials": "A",
+        "text": "Reply 2 to reply 1 via its Reply button.",
+        "paraIds": [
+          "6C4F6587"
+        ],
+        "lastParaId": "6C4F6587",
+        "commentsExtended": [
+          {
+            "paraId": "6C4F6587",
+            "paraIdParent": "51680AD1",
+            "doneRaw": "1",
+            "done": true,
+            "commentIds": [
+              "2"
+            ],
+            "parentCommentIds": [
+              "0"
+            ]
+          }
+        ],
+        "extensionPresent": true,
+        "parentCommentId": "0",
+        "parentParaId": "51680AD1",
+        "done": true,
+        "parentChainFromSelf": [
+          "2",
+          "0"
+        ],
+        "depth": 1,
+        "rootCommentId": "0"
+      },
+      {
+        "commentId": "3",
+        "author": "\u4f5c\u8005\u7532",
+        "date": "2026-09-07T15:11:00Z",
+        "initials": "A",
+        "text": "Root comment 2",
+        "paraIds": [
+          "10AA386F"
+        ],
+        "lastParaId": "10AA386F",
+        "commentsExtended": [
+          {
+            "paraId": "10AA386F",
+            "paraIdParent": null,
+            "doneRaw": "0",
+            "done": false,
+            "commentIds": [
+              "3"
+            ],
+            "parentCommentIds": []
+          }
+        ],
+        "extensionPresent": true,
+        "parentCommentId": null,
+        "parentParaId": null,
+        "done": false,
+        "parentChainFromSelf": [
+          "3"
+        ],
+        "depth": 0,
+        "rootCommentId": "3"
+      },
+      {
+        "commentId": "4",
+        "author": "\u4f5c\u8005\u7532",
+        "date": "2026-09-07T15:11:00Z",
+        "initials": "A",
+        "text": "Root comment 3",
+        "paraIds": [
+          "59C2BA24"
+        ],
+        "lastParaId": "59C2BA24",
+        "commentsExtended": [
+          {
+            "paraId": "59C2BA24",
+            "paraIdParent": null,
+            "doneRaw": "0",
+            "done": false,
+            "commentIds": [
+              "4"
+            ],
+            "parentCommentIds": []
+          }
+        ],
+        "extensionPresent": true,
+        "parentCommentId": null,
+        "parentParaId": null,
+        "done": false,
+        "parentChainFromSelf": [
+          "4"
+        ],
+        "depth": 0,
+        "rootCommentId": "4"
+      }
+    ],
+    "commentCount": 5,
+    "extensionRows": [
+      {
+        "paraId": "51680AD1",
+        "paraIdParent": null,
+        "doneRaw": "1",
+        "done": true,
+        "commentIds": [
+          "0"
+        ],
+        "parentCommentIds": []
+      },
+      {
+        "paraId": "24BAF72A",
+        "paraIdParent": "51680AD1",
+        "doneRaw": "1",
+        "done": true,
+        "commentIds": [
+          "1"
+        ],
+        "parentCommentIds": [
+          "0"
+        ]
+      },
+      {
+        "paraId": "6C4F6587",
+        "paraIdParent": "51680AD1",
+        "doneRaw": "1",
+        "done": true,
+        "commentIds": [
+          "2"
+        ],
+        "parentCommentIds": [
+          "0"
+        ]
+      },
+      {
+        "paraId": "10AA386F",
+        "paraIdParent": null,
+        "doneRaw": "0",
+        "done": false,
+        "commentIds": [
+          "3"
+        ],
+        "parentCommentIds": []
+      },
+      {
+        "paraId": "59C2BA24",
+        "paraIdParent": null,
+        "doneRaw": "0",
+        "done": false,
+        "commentIds": [
+          "4"
+        ],
+        "parentCommentIds": []
+      }
+    ],
+    "paraIdToCommentIds": {
+      "51680AD1": [
+        "0"
+      ],
+      "24BAF72A": [
+        "1"
+      ],
+      "6C4F6587": [
+        "2"
+      ],
+      "10AA386F": [
+        "3"
+      ],
+      "59C2BA24": [
+        "4"
+      ]
+    },
+    "duplicateCommentIds": [],
+    "duplicateParaIds": {},
+    "orphanExtensionRows": [],
+    "graphErrors": [],
+    "rootCommentIds": [
+      "0",
+      "3",
+      "4"
+    ],
+    "rootCount": 3,
+    "maximumDepth": 1,
+    "depthConvention": "Root depth 0; direct reply depth 1; reply to reply depth 2.",
+    "threads": [
+      {
+        "rootCommentId": "0",
+        "members": [
+          {
+            "commentId": "0",
+            "depth": 0,
+            "done": true
+          },
+          {
+            "commentId": "1",
+            "depth": 1,
+            "done": true
+          },
+          {
+            "commentId": "2",
+            "depth": 1,
+            "done": true
+          }
+        ]
+      },
+      {
+        "rootCommentId": "3",
+        "members": [
+          {
+            "commentId": "3",
+            "depth": 0,
+            "done": false
+          }
+        ]
+      },
+      {
+        "rootCommentId": "4",
+        "members": [
+          {
+            "commentId": "4",
+            "depth": 0,
+            "done": false
+          }
+        ]
+      }
+    ],
+    "anchors": {
+      "commentRangeStart": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "commentRangeEnd": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "commentReference": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    "scopeLimitation": "Saved parent/done attributes are structural evidence. They do not prove which reply or resolve UI button was used; consult operator GUI chronology.",
+    "nestedFullyResolvedRootIds": [],
+    "requestedThreadStructureMet": false
+  },
+  "pdfs": [
+    {
+      "path": "C:\\word\\real-word-round3-20260907\\_previews\\d-ink.pdf",
+      "sha256": "1A14D2598D3F4638B35D934F065139980C823861AA1A506E4D8E55370B7152B7",
+      "pages": [
+        {
+          "page": 1,
+          "png": "C:\\word\\real-word-round3-20260907\\screenshots\\task-d-pdf\\d-ink-page-1.png",
+          "pngSha256": "1B65180E8F0B3FA80443AC7AB287B4EE16AD9C399F9434D4F83FE7B1950523E1",
+          "widthPt": 595.32,
+          "heightPt": 841.92,
+          "text": "before text\nafter text",
+          "nonwhitePixels": 854
+        }
+      ],
+      "visualReviewed": true,
+      "pageCount": 1,
+      "visualReview": {
+        "pdfSha256": "1A14D2598D3F4638B35D934F065139980C823861AA1A506E4D8E55370B7152B7",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of rendered native Word-exported PDF, without Word or GUI control.",
+        "observed": "One portrait page. Before text appears near upper left; one short black straight stroke slopes slightly downward to the right below it; after text is lower on the page. No circle or closed outline is visible. The image confirms the straight-stroke trial appearance and does not test circle-recognition capability."
+      }
+    },
+    {
+      "path": "C:\\word\\real-word-round3-20260907\\_previews\\d-comments.pdf",
+      "sha256": "4B56D14CA6908329E36091B56B7A9C7184759488E8AB0693C703B5C522823157",
+      "pages": [
+        {
+          "page": 1,
+          "png": "C:\\word\\real-word-round3-20260907\\screenshots\\task-d-pdf\\d-comments-page-1.png",
+          "pngSha256": "CF017F8191F7011DE14230213D1993512BFE5B490C7E3CC5BC1CF4342DD55BEF",
+          "widthPt": 595.32,
+          "heightPt": 841.92,
+          "text": "before text\nFirst comment anchor.\nSecond comment anchor.\nThird comment anchor.\nafter text",
+          "nonwhitePixels": 2859
+        }
+      ],
+      "visualReviewed": true,
+      "pageCount": 1,
+      "visualReview": {
+        "pdfSha256": "4B56D14CA6908329E36091B56B7A9C7184759488E8AB0693C703B5C522823157",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of rendered native Word-exported PDF in document-only export mode.",
+        "observed": "One portrait page. Before text, First comment anchor, Second comment anchor, Third comment anchor and after text are readable in that order. Comment balloons are absent in this document-only PDF and therefore this export cannot independently establish thread parentage or resolution."
+      }
+    },
+    {
+      "path": "C:\\word\\real-word-round3-20260907\\_previews\\d-comments-markup.pdf",
+      "sha256": "F9962094077177428580322E5439F162A481F3C25FC940ECC14293ABEB8C27DF",
+      "pages": [
+        {
+          "page": 1,
+          "png": "C:\\word\\real-word-round3-20260907\\screenshots\\task-d-pdf\\d-comments-markup-page-1.png",
+          "pngSha256": "82D1D12C097F3A4538B60CEB2A2C92660AFD237E87D394045A3A57B227723D76",
+          "widthPt": 595.32,
+          "heightPt": 841.92,
+          "text": "before text\nFirst comment anchor. \u6279\u6ce8 [A1]: Root comment 1\nSecond comment anchor.\n\u6279\u6ce8 [A2R1]: Reply 1 to root 1.\nThird comment anchor.\nafter text \u6279\u6ce8 [A3R1]: Reply 2 to reply 1 via its Reply button.\n\u6279\u6ce8 [A4]: Root comment 2\n\u6279\u6ce8 [A5]: Root comment 3",
+          "nonwhitePixels": 199164
+        }
+      ],
+      "visualReviewed": true,
+      "pageCount": 1,
+      "visualReview": {
+        "pdfSha256": "F9962094077177428580322E5439F162A481F3C25FC940ECC14293ABEB8C27DF",
+        "pageNumbers": [
+          1
+        ],
+        "method": "Independent visual inspection of rendered native Word-exported PDF including markup (operator reports ExportAsFixedFormat Item=7).",
+        "observed": "One portrait page with document text at left and a shaded markup margin at right. Before, three anchor sentences and after remain visible. Five balloons show Root comment 1 [A1], Reply 1 [A2R1], Reply 2 [A3R1], Root comment 2 [A4], and Root comment 3 [A5]. First-root and both reply balloons use faint grey text; the other two root balloons use dark text and stronger red outlines. Both reply labels reference R1, consistent with the saved XML parentage. The whole first thread appears resolved, while the other roots remain active."
+      }
+    }
+  ],
+  "missing": [],
+  "summary": {
+    "packagesPresent": 2,
+    "pdfCount": 3,
+    "pdfPages": 3,
+    "visuallyReviewedPdfs": 3
+  },
+  "rows": [
+    {
+      "file": "ink2/ink-to-shape-2.docx",
+      "sha256": "CFEF5A80050920542270726F418C959C3C7D0F9C72676C334B4B511CEE4233D4",
+      "structure": {
+        "path": "C:\\word\\real-word-round3-20260907\\ink2\\ink-to-shape-2.docx",
+        "sha256": "CFEF5A80050920542270726F418C959C3C7D0F9C72676C334B4B511CEE4233D4",
+        "bytes": 16770,
+        "crcError": null,
+        "duplicateMembers": [],
+        "partHashes": {
+          "[Content_Types].xml": "3C3BD47B8B11CDC2588154FE76D4B73B2F0D1718896EFBDD3BB415397E78FA3D",
+          "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+          "word/document.xml": "29D29265E779E79FAD295CE1A1247A17BB05EB63114EBDEA56312D27E905A457",
+          "word/_rels/document.xml.rels": "779DDA03083472F3F27D0A5914F2E9FE0165B5378634963D19617EBC735D2C97",
+          "word/ink/ink1.xml": "308D816224E898D5000DEEE8EF351D2D5C9D28AC655BB21E5859D37ABB1E8D81",
+          "word/media/image1.png": "E853CC637305FCB956E10F4BD036C072A2AF3C2D906D12BCB3400D77761557ED",
+          "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+          "word/settings.xml": "9B15C12991F1BBCE4285C5B7E31B3918E9DBA25E8334C2AE1D2304BA792D5EDC",
+          "word/styles.xml": "303A749E12079BE3FBBFFBF8790DABE51F1D426F2F789789126D2B93C456E524",
+          "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+          "word/fontTable.xml": "8E1FC3F1AC2FEE8E2539144C0A88BCFD6096BFB33A7FC8E08B29D44B24429D20",
+          "docProps/core.xml": "63543ACDF34D8D0098BA1EF05A16A6EF3D28C890D8807B54633734CDF270ED16",
+          "docProps/app.xml": "1C86356C6D143287CAE03308107E44F7A328414F217AC81BF5A40899205F4107"
+        },
+        "countScope": "All markup-compatibility branches in word/document.xml; counts do not imply all branches render simultaneously.",
+        "counts": {
+          "w14:contentPart": 1,
+          "wps:wsp": 0,
+          "a:prstGeom": 0
+        },
+        "presetGeometries": [],
+        "contentParts": [
+          {
+            "relationshipId": "rId4",
+            "attributes": {
+              "bwMode": "auto",
+              "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id": "rId4"
+            },
+            "path": "/w:document/w:body/w:p[6]/w:r/mc:AlternateContent/mc:Choice/w:drawing/wp:anchor/a:graphic/a:graphicData/w14:contentPart"
+          }
+        ],
+        "bodyText": "before text\n\n\n\n\n\n\n\n\n\n\nafter text\n",
+        "nativeInkParts": [
+          {
+            "part": "word/ink/ink1.xml",
+            "sha256": "308D816224E898D5000DEEE8EF351D2D5C9D28AC655BB21E5859D37ABB1E8D81",
+            "bytes": 1040,
+            "rootTag": "{http://www.w3.org/2003/InkML}ink",
+            "traceCount": 1,
+            "traces": [
+              {
+                "attributes": {
+                  "contextRef": "#ctx0",
+                  "brushRef": "#br0"
+                },
+                "dataCharacters": 20,
+                "data": "1 1,'840'242,\"277\"79"
+              }
+            ]
+          }
+        ],
+        "nativeInkPartCount": 1,
+        "readableInkTraceCount": 1,
+        "unreadableInkPartCount": 0,
+        "requestedCircleStructureMet": false,
+        "scopeLimitation": "Operator reports exactly one straight drag, not a closed circle. These structural observations cannot establish success or failure of single-stroke circle recognition. The GUI chronology, drawing-tool state and actual drag are recorded separately by the operator."
+      },
+      "requiredStructureMet": false,
+      "limitations": [
+        "Operator reports exactly one straight drag, not a closed circle. These structural observations cannot establish success or failure of single-stroke circle recognition. The GUI chronology, drawing-tool state and actual drag are recorded separately by the operator."
+      ]
+    },
+    {
+      "file": "comments2/comment-nesting.docx",
+      "sha256": "531F5FEE471CF1F81BA948D4A8857F1A9A3606675968E2A34C5E13CD7FD0B1E8",
+      "structure": {
+        "path": "C:\\word\\real-word-round3-20260907\\comments2\\comment-nesting.docx",
+        "sha256": "531F5FEE471CF1F81BA948D4A8857F1A9A3606675968E2A34C5E13CD7FD0B1E8",
+        "bytes": 16768,
+        "crcError": null,
+        "duplicateMembers": [],
+        "partHashes": {
+          "[Content_Types].xml": "769095D0BF2C8D3431F2A0F56400FBFB946458A7F7D462083ACEF4EFE1F33FE0",
+          "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+          "word/document.xml": "C7C6535123AEE572901FA4AFB821A847ADFFA30965020767478955E619A50B8C",
+          "word/_rels/document.xml.rels": "377FAE4DC11AB0581471A0688F5F7CC2412CB58A4E70B62400850272344883BB",
+          "word/comments.xml": "F1104B3AACA8D0D1BED9A1FB9A49B7F0D3A6AE0C6AC08C1E954E48A201A5E8B6",
+          "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+          "word/settings.xml": "9AE853352E8D24110B05D8650F8B2AF4FB92FCF0676C3DC85361BFABE2407AA2",
+          "word/styles.xml": "93B6169A953AC1A8BE4D305A81D6DBEA8AA014E870C3AEB51532CEB859824173",
+          "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+          "word/commentsExtended.xml": "B3FDAF826A7CE5DF17C958AB0221B99C98B213CE7C19BFF6F1C618362E76B6B5",
+          "word/commentsIds.xml": "AB7F301FB7CE5BC8064D9B9CF047732A19E32E5B7DB9486A6D80515356394779",
+          "word/commentsExtensible.xml": "A7CAE25AC36929C0D8DE04D0865823FC1C2384D070D9D0F958B5E153B29B0ADC",
+          "word/fontTable.xml": "8E1FC3F1AC2FEE8E2539144C0A88BCFD6096BFB33A7FC8E08B29D44B24429D20",
+          "word/people.xml": "C1D8A5F137CE1F250B68505EB790CC0A0457050E739285DECC72DCC88643AF3D",
+          "docProps/core.xml": "B3EF7A48D0BE44F0EE6DB80337A0DDFAB2151EA3B965C920AD8DC1D7853B97A5",
+          "docProps/app.xml": "706725605014B75B5F101B95161D1BDF177EF18E489E1862CC9D179F22A6B6A2"
+        },
+        "commentsXmlPresent": true,
+        "commentsExtendedXmlPresent": true,
+        "comments": [
+          {
+            "commentId": "0",
+            "author": "\u4f5c\u8005\u7532",
+            "date": "2026-09-07T15:11:00Z",
+            "initials": "A",
+            "text": "Root comment 1",
+            "paraIds": [
+              "51680AD1"
+            ],
+            "lastParaId": "51680AD1",
+            "commentsExtended": [
+              {
+                "paraId": "51680AD1",
+                "paraIdParent": null,
+                "doneRaw": "1",
+                "done": true,
+                "commentIds": [
+                  "0"
+                ],
+                "parentCommentIds": []
+              }
+            ],
+            "extensionPresent": true,
+            "parentCommentId": null,
+            "parentParaId": null,
+            "done": true,
+            "parentChainFromSelf": [
+              "0"
+            ],
+            "depth": 0,
+            "rootCommentId": "0"
+          },
+          {
+            "commentId": "1",
+            "author": "\u4f5c\u8005\u7532",
+            "date": "2026-09-07T15:12:00Z",
+            "initials": "A",
+            "text": "Reply 1 to root 1.",
+            "paraIds": [
+              "24BAF72A"
+            ],
+            "lastParaId": "24BAF72A",
+            "commentsExtended": [
+              {
+                "paraId": "24BAF72A",
+                "paraIdParent": "51680AD1",
+                "doneRaw": "1",
+                "done": true,
+                "commentIds": [
+                  "1"
+                ],
+                "parentCommentIds": [
+                  "0"
+                ]
+              }
+            ],
+            "extensionPresent": true,
+            "parentCommentId": "0",
+            "parentParaId": "51680AD1",
+            "done": true,
+            "parentChainFromSelf": [
+              "1",
+              "0"
+            ],
+            "depth": 1,
+            "rootCommentId": "0"
+          },
+          {
+            "commentId": "2",
+            "author": "\u4f5c\u8005\u7532",
+            "date": "2026-09-07T15:12:00Z",
+            "initials": "A",
+            "text": "Reply 2 to reply 1 via its Reply button.",
+            "paraIds": [
+              "6C4F6587"
+            ],
+            "lastParaId": "6C4F6587",
+            "commentsExtended": [
+              {
+                "paraId": "6C4F6587",
+                "paraIdParent": "51680AD1",
+                "doneRaw": "1",
+                "done": true,
+                "commentIds": [
+                  "2"
+                ],
+                "parentCommentIds": [
+                  "0"
+                ]
+              }
+            ],
+            "extensionPresent": true,
+            "parentCommentId": "0",
+            "parentParaId": "51680AD1",
+            "done": true,
+            "parentChainFromSelf": [
+              "2",
+              "0"
+            ],
+            "depth": 1,
+            "rootCommentId": "0"
+          },
+          {
+            "commentId": "3",
+            "author": "\u4f5c\u8005\u7532",
+            "date": "2026-09-07T15:11:00Z",
+            "initials": "A",
+            "text": "Root comment 2",
+            "paraIds": [
+              "10AA386F"
+            ],
+            "lastParaId": "10AA386F",
+            "commentsExtended": [
+              {
+                "paraId": "10AA386F",
+                "paraIdParent": null,
+                "doneRaw": "0",
+                "done": false,
+                "commentIds": [
+                  "3"
+                ],
+                "parentCommentIds": []
+              }
+            ],
+            "extensionPresent": true,
+            "parentCommentId": null,
+            "parentParaId": null,
+            "done": false,
+            "parentChainFromSelf": [
+              "3"
+            ],
+            "depth": 0,
+            "rootCommentId": "3"
+          },
+          {
+            "commentId": "4",
+            "author": "\u4f5c\u8005\u7532",
+            "date": "2026-09-07T15:11:00Z",
+            "initials": "A",
+            "text": "Root comment 3",
+            "paraIds": [
+              "59C2BA24"
+            ],
+            "lastParaId": "59C2BA24",
+            "commentsExtended": [
+              {
+                "paraId": "59C2BA24",
+                "paraIdParent": null,
+                "doneRaw": "0",
+                "done": false,
+                "commentIds": [
+                  "4"
+                ],
+                "parentCommentIds": []
+              }
+            ],
+            "extensionPresent": true,
+            "parentCommentId": null,
+            "parentParaId": null,
+            "done": false,
+            "parentChainFromSelf": [
+              "4"
+            ],
+            "depth": 0,
+            "rootCommentId": "4"
+          }
+        ],
+        "commentCount": 5,
+        "extensionRows": [
+          {
+            "paraId": "51680AD1",
+            "paraIdParent": null,
+            "doneRaw": "1",
+            "done": true,
+            "commentIds": [
+              "0"
+            ],
+            "parentCommentIds": []
+          },
+          {
+            "paraId": "24BAF72A",
+            "paraIdParent": "51680AD1",
+            "doneRaw": "1",
+            "done": true,
+            "commentIds": [
+              "1"
+            ],
+            "parentCommentIds": [
+              "0"
+            ]
+          },
+          {
+            "paraId": "6C4F6587",
+            "paraIdParent": "51680AD1",
+            "doneRaw": "1",
+            "done": true,
+            "commentIds": [
+              "2"
+            ],
+            "parentCommentIds": [
+              "0"
+            ]
+          },
+          {
+            "paraId": "10AA386F",
+            "paraIdParent": null,
+            "doneRaw": "0",
+            "done": false,
+            "commentIds": [
+              "3"
+            ],
+            "parentCommentIds": []
+          },
+          {
+            "paraId": "59C2BA24",
+            "paraIdParent": null,
+            "doneRaw": "0",
+            "done": false,
+            "commentIds": [
+              "4"
+            ],
+            "parentCommentIds": []
+          }
+        ],
+        "paraIdToCommentIds": {
+          "51680AD1": [
+            "0"
+          ],
+          "24BAF72A": [
+            "1"
+          ],
+          "6C4F6587": [
+            "2"
+          ],
+          "10AA386F": [
+            "3"
+          ],
+          "59C2BA24": [
+            "4"
+          ]
+        },
+        "duplicateCommentIds": [],
+        "duplicateParaIds": {},
+        "orphanExtensionRows": [],
+        "graphErrors": [],
+        "rootCommentIds": [
+          "0",
+          "3",
+          "4"
+        ],
+        "rootCount": 3,
+        "maximumDepth": 1,
+        "depthConvention": "Root depth 0; direct reply depth 1; reply to reply depth 2.",
+        "threads": [
+          {
+            "rootCommentId": "0",
+            "members": [
+              {
+                "commentId": "0",
+                "depth": 0,
+                "done": true
+              },
+              {
+                "commentId": "1",
+                "depth": 1,
+                "done": true
+              },
+              {
+                "commentId": "2",
+                "depth": 1,
+                "done": true
+              }
+            ]
+          },
+          {
+            "rootCommentId": "3",
+            "members": [
+              {
+                "commentId": "3",
+                "depth": 0,
+                "done": false
+              }
+            ]
+          },
+          {
+            "rootCommentId": "4",
+            "members": [
+              {
+                "commentId": "4",
+                "depth": 0,
+                "done": false
+              }
+            ]
+          }
+        ],
+        "anchors": {
+          "commentRangeStart": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4"
+          ],
+          "commentRangeEnd": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4"
+          ],
+          "commentReference": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        "scopeLimitation": "Saved parent/done attributes are structural evidence. They do not prove which reply or resolve UI button was used; consult operator GUI chronology.",
+        "nestedFullyResolvedRootIds": [],
+        "requestedThreadStructureMet": false
+      },
+      "requiredStructureMet": false,
+      "limitations": [
+        "Saved parent/done attributes are structural evidence. They do not prove which reply or resolve UI button was used; consult operator GUI chronology."
+      ]
+    }
+  ]
+}

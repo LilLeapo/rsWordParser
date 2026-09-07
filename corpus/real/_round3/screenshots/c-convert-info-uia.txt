@@ -1,0 +1,89 @@
+Window: "toggle-other-toggles-conversion-working.docx - 兼容性模式 - Word", App: WINWORD.EXE.
+	0 窗口 toggle-other-toggles-conversion-working.docx - 兼容性模式 - Word Secondary Actions: Raise
+		4064 窗格
+			4065 窗格
+				4066 窗格
+					4067 列表 文件 ID: NavBarMenu
+						4068 列表项 返回 ID: FileTabButton
+						4069 列表项 (selectable) 开始 Description: 开始
+						4070 列表项 (selectable) 新建 Description: 新建
+						4071 列表项 (selectable) 打开 Description: 打开
+						4072 列表项 (selectable) 信息 Description: 信息
+						4073 列表项 保存 Description: 保存
+						4074 列表项 (selectable) 另存为 Description: 另存为
+						4075 列表项 另存为 Adobe PDF Description: 另存为 Adobe PDF
+						4076 列表项 (disabled) 历史记录 Description: 历史记录
+						4077 列表项 (selectable) 打印 Description: 打印
+						4078 列表项 (selectable) 共享 Description: 共享
+						4079 列表项 (selectable) 导出 Description: 导出
+						4080 列表项 关闭 Description: 关闭
+						4081 列表项 (selectable) 帐户 Description: 帐户
+						4082 列表项 (selectable) 反馈 Description: 反馈
+						4083 列表项 选项 Description: 选项
+				4084 标题栏 ‪toggle-other-toggles-conversion-working.docx - 兼容性模式‬ - 已保存到这台电脑 Description: toggle-other-toggles-conversion-working.docx - 兼容性模式
+				4085 菜单项 燚坡 李 Description: 燚坡 李 (liyipo2232372591@hotmail.com) 已登录。请打开并查看有关登录用户的更多详细信息。 ID: MeControlWidget
+					4086 图像 燚坡 李 Description: 表示角色的图片。 ID: PersonaPicture
+				4087 按钮 帮助 Description: 获取关于使用 Microsoft Office 的帮助。
+				4088 按钮 最小化 Description: 移开窗口
+				4089 按钮 最大化 Description: 窗口全屏显示
+				4090 按钮 关闭 Description: 关闭窗口
+				4091 窗格 Backstage 视图 ID: BackstageView
+					4092 组 开始 Description: 下午好
+						4093 窗格
+							4094 文本 下午好
+							4095 滚动条 (disabled) Description: 用于更改垂直方向查看区域
+						4096 窗格 开始
+							4097 组 新建
+								4098 按钮 隐藏或显示区域 Description: 隐藏或显示区域
+								4099 文本 新建 Description: 新建
+								4100 列表
+									4101 列表项 (selectable) 空白文档 Description: 空白文档
+									4102 列表项 (selectable) 书法字帖 Description: 书法字帖
+									4103 列表项 (selectable) 欢迎使用 Word Description: 欢迎使用 Word
+									4104 列表项 (selectable) 单倍行距（空白） Description: 单倍行距（空白）
+									4105 列表项 (selectable) 蓝灰色简历 Description: 蓝灰色简历
+									4106 列表项 (selectable) 插入首个目录教程 Description: 插入首个目录教程
+									4107 列表项 (selectable) 新式时序型简历 Description: 新式时序型简历
+									4108 列表项 (selectable) 新式时序型求职信 Description: 新式时序型求职信
+									4109 列表项 (selectable) 蓝灰色求职信 Description: 蓝灰色求职信
+								4110 超链接 更多模板
+							4111 组 打开 Description: 你最近尚未打开任何文档。单击“打开”以浏览文档。
+								4112 窗格
+									4113 选项卡项目 (selectable) 最近
+									4114 选项卡项目 (selectable) 已固定 Description: 固定所需文件，方便以后查找。鼠标悬停在某个文件上方时，单击显示的图钉图标。
+								4115 列表 最近
+									4116 列表项 (selectable) chart-bubble--chartdata-resaved-by-word.docx Description: docx。最近使用时间: 8 分钟前。路径: C: ‎» word ‎» real-word-round3-20260907 ‎» _resaved。已取消固定
+										4117 按钮 将此项目固定到列表 Description: 将此项目固定到列表
+									4118 列表项 (selectable) chart-scatter-lines--chartdata-resaved-by-word.docx Description: docx。最近使用时间: 9 分钟前。路径: C: ‎» word ‎» real-word-round3-20260907 ‎» _resaved。已取消固定
+										4119 按钮 将此项目固定到列表 Description: 将此项目固定到列表
+									4120 列表项 (selectable) chart-scatter--chartdata-resaved-by-word.docx Description: docx。最近使用时间: 9 分钟前。路径: C: ‎» word ‎» real-word-round3-20260907 ‎» _resaved。已取消固定
+										4121 按钮 将此项目固定到列表 Description: 将此项目固定到列表
+									4122 列表项 (selectable) chart-no-title--chartdata-resaved-by-word.docx Description: docx。最近使用时间: 10 分钟前。路径: C: ‎» word ‎» real-word-round3-20260907 ‎» _resaved。已取消固定
+										4123 按钮 将此项目固定到列表 Description: 将此项目固定到列表
+									4124 列表项 (selectable) ink-to-shape--ink-resaved-by-word.docx Description: docx。最近使用时间: 12 分钟前。路径: C: ‎» word ‎» real-word-round3-20260907 ‎» _resaved。已取消固定
+										4125 按钮 将此项目固定到列表 Description: 将此项目固定到列表
+									4126 列表项 (selectable) ink-to-shape--newchart-resaved-by-word.docx Description: docx。最近使用时间: 13 分钟前。路径: C: ‎» word ‎» real-word-round3-20260907 ‎» _resaved。已取消固定
+										4127 按钮 将此项目固定到列表 Description: 将此项目固定到列表
+									4128 列表项 (selectable) ink-to-shape--newimage-resaved-by-word.docx Description: docx。最近使用时间: 13 分钟前。路径: C: ‎» word ‎» real-word-round3-20260907 ‎» _resaved。已取消固定
+										4129 按钮 将此项目固定到列表 Description: 将此项目固定到列表
+									4130 列表项 (selectable) ink-highlighter--ink-resaved-by-word.docx Description: docx。最近使用时间: 13 分钟前。路径: C: ‎» word ‎» real-word-round3-20260907 ‎» _resaved。已取消固定
+										4131 按钮 将此项目固定到列表 Description: 将此项目固定到列表
+									4132 列表项 (selectable) ink-highlighter--newchart-resaved-by-word.docx Description: docx。最近使用时间: 14 分钟前。路径: C: ‎» word ‎» real-word-round3-20260907 ‎» _resaved。已取消固定
+										4133 按钮 将此项目固定到列表 Description: 将此项目固定到列表
+									4134 列表项 (selectable) ink-highlighter--newimage-resaved-by-word.docx Description: docx。最近使用时间: 14 分钟前。路径: C: ‎» word ‎» real-word-round3-20260907 ‎» _resaved。已取消固定
+										4135 按钮 将此项目固定到列表 Description: 将此项目固定到列表
+								4136 超链接 更多文档
+							4137 滚动条 Description: 用于更改垂直方向查看区域
+								4138 按钮 上移行 Description: 将垂直位置向上移动一行
+								4139 按钮 向上翻页 Description: 将垂直位置向上移动数行
+								4140 Thumb 控件 位置 Description: 指示当前垂直位置，可通过拖动直接进行更改
+								4141 按钮 向下翻页 Description: 将垂直位置向下移动数行
+								4142 按钮 下移行 Description: 将垂直位置向下移动一行
+		183 标题栏
+			184 菜单栏 系统 ID: MenuBar
+				2790 菜单项目 系统
+			186 按钮 最小化
+			187 按钮 最大化
+			188 按钮 关闭
+
+The focused UI element is 4064 窗格.

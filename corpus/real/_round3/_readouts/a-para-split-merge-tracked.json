@@ -1,0 +1,94 @@
+﻿{
+    "case":  "para-split-merge",
+    "stage":  "tracked",
+    "path":  "C:\\word\\real-word-round3-20260907\\revfix\\para-split-merge\\tracked.docx",
+    "sha256":  "D91DC2F2777BADF01C145FF66BA6E955ACD96420682BE580E9A242207B3B11C2",
+    "sourcePath":  "C:\\word\\real-word-round3-20260907\\revfix\\para-split-merge\\base.docx",
+    "sourceSha256":  "845CFEF339B515BD72554BE83602359CAC1EDDF0321846D0310994AB29BA6E9A",
+    "operations":  [
+                       "Opened unchanged base.docx independently.",
+                       "Inserted paragraph break after first two characters of paragraph A.",
+                       "Deleted paragraph mark after paragraph B, merging it with after paragraph.",
+                       "Centered second split paragraph with 2-character first-line indent."
+                   ],
+    "readout":  {
+                    "text":  "before 前文\r甲段\r落的文字。\r乙段落的文字。\rafter 后文\r\r",
+                    "paragraphs":  [
+                                       {
+                                           "text":  "before 前文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "甲段\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "落的文字。\r",
+                                           "alignment":  1,
+                                           "firstLineIndent":  22,
+                                           "characterFirstLineIndent":  2
+                                       },
+                                       {
+                                           "text":  "乙段落的文字。\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "after 后文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       }
+                                   ],
+                    "revisions":  [
+                                      {
+                                          "type":  1,
+                                          "author":  "作者甲",
+                                          "text":  "\r"
+                                      },
+                                      {
+                                          "type":  10,
+                                          "author":  "作者甲",
+                                          "text":  "落的文字。\r"
+                                      },
+                                      {
+                                          "type":  2,
+                                          "author":  "作者甲",
+                                          "text":  "\r"
+                                      }
+                                  ],
+                    "revisionCount":  3,
+                    "sections":  [
+                                     {
+                                         "index":  1,
+                                         "start":  0,
+                                         "end":  37,
+                                         "orientation":  0,
+                                         "sectionStart":  2
+                                     }
+                                 ],
+                    "shapes":  [
+
+                               ],
+                    "pages":  1,
+                    "compatibility":  15,
+                    "trackMoves":  true,
+                    "trackFormatting":  true,
+                    "trackRevisions":  true
+                },
+    "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\revfix\\para-split-merge\\tracked.pdf",
+    "date":  "2026-09-07T13:49:37.3412802+08:00",
+    "method":  "Native Windows Word COM; DOCX saved once at this path; PDF export and current-document UI inspection afterward without save back.",
+    "uiPending":  true
+}

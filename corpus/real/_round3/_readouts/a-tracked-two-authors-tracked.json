@@ -1,0 +1,81 @@
+﻿{
+    "case":  "tracked-two-authors",
+    "stage":  "tracked",
+    "path":  "C:\\word\\real-word-round3-20260907\\revfix\\tracked-two-authors\\tracked.docx",
+    "sha256":  "19828B02A745916BE7D3FE6BD674F555FB9BB3D876372EF396A044441A5F2072",
+    "sourcePath":  "C:\\word\\real-word-round3-20260907\\revfix\\tracked-two-authors\\base.docx",
+    "sourceSha256":  "DB1ED90E50F3AE22DDD0C512CB0AE0D4578104B6A93BD1F62EBB96E962E62E1C",
+    "operations":  [
+                       "Opened unchanged base.docx independently.",
+                       "Author A inserted a sentence.",
+                       "Author B inserted a separate sentence before original text and deleted its latter part (body text and punctuation)."
+                   ],
+    "readout":  {
+                    "text":  "before 前文\r作者乙插入的句子。原始正文。作者甲插入的句子。\rafter 后文\r\r",
+                    "paragraphs":  [
+                                       {
+                                           "text":  "before 前文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "作者乙插入的句子。原始正文。作者甲插入的句子。\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "after 后文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       }
+                                   ],
+                    "revisions":  [
+                                      {
+                                          "type":  1,
+                                          "author":  "作者乙",
+                                          "text":  "作者乙插入的句子。"
+                                      },
+                                      {
+                                          "type":  2,
+                                          "author":  "作者乙",
+                                          "text":  "正文。"
+                                      },
+                                      {
+                                          "type":  1,
+                                          "author":  "作者甲",
+                                          "text":  "作者甲插入的句子。"
+                                      }
+                                  ],
+                    "revisionCount":  3,
+                    "sections":  [
+                                     {
+                                         "index":  1,
+                                         "start":  0,
+                                         "end":  44,
+                                         "orientation":  0,
+                                         "sectionStart":  2
+                                     }
+                                 ],
+                    "shapes":  [
+
+                               ],
+                    "pages":  1,
+                    "compatibility":  15,
+                    "trackMoves":  true,
+                    "trackFormatting":  true,
+                    "trackRevisions":  true
+                },
+    "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\revfix\\tracked-two-authors\\tracked.pdf",
+    "date":  "2026-09-07T13:53:07.2049909+08:00",
+    "method":  "Native Windows Word COM; DOCX saved once at this path; PDF export and current-document UI inspection afterward without save back.",
+    "uiPending":  true
+}

@@ -1,0 +1,113 @@
+{
+    "helper":  "task-c-read.ps1/v1",
+    "variant":  "supplied-compat15",
+    "file":  "toggle-direct-off-compat15.docx",
+    "fullName":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\fixtures\\toggle-direct-off-compat15.docx",
+    "sourceSha256":  "AAB6B0C17F991408D6BE06DA98D44E471D17ABE6B362250272A8A15B2777D178",
+    "sourceSha256AfterRead":  "AAB6B0C17F991408D6BE06DA98D44E471D17ABE6B362250272A8A15B2777D178",
+    "referenceSha256":  "698B3CD0A007CA0BC04C36DB03B0A97B1D60046540748B60103C0FD6E0B4708F",
+    "wordVersion":  "16.0",
+    "wordBuild":  "16.0.14334",
+    "compatibilityMode":  15,
+    "documentSavedFlag":  true,
+    "originalView":  {
+                         "showHiddenText":  false,
+                         "showAll":  false
+                     },
+    "rows":  [
+                 {
+                     "file":  "toggle-direct-off-compat15.docx",
+                     "baseFile":  "toggle-direct-off.docx",
+                     "sentence":  "direct b=0 over style b",
+                     "property":  "Bold",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  false,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+                                     {
+                                         "read":  1,
+                                         "raw":  0,
+                                         "value":  false,
+                                         "selectionStart":  2,
+                                         "selectionEnd":  2,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     },
+                                     {
+                                         "read":  2,
+                                         "raw":  0,
+                                         "value":  false,
+                                         "selectionStart":  2,
+                                         "selectionEnd":  2,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     }
+                                 ],
+                     "desktopWord":  false,
+                     "consistent":  true,
+                     "comparisonWithRound2":  "same",
+                     "readMethod":  "Selection.Font property with caret two characters into sentence twice",
+                     "rangeStart":  0,
+                     "rangeEnd":  23,
+                     "actualText":  "direct b=0 over style b",
+                     "matchedCase":  "exact",
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  null,
+                     "observedAt":  "2026-09-07T14:11:42.4536852+08:00"
+                 },
+                 {
+                     "file":  "toggle-direct-off-compat15.docx",
+                     "baseFile":  "toggle-direct-off.docx",
+                     "sentence":  "style b, no direct",
+                     "property":  "Bold",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  true,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+                                     {
+                                         "read":  1,
+                                         "raw":  -1,
+                                         "value":  true,
+                                         "selectionStart":  26,
+                                         "selectionEnd":  26,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     },
+                                     {
+                                         "read":  2,
+                                         "raw":  -1,
+                                         "value":  true,
+                                         "selectionStart":  26,
+                                         "selectionEnd":  26,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     }
+                                 ],
+                     "desktopWord":  true,
+                     "consistent":  true,
+                     "comparisonWithRound2":  "same",
+                     "readMethod":  "Selection.Font property with caret two characters into sentence twice",
+                     "rangeStart":  24,
+                     "rangeEnd":  42,
+                     "actualText":  "style b, no direct",
+                     "matchedCase":  "exact",
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  null,
+                     "observedAt":  "2026-09-07T14:11:43.0195984+08:00"
+                 }
+             ],
+    "measuredAt":  "2026-09-07T14:11:43.5739703+08:00",
+    "note":  "Reads current document only; no open, save, conversion or close. GUI evidence remains unverified until actual screenshots are added. Selection remains at last measured point."
+}

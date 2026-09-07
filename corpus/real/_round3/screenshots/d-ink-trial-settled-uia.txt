@@ -1,0 +1,119 @@
+Window: "文档9 - Word", App: WINWORD.EXE.
+	0 窗口 文档9 - Word Secondary Actions: Raise
+		4224 窗格 MsoDockTop
+			4225 工具栏 Description: Ribbon 工具栏
+				4226 窗格 Ribbon
+					4227 窗格
+						4228 窗格
+							4229 窗格 Ribbon
+								4230 工具栏 快速访问工具栏
+									4231 切换关闭  自动保存 Description: 如果想使用自动保存，请保存到 OneDrive 或 SharePoint Online。
+									4232 按钮 保存 Description: 保存 (Ctrl+S)
+									4233 SplitButton 撤消 Description: 撤消 (Ctrl+Z)
+										4234 按钮 撤消 Description: 撤消 (Ctrl+Z)
+										4235 菜单项 更多选项 Description: 撤消 (Ctrl+Z)
+									4236 按钮 (disabled) 无法重复 Description: 无法重复 (Ctrl+Y)
+									4237 菜单项 触摸/鼠标模式
+									4238 菜单项 自定义工具栏
+								9232 标题栏 ‪文档9‬ - Word Description: 文档9
+								4241 菜单项 键入搜索内容，并使用向上和向下键导航 Description: Microsoft 搜索(Alt+Q) 只需开始在这里输入内容，即可轻松利用功能并获得帮助。 ID: TellMeControlAnchor
+									4242 编辑框 Microsoft 搜索 Description: 只需开始在这里输入内容，即可轻松利用功能并获得帮助。 ID: TellMeTextBoxAutomationId
+								4243 菜单项 燚坡 李 Description: 燚坡 李 (liyipo2232372591@hotmail.com) 已登录。请打开并查看有关登录用户的更多详细信息。 ID: MeControlWidget
+								4244 菜单项 功能区显示选项 Description: 显示或隐藏功能区以最大化空间。
+								4245 按钮 最小化 Description: 移开窗口
+								4246 按钮 最大化 Description: 窗口全屏显示
+								4247 按钮 关闭 Description: 关闭窗口
+								4248 按钮 “文件”选项卡 ID: FileTabButton
+								4249 窗格 功能区选项卡
+									4250 选项卡项目 (selectable) 开始
+									4251 选项卡项目 (selectable) 插入
+									4252 选项卡项目 (selectable) 绘图
+									4253 选项卡项目 (selectable) 设计
+									4254 选项卡项目 (selectable) 布局
+									4255 选项卡项目 (selectable) 引用
+									4256 选项卡项目 (selectable) 邮件
+									4257 选项卡项目 (selectable) 审阅
+									4258 选项卡项目 (selectable) 视图
+									4259 选项卡项目 (selectable) Zotero
+									4260 选项卡项目 (selectable) 帮助
+									4261 选项卡项目 (selectable) Acrobat
+									4262 按钮 共享 Description: 共享 共享此文档，并查看与你共享此文档的人员。
+										4263 图像 Description: 共享此文档，并查看与你共享此文档的人员。
+										4264 文本 共享 Description: 共享此文档，并查看与你共享此文档的人员。
+								4265 窗格 下层功能区
+									9287 组 绘图
+										9288 组 输入模式
+											9289 按钮 绘图 Description: 绘图 用手指或触笔来使用笔、橡皮擦、套索和形状工具。
+										9290 组 绘图工具
+											9291 列表 绘图工具
+												9292 SplitButton (selectable) 选择对象，包括墨迹、形状和文本区域。这在处理衬于文字下方的对象时特别有用。
+												9293 SplitButton (selectable) 通过绘制形状来选择墨迹。将选择形状中的所有笔划墨迹。
+												9294 SplitButton (selectable) 使用橡皮擦擦除页面上绘制的墨迹。
+												9295 SplitButton (selectable) 笔: 黑色，0.5 毫米
+												9296 SplitButton (selectable) 笔: 红色，0.5 毫米
+												9297 SplitButton (selectable) 荧光笔: 黄色，6 毫米
+										9298 组 转换
+											9299 按钮 将墨迹转换为形状 Description: 将墨迹转换为形状 自动将墨迹绘图转换为形状。
+											9300 按钮 将墨迹转换为数学公式 Description: 将墨迹转换为数学公式 将手写的数学表达式转换为文本。
+										9301 组 插入
+											9302 按钮 画布 Description: 画布 插入绘图画布以创建要绘制的空间。
+										9303 组 重播
+											9304 按钮 墨迹重播 Description: 墨迹重播 自动重播可见笔划墨迹的创建操作。
+								4369 按钮 折叠功能区 Description: 折叠功能区(Ctrl+F1) 需要更多空间吗? 请折叠功能区，以便仅显示选项卡名称。
+		4370 窗格 MsoDockBottom
+			4371 工具栏 Description: 状态栏 工具栏
+				4372 窗格 状态栏
+					4373 窗格
+						4374 窗格
+							4375 状态栏 状态栏
+								9249 文本 (disabled) 字数统计 Description: 文档的字数。单击或点击可打开“字数统计”对话框。
+								9250 按钮 拼写和语法检查 无错误 Description: 无校对错误
+								9251 按钮 语言 中文(中国) Description: 语言(国家/地区)
+								9252 按钮 专注 Description: 专注模式
+								4381 选项卡项目 (selectable) 选取模式 Description: 选取模式
+								4382 选项卡项目 (selectable) 打印布局 Description: 打印布局
+								4383 选项卡项目 (selectable) Web 版式 Description: Web 版式
+								9253 按钮 缩小 Description: 缩小
+								9254 滑块 缩放 Description: 缩放
+									9255 按钮 缩小 Description: 将水平位置向左移动数列
+									9256 Thumb 控件 位置 Description: 缩放滑块
+									9257 按钮 放大 Description: 将水平位置向右移动数列
+								9258 按钮 放大 Description: 放大
+								9259 按钮 缩放 95% Description: 缩放级别。单击可打开“缩放”对话框。
+								4391 Thumb 控件 调整框大小 Description: 可用于调整窗口的宽度和高度
+		4392 窗格
+			9260 窗格 文档9
+				9261 文档 文档9
+					9262 页面 页面 1 ID: UIA_AutomationId_Word_Page_1
+						9263 编辑 页面 1 内容 ID: Body
+							9305 形状 (selectable) 墨迹
+				9264 窗格 垂直
+					9265 窗格
+						9266 滚动条 Description: 用于更改垂直方向查看区域
+				9272 标题栏
+					9273 菜单栏 系统 ID: MenuBar
+						9285 菜单项目 系统
+					9275 按钮 最小化
+					9276 按钮 最大化
+					9277 按钮 关闭
+		183 标题栏
+			184 菜单栏 系统 ID: MenuBar
+				9286 菜单项目 系统
+			186 按钮 最小化
+			187 按钮 最大化
+			188 按钮 关闭
+
+Document text: ```
+before text
+
+
+
+
+
+
+
+
+
+
+after text
+```

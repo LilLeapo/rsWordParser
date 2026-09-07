@@ -1,0 +1,79 @@
+{
+    "helper":  "task-c-read.ps1/v1",
+    "variant":  "supplied-compat15",
+    "file":  "toggle-table-first-row-compat15.docx",
+    "fullName":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\fixtures\\toggle-table-first-row-compat15.docx",
+    "sourceSha256":  "9C1B319C59A18DEAEAAA0D8FF6176DE5B43FD3B6DABBE06C8E009795D0FD8E01",
+    "sourceSha256AfterRead":  "9C1B319C59A18DEAEAAA0D8FF6176DE5B43FD3B6DABBE06C8E009795D0FD8E01",
+    "referenceSha256":  "698B3CD0A007CA0BC04C36DB03B0A97B1D60046540748B60103C0FD6E0B4708F",
+    "wordVersion":  "16.0",
+    "wordBuild":  "16.0.14334",
+    "compatibilityMode":  15,
+    "documentSavedFlag":  true,
+    "originalView":  {
+                         "showHiddenText":  false,
+                         "showAll":  false
+                     },
+    "rows":  [
+                 {
+                     "file":  "toggle-table-first-row-compat15.docx",
+                     "baseFile":  "toggle-table-first-row.docx",
+                     "sentence":  "table firstRow b + para b",
+                     "property":  "Bold",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  false,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+
+                                 ],
+                     "desktopWord":  null,
+                     "consistent":  false,
+                     "comparisonWithRound2":  "unread",
+                     "readMethod":  "Selection.Font property with caret two characters into sentence twice",
+                     "rangeStart":  null,
+                     "rangeEnd":  null,
+                     "actualText":  null,
+                     "matchedCase":  null,
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  "System.Management.Automation.RuntimeException: Word text length does not map to character positions.",
+                     "observedAt":  "2026-09-07T14:13:16.4903673+08:00"
+                 },
+                 {
+                     "file":  "toggle-table-first-row-compat15.docx",
+                     "baseFile":  "toggle-table-first-row.docx",
+                     "sentence":  "table body + para b",
+                     "property":  "Bold",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  true,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+
+                                 ],
+                     "desktopWord":  null,
+                     "consistent":  false,
+                     "comparisonWithRound2":  "unread",
+                     "readMethod":  "Selection.Font property with caret two characters into sentence twice",
+                     "rangeStart":  null,
+                     "rangeEnd":  null,
+                     "actualText":  null,
+                     "matchedCase":  null,
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  "System.Management.Automation.RuntimeException: Word text length does not map to character positions.",
+                     "observedAt":  "2026-09-07T14:13:16.5196669+08:00"
+                 }
+             ],
+    "measuredAt":  "2026-09-07T14:13:16.5370487+08:00",
+    "note":  "Reads current document only; no open, save, conversion or close. GUI evidence remains unverified until actual screenshots are added. Selection remains at last measured point."
+}

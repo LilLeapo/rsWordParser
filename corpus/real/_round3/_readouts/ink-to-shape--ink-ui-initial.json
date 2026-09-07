@@ -1,0 +1,193 @@
+{
+    "file":  "ink-to-shape--ink.docx",
+    "base":  "ink/ink-to-shape.docx",
+    "op":  "ink",
+    "expect":  "第一个文字段落**前方**压着一块 120 × 30 pt 的纯色浮动图片（偏移 15 / −3.75 pt），文字不被挤开",
+    "timestamp":  "2026-09-07T14:05:59.5566556+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\ink-to-shape--ink.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  4,
+                    "tables":  0,
+                    "comments":  0,
+                    "inline_shapes":  0,
+                    "shapes":  9,
+                    "first_table_rows":  null,
+                    "first_table_cells":  null,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+                           {
+                               "collection":  "Shapes",
+                               "index":  1,
+                               "type":  13,
+                               "width":  120,
+                               "height":  30,
+                               "name":  "aidocs-ink 9",
+                               "left":  15,
+                               "top":  -3.75,
+                               "relative_horizontal":  2,
+                               "relative_vertical":  2,
+                               "wrap_type":  3,
+                               "z_order":  1,
+                               "errors":  [
+
+                                          ]
+                           },
+                           {
+                               "collection":  "Shapes",
+                               "index":  2,
+                               "type":  23,
+                               "width":  28.25,
+                               "height":  11.3,
+                               "name":  "Ink 1",
+                               "left":  109.7,
+                               "top":  52.95,
+                               "relative_horizontal":  2,
+                               "relative_vertical":  2,
+                               "wrap_type":  3,
+                               "z_order":  2,
+                               "errors":  [
+
+                                          ]
+                           },
+                           {
+                               "collection":  "Shapes",
+                               "index":  3,
+                               "type":  23,
+                               "width":  12.1,
+                               "height":  28.8,
+                               "name":  "Ink 2",
+                               "left":  138.2,
+                               "top":  64.5,
+                               "relative_horizontal":  2,
+                               "relative_vertical":  2,
+                               "wrap_type":  3,
+                               "z_order":  3,
+                               "errors":  [
+
+                                          ]
+                           },
+                           {
+                               "collection":  "Shapes",
+                               "index":  4,
+                               "type":  23,
+                               "width":  12.1,
+                               "height":  28.8,
+                               "name":  "Ink 3",
+                               "left":  138.3,
+                               "top":  93.75,
+                               "relative_horizontal":  2,
+                               "relative_vertical":  2,
+                               "wrap_type":  3,
+                               "z_order":  4,
+                               "errors":  [
+
+                                          ]
+                           },
+                           {
+                               "collection":  "Shapes",
+                               "index":  5,
+                               "type":  23,
+                               "width":  28.25,
+                               "height":  11.3,
+                               "name":  "Ink 4",
+                               "left":  109.95,
+                               "top":  122.9,
+                               "relative_horizontal":  2,
+                               "relative_vertical":  2,
+                               "wrap_type":  3,
+                               "z_order":  5,
+                               "errors":  [
+
+                                          ]
+                           },
+                           {
+                               "collection":  "Shapes",
+                               "index":  6,
+                               "type":  23,
+                               "width":  28.25,
+                               "height":  11.3,
+                               "name":  "Ink 5",
+                               "left":  81.4,
+                               "top":  123.2,
+                               "relative_horizontal":  2,
+                               "relative_vertical":  2,
+                               "wrap_type":  3,
+                               "z_order":  6,
+                               "errors":  [
+
+                                          ]
+                           },
+                           {
+                               "collection":  "Shapes",
+                               "index":  7,
+                               "type":  23,
+                               "width":  12.1,
+                               "height":  28.8,
+                               "name":  "Ink 6",
+                               "left":  69.05,
+                               "top":  94.1,
+                               "relative_horizontal":  2,
+                               "relative_vertical":  2,
+                               "wrap_type":  3,
+                               "z_order":  7,
+                               "errors":  [
+
+                                          ]
+                           },
+                           {
+                               "collection":  "Shapes",
+                               "index":  8,
+                               "type":  23,
+                               "width":  12.1,
+                               "height":  28.8,
+                               "name":  "Ink 7",
+                               "left":  68.9,
+                               "top":  64.95,
+                               "relative_horizontal":  2,
+                               "relative_vertical":  2,
+                               "wrap_type":  3,
+                               "z_order":  8,
+                               "errors":  [
+
+                                          ]
+                           },
+                           {
+                               "collection":  "Shapes",
+                               "index":  9,
+                               "type":  23,
+                               "width":  28.25,
+                               "height":  11.3,
+                               "name":  "Ink 8",
+                               "left":  81.15,
+                               "top":  53.2,
+                               "relative_horizontal":  2,
+                               "relative_vertical":  2,
+                               "wrap_type":  3,
+                               "z_order":  9,
+                               "errors":  [
+
+                                          ]
+                           }
+                       ],
+    "text":  "before 前文\r这是一段用于观察原生墨迹的文字。\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+
+               ],
+    "errors":  [
+
+               ]
+}

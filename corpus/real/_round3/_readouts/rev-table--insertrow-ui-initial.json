@@ -1,0 +1,44 @@
+{
+    "file":  "rev-table--insertrow.docx",
+    "base":  "revisions2/rev-table.docx",
+    "op":  "insertrow",
+    "expect":  "第一张表格在第 1 行之后多了一行空格子（格式照第 1 行）",
+    "timestamp":  "2026-09-07T14:46:18.5462107+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\rev-table--insertrow.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  15,
+                    "tables":  1,
+                    "comments":  0,
+                    "inline_shapes":  0,
+                    "shapes":  0,
+                    "first_table_rows":  4,
+                    "first_table_cells":  6,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+
+                       ],
+    "text":  "before 前文\rOriginal R1 C1\rOriginal R1 C2\r\u0007\r\u0007\r\u0007\r\u0007Inserted row left\r\u0007Inserted row right\r\u0007\r\u0007Original R2 C1\r\u0007Original R2 C2\r\u0007\r\u0007\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+                   {
+                       "text":  "Original R1 C1\rOriginal R1 C2\r\u0007\r\u0007\r\u0007\r\u0007Inserted row left\r\u0007Inserted row right\r\u0007\r\u0007Original R2 C1\r\u0007Original R2 C2\r\u0007\r\u0007",
+                       "cells":  6
+                   }
+               ],
+    "errors":  [
+
+               ]
+}

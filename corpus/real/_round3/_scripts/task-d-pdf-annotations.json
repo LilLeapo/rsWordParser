@@ -1,0 +1,20 @@
+{
+  "d-ink.pdf": {
+    "pdfSha256": "1A14D2598D3F4638B35D934F065139980C823861AA1A506E4D8E55370B7152B7",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered native Word-exported PDF, without Word or GUI control.",
+    "observed": "One portrait page. Before text appears near upper left; one short black straight stroke slopes slightly downward to the right below it; after text is lower on the page. No circle or closed outline is visible. The image confirms the straight-stroke trial appearance and does not test circle-recognition capability."
+  },
+  "d-comments.pdf": {
+    "pdfSha256": "4B56D14CA6908329E36091B56B7A9C7184759488E8AB0693C703B5C522823157",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered native Word-exported PDF in document-only export mode.",
+    "observed": "One portrait page. Before text, First comment anchor, Second comment anchor, Third comment anchor and after text are readable in that order. Comment balloons are absent in this document-only PDF and therefore this export cannot independently establish thread parentage or resolution."
+  },
+  "d-comments-markup.pdf": {
+    "pdfSha256": "F9962094077177428580322E5439F162A481F3C25FC940ECC14293ABEB8C27DF",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered native Word-exported PDF including markup (operator reports ExportAsFixedFormat Item=7).",
+    "observed": "One portrait page with document text at left and a shaded markup margin at right. Before, three anchor sentences and after remain visible. Five balloons show Root comment 1 [A1], Reply 1 [A2R1], Reply 2 [A3R1], Root comment 2 [A4], and Root comment 3 [A5]. First-root and both reply balloons use faint grey text; the other two root balloons use dark text and stronger red outlines. Both reply labels reference R1, consistent with the saved XML parentage. The whole first thread appears resolved, while the other roots remain active."
+  }
+}

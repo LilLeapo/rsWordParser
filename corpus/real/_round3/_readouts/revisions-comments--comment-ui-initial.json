@@ -1,0 +1,60 @@
+{
+    "file":  "revisions-comments--comment.docx",
+    "base":  "revisions/revisions-comments.docx",
+    "op":  "comment",
+    "expect":  "第一个有字的段落开头几个字上有一条作者 rsword 的批注「rsword 批注」",
+    "timestamp":  "2026-09-07T14:43:28.7184033+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\revisions-comments--comment.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  8,
+                    "tables":  0,
+                    "comments":  4,
+                    "inline_shapes":  0,
+                    "shapes":  0,
+                    "first_table_rows":  null,
+                    "first_table_cells":  null,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+
+                       ],
+    "text":  "before 前文\r原始正文。新增句子。\r待删除句子。\r格式修改文字。\r批注位置一。批注位置二。\r\rafter 后文\r\r",
+    "comments":  [
+                     {
+                         "author":  "rsword",
+                         "text":  "rsword 批注",
+                         "scope":  "befo"
+                     },
+                     {
+                         "author":  "燚坡 李",
+                         "text":  "第一条批注",
+                         "scope":  "批注位置一"
+                     },
+                     {
+                         "author":  "燚坡 李",
+                         "text":  "第一条批注的回复",
+                         "scope":  "批注位置一"
+                     },
+                     {
+                         "author":  "燚坡 李",
+                         "text":  "第二条未解决批注",
+                         "scope":  "批注位置二"
+                     }
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+
+               ],
+    "errors":  [
+
+               ]
+}

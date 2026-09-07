@@ -1,0 +1,72 @@
+﻿{
+    "case":  "sect-delete",
+    "stage":  "after",
+    "path":  "C:\\word\\real-word-round3-20260907\\revfix\\sect-delete\\after.docx",
+    "sha256":  "1DCF914FC03D67F78B22FA540D5CAA7478CBA9CA65CE25A4ED8AD252E33E8C2E",
+    "sourcePath":  "C:\\word\\real-word-round3-20260907\\revfix\\sect-delete\\before.docx",
+    "sourceSha256":  "FBDCC496F3B9E8BA3F77ADE8DBEA90F9E2D5605AFB5E51247DBAC89AAE2C8128",
+    "operations":  [
+                       "Opened unchanged before.docx independently.",
+                       "Deleted the section-break character; Word determines inherited page setup."
+                   ],
+    "readout":  {
+                    "text":  "before 前文\r第一节正文。\r第二节正文。\rafter 后文\r\r",
+                    "paragraphs":  [
+                                       {
+                                           "text":  "before 前文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "第一节正文。\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "第二节正文。\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "after 后文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       }
+                                   ],
+                    "revisions":  [
+
+                                  ],
+                    "revisionCount":  0,
+                    "sections":  [
+                                     {
+                                         "index":  1,
+                                         "start":  0,
+                                         "end":  34,
+                                         "orientation":  1,
+                                         "sectionStart":  2
+                                     }
+                                 ],
+                    "shapes":  [
+
+                               ],
+                    "pages":  1,
+                    "compatibility":  15,
+                    "trackMoves":  true,
+                    "trackFormatting":  true,
+                    "trackRevisions":  false
+                },
+    "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\revfix\\sect-delete\\after.pdf",
+    "date":  "2026-09-07T13:55:28.3688922+08:00",
+    "method":  "Native Windows Word COM; DOCX saved once at this path; PDF export and current-document UI inspection afterward without save back.",
+    "uiPending":  true
+}

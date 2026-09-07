@@ -95,9 +95,10 @@ docDefaults，于是 docDefaults 自己抵消自己。两个已实测的推论�
 > 写 `b`"是**加粗**的（网页版读到的是不加粗）。规则表见 `resolve::toggle` 的 `ToggleRule::WordDesktop`，
 > 逐句读数与截图见 `fixtures/resolve/README.md` 与 `corpus/real/_round2/TOGGLE.md`。
 >
-> **新的未决项**：那八份 fixture 没有 `settings.xml`，Word 以**兼容模式 12** 打开；兼容模式 15 下是否相同没测。
-> 这是现在这条线上最该补的一件（做法：给 fixture 加一份带 `<w:compat><w:compatSetting … w:val="15"/>` 的
-> `settings.xml`，或用 Word 另存一次再复读，然后重跑同样的二十五个测点）。
+> **~~新的未决项~~：兼容模式已复测，结论不变**（2026-09-07 第三轮）：`gen-fixtures` 现在给每份 fixture 生成一个
+> 只多 `settings.xml`（`compatibilityMode = 15`）的 `doc-compat15.docx`，25 个测点在模式 15 下的读数与模式 12
+> **逐条相同**；再把模式 12 那份用 Word「文件 → 信息 → 转换」升到 15（Word 自己转的），12 个测点三方一致。
+> 读数见 `corpus/real/_round3/TOGGLE15.md`。**这条线上已经没有未决项了。**
 >
 > 下面是当时写的步骤，留作复核方法的记录。
 
@@ -158,6 +159,6 @@ M7 把编辑器接到 `resolve` 的那个提交里，加一道"`resolve` 的答�
 | ~~`vanish`~~ | ~~网页版观察不到~~ | **已测**（桌面版 2026-09-07：两层可见、一层隐藏 → 异或）。但 `expected.toml` 断言不了：这种段落被 R08 整段判成隐藏块，模型里没有 run |
 | `bCs` / `iCs` | 要带 `w:rtl` 的阿拉伯文 / 希伯来文才看得见 | 跟各自本体 `b` / `i` 走 |
 | ~~桌面版 Word~~ | ~~只在网页版测过~~ | **已测**（2026-09-07，LTSC 2021）；规则已按它改写 |
-| **兼容模式 15** | 八份 fixture 没有 `settings.xml`，Word 以兼容模式 12 打开 | **未测**，现在这条线上最该补的一件 |
-| Microsoft 365 | 两轮实测都是 LTSC 2021 | 未测 |
+| ~~兼容模式 15~~ | ~~八份 fixture 没有 `settings.xml`~~ | **已测**（2026-09-07：25 / 25 与模式 12 相同，另有 Word 自己转换的交叉验证） |
+| Microsoft 365 | 三轮实测都是 LTSC 2021 | 未测；项目负责人决定不测（这个版本跑通即可） |
 | 表格样式的条件格式 × 字符样式 | 只测了表格样式 × 段落样式 | 按同一条异或规则处理 |

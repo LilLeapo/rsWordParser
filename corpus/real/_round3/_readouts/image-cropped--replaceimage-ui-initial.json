@@ -1,0 +1,57 @@
+{
+    "file":  "image-cropped--replaceimage.docx",
+    "base":  "image/image-cropped.docx",
+    "op":  "replaceimage",
+    "expect":  "那张图片位置、大小、环绕不变，内容变成一块纯色；原来的裁剪被取消",
+    "timestamp":  "2026-09-07T14:40:58.0118026+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\image-cropped--replaceimage.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  4,
+                    "tables":  0,
+                    "comments":  0,
+                    "inline_shapes":  1,
+                    "shapes":  0,
+                    "first_table_rows":  null,
+                    "first_table_cells":  null,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+                           {
+                               "collection":  "InlineShapes",
+                               "index":  1,
+                               "type":  3,
+                               "width":  90,
+                               "height":  45,
+                               "name":  null,
+                               "left":  null,
+                               "top":  null,
+                               "relative_horizontal":  null,
+                               "relative_vertical":  null,
+                               "wrap_type":  null,
+                               "z_order":  null,
+                               "errors":  [
+
+                                          ]
+                           }
+                       ],
+    "text":  "before 前文\r/\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+
+               ],
+    "errors":  [
+
+               ]
+}
