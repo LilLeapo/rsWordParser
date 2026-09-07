@@ -425,6 +425,10 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `EDIT-03 ReplaceParaProps`（追踪时） | `props = None` → 段落没有 `w:pPr` | 留一个只装 `w:pPrChange` 的空 `w:pPr` | 旧值快照总得有地方放。不追踪时行为不变 |
 | `FLD-03` 指令文本 | `w:instrText` 与 `w:delInstrText` 一起拼进 `instr_raw` | **只取活的那部分**；整条指令都被追踪删掉（一个 `w:instrText` 都没有）时才退回删除的文本 | 追踪着改字段指令时（`SetLinkTarget`），旧指令进 `w:del` 改名成 `w:delInstrText`、新指令进 `w:ins`，两段在同一个字段里。拼在一起字段就读成"旧指令 + 新指令"，`HYPERLINK` 会解析出两个目标。整条被删时那段旧文本仍是这个字段**现在**的指令（拒绝修订才变），所以保留 M2 的行为（`tests/field.rs::fld_03_del_instr_text_marks_the_field`）。`instr_deleted` 标志两种情况下都置 |
 | `EDIT-03 ReplaceInlines`（追踪时） | — | **范围标记不动**（不追踪那条路按调用方的描述整体重发标记并 `rescan`） | Word 的行为：在书签里替换文字，书签还在。追踪的语义是"内容还在，只是标了删除"，把标记删掉就等于拒绝修订也回不去了。调用方要改标记，用 `AddBookmark` / `RemoveBookmark` |
+| `spec/18` 7.3 `DeleteColumn` 追踪版「格保留 + `tcPr/w:cellDel` + `tblGridChange`」 | 也发 `w:tblGridChange` | **不发**：格与 `w:gridCol` 都留着，网格根本没变 | 快照要记的是「变之前」的网格；删列时网格是接受修订那一刻才收缩（7.4 的 `CellDelete` Accept = 删格 + 网格收缩），此刻发一个与现网格相同的快照只会多出一条没有意义的修订，`AcceptAll` / `RejectAll` 还得清它。`InsertColumn` 相反：网格立刻多一列，所以要发快照，拒绝时按它还原 |
+| `ModelFingerprint`（`spec/18` 分层决策 3）「表格几何」 | 含 `w:tblGrid` | **`w:tblGrid` 不进指纹**；可见几何取 `w:tc/w:tcW` 与单元格结构 | 追踪与不追踪时网格的存活期不同（见上一条），同一个视图里比不了。列宽仍在指纹里——它在每个 `w:tc` 的 `tcW` 上；`w:tblGridChange` 由 `tests/tracked_ops.rs` 的 XPath 单独断言 |
+| `ModelFingerprint` 的「接受视图」 | — | 段落标记被删、内容也空了的段落**整段消失**；每一行都被删的表格整张消失 | 那正是「接受段落标记的删除」与「接受整表删除」的结果。不这样建模，追踪删块与不追踪删块的接受视图就差一个空壳 |
+| 视图代理 vs `SPAN-07` | — | `tests/tracked_ops.rs` 的语料 oracle 在删块时只取**没有范围标记**的文档 | 不追踪删一个块会按 `SPAN-07` 把落在里面的批注 / 书签整条删掉；追踪时内容还在、标记必须留着（拒绝要能回来）。两者只有在**真的** `AcceptAll`（7.4）之后才等价，两个视图比不出来。7.4 落地后这条限制取消 |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -1472,3 +1476,25 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   `tests/tracked_ops.rs` 加到 24 个用例（含 `ReplaceInlines` 的三条 oracle 与 compat 往返）。
   **538 测试**（调试 + 发布）、九道门（八个 scope + `corpus/real`）仍为 0、保存语料 204 / 208
   等价 0 跳过、clippy 零告警。
+
+- [x] **7.3 修订生成：块、表格、节、其他 part**（`edit/track.rs`、`edit/ops.rs`、`edit/table_ops.rs`、
+  `edit/section_ops.rs`、`edit/media_ops.rs`，2026-09-07）：`Tracker` 添两件基础件——`container_mark`
+  （`w:trPr` / `w:tcPr` 里按 `order_index_*` 放 `w:ins` / `w:del` / `w:cellIns` / `w:cellDel`，容器缺就建）
+  与 `mark_new_block_inserted`（**还没进 DOM 的 `NewElement`** 上做标记：段落 → 内容整批进 `w:ins` +
+  `pPr/rPr/w:ins`；表格 → 每行 `trPr/w:ins`；`NewBlock::Xml` / `Wrapped` → 整块包块级 `w:ins`，
+  因为那是调用方给的原始 XML，往里塞标记就等于改写它的字节）。落地：
+  `InsertBlock` / `DeleteBlock`（块**留着**：段落内容逐项 `w:del` + 标记 `w:del`，表格每行 `trPr/w:del`，
+  其他包块级 `w:del`）、`InsertRow` / `DeleteRow`（行留着）、`InsertColumn`（新格 `tcPr/w:cellIns` 与
+  `emit_cell_props` 合成**同一个** `w:tcPr` + `w:tblGridChange` 记旧网格；加宽跨列格与改 `gridBefore`
+  时补 `tcPrChange` / `trPrChange`）、`DeleteColumn`（格与网格都留着 + `w:cellDel`，见 §8）、
+  `Set{Table,Row,Cell}Props`（三种 `*PrChange`，`in_change = false` 的字段不进快照）、
+  `SetSectionProps`（`sectPrChange`，快照里没有页眉页脚引用）、`SetHeaderFooter`（页眉 part 内按段落规则
+  del + ins）、`UpdateBlockField`（旧结果块 del、新结果块 ins）、`ReplaceImageMedia`（旧 run `w:del` +
+  换了图的克隆 run `w:ins`，两个阶段——克隆先落地才能定位它的 `a:blip`）。
+  tracked `MoveBlock` / `MergeCells` → `EDIT_UNSUPPORTED_TRACKED_MOVE` / 新增的
+  `EDIT_UNSUPPORTED_TRACKED_MERGE`，`EDIT-05` 保证状态一点没动。**不追踪的十五个操作**在
+  `ops::run` 入口集中判定（`not_tracked_name`），照常执行 + 一条 `REV_NOT_TRACKED`（分层决策 5）。
+  `ModelFingerprint` 相应扩到 `tblPr` / `trPr` / `tblPrEx` 的视图值，并补两条建模：标记被删且内容为空的
+  段落整段消失、整表被删时表也消失（§8）。`tests/tracked_ops.rs` 加到 **41** 个用例，含
+  `gate_1_oracles_over_table_corpus`（≥ 10 份带表格的语料 × 5 个操作）与 `EDIT-03` 表格验收行的追踪版。
+  **555 测试**（调试 + 发布）、九道门仍为 0、保存语料 204 / 208 等价 0 跳过、clippy 零告警。

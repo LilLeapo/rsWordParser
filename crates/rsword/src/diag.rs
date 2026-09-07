@@ -123,6 +123,9 @@ pub enum DiagCode {
     EditSplitField,
     /// `EDIT-03`：第一阶段 `track_changes` 下不支持 `MoveBlock`。
     EditUnsupportedTrackedMove,
+    /// `EDIT-03`：第一阶段 `track_changes` 下不支持 `MergeCells`（`w:cellMerge` + `vMergeOrig`
+    /// 的形态要等真实 Word 的 fixture 校准，`spec/18`「不在 M7」）。
+    EditUnsupportedTrackedMerge,
     /// `EDIT-03`：sdt 为 `ContentLocked`/`SdtContentLocked`。
     EditSdtLocked,
     /// `EDIT-03`：sdt 带 `dataBinding`，第一阶段只读。
@@ -212,6 +215,7 @@ impl DiagCode {
             Self::EditTableGeometry => "EDIT_TABLE_GEOMETRY",
             Self::EditSplitField => "EDIT_SPLIT_FIELD",
             Self::EditUnsupportedTrackedMove => "EDIT_UNSUPPORTED_TRACKED_MOVE",
+            Self::EditUnsupportedTrackedMerge => "EDIT_UNSUPPORTED_TRACKED_MERGE",
             Self::EditSdtLocked => "EDIT_SDT_LOCKED",
             Self::EditSdtBound => "EDIT_SDT_BOUND",
             Self::SaveInvariant => "SAVE_INVARIANT",

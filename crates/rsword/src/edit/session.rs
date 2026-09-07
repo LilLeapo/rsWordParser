@@ -649,7 +649,7 @@ impl EditSession {
     }
 
     /// 记诊断（会话与包各留一份）。
-    fn record(&mut self, diags: Vec<Diagnostic>) {
+    pub(crate) fn record(&mut self, diags: Vec<Diagnostic>) {
         if diags.is_empty() {
             return;
         }

@@ -111,6 +111,9 @@ struct Para {
     marks: Vec<(String, String, u32)>,
     /// 字段指令（`w:instrText` / `w:delInstrText` 的文本，按视图过滤）。
     instr: Vec<String>,
+    /// 上一段的段落标记在本视图里"已经没了"（该与后面合并）。攒到非段落块（表格 / 容器结束）
+    /// 才被迫 flush 时，如果内容也是空的，这一段整个消失——那正是"接受段落标记的删除"。
+    mark_gone: bool,
 }
 
 struct Walker<'a> {
@@ -246,6 +249,15 @@ impl Walker<'_> {
             return;
         }
         let p = std::mem::take(&mut self.para);
+        // 标记已删 + 内容全空 → 这一段在本视图里不存在
+        if p.mark_gone
+            && p.text.is_empty()
+            && p.runs.is_empty()
+            && p.marks.is_empty()
+            && p.instr.is_empty()
+        {
+            return;
+        }
         self.out.push_str("P|");
         self.out.push_str(&p.ppr);
         self.out.push_str("|T=");
@@ -282,8 +294,24 @@ impl Walker<'_> {
                 }
                 LocalName::P => return self.paragraph(node),
                 LocalName::Tbl => {
+                    // 每一行在本视图里都没了（整表被追踪删除 / 插入）→ 整张表不存在
+                    if self.table_gone(node) {
+                        return;
+                    }
                     self.flush_para();
-                    self.out.push_str("TBL{\n");
+                    let props = props_in_view(
+                        self.dom,
+                        child(self.dom, node, LocalName::TblPr),
+                        self.view,
+                        LocalName::TblPrChange,
+                        LocalName::TblPr,
+                        &[],
+                    );
+                    // `w:tblGrid` **不进指纹**：它是版面表，追踪与不追踪时的存活期不同——
+                    // 追踪删列时格与 `w:gridCol` 都留着（接受修订时才收缩，`spec/18` 7.4），
+                    // 不追踪时立刻就没了，两者没法在同一个视图里比。可见的几何在
+                    // `w:tc` 的 `w:tcW` 与单元格结构里，那两样都在指纹里。
+                    self.out.push_str(&format!("TBL{{{props}\n"));
                     self.descend(node);
                     self.flush_para();
                     self.out.push_str("}TBL\n");
@@ -299,7 +327,23 @@ impl Walker<'_> {
                         }
                     }
                     self.flush_para();
-                    self.out.push_str("TR{\n");
+                    let props = props_in_view(
+                        self.dom,
+                        child(self.dom, node, LocalName::TrPr),
+                        self.view,
+                        LocalName::TrPrChange,
+                        LocalName::TrPr,
+                        &[LocalName::Ins, LocalName::Del],
+                    );
+                    let ex = props_in_view(
+                        self.dom,
+                        child(self.dom, node, LocalName::TblPrEx),
+                        self.view,
+                        LocalName::TblPrExChange,
+                        LocalName::TblPrEx,
+                        &[],
+                    );
+                    self.out.push_str(&format!("TR{{{props}|X={ex}\n"));
                     self.descend(node);
                     self.flush_para();
                     self.out.push_str("}TR\n");
@@ -345,13 +389,33 @@ impl Walker<'_> {
                     return;
                 }
                 LocalName::R => return self.run(node),
-                // 属性容器不产生文本
-                LocalName::PPr | LocalName::RPr | LocalName::TblPr | LocalName::TblGrid => return,
+                // 属性容器不产生文本（内容已经在 TBL / TR / TC 那几行里按视图取过了）
+                LocalName::PPr
+                | LocalName::RPr
+                | LocalName::TblPr
+                | LocalName::TblPrEx
+                | LocalName::TblGrid
+                | LocalName::TrPr
+                | LocalName::TcPr => return,
                 _ if rsword::span::is_range_marker(q) => return self.marker(node, q),
                 _ => {}
             }
         }
         self.descend(node);
+    }
+
+    /// 表格的每一行在本视图里都被跳过（`trPr/w:ins` 在 reject、`trPr/w:del` 在 accept）。
+    fn table_gone(&self, tbl: NodeId) -> bool {
+        let rows: Vec<NodeId> =
+            live_children(self.dom, tbl).filter(|&c| self.dom.is(c, wq(LocalName::Tr))).collect();
+        !rows.is_empty()
+            && rows.iter().all(|&r| {
+                child(self.dom, r, LocalName::TrPr).is_some_and(|trpr| {
+                    [LocalName::Ins, LocalName::Del]
+                        .into_iter()
+                        .any(|m| child(self.dom, trpr, m).is_some() && self.skips(m))
+                })
+            })
     }
 
     fn descend(&mut self, node: NodeId) {
@@ -404,6 +468,7 @@ impl Walker<'_> {
             self.para.text.push('\u{2029}');
             self.para.instr.push(format!("SECT:{s}"));
         }
+        self.para.mark_gone = mark_gone;
         if !mark_gone {
             self.flush_para();
         }

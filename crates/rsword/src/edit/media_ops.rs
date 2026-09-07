@@ -164,11 +164,57 @@ impl EditSession {
         drawing: NodeId,
         bytes: Vec<u8>,
         mime: &str,
+        ctx: &crate::edit::EditContext,
     ) -> Result<MutationResult> {
         let main = self.main_part();
         let dom = self.dom();
         if (drawing.0 as usize) >= dom.node_count() {
             return Err(Error::edit(DiagCode::EditBadPosition, "replaceImage 的目标节点不存在"));
+        }
+        // 追踪：旧 run 进 `w:del`、换了图的克隆 run 进 `w:ins`（`spec/18` 7.3）。
+        // 两个阶段：克隆先落到 DOM 里，第二阶段才能定位克隆里的 `a:blip` 去改 `r:embed`
+        if let Some(mut t) = crate::edit::track::Tracker::new(self.document(), ctx) {
+            let run = std::iter::once(drawing)
+                .chain(dom.ancestors(drawing))
+                .find(|&a| dom.is(a, QName::w(LocalName::R)))
+                .ok_or_else(|| {
+                    Error::edit(DiagCode::EditBadPosition, "replaceImage 的目标不在 run 里")
+                })?;
+            let parent = dom
+                .parent(run)
+                .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, "run 没有父节点"))?;
+            let mut plan = MutationPlan::new(main);
+            if let Some(p) = dom.ancestors(run).find(|&a| dom.is(a, QName::w(LocalName::P))) {
+                plan.touch(p);
+            }
+            // 克隆先插（此时源还没被包起来），再把原 run 包进 `w:del`
+            let ins_k = plan.node_edits.len();
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::Node(parent),
+                before: crate::edit::ops::next_element_sibling(dom, run),
+                node: t.marker(LocalName::Ins),
+            });
+            let clone_k = plan.node_edits.len();
+            plan.node_edits.push(NodeEdit::InsertClone {
+                parent: Target::New(ins_k),
+                before: None,
+                source: run,
+            });
+            t.wrap_item(&mut plan, dom, run, LocalName::Del);
+            let mut result = self.commit_plan(plan)?;
+            let clone = result.created[clone_k]
+                .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "克隆的 run 没有创建出来"))?;
+            // 第二阶段：在克隆里找同一个绘图，按不追踪的路子换图
+            let dom = self.dom();
+            let cloned_drawing = std::iter::once(clone)
+                .chain(dom.descendants(clone))
+                .find(|&n| {
+                    dom.is(n, QName::w(LocalName::Drawing)) || dom.is(n, QName::w(LocalName::Pict))
+                })
+                .unwrap_or(clone);
+            let plain = crate::edit::EditContext { track_changes: None, ..Default::default() };
+            result.absorb(self.replace_image_media(cloned_drawing, bytes, mime, &plain)?);
+            return Ok(result);
         }
         let a = |l: LocalName| QName::new(NsId::A, l);
         let Some(blip) = dom.semantic_descendants(drawing).find(|&n| dom.is(n, a(LocalName::Blip)))

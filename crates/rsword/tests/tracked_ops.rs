@@ -758,3 +758,606 @@ fn compat_run_rpr_change_round_trips() {
     assert_eq!(e.kind, RevKind::RunPropsChange);
     assert_eq!(e.author(), Some(A));
 }
+
+// ---- 7.3：块、表格、节、其他 part -------------------------------------------------------------
+
+const TABLE_DOC: &str = concat!(
+    r#"<w:p><w:r><w:t>表前一段</w:t></w:r></w:p>"#,
+    r#"<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/></w:tblPr>"#,
+    r#"<w:tblGrid><w:gridCol w:w="4000"/><w:gridCol w:w="4000"/></w:tblGrid>"#,
+    r#"<w:tr><w:tc><w:tcPr><w:tcW w:w="4000" w:type="dxa"/></w:tcPr>"#,
+    r#"<w:p><w:r><w:t>A1</w:t></w:r></w:p></w:tc>"#,
+    r#"<w:tc><w:tcPr><w:tcW w:w="4000" w:type="dxa"/></w:tcPr>"#,
+    r#"<w:p><w:r><w:t>B1</w:t></w:r></w:p></w:tc></w:tr>"#,
+    r#"<w:tr><w:tc><w:tcPr><w:tcW w:w="4000" w:type="dxa"/></w:tcPr>"#,
+    r#"<w:p><w:r><w:t>A2</w:t></w:r></w:p></w:tc>"#,
+    r#"<w:tc><w:tcPr><w:tcW w:w="4000" w:type="dxa"/></w:tcPr>"#,
+    r#"<w:p><w:r><w:t>B2</w:t></w:r></w:p></w:tc></w:tr></w:tbl>"#,
+    r#"<w:p><w:r><w:t>表后一段</w:t></w:r></w:p>"#,
+);
+
+fn table_block(s: &EditSession) -> &rsword::model::table::TableBlock {
+    s.document()
+        .main
+        .iter()
+        .find_map(|b| match b {
+            rsword::model::Block::Table(t) => Some(t),
+            _ => None,
+        })
+        .expect("有表格")
+}
+
+fn first_table(s: &EditSession) -> NodeId {
+    table_block(s).node
+}
+
+/// 三条 oracle × 表格与块操作。
+#[test]
+fn oracle_table_and_block_ops() {
+    oracle(TABLE_DOC, "InsertRow", |s| EditOp::InsertRow {
+        table: first_table(s),
+        at: 1,
+        template: None,
+    });
+    oracle(TABLE_DOC, "DeleteRow", |s| EditOp::DeleteRow { table: first_table(s), at: 1 });
+    oracle(TABLE_DOC, "InsertColumn", |s| EditOp::InsertColumn {
+        table: first_table(s),
+        at: 1,
+        width: 2000,
+    });
+    oracle(TABLE_DOC, "DeleteColumn", |s| EditOp::DeleteColumn { table: first_table(s), at: 1 });
+    oracle(TABLE_DOC, "SetTableProps", |s| EditOp::SetTableProps {
+        table: first_table(s),
+        patch: rsword::semantic::props::TablePropsPatch {
+            style: Change::Set("TableGrid".into()),
+            ..Default::default()
+        },
+    });
+    oracle(TABLE_DOC, "DeleteBlock 段落", |s| EditOp::DeleteBlock {
+        part: None,
+        node: para(s, 0),
+    });
+    oracle(TABLE_DOC, "DeleteBlock 表格", |s| EditOp::DeleteBlock {
+        part: None,
+        node: first_table(s),
+    });
+    oracle(TABLE_DOC, "InsertBlock 段落", |s| EditOp::InsertBlock {
+        at: rsword::edit::BlockPos::after(para(s, 0)),
+        block: rsword::edit::NewBlock::Paragraph {
+            props: None,
+            inlines: vec![rsword::edit::NewInline::Run(rsword::edit::NewRun::text("新段落"))],
+        },
+    });
+    oracle(TABLE_DOC, "InsertBlock 表格", |s| EditOp::InsertBlock {
+        at: rsword::edit::BlockPos::after(para(s, 0)),
+        block: rsword::edit::NewBlock::Table {
+            rows: 2,
+            cols: 2,
+            widths: None,
+            style: None,
+            header: false,
+        },
+    });
+}
+
+/// `EDIT-03` 表格验收行的追踪版：新行带 `trPr/w:ins`，`tcPr` 与模板行字节相同。
+#[test]
+fn edit_03_tracked_insert_row() {
+    let mut s = open(TABLE_DOC);
+    let table = first_table(&s);
+    s.apply(EditOp::InsertRow { table, at: 1, template: None }, &tracked(A)).expect("插行");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//w:tbl/w:tr)", ["3"]),
+            ("count(//w:tbl/w:tr/w:trPr/w:ins)", ["1"]),
+            ("//w:tbl/w:tr[2]/w:trPr/w:ins/@w:author", [A]),
+            // 模板行的 `tcPr` 原样克隆
+            ("//w:tbl/w:tr[2]/w:tc/w:tcPr/w:tcW/@w:w", ["4000", "4000"]),
+        ]
+    );
+}
+
+/// `DeleteRow` 追踪版：行仍在且带 `trPr/w:del`。
+#[test]
+fn edit_03_tracked_delete_row() {
+    let mut s = open(TABLE_DOC);
+    let table = first_table(&s);
+    s.apply(EditOp::DeleteRow { table, at: 1 }, &tracked(A)).expect("删行");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//w:tbl/w:tr)", ["2"]),
+            ("count(//w:tbl/w:tr[2]/w:trPr/w:del)", ["1"]),
+            ("//w:tbl/w:tr[2]/w:tc/w:p/w:r/w:t/text()", ["A2", "B2"]),
+        ]
+    );
+}
+
+/// `InsertColumn` 追踪版：新格带 `tcPr/w:cellIns`，`tblGridChange` 里是旧网格。
+#[test]
+fn edit_03_tracked_insert_column() {
+    let mut s = open(TABLE_DOC);
+    let table = first_table(&s);
+    s.apply(EditOp::InsertColumn { table, at: 1, width: 2000 }, &tracked(A)).expect("插列");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(/w:document/w:body/w:tbl/w:tblGrid/w:gridCol)", ["3"]),
+            ("count(/w:document/w:body/w:tbl/w:tblGrid/w:tblGridChange)", ["1"]),
+            ("count(//w:tblGrid/w:tblGridChange/w:tblGrid/w:gridCol)", ["2"]),
+            ("//w:tblGrid/w:tblGridChange/w:tblGrid/w:gridCol/@w:w", ["4000", "4000"]),
+            ("count(//w:tc/w:tcPr/w:cellIns)", ["2"]),
+        ]
+    );
+}
+
+/// `DeleteColumn` 追踪版：该列的 `w:tc` 仍在且带 `w:cellDel`，网格不动。
+#[test]
+fn edit_03_tracked_delete_column() {
+    let mut s = open(TABLE_DOC);
+    let table = first_table(&s);
+    s.apply(EditOp::DeleteColumn { table, at: 1 }, &tracked(A)).expect("删列");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(/w:document/w:body/w:tbl/w:tblGrid/w:gridCol)", ["2"]),
+            ("count(//w:tc/w:tcPr/w:cellDel)", ["2"]),
+            ("//w:tbl/w:tr[1]/w:tc/w:p/w:r/w:t/text()", ["A1", "B1"]),
+        ]
+    );
+}
+
+/// 追踪时删段落：段落留着、内容进 `w:del`、段落标记 `w:del`。
+#[test]
+fn edit_03_tracked_delete_paragraph_keeps_it() {
+    let mut s = open(TWO_PARAS);
+    let p = para(&s, 0);
+    s.apply(EditOp::DeleteBlock { part: None, node: p }, &tracked(A)).expect("删段落");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//w:body/w:p)", ["2"]),
+            ("count(//w:p[1]/w:del/w:r/w:delText)", ["1"]),
+            ("count(//w:p[1]/w:pPr/w:rPr/w:del)", ["1"]),
+        ]
+    );
+}
+
+/// 追踪时删表格：行都留着，每行 `trPr/w:del`。
+#[test]
+fn edit_03_tracked_delete_table_marks_rows() {
+    let mut s = open(TABLE_DOC);
+    let table = first_table(&s);
+    s.apply(EditOp::DeleteBlock { part: None, node: table }, &tracked(A)).expect("删表");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//w:tbl)", ["1"]),
+            ("count(//w:tbl/w:tr)", ["2"]),
+            ("count(//w:tbl/w:tr/w:trPr/w:del)", ["2"]),
+        ]
+    );
+}
+
+/// 追踪时插段落：内容进 `w:ins`，段落标记也标插入。
+#[test]
+fn edit_03_tracked_insert_paragraph() {
+    let mut s = open(TWO_PARAS);
+    let p = para(&s, 0);
+    s.apply(
+        EditOp::InsertBlock {
+            at: rsword::edit::BlockPos::after(p),
+            block: rsword::edit::NewBlock::Paragraph {
+                props: None,
+                inlines: vec![rsword::edit::NewInline::Run(rsword::edit::NewRun::text("新段"))],
+            },
+        },
+        &tracked(A),
+    )
+    .expect("插段落");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//w:body/w:p)", ["3"]),
+            ("count(//w:p[2]/w:ins/w:r/w:t)", ["1"]),
+            ("//w:p[2]/w:ins/w:r/w:t/text()", ["新段"]),
+            ("count(//w:p[2]/w:pPr/w:rPr/w:ins)", ["1"]),
+        ]
+    );
+}
+
+/// 追踪时插表格：每行 `trPr/w:ins`。
+#[test]
+fn edit_03_tracked_insert_table() {
+    let mut s = open(TWO_PARAS);
+    let p = para(&s, 0);
+    s.apply(
+        EditOp::InsertBlock {
+            at: rsword::edit::BlockPos::after(p),
+            block: rsword::edit::NewBlock::Table {
+                rows: 2,
+                cols: 2,
+                widths: None,
+                style: None,
+                header: false,
+            },
+        },
+        &tracked(A),
+    )
+    .expect("插表");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [("count(//w:tbl/w:tr)", ["2"]), ("count(//w:tbl/w:tr/w:trPr/w:ins)", ["2"]),]
+    );
+}
+
+/// `SetTableProps` / `SetRowProps` / `SetCellProps` 追踪版：三种 `*PrChange` 各记旧值。
+#[test]
+fn edit_03_tracked_table_props_changes() {
+    let mut s = open(TABLE_DOC);
+    let table = first_table(&s);
+    let (row, cell) = {
+        let t = table_block(&s);
+        (t.rows[0].node, t.rows[0].cells[0].node)
+    };
+    s.apply(
+        EditOp::SetTableProps {
+            table,
+            patch: rsword::semantic::props::TablePropsPatch {
+                style: Change::Set("TableGrid".into()),
+                ..Default::default()
+            },
+        },
+        &tracked(A),
+    )
+    .expect("表格属性");
+    s.apply(
+        EditOp::SetRowProps {
+            row,
+            patch: rsword::semantic::props::RowPropsPatch {
+                tbl_header: Change::Set(true),
+                ..Default::default()
+            },
+        },
+        &tracked(A),
+    )
+    .expect("行属性");
+    s.apply(
+        EditOp::SetCellProps {
+            cell,
+            patch: rsword::semantic::props::CellPropsPatch {
+                v_align: Change::Set(Val::Value(rsword::semantic::props::VerticalJc::Center)),
+                ..Default::default()
+            },
+        },
+        &tracked(A),
+    )
+    .expect("单元格属性");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//w:tblPr/w:tblPrChange)", ["1"]),
+            ("count(//w:tblPr/w:tblPrChange/w:tblPr/w:tblW)", ["1"]),
+            ("count(//w:tblPr/w:tblPrChange/w:tblPr/w:tblStyle)", ["0"]),
+            ("count(//w:tr[1]/w:trPr/w:trPrChange)", ["1"]),
+            ("count(//w:tr[1]/w:tc[1]/w:tcPr/w:tcPrChange)", ["1"]),
+            ("count(//w:tr[1]/w:tc[1]/w:tcPr/w:tcPrChange/w:tcPr/w:tcW)", ["1"]),
+        ]
+    );
+}
+
+/// 追踪时的 `SetSectionProps` → `w:sectPrChange`，快照里没有页眉页脚引用。
+#[test]
+fn edit_03_tracked_section_props() {
+    let mut s = open(concat!(
+        r#"<w:p><w:r><w:t>正文</w:t></w:r></w:p>"#,
+        r#"<w:sectPr><w:pgSz w:w="11906" w:h="16838"/></w:sectPr>"#,
+    ));
+    let sect = s.document().sections[0].node.expect("body 级 sectPr");
+    s.apply(
+        EditOp::SetSectionProps {
+            sect,
+            patch: rsword::semantic::props::SectionPropsPatch {
+                kind: Change::Set(Val::Value(rsword::semantic::props::SectType::NextPage)),
+                ..Default::default()
+            },
+        },
+        &tracked(A),
+    )
+    .expect("节属性");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//w:sectPr/w:sectPrChange)", ["1"]),
+            ("//w:sectPr/w:sectPrChange/@w:author", [A]),
+            ("count(//w:sectPr/w:sectPrChange/w:sectPr/w:headerReference)", ["0"]),
+            ("count(//w:sectPr/w:sectPrChange/w:sectPr/w:pgSz)", ["1"]),
+        ]
+    );
+}
+
+/// tracked `MoveBlock` / `MergeCells` → `Err` 且状态一点没动（`EDIT-05`）。
+#[test]
+fn tracked_move_and_merge_are_refused() {
+    let mut s = open(TABLE_DOC);
+    let fp = fingerprint(&s);
+    let p = para(&s, 0);
+    let last = para(&s, 1);
+    let err = s
+        .apply(EditOp::MoveBlock { node: p, to: rsword::edit::BlockPos::after(last) }, &tracked(A))
+        .expect_err("追踪时不支持 MoveBlock");
+    assert!(
+        matches!(&err, rsword::Error::Edit { code, .. }
+            if *code == rsword::DiagCode::EditUnsupportedTrackedMove),
+        "{err}"
+    );
+    assert_fingerprint_eq!(fp, fingerprint(&s), "MoveBlock 被拒后状态不变");
+
+    let table = first_table(&s);
+    let err = s
+        .apply(EditOp::MergeCells { table, from: (0, 0), to: (0, 1) }, &tracked(A))
+        .expect_err("追踪时不支持 MergeCells");
+    assert!(
+        matches!(&err, rsword::Error::Edit { code, .. }
+            if *code == rsword::DiagCode::EditUnsupportedTrackedMerge),
+        "{err}"
+    );
+    assert_fingerprint_eq!(fp, fingerprint(&s), "MergeCells 被拒后状态不变");
+}
+
+/// 不追踪的那批操作：照常执行 + 一条 `REV_NOT_TRACKED`（分层决策 5）。
+#[test]
+fn rev_not_tracked_is_recorded_but_the_op_runs() {
+    let mut s = open(TWO_PARAS);
+    s.apply(EditOp::SetPageColor { color: Some("FFFF00".into()) }, &tracked(A))
+        .expect("开着修订也能改页面底色");
+    let notes: Vec<_> =
+        s.diagnostics().iter().filter(|d| d.code == rsword::DiagCode::RevNotTracked).collect();
+    assert_eq!(notes.len(), 1, "留一条记录：{:?}", s.diagnostics());
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("//w:background/@w:color", ["FFFF00"]),
+            ("count(//w:ins)", ["0"]),
+            ("count(//w:del)", ["0"]),
+        ]
+    );
+}
+
+/// 门 1：表格 / 块操作 × 语料里带表格的文档（DoD 要求 ≥ 10 份）。
+#[test]
+fn gate_1_oracles_over_table_corpus() {
+    let mut docs: Vec<std::path::PathBuf> = common::docx_paths("synthetic");
+    docs.extend(common::docx_paths("real"));
+    docs.sort();
+    let ops: [CorpusOp; 5] = [
+        ("InsertRow", |s| Some(EditOp::InsertRow { table: any_table(s)?, at: 1, template: None })),
+        ("DeleteRow", |s| Some(EditOp::DeleteRow { table: any_table(s)?, at: 0 })),
+        ("SetTableProps", |s| {
+            Some(EditOp::SetTableProps {
+                table: any_table(s)?,
+                patch: rsword::semantic::props::TablePropsPatch {
+                    style: Change::Set("TableGrid".into()),
+                    ..Default::default()
+                },
+            })
+        }),
+        ("DeleteBlock 表格", |s| Some(EditOp::DeleteBlock { part: None, node: any_table(s)? })),
+        // 段落里不能有范围标记：不追踪那条路会按 `SPAN-07` 把整条批注 / 书签删掉，
+        // 追踪那条路内容还在、标记必须留着（拒绝时要能回来）。两者只有在**真的**
+        // `AcceptAll`（7.4）之后才等价，视图代理比不出来
+        ("DeleteBlock 段落", |s| {
+            let p = plain_para(s)?;
+            Some(EditOp::DeleteBlock { part: None, node: p })
+        }),
+    ];
+    let mut docs_used = 0usize;
+    let mut ran: std::collections::BTreeMap<&str, usize> = Default::default();
+    for path in &docs {
+        if docs_used >= 25 {
+            break;
+        }
+        let Ok(bytes) = std::fs::read(path) else { continue };
+        let Ok(probe) = EditSession::open(&bytes) else { continue };
+        if any_table(&probe).is_none() {
+            continue;
+        }
+        let name = path.file_stem().unwrap().to_string_lossy().to_string();
+        let mut any = false;
+        for (what, op) in &ops {
+            if oracle_on(&bytes, &format!("{name} / {what}"), op) {
+                *ran.entry(what).or_default() += 1;
+                any = true;
+            }
+        }
+        if any {
+            docs_used += 1;
+        }
+    }
+    assert!(docs_used >= 10, "只在 {docs_used} 份带表格的语料上跑成了（要 ≥ 10）");
+    for (what, n) in &ran {
+        assert!(*n >= 5, "{what} 只跑了 {n} 份（要 ≥ 5）");
+    }
+}
+
+/// 第一个够长的顶层文本段落，但**整份文档**都不能有范围标记。
+///
+/// 视图代理比不出 `SPAN-07`：不追踪删一个块会把落在里面的批注 / 书签整条删掉，追踪时内容
+/// 还在、标记必须留着（拒绝要能回来）。两者只有在**真的** `AcceptAll`（7.4）之后才等价。
+fn plain_para(s: &EditSession) -> Option<NodeId> {
+    let main = s.document().main_part;
+    let dom = s.package().part(main).dom()?;
+    if dom.descendants(dom.root()).any(|n| dom.name(n).is_some_and(rsword::span::is_range_marker)) {
+        return None;
+    }
+    s.document()
+        .main
+        .iter()
+        .find_map(|b| b.as_text().filter(|t| t.text().encode_utf16().count() >= 6))
+        .map(|t| t.node)
+}
+
+/// 顶层的第一张表（可能在 sdt 里，所以走 `blocks()`）。
+fn any_table(s: &EditSession) -> Option<NodeId> {
+    s.document().main.iter().find_map(|b| match b {
+        rsword::model::Block::Table(t) if t.rows.len() >= 2 => Some(t.node),
+        _ => None,
+    })
+}
+
+/// 追踪时 `SetHeaderFooter`：在页眉 part 里按段落规则 del + ins。
+#[test]
+fn tracked_set_header_footer_marks_the_part() {
+    let mut s = open(concat!(
+        r#"<w:p><w:r><w:t>正文</w:t></w:r></w:p>"#,
+        r#"<w:sectPr><w:pgSz w:w="11906" w:h="16838"/></w:sectPr>"#,
+    ));
+    let sect = s.document().sections[0].node.expect("body 级 sectPr");
+    // 先不追踪建一个页眉，再追踪着改它的内容
+    s.apply(
+        EditOp::SetHeaderFooter {
+            sect,
+            kind: rsword::model::HfKind::Header,
+            variant: rsword::model::HfVariant::Default,
+            content: vec![rsword::edit::NewBlock::Paragraph {
+                props: None,
+                inlines: vec![rsword::edit::NewInline::Run(rsword::edit::NewRun::text("旧页眉"))],
+            }],
+        },
+        &EditContext::default(),
+    )
+    .expect("建页眉");
+    let sect = s.document().sections[0].node.expect("sectPr");
+    s.apply(
+        EditOp::SetHeaderFooter {
+            sect,
+            kind: rsword::model::HfKind::Header,
+            variant: rsword::model::HfVariant::Default,
+            content: vec![rsword::edit::NewBlock::Paragraph {
+                props: None,
+                inlines: vec![rsword::edit::NewInline::Run(rsword::edit::NewRun::text("新页眉"))],
+            }],
+        },
+        &tracked(A),
+    )
+    .expect("改页眉");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/header1.xml",
+        [
+            ("count(//w:hdr/w:p)", ["2"]),
+            ("//w:del/w:r/w:delText/text()", ["旧页眉"]),
+            ("//w:ins/w:r/w:t/text()", ["新页眉"]),
+            ("count(//w:p[1]/w:pPr/w:rPr/w:del)", ["1"]),
+            ("count(//w:p[2]/w:pPr/w:rPr/w:ins)", ["1"]),
+        ]
+    );
+    // 修订索引跨 part：这些条目在页眉 part 名下
+    let re = EditSession::open(&out).unwrap();
+    let hf_part = *re.document().hf_parts.keys().next().expect("有页眉 part");
+    assert!(re.document().revisions.of_part(hf_part).count() >= 4, "页眉里的修订进了索引");
+}
+
+/// 追踪时 `ReplaceImageMedia`：旧 run 进 `w:del`，换了图的克隆 run 进 `w:ins`。
+#[test]
+fn tracked_replace_image_media() {
+    let png = common::b64(common::PNG_1X1);
+    let body = concat!(
+        r#"<w:p><w:r><w:drawing><wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">"#,
+        r#"<wp:extent cx="914400" cy="914400"/><wp:docPr id="1" name="p1"/>"#,
+        r#"<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">"#,
+        r#"<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">"#,
+        r#"<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">"#,
+        r#"<pic:nvPicPr><pic:cNvPr id="1" name="p1"/><pic:cNvPicPr/></pic:nvPicPr>"#,
+        r#"<pic:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rIdImg"/>"#,
+        r#"<a:stretch><a:fillRect/></a:stretch></pic:blipFill>"#,
+        r#"<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="914400" cy="914400"/></a:xfrm>"#,
+        r#"<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>"#,
+        r#"</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>"#,
+    );
+    let bytes =
+        common::with_binary_part(&common::docx_with_body(body), "word/media/image1.png", &png);
+    let mut s = EditSession::open(&bytes).unwrap();
+    let main = s.document().main_part;
+    let dom = s.package().part(main).dom().expect("主 part");
+    let root = dom.root();
+    let drawing = dom
+        .descendants(root)
+        .find(|&n| dom.is(n, rsword::xml::QName::w(rsword::xml::LocalName::Drawing)))
+        .expect("有 w:drawing");
+    s.apply(
+        EditOp::ReplaceImageMedia { drawing, bytes: png.clone(), mime: "image/png".into() },
+        &tracked(A),
+    )
+    .expect("换图");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [("count(//w:del/w:r/w:drawing)", ["1"]), ("count(//w:ins/w:r/w:drawing)", ["1"]),]
+    );
+}
+
+/// `NewBlock::Xml` 追踪时整块包进块级 `w:ins`（TS 的形态，解析器已认）。
+#[test]
+fn tracked_insert_xml_block_wraps_at_block_level() {
+    let mut s = open(TWO_PARAS);
+    let p = para(&s, 0);
+    let frag = {
+        let main = s.document().main_part;
+        let dom = s.package_mut().dom_mut(main).expect("主 part").expect("已解析");
+        rsword::xml::parse_fragment(
+            dom,
+            r#"<w:tbl xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:tblGrid><w:gridCol w:w="4000"/></w:tblGrid><w:tr><w:tc><w:p><w:r><w:t>X</w:t></w:r></w:p></w:tc></w:tr></w:tbl>"#,
+        )
+        .expect("片段")
+        .into_iter()
+        .next()
+        .expect("一个元素")
+    };
+    s.apply(
+        EditOp::InsertBlock {
+            at: rsword::edit::BlockPos::after(p),
+            block: rsword::edit::NewBlock::Xml(frag),
+        },
+        &tracked(A),
+    )
+    .expect("插片段");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(/w:document/w:body/w:ins/w:tbl)", ["1"]),
+            ("/w:document/w:body/w:ins/@w:author", [A]),
+        ]
+    );
+    let re = EditSession::open(&out).unwrap();
+    let kinds: Vec<&str> =
+        re.document().revisions.entries().iter().map(|e| e.kind.as_str()).collect();
+    assert!(kinds.contains(&"insert"), "块级插入修订：{kinds:?}");
+}

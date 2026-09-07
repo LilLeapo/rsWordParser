@@ -11,13 +11,26 @@
 use crate::diag::DiagCode;
 use crate::error::Error;
 use crate::semantic::props::order_index_run_props;
-use crate::xml::{Dirty, Dom, LocalName, NewElement, NodeEdit, NodeId, NsId, QName, Target};
+use crate::xml::{
+    Dirty, Dom, LocalName, NewElement, NewNode, NodeEdit, NodeId, NsId, QName, Target,
+};
 
 use super::plan::MutationPlan;
 use super::{EditContext, RevisionAuthor};
 
 fn w(local: LocalName) -> QName {
     QName::new(NsId::W, local)
+}
+
+/// `container_mark` 的落点：属性容器挂在谁下面、容器不存在时插在哪。
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct MarkSite {
+    /// `w:tr` / `w:tc` / `w:tbl`。
+    pub owner: NodeId,
+    /// `w:trPr` / `w:tcPr` / `w:tblPr`。
+    pub container: LocalName,
+    /// 容器不存在时插在这个兄弟之前（`None` = 追加到末尾）。
+    pub container_before: Option<NodeId>,
 }
 
 /// 插入 / 删除位置外面罩着什么修订包裹（只看到段落为止）。
@@ -200,6 +213,46 @@ impl Tracker {
         }
     }
 
+    /// 属性容器（`w:trPr` / `w:tcPr` / `w:tblPr`）里的标记：`w:ins` / `w:del` / `w:cellIns` /
+    /// `w:cellDel`。容器缺就按 `container_before` 建；已有同种标记就什么都不做。
+    ///
+    /// `order` 是那张属性表生成的 `order_index_*`（`PROP-05`）：新标记插在第一个 order 更靠后的
+    /// 子元素之前。
+    pub(crate) fn container_mark(
+        &mut self,
+        plan: &mut MutationPlan,
+        dom: &Dom,
+        at: MarkSite,
+        mark: LocalName,
+        order: fn(QName) -> Option<u16>,
+    ) {
+        let MarkSite { owner, container, container_before } = at;
+        let existing = child_named(dom, owner, w(container));
+        if let Some(c) = existing
+            && live_children(dom, c).any(|x| dom.is(x, w(mark)))
+        {
+            return;
+        }
+        let marker = self.marker(mark);
+        match existing {
+            Some(c) => {
+                let mine = order(w(mark)).unwrap_or(0);
+                let before = live_children(dom, c)
+                    .find(|&x| dom.name(x).and_then(order).is_none_or(|i| i > mine));
+                plan.node_edits.push(NodeEdit::Insert {
+                    parent: Target::Node(c),
+                    before,
+                    node: marker,
+                });
+            }
+            None => plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::Node(owner),
+                before: container_before,
+                node: NewElement::new(w(container)).with_child(marker),
+            }),
+        }
+    }
+
     /// `*PrChange` 旧值快照：`container` 现有子元素的 `Clean` 克隆，排除 `*Change` 自己与
     /// `skip` 列出的字段（`in_change = false`，如 `sectPr` 的页眉页脚引用、`pPr` 里的 `rPr`）。
     /// 插在 `container` 末尾（`PROP-05`：`*Change` 是每张表 `order` 的最后一项）。
@@ -294,4 +347,146 @@ fn live_children(dom: &Dom, n: NodeId) -> impl Iterator<Item = NodeId> + '_ {
 
 fn child_named(dom: &Dom, parent: NodeId, name: QName) -> Option<NodeId> {
     live_children(dom, parent).find(|&c| dom.is(c, name))
+}
+
+/// 把 `marker` 按 `order` 插进一个**还没进 DOM** 的属性容器（`PROP-05`）。
+pub(crate) fn insert_ordered(
+    container: &mut NewElement,
+    marker: NewElement,
+    order: fn(QName) -> Option<u16>,
+) {
+    let mine = order(marker.name).unwrap_or(u16::MAX);
+    let at = container
+        .children
+        .iter()
+        .position(|c| match c {
+            NewNode::Element(e) => order(e.name).is_none_or(|i| i > mine),
+            NewNode::Text(_) => false,
+        })
+        .unwrap_or(container.children.len());
+    container.children.insert(at, NewNode::Element(marker));
+}
+
+/// 新建的块（`NewElement`，还没进 DOM）标成"插入"（`spec/18` 7.3）：
+///
+/// - `NewBlock::Paragraph` → 内容子节点整批进一个 `w:ins`，再给段落标记加 `pPr/rPr/w:ins`；
+/// - `NewBlock::Table` → 每个 `w:tr` 加 `trPr/w:ins`（`w:tblPrEx` 仍排在 `w:trPr` 之前）；
+/// - `NewBlock::Xml` / `Wrapped`（`opaque`）→ 整个元素包进块级 `w:ins`（TS 的形态，
+///   解析器已认）。调用方给的是整段原始 XML，往里面塞标记就等于改写它给的字节。
+pub(crate) fn mark_new_block_inserted(
+    t: &mut Tracker,
+    node: NewElement,
+    opaque: bool,
+) -> NewElement {
+    if opaque {
+        return t.marker(LocalName::Ins).with_child(node);
+    }
+    let is = |e: &NewElement, l: LocalName| e.name == w(l);
+    if is(&node, LocalName::P) {
+        let mut out = NewElement::new(node.name);
+        out.attrs = node.attrs.clone();
+        let mut content = t.marker(LocalName::Ins);
+        for child in node.children {
+            match &child {
+                NewNode::Element(e) if e.name == w(LocalName::PPr) => {
+                    out.children.push(NewNode::Element(with_para_mark(t, e.clone())));
+                }
+                _ => content.children.push(child),
+            }
+        }
+        // 没有 `pPr` 时补一个，只为放段落标记的 `w:ins`
+        if !out
+            .children
+            .iter()
+            .any(|c| matches!(c, NewNode::Element(e) if e.name == w(LocalName::PPr)))
+        {
+            let ppr = with_para_mark(t, NewElement::new(w(LocalName::PPr)));
+            out.children.insert(0, NewNode::Element(ppr));
+        }
+        if !content.children.is_empty() {
+            out.children.push(NewNode::Element(content));
+        }
+        return out;
+    }
+    if is(&node, LocalName::Tbl) {
+        let mut out = NewElement::new(node.name);
+        out.attrs = node.attrs.clone();
+        for child in node.children {
+            match child {
+                NewNode::Element(e) if e.name == w(LocalName::Tr) => {
+                    out.children.push(NewNode::Element(with_row_mark(t, e, LocalName::Ins)));
+                }
+                other => out.children.push(other),
+            }
+        }
+        return out;
+    }
+    t.marker(LocalName::Ins).with_child(node)
+}
+
+/// `pPr` 里放段落标记的 `w:ins`（`rPr` 缺就建；`w:ins` 是 `rPr` 的第一个子元素，`PROP-05`）。
+fn with_para_mark(t: &mut Tracker, ppr: NewElement) -> NewElement {
+    let marker = t.marker(LocalName::Ins);
+    let mut out = NewElement::new(ppr.name);
+    out.attrs = ppr.attrs.clone();
+    let mut done = false;
+    for child in ppr.children {
+        match child {
+            NewNode::Element(e) if e.name == w(LocalName::RPr) => {
+                let mut rpr = NewElement::new(e.name);
+                rpr.attrs = e.attrs.clone();
+                rpr.children.push(NewNode::Element(marker.clone()));
+                rpr.children.extend(e.children);
+                out.children.push(NewNode::Element(rpr));
+                done = true;
+            }
+            other => out.children.push(other),
+        }
+    }
+    if !done {
+        // `w:rPr` 是 `w:pPr` 的最后一个子元素（只有 `sectPr` / `pPrChange` 在它后面）
+        let at = out
+            .children
+            .iter()
+            .position(|c| {
+                matches!(c, NewNode::Element(e)
+                    if e.name == w(LocalName::SectPr) || e.name == w(LocalName::PPrChange))
+            })
+            .unwrap_or(out.children.len());
+        out.children
+            .insert(at, NewNode::Element(NewElement::new(w(LocalName::RPr)).with_child(marker)));
+    }
+    out
+}
+
+/// `w:tr` 加 `trPr/w:ins` 或 `trPr/w:del`。
+fn with_row_mark(t: &mut Tracker, row: NewElement, mark: LocalName) -> NewElement {
+    let marker = t.marker(mark);
+    let mut out = NewElement::new(row.name);
+    out.attrs = row.attrs.clone();
+    let mut done = false;
+    for child in row.children {
+        match child {
+            NewNode::Element(e) if e.name == w(LocalName::TrPr) => {
+                let mut trpr = NewElement::new(e.name);
+                trpr.attrs = e.attrs.clone();
+                trpr.children.extend(e.children);
+                trpr.children.push(NewNode::Element(marker.clone()));
+                out.children.push(NewNode::Element(trpr));
+                done = true;
+            }
+            other => out.children.push(other),
+        }
+    }
+    if !done {
+        // `w:trPr` 紧跟 `w:tblPrEx`（如果有），在所有 `w:tc` 之前
+        let at = out
+            .children
+            .iter()
+            .position(|c| !matches!(c, NewNode::Element(e) if e.name == w(LocalName::TblPrEx)))
+            .unwrap_or(out.children.len());
+        out.children
+            .insert(at, NewNode::Element(NewElement::new(w(LocalName::TrPr)).with_child(marker)));
+    }
+    out
 }

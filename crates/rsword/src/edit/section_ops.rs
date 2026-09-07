@@ -24,9 +24,11 @@ use crate::semantic::props::{
 };
 use crate::xml::{Dirty, Dom, LocalName, NodeId, NsId, QName};
 
+use super::EditContext;
 use super::NewBlock;
 use super::plan::{MutationPlan, MutationResult};
 use super::session::{CT_FOOTER, CT_HEADER, EditSession};
+use super::track::Tracker;
 
 fn w(local: LocalName) -> QName {
     QName::w(local)
@@ -54,9 +56,29 @@ pub(super) fn set_section_props(
     s: &mut EditSession,
     sect: NodeId,
     patch: &SectionPropsPatch,
+    ctx: &EditContext,
 ) -> Result<MutationResult> {
+    require_sect_pr(s.dom(), sect)?;
+    let mut result = MutationResult::default();
+    // 追踪：旧值快照进 `w:sectPrChange`（`spec/08`）。快照**不含页眉页脚引用**——
+    // `w:sectPrChange` 里的旧值是 CT_SectPrBase，没有那两个元素（`section.toml` `in_change = false`）
+    if let Some(mut t) = Tracker::new(s.document(), ctx) {
+        let dom = s.dom();
+        let mut plan = MutationPlan::new(s.main_part());
+        plan.touch(sect);
+        t.snapshot(
+            &mut plan,
+            dom,
+            sect,
+            LocalName::SectPrChange,
+            LocalName::SectPr,
+            &[LocalName::HeaderReference, LocalName::FooterReference],
+        );
+        if !plan.is_empty() {
+            result.absorb(s.commit_plan(plan)?);
+        }
+    }
     let dom = s.dom();
-    require_sect_pr(dom, sect)?;
     let mut plan = MutationPlan::new(s.main_part());
     plan.touch(sect);
     plan_apply_section_props_at(
@@ -68,7 +90,8 @@ pub(super) fn set_section_props(
         s.flavor(),
         &mut plan.node_edits,
     );
-    s.commit_plan(plan)
+    result.absorb(s.commit_plan(plan)?);
+    Ok(result)
 }
 
 /// 一个节里某个变体的引用元素（`w:headerReference` / `w:footerReference`）。
@@ -144,10 +167,11 @@ pub(super) fn set_header_footer(
     kind: HfKind,
     variant: HfVariant,
     content: Vec<NewBlock>,
+    ctx: &EditContext,
 ) -> Result<MutationResult> {
     require_sect_pr(s.dom(), sect)?;
     let part = ensure_hf_part(s, sect, kind, variant)?;
-    replace_part_blocks(s, part, content)
+    replace_part_blocks(s, part, content, ctx)
 }
 
 /// 这一节这个变体的 part：自己声明了就用它，否则按 `SAVE-05` 新建并把引用插进这一节。
@@ -211,23 +235,32 @@ fn replace_part_blocks(
     s: &mut EditSession,
     part: PartId,
     content: Vec<NewBlock>,
+    ctx: &EditContext,
 ) -> Result<MutationResult> {
     let content = super::chart_ops::materialize_all(s, content)?;
+    let mut tracker = Tracker::new(s.document(), ctx);
     let dom = s.dom_in(Some(part))?;
     let root = dom.root();
     let mut plan = MutationPlan::new(part);
     plan.structure_changed = true;
     for c in dom.children(root).iter().copied() {
-        if dom.node(c).dirty != Dirty::Deleted && dom.element(c).is_some() {
-            plan.node_edits.push(NodeEdit::Delete(c));
+        if dom.node(c).dirty == Dirty::Deleted || dom.element(c).is_none() {
+            continue;
+        }
+        match &mut tracker {
+            // 追踪：这个 part 里按段落规则标删（`spec/18` 7.3），原块留着
+            Some(t) => super::ops::plan_delete_block_tracked(&mut plan, dom, t, c),
+            None => plan.node_edits.push(NodeEdit::Delete(c)),
         }
     }
     for block in content {
-        plan.node_edits.push(NodeEdit::Insert {
-            parent: Target::Node(root),
-            before: None,
-            node: super::ops::new_block_element(dom, block),
-        });
+        let opaque = matches!(block, NewBlock::Xml(_) | NewBlock::Wrapped { .. });
+        let node = super::ops::new_block_element(dom, block);
+        let node = match &mut tracker {
+            Some(t) => super::track::mark_new_block_inserted(t, node, opaque),
+            None => node,
+        };
+        plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(root), before: None, node });
     }
     s.commit_plan(plan)
 }

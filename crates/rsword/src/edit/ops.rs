@@ -31,6 +31,19 @@ use super::{
 pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<MutationResult> {
     guard_sdt(s, &op)?;
     guard_main_only(s, &op)?;
+    // `spec/18` 7.3：Word 自己也不把这些记成修订（或另有机制）。照常执行，留一条
+    // `REV_NOT_TRACKED`——编辑器开着修订时改页面颜色不该失败（分层决策 5）
+    if ctx.track_changes.is_some()
+        && let Some(what) = not_tracked_name(&op)
+    {
+        let part = s.main_part();
+        s.record(vec![Diagnostic::pre_existing(
+            part,
+            None,
+            DiagCode::RevNotTracked,
+            format!("{what} 不产生修订（Word 也不记，或另有机制）"),
+        )]);
+    }
     match op {
         EditOp::InsertText { at, text, props } => insert_text(s, at, &text, props, ctx),
         EditOp::DeleteRange { from, to } => delete_range(s, from, to, ctx),
@@ -43,20 +56,22 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
             replace_para_props(s, part, para, props, ctx)
         }
         EditOp::InsertRow { table, at, template } => {
-            super::table_ops::insert_row(s, table, at, template)
+            super::table_ops::insert_row(s, table, at, template, ctx)
         }
-        EditOp::DeleteRow { table, at } => super::table_ops::delete_row(s, table, at),
+        EditOp::DeleteRow { table, at } => super::table_ops::delete_row(s, table, at, ctx),
         EditOp::InsertColumn { table, at, width } => {
-            super::table_ops::insert_column(s, table, at, width)
+            super::table_ops::insert_column(s, table, at, width, ctx)
         }
-        EditOp::DeleteColumn { table, at } => super::table_ops::delete_column(s, table, at),
-        EditOp::MergeCells { table, from, to } => super::table_ops::merge_cells(s, table, from, to),
-        EditOp::SetTableProps { table, patch } => set_table_props(s, table, &patch),
-        EditOp::SetRowProps { row, patch } => set_row_props(s, row, &patch),
-        EditOp::SetCellProps { cell, patch } => set_cell_props(s, cell, &patch),
-        EditOp::InsertBlock { at, block } => insert_block(s, at, block),
-        EditOp::DeleteBlock { part, node } => delete_block(s, part, node),
-        EditOp::MoveBlock { node, to } => move_block(s, node, to),
+        EditOp::DeleteColumn { table, at } => super::table_ops::delete_column(s, table, at, ctx),
+        EditOp::MergeCells { table, from, to } => {
+            super::table_ops::merge_cells(s, table, from, to, ctx)
+        }
+        EditOp::SetTableProps { table, patch } => set_table_props(s, table, &patch, ctx),
+        EditOp::SetRowProps { row, patch } => set_row_props(s, row, &patch, ctx),
+        EditOp::SetCellProps { cell, patch } => set_cell_props(s, cell, &patch, ctx),
+        EditOp::InsertBlock { at, block } => insert_block(s, at, block, ctx),
+        EditOp::DeleteBlock { part, node } => delete_block(s, part, node, ctx),
+        EditOp::MoveBlock { node, to } => move_block(s, node, to, ctx),
         EditOp::AddComment { from, to, comment } => add_comment(s, from, to, &comment),
         EditOp::RemoveComment { id } => remove_comment(s, &id),
         EditOp::SetCommentText { id, text, done } => set_comment_text(s, &id, &text, done),
@@ -73,10 +88,10 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         }
         EditOp::UpdateBlockField { field, blocks } => update_block_field(s, field, blocks, ctx),
         EditOp::SetSectionProps { sect, patch } => {
-            super::section_ops::set_section_props(s, sect, &patch)
+            super::section_ops::set_section_props(s, sect, &patch, ctx)
         }
         EditOp::SetHeaderFooter { sect, kind, variant, content } => {
-            super::section_ops::set_header_footer(s, sect, kind, variant, content)
+            super::section_ops::set_header_footer(s, sect, kind, variant, content, ctx)
         }
         EditOp::LinkHeaderFooter { sect, kind, variant, part } => {
             super::section_ops::link_header_footer(s, sect, kind, variant, part)
@@ -94,11 +109,34 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
             Ok(MutationResult::default())
         }
         EditOp::ReplaceImageMedia { drawing, bytes, mime } => {
-            s.replace_image_media(drawing, bytes, &mime)
+            s.replace_image_media(drawing, bytes, &mime, ctx)
         }
         EditOp::RemoveInks => s.remove_inks(),
         EditOp::InsertInk { para, ink } => s.insert_ink(para, &ink),
     }
+}
+
+/// 追踪时**不产生修订**的操作（`spec/18` 7.3 的清单）：书签、批注、复选框、页眉链接、
+/// 水印、页面底色、文档设置、图表数据、part 替换、墨迹。绘图几何与样式（7.7）到时候一起加。
+fn not_tracked_name(op: &EditOp) -> Option<&'static str> {
+    Some(match op {
+        EditOp::AddBookmark { .. } => "AddBookmark",
+        EditOp::RemoveBookmark { .. } => "RemoveBookmark",
+        EditOp::AddComment { .. } => "AddComment",
+        EditOp::RemoveComment { .. } => "RemoveComment",
+        EditOp::SetCommentText { .. } => "SetCommentText",
+        EditOp::ToggleCheckbox { .. } => "ToggleCheckbox",
+        EditOp::LinkHeaderFooter { .. } => "LinkHeaderFooter",
+        EditOp::SetWatermark { .. } => "SetWatermark",
+        EditOp::SetPageColor { .. } => "SetPageColor",
+        EditOp::SetDocumentSettings { .. } => "SetDocumentSettings",
+        EditOp::SetChartData { .. } => "SetChartData",
+        EditOp::ReplacePartXml { .. } => "ReplacePartXml",
+        EditOp::ReplacePartBytes { .. } => "ReplacePartBytes",
+        EditOp::InsertInk { .. } => "InsertInk",
+        EditOp::RemoveInks => "RemoveInks",
+        _ => return None,
+    })
 }
 
 /// `EDIT-03 SetDocumentSettings`：`word/settings.xml` 按 `PROP-06` 合并；part 不存在就按
@@ -271,7 +309,7 @@ fn next_sibling(dom: &Dom, n: NodeId) -> Option<NodeId> {
 }
 
 /// 下一个未删除的**元素**兄弟（跳过缩排产生的空白文本节点）。
-fn next_element_sibling(dom: &Dom, n: NodeId) -> Option<NodeId> {
+pub(super) fn next_element_sibling(dom: &Dom, n: NodeId) -> Option<NodeId> {
     let p = dom.parent(n)?;
     let kids = dom.children(p);
     let i = kids.iter().position(|&c| c == n)?;
@@ -1558,8 +1596,14 @@ fn props_site(dom: &Dom, parent: NodeId, container: LocalName) -> (Option<NodeId
 /// table_props_op!(set_cell_props, CellPropsPatch, Tc, TcPr, plan_apply_cell_props_at, "单元格");
 /// ```
 macro_rules! table_props_op {
-    ($name:ident, $patch:ty, $owner:ident, $container:ident, $plan_apply:path, $what:literal) => {
-        fn $name(s: &mut EditSession, node: NodeId, patch: &$patch) -> Result<MutationResult> {
+    ($name:ident, $patch:ty, $owner:ident, $container:ident, $change:ident, $skip:expr,
+     $plan_apply:path, $what:literal) => {
+        fn $name(
+            s: &mut EditSession,
+            node: NodeId,
+            patch: &$patch,
+            ctx: &EditContext,
+        ) -> Result<MutationResult> {
             let dom = s.dom();
             if (node.0 as usize) >= dom.node_count()
                 || dom.node(node).dirty == Dirty::Deleted
@@ -1567,6 +1611,48 @@ macro_rules! table_props_op {
             {
                 return Err(Error::edit(DiagCode::EditBadPosition, concat!("目标不是", $what)));
             }
+            let mut result = MutationResult::default();
+            // 追踪：先把旧值快照成 `w:*PrChange`（两个阶段，理由同 `SetRunProps`）
+            if let Some(mut t) = Tracker::new(s.document(), ctx) {
+                let (container, before) = props_site(dom, node, LocalName::$container);
+                let mut plan = MutationPlan::new(s.main_part());
+                if let Some(tbl) = owning_table(dom, node) {
+                    plan.touch(tbl);
+                }
+                match container {
+                    Some(c) => {
+                        t.snapshot(
+                            &mut plan,
+                            dom,
+                            c,
+                            LocalName::$change,
+                            LocalName::$container,
+                            $skip,
+                        );
+                    }
+                    None => {
+                        // 容器不存在：旧值全是默认，快照是一个空容器
+                        let k = plan.node_edits.len();
+                        plan.node_edits.push(NodeEdit::Insert {
+                            parent: Target::Node(node),
+                            before,
+                            node: NewElement::new(w(LocalName::$container)),
+                        });
+                        let change = t
+                            .marker(LocalName::$change)
+                            .with_child(NewElement::new(w(LocalName::$container)));
+                        plan.node_edits.push(NodeEdit::Insert {
+                            parent: Target::New(k),
+                            before: None,
+                            node: change,
+                        });
+                    }
+                }
+                if !plan.is_empty() {
+                    result.absorb(s.commit_plan(plan)?);
+                }
+            }
+            let dom = s.dom();
             let (container, before) = props_site(dom, node, LocalName::$container);
             let mut plan = MutationPlan::new(s.main_part());
             $plan_apply(
@@ -1581,7 +1667,8 @@ macro_rules! table_props_op {
             if let Some(tbl) = owning_table(dom, node) {
                 plan.touch(tbl);
             }
-            s.commit_plan(plan)
+            result.absorb(s.commit_plan(plan)?);
+            Ok(result)
         }
     };
 }
@@ -1591,6 +1678,8 @@ table_props_op!(
     TablePropsPatch,
     Tbl,
     TblPr,
+    TblPrChange,
+    &[],
     crate::semantic::props::plan_apply_table_props_at,
     "表格"
 );
@@ -1599,6 +1688,9 @@ table_props_op!(
     RowPropsPatch,
     Tr,
     TrPr,
+    TrPrChange,
+    // `in_change = false`（`row.toml`）：整行插入 / 删除的标记不进快照
+    &[LocalName::Ins, LocalName::Del],
     crate::semantic::props::plan_apply_row_props_at,
     "表格行"
 );
@@ -1607,18 +1699,32 @@ table_props_op!(
     CellPropsPatch,
     Tc,
     TcPr,
+    TcPrChange,
+    // `in_change = false`（`cell.toml`）
+    &[LocalName::CellIns, LocalName::CellDel, LocalName::CellMerge, LocalName::Headers],
     crate::semantic::props::plan_apply_cell_props_at,
     "单元格"
 );
 
-fn insert_block(s: &mut EditSession, at: BlockPos, block: NewBlock) -> Result<MutationResult> {
+fn insert_block(
+    s: &mut EditSession,
+    at: BlockPos,
+    block: NewBlock,
+    ctx: &EditContext,
+) -> Result<MutationResult> {
     // 新图表先建 part（图表 / 工作簿 / 关系），块本身换成绘图段落（任务 6.6）
     let block = super::chart_ops::materialize(s, block)?;
     let part = s.part_or_main(at.part);
     let dom = s.dom_in(at.part)?;
     let (parent, before) = block_site(dom, at.at)?;
     let is_para = matches!(block, NewBlock::Paragraph { .. });
+    let opaque = matches!(block, NewBlock::Xml(_) | NewBlock::Wrapped { .. });
     let node = new_block_element(dom, block);
+    // 追踪：段落的内容进 `w:ins` 且段落标记标插入；表格每行 `trPr/w:ins`；其他整块包 `w:ins`
+    let node = match &mut Tracker::new(s.document(), ctx) {
+        None => node,
+        Some(t) => super::track::mark_new_block_inserted(t, node, opaque),
+    };
     let mut plan = MutationPlan::new(part);
     plan.structure_changed = true;
     plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(parent), before, node });
@@ -1629,7 +1735,12 @@ fn insert_block(s: &mut EditSession, at: BlockPos, block: NewBlock) -> Result<Mu
     s.commit_plan(plan)
 }
 
-fn delete_block(s: &mut EditSession, part: Option<PartId>, node: NodeId) -> Result<MutationResult> {
+fn delete_block(
+    s: &mut EditSession,
+    part: Option<PartId>,
+    node: NodeId,
+    ctx: &EditContext,
+) -> Result<MutationResult> {
     let dom = s.dom_in(part)?;
     if (node.0 as usize) >= dom.node_count() || dom.node(node).dirty == Dirty::Deleted {
         return Err(Error::edit(DiagCode::EditBadPosition, "块不存在或已删除"));
@@ -1652,6 +1763,12 @@ fn delete_block(s: &mut EditSession, part: Option<PartId>, node: NodeId) -> Resu
             ));
         }
     }
+    // 追踪：**块留着**（`spec/18` 7.3）
+    if let Some(mut t) = Tracker::new(s.document(), ctx) {
+        let mut plan = MutationPlan::new(s.part_or_main(part));
+        plan_delete_block_tracked(&mut plan, dom, &mut t, node);
+        return s.commit_plan(plan);
+    }
     let mut plan = MutationPlan::new(s.part_or_main(part));
     plan.structure_changed = true;
     plan.node_edits.push(NodeEdit::Delete(node));
@@ -1661,7 +1778,65 @@ fn delete_block(s: &mut EditSession, part: Option<PartId>, node: NodeId) -> Resu
     s.commit_plan(plan)
 }
 
-fn move_block(s: &mut EditSession, node: NodeId, to: BlockPos) -> Result<MutationResult> {
+/// 追踪时删一个块（`spec/18` 7.3）：段落 → 内容逐项 `w:del` + 段落标记 `w:del`（段落保留）；
+/// 表格 → 每行 `trPr/w:del`（行保留）；其他 → 整块包一层块级 `w:del`。
+pub(super) fn plan_delete_block_tracked(
+    plan: &mut MutationPlan,
+    dom: &Dom,
+    t: &mut Tracker,
+    node: NodeId,
+) {
+    plan.touch(node);
+    if dom.is(node, w(LocalName::P)) {
+        // 段落标记**先**打：`para_mark` 在没有 `pPr` 时要插在第一个内容子节点之前，
+        // 而下面的包裹会把那个子节点搬进 `w:del`，`before` 就不再是段落的子节点了
+        t.para_mark(plan, dom, node, LocalName::Del);
+        for c in live_children(dom, node).collect::<Vec<_>>() {
+            let Some(name) = dom.name(c) else { continue };
+            if is_property_element(name) || crate::span::is_range_marker(name) {
+                continue;
+            }
+            t.wrap_item(plan, dom, c, LocalName::Del);
+            Tracker::rename_to_deleted(plan, dom, c);
+        }
+    } else if dom.is(node, w(LocalName::Tbl)) {
+        plan.structure_changed = true;
+        for row in live_children(dom, node).collect::<Vec<_>>() {
+            if !dom.is(row, w(LocalName::Tr)) {
+                continue;
+            }
+            let (_, before) = props_site(dom, row, LocalName::TrPr);
+            t.container_mark(
+                plan,
+                dom,
+                super::track::MarkSite {
+                    owner: row,
+                    container: LocalName::TrPr,
+                    container_before: before,
+                },
+                LocalName::Del,
+                crate::semantic::props::order_index_row_props,
+            );
+        }
+    } else {
+        plan.structure_changed = true;
+        t.wrap_item(plan, dom, node, LocalName::Del);
+    }
+}
+
+fn move_block(
+    s: &mut EditSession,
+    node: NodeId,
+    to: BlockPos,
+    ctx: &EditContext,
+) -> Result<MutationResult> {
+    // `docs/03` §8.2 第一阶段：追踪时不生成 `moveFrom` / `moveTo`（调用方用 Delete + Insert）
+    if ctx.track_changes.is_some() {
+        return Err(Error::edit(
+            DiagCode::EditUnsupportedTrackedMove,
+            "track_changes 开启时不支持 MoveBlock；请用 DeleteBlock + InsertBlock",
+        ));
+    }
     let dom = s.dom_in(to.part)?;
     let (parent, before) = block_site(dom, to.at)?;
     let mut plan = MutationPlan::new(s.part_or_main(to.part));
@@ -3022,6 +3197,7 @@ fn update_block_field(
     let end_para = para_of(end).ok_or_else(|| unsupported("字段 end 不在段落里"))?;
     let begin_para = para_of(begin).ok_or_else(|| unsupported("字段 begin 不在段落里"))?;
     let cross = end_para != begin_para;
+    let mut tracker = Tracker::new(s.document(), ctx);
     let mut plan = MutationPlan::new(part);
     plan.structure_changed = true;
     plan.touch(begin_para);
@@ -3030,10 +3206,17 @@ fn update_block_field(
         // 段落级：新块插在 end 所在段落之前
         let parent = dom.parent(end_para).ok_or_else(|| unsupported("段落没有父节点"))?;
         for b in blocks {
+            let opaque = matches!(b, NewBlock::Xml(_) | NewBlock::Wrapped { .. });
+            let node = new_block_element(dom, b);
+            // 追踪：新结果块按 `InsertBlock` 规则、旧结果块按 `DeleteBlock` 规则（`spec/18` 7.3）
+            let node = match &mut tracker {
+                Some(t) => super::track::mark_new_block_inserted(t, node, opaque),
+                None => node,
+            };
             plan.node_edits.push(NodeEdit::Insert {
                 parent: Target::Node(parent),
                 before: Some(end_para),
-                node: new_block_element(dom, b),
+                node,
             });
         }
     } else {
@@ -3043,12 +3226,20 @@ fn update_block_field(
             let NewBlock::Paragraph { inlines, .. } = b else {
                 return Err(unsupported("同段块字段的新内容只能是段落（它的 inline 会内联进去）"));
             };
+            let (iparent, ibefore) = match &mut tracker {
+                None => (Target::Node(parent), Some(end)),
+                Some(t) => {
+                    let k = plan.node_edits.len();
+                    plan.node_edits.push(NodeEdit::Insert {
+                        parent: Target::Node(parent),
+                        before: Some(end),
+                        node: t.marker(LocalName::Ins),
+                    });
+                    (Target::New(k), None)
+                }
+            };
             for node in emit_inlines(dom, &inlines) {
-                plan.node_edits.push(NodeEdit::Insert {
-                    parent: Target::Node(parent),
-                    before: Some(end),
-                    node,
-                });
+                plan.node_edits.push(NodeEdit::Insert { parent: iparent, before: ibefore, node });
             }
         }
     }
@@ -3069,7 +3260,16 @@ fn update_block_field(
         }
     }
     for v in victims {
-        plan.node_edits.push(NodeEdit::Delete(v));
+        match &mut tracker {
+            Some(t) if dom.is(v, w(LocalName::P)) || dom.is(v, w(LocalName::Tbl)) => {
+                plan_delete_block_tracked(&mut plan, dom, t, v);
+            }
+            Some(t) => {
+                t.wrap_item(&mut plan, dom, v, LocalName::Del);
+                Tracker::rename_to_deleted(&mut plan, dom, v);
+            }
+            None => plan.node_edits.push(NodeEdit::Delete(v)),
+        }
     }
     if ctx.mark_updated_fields_dirty
         && let Some(fld) = dom.semantic_children(begin).find(|&c| dom.is(c, w(LocalName::FldChar)))

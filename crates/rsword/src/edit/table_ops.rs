@@ -14,8 +14,10 @@ use crate::span::RangeKind;
 use crate::xml::{Dirty, Dom, LocalName, NewElement, NodeEdit, NodeId, QName, Target};
 
 use super::CellPropsPatch;
+use super::EditContext;
 use super::plan::{MutationPlan, MutationResult};
 use super::session::EditSession;
+use super::track::Tracker;
 
 fn w(local: LocalName) -> QName {
     QName::w(local)
@@ -173,6 +175,7 @@ pub(crate) fn insert_row(
     table: NodeId,
     at: u32,
     template: Option<NodeId>,
+    ctx: &EditContext,
 ) -> Result<MutationResult> {
     let t = table_of(s, table)?;
     let rows: Vec<NodeId> = t.rows.iter().map(|r| r.node).collect();
@@ -221,6 +224,7 @@ pub(crate) fn insert_row(
     let tbl_pr_ex = child_named(s.dom(), tpl.node, LocalName::TblPrEx);
     let before = rows.get(at as usize).and_then(|&r| direct_child(s.dom(), table, r));
 
+    let mut tracker = Tracker::new(s.document(), ctx);
     let mut plan = MutationPlan::new(s.main_part());
     plan.structure_changed = true;
     let row_k = plan.node_edits.len();
@@ -229,12 +233,42 @@ pub(crate) fn insert_row(
         before,
         node: NewElement::new(w(LocalName::Tr)),
     });
-    for src in [tbl_pr_ex, tr_pr].into_iter().flatten() {
+    if let Some(src) = tbl_pr_ex {
         plan.node_edits.push(NodeEdit::InsertClone {
             parent: Target::New(row_k),
             before: None,
             source: src,
         });
+    }
+    // 追踪：整行插入 → `trPr/w:ins`（`spec/08`）。`trPr` 是模板行的字节克隆，标记加在克隆之后
+    match (&mut tracker, tr_pr) {
+        (None, Some(src)) => plan.node_edits.push(NodeEdit::InsertClone {
+            parent: Target::New(row_k),
+            before: None,
+            source: src,
+        }),
+        (None, None) => {}
+        (Some(t), Some(src)) => {
+            let k = plan.node_edits.len();
+            plan.node_edits.push(NodeEdit::InsertClone {
+                parent: Target::New(row_k),
+                before: None,
+                source: src,
+            });
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::New(k),
+                before: None,
+                node: t.marker(LocalName::Ins),
+            });
+        }
+        (Some(t), None) => {
+            let marker = t.marker(LocalName::Ins);
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::New(row_k),
+                before: None,
+                node: NewElement::new(w(LocalName::TrPr)).with_child(marker),
+            });
+        }
     }
     let dom = s.dom();
     for (cell_node, tc_pr, first_para, fix) in cells {
@@ -283,7 +317,12 @@ enum VMergeFix {
     Continue,
 }
 
-pub(crate) fn delete_row(s: &mut EditSession, table: NodeId, at: u32) -> Result<MutationResult> {
+pub(crate) fn delete_row(
+    s: &mut EditSession,
+    table: NodeId,
+    at: u32,
+    ctx: &EditContext,
+) -> Result<MutationResult> {
     let t = table_of(s, table)?;
     let row = t
         .rows
@@ -291,6 +330,26 @@ pub(crate) fn delete_row(s: &mut EditSession, table: NodeId, at: u32) -> Result<
         .ok_or_else(|| geometry_error(format!("行号 {at} 超出 {} 行", t.rows.len())))?;
     let geo = geometry(t);
     let node = row.node;
+    // 追踪：**行留着**，只加 `trPr/w:del`（`spec/08`）。vMerge 的提升不做——内容一点没变
+    if let Some(mut t) = Tracker::new(s.document(), ctx) {
+        let dom = s.dom();
+        let mut plan = MutationPlan::new(s.main_part());
+        plan.touch(table);
+        let before =
+            element_children(dom, node).into_iter().find(|&c| !dom.is(c, w(LocalName::TblPrEx)));
+        t.container_mark(
+            &mut plan,
+            dom,
+            crate::edit::track::MarkSite {
+                owner: node,
+                container: LocalName::TrPr,
+                container_before: before,
+            },
+            LocalName::Del,
+            crate::semantic::props::order_index_row_props,
+        );
+        return s.commit_plan(plan);
+    }
     // 被删行里 vMerge restart 的格：把下一行同列的 continue 提升为 restart
     let mut promote: Vec<NodeId> = Vec::new();
     if let (Some(this), Some(next)) = (geo.rows.get(at as usize), geo.rows.get(at as usize + 1)) {
@@ -447,6 +506,7 @@ pub(crate) fn insert_column(
     table: NodeId,
     at: u32,
     width: i32,
+    ctx: &EditContext,
 ) -> Result<MutationResult> {
     let t = table_of(s, table)?;
     let geo = geometry(t);
@@ -495,12 +555,18 @@ pub(crate) fn insert_column(
         plans.push((ri, place));
     }
 
+    let mut tracker = Tracker::new(s.document(), ctx);
     let mut plan = MutationPlan::new(s.main_part());
     plan.structure_changed = true;
     // tblGrid
     let grid_parent = child_named(dom, table, LocalName::TblGrid);
     match grid_parent {
         Some(g) => {
+            // 追踪：网格要变，先把**旧**网格快照进 `w:tblGridChange`（这两条编辑排在新
+            // `w:gridCol` 之前，克隆到的就是原来的列）
+            if let Some(t) = &mut tracker {
+                t.snapshot(&mut plan, dom, g, LocalName::TblGridChange, LocalName::TblGrid, &[]);
+            }
             let before = geo.grid.get(at as usize).map(|&(n, _)| n);
             let mut col = NewElement::new(w(LocalName::GridCol));
             col.push_attr(w(LocalName::W), width.to_string());
@@ -511,8 +577,38 @@ pub(crate) fn insert_column(
     for (ri, place) in plans {
         let row = &geo.rows[ri];
         match place {
-            Where::Gap { before, after } => bump_row_gap(s, row, before, after, &mut plan),
-            Where::Widen(cell, span) => patch_cell_span(s, cell, Some(span), width, &mut plan),
+            Where::Gap { before, after } => {
+                // 追踪：`gridBefore` / `gridAfter` 是行属性 → 旧值进 `w:trPrChange`
+                if let Some(t) = &mut tracker
+                    && let Some(trpr) = child_named(dom, row.node, LocalName::TrPr)
+                {
+                    t.snapshot(
+                        &mut plan,
+                        dom,
+                        trpr,
+                        LocalName::TrPrChange,
+                        LocalName::TrPr,
+                        &[LocalName::Ins, LocalName::Del],
+                    );
+                }
+                bump_row_gap(s, row, before, after, &mut plan)
+            }
+            Where::Widen(cell, span) => {
+                // 追踪：加宽跨列格改的是 `gridSpan` / `tcW` → 旧值进 `w:tcPrChange`
+                if let Some(t) = &mut tracker
+                    && let Some(tcpr) = child_named(dom, cell, LocalName::TcPr)
+                {
+                    t.snapshot(
+                        &mut plan,
+                        dom,
+                        tcpr,
+                        LocalName::TcPrChange,
+                        LocalName::TcPr,
+                        &[LocalName::CellIns, LocalName::CellDel, LocalName::CellMerge],
+                    );
+                }
+                patch_cell_span(s, cell, Some(span), width, &mut plan)
+            }
             Where::NewCell { before, template } => {
                 let cell_k = plan.node_edits.len();
                 plan.node_edits.push(NodeEdit::Insert {
@@ -521,7 +617,9 @@ pub(crate) fn insert_column(
                     node: NewElement::new(w(LocalName::Tc)),
                 });
                 // 新格的 tcPr：克隆模板但去掉 gridSpan / vMerge，宽度换成新列宽
-                if let Some((tpl, tc_pr)) = template {
+                // 新格的 `tcPr`：克隆模板但去掉 gridSpan / vMerge，宽度换成新列宽。
+                // 追踪时 `w:cellIns` 要放进**同一个** `w:tcPr`（两个 `w:tcPr` 不合法）
+                let props = template.map(|(_, tc_pr)| {
                     let mut props =
                         crate::semantic::props::read_cell_props(dom, tc_pr, &mut Vec::new());
                     props.grid_span = None;
@@ -530,20 +628,32 @@ pub(crate) fn insert_column(
                     if props.width.is_some() {
                         props.width = Some(TblWidth::dxa(width));
                     }
-                    if !props_is_empty(&props) {
-                        plan.node_edits.push(NodeEdit::Insert {
-                            parent: Target::New(cell_k),
-                            before: None,
-                            node: crate::semantic::props::emit_cell_props(&props, s.flavor()),
-                        });
+                    props
+                });
+                let want_container =
+                    tracker.is_some() || props.as_ref().is_some_and(|p| !props_is_empty(p));
+                if want_container {
+                    let mut node = match &props {
+                        Some(p) => crate::semantic::props::emit_cell_props(p, s.flavor()),
+                        None => NewElement::new(w(LocalName::TcPr)),
+                    };
+                    if let Some(t) = &mut tracker {
+                        crate::edit::track::insert_ordered(
+                            &mut node,
+                            t.marker(LocalName::CellIns),
+                            crate::semantic::props::order_index_cell_props,
+                        );
                     }
-                    let para = element_children(dom, tpl)
-                        .into_iter()
-                        .find(|&c| dom.is(c, w(LocalName::P)));
-                    empty_paragraph(dom, &mut plan, Target::New(cell_k), para);
-                } else {
-                    empty_paragraph(dom, &mut plan, Target::New(cell_k), None);
+                    plan.node_edits.push(NodeEdit::Insert {
+                        parent: Target::New(cell_k),
+                        before: None,
+                        node,
+                    });
                 }
+                let para = template.and_then(|(tpl, _)| {
+                    element_children(dom, tpl).into_iter().find(|&c| dom.is(c, w(LocalName::P)))
+                });
+                empty_paragraph(dom, &mut plan, Target::New(cell_k), para);
             }
         }
     }
@@ -557,12 +667,42 @@ fn props_is_empty(p: &crate::semantic::props::CellProps) -> bool {
         == crate::semantic::props::CellPropsPatch::default()
 }
 
-pub(crate) fn delete_column(s: &mut EditSession, table: NodeId, at: u32) -> Result<MutationResult> {
+pub(crate) fn delete_column(
+    s: &mut EditSession,
+    table: NodeId,
+    at: u32,
+    ctx: &EditContext,
+) -> Result<MutationResult> {
     let t = table_of(s, table)?;
     let geo = geometry(t);
     geo.require_consistent()?;
     if at >= geo.cols {
         return Err(geometry_error(format!("列号 {at} 超出 {} 列", geo.cols)));
+    }
+    // 追踪：**格与网格都留着**，只给这一列的格加 `tcPr/w:cellDel`（`spec/08`）。
+    // 网格不动，所以**不发** `w:tblGridChange`——收缩发生在接受修订时（7.4），
+    // 那时才知道最终的列宽（登记在 `docs/04` §8）
+    if let Some(mut tr) = Tracker::new(s.document(), ctx) {
+        let dom = s.dom();
+        let mut plan = MutationPlan::new(s.main_part());
+        plan.touch(table);
+        for row in &geo.rows {
+            let Some(i) = row.cell_at(at) else { continue };
+            let cell = row.cells[i].0;
+            let before = element_children(dom, cell).first().copied();
+            tr.container_mark(
+                &mut plan,
+                dom,
+                crate::edit::track::MarkSite {
+                    owner: cell,
+                    container: LocalName::TcPr,
+                    container_before: before,
+                },
+                LocalName::CellDel,
+                crate::semantic::props::order_index_cell_props,
+            );
+        }
+        return s.commit_plan(plan);
     }
     let width = geo.grid.get(at as usize).map_or(0, |&(_, w)| w);
     // 先看会不会把某一行掏空
@@ -610,7 +750,17 @@ pub(crate) fn merge_cells(
     table: NodeId,
     from: (u32, u32),
     to: (u32, u32),
+    ctx: &EditContext,
 ) -> Result<MutationResult> {
+    // 第一阶段：追踪时拒绝（`spec/18`「不在 M7」）。`w:cellMerge` + `vMergeOrig` 的形态要等
+    // 真实 Word 的 fixture 校准；顺带一条已知的 Word 行为：Word 的「拒绝所有修订」**不**撤销
+    // 单元格合并（`fixtures/revisions/table-and-move/rejected.docx` 首行仍是合并的一格）
+    if ctx.track_changes.is_some() {
+        return Err(Error::edit(
+            DiagCode::EditUnsupportedTrackedMerge,
+            "track_changes 开启时不支持 MergeCells（w:cellMerge 的形态待真实 Word 校准）",
+        ));
+    }
     let t = table_of(s, table)?;
     let geo = geometry(t);
     geo.require_consistent()?;
