@@ -158,5 +158,35 @@
     "name": "table-cell-no-paragraph.docx",
     "bytes": 987,
     "expectation": "parses; MOD_TABLE_SHAPE; unedited save byte-identical; InsertBlock in the cell appends a w:p"
+  },
+  {
+    "name": "rev-nested-wrappers.docx",
+    "bytes": 3762,
+    "expectation": "parses; 500 nesting levels get the right depth; iterative walk, no stack overflow; unedited save byte-identical"
+  },
+  {
+    "name": "rev-move-unpaired.docx",
+    "bytes": 2353,
+    "expectation": "parses; REV_UNPAIRED_MOVE for the three unpaired halves; pair = None; AcceptAll / RejectAll succeed"
+  },
+  {
+    "name": "rev-change-empty.docx",
+    "bytes": 2387,
+    "expectation": "parses; empty *PrChange gives an all-default snapshot, multiple inner containers take the first; no EngineInvariantViolation"
+  },
+  {
+    "name": "rev-del-with-t.docx",
+    "bytes": 2311,
+    "expectation": "parses; the mismatched text nodes keep their own kind; unedited save byte-identical"
+  },
+  {
+    "name": "sectpr-in-cell.docx",
+    "bytes": 2267,
+    "expectation": "parses; the cell sectPr does not create a Document section; InsertSectionBreak there is EDIT_BAD_POSITION; unedited save byte-identical"
+  },
+  {
+    "name": "drawing-anchor-no-extent.docx",
+    "bytes": 2511,
+    "expectation": "parses; missing extent and empty positionH degrade to 0; relativeHeight beyond u32 does not overflow; unedited save byte-identical"
   }
 ]

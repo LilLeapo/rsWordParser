@@ -1340,3 +1340,55 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   `extra__mixed-flavor`（TS 装载时改写成 Transitional，同 `extra__strict-minimal`）、`write-protection__004`（主 part 用 `x:` 前缀
   绑定 `w` 命名空间，TS 改写成 `w:`，我们原字节）、`shape-extraction__014`（未声明的 `mc:Choice Requires="wps"`，同
   `cell-anchored-boxes__002`）。CI 第八步 `cargo run -p diff-parse -- --scope all`。**M6 门五条全部通过**（上表）。
+
+## 16. M7 执行进度
+
+任务分解与 DoD 在 `spec/18-m7-plan.md`。分支 `m7-edit`（从 `main` = e5bed96 开，M0–M6 与三轮真实 Word 语料全部已并入），
+工作树 `../rsWordParser-m7`。
+
+### 开工基线（2026-09-07 在并入 M6 后的 `main` 上重测）
+
+`spec/18` 的基线表写于 2026-09-06，数字分别来自当时的 `main`（bf1f906）与 `m6-embedded`（8a3034e）；下表是并入后的实测值，
+后续所有「不退」的比较以它为准。
+
+| 量 | 值 | 来源 |
+| --- | --- | --- |
+| 语料 | 799 份 synthetic / 208 份保存用例 / **38** 份 hostile（7.0⑤ 加了 6 份）/ 266 份 real | `ls corpus/*` |
+| 八道 `diff-parse` 门 | 全部 **0 未知差异**：text 256、fields 283、tables 352、drawing / hf / embedded / all 各 799 份；`all` 242 处已知差异 | `cargo run -p diff-parse -- --scope <s>` |
+| 保存差分 | 208 用例，**204 等价**（43 份逐字节相同），4 份 `INTENTIONAL`，**0 跳过** | `cargo test -p rsword --test save_blocks -- --nocapture` |
+| `INTENTIONAL` | 4 条：3 条修订 `w:id`（`revisions__007.save.1/2/3`，`EDIT-06` 全局 max + 1 对 TS 的 0 / 9001）+ 1 条空 `commentReference` run（`comments__001.save.2`）——M7 后仍保留 | `tests/save_blocks.rs` |
+| 测试 | **503** 通过（调试构建） | `cargo test --workspace` |
+
+`spec/18` 基线表里其余几行（带修订的语料份数、`EditOp` 变体数、`track_changes` 的消费者为 0、修订模型形状）在 M6 并入后没有变化，
+不重复抄录。
+
+### M7 门（`spec/18`「M7 门」六条）
+
+| # | 条件 | 状态 |
+| --- | --- | --- |
+| 1 | 修订三条 oracle（拒绝还原 / 接受等价 / 往返）对每个可追踪操作 × 语料样本通过 | 未开始 |
+| 2 | `MOD-09` 每种修订 Accept / Reject 各一条 XPath；21 份带修订语料 `AcceptAll` / `RejectAll` 后 `revisions` 为空 | 未开始 |
+| 3 | `fixtures/revisions` 四个 case 的 `AcceptAll` / `RejectAll` 与 Word 自己另存的 `accepted` / `rejected` 指纹相等 | 未开始（fixture 已就位） |
+| 4 | 保存差分跳过数保持 0，比较范围扩到每个被改写的 XML part | 未开始（7.0①② 按 2026-09-07 的决定推迟到 7.9 前，与重导一起做一次） |
+| 5 | `TEST-07` 1,000 条随机序列 + `fuzz_edit` 10 分钟 | 未开始 |
+| 6 | 八道 `diff-parse` 门继续为 0；6 份新 hostile 满足 `TEST-09` 三条 | hostile 6 份**已通过**（`tests/revisions.rs`）；八道门待收尾时复测 |
+
+### 待决的落地（2026-09-07 项目负责人拍板）
+
+| `spec/18`「待决」# | 决定 |
+| --- | --- |
+| 1 | 7.10 **进 M7**，用 **wasm-bindgen** |
+| 2 | INDEX 排序 `Collation::CodePoint` 缺省 + 调用方可传顺序（按建议） |
+| 3 | tracked `MoveBlock` / `MergeCells` 第一阶段拒绝（按建议） |
+| 4 | `normalize_z_order` 缺省 `false`（按建议） |
+| 5 | `docs/03` §8.2 之外的新操作登记进本文件 §8，不改冻结文档（按建议） |
+| 6 | TOC 的 `\h` 与 `PAGEREF` 走 **Word 形态**，`ts_shape` 只留给夹具 |
+| — | 7.0①②（导出器 `changedParts` + 语料重导）**推迟到 7.9 前**：`spec/18` 原本要求「与 M6 语料一起重导一次」，M6 语料已导完并入 `main`，那个窗口过了；早期重导会把语料漂移和新代码的问题混在一起 |
+
+- [x] **7.0 语料、工具与 fixture 骨架**（部分，2026-09-07）：③ `fixtures/revisions`（四个 case × 四态）与
+  `fixtures/word-ops`（四组 before / after）在第三轮真实 Word 交付时已就位，`gen-fixtures revisions` 与操作单不再需要；
+  ⑤ 六份 hostile 进语料（`rev-nested-wrappers` 500 层 `w:ins` / `w:del` 交替、`rev-move-unpaired` 三种半截 move、
+  `rev-change-empty` 空 / 多内层的 `*PrChange`、`rev-del-with-t` 文本节点种类错配、`sectpr-in-cell`、
+  `drawing-anchor-no-extent`），生成器在 `tools/export-golden/hostile.export.test.ts`，按 `try.sh` 导到临时目录后只拷新文件与
+  新的 manifest 条目（README「重导的稳定性与噪音」），`tests/revisions.rs` 断言 `TEST-09` 三条——六份全部通过；
+  ⑥ 基线重测（上表）。①②（`changedParts` + 重导）与 ④（`fixtures/fieldgen`）留到后面，见上表最后一行与 7.8。

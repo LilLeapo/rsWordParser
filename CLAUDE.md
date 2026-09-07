@@ -12,11 +12,11 @@
 
 1. `docs/03-architecture-v3.md` —— v3.2 **冻结架构**，是宪法。分层、六个核心类型、不变式在这里定。
 2. `spec/*.md` —— 可验收的模块规范，每条带 ID（`XML-12`、`PROP-06`、`EDIT-03`…）。实现与测试都引用这些 ID。规范服从设计；冲突时以设计为准并修订规范。
-3. `docs/04-dev-plan.md` —— 执行计划：§5.1 M1 已完成清单、§5.2 M1 门、§8 实现偏差、§9 待决、§10 M2 及以后的排期、§11 M2 逐条进度、§12 M3 逐条进度、§13 M4 逐条进度、§14 M5 逐条进度、§15 M6 逐条进度。
+3. `docs/04-dev-plan.md` —— 执行计划：§5.1 M1 已完成清单、§5.2 M1 门、§8 实现偏差、§9 待决、§10 M2 及以后的排期、§11 M2 逐条进度、§12 M3 逐条进度、§13 M4 逐条进度、§14 M5 逐条进度、§15 M6 逐条进度、§16 M7 逐条进度。
 4. `docs/01-ts-parser-reference.md` 与 genoffice 源码 —— **参考实现，不是验收权威**（见下）。
 
 `spec/12-m0-m1-plan.md`、`spec/13-m2-plan.md`、`spec/14-m3-plan.md`、`spec/15-m4-plan.md`、`spec/16-m5-plan.md`、`spec/17-m6-plan.md`、`spec/18-m7-plan.md` 是里程碑任务分解（# / 任务 / 规范 / DoD）。
-M0–M6 已全部并入 `main`；M5（页眉页脚 / 节 / 声明 part / resolve 校准）**九个任务与五条门全部完成**（`RES-04` 的 toggle 规则已按 2026-09-06 的 Word 实测校准），逐条进度与门的实测见 `docs/04` §14。**M6**（嵌入对象：图表 / SmartArt / 画布 / OLE / 公式 / 墨迹、媒体写侧）**九个任务与五条门全部完成**（2026-09-06；八道 `diff-parse` 门含 `--scope all` 都在 CI），逐条进度与门的实测见 `docs/04` §15。**M7**（`spec/18`）计划于 2026-09-06 写成、尚未开工，开工前按并入 M6 后的 `main` 重测基线。
+M0–M6 已全部并入 `main`；M5（页眉页脚 / 节 / 声明 part / resolve 校准）**九个任务与五条门全部完成**（`RES-04` 的 toggle 规则已按 2026-09-06 的 Word 实测校准），逐条进度与门的实测见 `docs/04` §14。**M6**（嵌入对象：图表 / SmartArt / 画布 / OLE / 公式 / 墨迹、媒体写侧）**九个任务与五条门全部完成**（2026-09-06；八道 `diff-parse` 门含 `--scope all` 都在 CI），逐条进度与门的实测见 `docs/04` §15。**M7**（`spec/18`：修订生成与接受 / 拒绝、`EditOp` 全集、块字段生成器、绘图编辑、随机序列门、JS 绑定）**进行中**（2026-09-07 从 `main` = e5bed96 开 `m7-edit`，工作树 `../rsWordParser-m7`），开工基线已在 `docs/04` §16 重测。
 
 ## TS 不是权威
 
@@ -54,8 +54,10 @@ genoffice 的 TS 引擎是参考实现。目标是**功能等价或更强**，�
 | `crates/rsword/schema/` | `local_names.txt`（名字表）、`props/*.toml`（属性表） |
 | `tools/diff-parse`、`tools/xpath-assert`、`tools/gen-fixtures` | 差分、XPath 断言、`fixtures/resolve` 生成（workspace 成员） |
 | `fixtures/resolve` | `RES-12` 校准 fixture：文档我们生成，**观察值来自真实 Word**（见那里的 README） |
+| `fixtures/revisions` | M7 门第 3 条：四个 case 的 `base` / `tracked` / `accepted` / `rejected`，**四态全由桌面 Word 另存** |
+| `fixtures/word-ops` | Word 自己做分节符增删 / z-order / 移动缩放的 `before` / `after`，7.6 / 7.7 的对照件 |
 | `corpus/synthetic` | 799 份 docx + `*.expected.json`（TS `ParsedDoc`）+ 208 份 `*.save.<k>.json`（`SaveBlock[]` + 期望 `documentXml`）；`m6-*` 是 M6 的嵌入对象语料 |
-| `corpus/hostile` | 32 份恶意 / 畸形输入（`TEST-09`） |
+| `corpus/hostile` | 38 份恶意 / 畸形输入（`TEST-09`） |
 | `fuzz/` | `fuzz_xml`、`fuzz_zip`（不在 workspace 内） |
 
 ## 命令
