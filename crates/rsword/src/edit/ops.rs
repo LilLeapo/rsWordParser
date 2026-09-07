@@ -123,6 +123,13 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         }
         EditOp::RemoveSdtShell { sdt } => super::sdt_ops::remove_sdt_shell(s, sdt),
         EditOp::SetMathTokens { math, tokens } => set_math_tokens(s, math, &tokens),
+        EditOp::SetDrawingGeometry { drawing, geom } => {
+            super::drawing_ops::set_geometry(s, drawing, &geom)
+        }
+        EditOp::SetDrawingZOrder { drawing, z } => super::drawing_ops::set_z_order(s, drawing, z),
+        EditOp::SetShapeStyle { shape, fill, outline } => {
+            super::drawing_ops::set_shape_style(s, shape, fill, outline)
+        }
         EditOp::InsertSectionBreak { after, kind } => {
             super::section_ops::insert_section_break(s, after, kind, ctx)
         }
@@ -150,6 +157,10 @@ fn not_tracked_name(op: &EditOp) -> Option<&'static str> {
         EditOp::SetWatermark { .. } => "SetWatermark",
         EditOp::SetPageColor { .. } => "SetPageColor",
         EditOp::SetDocumentSettings { .. } => "SetDocumentSettings",
+        // 7.7：Word 不把图片的格式改动记成修订
+        EditOp::SetDrawingGeometry { .. } => "SetDrawingGeometry",
+        EditOp::SetDrawingZOrder { .. } => "SetDrawingZOrder",
+        EditOp::SetShapeStyle { .. } => "SetShapeStyle",
         EditOp::InsertSectionBreak { .. } => "InsertSectionBreak",
         EditOp::DeleteSectionBreak { .. } => "DeleteSectionBreak",
         EditOp::SetChartData { .. } => "SetChartData",
@@ -278,6 +289,11 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
         | EditOp::SetMathTokens { .. } => Vec::new(),
         // 分节符：目标是段落 / `w:sectPr`，内容控件的锁不该拦它
         EditOp::InsertSectionBreak { .. } | EditOp::DeleteSectionBreak { .. } => Vec::new(),
+        EditOp::SetDrawingGeometry { drawing: n, .. }
+        | EditOp::SetDrawingZOrder { drawing: n, .. } => {
+            vec![(None, *n)]
+        }
+        EditOp::SetShapeStyle { shape, .. } => vec![(None, *shape)],
     };
     for (part, node) in targets {
         let dom = s.dom_in(part)?;
@@ -379,7 +395,7 @@ fn clone_attrs(dom: &Dom, from: NodeId, to: &mut NewElement) {
 }
 
 /// 段文本设为 `text`：有唯一文本子节点 → `SetText`（`w:t` 由序列化补 preserve）；否则替换整个元素。
-pub(super) fn set_segment_text(dom: &Dom, seg_node: NodeId, text: &str, plan: &mut MutationPlan) {
+pub(crate) fn set_segment_text(dom: &Dom, seg_node: NodeId, text: &str, plan: &mut MutationPlan) {
     match sole_text_child(dom, seg_node) {
         Some(tn) => plan.node_edits.push(NodeEdit::SetText { node: tn, text: text.to_string() }),
         None => {

@@ -1591,3 +1591,19 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   源处整个落在被搬块内的范围从索引里摘掉（§8），块字段被劈开 → `EDIT_SPLIT_FIELD`。
   `tests/section_break.rs` 8 个用例。**601 测试**（调试 + 发布）、九道门仍为 0、
   保存语料 204 / 208 等价 0 跳过、clippy 零告警。
+
+- [x] **7.7a 绘图的几何、z-order 与形状样式**（`edit/drawing_ops.rs`，2026-09-08）：
+  `SetDrawingGeometry { drawing, geom }`（`DrawingGeometry`：尺寸 / 锚定位置 / 旋转 / 翻转 / 裁剪，
+  每项 `None` = 不动）——`wp:extent` + 每个 `a:xfrm/a:ext` 一起改，`wp:effectExtent` 按旋转外接框
+  重算（与 6.7 新建图片同一条公式），`wp:posOffset` 改文本，`a:xfrm/@rot @flipH @flipV` 与
+  `a:srcRect` 按需增删。**只改属性**（分层决策 9）：`a:graphic` 子树永远原字节，媒体 part 一个字节不动。
+  `SetDrawingZOrder { drawing, z }` → `relativeHeight = 251658240 + z`（随文图片没有 z-order，拒绝）。
+  `SetShapeStyle { shape, fill, outline }` → `wps:spPr` 的 `a:solidFill` / `a:noFill` 与 `a:ln`。
+  三个操作都不产生修订（Word 也不记），走 `ops::run` 入口那条集中判定记 `REV_NOT_TRACKED`。
+  **两条真实 Word 的对照**（`fixtures/word-ops`）：`z-order`（置于顶层 → 三个锚的 `relativeHeight`
+  与 Word 相同、位置与尺寸一个没动）、`move-resize`（右下移 + 等比缩半 → `wp:extent` / `a:ext` /
+  两个 `wp:posOffset` 四个数字与 Word 的 `after.docx` 逐字相同）。
+  `tests/drawing_ops.rs` 8 个用例。**609 测试**（调试 + 发布）、九道门仍为 0、
+  保存语料 204 / 208 等价 0 跳过、clippy 零告警。
+  7.7b（`SetDrawingWrap` 的 `wp:inline ↔ wp:anchor` 换壳、`mc:Fallback` 孪生同步、
+  `NewBlock::Textbox / Shape / Line`、`SaveOptions.normalize_z_order`）另起一提交。

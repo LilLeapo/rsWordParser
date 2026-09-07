@@ -13,6 +13,7 @@
 pub mod atom_ops;
 pub mod chart_ops;
 pub(crate) mod diff;
+pub mod drawing_ops;
 pub mod ink_ops;
 pub mod inline;
 pub mod media_ops;
@@ -28,6 +29,7 @@ pub mod table_ops;
 pub(crate) mod track;
 
 pub use chart_ops::{ChartPatch, ChartSeriesPatch, NewChart, NewChartKind, NewChartSeries};
+pub use drawing_ops::{DrawingGeometry, SrcRect};
 pub use ink_ops::{InkSave, NewInk};
 pub use inline::{NewInline, NewLinkTarget, NewMarker, NewRevision, NewRun};
 pub use media_ops::{ImageWrap, NewImage, ParaSpacing, PosOffset};
@@ -297,6 +299,13 @@ pub enum EditOp {
     /// `EDIT-03 SetMathTokens`（TS `patchMathTokens`）：按序替换 `m:oMath` 里每个 `m:t` 的文字；
     /// 个数不等 → `EDIT_MATH_TOKEN_COUNT`。
     SetMathTokens { math: NodeId, tokens: Vec<String> },
+    /// `EDIT-03 SetDrawingGeometry`（`spec/18` 7.7）：尺寸 / 位置 / 旋转 / 翻转 / 裁剪。
+    /// 只改属性，`a:graphic` 子树原字节。
+    SetDrawingGeometry { drawing: NodeId, geom: DrawingGeometry },
+    /// `EDIT-03 SetDrawingZOrder`：`relativeHeight = 251658240 + z`（只对锚定图片有意义）。
+    SetDrawingZOrder { drawing: NodeId, z: i64 },
+    /// `EDIT-03 SetShapeStyle`：`wps:spPr` 的填充与描边。`None` = 不动，`Some(None)` = 无。
+    SetShapeStyle { shape: NodeId, fill: Option<Option<String>>, outline: Option<Option<String>> },
     /// `EDIT-03 InsertSectionBreak`（`spec/18` 7.6）：在 `after` 这一段之后断节。
     /// 该段的 `pPr` 里新建一个 `w:sectPr`（原节属性的克隆，含页眉页脚引用），
     /// 原来的 `sectPr` 从此描述**后**一节，它的 `w:type` 换成 `kind`。
