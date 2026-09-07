@@ -11,3 +11,4 @@ Cargo.lock.bak
 # cargo-fuzz
 /fuzz/target
 /fuzz/artifacts
+/corpus/real/_roundtrip/edited/

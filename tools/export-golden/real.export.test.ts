@@ -16,7 +16,9 @@ if (!ROOT) throw new Error('EXPORT_GOLDEN_REAL_ROOT is not set (repo corpus/real
 function walk(dir: string, out: string[]): void {
   for (const name of readdirSync(dir).sort()) {
     const p = join(dir, name)
-    if (statSync(p).isDirectory()) walk(p, out)
+    if (statSync(p).isDirectory()) {
+      if (name !== 'edited') walk(p, out) // edited/ 是引擎产物，不录
+    }
     else if (name.endsWith('.docx') && !name.startsWith('~$')) out.push(p)
   }
 }

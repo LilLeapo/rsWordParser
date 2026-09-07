@@ -229,7 +229,7 @@ macOS Word 与 WPS 各重做 `chart-column` / `smartart-list` / `math-fraction` 
 
 ## 6. 接入方式（macOS 侧，维护者做，你不用管）
 
-**状态（2026-09-07）**：第一轮交付已收到并接入（Office LTSC 2021，124 份；结果与规格修正见下）。下一轮若再做，优先：
+**状态（2026-09-07）**：第一轮交付已收到并接入；**第二轮任务书在 `docs/08-real-word-round2.md`**（Word 验收本引擎写出的 944 份编辑后文档、桌面版 toggle 复核、M7 语料）。第一轮交付已收到并接入（Office LTSC 2021，124 份；结果与规格修正见下）。下一轮若再做，优先：
 ① 用 Microsoft 365 复做 `chart-column` / `smartart-list` / `math-fraction` / `image-wrap-square` 四份对照版本差异；
 ② 重开 `_roundtrip/` 里重新生成的样本（`05` / `06` 修了重复 `Default`，`02` / `04` 换成真 Word 底稿）；③ 补 `ink-to-shape` 的成功版本。
 

@@ -13,6 +13,7 @@ pub fn corpus_dir(kind: &str) -> PathBuf {
 }
 
 /// `corpus/<kind>/**/*.docx`（递归：`corpus/real` 按域分目录），按路径排序，保证测试输出稳定。
+/// 名为 `edited` 的目录跳过：那是本引擎写出来等 Word 验收的产物（`tests/real_edits.rs`），不是语料。
 #[allow(dead_code)]
 pub fn docx_paths(kind: &str) -> Vec<PathBuf> {
     let mut v = Vec::new();
@@ -21,6 +22,9 @@ pub fn docx_paths(kind: &str) -> Vec<PathBuf> {
         let Ok(rd) = std::fs::read_dir(&dir) else { continue };
         for p in rd.filter_map(|e| e.ok().map(|e| e.path())) {
             if p.is_dir() {
+                if p.file_name().is_some_and(|n| n == "edited") {
+                    continue;
+                }
                 stack.push(p);
             } else if p.extension().is_some_and(|x| x == "docx") {
                 v.push(p);
