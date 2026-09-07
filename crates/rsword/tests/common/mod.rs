@@ -172,3 +172,17 @@ macro_rules! xpath_asserts {
 
 #[allow(unused_imports)]
 pub(crate) use xpath_asserts;
+
+/// zip 里一个条目的原字节（没有这个条目时是空）。
+#[allow(dead_code)]
+pub fn part_bytes(docx: &[u8], name: &str) -> Vec<u8> {
+    let mut zip = zip::ZipArchive::new(std::io::Cursor::new(docx)).expect("zip");
+    match zip.by_name(name) {
+        Ok(mut f) => {
+            let mut out = Vec::new();
+            std::io::Read::read_to_end(&mut f, &mut out).expect("read");
+            out
+        }
+        Err(_) => Vec::new(),
+    }
+}

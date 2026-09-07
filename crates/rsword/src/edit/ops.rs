@@ -71,7 +71,7 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::SetCellProps { cell, patch } => set_cell_props(s, cell, &patch, ctx),
         EditOp::InsertBlock { at, block } => insert_block(s, at, block, ctx),
         EditOp::DeleteBlock { part, node } => delete_block(s, part, node, ctx),
-        EditOp::MoveBlock { node, to } => move_block(s, node, to, ctx),
+        EditOp::MoveBlock { from, node, to } => move_block(s, from, node, to, ctx),
         EditOp::AddComment { from, to, comment } => add_comment(s, from, to, &comment),
         EditOp::RemoveComment { id } => remove_comment(s, &id),
         EditOp::SetCommentText { id, text, done } => set_comment_text(s, &id, &text, done),
@@ -123,6 +123,12 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         }
         EditOp::RemoveSdtShell { sdt } => super::sdt_ops::remove_sdt_shell(s, sdt),
         EditOp::SetMathTokens { math, tokens } => set_math_tokens(s, math, &tokens),
+        EditOp::InsertSectionBreak { after, kind } => {
+            super::section_ops::insert_section_break(s, after, kind, ctx)
+        }
+        EditOp::DeleteSectionBreak { sect } => {
+            super::section_ops::delete_section_break(s, sect, ctx)
+        }
         EditOp::AcceptRevision { rev } => super::revision_ops::one(s, rev, true),
         EditOp::RejectRevision { rev } => super::revision_ops::one(s, rev, false),
         EditOp::AcceptAll { author } => super::revision_ops::all(s, author.as_deref(), true),
@@ -144,6 +150,8 @@ fn not_tracked_name(op: &EditOp) -> Option<&'static str> {
         EditOp::SetWatermark { .. } => "SetWatermark",
         EditOp::SetPageColor { .. } => "SetPageColor",
         EditOp::SetDocumentSettings { .. } => "SetDocumentSettings",
+        EditOp::InsertSectionBreak { .. } => "InsertSectionBreak",
+        EditOp::DeleteSectionBreak { .. } => "DeleteSectionBreak",
         EditOp::SetChartData { .. } => "SetChartData",
         EditOp::ReplacePartXml { .. } => "ReplacePartXml",
         EditOp::ReplacePartBytes { .. } => "ReplacePartBytes",
@@ -227,7 +235,7 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
         | EditOp::MergeCells { table: n, .. } => vec![(None, *n)],
         EditOp::InsertBlock { at, .. } => vec![block_pos(at)],
         EditOp::DeleteBlock { part, node } => vec![(*part, *node)],
-        EditOp::MoveBlock { node, to } => vec![(to.part, *node), block_pos(to)],
+        EditOp::MoveBlock { from, node, to } => vec![(*from, *node), block_pos(to)],
         EditOp::SetLinkTarget { link, .. } => match link {
             LinkRef::Field(id) => field(*id).into_iter().collect(),
             LinkRef::Element(node) => vec![(None, *node)],
@@ -268,6 +276,8 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
         | EditOp::SetSdtContent { .. }
         | EditOp::RemoveSdtShell { .. }
         | EditOp::SetMathTokens { .. } => Vec::new(),
+        // 分节符：目标是段落 / `w:sectPr`，内容控件的锁不该拦它
+        EditOp::InsertSectionBreak { .. } | EditOp::DeleteSectionBreak { .. } => Vec::new(),
     };
     for (part, node) in targets {
         let dom = s.dom_in(part)?;
@@ -2042,6 +2052,7 @@ pub(super) fn plan_delete_block_tracked(
 
 fn move_block(
     s: &mut EditSession,
+    from: Option<PartId>,
     node: NodeId,
     to: BlockPos,
     ctx: &EditContext,
@@ -2052,6 +2063,9 @@ fn move_block(
             DiagCode::EditUnsupportedTrackedMove,
             "track_changes 开启时不支持 MoveBlock；请用 DeleteBlock + InsertBlock",
         ));
+    }
+    if s.part_or_main(from) != s.part_or_main(to.part) {
+        return move_block_cross_part(s, from, node, to, ctx);
     }
     let dom = s.dom_in(to.part)?;
     let (parent, before) = block_site(dom, to.at)?;
@@ -2069,6 +2083,115 @@ fn move_block(
         keep_cell_paragraph(dom, parent, None, &mut plan);
     }
     s.commit_plan(plan)
+}
+
+/// 跨 part 的 `MoveBlock`（`XML-12` 规则 E′，`spec/18` 7.6）。
+///
+/// 子树在两个 part 之间搬家时前缀不能照抄：目标 part 的命名空间声明是另一套。做法是把子树
+/// 连同**源处作用域里的全部有效声明**序列化成一段 XML，再用目标 part 的 `parse_fragment`
+/// 读进去——能绑到同 URI 的复用目标前缀，绑不上的在子树根上声明（`Dom::parse_fragment`
+/// 与序列化器已经保证这一条）。
+///
+/// 范围：目标容器 `rescan`（搬过去的标记在新 part 里重新成范围），源那边照 `SPAN-06/07`
+/// 走删除（整个落在被搬块内的范围随之消失）。块字段被劈开 → `Err(EDIT_SPLIT_FIELD)`。
+fn move_block_cross_part(
+    s: &mut EditSession,
+    from: Option<PartId>,
+    node: NodeId,
+    to: BlockPos,
+    _ctx: &EditContext,
+) -> Result<MutationResult> {
+    let src_part = s.part_or_main(from);
+    let dst_part = s.part_or_main(to.part);
+    let dom = s.dom_in(from)?;
+    if (node.0 as usize) >= dom.node_count() || dom.node(node).dirty == Dirty::Deleted {
+        return Err(Error::edit(DiagCode::EditBadPosition, "块不存在或已删除"));
+    }
+    // 与 `DeleteBlock` 同一条：块里只有块字段的一端 → 拒绝（另一端会变孤儿）
+    if let Some(idx) = s.document().fields_in(src_part) {
+        let inside = |n: NodeId| n == node || dom.ancestors(n).any(|a| a == node);
+        if idx.fields().iter().any(|f| inside(f.form.head()) != inside(f.form.tail())) {
+            return Err(Error::edit(
+                DiagCode::EditSplitField,
+                "这个块只含某个块字段的一端，搬走会让另一端变成孤儿",
+            ));
+        }
+    }
+    // ① 源处：子树 + 作用域里的有效声明 → 一段自足的 XML
+    let mut bytes = Vec::new();
+    crate::save::serialize_subtree(dom, node, &mut bytes)
+        .map_err(|e| Error::edit(DiagCode::EditPlanInvalid, format!("子树序列化失败: {e}")))?;
+    let body = String::from_utf8(bytes)
+        .map_err(|_| Error::edit(DiagCode::EditPlanInvalid, "子树不是 UTF-8"))?;
+    let flavor = s.flavor_in(from);
+    let scope = dom.namespace_scope(node);
+    let mut decls = String::new();
+    for (prefix, ns) in scope.effective() {
+        let Some(uri) = ns.uri(flavor) else { continue };
+        match prefix.map(|p| dom.interner().resolve(p).to_string()) {
+            Some(p) => decls.push_str(&format!(r#" xmlns:{p}="{uri}""#)),
+            None => decls.push_str(&format!(r#" xmlns="{uri}""#)),
+        }
+    }
+    let wrapped = format!("<rsword-move{decls}>{body}</rsword-move>");
+    // ② 目标 part：重解析（前缀按目标作用域重新落）
+    let dst_dom = s
+        .package_mut()
+        .dom_mut(dst_part)?
+        .ok_or_else(|| Error::edit(DiagCode::EditTargetOpaque, "目标 part 没有 DOM"))?;
+    let frag = crate::xml::parse_fragment(dst_dom, &wrapped)
+        .map_err(|e| Error::edit(DiagCode::EditPlanInvalid, format!("子树重解析失败: {e}")))?;
+    let moved = frag
+        .into_iter()
+        .next()
+        .and_then(|e| {
+            e.children.into_iter().find_map(|c| match c {
+                crate::xml::NewNode::Element(x) => Some(x),
+                crate::xml::NewNode::Text(_) => None,
+            })
+        })
+        .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "重解析后子树为空"))?;
+    let dst_dom = s.dom_in(to.part)?;
+    let (parent, before) = block_site(dst_dom, to.at)?;
+    let mut plan = MutationPlan::new(dst_part);
+    plan.structure_changed = true;
+    // 搬过去的内容里可能带范围标记：按新 part 的 DOM 重建这个容器的端点
+    plan.span.rescan.push(parent);
+    plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(parent), before, node: moved });
+    if before.is_none() {
+        keep_cell_paragraph(dst_dom, parent, None, &mut plan);
+    }
+    let mut result = s.commit_plan(plan)?;
+    // ③ 源处删掉。整个落在被搬块内的范围**从源索引里摘掉**：内容不是被销毁而是搬走了，
+    // 标记已经跟着到了目标 part。不摘的话 `SPAN-07` 会把书签折叠留在删除点，
+    // `SPAN-09` 再物化出一个同名标记——同一个书签就在两个 part 里各有一份了
+    let ends: Vec<(crate::span::SpanId, Option<NodeId>, Option<NodeId>)> = {
+        let index = s.spans_of(src_part)?;
+        index
+            .live()
+            .map(|sp| (sp.id, sp.start.and_then(|a| a.marker), sp.end.and_then(|a| a.marker)))
+            .collect()
+    };
+    let dead: Vec<crate::span::SpanId> = {
+        let dom = s.dom_in(from)?;
+        let inside = |n: NodeId| n == node || dom.ancestors(n).any(|a| a == node);
+        ends.into_iter()
+            .filter(|&(_, a, b)| a.is_some_and(inside) && b.is_some_and(inside))
+            .map(|(id, _, _)| id)
+            .collect()
+    };
+    let dom = s.dom_in(from)?;
+    let mut plan = MutationPlan::new(src_part);
+    plan.structure_changed = true;
+    plan.node_edits.push(NodeEdit::Delete(node));
+    if let Some(p) = dom.parent(node) {
+        keep_cell_paragraph(dom, p, Some(node), &mut plan);
+    }
+    result.absorb(s.commit_plan(plan)?);
+    for span in dead {
+        s.drop_span(src_part, span);
+    }
+    Ok(result)
 }
 
 /// `EDIT-03` 表格通则：**单元格最后一个块必须是 `w:p`**（Word 的约束）。计划生效后 `container`

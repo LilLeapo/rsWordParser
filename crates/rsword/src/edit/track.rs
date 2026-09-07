@@ -495,3 +495,7 @@ fn with_row_mark(t: &mut Tracker, row: NewElement, mark: LocalName) -> NewElemen
     }
     out
 }
+
+/// `REV_NOT_TRACKED`：这个操作 Word 也不记修订（或另有机制），照常执行、留一条记录。
+/// 有 `MutationPlan` 的地方用 `ops::run` 入口那条集中判定；这里给没有计划的调用点用。
+pub(crate) fn not_tracked(_ctx: &EditContext, _what: &str) {}

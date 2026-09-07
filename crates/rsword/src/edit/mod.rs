@@ -212,8 +212,10 @@ pub enum EditOp {
     InsertBlock { at: BlockPos, block: NewBlock },
     /// `EDIT-03 DeleteBlock`：`Deleted`。`part` 为 `None` 表示主 part（任务 5.5）。
     DeleteBlock { part: Option<PartId>, node: NodeId },
-    /// `EDIT-03 MoveBlock`：同 part `move_within_part`。
-    MoveBlock { node: NodeId, to: BlockPos },
+    /// `EDIT-03 MoveBlock`：同 part 走 `move_within_part`；`from` 与 `to.part` 不同的时候
+    /// 走 `XML-12` 规则 E′（子树按目标 part 的作用域重解析前缀，`spec/18` 7.6）。
+    /// `from` 为 `None` 表示主 part。
+    MoveBlock { from: Option<PartId>, node: NodeId, to: BlockPos },
     /// `EDIT-03 AddComment`（同段）：`comments.xml` 不存在则新建 part（`SAVE-05`），
     /// 正文里插范围标记与 `w:commentReference` run，`w:id` 按 `EDIT-06` 取最大值 + 1。
     AddComment { from: InlinePos, to: InlinePos, comment: NewComment },
@@ -295,6 +297,13 @@ pub enum EditOp {
     /// `EDIT-03 SetMathTokens`（TS `patchMathTokens`）：按序替换 `m:oMath` 里每个 `m:t` 的文字；
     /// 个数不等 → `EDIT_MATH_TOKEN_COUNT`。
     SetMathTokens { math: NodeId, tokens: Vec<String> },
+    /// `EDIT-03 InsertSectionBreak`（`spec/18` 7.6）：在 `after` 这一段之后断节。
+    /// 该段的 `pPr` 里新建一个 `w:sectPr`（原节属性的克隆，含页眉页脚引用），
+    /// 原来的 `sectPr` 从此描述**后**一节，它的 `w:type` 换成 `kind`。
+    InsertSectionBreak { after: NodeId, kind: crate::semantic::props::SectType },
+    /// `EDIT-03 DeleteSectionBreak`：删掉一个**段落级** `w:sectPr`，这些块并入后一节
+    /// （Word 语义：合并后由后一节的页面设置接管）。body 级的 `sectPr` 不能删。
+    DeleteSectionBreak { sect: NodeId },
     /// `EDIT-03 AcceptRevision`：接受一条修订（`Document.revisions` 里的 id）。
     AcceptRevision { rev: crate::model::RevisionId },
     /// `EDIT-03 RejectRevision`：拒绝一条修订。

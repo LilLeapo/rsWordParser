@@ -715,7 +715,7 @@ impl Planner<'_> {
                     Some(Item::Original(pd)) => BlockPos::after(self.nodes[*pd]),
                     _ => BlockPos::start(self.body),
                 };
-                ops.push(EditOp::MoveBlock { node, to });
+                ops.push(EditOp::MoveBlock { from: None, node, to });
             }
         }
 

@@ -392,3 +392,135 @@ fn watermark_paragraph_xml(text: &str) -> String {
         escaped
     )
 }
+
+// ---- 分节符的增删（`spec/18` 7.6）--------------------------------------------------------------
+
+/// `InsertSectionBreak`：在 `after` 这一段之后断节。
+///
+/// 形态与真实 Word 一致（`fixtures/word-ops/insert-next-page`）：段落 `pPr` 里新建的
+/// `w:sectPr` 是**原节属性的克隆**（含页眉页脚引用——第一节因此保住自己的页眉），
+/// 原来那个 `sectPr` 从此描述后一节。`w:type` 只在不是缺省的 `nextPage` 时才写
+/// （Word 也不写缺省值）。
+pub(super) fn insert_section_break(
+    s: &mut EditSession,
+    after: NodeId,
+    kind: crate::semantic::props::SectType,
+    ctx: &EditContext,
+) -> Result<MutationResult> {
+    let main = s.main_part();
+    let dom = s.dom();
+    if (after.0 as usize) >= dom.node_count()
+        || dom.node(after).dirty == Dirty::Deleted
+        || !dom.is(after, w(LocalName::P))
+    {
+        return Err(Error::edit(DiagCode::EditBadPosition, "分节符要加在一个活的 w:p 之后"));
+    }
+    // 段落必须是块容器的直接子节点：Word 也不允许在单元格里分节
+    let parent = dom
+        .parent(after)
+        .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, "段落没有父节点"))?;
+    if !dom.is(parent, w(LocalName::Body)) && !dom.is(parent, w(LocalName::SdtContent)) {
+        return Err(Error::edit(
+            DiagCode::EditBadPosition,
+            "只能在正文（或内容控件）的直接子段落之后分节；单元格里不能分节",
+        ));
+    }
+    // 管辖这一段的节的活 `sectPr`
+    let idx = s
+        .document()
+        .section_of(dom, after)
+        .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, "找不到管辖这一段的节"))?;
+    let source = s.document().sections[idx]
+        .node
+        .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, "这一节是隐式节，没有 sectPr"))?;
+    if dom.ancestors(source).any(|a| a == after) {
+        return Err(Error::edit(DiagCode::EditBadPosition, "这一段已经是分节段落了"));
+    }
+    super::track::not_tracked(ctx, "InsertSectionBreak");
+    let ppr = super::ops::ppr_of(dom, after);
+    let mut plan = MutationPlan::new(main);
+    plan.structure_changed = true;
+    plan.touch(after);
+    // `PROP-05`：`w:sectPr` 在 `w:rPr` 之后、`w:pPrChange` 之前
+    let target = match ppr {
+        Some(p) => {
+            let before = dom
+                .semantic_children(p)
+                .filter(|&c| dom.node(c).dirty != Dirty::Deleted)
+                .find(|&c| dom.is(c, w(LocalName::PPrChange)));
+            plan.node_edits.push(NodeEdit::InsertClone { parent: Target::Node(p), before, source });
+            None
+        }
+        None => {
+            let first = dom
+                .children(after)
+                .iter()
+                .copied()
+                .find(|&c| dom.node(c).dirty != Dirty::Deleted && dom.element(c).is_some());
+            let k = plan.node_edits.len();
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::Node(after),
+                before: first,
+                node: NewElement::new(w(LocalName::PPr)),
+            });
+            plan.node_edits.push(NodeEdit::InsertClone {
+                parent: Target::New(k),
+                before: None,
+                source,
+            });
+            Some(k)
+        }
+    };
+    let _ = target;
+    let mut result = s.commit_plan(plan)?;
+    // 原来的 `sectPr` 现在描述**后**一节：它的 `w:type` 就是这次断节的方式
+    if kind != crate::semantic::props::SectType::NextPage {
+        let patch = crate::semantic::props::SectionPropsPatch {
+            kind: crate::semantic::props::Change::Set(crate::semantic::props::Val::Value(kind)),
+            ..Default::default()
+        };
+        result.absorb(set_section_props(s, source, &patch, &EditContext::default())?);
+    }
+    Ok(result)
+}
+
+/// `DeleteSectionBreak`：删掉一个段落级 `w:sectPr`。
+pub(super) fn delete_section_break(
+    s: &mut EditSession,
+    sect: NodeId,
+    ctx: &EditContext,
+) -> Result<MutationResult> {
+    let main = s.main_part();
+    let dom = s.dom();
+    require_sect_pr(dom, sect)?;
+    let ppr = dom
+        .parent(sect)
+        .filter(|&p| dom.is(p, w(LocalName::PPr)))
+        .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, "body 级的 sectPr 不能删"))?;
+    super::track::not_tracked(ctx, "DeleteSectionBreak");
+    let mut plan = MutationPlan::new(main);
+    plan.structure_changed = true;
+    if let Some(p) = dom.parent(ppr) {
+        plan.touch(p);
+    }
+    plan.node_edits.push(NodeEdit::Delete(sect));
+    let live = |n: NodeId| {
+        dom.children(n)
+            .iter()
+            .copied()
+            .filter(|&c| dom.node(c).dirty != Dirty::Deleted && dom.element(c).is_some())
+    };
+    // 段落**没有内容**（只有一个 `w:pPr`）→ 整段消失。那正是 Word 的形态：
+    // `fixtures/word-ops/delete-break` 的 `after.docx` 比 `before.docx` 少一个 `w:p`、文字一个不少
+    // ——分节符那一行本来就是一个只带 `sectPr` 的空段（它的 `pPr` 里还有段落标记的 `rPr`，
+    // 所以判据看的是**段落有没有内容**，不是 `pPr` 空不空）。
+    // 段落里还有内容时只去掉 `sectPr`，内容留给后一节（不做破坏性的合并）。
+    if let Some(para) = dom.parent(ppr).filter(|&x| dom.is(x, w(LocalName::P)))
+        && live(para).all(|c| c == ppr)
+    {
+        plan.node_edits.push(NodeEdit::Delete(para));
+    } else if live(ppr).all(|c| c == sect) {
+        plan.node_edits.push(NodeEdit::Delete(ppr));
+    }
+    s.commit_plan(plan)
+}

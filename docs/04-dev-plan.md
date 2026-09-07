@@ -436,6 +436,11 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `w:tblPrEx` 与 `ModelFingerprint` | — | 不进指纹；空掉的 `w:tblPrEx` / `w:rPr` / `w:tcPr` 等属性容器在修订解决后整个去掉 | `fixtures/revisions/table-and-move/tracked.docx` 有 6 个 `w:tblPrEx`，Word 的 `accepted` / `rejected` **一个都没有**（含没带 `*Change` 的那 3 个）——那是 Word 另存时的归一化，本引擎不动未编辑的字节（不变式 1）。"空容器一起去掉"这条与 Word 一致，指纹不比 `tblPrEx` 是因为剩下的差异是归一化而不是修订语义 |
 | `spec/18` 7.4 的处理顺序（补充） | 段落标记排在内容之后 | 段落标记还要**倒着**处理 | 连续几段都被删时，从后往前解决，每一段看到的"下一段"都已经定型；顺着来的话第一段会先与还没消失的第二段合并，第三段就并不进来了。跨段删除接受后剩几段，就靠这一条 |
 | `SPAN-10` 端点规则的落点 | `span/transform.rs` | `SpanIndex::snap_to_field_atoms`，在建完索引之后跑（`Document::rebuild` 与 `EditSession::ensure_spans` 各一处） | 变换是"编辑对锚点的影响"，而端点落在原子字段内部是**索引本身**的归一化，与有没有编辑无关。只改索引不动 DOM：`SPAN-09` 只物化脏容器，未编辑的文档保存仍然字节相同 |
+| `spec/18` 7.6 `DeleteSectionBreak` | `sectPr` `Deleted`，块并入后一节 | 承载它的段落**没有内容**时整段消失 | 真实 Word 的形态：`fixtures/word-ops/delete-break` 的 `after.docx` 比 `before.docx` 少一个 `w:p`、文字一个不少——分节符那一行本来就是只带 `sectPr` 的空段（它的 `pPr` 里还有段落标记的 `rPr`，所以判据看**段落有没有内容**，不是 `pPr` 空不空）。段落里还有内容时只去掉 `sectPr`，内容留给后一节 |
+| `EDIT-03 InsertSectionBreak` 的 `w:type` | 把 `kind` 写进后一节 | `kind` 是缺省的 `nextPage` 时**不写** `w:type` | Word 也不写缺省值（`fixtures/word-ops/insert-next-page` 的两个 `sectPr` 都没有 `w:type`）。不写与写 `nextPage` 语义相同，不写更接近原生形态 |
+| `EDIT-03 MoveBlock` | `{ node, to }` | 多一个 `from: Option<PartId>` | 跨 part 搬块得知道 `node` 在哪个 part 的 DOM 里——`NodeId` 只在自己 part 内有意义。`None` = 主 part，与其余操作一致 |
+| `spec/18` 7.6 跨 part 搬块「一端在外的按 `SPAN-07` 容器删除处理」 | — | 整个落在被搬块内的范围**从源索引里摘掉**（不是折叠留在删除点） | 内容不是被销毁而是搬走了，标记已经跟着到了目标 part。按 `SPAN-07` 的书签规则折叠，`SPAN-09` 会在源处再物化出一个同名标记——同一个书签就在两个 part 里各有一份。目标容器 `rescan`，搬过去的标记在新 part 里重新成范围 |
+| `ModelFingerprint` 与真实 Word 的对照 | — | 与 `fixtures/word-ops` 比时只算主 part（`fingerprint_main`） | Word 另存时会顺手补上 `footnotes.xml` / `endnotes.xml` 这些它总要写的 part（`delete-break/after.docx` 就比 `before.docx` 多两个），那是它的保存行为、与被测的操作无关；本引擎不新建没人要的 part |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -1569,3 +1574,20 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   TS `text-patch` 的两个场景在本引擎里就是 `InlinePos { part: 注释 part }` 上的 `InsertText`：
   `tests/note_sdt_ops.rs` 两条原生等价用例（脚注里的加粗 run 与超链接、批注里的加粗）。
   10 个用例。**593 测试**（调试 + 发布）、九道门仍为 0、保存语料 204 / 208 等价 0 跳过、clippy 零告警。
+
+- [x] **7.6 分节符与跨 part 搬移**（`edit/section_ops.rs`、`edit/ops.rs`，2026-09-08）：
+  **`InsertSectionBreak { after, kind }`**——段落 `pPr` 里新建的 `w:sectPr` 是**原节属性的字节克隆**
+  （含页眉页脚引用，第一节因此保住自己的页眉；位置按 `PROP-05` 在 `rPr` 之后 `pPrChange` 之前），
+  原来那个 `sectPr` 从此描述后一节、`w:type` 换成 `kind`（缺省的 `nextPage` 不写，§8）。
+  段落不是块容器的直接子节点（在单元格里）→ `EDIT_BAD_POSITION`。形态与真实 Word 的
+  `fixtures/word-ops/insert-next-page` 一致。
+  **`DeleteSectionBreak { sect }`**——段落级 `sectPr` 删掉，块并入后一节；承载它的段落没有内容时
+  整段消失（§8）。body 级的拒绝。`word_ops_delete_break_matches_word` 是**门 3 同款的对照**：
+  拿 `before.docx` 删分节符，主 part 的 `ModelFingerprint` 与 Word 自己另存的 `after.docx` 相等
+  ——包括"留下的是**后**一节的页面设置"。
+  **跨 part `MoveBlock`**（`XML-12` 规则 E′）：`MoveBlock` 多一个 `from: Option<PartId>`（§8）；
+  子树连同源处作用域里的全部有效声明序列化成一段自足 XML，再用目标 part 的 `parse_fragment`
+  读进去——前缀因此按目标作用域重新落。目标容器 `rescan`（搬过去的标记在新 part 里重新成范围），
+  源处整个落在被搬块内的范围从索引里摘掉（§8），块字段被劈开 → `EDIT_SPLIT_FIELD`。
+  `tests/section_break.rs` 8 个用例。**601 测试**（调试 + 发布）、九道门仍为 0、
+  保存语料 204 / 208 等价 0 跳过、clippy 零告警。

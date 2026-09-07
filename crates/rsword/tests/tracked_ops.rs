@@ -1145,7 +1145,10 @@ fn tracked_move_and_merge_are_refused() {
     let p = para(&s, 0);
     let last = para(&s, 1);
     let err = s
-        .apply(EditOp::MoveBlock { node: p, to: rsword::edit::BlockPos::after(last) }, &tracked(A))
+        .apply(
+            EditOp::MoveBlock { from: None, node: p, to: rsword::edit::BlockPos::after(last) },
+            &tracked(A),
+        )
         .expect_err("追踪时不支持 MoveBlock");
     assert!(
         matches!(&err, rsword::Error::Edit { code, .. }

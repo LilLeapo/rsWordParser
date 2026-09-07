@@ -74,7 +74,21 @@ enum View {
 }
 
 pub fn fingerprint(s: &EditSession) -> ModelFingerprint {
-    ModelFingerprint { accept: render(s, View::Accept), reject: render(s, View::Reject) }
+    ModelFingerprint {
+        accept: render(s, View::Accept, false),
+        reject: render(s, View::Reject, false),
+    }
+}
+
+/// 只算主 part。与真实 Word 的对照件比时用它：Word 另存时会顺手补上
+/// `footnotes.xml` / `endnotes.xml` 这些它总要写的 part（`fixtures/word-ops/delete-break` 的
+/// `after.docx` 就比 `before.docx` 多两个），那是它的保存行为、与被测的操作无关；
+/// 本引擎不新建没人要的 part。
+pub fn fingerprint_main(s: &EditSession) -> ModelFingerprint {
+    ModelFingerprint {
+        accept: render(s, View::Accept, true),
+        reject: render(s, View::Reject, true),
+    }
 }
 
 /// 参与指纹的 part，文档序（与 `Document.revisions` 的 part 顺序一致）。
@@ -87,9 +101,10 @@ fn parts(s: &EditSession) -> Vec<PartId> {
     v
 }
 
-fn render(s: &EditSession, view: View) -> String {
+fn render(s: &EditSession, view: View, main_only: bool) -> String {
     let mut out = String::new();
-    for part in parts(s) {
+    let list = if main_only { vec![s.document().main_part] } else { parts(s) };
+    for part in list {
         let Some(dom) = s.package().part(part).dom() else { continue };
         out.push_str("PART\n");
         let mut w = Walker { dom, view, out: &mut out, para: Para::default() };
