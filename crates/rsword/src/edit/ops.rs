@@ -35,7 +35,9 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::InsertText { at, text, props } => insert_text(s, at, &text, props, ctx),
         EditOp::DeleteRange { from, to } => delete_range(s, from, to, ctx),
         EditOp::SetRunProps { from, to, patch } => set_run_props(s, from, to, &patch, ctx),
-        EditOp::ReplaceInlines { part, para, inlines } => replace_inlines(s, part, para, &inlines),
+        EditOp::ReplaceInlines { part, para, inlines } => {
+            replace_inlines(s, part, para, &inlines, ctx)
+        }
         EditOp::SetParaProps { part, para, patch } => set_para_props(s, part, para, &patch, ctx),
         EditOp::ReplaceParaProps { part, para, props } => {
             replace_para_props(s, part, para, props, ctx)
@@ -63,10 +65,12 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::AddBookmark { name, from, to } => add_bookmark(s, &name, from, to),
         EditOp::RemoveBookmark { name } => remove_bookmark(s, &name),
         EditOp::InsertField { at, field } => insert_field(s, at, &field, ctx),
-        EditOp::SetLinkTarget { link, target } => set_link_target(s, link, &target),
+        EditOp::SetLinkTarget { link, target } => set_link_target(s, link, &target, ctx),
         EditOp::ToggleCheckbox { field } => toggle_checkbox(s, field),
-        EditOp::SetFormText { field, text } => set_form_text(s, field, &text),
-        EditOp::SetFieldResultProps { field, patch } => set_field_result_props(s, field, &patch),
+        EditOp::SetFormText { field, text } => set_form_text(s, field, &text, ctx),
+        EditOp::SetFieldResultProps { field, patch } => {
+            set_field_result_props(s, field, &patch, ctx)
+        }
         EditOp::UpdateBlockField { field, blocks } => update_block_field(s, field, blocks, ctx),
         EditOp::SetSectionProps { sect, patch } => {
             super::section_ops::set_section_props(s, sect, &patch)
@@ -1117,29 +1121,33 @@ fn plan_run_props_change(
             continue;
         }
         let Inline::Run(run) = inline else { continue };
-        match rpr_of(dom, run.node) {
-            Some(rpr) => {
-                t.snapshot(&mut plan, dom, rpr, LocalName::RPrChange, LocalName::RPr, &[]);
-            }
-            None => {
-                // 没有 `rPr`：旧格式全是继承来的，快照是一个空的 `w:rPr`
-                let k = plan.node_edits.len();
-                plan.node_edits.push(NodeEdit::Insert {
-                    parent: Target::Node(run.node),
-                    before: live_children(dom, run.node).next(),
-                    node: NewElement::new(w(LocalName::RPr)),
-                });
-                let change =
-                    t.marker(LocalName::RPrChange).with_child(NewElement::new(w(LocalName::RPr)));
-                plan.node_edits.push(NodeEdit::Insert {
-                    parent: Target::New(k),
-                    before: None,
-                    node: change,
-                });
-            }
-        }
+        snapshot_run_props(&mut plan, dom, &mut t, run.node);
     }
     Ok((!plan.is_empty()).then_some(plan))
+}
+
+/// 一个 run 的 `w:rPrChange` 旧值快照；没有 `w:rPr` 就先建一个空的（旧格式全是继承来的）。
+fn snapshot_run_props(plan: &mut MutationPlan, dom: &Dom, t: &mut Tracker, run: NodeId) {
+    match rpr_of(dom, run) {
+        Some(rpr) => {
+            t.snapshot(plan, dom, rpr, LocalName::RPrChange, LocalName::RPr, &[]);
+        }
+        None => {
+            let k = plan.node_edits.len();
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::Node(run),
+                before: live_children(dom, run).next(),
+                node: NewElement::new(w(LocalName::RPr)),
+            });
+            let change =
+                t.marker(LocalName::RPrChange).with_child(NewElement::new(w(LocalName::RPr)));
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::New(k),
+                before: None,
+                node: change,
+            });
+        }
+    }
 }
 
 // ---- 段落属性与 compat 路径 ---------------------------------------------------------------------
@@ -1235,9 +1243,13 @@ fn replace_inlines(
     part: Option<PartId>,
     para: NodeId,
     inlines: &[NewInline],
+    ctx: &EditContext,
 ) -> Result<MutationResult> {
     let dom = s.dom_in(part)?;
     require_paragraph(dom, para)?;
+    if ctx.track_changes.is_some() {
+        return replace_inlines_tracked(s, part, para, inlines, ctx);
+    }
     let mut plan = MutationPlan::new(s.part_or_main(part));
     plan.touch(para);
     // 内容（含范围标记）被外部描述整体重写：提交后按新标记重建这个容器的端点（`SPAN-06` rescan）
@@ -1253,6 +1265,149 @@ fn replace_inlines(
             before: None,
             node: e,
         });
+    }
+    s.commit_plan(plan)
+}
+
+/// 追踪时的 `ReplaceInlines`（`spec/18` 7.2）：坐标流 diff **聚到 run 边界**——
+/// 相等的 run 保留原节点（原字节），删掉的进 `w:del`，新增的进 `w:ins`。
+///
+/// 相等的判据是「文本与 `w:rPr` 全同」，所以相等段保留原节点之后，接受视图与不追踪做一遍
+/// 完全一致。两侧的 `w:rPr` 都化成 `NewElement` 再比，比较保守（属性顺序不同判成不等），
+/// 保守只让 diff 变粗、不会误判相等。
+///
+/// **范围标记不动**（Word：在书签里替换文字，书签还在），而不追踪那条路是按调用方的描述
+/// 整体重发标记——这条差异登记在 `docs/04` §8。
+fn replace_inlines_tracked(
+    s: &mut EditSession,
+    part: Option<PartId>,
+    para: NodeId,
+    inlines: &[NewInline],
+    ctx: &EditContext,
+) -> Result<MutationResult> {
+    use super::diff::{Step, Tok, diff};
+    let mut t = Tracker::new(s.document(), ctx).expect("调用方已确认在追踪");
+    let tb = text_block(s, part, para)?;
+    let dom = s.dom_in(part)?;
+    let mut interner = crate::xml::Interner::new();
+    // 旧侧：每个 inline 一个 token；只有"纯文本 run 且是段落的直接子节点"才可能相等
+    let mut old_toks: Vec<Tok> = Vec::new();
+    let mut old_nodes: Vec<NodeId> = Vec::new();
+    for inline in &tb.inlines {
+        let node = match inline.node() {
+            Some(n) => n,
+            // 字段原子没有单一节点：整体当一个不可匹配的 token（下面会退化成整体替换）
+            None => {
+                old_toks.push(Tok::Atom(format!("{:?}", std::ptr::from_ref(inline))));
+                old_nodes.push(para);
+                continue;
+            }
+        };
+        let plain = match inline {
+            Inline::Run(r) => {
+                r.segments.iter().all(|sg| sg.kind == SegmentKind::Text)
+                    && dom.parent(node) == Some(para)
+            }
+            _ => false,
+        };
+        if plain {
+            let props = rpr_of(dom, node)
+                .and_then(|n| NewElement::from_dom(dom, n, &mut interner))
+                .map(Box::new);
+            let text = match inline {
+                Inline::Run(r) => r.text.clone(),
+                _ => unreachable!("plain 只对 Run 成立"),
+            };
+            old_toks.push(Tok::Run(text, props));
+        } else {
+            old_toks.push(Tok::Atom(crate::xml::canonical(
+                dom,
+                node,
+                &crate::xml::CanonOptions::default(),
+            )));
+        }
+        old_nodes.push(node);
+    }
+    // 新侧：每个 `NewInline` 一个 token，同时记下它展开成的元素
+    let mut new_toks: Vec<Tok> = Vec::new();
+    let mut new_nodes: Vec<Vec<NewElement>> = Vec::new();
+    let mut has_marker = false;
+    for i in inlines {
+        let mut em = Emitter::new(next_revision_id(dom));
+        let mut out = Vec::new();
+        em.emit(i, false, &mut out);
+        match i {
+            NewInline::Run(r) => {
+                new_toks.push(Tok::Run(r.text.clone(), r.props.clone().map(Box::new)))
+            }
+            other => {
+                has_marker |= matches!(other, NewInline::Marker(_));
+                new_toks.push(Tok::Atom(format!("{other:?}")));
+            }
+        }
+        new_nodes.push(out);
+    }
+    // 标记要按新描述重发时没法只做局部 diff：退化成"旧内容整体标删 + 新内容整体标插"
+    let script = (!has_marker).then(|| diff(&old_toks, &new_toks)).flatten();
+    let mut plan = MutationPlan::new(s.part_or_main(part));
+    plan.touch(para);
+    match script {
+        Some(steps) => {
+            let (mut oi, mut ni) = (0usize, 0usize);
+            for step in steps {
+                match step {
+                    Step::Equal(n) => {
+                        oi += n;
+                        ni += n;
+                    }
+                    Step::Delete(n) => {
+                        for &node in &old_nodes[oi..oi + n] {
+                            t.wrap_item(&mut plan, dom, node, LocalName::Del);
+                            Tracker::rename_to_deleted(&mut plan, dom, node);
+                        }
+                        oi += n;
+                    }
+                    Step::Insert(n) => {
+                        let before = old_nodes.get(oi).copied();
+                        let k = plan.node_edits.len();
+                        plan.node_edits.push(NodeEdit::Insert {
+                            parent: Target::Node(para),
+                            before,
+                            node: t.marker(LocalName::Ins),
+                        });
+                        for e in new_nodes[ni..ni + n].iter().flatten() {
+                            plan.node_edits.push(NodeEdit::Insert {
+                                parent: Target::New(k),
+                                before: None,
+                                node: e.clone(),
+                            });
+                        }
+                        ni += n;
+                    }
+                }
+            }
+        }
+        None => {
+            for &node in &old_nodes {
+                if dom.parent(node) == Some(para) {
+                    t.wrap_item(&mut plan, dom, node, LocalName::Del);
+                    Tracker::rename_to_deleted(&mut plan, dom, node);
+                }
+            }
+            let k = plan.node_edits.len();
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::Node(para),
+                before: None,
+                node: t.marker(LocalName::Ins),
+            });
+            for e in new_nodes.iter().flatten() {
+                plan.node_edits.push(NodeEdit::Insert {
+                    parent: Target::New(k),
+                    before: None,
+                    node: e.clone(),
+                });
+            }
+        }
     }
     s.commit_plan(plan)
 }
@@ -2498,8 +2653,13 @@ fn insert_field(
         dirty: field.mark_dirty,
         props: rpr,
     };
+    // 追踪：整套结构 run 一起进 `w:ins`（`spec/08`）
+    let (fparent, fbefore) = match &mut Tracker::new(s.document(), ctx) {
+        None => (Target::Node(parent), before),
+        Some(t) => plan_ins_site(&mut plan, dom, t, at.para, parent, before)?,
+    };
     for node in emit_inlines(dom, std::slice::from_ref(&inline)) {
-        plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(parent), before, node });
+        plan.node_edits.push(NodeEdit::Insert { parent: fparent, before: fbefore, node });
     }
     result.absorb(s.commit_plan(plan)?);
     // 字段索引是投影：提交后已经重建，新字段按 `FLD-06` 归策略
@@ -2511,9 +2671,11 @@ fn set_link_target(
     s: &mut EditSession,
     link: super::LinkRef,
     target: &super::LinkDest,
+    ctx: &EditContext,
 ) -> Result<MutationResult> {
     match link {
-        super::LinkRef::Field(id) => set_field_link_target(s, id, target),
+        super::LinkRef::Field(id) => set_field_link_target(s, id, target, ctx),
+        // `w:hyperlink` 的 `r:id` / `w:anchor` 是元素属性，Word 不把它记成修订
         super::LinkRef::Element(node) => set_hyperlink_target(s, node, target),
     }
 }
@@ -2556,6 +2718,7 @@ fn set_field_link_target(
     s: &mut EditSession,
     id: crate::span::FieldId,
     target: &super::LinkDest,
+    ctx: &EditContext,
 ) -> Result<MutationResult> {
     let part = s.main_part();
     let f = field_of(s, id)?;
@@ -2565,6 +2728,9 @@ fn set_field_link_target(
     let crate::span::FieldForm::Complex { instr_nodes, .. } = &f.form else {
         return Err(unsupported("SetLinkTarget 暂不支持 w:fldSimple（改 @w:instr 属性）"));
     };
+    if instr_nodes.is_empty() {
+        return Err(unsupported("字段没有指令 run"));
+    }
     let instr_nodes = instr_nodes.clone();
     let raw = f.instr.raw.clone();
     let dom = s.dom();
@@ -2588,6 +2754,40 @@ fn set_field_link_target(
     let mut plan = MutationPlan::new(part);
     if let Some(p) = dom.ancestors(instr_nodes[0]).find(|&a| dom.is(a, w(LocalName::P))) {
         plan.touch(p);
+    }
+    // 追踪：旧指令 run 进 `w:del` 并改名 `w:delInstrText`，新指令 run 进 `w:ins`（Word 形态）
+    if let Some(mut t) = Tracker::new(s.document(), ctx) {
+        let has_instr = instr_nodes
+            .iter()
+            .any(|&r| dom.semantic_children(r).any(|c| dom.is(c, w(LocalName::InstrText))));
+        if !has_instr {
+            return Err(unsupported("字段没有 w:instrText 可改"));
+        }
+        let last = *instr_nodes.last().expect("checked above");
+        let parent = dom.parent(last).ok_or_else(|| unsupported("指令 run 没有父节点"))?;
+        let k = plan.node_edits.len();
+        plan.node_edits.push(NodeEdit::Insert {
+            parent: Target::Node(parent),
+            before: next_sibling(dom, last),
+            node: t.marker(LocalName::Ins),
+        });
+        let mut run = NewElement::new(w(LocalName::R));
+        if let Some(rpr) = rpr_of(dom, instr_nodes[0])
+            && let Some(e) = NewElement::from_dom(dom, rpr, &mut crate::xml::Interner::new())
+        {
+            run.push_child(e);
+        }
+        run.push_child(
+            NewElement::new(w(LocalName::InstrText))
+                .with_attr(QName::new(NsId::Xml, LocalName::Space), "preserve")
+                .with_text(text),
+        );
+        plan.node_edits.push(NodeEdit::Insert { parent: Target::New(k), before: None, node: run });
+        for &r in &instr_nodes {
+            t.wrap_item(&mut plan, dom, r, LocalName::Del);
+            Tracker::rename_to_deleted(&mut plan, dom, r);
+        }
+        return s.commit_plan(plan);
     }
     // 指令拆在多个 `w:instrText` 里时（`FLD-03`）：第一个写全量，其余清空
     let mut first = true;
@@ -2663,13 +2863,17 @@ fn set_form_text(
     s: &mut EditSession,
     id: crate::span::FieldId,
     text: &str,
+    ctx: &EditContext,
 ) -> Result<MutationResult> {
     let part = s.main_part();
     let f = field_of(s, id)?;
     let results: Vec<NodeId> = f.form.result_nodes().to_vec();
+    let tracked = ctx.track_changes.is_some();
     let dom = s.dom();
-    // 只有一个结果 run 且它有唯一 `w:t` → 直接改文本（最小脏化）
-    if results.len() == 1
+    // 只有一个结果 run 且它有唯一 `w:t` → 直接改文本（最小脏化）。追踪时不走这条：
+    // 结果 run 要按 `DeleteRange` + `InsertText` 的规则留下痕迹
+    if !tracked
+        && results.len() == 1
         && let Some(t) = dom.semantic_children(results[0]).find(|&c| dom.is(c, w(LocalName::T)))
     {
         let mut plan = MutationPlan::new(part);
@@ -2695,22 +2899,44 @@ fn set_form_text(
     if let Some(p) = dom.ancestors(f.form.head()).find(|&a| dom.is(a, w(LocalName::P))) {
         plan.touch(p);
     }
-    plan.node_edits.push(NodeEdit::Insert {
-        parent: Target::Node(parent),
-        before,
-        node: {
-            let mut r = NewElement::new(w(LocalName::R));
-            if let Some(p) = &rpr {
-                r.push_child(p.clone());
+    let new_run = {
+        let mut r = NewElement::new(w(LocalName::R));
+        if let Some(p) = &rpr {
+            r.push_child(p.clone());
+        }
+        for seg in text_segments(text, false) {
+            r.push_child(seg);
+        }
+        r
+    };
+    match Tracker::new(s.document(), ctx) {
+        None => {
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::Node(parent),
+                before,
+                node: new_run,
+            });
+            for old in &results {
+                plan.node_edits.push(NodeEdit::Delete(*old));
             }
-            for seg in text_segments(text, false) {
-                r.push_child(seg);
+        }
+        Some(mut t) => {
+            let k = plan.node_edits.len();
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::Node(parent),
+                before,
+                node: t.marker(LocalName::Ins),
+            });
+            plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::New(k),
+                before: None,
+                node: new_run,
+            });
+            for &old in &results {
+                t.wrap_item(&mut plan, dom, old, LocalName::Del);
+                Tracker::rename_to_deleted(&mut plan, dom, old);
             }
-            r
-        },
-    });
-    for old in &results {
-        plan.node_edits.push(NodeEdit::Delete(*old));
+        }
     }
     s.commit_plan(plan)
 }
@@ -2720,6 +2946,7 @@ fn set_field_result_props(
     s: &mut EditSession,
     id: crate::span::FieldId,
     patch: &RunPropsPatch,
+    ctx: &EditContext,
 ) -> Result<MutationResult> {
     let part = s.main_part();
     let f = field_of(s, id)?;
@@ -2727,6 +2954,24 @@ fn set_field_result_props(
     let head = f.form.head();
     if results.is_empty() {
         return Err(unsupported("字段没有结果区可改格式"));
+    }
+    let mut result = MutationResult::default();
+    // 追踪：与 `SetRunProps` 同规则，先快照 `w:rPrChange`（两个阶段，理由同上）
+    if let Some(mut t) = Tracker::new(s.document(), ctx) {
+        let dom = s.dom();
+        let mut plan = MutationPlan::new(part);
+        if let Some(p) = dom.ancestors(head).find(|&a| dom.is(a, w(LocalName::P))) {
+            plan.touch(p);
+        }
+        for r in &results {
+            if !dom.is(*r, w(LocalName::R)) {
+                continue;
+            }
+            snapshot_run_props(&mut plan, dom, &mut t, *r);
+        }
+        if !plan.is_empty() {
+            result.absorb(s.commit_plan(plan)?);
+        }
     }
     let dom = s.dom();
     let mut plan = MutationPlan::new(part);
@@ -2741,7 +2986,8 @@ fn set_field_result_props(
         let rpr = rpr_of(dom, *r);
         plan.node_edits.extend(plan_apply_run_props(dom, *r, rpr, patch, flavor));
     }
-    s.commit_plan(plan)
+    result.absorb(s.commit_plan(plan)?);
+    Ok(result)
 }
 
 /// `FLD-09`：块字段更新——用给定的块替换 `separate..end` 之间的全部节点。

@@ -271,6 +271,8 @@ struct Open {
     simple: bool,
     separate: Option<NodeId>,
     instr_raw: String,
+    /// `w:delInstrText` 的文本（`instr_raw` 为空时才当有效指令用，见 `instr_text_of`）。
+    instr_raw_deleted: String,
     instr_nodes: Vec<NodeId>,
     result_nodes: Vec<NodeId>,
     nested: Vec<FieldId>,
@@ -412,6 +414,7 @@ impl<'d> Builder<'d> {
             simple: false,
             separate: None,
             instr_raw: String::new(),
+            instr_raw_deleted: String::new(),
             instr_nodes: Vec::new(),
             result_nodes: Vec::new(),
             nested: Vec::new(),
@@ -439,6 +442,7 @@ impl<'d> Builder<'d> {
             simple: true,
             separate: None,
             instr_raw: instr,
+            instr_raw_deleted: String::new(),
             instr_nodes: Vec::new(),
             result_nodes: Vec::new(),
             nested: Vec::new(),
@@ -455,40 +459,54 @@ impl<'d> Builder<'d> {
     fn on_content_run(&mut self, run: NodeId) {
         let Some(open) = self.stack.last() else { return };
         if open.in_instr() {
-            let (text, deleted) = self.instr_text_of(run);
+            let (text, del_text) = self.instr_text_of(run);
             let open = self.stack.last_mut().expect("just checked");
             open.instr_raw.push_str(&text);
-            open.instr_deleted |= deleted;
+            open.instr_deleted |= !del_text.is_empty();
+            open.instr_raw_deleted.push_str(&del_text);
             open.instr_nodes.push(run);
         } else {
             self.stack.last_mut().expect("just checked").result_nodes.push(run);
         }
     }
 
-    /// run 里 `w:instrText` / `w:delInstrText` 的文本（`FLD-03`：视同 `xml:space="preserve"`，不 trim）。
-    fn instr_text_of(&self, run: NodeId) -> (String, bool) {
-        let mut s = String::new();
-        let mut deleted = false;
+    /// run 里 `w:instrText` 的文本（`FLD-03`：视同 `xml:space="preserve"`，不 trim）。
+    ///
+    /// 返回 `(w:instrText 的文本, w:delInstrText 的文本)`。
+    ///
+    /// **两者分开**（任务 7.2b）：追踪着改字段指令时，旧指令进 `w:del` 并改名成
+    /// `w:delInstrText`、新指令进 `w:ins`，两段都在同一个字段里。拼在一起会让字段读成
+    /// "旧指令 + 新指令"。有效指令因此**只取活的那部分**；整条指令都被删掉（没有任何
+    /// `w:instrText`）时才退回删除的文本——那时它仍是这个字段现在的指令，拒绝修订才会变。
+    /// 登记在 `docs/04` §8。
+    fn instr_text_of(&self, run: NodeId) -> (String, String) {
+        let (mut live, mut deleted) = (String::new(), String::new());
         for c in self.dom.semantic_children(run) {
             let is_del = self.dom.is(c, w(LocalName::DelInstrText));
             if !is_del && !self.dom.is(c, w(LocalName::InstrText)) {
                 continue;
             }
-            deleted |= is_del;
+            let out = if is_del { &mut deleted } else { &mut live };
             for t in self.dom.semantic_children(c) {
                 if let Some(text) = self.dom.text(t) {
-                    s.push_str(&text);
+                    out.push_str(&text);
                 }
             }
         }
-        (s, deleted)
+        (live, deleted)
     }
 
     /// 闭合栈顶字段（`tail` 是 end run 或 `w:fldSimple` 自身）。
     fn close(&mut self, tail: NodeId) {
         let Some(open) = self.stack.pop() else { return };
         let id = FieldId(self.fields.len() as u32);
-        let instr = parse_instr(&open.instr_raw, &open.nested_in_instr);
+        // 指令整条被追踪删除（一个 `w:instrText` 都没有）：那段旧文本仍是这个字段现在的指令
+        let raw = if open.instr_raw.trim().is_empty() && !open.instr_raw_deleted.is_empty() {
+            open.instr_raw_deleted.clone()
+        } else {
+            open.instr_raw.clone()
+        };
+        let instr = parse_instr(&raw, &open.nested_in_instr);
         let form = if open.simple {
             FieldForm::Simple { node: open.begin, result_nodes: open.result_nodes }
         } else {

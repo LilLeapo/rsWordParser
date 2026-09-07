@@ -1213,9 +1213,6 @@ impl Planner<'_> {
                 )));
             }
         }
-        if run.get("rPrChange").is_some_and(|v| !v.is_null()) {
-            return Err(unsupported("run.rPrChange 在 M7"));
-        }
         let text = s_of(run, "text").unwrap_or_default();
         if text.is_empty() {
             return Ok(());
@@ -1231,7 +1228,15 @@ impl Planner<'_> {
         let Some(raw) = s_of(run, "rawRPr") else {
             let mut p = RunProps::default();
             model_into(run, inside_link, &mut p, false);
-            return Ok((p != RunProps::default()).then(|| emit_run_props(&p, flavor)));
+            let change = rpr_change_element(run);
+            if p == RunProps::default() && change.is_none() {
+                return Ok(None);
+            }
+            let mut out = emit_run_props(&p, flavor);
+            if let Some(c) = change {
+                out.push_child(c);
+            }
+            return Ok(Some(out));
         };
         let (tmp, tops) = parse_fragment_dom(self.dom, raw)
             .map_err(|e| unsupported(format!("rawRPr 解析失败: {e}")))?;
@@ -1240,7 +1245,15 @@ impl Planner<'_> {
             // '<w:rPr/>' 或无法识别：按模型重建
             let mut p = RunProps::default();
             model_into(run, inside_link, &mut p, false);
-            return Ok((p != RunProps::default()).then(|| emit_run_props(&p, flavor)));
+            let change = rpr_change_element(run);
+            if p == RunProps::default() && change.is_none() {
+                return Ok(None);
+            }
+            let mut out = emit_run_props(&p, flavor);
+            if let Some(c) = change {
+                out.push_child(c);
+            }
+            return Ok(Some(out));
         };
         let mut diags = Vec::new();
         let mut p = read_run_props(&tmp, Some(rpr), &mut diags);
@@ -1269,6 +1282,9 @@ impl Planner<'_> {
             .map(|e| (order_index_run_props(e.name).unwrap_or(u16::MAX), 0, e.clone()))
             .collect();
         all.extend(extra);
+        if let Some(change) = rpr_change_element(run) {
+            all.push((order_index_run_props(change.name).unwrap_or(u16::MAX), 2, change));
+        }
         all.sort_by_key(|(idx, sub, _)| (*idx, *sub));
         if all.is_empty() {
             return Ok(None);
@@ -1279,6 +1295,84 @@ impl Planner<'_> {
         }
         Ok(Some(out))
     }
+}
+
+/// `runs[].rPrChange` → `w:rPrChange`（TS `revisionRPrChangeXml`，任务 7.2b）。
+///
+/// 内层 `w:rPr` 只写 `old` 里建模的那几项，**不发 `bCs` / `iCs` 孪生**：`old.bold` 分不出
+/// `w:b` 与 `w:b + w:bCs`，补上就是凭空造一个文档从来没有的复杂文种标志（TS 的注释同此）。
+/// `w:id` 缺省仍按 `EDIT-06` 由引擎分配（TS 写 `0`，`INTENTIONAL` 已登记这条差异）。
+fn rpr_change_element(run: &Value) -> Option<NewElement> {
+    let change = run.get("rPrChange").filter(|v| v.is_object())?;
+    let old = change.get("old").and_then(Value::as_object);
+    let g = |k: &str| old.and_then(|o| o.get(k));
+    let s_old = |k: &str| g(k).and_then(Value::as_str);
+    let i_old = |k: &str| g(k).and_then(Value::as_i64);
+    let b_old = |k: &str| g(k).and_then(Value::as_bool) == Some(true);
+    let mut inner = NewElement::new(w(LocalName::RPr));
+    fn val(inner: &mut NewElement, local: LocalName, v: &str) {
+        inner.push_child(
+            NewElement::new(w(local)).with_attr(QName::w(LocalName::Val), v.to_string()),
+        );
+    }
+    if let Some(style) = s_old("styleId") {
+        val(&mut inner, LocalName::RStyle, style);
+    }
+    if let (font, ascii) = (s_old("font"), s_old("fontAscii"))
+        && (font.is_some() || ascii.is_some())
+    {
+        let a = ascii.or(font).unwrap_or_default().to_string();
+        let mut f = NewElement::new(w(LocalName::RFonts));
+        f.push_attr(QName::w(LocalName::Ascii), a.clone());
+        if let Some(ea) = font {
+            f.push_attr(QName::w(LocalName::EastAsia), ea.to_string());
+        }
+        f.push_attr(QName::w(LocalName::HAnsi), a.clone());
+        f.push_attr(QName::w(LocalName::Cs), a);
+        inner.push_child(f);
+    }
+    for (k, local) in
+        [("bold", LocalName::B), ("italic", LocalName::I), ("strike", LocalName::Strike)]
+    {
+        if b_old(k) {
+            inner.push_child(NewElement::new(w(local)));
+        }
+    }
+    if let Some(c) = s_old("color") {
+        val(&mut inner, LocalName::Color, c);
+    }
+    if let Some(n) = i_old("charSpacingTwips").filter(|&n| n != 0) {
+        val(&mut inner, LocalName::Spacing, &n.to_string());
+    }
+    if let Some(n) = i_old("charScalePct").filter(|&n| n != 0) {
+        val(&mut inner, LocalName::W, &n.to_string());
+    }
+    if let Some(n) = i_old("sizeHalfPoints").filter(|&n| n != 0) {
+        val(&mut inner, LocalName::Sz, &n.to_string());
+        val(&mut inner, LocalName::SzCs, &n.to_string());
+    }
+    if let Some(h) = s_old("highlight") {
+        val(&mut inner, LocalName::Highlight, h);
+    }
+    if b_old("underline") {
+        val(&mut inner, LocalName::U, "single");
+    }
+    if let Some(v) = s_old("vertAlign") {
+        val(&mut inner, LocalName::VertAlign, v);
+    }
+    let mut e = NewElement::new(w(LocalName::RPrChange));
+    if let Some(id) = change.get("id").and_then(Value::as_str) {
+        e.push_attr(QName::w(LocalName::Id), id.to_string());
+    }
+    e.push_attr(
+        QName::w(LocalName::Author),
+        change.get("author").and_then(Value::as_str).unwrap_or_default().to_string(),
+    );
+    if let Some(d) = change.get("date").and_then(Value::as_str) {
+        e.push_attr(QName::w(LocalName::Date), d.to_string());
+    }
+    e.push_child(inner);
+    Some(e)
 }
 
 /// TS：`fb.revision` → 整块包进 `w:ins` / `w:del`（`id` 缺省 TS 写 `0`，这里按 `EDIT-06` 由引擎分配）。

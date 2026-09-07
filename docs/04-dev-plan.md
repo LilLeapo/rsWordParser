@@ -423,6 +423,8 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `spec/18` 7.2「`w:del` 包住覆盖到的 run」 | 与 Word 同形：连着的几个 run 共用一个 `w:del` | **一个内容项一个包裹** | 容器的内容序列长度因此**不变**（一个 `w:r` 换成一个包着它的 `w:del`），范围锚点一个都不用动——这正是「追踪删除不移动锚点」要的。合并成一个包裹会让 N 个内容项变成 1 个，`SPAN-06` 的通用推导只能看见「插入一个 + 搬走 N 个」，两侧锚点各挪一格。新增 `SpanPolicy::rewraps` 让推导跳过这两条编辑。形态上多几个 `w:del`，语义与接受 / 拒绝的结果完全一样，`ModelFingerprint` 本来就忽略 run 边界 |
 | `spec/18` 7.2「落在他人 `w:ins` 内插入 → 拆开外层」 | 一律拆开 | 插入点是那个 `w:ins` 的**直接**子位置时拆开；嵌在更深的容器里（超链接 / smartTag）时退化成内层再套一个 `w:ins` | 拆开要把外层的尾部子节点搬进克隆出来的右半，只有插入点就在那一层时位置才明确。退化形态合法，接受 / 拒绝的结果也对，只有「按作者拒绝外层」会连带撤掉内层——语料里没有这种嵌套，真出现时是 7.4 的登记项 |
 | `EDIT-03 ReplaceParaProps`（追踪时） | `props = None` → 段落没有 `w:pPr` | 留一个只装 `w:pPrChange` 的空 `w:pPr` | 旧值快照总得有地方放。不追踪时行为不变 |
+| `FLD-03` 指令文本 | `w:instrText` 与 `w:delInstrText` 一起拼进 `instr_raw` | **只取活的那部分**；整条指令都被追踪删掉（一个 `w:instrText` 都没有）时才退回删除的文本 | 追踪着改字段指令时（`SetLinkTarget`），旧指令进 `w:del` 改名成 `w:delInstrText`、新指令进 `w:ins`，两段在同一个字段里。拼在一起字段就读成"旧指令 + 新指令"，`HYPERLINK` 会解析出两个目标。整条被删时那段旧文本仍是这个字段**现在**的指令（拒绝修订才变），所以保留 M2 的行为（`tests/field.rs::fld_03_del_instr_text_marks_the_field`）。`instr_deleted` 标志两种情况下都置 |
+| `EDIT-03 ReplaceInlines`（追踪时） | — | **范围标记不动**（不追踪那条路按调用方的描述整体重发标记并 `rescan`） | Word 的行为：在书签里替换文字，书签还在。追踪的语义是"内容还在，只是标了删除"，把标记删掉就等于拒绝修订也回不去了。调用方要改标记，用 `AddBookmark` / `RemoveBookmark` |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -472,6 +474,13 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
 分节符增删、既有绘图的编辑与 z-order 回写、块字段生成器（TOC / SEQ / INDEX）与 `latexToOmml`、空白文档模板、`TEST-07`
 1,000 序列与 `fuzz_edit`；另建议把 JS 绑定（M8 的前提）收进来，形态待拍板。六条门、11 个任务、修订生成规则表与 13 条风险都在
 那份文件里；逐条进度开工后记 §16。基线数字写作时 M6 只到 6.2，开工前按并入后的 `main` 重测。
+
+**M8 / M9 计划**（2026-09-07 写成，`spec/19-m8-plan.md` / `spec/20-m9-plan.md`）：M8 = 编辑器切换到 Rust 引擎——`crates/rsword-js`
+扩展为 drop-in 的 `parseDocx / saveDocx / buildBlankDocx`（wasm 产物提交进 genoffice 并由其 CI 重建校验），genoffice 侧加引擎分派开关、
+双引擎跑 `apps/docs` 151 个测试与 22 个 e2e、metafile / TIFF 转换留在 TS 包装层、差异审计（`docs/10`）与发布说明；六条门、7 个任务、
+6 条待决。M9 = 原生协议 `spec/21-bind.md`（`BIND-*`）：会话句柄、`Document` 的 serde 投影、`EditOp` JSON、媒体句柄、`resolve` 批量查询，
+12 条排版启发式搬到渲染器（先录像素基线再搬），编辑器按路径迁移（`docs/11` 迁移清单），最后删 `compat_ts` 与 TS 引擎；六条门、9 个任务、
+10 条待决。两份计划的基线数字来自 2026-09-07 的两个仓库（M7 只到 7.1、M8 未开始），开工前重测；逐条进度开工后分别记 §17 / §18。
 
 **M1 遗留债的处置**：事务快照已改成覆盖事务碰过的每个 part（`edit/session.rs`，单元测试
 `edit_05_transaction_rolls_back_every_touched_part`）；投影刷新遇到不在正文顶层的段落改为整体重建，不再留过期投影。
@@ -1445,3 +1454,21 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   同作者规则五种各一条、`rPrChange` / `pPrChange` 记旧值、修订 `w:id` 互不相同。
   **532 测试**（调试 + 发布）、八道门仍为 0、clippy 零告警。7.2b（字段类操作、`ReplaceInlines` 的坐标流 diff、
   compat 的 `rPrChange` 重发）另起一提交。
+
+- [x] **7.2b 修订生成：字段类操作、`ReplaceInlines` 的 diff、compat 的 `rPrChange`**
+  （`edit/diff.rs`、`edit/ops.rs`、`span/field/index.rs`、`bind/compat_ts/save_blocks.rs`，2026-09-07）：
+  `InsertField` 的全套结构 run 进一个 `w:ins`；`SetFieldResultProps` 与 `SetRunProps` 同规则
+  （先快照 `w:rPrChange`）；`SetFormText` 的旧结果 run 进 `w:del` + 改名、新结果 run 进 `w:ins`；
+  `SetLinkTarget`（字段）旧指令 run 进 `w:del` + `w:delInstrText`、新指令 run 进 `w:ins`
+  （`w:hyperlink` 元素的 `r:id` / `w:anchor` 不追踪——Word 不记它）。
+  **`ReplaceInlines` 的坐标流 diff**（`edit/diff.rs`）：Myers 的 O(ND) 版本，先剥公共前后缀，
+  **token 就是一个 run**（`spec/18`「聚到 run 边界」）——文本与 `w:rPr` 全同才算相等，于是相等段
+  保留原节点之后「接受视图 = 不追踪做一遍」严格成立。两侧的 `w:rPr` 都化成 `NewElement` 再比，
+  比较保守只会让 diff 变粗。新描述里带范围标记、或 token 数超过 4000 → 退化成"旧内容整体标删 +
+  新内容整体标插"。**compat 的 `rPrChange`**：`run_props` 末尾按 TS `revisionRPrChangeXml` 造
+  `w:rPrChange`（内层只写 `old` 建模的那几项，**不发 `bCs` / `iCs` 孪生**——`old.bold` 分不出
+  `w:b` 与 `w:b + w:bCs`），`save_blocks.rs` 那条 "run.rPrChange 在 M7" 的拒绝删掉。
+  两条偏差登记在 §8（`FLD-03` 的有效指令、追踪的 `ReplaceInlines` 不动范围标记）。
+  `tests/tracked_ops.rs` 加到 24 个用例（含 `ReplaceInlines` 的三条 oracle 与 compat 往返）。
+  **538 测试**（调试 + 发布）、九道门（八个 scope + `corpus/real`）仍为 0、保存语料 204 / 208
+  等价 0 跳过、clippy 零告警。

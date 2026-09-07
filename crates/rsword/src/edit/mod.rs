@@ -11,6 +11,7 @@
 //! `EDIT_ANCHOR_UNMOVED`（`EngineInvariantViolation`）。
 
 pub mod chart_ops;
+pub(crate) mod diff;
 pub mod ink_ops;
 pub mod inline;
 pub mod media_ops;

@@ -564,3 +564,197 @@ fn gate_1_oracles_over_corpus() {
         assert!(*n >= 10, "{what} 只跑了 {n} 份（要 ≥ 10）");
     }
 }
+
+// ---- 7.2b：字段类操作、`ReplaceInlines` 的 diff、compat 的 `rPrChange` -------------------------
+
+const FIELD_PARA: &str = concat!(
+    "<w:p><w:r><w:t>前 </w:t></w:r>",
+    r#"<w:r><w:fldChar w:fldCharType="begin"/></w:r>"#,
+    r#"<w:r><w:instrText xml:space="preserve"> HYPERLINK "https://a.example/" </w:instrText></w:r>"#,
+    r#"<w:r><w:fldChar w:fldCharType="separate"/></w:r>"#,
+    "<w:r><w:t>链接文字</w:t></w:r>",
+    r#"<w:r><w:fldChar w:fldCharType="end"/></w:r>"#,
+    "<w:r><w:t> 后</w:t></w:r></w:p>",
+);
+
+fn first_field(s: &EditSession) -> rsword::span::FieldId {
+    s.document().fields.roots().next().expect("有字段").id
+}
+
+/// 追踪时 `InsertField` 的全套结构 run 进一个 `w:ins`。
+#[test]
+fn tracked_insert_field_wraps_in_ins() {
+    let mut s = open(TWO_PARAS);
+    let p = para(&s, 0);
+    s.apply(
+        EditOp::InsertField {
+            at: InlinePos::new(p, 3),
+            field: rsword::edit::NewField {
+                instr: "PAGE".into(),
+                result: vec![rsword::edit::NewInline::Run(rsword::edit::NewRun::text("1"))],
+                mark_dirty: false,
+            },
+        },
+        &tracked(A),
+    )
+    .expect("插字段");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//w:p[1]/w:ins)", ["1"]),
+            ("count(//w:p[1]/w:ins/w:r/w:fldChar)", ["3"]),
+            ("count(//w:p[1]/w:ins/w:r/w:instrText)", ["1"]),
+        ]
+    );
+}
+
+/// 追踪时 `SetLinkTarget`：旧指令 run 进 `w:del` 并改名，新指令 run 进 `w:ins`。
+#[test]
+fn tracked_set_link_target_marks_instruction() {
+    let mut s = open(FIELD_PARA);
+    let id = first_field(&s);
+    s.apply(
+        EditOp::SetLinkTarget {
+            link: rsword::edit::LinkRef::Field(id),
+            target: rsword::edit::LinkDest::Url("https://b.example/".into()),
+        },
+        &tracked(A),
+    )
+    .expect("改链接");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//w:del/w:r/w:delInstrText)", ["1"]),
+            ("count(//w:ins/w:r/w:instrText)", ["1"]),
+            ("count(//w:r/w:instrText)", ["1"]),
+        ]
+    );
+    let reopened = EditSession::open(&out).unwrap();
+    let f = reopened.document().fields.roots().next().expect("字段还在");
+    assert!(f.instr.raw.contains("b.example"), "有效指令是新的：{:?}", f.instr.raw);
+    assert!(!f.instr.raw.contains("a.example"), "删掉的指令不进有效指令：{:?}", f.instr.raw);
+}
+
+/// 追踪时 `SetFormText`：旧结果 run 进 `w:del`，新结果 run 进 `w:ins`。
+#[test]
+fn tracked_set_form_text() {
+    let mut s = open(FIELD_PARA);
+    let id = first_field(&s);
+    s.apply(EditOp::SetFormText { field: id, text: "新结果".into() }, &tracked(A)).expect("改结果");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//w:del/w:r/w:delText)", ["1"]),
+            ("//w:del/w:r/w:delText/text()", ["链接文字"]),
+            ("//w:ins/w:r/w:t/text()", ["新结果"]),
+        ]
+    );
+}
+
+/// 追踪时 `ReplaceInlines` 的 diff 聚到 run 边界：没变的 run 原节点原字节，改了的删 + 插。
+#[test]
+fn tracked_replace_inlines_diffs_to_run_boundaries() {
+    use rsword::edit::{NewInline, NewRun};
+    let body = concat!(
+        "<w:p><w:r><w:t>甲</w:t></w:r>",
+        "<w:r><w:t>乙</w:t></w:r>",
+        "<w:r><w:t>丙</w:t></w:r></w:p>",
+    );
+    let mut s = open(body);
+    let p = para(&s, 0);
+    s.apply(
+        EditOp::ReplaceInlines {
+            part: None,
+            para: p,
+            inlines: vec![
+                NewInline::Run(NewRun::text("甲")),
+                NewInline::Run(NewRun::text("新")),
+                NewInline::Run(NewRun::text("丙")),
+            ],
+        },
+        &tracked(A),
+    )
+    .expect("替换");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            // 只有中间那个 run 被换掉
+            ("count(//w:del)", ["1"]),
+            ("count(//w:ins)", ["1"]),
+            ("//w:del/w:r/w:delText/text()", ["乙"]),
+            ("//w:ins/w:r/w:t/text()", ["新"]),
+            // 首尾两个 run 原样留在段落里
+            ("//w:p/w:r/w:t/text()", ["甲", "丙"]),
+        ]
+    );
+}
+
+/// 三条 oracle 对 `ReplaceInlines`（段落里没有范围标记时）。
+#[test]
+fn oracle_replace_inlines() {
+    use rsword::edit::{NewInline, NewRun};
+    let body = concat!(
+        "<w:p><w:r><w:t>一</w:t></w:r>",
+        "<w:r><w:t>二</w:t></w:r>",
+        "<w:r><w:t>三</w:t></w:r></w:p>",
+    );
+    oracle(body, "ReplaceInlines", |s| EditOp::ReplaceInlines {
+        part: None,
+        para: para(s, 0),
+        inlines: vec![
+            NewInline::Run(NewRun::text("一")),
+            NewInline::Run(NewRun::text("贰")),
+            NewInline::Run(NewRun::text("三")),
+        ],
+    });
+}
+
+/// compat 的 `runs[].rPrChange` 重发（7.2b：`save_blocks.rs` 不再拒绝）。
+#[test]
+fn compat_run_rpr_change_round_trips() {
+    let bytes = common::docx_with_body("<w:p><w:r><w:t>格式改过的</w:t></w:r></w:p>");
+    let mut s = EditSession::open(&bytes).unwrap();
+    let blocks = serde_json::json!([{
+        "kind": "generated",
+        "block": { "type": "paragraph", "runs": [{
+            "text": "格式改过的",
+            "bold": true,
+            "rPrChange": {
+                "author": A,
+                "date": DATE,
+                "old": { "italic": true, "sizeHalfPoints": 22, "color": "FF0000" }
+            }
+        }] }
+    }]);
+    let outcome =
+        rsword::bind::compat_ts::apply_save_blocks(&mut s, &blocks, &serde_json::json!({}))
+            .expect("rPrChange 不再被拒绝");
+    assert!(!outcome.unchanged);
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//w:r/w:rPr/w:rPrChange)", ["1"]),
+            ("//w:r/w:rPr/w:rPrChange/@w:author", [A]),
+            ("//w:r/w:rPr/w:rPrChange/@w:date", [DATE]),
+            ("count(//w:r/w:rPr/w:rPrChange/w:rPr/w:i)", ["1"]),
+            ("//w:r/w:rPr/w:rPrChange/w:rPr/w:color/@w:val", ["FF0000"]),
+            ("//w:r/w:rPr/w:rPrChange/w:rPr/w:sz/@w:val", ["22"]),
+            ("count(//w:r/w:rPr/w:b)", ["1"]),
+        ]
+    );
+    // 重解析：模型认得这条修订
+    let re = EditSession::open(&out).unwrap();
+    let e = re.document().revisions.entries().first().expect("有一条修订");
+    assert_eq!(e.kind, RevKind::RunPropsChange);
+    assert_eq!(e.author(), Some(A));
+}
