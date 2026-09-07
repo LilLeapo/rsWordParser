@@ -7,9 +7,14 @@
 
 ```
 fixtures/resolve/<域>/<用例>/
-  doc.docx        由 `cargo run -p gen-fixtures` 生成，可重复（同输入同字节）
-  expected.toml   断言表；`verified = false` 的条目测试只记不断言
+  doc.docx            由 `cargo run -p gen-fixtures` 生成，可重复（同输入同字节）
+  doc-compat15.docx   同上，只多一个声明 compatibilityMode = 15 的 settings.xml
+  expected.toml       断言表；`verified = false` 的条目测试只记不断言
 ```
+
+`doc.docx` 没有 `settings.xml`，Word 以**兼容模式 12**（Word 2007）打开——2026-09-07 的桌面实测就是在这个模式下做的。
+真实文档都是模式 15，`doc-compat15.docx` 把这一个变量分离出来，供第三轮复测（`docs/09`）。`tests/resolve_fixtures.rs`
+只读 `doc.docx`。
 
 ## 为什么观察值只能来自 Word
 

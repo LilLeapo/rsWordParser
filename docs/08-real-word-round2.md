@@ -1,5 +1,7 @@
 # 08 · 桌面 Word 第二轮任务（交给 Windows 侧代理）
 
+> **已完成**（2026-09-07 交付并接入，见 `docs/04` §15 与 `corpus/real/_round2/`）。收尾轮见 **`docs/09-real-word-round3.md`**。
+
 > **读者**：上一轮（`docs/07`）的 Windows 侧代理。这份文档自含：不需要读仓库其他文件。**产出**：`real-word-round2-<yyyymmdd>.zip`
 > 交回 macOS 侧。有疑问按字面做，把疑问写进 `README.md` 的「未完成 / 存疑」，不要自行改规格。
 > 环境仍可用 Office LTSC 2021；若手边有 **Microsoft 365** 也请写明并做任务 E。

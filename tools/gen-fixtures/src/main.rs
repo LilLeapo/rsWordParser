@@ -21,6 +21,8 @@ const CT_MAIN: &str =
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml";
 const CT_STYLES: &str = "application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml";
 const CT_HDR: &str = "application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml";
+const CT_SETTINGS: &str =
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml";
 const DECL: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>"#;
 
 /// 一份 fixture：目录名、说明、正文、样式表、额外 part。
@@ -38,8 +40,13 @@ fn main() {
     for f in fixtures() {
         let dir = out.join(f.dir);
         std::fs::create_dir_all(&dir).expect("mkdir");
-        let bytes = build(&f);
+        let bytes = build(&f, None);
         write_if_changed(&dir.join("doc.docx"), &bytes);
+        // 兼容模式变体：`doc.docx` 没有 `settings.xml`，Word 以**兼容模式 12**（Word 2007）打开；
+        // 真实文档是 15。2026-09-07 的桌面实测就是在模式 12 下做的，模式 15 会不会改变 toggle 语义
+        // 还没测（`docs/06`）。这份变体除了多一个 `settings.xml` 与正本完全一样，用来把这一个变量分离出来。
+        let bytes15 = build(&f, Some(15));
+        write_if_changed(&dir.join("doc-compat15.docx"), &bytes15);
         let toml = dir.join("expected.toml");
         if toml.exists() {
             println!("keep   {}", toml.display());
@@ -76,12 +83,17 @@ fn zip_of(files: &[(String, Vec<u8>)]) -> Vec<u8> {
     w.finish().expect("finish").into_inner()
 }
 
-fn build(f: &Fixture) -> Vec<u8> {
+/// `compat` 为 `Some(n)` 时多写一个只声明 `compatibilityMode = n` 的 `word/settings.xml`。
+fn build(f: &Fixture, compat: Option<u32>) -> Vec<u8> {
     let mut overrides = vec![
         ("/word/document.xml".to_string(), CT_MAIN),
         ("/word/styles.xml".to_string(), CT_STYLES),
     ];
     let mut rels = vec![("rIdS".to_string(), format!("{REL}/styles"), "styles.xml".to_string())];
+    if compat.is_some() {
+        overrides.push(("/word/settings.xml".to_string(), CT_SETTINGS));
+        rels.push(("rIdSet".to_string(), format!("{REL}/settings"), "settings.xml".to_string()));
+    }
     for (i, (path, _, ct)) in f.extra.iter().enumerate() {
         overrides.push((format!("/{path}"), ct));
         let kind = if *ct == CT_HDR { "header" } else { "footer" };
@@ -133,6 +145,20 @@ fn build(f: &Fixture) -> Vec<u8> {
         ("word/styles.xml".to_string(), f.styles.clone().into_bytes()),
         ("word/document.xml".to_string(), f.doc.clone().into_bytes()),
     ];
+    if let Some(n) = compat {
+        let settings = format!(
+            concat!(
+                "{decl}",
+                r#"<w:settings xmlns:w="{w}"><w:compat>"#,
+                r#"<w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="{n}"/>"#,
+                "</w:compat></w:settings>"
+            ),
+            decl = DECL,
+            w = W,
+            n = n
+        );
+        files.push(("word/settings.xml".to_string(), settings.into_bytes()));
+    }
     for (path, xml, _) in &f.extra {
         files.push((path.clone(), xml.clone().into_bytes()));
     }
