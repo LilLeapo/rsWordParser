@@ -78,6 +78,9 @@ pub struct Document {
     /// 参考文献源（`customXml` 里的 `b:Sources`，任务 5.7）与它所在的 part。
     pub sources: Vec<crate::model::Source>,
     pub sources_part: Option<PartId>,
+    /// 全包的修订表（`MOD-09`，任务 7.1）：`Block.revisions` / `Run.rev` 是压平过的投影，
+    /// 这一份直接扫 DOM，每一层承载元素一条，接受 / 拒绝与 `EDIT-06` 的 `w:id` 分配都读它。
+    pub revisions: crate::model::revision::RevisionIndex,
     /// 批注（`comments.xml` + `commentsExtended.xml` + `commentsIds.xml`）。
     pub comments: Comments,
     pub footnotes: Notes,
@@ -395,7 +398,7 @@ impl Document {
             }
         }
         let inks = crate::model::ink::collect_inks(dom, &blocks);
-        Ok(Document {
+        let mut doc = Document {
             main_part: main,
             body,
             main: blocks,
@@ -421,8 +424,48 @@ impl Document {
             comments,
             footnotes,
             endnotes,
+            revisions: crate::model::revision::RevisionIndex::default(),
             warnings,
-        })
+        };
+        doc.rebuild_revisions(pkg);
+        Ok(doc)
+    }
+
+    /// 重扫全包的修订表（`MOD-09`）。part 顺序 = 主 part → 页眉页脚 → 脚注 → 尾注 → 批注 →
+    /// 外部文本框，各自内部前序，合起来就是文档序。
+    pub(crate) fn rebuild_revisions(&mut self, pkg: &Package) {
+        use crate::model::revision::{RevPart, RevisionIndex};
+        let mut parts: Vec<RevPart<'_>> = Vec::new();
+        if let Some(d) = pkg.part(self.main_part).dom() {
+            parts.push(RevPart { part: self.main_part, dom: d, fields: Some(&self.fields) });
+        }
+        for hf in self.hf_parts.values() {
+            if let Some(d) = pkg.part(hf.part).dom() {
+                parts.push(RevPart { part: hf.part, dom: d, fields: Some(&hf.idx.fields) });
+            }
+        }
+        for notes in [&self.footnotes, &self.endnotes] {
+            if let (Some(id), Some(idx)) = (notes.part, notes.idx.as_ref())
+                && let Some(d) = pkg.part(id).dom()
+            {
+                parts.push(RevPart { part: id, dom: d, fields: Some(&idx.fields) });
+            }
+        }
+        if let (Some(id), Some(idx)) = (self.comments.part, self.comments.idx.as_ref())
+            && let Some(d) = pkg.part(id).dom()
+        {
+            parts.push(RevPart { part: id, dom: d, fields: Some(&idx.fields) });
+        }
+        for (id, aux) in &self.aux_flows {
+            if let Some(d) = pkg.part(*id).dom() {
+                parts.push(RevPart { part: *id, dom: d, fields: Some(&aux.fields) });
+            }
+        }
+        let mut warnings = Vec::new();
+        let index = RevisionIndex::build(&parts, &mut warnings);
+        drop(parts);
+        self.revisions = index;
+        self.warnings.extend(warnings);
     }
 
     /// 只建正文（测试与工具用）：`dom` 是主 part。
@@ -497,6 +540,9 @@ impl Document {
         self.warnings.extend(warnings);
         self.fields = fields;
         self.spans = spans;
+        // 修订表是 DOM 的投影，和字段索引一样整体重建（辅助 part 走整体 `rebuild`，这里只有主 part 变了，
+        // 但重扫全部 part 才能让 `EDIT-06` 的全局 `w:id` 最大值始终正确）
+        self.rebuild_revisions(pkg);
         Ok(missing)
     }
 

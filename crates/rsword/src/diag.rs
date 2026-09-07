@@ -100,6 +100,9 @@ pub enum DiagCode {
     ModTableShape,
     /// `MOD-11`（M6 6.1）：图表 part 里没有任何带缓存值的系列，建不出 `ChartDisplay`（TS 同样返回 null）。
     ChartNoSeries,
+    /// `MOD-09`（M7 7.1）：`w:moveFrom` / `w:moveTo` 找不到孪生（没有范围标记罩着、或 `@w:name`
+    /// 对不上）。索引里 `pair = None`，接受 / 拒绝时按普通删除 / 插入处理。
+    RevUnpairedMove,
 
     // ---- RES（spec/07）----
     /// `RES-02`：`basedOn` 链成环。
@@ -185,6 +188,7 @@ impl DiagCode {
             Self::ModUnparseable => "MOD_UNPARSEABLE",
             Self::ModTableShape => "MOD_TABLE_SHAPE",
             Self::ChartNoSeries => "CHART_NO_SERIES",
+            Self::RevUnpairedMove => "REV_UNPAIRED_MOVE",
             Self::ResStyleCycle => "RES_STYLE_CYCLE",
             Self::ResBasedOnTypeMismatch => "RES_BASED_ON_TYPE_MISMATCH",
             Self::EditSplitSurrogate => "EDIT_SPLIT_SURROGATE",

@@ -415,6 +415,11 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `MOD-10` `SectionGeom` | — | `node` 从 `NodeId` 改为 `Option<NodeId>` | 隐式节（文档里没有任何 `w:sectPr`）也要有几何 |
 | `MOD-10` `Notes` / `Comments` | 只有条目列表 | 各多一个 `idx: Option<AuxFlows>`（该 part 的三份索引） | 条目内容成块之后，`SPAN-01` 的流映射与该 part 的字段 / 范围索引得有地方放；5.5 的按 part 编辑要用 |
 | `FLD-11` `has_page_number` | 由字段列表推导 | 另认旧式 `w:pgNum` 元素 | Word 6.0/95 的页码是一个 run 子元素而不是字段，语义相同（TS `hfContentFromXml` 把它换成 `PAGE_MARK` 并置 `hasPageNumber`）。坐标流里它占 1 个单位，与原子字段一致 |
+| `docs/03` §6.6 `RevisionId` | 挂在每个修订上（`Revision` / `RevisionCtx` 各带一个 id） | 只在 `Document.revisions`（`RevisionIndex`）里给，模型类型不加字段 | 修订是**投影里的多处副本**（一个块级 `w:ins` 会出现在它包着的每个块的 `revisions` 里），给副本发 id 就得回答"两个副本是不是同一条"。索引按承载元素去重，一条修订一个 id，`EditSession` 再按 `(PartId, NodeId)` 让它在会话内稳定（`MOD-13`） |
+| `spec/18` 7.1「把散在 `Run.rev` / `Block.revisions` … 上的修订收成一张表」 | 从模型投影收集 | 直接扫 DOM 的**全部未删节点**（含 `mc:Choice` / `mc:Fallback` 两支），迭代遍历 | 投影是压平过的：`RevisionCtx` 每种只有一格，500 层 `w:ins` / `w:del` 套娃只剩两条；内联容器超过 64 层的整段还会降级成 `Protected`，里面的修订彻底看不见。接受 / 拒绝要动的是每一层承载元素本身。扫两支的理由与 `wp:docPr/@id` 相同——`w:id` 的唯一性是整个包的事，与 MCE 选哪支无关。hostile `rev-nested-wrappers` 是这条的验收 |
+| `spec/18` 7.1 `RevKind` 21 种 | `MOD-09` 16 + run 级 5 | **24 种**：多 `TablePropsExChange`、`ParaMarkMoveFrom`、`ParaMarkMoveTo` | `w:tblPrExChange` 不在 `MOD-09` 的清单里，但真实 Word 的表格修订一定写它（`fixtures/revisions/table-and-move/tracked.docx` 3 处、`corpus/real/revisions2/rev-table.docx` 2 处），门第 3 条要求接受 / 拒绝后一个标记不剩。`pPr/rPr` 里的 `w:moveFrom` / `w:moveTo` 与 `w:del` / `w:ins` 对段落标记的作用相同，但另立种类才说得清它是搬移的一部分 |
+| `MOD-09` 搬移的配对 | 按 `w:moveFromRangeStart/@w:name` 配对 | **只配内容那一半**；段落标记上的 `w:moveFrom` / `w:moveTo` 不配对 | 真实 Word 把段落标记的搬移标记写在范围标记**之外**（`corpus/real/revisions2/rev-move.docx`：`w:moveFrom w:id="0"` 在 `w:moveFromRangeStart w:id="1"` 之前），按 `@w:name` 根本罩不住；而标记的接受 / 拒绝与 `ParaMarkDelete` / `ParaMarkInsert` 完全一样，本来就不需要孪生 |
+| `COMPAT-04` 段落的 `revExtras` | — | 索引里单元格内段落也有 `ParaMarkDelete` / `ParaPropsChange`，TS 的 `paraMarkDel` / `pPrChangeInfo` 只出现在**顶层**段落块上 | TS 的表格投影不带段落 `revExtras`（`corpus/real/_round3/_resaved/rev-table--insertrow-resaved-by-word.docx` 里两处删除的单元格段落标记 TS 一条都没给），run 级修订它倒是照给。这是 TS 的缺口，我们不跟随；`tests/revisions.rs` 的索引 ↔ 投影对照因此对这两种只比顶层段落 |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -1366,7 +1371,7 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
 
 | # | 条件 | 状态 |
 | --- | --- | --- |
-| 1 | 修订三条 oracle（拒绝还原 / 接受等价 / 往返）对每个可追踪操作 × 语料样本通过 | 未开始 |
+| 1 | 修订三条 oracle（拒绝还原 / 接受等价 / 往返）对每个可追踪操作 × 语料样本通过 | 未开始（7.1 已备好索引） |
 | 2 | `MOD-09` 每种修订 Accept / Reject 各一条 XPath；21 份带修订语料 `AcceptAll` / `RejectAll` 后 `revisions` 为空 | 未开始 |
 | 3 | `fixtures/revisions` 四个 case 的 `AcceptAll` / `RejectAll` 与 Word 自己另存的 `accepted` / `rejected` 指纹相等 | 未开始（fixture 已就位） |
 | 4 | 保存差分跳过数保持 0，比较范围扩到每个被改写的 XML part | 未开始（7.0①② 按 2026-09-07 的决定推迟到 7.9 前，与重导一起做一次） |
@@ -1392,3 +1397,25 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   `drawing-anchor-no-extent`），生成器在 `tools/export-golden/hostile.export.test.ts`，按 `try.sh` 导到临时目录后只拷新文件与
   新的 manifest 条目（README「重导的稳定性与噪音」），`tests/revisions.rs` 断言 `TEST-09` 三条——六份全部通过；
   ⑥ 基线重测（上表）。①②（`changedParts` + 重导）与 ④（`fixtures/fieldgen`）留到后面，见上表最后一行与 7.8。
+
+- [x] **7.1 修订索引与 `RevisionId`**（`model/revision.rs`、`model/build.rs`、`edit/session.rs`，2026-09-07）：
+  `Document.revisions: RevisionIndex` —— 全包一张表，条目是 `RevisionEntry { id, part, kind, meta, owner, depth,
+  move_name, pair }`，文档序（主 part → 页眉页脚 → 脚注 → 尾注 → 批注 → 外部文本框，各自前序）。**索引直接扫 DOM**
+  而不是收集模型投影（§8 上面那条：投影把套娃压平、深处的整段还会降级），迭代遍历，跳过 `Deleted` 子树，
+  两支 MCE 分支都扫。`RevKind` 用 `named_enum!` 列 24 种（`MOD-09` 16 + run 级 5 + `TablePropsExChange` +
+  段落标记的两种搬移，见 §8）；`RevOwner` 九种，用遍历时下传的上下文（最近的 `w:p` / `w:r` / `w:tr` / `w:tc` /
+  `w:tbl` / `w:sectPr` / 块容器，进内容流根与 `w:tc` 时清空段落）判定，`w:ins` / `w:del` 落在 `pPr/rPr` / `trPr` /
+  段落内 / 块容器里分别是段落标记 / 行 / run 级 / 块级四种；run 级删除里全是 `w:instrText` / `w:delInstrText` 时
+  宿主记成 `RevOwner::Field`。搬移按遍历时打开着的 `w:moveFromRangeStart/@w:name` 配对，落单的记
+  `REV_UNPAIRED_MOVE`（新诊断）。`iter_inner_first()` 用一遍栈把前序转成后序（7.4 要"先内层后外层"）；
+  `by_author` / `authors` / `max_w_id`（`EDIT-06` 跨 part 取最大，非数字的 `w:id` 原串保留、不参与）。
+  `RevisionId` 的会话内稳定（`MOD-13`）：`EditSession` 持 `BTreeMap<(PartId, NodeId), RevisionId>` + 单调计数器，
+  `rebuild` / `refresh_blocks` 之后 `stabilize` 把仍在的承载节点换回旧号；无会话的 `Document::rebuild` 从 0 编号。
+  `refresh_blocks` 也整体重扫索引（辅助 part 走整体 `rebuild`，但重扫全部 part 才能让全局 `w:id` 最大值始终正确）。
+  `track_revisions` 的写侧不用新增：`settings.toml` 第 96 行已建模，`SetDocumentSettings` 直接能写 `w:trackRevisions`。
+  验收在 `tests/revisions.rs`（11 个用例）：索引 ↔ `compat_ts` 投影在全部带修订的语料上按（作者, 日期, `w:id`）
+  身份集合逐份相等（17 份：合成 16 + 真实与 fixture）；`rev-move.docx` / `table-and-move` 两半齐全全部配对；
+  hostile `rev-move-unpaired` 五处落单各一条诊断且 `pair = None`；`rev-nested-wrappers` 500 层 `depth` 逐层正确、
+  `iter_inner_first` 从最内层开始、不爆栈；插字后 id 与种类不变、整体重建后也不变；无会话从 0 编号；
+  跨 part 的 `max_w_id`；两作者文档的 `by_author` 全覆盖；`SetDocumentSettings` 写出 `w:trackRevisions` 并能重解析。
+  **514 测试**（调试 + 发布）、八道门仍为 0、clippy 零告警。

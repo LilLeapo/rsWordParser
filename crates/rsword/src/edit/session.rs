@@ -1,11 +1,12 @@
 //! `EDIT-01` 会话：`Package`（规范状态）+ `Document`（投影）+ 事务（`EDIT-05`）。
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::diag::{DiagCode, Diagnostic};
 use crate::error::{Error, Result};
 use crate::model::Document;
 use crate::model::block::TextBlock;
+use crate::model::revision::RevisionId;
 use crate::package::{
     Package, PartFlavor, PartId, PartImage, PartUri, RelTarget, RelType, Relationship,
 };
@@ -37,6 +38,11 @@ pub struct EditSession {
     /// 本次会话按内容去重的媒体：`(mime, 字节哈希)` → 主 part 的 `rId`（`add_media`）。
     pub(crate) media_by_content: HashMap<(String, u64), String>,
     diagnostics: Vec<Diagnostic>,
+    /// 修订 id 的会话内稳定表（`MOD-13`，任务 7.1）：承载节点 → 它第一次拿到的 [`RevisionId`]。
+    /// `refresh` / `rebuild` 之后仍然存在的节点复用旧号（arena 里 `NodeId` 稳定），新节点才取新号。
+    rev_ids: BTreeMap<(PartId, NodeId), RevisionId>,
+    /// 上面那张表的单调计数器。
+    next_rev_id: u32,
     /// 事务期间每个被写入 part 的写前镜像（`EDIT-05`）。
     txn: Option<Snapshot>,
 }
@@ -82,7 +88,7 @@ impl EditSession {
 
     pub fn from_package(mut pkg: Package) -> Result<Self> {
         let doc = Document::rebuild(&mut pkg)?;
-        Ok(Self {
+        let mut s = Self {
             pkg,
             doc,
             spans: HashMap::new(),
@@ -91,8 +97,17 @@ impl EditSession {
             rel_baseline: HashMap::new(),
             media_by_content: HashMap::new(),
             diagnostics: Vec::new(),
+            rev_ids: BTreeMap::new(),
+            next_rev_id: 0,
             txn: None,
-        })
+        };
+        s.stabilize_revisions();
+        Ok(s)
+    }
+
+    /// 让 [`Document::revisions`] 的编号在会话内稳定（`MOD-13`）。每次投影重建 / 刷新后调用。
+    fn stabilize_revisions(&mut self) {
+        self.doc.revisions.stabilize(&mut self.rev_ids, &mut self.next_rev_id);
     }
 
     /// 投影（`MOD-01`）。
@@ -827,6 +842,7 @@ impl EditSession {
     /// 投影整体重建。
     pub fn rebuild(&mut self) -> Result<()> {
         self.doc = Document::rebuild(&mut self.pkg)?;
+        self.stabilize_revisions();
         Ok(())
     }
 
@@ -977,7 +993,9 @@ impl EditSession {
                 // 容器级刷新（`MOD-13`）：单元格内的段落也就地重建。真找不到（投影与 DOM 不同步）
                 // 才整体重建——那是兜底，不是正常路径
                 let missing = self.doc.refresh_blocks(&mut self.pkg, &result.affected_blocks)?;
-                if !missing.is_empty() {
+                if missing.is_empty() {
+                    self.stabilize_revisions();
+                } else {
                     self.rebuild()?;
                 }
             }

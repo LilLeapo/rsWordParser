@@ -33,6 +33,7 @@ pub mod inline;
 pub mod math;
 pub mod notes;
 pub mod omml;
+pub mod revision;
 pub mod sdt;
 pub mod section;
 pub mod sources;
@@ -71,6 +72,7 @@ pub use inline::{
 };
 pub use math::FormulaDisplay;
 pub use notes::{Comment, Comments, Note, NoteKind, Notes, RichRun};
+pub use revision::{RevKind, RevOwner, RevisionEntry, RevisionId, RevisionIndex};
 // `SdtInfo` 从 `block` 一并导出（它是 `Block` 的字段）
 pub use aux::AuxFlows;
 pub use hf::HfPart;
