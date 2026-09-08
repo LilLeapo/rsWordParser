@@ -1899,12 +1899,23 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
     `js_binding_save_bytes_parity` 与 `common::save_cases()`。wasm 产物 2.25 MB / gzip 796 KB
     （`opt-level = "z"`）。`m8-editor` 分支的删除见 `spec/19` 待决 6
   - [x] ③ `tools/export-golden/README` 写明「genoffice 只读使用」与最后重导提交号（本提交；`f105f36` / `2026-09-08T03:14:56Z`）
-- [x] **8.1 协议规范 `spec/21-bind.md`**（`BIND-01`–`BIND-11`）—— **关口**
-  初稿（76f2542）：11 条分层决策誊为 BIND-01–11；60 变体清单收进
-  BIND-03；`SaveOptions` 收缩五项与 5.7 族公开为 `EditOp` 归 BIND-04；文件尾部列了 6 条待决
-  （BIND-11 保守程度、serde 依赖、list_markers、快照位置、`native/1` 时点、`docs/03` §8.2 是否升版）。
-  **评审通过（2026-09-08）**，4 处意见已落地（本提交）：js-parity 自建 `--out` 目录、门控不许静默通过、
-  清单差异数订正为 **34 项（20 个新增操作 ★ + 14 个形态变化 ▲）**、本表 8.0 父框勾上。
+- [ ] **8.1 协议规范 `spec/21-bind.md`**（`BIND-01`–`BIND-11`）—— **关口**
+  v1（76f2542）评审通过、4 处意见落地（784b96a；js-parity 自建 `--out`、门控不许静默通过、
+  清单差异数订正为 34 项、8.0 父框勾上）。
+  **v2（本提交）：协议语义变更，BIND-03 的 v1 评审作废，重走评审。** 8.2/8.3 会话开工前核代码
+  发现（项目负责人独立复核属实）：BIND-03 v1 的前提「`EditOp` 结构简单、无 arena 引用，
+  可直接 derive serde」不成立——`NewElement`（`NewBlock::Paragraph.props` / `Xml` /
+  `Wrapped.wrapper`、`NewRun.props`、`NewField.props`、`NewInline::Xml`、`ReplaceParaProps.props`，
+  协议面共 7 处）经 `QName` 携带 `NsId::Other(Interned)` / `LocalName::Other(Interned)`，
+  而 `Interned` 是 per-Dom `Interner` 的句柄（`xml/interner.rs`），离开产生它的 Dom 不能渲染
+  也不能反序列化。错话源自 `spec/19`「实现约定」（已随 v2 订正，风险提示加第 10 条）。
+  v2 的 BIND-03：**线型与引擎型分离**——线型 `EditOpJson` derive serde，引擎 `EditOp` 禁止
+  derive；转换上下文化（`edit_op_from_json(&str, &mut Dom)` / `edit_op_to_json(&EditOp, &Dom)`，
+  形状以此为准、签名以实现时为准）；`NewElement` 三类去处分治：a 真逃生口（XML 字符串，
+  `BIND_XML_ESCAPE` 计数）、b 结构化属性（复用 `*Patch` serde 形态不计数；引擎侧三处
+  `Option<NewElement>` 改持 patch 是 **8.3 的工作量**，本提交不动 `edit/`）、
+  c `ReplaceParaProps` 留 XML 字符串并入 a（判定与理由在 BIND-03 v2，评审要定的点）。
+  BIND-01/02/04–11 未动，其 v1 评审结论仍然有效。
 - [ ] **8.2 模型 JSON 投影**（`bind/native/json.rs`、`schema.rs`、`model_json!`）
 - [ ] **8.3 `EditOp` / `EditContext` / `MutationResult` 的 JSON**（`edit_op_json!`、`SaveOptions` 收缩到五项）
 - [ ] **8.4 会话、媒体句柄、`resolve` 查询与部件读取**（`bind_export!`、`resolve_query!`）

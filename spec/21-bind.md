@@ -1,5 +1,14 @@
 # SPEC 21 · 原生协议（bind/native/）
 
+> 修订：v1（`76f2542`，2026-09-08）初版评审通过，4 处意见落地（`784b96a`）。
+> 修订：**v2（2026-09-08）协议语义变更**——BIND-03 的前提「`EditOp` 结构简单、无 arena 引用，
+> 可直接 derive serde 并无上下文往返」被代码现实推翻：`NewElement` 经 `QName` 携带
+> `NsId::Other(Interned)` / `LocalName::Other(Interned)`，而 `Interned` 是 **per-Dom** `Interner`
+> 的句柄（`xml/interner.rs`：「每个 `Dom` 一张」「只在产生它的 `Interner` 内有意义」），
+> 离开产生它的 Dom 既渲染不出名字、也反序列化不回来。错话源自 `spec/19`「实现约定」
+> （已随 v2 订正）。v2 改为**线型与引擎型分离**（BIND-03 重写）。**v1 对 BIND-03 的评审通过
+> 作废，重新评审**；BIND-01 / BIND-02 / BIND-04–11 未动，其 v1 评审结论仍然有效。
+
 对应 `docs/03` v3.3 §12 的 M8′ 行与 `spec/19` 任务 8.1。职责：定义 rsword 独立交付的**唯一对外协议**——
 `open → document / resolve / media → apply / save → close`。本文件是 M8′ 的**关口**：
 评审通过之前不动 8.2–8.5 的代码；条目一经评审即冻结语义，后续只许增补。
@@ -82,13 +91,67 @@ close(id: SessionId)                                            // 幂等；不�
 - 验收：M8′ 门 1（全语料过 schema、serde 往返幂等、checklist 不丢字段）；门 6
   （`display` 关闭时带图语料 JSON 体积较 `compat_ts::parsed_doc` 降 ≥ 50%）。
 
-## BIND-03 `EditOp` JSON（决策 1、10；EDIT-01–EDIT-06）
+## BIND-03 `EditOp` JSON（决策 1、10；EDIT-01–EDIT-06）—— v2 重写
 
-- **必须**：`EditOp` 用 `#[serde(tag = "op", rename_all = "camelCase")]`——
-  `{"op": "insertText", "at": …, "text": …}`。`NewBlock` / `NewInline` / `NewAtom` /
-  `NewField` / `NewComment` / `NewImage` / `NewChart` / `NewInk` 与属性表 `*Patch`
-  （`PROP-06` 的 diff/patch 形态，serde 由 `build/props.rs` 生成）全部
-  `Serialize + Deserialize`。
+- **必须**：**线型与引擎型分离**（v2 的核心更正）。引擎的 `EditOp`（`edit/mod.rs`）**禁止**
+  derive serde：它经 `NewElement` 携带 `QName`，而 `QName` 可能装着 `NsId::Other(Interned)` /
+  `LocalName::Other(Interned)`——`Interned` 是 **per-Dom** `Interner` 的句柄（`xml/interner.rs`：
+  「每个 `Dom` 一张」「只在产生它的 `Interner` 内有意义」）。无上下文的 serde 往返对携带
+  `NewElement` 的变体在原理上不成立：裸句柄离开产生它的 Dom，既渲染不出名字，也反序列化
+  不回来。协议边界改在 `bind::native` 定义**线型 `EditOpJson`**，由它 derive serde
+  （`#[serde(tag = "op", rename_all = "camelCase")]`——`{"op": "insertText", "at": …, "text": …}`）；
+  引擎型 ↔ 线型是显式转换，不是反射。
+- **必须**：转换是**上下文化**的（协议层持有会话的 Dom，表外名字经它的 `Interner` 驻留 /
+  渲染）：
+
+  ```
+  edit_op_from_json(json: &str, dom: &mut Dom) -> Result<EditOp>   // 表外名字驻留进 dom 的 Interner
+  edit_op_to_json(op: &EditOp, dom: &Dom) -> Result<String>        // Interned 经 Interner 渲染成名字
+  ```
+
+  签名以实现时能落地为准；形状固定为「线型文本 ↔ 引擎型，必须带 Dom 上下文」。
+  `NewBlock` / `NewInline` / `NewAtom` / `NewField` / `NewComment` / `NewImage` / `NewChart` /
+  `NewInk` 与属性表 `*Patch`（`PROP-06` 的 diff/patch 形态）中**不含** `NewElement` 的部分
+  直接共享 serde 形态（见下「三类去处」）。
+- **必须**：往返测试的定义——scratch Dom 上构造引擎型 → `to_json` → `to_string` →
+  `from_str` → `from_json` → `PartialEq` 相等，60 变体各一条（`edit_op_json!` 同一张表展开
+  线型、转换、测试与下文的变体清单）。同一 `Interner` 内同名同柄，故同一 scratch Dom 内
+  相等成立；**跨 Dom 的句柄相等不做要求**（调用方禁止跨会话搬运操作 JSON 里的句柄——
+  句柄根本不在线型里出现）。
+- **必须**：`NewElement` 的**三类去处**分治（协议面共 7 处，穷举过；v1 一刀切「derive」
+  正是漏在这里）：
+
+  | 类 | 位置 | 线型 | 计数 |
+  | --- | --- | --- | --- |
+  | a. 真逃生口 | `NewBlock::Xml`、`NewBlock::Wrapped.wrapper`、`NewInline::Xml`、`ReplacePartXml`、`ReplacePartBytes` | XML 字符串（`ReplacePartBytes` 为 base64） | `BIND_XML_ESCAPE` 诊断 + 计数 |
+  | b. 结构化属性 | `NewBlock::Paragraph.props`（`w:pPr`）、`NewRun.props`（`w:rPr`）、`NewField.props`（结构 run 的 `w:rPr`） | `ParaPropsPatch` / `RunPropsPatch` 的 serde 形态（`SetParaProps` / `SetRunProps` 已在用的同一族） | 不计逃生口 |
+  | c. 整块替换 | `ReplaceParaProps.props`（`EDIT-04` rawPPr 语义） | XML 字符串 | `BIND_XML_ESCAPE` 诊断 + 计数 |
+
+  - **a（真逃生口）**：`insertBlock`（`NewBlock::Xml` / `Wrapped.wrapper`）、内联片段
+    （`NewInline::Xml`，`m:oMath`、带 `w:ruby` / `w:drawing` 的 run 等）与 part 整体替换
+    （`ReplacePartXml` / `ReplacePartBytes`）的线型是 XML 字符串，每次使用记一条
+    `BIND_XML_ESCAPE` 诊断并计数（会话级计数器随 `diagnostics` 返回）。M8′ 不要求计数为 0。
+    （`NewInline::Xml` 与下表 b 的 `NewField.props` 是 v2 复核穷举时补进分类的两处，
+    评审时请一并确认。）
+  - **b（结构化属性）**：`NewBlock::Paragraph.props`、`NewRun.props`、`NewField.props`
+    **复用 `*Patch` 的 serde 形态，不计逃生口**。理由：同一个概念不能在协议里有两种形态；
+    一刀切成 XML 字符串会逼调用方手写 `w:pPr` / `w:rPr`——原生协议就是要消灭手写 XML，
+    M9′ 的 Agent 尤其用不了。
+    **引擎侧连带（明确是 8.3 的工作量，本次只改规范、不动 `edit/`）**：这三个位置今天持
+    `Option<NewElement>`（「完整的 `w:pPr` / `w:rPr`」）。8.3 把它们改成持 patch——新建容器
+    按 `PROP-06` 从零构建（`plan_apply_*`），`InsertBlock` / `NewInline` / `InsertField` 的
+    构建路径与 `compat_ts` 的适配随之一并改。
+  - **c（`ReplaceParaProps.props`）判定：留 XML 字符串线型，并入 a 的 `BIND_XML_ESCAPE`
+    计数**（v2 评审要定的点）。理由：
+    1. 这个操作的定义语义是「用调用方给的整份 `w:pPr` 替换现有容器」——它能表达 patch
+       表达不了的东西：`pPrChange` 快照、`sectPr`、段落标记 `rPr`、32 张生成表之外的
+       元素。patch 是合并语义，表达不了「整块换成未建模内容」；强行 patch 化要么丢语义，
+       要么退化成 `SetParaProps` 的复制。
+    2. 「Agent 手写不了 XML」由同协议的 `SetParaProps`（patch 形态）覆盖——结构化修改
+       走它；`ReplaceParaProps` 留给确实需要容器级替换的调用方（compat 路径与外科手术式
+       修 XML），这正是逃生口的定位（决策 10：有名有姓、计数、不禁止）。
+    3. 与 b 不冲突：这不是「同一个概念两种形态」——merge 与 replace 是两个操作，
+       线型各自反映语义。
 - **必须**：位置形态与 `EDIT-02` 一致——`InlinePos { part: PartId | null, para: nodeId,
   offset }`（`part: null` = 主 part），`BlockPos { part: PartId | null, at: BlockAt }`；
   偏移是坐标流 UTF-16 code unit。
@@ -96,11 +159,12 @@ close(id: SessionId)                                            // 幂等；不�
   defaultRunProps?, keepOrphanComments?, markUpdatedFieldsDirty? }`（`EDIT-01`）。
 - **必须**：`MutationResult` JSON 为 `{ created, affectedBlocks, structureChanged,
   diagnostics, offsetDelta }`（`EDIT-05`；`created` 的元素为 `nodeId | null`）。
-- **必须**：变体清单 = 下表 60 个 + 8.3 依 BIND-04 新增的 5.7 族（见 BIND-04）；每个变体
-  至少一条 JSON 往返测试（构造 → `to_string` → `from_str` → 相等，`edit_op_json!` 展开），
-  同一条操作经协议 `apply` 与原生 `EditSession::apply` 的保存结果**逐字节相同**（门 2）。
+- **必须**：变体清单 = 下表 60 个 + 8.3 依 BIND-04 新增的 5.7 族（见 BIND-04）；往返测试
+  按本条上面的定义逐变体一条；同一条操作经协议 `apply`（线型进、`edit_op_from_json`
+  转换）与原生 `EditSession::apply` 的保存结果**逐字节相同**（门 2）。
 
-  **60 变体清单**（`edit/mod.rs`）。与 `docs/03` §8.2 冻结清单的差异共 **34 项，分两类**
+  **60 变体清单**（`edit/mod.rs`，与引擎侧逐一对表；线型按上面三类去处分流）。
+  与 `docs/03` §8.2 冻结清单的差异共 **34 项，分两类**
   （`spec/18` 待决 5 在此收编，偏差登记 `docs/04` §8）：
   **★ = §8.2 没有的新增操作（20 个）**——分节符增删、墨迹增删、`linkHeaderFooter`、
   `regenerateBlockField`、`removeNote` / `removeSdtShell` / `setNoteContent`、part 整体替换与
@@ -128,10 +192,8 @@ close(id: SessionId)                                            // 幂等；不�
 
   `docs/03` 是冻结稿，§8.2 的旧清单**不**随本表更新（改动需项目负责人批准；见「待决」6）。
   本表是协议的权威清单。
-- **必须**：逃生口有名有姓（决策 10）——`insertBlock`（`NewBlock::Xml`）与 `replacePartXml` /
-  `replacePartBytes` 每次使用**必须**记一条 `BIND_XML_ESCAPE` 诊断并计数（会话级计数器随
-  `diagnostics` 返回）。M8′ 不要求计数为 0。
-- 验收：门 2 全绿（60 变体往返 + 协议/原生保存字节相同，全语料抽样 + `TEST-07` 走协议）。
+- 验收：门 2 全绿（60 变体 × 上下文化往返 + 协议/原生保存字节相同，全语料抽样 +
+  `TEST-07` 走协议）；三类去处各有线型形态的断言用例。
 
 ## BIND-04 保存与 `SaveOptions`（决策 1；SAVE-01、SAVE-07）
 
@@ -281,7 +343,7 @@ close(id: SessionId)                                            // 幂等；不�
 | --- | --- |
 | BIND-01 | 每个导出对假 `SessionId` → `BIND_NO_SESSION`；`save` 失败后 `document()` 不变；`open` 失败不留表项 |
 | BIND-02 | 全语料过 schema；serde 往返幂等；checklist 覆盖 `MOD-01`–`MOD-11` 全字段；`display` 缺省关且体积达标 |
-| BIND-03 | 60 变体 × JSON 往返；协议 vs 原生 `apply` 保存字节相同；逃生口计数出现 |
+| BIND-03 | 60 变体 × 上下文化往返（scratch Dom：构造 → `to_json` → 文本 → `from_str` → `from_json` → 相等）；协议 vs 原生 `apply` 保存字节相同；`NewElement` 三类去处各有线型形态断言（a 计 `BIND_XML_ESCAPE`，b 为 patch 形态不计数，c 留字符串） |
 | BIND-04 | `SaveOptions` 五键；无编辑 `save({})` 字节相同；翻译入口皆有对应 `EditOp` 测试 |
 | BIND-05 | `addMedia` 去重；`media` 字节与包内相同；外部 URL 不进 `media[]` |
 | BIND-06 | 五导出与 `Resolver::*` 全语料逐字段相等；错误条目不拖垮批量 |
