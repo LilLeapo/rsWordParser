@@ -9,6 +9,9 @@ license.workspace = true
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+compat-ts = ["rsword/compat-ts"]
+
 [dependencies]
 rsword = { path = "../rsword" }
 # 与根 Cargo.lock 的版本锁死：wasm-bindgen-cli 必须同版本（见 TOOLS.md），否则生成的 glue 与运行时对不上

@@ -25,7 +25,7 @@
 
 **M0–M7 已全部并入 `main`**（`main` = 32234ce，2026-09-08）。**M7**（`spec/18`：修订生成与接受 / 拒绝、`EditOp` 全集 60 个变体、分节符、绘图编辑、块字段生成器、空白模板、`TEST-07` 随机序列门、wasm 绑定）**11 个任务与六条门全部完成**：646 测试、九道 `diff-parse` 门 + 两条 `--via js` 全为 0 未知差异、`save_blocks` 204/208、1,000 条随机序列双构建无失败；`TEST-07` 一道门查出并修掉 17 个引擎缺陷。逐条进度见 `docs/04` §16。
 
-**当前：M8′ 开工**（`spec/19`，分支 `m8-native`，工作树 `../rsWordParser-m8n`）——原生协议 `spec/21-bind.md`、模型 JSON 投影、`EditOp` JSON、有状态会话与媒体句柄、**Rust crate 公共 API 定型**、`*.model.json` 自快照回归网、`compat_ts` 降为测试专用 feature。逐条进度记 `docs/04` §17。
+**当前：M8′ 实现收尾，门 2 / 门 4 待裁定**（`spec/19`，分支 `m8-native-json`，工作树 `../rsWordParser-m8j`）——原生协议 `spec/21-bind.md`、模型 JSON 投影、`EditOp` JSON、有状态会话与媒体句柄、**Rust crate 公共 API 定型**、`*.model.json` 自快照回归网、`compat_ts` 降为测试专用 feature。逐条进度记 `docs/04` §17。
 
 ## TS 不是权威
 
@@ -61,7 +61,8 @@ genoffice 的 TS 引擎是**测试基准**（2026-09-08 起也只是测试基准
 | `crates/rsword/src/resolve/` | 有效属性只读视图（样式链、主题字体 / 颜色） |
 | `crates/rsword/src/edit/` | L4 编辑引擎（`EditSession`、`InlinePos`、`MutationPlan`、操作） |
 | `crates/rsword/src/save/` | 校验、序列化、包写回、保存选项 |
-| `crates/rsword/src/bind/compat_ts/` | 兼容适配器：`ParsedDoc` JSON、`SaveBlock[]` 映射、差分。**测试专用**（M8′ 8.7 起挂 `compat-ts` feature，默认关），不是对外接口 |
+| `crates/rsword/src/bind/native/` | 唯一对外协议：模型/操作 JSON、会话、媒体与批量查询 |
+| `crates/rsword/src/bind/compat_ts/` | 兼容适配器：`ParsedDoc` JSON、`SaveBlock[]` 映射、差分。**测试专用**（已挂 `compat-ts` feature，默认关），不是对外接口 |
 | `crates/rsword/src/bind/js.rs`、`crates/rsword-js/` | 语言中立的绑定核心 + wasm-bindgen 外壳（7.10；M8′ 8.4 改为有状态会话） |
 | `crates/rsword/schema/` | `local_names.txt`（名字表）、`props/*.toml`（属性表） |
 | `tools/diff-parse`、`tools/xpath-assert`、`tools/gen-fixtures` | 差分、XPath 断言、`fixtures/resolve` 生成（workspace 成员） |
@@ -76,16 +77,19 @@ genoffice 的 TS 引擎是**测试基准**（2026-09-08 起也只是测试基准
 
 ```sh
 cargo fmt --all
-cargo clippy --workspace --all-targets      # 必须零告警
-cargo test --workspace                      # 调试构建
-cargo test --workspace --release            # 必须也跑：enforce 只在调试构建报错，发布构建行为不同
-cargo run -p diff-parse -- --scope text     # M1 门：文本用例未知差异必须为 0
-cargo run -p diff-parse -- --scope fields   # M2 门：再加字段 / 范围 / 批注，仍须为 0
-cargo run -p diff-parse -- --scope tables   # M3 门：再加含表格的文档（按文档筛），仍须为 0
-cargo run -p diff-parse -- --scope drawing  # M4 门：绘图域**路径**（不是按文档筛），仍须为 0
-cargo run -p diff-parse -- --scope hf       # M5 门：页眉页脚域**路径**，仍须为 0
-cargo run -p diff-parse -- --scope embedded # M6 门（进行中）：嵌入对象域（路径 + 期望块 label），目标 0
-cargo run -p diff-parse -- --scope all --json          # 全域差距排名
+cargo clippy --workspace --all-targets
+cargo clippy --workspace --all-targets --features compat-ts      # 必须零告警
+cargo test --workspace                      # 默认：原生协议/引擎测试
+cargo test --workspace --features compat-ts  # 另加兼容差分测试
+cargo test --workspace --release
+cargo test --workspace --release --features compat-ts # 必须也跑：enforce 只在调试构建报错，发布构建行为不同
+cargo run -p diff-parse --features compat-ts -- --scope text     # M1 门：文本用例未知差异必须为 0
+cargo run -p diff-parse --features compat-ts -- --scope fields   # M2 门：再加字段 / 范围 / 批注，仍须为 0
+cargo run -p diff-parse --features compat-ts -- --scope tables   # M3 门：再加含表格的文档（按文档筛），仍须为 0
+cargo run -p diff-parse --features compat-ts -- --scope drawing  # M4 门：绘图域**路径**（不是按文档筛），仍须为 0
+cargo run -p diff-parse --features compat-ts -- --scope hf       # M5 门：页眉页脚域**路径**，仍须为 0
+cargo run -p diff-parse --features compat-ts -- --scope embedded # M6 门（进行中）：嵌入对象域（路径 + 期望块 label），目标 0
+cargo run -p diff-parse --features compat-ts -- --scope all --json          # 全域差距排名
 cargo run -p xpath-assert -- a.docx '//w:p[1]/w:r/w:t/text()'
 cd fuzz && cargo +nightly fuzz run fuzz_xml -- -max_total_time=600      # 另有 fuzz_zip / fuzz_instr
 GENOFFICE_DIR=~/code/genoffice tools/export-golden/run.sh   # 重导语料（改期望值的唯一合法途径；重导后按 tools/export-golden/README「重导的稳定性与噪音」还原噪音）

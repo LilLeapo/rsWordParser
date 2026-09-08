@@ -15,12 +15,13 @@ BIND-11 的稳定面为 `bind::native` 全部导出和根部列出的核心类�
 变更记录须给出迁移方式；协议版本独立演进，目前仍为 `native/0`。
 
 隐藏项仍可被下游调用。负责人于 2026-09-09 决定将缩小实际 semver 面推迟到观察期之后，
-门 3 的“缺省小面”这半条未达成。稳定面文档由 audit cfg 下的 rustc 硬检查，注解位置与
-[成文清单](docs/11-public-api.md) 双向锁定。
+此观察期安排不等同于物理私有化。稳定面文档由 audit cfg 下的 rustc 硬检查，注解位置与
+[成文清单](docs/13-public-api.md) 双向锁定。
 
 Feature 名称：默认 `native`，另有 `serde`、`wasm`、测试专用 `compat-ts`。
-**8.5 只固定 feature 名称与依赖关系；compat_ts 的实际编译门控留到 8.7，当前默认构建仍含兼容层。
-关闭 serde feature 也暂不移除共享 serde 依赖。门 3 的默认构建排除兼容层这一半尚未完成。**
+默认构建不编译 `compat_ts` 或旧无状态 JS 入口；差分测试与工具需显式 `--features compat-ts`。
+`tools/ci/check-native-default.sh` 在隔离下游验证默认读改存成功、兼容模块导入失败。
+关闭 serde feature 暂不移除共享 serde 依赖。
 
 ## 读取大纲和文本
 

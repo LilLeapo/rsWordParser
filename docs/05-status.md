@@ -18,7 +18,7 @@
 （外加部件级 189/289 比对）、1,000 条随机编辑序列在 debug 与 release 双跑无失败。
 其中 `TEST-07` 一道门就查出并修掉 **17 个引擎缺陷**。任务分解见 `spec/18-m7-plan.md`，逐条进度见 `docs/04` §16。
 
-**下一步：M8′**（分支 `m8-native`，工作树 `../rsWordParser-m8n`）——`spec/19-m8-plan.md`，8 个任务、6 条门。
+**M8′ 实施记录**（分支 `m8-native-json`，工作树 `../rsWordParser-m8j`）——`spec/19-m8-plan.md`，8 个任务、6 条门。
 **8.0 已收口**（2026-09-08）：文档改定并入；`m8-editor` 的 8.1a 摘进 `m8-native`（`parse_diagnostics`、
 `BindBadArgument`、node 实测 harness `tools/js-parity/`、`TOOLS.md`、CI wasm 步骤），8.0a 丢弃；门重跑全绿。
 **8.2 已完成**（2026-09-08，分支 `m8-native-json`）：`bind/native/` 模型 JSON 投影——`model_json!` 同表展开
@@ -29,7 +29,7 @@
 
 **8.3 已完成**（2026-09-09，分支 `m8-native-json`，按项目负责人 c19fbb3 的 BIND-03/04 v3）：
 66 变体的线型 / 上下文化转换 / 逐变体测试同源；**57 无损往返 + 9 具名拒绝**，九项另有结构化正向往返。
-成文拒绝集见 `native-edit-json.md`，与独立常量及实跑分类双向锁死。属性 patch serde/schema 由生成器维护，
+成文拒绝集见 `10-native-edit-json.md`，与独立常量及实跑分类双向锁死。属性 patch serde/schema 由生成器维护，
 Keep / Unset / Set / Patch 的分支不塌缩；EditContext 全字段可选，MutationResult 五字段完整投影。
 六族声明操作已公开且按键幂等，参考文献未变条目原字节有断言；原生保存不再隐式清洗，compat 显式沿用文档标志。
 协议 apply 失败不提交 DOM / interner / 诊断，逃生口按会话累计并随诊断返回。
@@ -87,9 +87,9 @@ u32::MAX 的 sect 经绑定复现 panic，修复后返回 EDIT_TARGET_MISSING，
 
 **8.5 已完成观察版**（2026-09-09，BIND-11）：根部重导出稳定核心类型，旧路径仅从文档隐藏，
 下游仍可调用。**缩小实际 semver 面推迟到观察期之后（负责人 2026-09-09 决定），门 3 的“缺省小面”
-这半条未达成**；默认构建排除 compat_ts 也仍待 8.7。feature 名称已定为 native / wasm / serde / compat-ts，
+这半条未达成**；默认构建排除 compat_ts 在 8.5 时仍待 8.7，现已落实（见下）。feature 名称已定为 native / wasm / serde / compat-ts，
 默认 native；serde 仍是共享运行期依赖，不承诺关闭 feature 就去掉依赖，重复的 dev serde 已删除。
-稳定类型及其固有 impl 由 `rsword_api_docs` 下的 rustc 检查文档；成文清单见 [11-public-api.md](11-public-api.md)，
+稳定类型及其固有 impl 由 `rsword_api_docs` 下的 rustc 检查文档；成文清单见 [13-public-api.md](13-public-api.md)，
 **27 个类型、46 处审计注解位置**与整个 src 的 token 扫描双向锁死，包含宏模板，并锁定祖先可见性。
 结构体 / 枚举用 non_exhaustive；固定值对象的豁免逐项登记。DiagCode 发布表禁止删除或更名。
 
@@ -150,7 +150,7 @@ large-report.docx（326406 B），预热后 31 次采样，准备与释放不计
 | 原生 apply（含事务检查点） | 0.854 ms | 0.947 ms | 0.986 ms |
 | 协议 apply（含协议边界与事务检查点） | 1.417 ms | 1.525 ms | 1.757 ms |
 
-apply p95 均低于 5 ms；克隆与批量 resolve 低于 50 ms。计时浮动不解释为优化。
+apply p95 均低于 5 ms；克隆与批量 resolve 低于 50 ms。8.4 的 0.608 ms 与 8.6 的 0.334 ms 都是在同一最大文档刚打开的会话上，预热一次、31 次单次 clone、排除释放，度量口径未变；checkpoint 增加的是 apply 内部克隆次数，已计入 apply 基准，同口径两次测量 0.608 / 0.334 ms（31 样本），属测量噪声，未做优化。
 
 本轮完整 workspace debug / release 均 **911 passed、0 failed、13 ignored**；fmt 干净，
 clippy 零告警，audit 与 rustdoc 均带 `-D warnings` 通过。八道差分门仍为
@@ -165,6 +165,47 @@ release 门自检失败。每次恢复源码后定向测试通过，并逐字节
 网格修复后重新运行 `fuzz_bind`：**28,853 runs / 601 秒，无崩溃**，任意 JSON 经 apply、document
 与五个 resolve 入口；Err 与只读查询均比较模型 JSON、诊断/逃生计数和保存字节。
 使用 `/tmp` 中的运行语料副本，工作区仅保留三个手工种子；10 分钟实跑不替代待裁定的门结论。
+
+**8.7 实现收尾**：默认构建不编译 compat_ts 或旧无状态 JS 入口；开启 `compat-ts` 后完整保留
+差分、保存 oracle 与 TS fieldgen fixtures。diff-parse 通过显式 feature 转发及 required-features
+隔离，workspace 默认构建不会间接开启 compat。`TocOptions.ts_shape` 默认也不存在。
+CI 两种 feature 分别运行测试、clippy、audit、doc 和三个 example；独立下游门实际完成读改存，
+并断言 compat_ts 导入为 E0432、ts_shape 字段构造为 E0560，避免误把 doc(hidden) 当作物理门控。
+**门 3 的默认排除兼容层这一半已兑现**；其他隐藏公共项仍保留观察期，不承诺已私有化。
+
+旧 `save_01_no_edit_returns_original_bytes_for_all_corpus`（Package 路径）已去掉 `n > 570`
+与打不开即 continue：精确 1103 输入、1099 成功、4 点名拒绝，与协议快照门共享 UNOPENABLE。
+文档编号为 [10-native-edit-json.md](10-native-edit-json.md)、[13-public-api.md](13-public-api.md)，
+两处 include_str 与所有直接引用同步，留 docs/11、docs/12 给 M9′。
+
+`cargo bench -p rsword --bench bind` 的生产默认 feature 数据（预热一次、31 次样本，单位 ms，均为 p95）：
+准备状态与释放在计时外；save 测一次 InsertText 后的实际保存，MB 为输入 ZIP 的十进制 MB。
+
+| 文档（corpus/real 下） | ZIP B | open | document | apply | save | save ms/MB | media |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| misc/large-report.docx | 326406 | 4.452750 | 0.779667 | 1.949291 | 3.534125 | 10.827390 | 0.000625（新增 1 KiB 句柄） |
+| ole/ole-ppt.docx | 47294 | 0.275667 | 0.039167 | 0.086333 | 0.243292 | 5.144247 | 0.006459（1960 B） |
+| _round3/_resaved/ink-to-shape--newchart-resaved-by-word.docx | 47098 | 0.613375 | 0.082375 | 0.205000 | 0.637708 | 13.540023 | 0.003667（233 B） |
+
+最大文档没有原有媒体，media 一栏是明确标注的新增句柄实验，不伪称读取了它的源媒体。
+开启 compat-ts 后另测体积，原生 JSON 字节数与默认构建相同（document 完整响应、display=false）：
+
+| 文档 | compat ParsedDoc B | native document B | 减少 |
+| --- | --- | --- | --- |
+| large-report | 483775 | 128519 | 73.4% |
+| ole-ppt | 13578 | 7182 | 47.1% |
+| ink-to-shape--newchart-resaved-by-word | 140086 | 13246 | 90.5% |
+
+单份 ole-ppt 不满 50% 不改变门 6 的带图全语料聚合口径；不删掉该行来美化数字。
+默认 wasm 原文件 **3,365,804 B**、gzip **999,245 B**；compat wasm 原文件 **3,807,435 B**、
+gzip **1,155,713 B**，均低于 3 MiB。使用 wasm-release + wasm-bindgen、gzip -n；未安装可选 wasm-opt，
+未把省略的优化记成已运行。两种真实 wasm 的原生会话检查均通过，默认另断言旧五个兼容导出不存在。
+最终默认 debug/release 各 **792 passed / 0 failed / 13 ignored**；compat 各 **911 passed / 0 failed / 13 ignored**。
+fmt 干净，两套 clippy、audit（`-D warnings`）与 rustdoc 均零告警。八道差分 **242 + 547 已知 / 0 未知**；
+save_blocks **204/208 等价、0 跳过**，真实 JS 保存 **208/208 字节相等**、blank 六项通过。
+体积门 **251 份 −67.5%**；**66 变体（57 无损 + 9 具名拒绝）**与 **1099 份快照**不退。
+默认构建 fuzz_bind **25,336 runs / 601 秒**，退出码 0、无崩溃；种子扩充仅写临时目录。
+**spec/18 7.4、门 2 / 门 4 仍待裁定；docs/03 §8.2 升版未批准，本次不动。**
 
 **M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖），**已全部并入 `main`**（2026-09-04）。
 **M3 完成**（2026-09-05，分支 `m3-tables`，3.1–3.9 全部落地，**M3 门四条都跑过**：
@@ -273,18 +314,18 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
 | 模型对照 | 445 段类型 / styleId、387 段坐标流文本、22 项列表、9 项级别 | `tests/model.rs` |
 | resolve 对照 | 86,465 项 `StyleDisplay`、2,326 项 heading 级别、2,897 项 linked shell | `tests/resolve.rs` |
-| 解析差分（文本域） | 256 份用例（2.6 起含带批注 / 注释的文档；嵌入对象文档剔除），156 处已登记差异，**0 处未知差异** | `cargo run -p diff-parse -- --scope text` |
-| 解析差分（字段与 Span 域，M2 门） | 283 份用例（文本域 + 字段 / 标记 / 批注 / 注释），**0 处未知差异** | `cargo run -p diff-parse -- --scope fields` |
-| 解析差分（表格域，M3 门） | 352 份用例（字段域 + 表格，含单元格里的锚定形状与图片），**0 处未知差异** | `cargo run -p diff-parse -- --scope tables` |
-| 解析差分（页眉页脚域，M5 门） | 799 份用例，**0 处未知差异**（按**路径**筛，嵌入对象块上的差异剔除） | `cargo run -p diff-parse -- --scope hf` |
-| 解析差分（嵌入对象域，M6 门） | 799 份用例，**0 处未知差异**（按路径 + 期望块的 label 筛） | `cargo run -p diff-parse -- --scope embedded` |
-| 解析差分（全域） | 799 份用例，242 处已登记差异，**0 处未知差异** | `cargo run -p diff-parse -- --scope all` |
+| 解析差分（文本域） | 256 份用例（2.6 起含带批注 / 注释的文档；嵌入对象文档剔除），156 处已登记差异，**0 处未知差异** | `cargo run -p diff-parse --features compat-ts -- --scope text` |
+| 解析差分（字段与 Span 域，M2 门） | 283 份用例（文本域 + 字段 / 标记 / 批注 / 注释），**0 处未知差异** | `cargo run -p diff-parse --features compat-ts -- --scope fields` |
+| 解析差分（表格域，M3 门） | 352 份用例（字段域 + 表格，含单元格里的锚定形状与图片），**0 处未知差异** | `cargo run -p diff-parse --features compat-ts -- --scope tables` |
+| 解析差分（页眉页脚域，M5 门） | 799 份用例，**0 处未知差异**（按**路径**筛，嵌入对象块上的差异剔除） | `cargo run -p diff-parse --features compat-ts -- --scope hf` |
+| 解析差分（嵌入对象域，M6 门） | 799 份用例，**0 处未知差异**（按路径 + 期望块的 label 筛） | `cargo run -p diff-parse --features compat-ts -- --scope embedded` |
+| 解析差分（全域） | 799 份用例，242 处已登记差异，**0 处未知差异** | `cargo run -p diff-parse --features compat-ts -- --scope all` |
 | resolve 校准 fixture | 8 份（7 个 toggle + 1 个节继承）全部 `verified = true`，观察值来自 2026-09-06 的 Word 网页版实测（方法与结论见 `fixtures/resolve/README.md`，未决部分见 `docs/06-toggle-open-question.md`） | `cargo test -p rsword --test resolve_fixtures` |
 | 页眉页脚 / 节的随机序列 | 10 份语料 × 100 步（页眉段落内联编辑 + 五个节 / 页眉页脚操作）：986 次生效、10 次被拒，每步 `refresh == rebuild`、无引擎不变式破坏 | `cargo test -p rsword --test hf_ops -- --nocapture` |
 | 保存差分 | 208 份 TS 保存用例：204 份与 `saveDocx` 等价（其中 43 份逐字节相同）、4 份有意不同、0 份跳过 | `tests/save_blocks.rs` |
-| **真实 Word 语料** | 266 份（Office LTSC 2021 桌面 Word 写出，三轮：`docs/07` 任务 A 110 + M7 语料 17 + 往返样本 14 + Word 另存件 123 + 收尾轮 2）：全部 XML part 往返字节相同、无编辑保存字节相同、改一字后其他条目 CRC 不变；TS 差分 0 处未知（登记 547 处） | `cargo test -p rsword --test xml_roundtrip --test save`、`cargo run -p diff-parse -- --corpus corpus/real` |
+| **真实 Word 语料** | 266 份（Office LTSC 2021 桌面 Word 写出，三轮：`docs/07` 任务 A 110 + M7 语料 17 + 往返样本 14 + Word 另存件 123 + 收尾轮 2）：全部 XML part 往返字节相同、无编辑保存字节相同、改一字后其他条目 CRC 不变；TS 差分 0 处未知（登记 547 处） | `cargo test -p rsword --test xml_roundtrip --test save`、`cargo run -p diff-parse --features compat-ts -- --corpus corpus/real` |
 | **Word 验收本引擎的输出** | 1544 份编辑后文档（12 种编辑 × 180 份真实底稿）由桌面 Word 逐份打开：**open 全部 ok**；第二轮那 9 份 `docPr` 撞号与 4 份图表 mismatch 都已修并在第三轮 9/9、4/4 复验通过。见 `corpus/real/_round3/EDITED3.md` |
-| **Word 对照 fixture** | `fixtures/revisions/` 四个 case 各 `base`/`tracked`/`accepted`/`rejected`（Word 自己「接受 / 拒绝所有修订」的结果，M7 门第 3 条的 oracle）；`fixtures/word-ops/` 四组 Word 自己做操作的 `before`/`after`（插 / 删分节符、置于顶层、移动缩放） | `fixtures/{revisions,word-ops}/README.md` | `cargo test -p rsword --test xml_roundtrip --test save`、`cargo run -p diff-parse -- --corpus corpus/real` |
+| **Word 对照 fixture** | `fixtures/revisions/` 四个 case 各 `base`/`tracked`/`accepted`/`rejected`（Word 自己「接受 / 拒绝所有修订」的结果，M7 门第 3 条的 oracle）；`fixtures/word-ops/` 四组 Word 自己做操作的 `before`/`after`（插 / 删分节符、置于顶层、移动缩放） | `fixtures/{revisions,word-ops}/README.md` | `cargo test -p rsword --test xml_roundtrip --test save`、`cargo run -p diff-parse --features compat-ts -- --corpus corpus/real` |
 | 嵌入对象的随机序列 | 5 份图表 + 5 份图片语料 × 100 步（图表数据 / 新图表 / 新图片 / 换图 / 墨迹增删 / 删块 / 插字）：633 次生效、0 次被拒、36 次保存，每步 `refresh == rebuild`、保存后无新的悬空关系与孤儿 part | `cargo test -p rsword --test embedded_ops -- --nocapture` |
 | 节与页眉页脚 | 573 份 588 个节（与 TS `readSections` 逐份一致）；43 份带页眉页脚 part（47 个 part / 63 个块，`rId` 集合与 `hasPageNumber` 与 TS 一致）；26 个注释 / 批注条目 32 个块 | `cargo test -p rsword --test section --test hf --test notes -- --nocapture` |
 | 节与页眉页脚的编辑操作 | 14 个用例（`SAVE-05` 页眉版、已有 part 只重写该 part、`PROP-05/06` 插入位置与原字节、Strict 水印拒绝、六个操作各一组 XPath 断言、`MOD-13` oracle；另加 4 份 hostile 与 `TEST-07` 的 10 × 100 步随机序列） | `cargo test -p rsword --test hf_ops` |
@@ -295,7 +336,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 字段索引 | 43 份文档 / 57 个字段（`Atom` 33、`Block` 6、`Picture` 6、`Form` 4、`Link` 3、`Object` 3、`Marker` 1、`Unknown` 1）；3 份 TS 截断夹具本来就缺 `end` | `cargo test -p rsword --test field -- --nocapture` |
 | 字段模型与 compat | 19 个用例（配对 / 指令 / 策略 / 坐标流 / R09 / 折叠 run / `fieldDisplay`） | `cargo test -p rsword --test field` |
 | 段落 / 书签 / 字段操作 | 17 个用例（`SPAN-06` 拆分与合并、`EDIT-06` 书签分配、`FLD-09`/`10`/`12` 各自的验收行） | `cargo test -p rsword --test para_ops` |
-| **JS 绑定（`crates/rsword-js`，wasm-bindgen）** | `parse` / `parse_diagnostics` / `save` / `blank` / `version` 五个函数（8.0② 起；`blank` 收 `BlankDocxOptions` JSON，参数错误一律 `BIND_BAD_ARGUMENT`）。`--via-js` 用 node 跑**真实 wasm 产物**复核：synthetic 799 份与 real 266 份都与原生输出**逐字节相同**（再带着绑定输出走差分，0 处未知差异）；`save` 对 **208 / 208** 份保存用例、`blank` 对 none + 四种字体与原生字节相同。wasm 产物 **2.25 MB**（`wasm-release` 档：体积优先 + LTO + 去符号；gzip 后 **796 KB**） | `tools/build-js.sh`、`cargo run -p diff-parse -- --via-js --scope all`、`cargo test -p rsword --test js_binding --test save_blocks`、`tools/js-parity/` |
+| **JS 绑定（`crates/rsword-js`，wasm-bindgen）** | `parse` / `parse_diagnostics` / `save` / `blank` / `version` 五个函数（8.0② 起；`blank` 收 `BlankDocxOptions` JSON，参数错误一律 `BIND_BAD_ARGUMENT`）。`--via-js` 用 node 跑**真实 wasm 产物**复核：synthetic 799 份与 real 266 份都与原生输出**逐字节相同**（再带着绑定输出走差分，0 处未知差异）；`save` 对 **208 / 208** 份保存用例、`blank` 对 none + 四种字体与原生字节相同。wasm 产物 **2.25 MB**（`wasm-release` 档：体积优先 + LTO + 去符号；gzip 后 **796 KB**） | `tools/build-js.sh`、`cargo run -p diff-parse --features compat-ts -- --via-js --scope all`、`cargo test -p rsword --test js_binding --test save_blocks`、`tools/js-parity/` |
 | **`TEST-07` 随机编辑序列（M7 门 5）** | 1,000 条（语料 × 种子 × 100 步，操作全集 + 每步随机 `track_changes` + 随机接受 / 拒绝）：61,057 次生效、9,994 次被拒、2,625 次保存往返；每步 `MOD-13` 投影 == 重建、`FLD-13` 不增缺陷、`EDIT-06` 不重号、无引擎不变式破坏。PR 跑 100 条，`random.yml` 每天跑 1,000 条 | `RSWORD_RANDOM_SEQUENCES=1000 cargo test -p rsword --release --test random_ops -- --nocapture` |
 | **性能记录**（非门） | 319 KB 的 `large-report.docx`：`open` 6.2 ms、`InsertText` 0.67 ms、`save_with` 0.5 ms、绑定的 `parse`（含 `ParsedDoc` 投影与 JSON 序列化）4.7 ms；带修订的 23 KB 文档 `AcceptAll` 0.18 ms。建议观察值 `apply` < 5 ms、`save_with` < 50 ms / MB，四份都在一个量级之内 | `cargo bench -p rsword --bench edit` |
 | **`RES-04` toggle 歧义探针** | 1,065 份文档、3,698 个 run：撞上歧义 13 次，**全部**来自我们自己为 `RES-04` 造的校准件（`toggle-other-toggles-converted`），校准件之外 **0 次**（判据与阈值见 `docs/06` 第 2 件） | `cargo test -p rsword --test resolve res_04_toggle -- --nocapture` |
@@ -369,20 +410,24 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 ```sh
 cargo fmt --all --check && cargo clippy --workspace --all-targets   # 零告警
-cargo test --workspace && cargo test --workspace --release          # 两种构建，实际计数见本轮记录
+cargo test --workspace && cargo test --workspace --release          # 默认 feature
+cargo clippy --workspace --all-targets --features compat-ts
+cargo test --workspace --features compat-ts
+cargo test --workspace --release --features compat-ts
+tools/ci/check-native-default.sh                                   # 隔离下游生命周期 + 编译拒绝探针
 cargo test -p rsword --test model_snapshot                          # 自快照 + 全语料无编辑原字节
 RSWORD_RANDOM_SEQUENCES=1000 cargo test -p rsword --test random_ops -- --nocapture
 RSWORD_RANDOM_SEQUENCES=1000 cargo test -p rsword --release --test random_ops -- --nocapture
 # fuzz_bind 使用临时 corpus，避免把 libFuzzer 自动扩充的种子写回工作区，见 fuzz/README.md
-cargo run -p diff-parse -- --scope text                             # M1 门第一条：0 未知差异
-cargo run -p diff-parse -- --scope fields                           # M2 门：字段与 Span 域 0 未知差异
-cargo run -p diff-parse -- --scope tables                           # M3 门：表格域 0 未知差异
-cargo run -p diff-parse -- --scope drawing                          # M4 门：绘图域路径 0 未知差异
-cargo run -p diff-parse -- --scope hf                               # M5 门：页眉页脚域路径 0 未知差异
-cargo run -p diff-parse -- --scope embedded                         # M6 门：嵌入对象域 0 未知差异
-cargo run -p diff-parse -- --scope all                              # 第八道门（M6 6.9）：全域 0 未知差异
-cargo run -p diff-parse -- --corpus corpus/real                     # 真实 Word 语料（266 份）：0 未知差异
-tools/build-js.sh && cargo run -p diff-parse -- --via-js --scope all # 绑定等价门：真实 wasm 产物与原生逐字节相同（需 node ≥ 22，见 TOOLS.md）
+cargo run -p diff-parse --features compat-ts -- --scope text                             # M1 门第一条：0 未知差异
+cargo run -p diff-parse --features compat-ts -- --scope fields                           # M2 门：字段与 Span 域 0 未知差异
+cargo run -p diff-parse --features compat-ts -- --scope tables                           # M3 门：表格域 0 未知差异
+cargo run -p diff-parse --features compat-ts -- --scope drawing                          # M4 门：绘图域路径 0 未知差异
+cargo run -p diff-parse --features compat-ts -- --scope hf                               # M5 门：页眉页脚域路径 0 未知差异
+cargo run -p diff-parse --features compat-ts -- --scope embedded                         # M6 门：嵌入对象域 0 未知差异
+cargo run -p diff-parse --features compat-ts -- --scope all                              # 第八道门（M6 6.9）：全域 0 未知差异
+cargo run -p diff-parse --features compat-ts -- --corpus corpus/real                     # 真实 Word 语料（266 份）：0 未知差异
+tools/build-js.sh --features compat-ts && cargo run -p diff-parse --features compat-ts -- --via-js --scope all # 绑定等价门：真实 wasm 产物与原生逐字节相同（需 node ≥ 22，见 TOOLS.md）
 cargo test -p rsword --test real_edits -- --ignored                 # 重新生成给 Word 验收的编辑后文档
 cd fuzz && cargo +nightly fuzz run fuzz_embedded -- -max_total_time=600 # M6 门第 4 条：图表 / 图示 / OMML / 画布解析无崩溃
 cd fuzz && cargo +nightly fuzz run fuzz_instr -- -max_total_time=600 # M2 门：指令 tokenizer 无崩溃

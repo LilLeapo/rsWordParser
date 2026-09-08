@@ -3,7 +3,7 @@ use proc_macro2::{Delimiter, TokenStream, TokenTree};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-const CONTRACT: &str = include_str!("../../../docs/11-public-api.md");
+const CONTRACT: &str = include_str!("../../../docs/13-public-api.md");
 const AUDIT: &str = "cfg_attr(rsword_api_docs,deny(missing_docs))";
 
 fn section(name: &str) -> BTreeSet<String> {

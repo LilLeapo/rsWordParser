@@ -4,9 +4,13 @@
 
 mod common;
 
-use rsword::model::omml::{latex_to_omml, math_paragraph_xml};
+use rsword::model::omml::latex_to_omml;
+#[cfg(feature = "compat-ts")]
+use rsword::model::omml::math_paragraph_xml;
+#[cfg(feature = "compat-ts")]
 use serde_json::Value;
 
+#[cfg(feature = "compat-ts")]
 fn fixture() -> Value {
     let path = common::repo_root().join("fixtures/fieldgen/latex.json");
     serde_json::from_str(&std::fs::read_to_string(path).expect("latex.json")).expect("JSON")
@@ -14,6 +18,7 @@ fn fixture() -> Value {
 
 /// 42 条输入的 OMML 与 TS 逐字相等。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn latex_to_omml_matches_ts() {
     let fx = fixture();
     let omml = fx["omml"].as_object().expect("omml 段");
@@ -26,6 +31,7 @@ fn latex_to_omml_matches_ts() {
 
 /// 解析不了的输入两边都报错（措辞不比——那是 TS 的英文文案）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn latex_errors_match_ts() {
     let fx = fixture();
     for (src, ts_msg) in fx["errors"].as_object().expect("errors 段") {
@@ -37,6 +43,7 @@ fn latex_errors_match_ts() {
 
 /// `mathParagraphXml` 的三种对齐。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn math_paragraph_matches_ts() {
     let fx = fixture();
     let body = latex_to_omml("a^2").unwrap();

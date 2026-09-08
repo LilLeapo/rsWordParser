@@ -4,11 +4,13 @@
 
 mod common;
 
-use rsword::edit::{
-    BlockAt, BlockPos, EditContext, EditOp, EditSession, NewBlock, NewInline, NewRun,
-};
+use rsword::edit::EditSession;
+#[cfg(feature = "compat-ts")]
+use rsword::edit::{BlockAt, BlockPos, EditContext, EditOp, NewBlock, NewInline, NewRun};
+#[cfg(feature = "compat-ts")]
 use rsword::xml::{LocalName, QName};
 
+#[cfg(feature = "compat-ts")]
 fn fixture() -> serde_json::Value {
     let path = common::repo_root().join("fixtures/fieldgen/blank.json");
     serde_json::from_slice(&std::fs::read(&path).expect("blank.json")).expect("JSON")
@@ -16,6 +18,7 @@ fn fixture() -> serde_json::Value {
 
 /// 六个 part 与 TS 的输出逐字节相同（不给 `w:eastAsia` 与给了各一遍）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn blank_parts_match_the_ts_template_byte_for_byte() {
     let want = fixture();
     for (key, font) in [("default", None), ("eastAsia", Some("等线"))] {
@@ -57,6 +60,7 @@ fn blank_opens_to_one_paragraph_with_the_standard_styles() {
 /// TS `blank-template` 第二场景：在空白模板上生成三级标题、正文与两种列表，
 /// 保存后重解析，类型 / 级别 / 列表都对。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn generated_content_survives_a_save_and_reparse() {
     let mut s = EditSession::blank(None).expect("blank session");
     let dom = s.package().part(s.document().main_part).dom().expect("主 part");

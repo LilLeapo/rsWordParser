@@ -1,3 +1,4 @@
+#![cfg(feature = "compat-ts")]
 //! JS 绑定的语言无关那一半（`bind::js`，`spec/18` 7.10；M8′ 8.0② 加 blank 门控比对）。
 //!
 //! wasm 那层（`crates/rsword-js`）只做类型转换，所以这里比的就是绑定的全部行为：

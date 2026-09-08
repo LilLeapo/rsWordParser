@@ -8,6 +8,14 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
+[features]
+compat-ts = ["rsword/compat-ts"]
+
+[[bin]]
+name = "diff-parse"
+path = "src/main.rs"
+required-features = ["compat-ts"]
+
 [dependencies]
 rsword = { path = "../../crates/rsword" }
 serde_json = "1"

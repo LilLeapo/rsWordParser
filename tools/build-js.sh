@@ -14,7 +14,7 @@ repo_root=$(cd "$(dirname "$0")/.." && pwd)
 sha=$(git -C "$repo_root" rev-parse --short=12 HEAD)
 
 cd "$repo_root/crates/rsword-js"
-RSWORD_COMMIT="$sha" cargo build --target wasm32-unknown-unknown --profile wasm-release
+RSWORD_COMMIT="$sha" cargo build --target wasm32-unknown-unknown --profile wasm-release "$@"
 wasm_out=../../target/wasm32-unknown-unknown/wasm-release/rsword_js.wasm
 mkdir -p pkg
 wasm-bindgen --target web --out-dir pkg "$wasm_out"

@@ -395,6 +395,7 @@ fn bind_02_json_depth_ignores_escaped_strings() {
 
 /// 门 6（体积）：带图语料 `display` 关闭时的聚合体积较 `compat_ts::parsed_doc` 降 ≥ 50%。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn bind_02_volume_reduction() {
     let mut with_media = 0;
     let mut ours_total = 0usize;

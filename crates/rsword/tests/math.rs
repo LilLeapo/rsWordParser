@@ -7,13 +7,17 @@
 
 mod common;
 
+#[cfg(feature = "compat-ts")]
 use rsword::bind::compat_ts::{
     EmbeddedKind, block_of_path, diff_json, embedded_kind, known_diffs, parsed_doc, split_known,
 };
+#[cfg(feature = "compat-ts")]
 use rsword::edit::{EditContext, EditOp, EditSession, InlinePos};
 use rsword::model::omml::{fragments, latex, mathml};
+#[cfg(feature = "compat-ts")]
 use rsword::package::Package;
 use rsword::xml::Dom;
+#[cfg(feature = "compat-ts")]
 use serde_json::{Value, json};
 
 const M: &str = "http://schemas.openxmlformats.org/officeDocument/2006/math";
@@ -40,11 +44,13 @@ fn to_latex(inner: &str) -> Option<String> {
     latex::to_latex(&dom, *only)
 }
 
+#[cfg(feature = "compat-ts")]
 fn parsed(bytes: &[u8]) -> Value {
     let mut pkg = Package::open(bytes).expect("open");
     parsed_doc(&mut pkg).expect("parsed_doc")
 }
 
+#[cfg(feature = "compat-ts")]
 fn body_docx(body: &str) -> Vec<u8> {
     // `docx_with_body` 只声明 `w`；公式与 ruby 段落自己带 `xmlns:m`
     common::docx_with_body(body)
@@ -52,6 +58,7 @@ fn body_docx(body: &str) -> Vec<u8> {
 
 /// `COMPAT-07`：语料里每个公式 / ruby 文档在本域的差异为 0。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_07_formula_and_ruby_projection_match_ts_across_the_corpus() {
     let known = known_diffs();
     let (mut docs, mut formulas, mut unknown) = (0, 0, Vec::new());
@@ -246,6 +253,7 @@ fn mod_11_omml_to_latex_fixtures() {
 
 /// 公式块与文字夹公式的投影；`mathml` 只在没有可见正文时给；`omml` 是原字节；多片段没有 `latex`。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_07_formula_blocks_and_inline_math_runs() {
     let m_decl = format!(r#"xmlns:m="{M}""#);
     let body = format!(
@@ -291,6 +299,7 @@ fn compat_07_formula_blocks_and_inline_math_runs() {
 
 /// ruby run：`text` 是被注正文，`rt` 不进正文，`xml` 是整个 `w:ruby` 原字节，不带格式键。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_07_ruby_runs_carry_rt_and_raw_xml() {
     let ruby = |base: &str, rt: &str| {
         format!(
@@ -324,6 +333,7 @@ fn compat_07_ruby_runs_carry_rt_and_raw_xml() {
 
 /// hostile `omml-deep`（3,000 层嵌套的分式）：解析、投影、两个转换器都不爆栈；结果的深度与输入一致。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn test_09_deeply_nested_omml_converts_iteratively() {
     let bytes = std::fs::read(common::corpus_dir("hostile").join("omml-deep.docx")).unwrap();
     let v = parsed(&bytes);
@@ -354,6 +364,7 @@ fn test_09_deeply_nested_omml_converts_iteratively() {
 
 /// `EDIT-02`：文字夹公式的段落里，`m:oMath` 是 1 个原子；在它前后插字后保存，公式字节原样。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn edit_02_text_edits_step_around_the_math_atom() {
     let body = format!(
         r#"<w:p xmlns:m="{M}"><w:r><w:t>ab</w:t></w:r>{FRACTION}<w:r><w:t>cd</w:t></w:r></w:p>"#

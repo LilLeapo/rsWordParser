@@ -295,6 +295,8 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 
 | 处 | 规范写法 | 实现 | 原因 |
 | --- | --- | --- | --- |
+| `TEST-10` M8′ media 基准 | 最大三份真实文档的媒体读取 | `corpus/real/misc/large-report.docx` 没有原有媒体，改测向该会话新增的 1 KiB 图片句柄；其他两份读取原有媒体 | 测量方法偏差：该一项不是源文档媒体读取，docs/05 单独标注，不能视作三份均有真实媒体 |
+| `docs/03` §8.2，M8′ 收尾 | 冻结 EditOp 清单尚未收编后续操作 | **清单脱节待批**：原登记的 34 项及 8.3 新增六族已在 BIND-03 的 66 变体清单中；是否升 v3.4 由负责人裁定，本次不改 §8.2 | 只更新获授权的 §12 实施进度，不擅自升架构版本 |
 | `TEST-07`，8.6 包级诊断门洞 | `invariants_clean` 只查会话诊断 | 同时检查 `package.diagnostics()`；release 的 `SAVE-02` 违规记录在包上，旧检查会假绿。新增故意删 gridCol 的门自检，debug 必须 Err，release 必须由包级诊断被门捕获 | 未放宽诊断过滤，也不把已知输入损伤算作引擎违规；解释此前 release 随机门为何漏报 |
 | `EDIT-03` / `spec/18` 7.4，未追踪编辑 × 待决快照（未解决） | `restore()` 删除当前容器子元素并整体克隆历史快照，不与当前状态调和 | 未追踪编辑落在带未解决 `*Change` 的同一容器上，reject 仍可能悄悄回退它；涉及 `pPrChange` / `rPrChange` / `tcPrChange` / `trPrChange`，也包括无掉列的纯宽度 `tblGridChange` | 结果合法但语义错误：结构不变式不报错，保存两视图门只验证保存前后等价，缺少“保留后续未追踪改动”的独立语义 oracle；7.4 的 `revision_free()` 还跳过了相邻的已有修订目标。本次只修复破坏 `SAVE-02` 的列实例，其余留待协议层裁定交互语义，不记作已解决 |
 | `spec/18` 7.4，8.6 待负责人裁定 | TableGridChange Reject 写为快照克隆 | 按评审授权先实现：同批掉格已同步删除当前 gridCol 时，只摘快照标记，保留存活列当前宽度；纯宽度快照仍还原。外层事务提交前检查最终所有行几何，非法结果具名 Err 并完整回滚 | 26 步最小化回归要求 reject 成功，不靠拒绝过门。规范原文未改；措辞待裁定，门 2 / 门 4 暂不判；不声称解决所有未追踪属性与待决快照的交互 |
@@ -472,11 +474,11 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `BIND-02` 的 JSON Schema | 全语料过校验 | 不用 `additionalProperties: false`；`required` = 表内恒写行 | flatten 变体是 `allOf` 拼的，`false` 会把拼进分支的 `kind` 键判掉；投影实例的键集由 `tests/native_bind.rs` 沿 schema 引用迭代检查，合并 `allOf` 声明键并选择匹配变体，动态映射继续检查值 |
 | `BIND-02` 的类型化往返验收 | JSON → `DocumentJson` → JSON 幂等 | 门 1 实际由「投影确定性 + 重建稳定性 + 键集严格性」三条替代；display 开 / 关均覆盖全部可打开语料 | 决策 2（模型 JSON 单向，只有 `EditOp` 能改文档）使类型化往返无意义；现有 `DocumentJson(pub Value)` 只是输出包装，`Value` 自往返无法验证投影层。**项目负责人已于 c19fbb3 批准并回写 BIND-02 v3**，8.3 不再修改规范 |
 
-| `BIND-03 v3` 结构化属性反向转换 | b 类正向往返与成文拒绝集 | `docs/native-edit-json.md` 列出 9 个拒绝载荷变体；另 57 个样例无损，合计 66；成文表、独立常量与实跑分类双向锁死 | 调试 / 审计出口不承担协议输入保真；读取后重新 emit 不能完全重建原 NewElement 时具名拒绝 |
+| `BIND-03 v3` 结构化属性反向转换 | b 类正向往返与成文拒绝集 | `docs/10-native-edit-json.md` 列出 9 个拒绝载荷变体；另 57 个样例无损，合计 66；成文表、独立常量与实跑分类双向锁死 | 调试 / 审计出口不承担协议输入保真；读取后重新 emit 不能完全重建原 NewElement 时具名拒绝 |
 | `BIND-03 v3` `$patch` | Keep 缺席、Unset null、Set 值、Patch 为鉴别对象 | 生成器为 patch 生成 serde 与 schema；只跳过真正 Keep；Set/Patch 的 oneOf 与 required `$patch` 同时验证，空 Patch 保留 | 已随 c19fbb3 批准写入规范；KeyChecker 支持 additionalProperties false 的封闭对象，继续拒绝未声明属性 |
 | `BIND-03` NewElement 逃生口 | XML 字符串 / part bytes 的 base64 | 元素 XML 必须恰有一个元素，顶层文本、注释 / PI / CDATA 无法落入 NewElement 时明确拒绝；part 整体替换保持原接口能力 | NewElement 只有 Element/Text 两种子节点，不能静默吞掉不可承载内容；转换元数据只在成功 apply 后并入诊断与计数 |
 
-| `BIND-11` 公共面观察期与文档约束 | `doc(hidden)` 或 unstable feature；稳定面 missing_docs 为零 | 取 `doc(hidden)` + `rsword_api_docs` 审计构建。CI 带 `-D warnings`，成文清单 `docs/11-public-api.md` 与稳定定义、固有 impl、deny 注解位置双向锁死；新增无文档方法和摘掉注解均做破坏性验证 | 负责人 2026-09-09 决定缩小实际 semver 面推迟到观察期之后。**隐藏项仍可被下游调用，门 3 的“缺省小面”这半条未达成**；代价是维护 audit cfg、逐项注解及一条 CI 构建。serde 仍是共享运行期依赖，compat_ts 实际编译门控留到 8.7 |
+| `BIND-11` 公共面观察期与文档约束 | `doc(hidden)` 或 unstable feature；稳定面 missing_docs 为零 | 取 `doc(hidden)` + `rsword_api_docs` 审计构建。CI 带 `-D warnings`，成文清单 `docs/13-public-api.md` 与稳定定义、固有 impl、deny 注解位置双向锁死；新增无文档方法和摘掉注解均做破坏性验证 | 负责人 2026-09-09 决定缩小实际 semver 面推迟到观察期之后。**隐藏项仍可被下游调用，门 3 的“缺省小面”这半条未达成**；代价是维护 audit cfg、逐项注解及一条 CI 构建。serde 仍是共享运行期依赖，compat_ts 已在 8.7 完成实际编译门控，默认排除 |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -1980,7 +1982,7 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   `parse → serialize`，包级「无编辑保存字节相同」只散落在几份手挑文档上。已把「全语料无编辑
   `EditSession::save()` 字节相同」加进 `spec/19` 门 5，落在 8.6。
 实现与验收：`edit_op_json!` 完整解构引擎 / 线型，66 变体逐项分类 **57 无损 + 9 具名拒绝**；
-九项各有结构化正向往返，成文拒绝表、独立常量、实跑集合相等（详见 `native-edit-json.md`）。
+九项各有结构化正向往返，成文拒绝表、独立常量、实跑集合相等（详见 `10-native-edit-json.md`）。
 属性 serde/schema 由 `build/props.rs` 生成；Change 三态和 TableChange 四态逐臂验证，KeyChecker
 对 `$patch` 及额外键有正反例。`MutationResult` 五字段由 `model_json!` 投影。
 协议 apply 转换前克隆，失败不提交 DOM / interner / 诊断；逃生口随诊断返回累计次数，页眉 XML
@@ -2034,10 +2036,10 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   根部重导出六个核心类型与 EditSession / EditContext / MutationResult / Error / DiagCode；
   原生模块全部导出纳入稳定承诺，其余旧公共路径 `doc(hidden)` 留一版观察期。
   **稳定面文档由 audit cfg 硬检查；缩小 semver 面推迟到观察期之后（负责人 2026-09-09 决定），
-  门 3 的“缺省小面”这半条未达成。** 下游仍可调用隐藏项，默认构建也仍含 compat_ts，实际门控留到 8.7。
+  门 3 的“缺省小面”这半条未达成。** 下游仍可调用其他隐藏项；compat_ts 已于 8.7 默认排除。
   default 为 native；native / wasm / serde / compat-ts 的名称和依赖关系已声明，serde 仍为共享运行期依赖，
   删除重复 dev serde。稳定结构体 / 枚举 non_exhaustive，四个固定值对象明确豁免；DiagCode 发布表只追加。
-  `docs/11-public-api.md` 成文列出 **27 个类型、46 处定义/固有 impl 注解位置**；源码 token 扫描包含宏模板，
+  `docs/13-public-api.md` 成文列出 **27 个类型、46 处定义/固有 impl 注解位置**；源码 token 扫描包含宏模板，
   与注解及成文清单双向锁死，并校验祖先在 audit 下取消隐藏。trait impl 沿用 trait 文档，不属于固有 impl 清单。
   破坏性验证：给 EditContext 加无文档方法，audit cargo check 退出 101（missing documentation）；
   去掉其固有 impl 的 deny 注解，清单测试退出 101（定义/impl 与注解漂移）。恢复后两道检查均通过。
@@ -2050,7 +2052,7 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   本轮最大真实文档克隆 **p95 0.555 ms**（31 次），继续保留克隆实现；完整计时见 docs/05。
   8.4 的越界索引历史归因已更正为“8.3 绑定层引入、8.4 修复”，不再归因原生引擎。
 
-- [ ] **8.6 回归网换代**（`*.model.json` 自快照、`TEST-07` 走协议、`fuzz_bind`）
+- [x] **8.6 回归网换代（实现与复核完成，规范裁定待批）**（`*.model.json` 自快照、`TEST-07` 走协议、`fuzz_bind`）
   实现与验证记录见 docs/05；修订网格的规范措辞仍待负责人裁定，**门 2 / 门 4 不判**。
   全语料无编辑保存门正式命名为 `test_10_full_corpus_model_snapshots_and_no_edit_save_identity`：
   原 8.3 已顺带覆盖 1065 份 synthetic + real，本次迁移原断言并扩至 hostile，未重复建一道门。
@@ -2067,7 +2069,21 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   破坏性验证：快照多键、禁用网格调和、移除几何兜底、移除包级诊断链接，均触发对应门失败；
   恢复后定向验证通过。性能与 fuzz 实测详见 docs/05。
 
-- [ ] **8.7 `compat_ts` 降级、性能、体积与收尾**
+- [x] **8.7 `compat_ts` 降级、性能、体积与收尾（实现完成）**
+  `bind/compat_ts` 与旧无状态 JS 入口由 compat-ts 门控，文件和 KNOWN_DIFFS 全部保留；
+  diff-parse 的 feature 显式转发，bin required-features 防止 workspace 默认依赖统一悄悄开启兼容层。
+  混合测试只门控兼容相关函数及辅助项，原生用例继续默认运行；TS fieldgen fixtures 的使用也已门控。
+  TocOptions.ts_shape 在默认构建中不存在。隔离下游实际读改存后，分别验证兼容模块导入 E0432、
+  TS 字段构造 E0560；CI 两套 feature 均跑 debug/release、clippy、audit、doc 与三个 example。
+  **门 3 的默认排除 compat 与生命周期要求已兑现**；其余 doc(hidden) 公共项仍在观察期，未物理私有化。
+  `benches/bind.rs` 自动取真实语料中最大的三份，31 次采样；原生耗时与兼容 JSON 体积对照见 docs/05。
+  旧 Package 无编辑门改为 1103 输入 / 1099 成功 / 4 点名拒绝，与会话门共享 UNOPENABLE，去掉阈值与静默跳过。
+  文档改名为 docs/10-native-edit-json.md、docs/13-public-api.md，保留 docs/11、docs/12 的 M9′ 位置；
+  include_str 与引用同步，docs/03 只更新获授权的 §12 实施状态，§8.2 清单脱节另登记待批。
+  本轮默认 debug/release 各 792 passed，compat 各 911 passed，均 0 failed / 13 ignored；fmt、两套 clippy/audit/doc 零告警。
+  八道差分 242 + 547 已知 / 0 未知，save_blocks 204/208 等价 / 0 跳过，体积门 251 份 −67.5%；
+  66 变体（57 无损 + 9 具名拒绝）、1099 份快照不退。默认 fuzz_bind 25,336 runs / 601 秒，无崩溃。
+  **门 2 / 门 4 的待裁定状态不变，不宣称 M8′ 全部门获批。**
 
 ---
 

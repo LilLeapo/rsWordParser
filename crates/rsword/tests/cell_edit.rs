@@ -232,6 +232,7 @@ fn edit_03_cell_edit_round_trips() {
 /// 全语料：在一个**单元格**段落里插一个字，保存后其他 zip 条目原样、重解析后只有那张表变了。
 /// M3 门第 2 条（`spec/14`）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn test_04_corpus_cell_edit_fidelity() {
     let mut edited = 0;
     for path in common::docx_paths("synthetic") {
@@ -309,6 +310,7 @@ fn test_04_corpus_cell_edit_fidelity() {
 }
 
 /// zip 条目：(名字, CRC, 压缩字节)。
+#[cfg(feature = "compat-ts")]
 fn zip_entries(bytes: &[u8]) -> Vec<(String, u32, Vec<u8>)> {
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes)).unwrap();
     (0..z.len())

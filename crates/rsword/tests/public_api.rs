@@ -1,4 +1,4 @@
-//! BIND-11：下游视角的根部 API 与协议生命周期；compat_ts 默认排除门留到 8.7。
+//! BIND-11：下游视角的根部 API 与协议生命周期；默认 compat_ts 排除另由 tools/ci/check-native-default.sh 验证。
 use rsword::bind::native::{SessionTable, edit_op_from_json};
 use rsword::{EditContext, EditOp, EditSession};
 use serde_json::{Value, json};

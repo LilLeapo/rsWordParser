@@ -2785,6 +2785,7 @@ fn set_comment_text(
 ///
 /// 条目在就改（正文重写、属性按需改），不在就新建；**不动正文里的范围标记**——标记的位置由
 /// 块的 `commentStarts` / `commentEnds` / `commentIds` 决定。
+#[cfg(feature = "compat-ts")]
 pub(crate) fn upsert_comment_entry(
     s: &mut EditSession,
     id: &str,

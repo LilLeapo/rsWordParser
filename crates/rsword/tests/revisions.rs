@@ -2,13 +2,18 @@
 
 mod common;
 
+#[cfg(feature = "compat-ts")]
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
+#[cfg(feature = "compat-ts")]
 use rsword::bind::compat_ts::parsed_doc;
 use rsword::edit::{EditContext, EditOp, EditSession, InlinePos};
-use rsword::model::{RevKind, RevOwner, RevisionEntry, RevisionIndex};
+use rsword::model::{RevKind, RevisionEntry};
+#[cfg(feature = "compat-ts")]
+use rsword::model::{RevOwner, RevisionIndex};
 use rsword::package::Package;
+#[cfg(feature = "compat-ts")]
 use serde_json::{Map, Value};
 
 /// `TEST-09` 三条：解析成功、局部降级（无引擎不变式违规）、无编辑保存字节相同。
@@ -40,8 +45,10 @@ fn test_09_hostile_revision_documents() {
 
 /// 一条修订的身份：`w:author` / `w:date` / `w:id` 三个属性。索引与 `compat_ts` 都按它归类——
 /// TS 的 run 会按属性合并 / 拆分，个数对不上，但**身份的集合**必须逐份相同。
+#[cfg(feature = "compat-ts")]
 type Ident = (String, String, String);
 
+#[cfg(feature = "compat-ts")]
 fn ident_of(o: &Map<String, Value>) -> Ident {
     let s = |k: &str| o.get(k).and_then(Value::as_str).unwrap_or_default().to_string();
     (s("author"), s("date"), s("id"))
@@ -49,6 +56,7 @@ fn ident_of(o: &Map<String, Value>) -> Ident {
 
 /// 从 `ParsedDoc` 的 `blocks` 子树里按键收身份（`runs[].ins / del`、`paraMarkDel`、
 /// `pPrChangeInfo`、`rowRevisions[]`、`cellRevision`）。
+#[cfg(feature = "compat-ts")]
 fn compat_idents(blocks: &Value) -> BTreeMap<&'static str, BTreeSet<Ident>> {
     let mut out: BTreeMap<&'static str, BTreeSet<Ident>> = BTreeMap::new();
     let mut stack = vec![blocks];
@@ -93,6 +101,7 @@ fn compat_idents(blocks: &Value) -> BTreeMap<&'static str, BTreeSet<Ident>> {
 }
 
 /// 索引侧的同一张表（只看主 part：`compat_ts` 的 `blocks` 就是主 part 的正文）。
+#[cfg(feature = "compat-ts")]
 fn index_idents(
     idx: &RevisionIndex,
     main: rsword::package::PartId,
@@ -132,6 +141,7 @@ fn index_idents(
 
 /// 门 1 的前置：索引与 `compat_ts` 对同一份文档看到的**同一批修订**。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn mod_09_index_matches_compat_projection() {
     let mut checked = 0usize;
     for path in revision_docs() {

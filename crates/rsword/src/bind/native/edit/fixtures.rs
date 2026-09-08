@@ -167,7 +167,7 @@ fn bind_03_escape_categories_count_conversion_metadata() {
 
 #[test]
 fn bind_03_refused_list_matches_written_contract() {
-    let doc = include_str!("../../../../../../docs/native-edit-json.md");
+    let doc = include_str!("../../../../../../docs/10-native-edit-json.md");
     let written: BTreeSet<_> = doc
         .lines()
         .filter_map(|line| {

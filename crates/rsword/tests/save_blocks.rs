@@ -1,3 +1,4 @@
+#![cfg(feature = "compat-ts")]
 //! `SaveBlock[]` 兼容映射（任务 1.13，`EDIT-04` / `COMPAT-08`）：用 TS 测试导出的
 //! `corpus/synthetic/*.save.<k>.json`（`blocks` + `options`）驱动 `apply_save_blocks`，保存后主 part 与
 //! 其中的 `documentXml`（TS `saveDocx` 的输出）按 `xml::canon` 规范化后相等——等价于任何 XPath 子集

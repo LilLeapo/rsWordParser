@@ -756,6 +756,7 @@ fn oracle_replace_inlines() {
 
 /// compat 的 `runs[].rPrChange` 重发（7.2b：`save_blocks.rs` 不再拒绝）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_run_rpr_change_round_trips() {
     let bytes = common::docx_with_body("<w:p><w:r><w:t>格式改过的</w:t></w:r></w:p>");
     let mut s = EditSession::open(&bytes).unwrap();

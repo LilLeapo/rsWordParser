@@ -285,3 +285,12 @@ pub fn binding_error_code(dir: &Path, name: &str) -> String {
         .expect("code 是字符串")
         .to_string()
 }
+
+// TEST-10：全语料包/会话无编辑门共用的精确拒绝清单。
+#[allow(dead_code)]
+pub const UNOPENABLE: [&str; 4] = [
+    "hostile/xml-unbalanced-main.docx",
+    "hostile/zip-part-too-large.docx",
+    "hostile/zip-too-many-parts.docx",
+    "hostile/zip-total-too-large.docx",
+];

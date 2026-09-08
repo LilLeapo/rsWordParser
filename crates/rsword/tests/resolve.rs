@@ -392,6 +392,7 @@ fn res_05_drawingml_colors_resolve_across_the_corpus() {
 
 /// `RES-05`：`w:sym` 与符号字体 run 的显示文本经映射表解码，表外码位保留原字符。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn res_05_symbol_fonts_decode_for_display() {
     use rsword::bind::compat_ts::parsed_doc;
 

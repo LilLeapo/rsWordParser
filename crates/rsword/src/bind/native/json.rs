@@ -571,6 +571,7 @@ macro_rules! set_if {
 /// - `flag "key" => expr` 的 `expr` 是 `bool`，为真才写 `true`（`set_if!`）。
 ///
 /// `compat_ts` 的 TS 形态投影专用（8.2 随 `set_some!` / `set_if!` 一起搬到本模块）。
+#[cfg(feature = "compat-ts")]
 macro_rules! display_json {
     (@field $o:ident, opt $key:literal, $val:expr) => {
         $crate::bind::native::json::set_some!(&mut $o, $key => $val)
@@ -1082,4 +1083,6 @@ macro_rules! as_str_json {
     )+};
 }
 
-pub(crate) use {as_str_json, display_json, json_str_enum, model_json, set_if, set_some};
+#[cfg(feature = "compat-ts")]
+pub(crate) use display_json;
+pub(crate) use {as_str_json, json_str_enum, model_json, set_if, set_some};

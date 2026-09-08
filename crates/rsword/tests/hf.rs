@@ -2,6 +2,7 @@
 
 mod common;
 
+#[cfg(feature = "compat-ts")]
 use std::collections::BTreeSet;
 
 use rsword::model::{Block, Document, HfKind};
@@ -9,12 +10,14 @@ use rsword::package::Package;
 
 const W: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const V: &str = "urn:schemas-microsoft-com:vml";
+#[cfg(feature = "compat-ts")]
 const R: &str = r#"xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships""#;
 const HDR_REL: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header";
 const FTR_REL: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer";
 
 /// 按 `COMPAT-09` 的容忍规则比较（浮点 1e-6、`undefined` 与缺失等价）——与差分工具同一把尺子，
 /// 这样 `50` 与 `50.0` 之类的 JSON 数字写法不会被判成差异。
+#[cfg(feature = "compat-ts")]
 fn same(expected: &serde_json::Value, actual: &serde_json::Value, what: &str) {
     let mut diffs = Vec::new();
     rsword::bind::compat_ts::diff_json(expected, actual, &mut diffs);
@@ -276,6 +279,7 @@ fn test_09_unbalanced_header_part_is_opaque() {
 /// `COMPAT-05` 的 `text`：只取 `w:t`、不按 `xml:space` 去空白、`</w:tc>` 后补空格、
 /// PAGE / NUMPAGES 换成私用区标记（连缓存结果一起丢）、其他字段只留缓存结果、旧式 `w:pgNum` 也算页码。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_05_hf_text_uses_the_ts_plain_text_rules() {
     const PAGE_MARK: char = '\u{E001}';
     const TOTAL: char = '\u{E000}';
@@ -338,6 +342,7 @@ fn compat_05_hf_text_uses_the_ts_plain_text_rules() {
 /// default 变体的选法（TS `readHeaderFooterPart`）：全文第一个 `w:type="default"` →
 /// 否则非 schema 的 `odd` → 否则没有 `w:type` 的。**不是**按节选。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_05_default_variant_picks_the_first_reference_in_the_document() {
     let mk = |t: &str| format!(r#"<w:headerReference {} w:type="{t}" r:id="rId{t}"/>"#, R);
     // 第一节声明 odd，第二节声明 default：TS 的顶层 `headerText` 取 default 那个
@@ -385,6 +390,7 @@ fn compat_05_default_variant_picks_the_first_reference_in_the_document() {
 /// `COMPAT-05` 的 `paras`：样式层的对齐与制表位、`w:ptab` 对齐、`w:framePr` 的 `xAlign`、
 /// 表格一行一段（`cells`）、水印段落不出、框里的段落被提出来。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_05_hf_paras_shape() {
     const PAGE_MARK: char = '\u{E001}';
     let header = hdr(concat!(
@@ -444,6 +450,7 @@ fn compat_05_hf_paras_shape() {
 
 /// 框里的段落被提出来（政府公文的页码常放在 VML 文本框里），浮动框的段落带 `boxAnchored`。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_05_textbox_paragraphs_are_surfaced() {
     let header = hdr(concat!(
         r#"<w:p><w:r><w:pict><v:shape style="position:absolute;width:100pt;height:20pt">"#,
@@ -476,6 +483,7 @@ fn compat_05_textbox_paragraphs_are_surfaced() {
 /// `COMPAT-05` 的 `images`：part 级的图片列表。随文图片在顶层表格里的不进这张表（它已经在
 /// 单元格 run 上），浮动的照样进；锚定的位置按 `wp:align` / `wp:posOffset` 出 `posH` / `posXPx`。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_05_hf_images() {
     const PNG: &str = common::PNG_1X1;
     let drawing_inline = concat!(
@@ -561,6 +569,7 @@ fn compat_05_hf_images() {
 /// 任务 5.4d：外部文本框 part（`wps:txbx/@r:txbx` → `word/txbx1.xml`）的段落进 `textboxes[].paras`，
 /// 整个框只读（内容不在本 part 里，重写本 part 的段落列表救不了它）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_03_external_textbox_part_content() {
     let doc = "themeless-shapes-external-txbx__003.docx";
     let bytes = std::fs::read(common::corpus_dir("synthetic").join(doc)).expect("语料");
@@ -583,6 +592,7 @@ fn compat_03_external_textbox_part_content() {
 
 /// 全语料：页眉页脚 part 的 `rId` 集合与 `hasPageNumber` 与 TS 逐份一致。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_05_hf_parts_match_ts_on_corpus() {
     let mut docs = 0usize;
     let mut parts = 0usize;

@@ -16,7 +16,7 @@ default = ["native"]
 native = ["serde"]
 wasm = ["native"]
 serde = []
-# 8.7 才移除默认构建里的兼容适配器；本任务先固定 feature 名称。
+# 兼容适配器仅在显式开启测试用 feature 时编译。
 # serde 仍是共享依赖，关闭 feature 暂不承诺免除 serde 依赖。
 compat-ts = ["serde"]
 
@@ -44,6 +44,7 @@ serde = { version = "1", features = ["derive"] }
 [[bench]]
 name = "edit"
 harness = false
+required-features = ["compat-ts"]
 
 [[bench]]
 name = "session"
@@ -51,3 +52,7 @@ harness = false
 
 [lints]
 workspace = true
+
+[[bench]]
+name = "bind"
+harness = false

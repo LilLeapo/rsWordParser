@@ -267,7 +267,7 @@ pub(crate) fn materialize_field(s: &mut EditSession, f: NewBlockField) -> Result
     let xml = match f {
         NewBlockField::Toc { opts, pages } => {
             let mut entries = toc_entries(s, &opts, pages.as_ref())?;
-            if opts.hyperlinks && !opts.ts_shape {
+            if opts.hyperlinks && !opts.ts_shape() {
                 ensure_toc_bookmarks(s, &mut entries)?;
             }
             toc_gen::generate(&entries, &opts)
@@ -343,7 +343,7 @@ pub(crate) fn regenerate(
     let blocks = match plan {
         Plan::Toc(opts, pages) => {
             let mut entries = toc_entries(s, &opts, pages.as_ref())?;
-            if opts.hyperlinks && !opts.ts_shape {
+            if opts.hyperlinks && !opts.ts_shape() {
                 result.absorb(ensure_toc_bookmarks(s, &mut entries)?);
             }
             parse_blocks(s, toc_gen::generate(&entries, &opts))?

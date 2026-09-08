@@ -7,24 +7,35 @@
 
 mod common;
 
+#[cfg(feature = "compat-ts")]
 use rsword::bind::compat_ts::{
     EmbeddedKind, block_of_path, diff_json, embedded_kind, known_diffs, parsed_doc, split_known,
 };
+#[cfg(feature = "compat-ts")]
 use rsword::edit::{EditContext, EditOp, EditSession, InlinePos};
+#[cfg(feature = "compat-ts")]
 use rsword::package::Package;
-use serde_json::{Value, json};
+#[cfg(feature = "compat-ts")]
+use serde_json::Value;
+#[cfg(feature = "compat-ts")]
+use serde_json::json;
 
+#[cfg(feature = "compat-ts")]
 const R: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+#[cfg(feature = "compat-ts")]
 const V: &str = "urn:schemas-microsoft-com:vml";
+#[cfg(feature = "compat-ts")]
 const O: &str = "urn:schemas-microsoft-com:office:office";
 
 /// 一个 `w:object`：32 pt 见方的预览图（→ 43 px）。`rid` 悬空时预览解析不出来。
+#[cfg(feature = "compat-ts")]
 fn object(rid: &str) -> String {
     format!(
         r#"<w:object w:dxaOrig="640" w:dyaOrig="640"><v:shape xmlns:v="{V}" id="_x0000_i1025" style="width:32pt;height:32pt"><v:imagedata xmlns:r="{R}" r:id="{rid}" o:title=""/></v:shape><o:OLEObject xmlns:o="{O}" xmlns:r="{R}" Type="Embed" ProgID="Excel.Sheet.12" ShapeID="_x0000_i1025" DrawAspect="Content" ObjectID="_1" r:id="rIdOle"/></w:object>"#
     )
 }
 
+#[cfg(feature = "compat-ts")]
 fn docx(body: &str) -> Vec<u8> {
     let rels = format!(
         r#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdImg" Type="{R}/image" Target="media/image1.png"/><Relationship Id="rIdOle" Type="{R}/oleObject" Target="embeddings/oleObject1.bin"/></Relationships>"#
@@ -34,17 +45,20 @@ fn docx(body: &str) -> Vec<u8> {
     common::with_binary_part(&d, "word/embeddings/oleObject1.bin", b"\xD0\xCF\x11\xE0ole")
 }
 
+#[cfg(feature = "compat-ts")]
 fn parsed(bytes: &[u8]) -> Value {
     let mut pkg = Package::open(bytes).expect("open");
     parsed_doc(&mut pkg).expect("parsed_doc")
 }
 
+#[cfg(feature = "compat-ts")]
 fn is_png(v: &Value) -> bool {
     v.as_str().is_some_and(|u| u.starts_with("data:image/png;base64,"))
 }
 
 /// `COMPAT-07`：语料里每个嵌入对象文档在嵌入对象块上的差异为 0。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_07_ole_projection_matches_ts_across_the_corpus() {
     let known = known_diffs();
     let (mut docs, mut unknown) = (0, Vec::new());
@@ -82,6 +96,7 @@ fn compat_07_ole_projection_matches_ts_across_the_corpus() {
 /// 同一 run 里 `w:object` + 文字 + 空 `w:pict`：拆成图片 run（`text: ""`，尺寸来自 `v:shape` 的 style）
 /// 与文字 run；空 pict 不算第二张图。只有一个图形的 run 不拆。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_07_object_in_a_text_run_splits_like_ts() {
     let body = format!(
         r#"<w:p><w:r><w:rPr><w:b/></w:rPr>{}<w:t>bit map object</w:t><w:pict xmlns:v="{V}"></w:pict></w:r></w:p><w:p><w:r><w:t xml:space="preserve">前 </w:t></w:r><w:r>{}</w:r></w:p>"#,
@@ -118,6 +133,7 @@ fn compat_07_object_in_a_text_run_splits_like_ts() {
 /// 只有对象的段落是嵌入对象块；预览解析不出来（悬空 `r:id`）时仍是芯片，`previewText` 带段落文字，
 /// 尺寸照样给。`w:dxaOrig` 在 `v:shape` 没写 style 时顶上（缇 ÷ 15）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_07_object_only_paragraphs_are_embedded_object_chips() {
     let body = format!(
         r#"<w:p><w:r>{}</w:r></w:p><w:p><w:r><w:t xml:space="preserve">对象失效: </w:t></w:r><w:r>{}</w:r></w:p>"#,
@@ -142,6 +158,7 @@ fn compat_07_object_only_paragraphs_are_embedded_object_chips() {
 /// `{ EMBED }` 包着的对象、后面还有文字：TS 走嵌入对象那条路（不是 `Field (EMBED)`）；段落里另有别的字段
 /// 时仍归字段管。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_07_field_form_ole_is_an_embedded_object_unless_other_fields_join() {
     let field = |instr: &str, tail: &str| {
         format!(
@@ -174,6 +191,7 @@ fn compat_07_field_form_ole_is_an_embedded_object_unless_other_fields_join() {
 
 /// 单元格里的对象：图片 run 在 `richParas` 里，不进 `anchoredBoxes`（TS 的闸门只看 `wp:anchor` 与 `w:pict`）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_07_object_in_a_cell_rides_the_run() {
     let body = format!(
         r#"<w:tbl><w:tblGrid><w:gridCol w:w="4000"/></w:tblGrid><w:tr><w:tc><w:p><w:r><w:t>格内 </w:t></w:r><w:r>{}</w:r></w:p></w:tc></w:tr></w:tbl>"#,
@@ -193,6 +211,7 @@ fn compat_07_object_in_a_cell_rides_the_run() {
 /// `EDIT-02`：`w:object` 在坐标流里是 1 个原子。在它前后插字只脏 `w:t`，对象子树与 `o:OLEObject` 的关系原字节
 /// 原样；删除区间盖住原子 → 整个 `w:r` 消失，内嵌二进制 part 还在包里（成为编辑引起的孤儿，6.7 回收）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn edit_02_text_edits_step_around_the_ole_atom_and_deletion_removes_the_run() {
     let body = format!(
         r#"<w:p><w:r><w:t>ab</w:t></w:r><w:r>{}</w:r><w:r><w:t>cd</w:t></w:r></w:p>"#,
@@ -247,6 +266,7 @@ fn edit_02_text_edits_step_around_the_ole_atom_and_deletion_removes_the_run() {
 /// `TEST-09`（M6 6.9）：六份嵌入对象的病态输入解析成功、局部降级（各自的诊断在 `tests/chart.rs` /
 /// `diagram.rs` / `math.rs` / `ink.rs` 里逐份断言），这里钉住共同的底线——无编辑保存字节相同、没有引擎不变式破坏。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn test_09_hostile_embedded_documents_save_byte_identical() {
     for name in [
         "chart-part-malformed.docx",

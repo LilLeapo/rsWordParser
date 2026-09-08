@@ -9,7 +9,9 @@ use rsword::edit::{
 };
 use rsword::model::{Document, HfKind, HfVariant, SectionOwner};
 use rsword::package::Package;
-use rsword::semantic::props::{Change, SectionPropsPatch, SettingsPatch, Val};
+#[cfg(feature = "compat-ts")]
+use rsword::semantic::props::SettingsPatch;
+use rsword::semantic::props::{Change, SectionPropsPatch, Val};
 use rsword::xml::{LocalName, NodeId, QName};
 
 const W: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
@@ -316,6 +318,7 @@ fn edit_03_link_header_footer_attaches_an_existing_part() {
 
 /// `SAVE-07 watermark`：页眉里的 VML 水印段落；`None` 删掉；Strict 包拒绝。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_07_watermark_round_trip() {
     let mut s = session(r#"<w:p/><w:sectPr><w:pgSz w:w="1" w:h="2"/></w:sectPr>"#, &[]);
     let sect = body_sect_pr(&s);
@@ -398,6 +401,7 @@ fn save_07_page_color_is_the_first_child_of_the_document() {
 
 /// `EDIT-03 SetDocumentSettings`：`settings.xml` 不存在时按 `SAVE-05` 新建。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn edit_03_set_document_settings_creates_the_part() {
     let mut s = session(r#"<w:p/><w:sectPr/>"#, &[]);
     s.apply(
@@ -611,6 +615,7 @@ fn test_09_section_properties_with_bad_values() {
 
 /// 页眉里 3000 层文本框套娃：投影不爆栈、不卡死，深处降级为 `MOD_TOO_DEEP`。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn test_09_deeply_nested_textboxes_in_a_header() {
     let bytes = hostile("hf-deep-txbx.docx");
     let mut s = EditSession::open(&bytes).expect("open");

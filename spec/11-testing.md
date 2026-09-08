@@ -110,5 +110,8 @@ run `image / math / ruby` 的文档（M4 域）；`all` = 全部。每个 scope 
 | M7 | `COMPAT-08` XPath 等价全部通过；`TEST-07` 1,000 序列无失败；`fuzz_edit` |
 | ~~M8~~ | ~~genoffice e2e 通过~~ —— **2026-09-08 撤销**（`docs/03` v3.3：genoffice 退为测试基准，不再切换其引擎） |
 | ~~M9~~ | ~~协议一致性 + 逃生口归零 + genoffice 迁移完成 + 删除 `compat_ts` 与 TS 引擎~~ —— **2026-09-08 重划**为 M8′ / M9′ |
-| M8′ | 六道门（`spec/19`「M8′ 门」）：① 协议一致性——全语料 `document()` 过 JSON Schema、serde 往返幂等、`MOD-01`–`MOD-11` 字段不丢；② 60 个 `EditOp` 变体 JSON 往返，协议 `apply` 与原生 `apply` 保存结果逐字节相同；③ 公共 API——`cargo doc` 零警告、`missing_docs` 为零、**默认 feature 不含 `compat_ts`** 且能完成 `open → document → apply → save`、三个 example 在 CI 跑；④ 回归网换代——`*.model.json` 快照进 CI、`TEST-07` 走协议、`fuzz_bind` 10 分钟无崩溃；⑤ 既有门不退（`--features compat-ts` 下九道差分门仍 0 未知差异）；⑥ `document()` JSON 体积较 `parsed_doc` 降 ≥ 50%、`apply` p95 < 5 ms、`save` < 50 ms/MB、`.wasm` gzip ≤ 3 MiB |
+| M8′（实现收尾） | 六道门（`spec/19`「M8′ 门」）：① 协议一致性——全语料 `document()` 过 JSON Schema，投影确定性 / 重建稳定性 / 键集严格性、`MOD-01`–`MOD-11` 字段不丢；② 66 个 `EditOp` 变体按 BIND-03 v3 分类（57 无损 + 9 具名拒绝及结构化正向往返），协议 `apply` 与原生 `apply` 保存结果逐字节相同；③ 公共 API——`cargo doc` 零警告、`missing_docs` 为零、**默认 feature 不含 `compat_ts`** 且能完成 `open → document → apply → save`、三个 example 在 CI 跑；④ 回归网换代——`*.model.json` 快照进 CI、`TEST-07` 走协议、`fuzz_bind` 10 分钟无崩溃；⑤ 既有门不退（`--features compat-ts` 下九道差分门仍 0 未知差异）；⑥ `document()` JSON 体积较 `parsed_doc` 降 ≥ 50%、`apply` p95 < 5 ms、`save` < 50 ms/MB、`.wasm` gzip ≤ 3 MiB |
 | M9′ | 六道门（`spec/20`「M9′ 门」）：① 9.0 的 Agent 任务集全通过，改类任务的输出 docx 过 Word 打开检查且满足不变式 2；② 文本投影双向锚点全语料往返一致、丢弃项逐类计数且不静默；③ 预算——`outline()` 在 token 上限内、任何读取可限量且续读拼接等于一次性读取；④ 改类任务的逃生口 `BIND_XML_ESCAPE` 计数为 0；⑤ CLI 每个子命令端到端测试 + 一次真实 Agent 会话经 MCP 完成三条改类任务；⑥ 既有门不退 |
+
+8.7 实测与 feature 双构建记录见 `docs/05`；门 3 的默认排除 compat 已由隔离下游编译门与真实 wasm 门验证。
+门 2 / 门 4 的 `spec/18` 7.4 待裁定状态不因收尾自动转绿。

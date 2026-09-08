@@ -518,6 +518,7 @@ fn save_07_protection_options() {
 
 /// `evenAndOddHeaders`：写入后重解析，投影里读得出来（重解析 oracle）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_07_even_and_odd_headers_round_trips_through_the_projection() {
     let bytes = sect_docx(r#"<w:sectPr/>"#);
     let mut s = EditSession::open(&bytes).unwrap();
@@ -565,6 +566,7 @@ fn save_07_hf_slots_cover_all_six_variants() {
 
 /// 没声明变体 → 按 `SAVE-05` 新建 part；引用是 `sectPr` 第一个子元素。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_07_header_option_creates_the_part() {
     let bytes = sect_docx(r#"<w:sectPr><w:pgSz w:w="1" w:h="2"/></w:sectPr>"#);
     let mut s = EditSession::open(&bytes).unwrap();
@@ -725,12 +727,15 @@ fn save_07_watermark_option_alone_and_with_content() {
 // 5.7：声明 part 的保存选项（`SAVE-07` / `SAVE-05`，`spec/16` 任务 5.7）
 // ---------------------------------------------------------------------------
 
+use rsword::save::options::StyleUpsertSave;
+#[cfg(feature = "compat-ts")]
 use rsword::save::options::{
-    NumberingDefSave, NumberingLevelSave, RestartNumSave, SourceSave, StyleUpsertSave,
-    ThemeColorsSave, ThemeFontsSave,
+    NumberingDefSave, NumberingLevelSave, RestartNumSave, SourceSave, ThemeColorsSave,
+    ThemeFontsSave,
 };
 
 /// 每个 zip 条目的 `(CRC, 压缩后字节)`。
+#[cfg(feature = "compat-ts")]
 fn raw_entries(bytes: &[u8]) -> std::collections::BTreeMap<String, (u32, Vec<u8>)> {
     let mut z = zip::ZipArchive::new(Cursor::new(bytes.to_vec())).unwrap();
     let mut out = std::collections::BTreeMap::new();
@@ -746,6 +751,7 @@ fn raw_entries(bytes: &[u8]) -> std::collections::BTreeMap<String, (u32, Vec<u8>
 }
 
 /// 新建了某个 part 之后，其他条目的原压缩数据不变（`SAVE-05`）。
+#[cfg(feature = "compat-ts")]
 fn assert_only_added(before: &[u8], after: &[u8], added: &[&str], touched: &[&str]) {
     let (a, b) = (raw_entries(before), raw_entries(after));
     for (name, x) in &a {
@@ -763,6 +769,7 @@ fn assert_only_added(before: &[u8], after: &[u8], added: &[&str], touched: &[&st
 
 /// `themeFonts` / `themeColors`：只改 `@typeface` 与槽里的颜色；重解析后投影读得出来。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_07_theme_fonts_and_colors() {
     let bytes = corpus("watermark-theme-sources__008.docx");
     let mut s = EditSession::open(&bytes).unwrap();
@@ -799,6 +806,7 @@ fn save_07_theme_fonts_and_colors() {
 
 /// 没有 theme part 的文档：按 `SAVE-05` 从模板新建，其他条目原压缩数据不变。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_05_theme_part_created_from_template() {
     let bytes = common::docx_with_body(r#"<w:p><w:r><w:t>x</w:t></w:r></w:p><w:sectPr/>"#);
     let mut s = EditSession::open(&bytes).unwrap();
@@ -829,6 +837,7 @@ fn save_05_theme_part_created_from_template() {
 
 /// `numbering`：只追加；`abstractNum` 在 `w:num` 之前，既有条目不动。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_07_numbering_appends_definitions() {
     let numbering = concat!(
         r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>"#,
@@ -1009,6 +1018,7 @@ fn save_07_style_upserts_replace_or_append() {
 
 /// `sources`：权威列表——未变的条目原字节不动（未建模的域因此保住）、变了的重建、列表外的删掉。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_07_sources_authoritative_list() {
     let bytes = corpus("watermark-theme-sources__008.docx");
     let mut s = EditSession::open(&bytes).unwrap();
@@ -1072,6 +1082,7 @@ fn save_07_sources_authoritative_list() {
 
 /// 没有 customXml 的文档：按 `SAVE-05` 建 `item{N}.xml` + `itemProps{N}.xml` + 两条关系。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_05_sources_part_created_with_item_props() {
     let bytes = common::docx_with_body(r#"<w:p><w:r><w:t>x</w:t></w:r></w:p><w:sectPr/>"#);
     let mut s = EditSession::open(&bytes).unwrap();

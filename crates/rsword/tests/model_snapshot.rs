@@ -4,12 +4,7 @@ mod common;
 use rsword::bind::native::SessionTable;
 use std::collections::BTreeSet;
 
-const UNOPENABLE: [&str; 4] = [
-    "hostile/xml-unbalanced-main.docx",
-    "hostile/zip-part-too-large.docx",
-    "hostile/zip-too-many-parts.docx",
-    "hostile/zip-total-too-large.docx",
-];
+use common::UNOPENABLE;
 
 fn corpus() -> Vec<std::path::PathBuf> {
     let paths: Vec<_> =

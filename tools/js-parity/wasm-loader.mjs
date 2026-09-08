@@ -4,10 +4,17 @@ import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-export async function loadBinding(pkgDir) {
+export async function loadBinding(pkgDir, native = false) {
   const glue = await import(pathToFileURL(join(pkgDir, 'rsword_js.js')).href)
   glue.initSync({ module: readFileSync(join(pkgDir, 'rsword_js_bg.wasm')) })
-  const version = JSON.parse(glue.version())
+  let version
+  if (native) {
+    const table = new glue.SessionTable()
+    version = JSON.parse(table.version())
+    table.free()
+  } else {
+    version = JSON.parse(glue.version())
+  }
   console.error(`js-parity: 绑定 ${version.version} (git ${version.git}, ${version.protocol})`)
   return glue
 }

@@ -1,3 +1,4 @@
+#![cfg(feature = "compat-ts")]
 //! `compat_ts` 差分（任务 1.10 / 1.15，`COMPAT-02/03/04/06/07`，M1 门第一条）：对 `corpus/synthetic` 里的
 //! "文本段落"用例（paragraph / heading / listItem，无字段 / 表格 / 绘图 / 批注 / 脚注），适配器输出
 //! 与 TS `.expected.json` 的差异除 `KNOWN_DIFFS.md` 外为 0。判定与已知差异清单与 `tools/diff-parse` 共用。

@@ -7,32 +7,40 @@
 
 mod common;
 
+#[cfg(feature = "compat-ts")]
 use rsword::bind::compat_ts::{
     EmbeddedKind, block_of_path, diff_json, embedded_kind, known_diffs, parsed_doc, split_known,
 };
 use rsword::model::{Block, Display, Document, ProtectedKind};
 use rsword::package::Package;
+#[cfg(feature = "compat-ts")]
 use serde_json::{Value, json};
 
 const A: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
 const R: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 const WP: &str = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+#[cfg(feature = "compat-ts")]
 const DGM: &str = "http://schemas.openxmlformats.org/drawingml/2006/diagram";
+#[cfg(feature = "compat-ts")]
 const DSP: &str = "http://schemas.microsoft.com/office/drawing/2008/diagram";
 const LC: &str = "http://schemas.openxmlformats.org/drawingml/2006/lockedCanvas";
+#[cfg(feature = "compat-ts")]
 const PIC: &str = "http://schemas.openxmlformats.org/drawingml/2006/picture";
 
+#[cfg(feature = "compat-ts")]
 fn parsed(docx: &[u8]) -> Value {
     let mut pkg = Package::open(docx).expect("open");
     parsed_doc(&mut pkg).expect("parsed_doc")
 }
 
+#[cfg(feature = "compat-ts")]
 fn is_diagram_block(b: &Value) -> bool {
     matches!(embedded_kind(b), Some(EmbeddedKind::SmartArt | EmbeddedKind::Canvas))
 }
 
 /// `COMPAT-03`：语料里每个 SmartArt / 画布文档的图示域差异为 0（`m6-canvas__006` 按路径登记）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_03_diagram_projection_matches_ts_across_the_corpus() {
     let known = known_diffs();
     let (mut docs, mut displays, mut previews) = (0, 0, 0);
@@ -74,6 +82,7 @@ fn compat_03_diagram_projection_matches_ts_across_the_corpus() {
 
 // ---- 构造：SmartArt ------------------------------------------------------------------------------
 
+#[cfg(feature = "compat-ts")]
 fn dgm_pt(id: &str, text: &str, ty: &str) -> String {
     let ty = if ty.is_empty() { String::new() } else { format!(r#" type="{ty}""#) };
     format!(
@@ -81,6 +90,7 @@ fn dgm_pt(id: &str, text: &str, ty: &str) -> String {
     )
 }
 
+#[cfg(feature = "compat-ts")]
 fn data_part() -> String {
     let pts = [
         dgm_pt("root", "Root &amp; team", ""),
@@ -96,12 +106,14 @@ fn data_part() -> String {
     )
 }
 
+#[cfg(feature = "compat-ts")]
 fn dsp_sp(sp_pr: &str, tx_body: &str) -> String {
     format!(
         r#"<dsp:sp><dsp:nvSpPr><dsp:cNvPr id="1" name="s"/><dsp:cNvSpPr/></dsp:nvSpPr><dsp:spPr>{sp_pr}</dsp:spPr>{tx_body}</dsp:sp>"#
     )
 }
 
+#[cfg(feature = "compat-ts")]
 fn drawing_part() -> String {
     let xfrm = |x: i64, y: i64, cx: i64, cy: i64, rot: &str| {
         format!(r#"<a:xfrm{rot}><a:off x="{x}" y="{y}"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>"#)
@@ -141,6 +153,7 @@ fn drawing_part() -> String {
     )
 }
 
+#[cfg(feature = "compat-ts")]
 fn diagram_run(anchor: Option<(&str, &str)>) -> String {
     let graphic = format!(
         r#"<a:graphic xmlns:a="{A}"><a:graphicData uri="{DGM}"><dgm:relIds xmlns:dgm="{DGM}" xmlns:r="{R}" r:dm="rIdDm" r:lo="rIdLo" r:qs="rIdQs" r:cs="rIdCs"/></a:graphicData></a:graphic>"#
@@ -157,6 +170,7 @@ fn diagram_run(anchor: Option<(&str, &str)>) -> String {
 }
 
 /// 锚定的照片（`wrapNone`），SmartArt 的邻居。
+#[cfg(feature = "compat-ts")]
 fn photo_run() -> String {
     format!(
         r#"<w:r><w:drawing xmlns:wp="{WP}"><wp:anchor simplePos="0" relativeHeight="1" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="column"><wp:posOffset>190500</wp:posOffset></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>285750</wp:posOffset></wp:positionV><wp:extent cx="2857500" cy="1905000"/><wp:wrapNone/><wp:docPr id="20" name="Photo"/><a:graphic xmlns:a="{A}"><a:graphicData uri="{PIC}"><pic:pic xmlns:pic="{PIC}"><pic:nvPicPr><pic:cNvPr id="20" name="Photo"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip xmlns:r="{R}" r:embed="rIdImg"/></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="285750" cy="381000"/></a:xfrm></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>"#
@@ -165,6 +179,7 @@ fn photo_run() -> String {
 
 /// 一份 SmartArt 文档。`drawing_via_rel`：绘图 part 由数据 part 的 `diagramDrawing` 关系指向（真实 Word 的写法），
 /// 否则只能靠 `data1.xml → drawing1.xml` 的路径约定；`data_target` 让关系指向不存在的 part。
+#[cfg(feature = "compat-ts")]
 fn smart_art_docx(paragraph: &str, drawing_via_rel: bool, data_target: &str) -> Vec<u8> {
     let main_rels = format!(
         r#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdDm" Type="{R}/diagramData" Target="{data_target}"/><Relationship Id="rIdLo" Type="{R}/diagramLayout" Target="diagrams/layout1.xml"/><Relationship Id="rIdImg" Type="{R}/image" Target="media/image1.png"/></Relationships>"#
@@ -194,6 +209,7 @@ fn smart_art_docx(paragraph: &str, drawing_via_rel: bool, data_target: &str) -> 
 }
 
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_03_smart_art_text_tree_and_drawing_part_shapes() {
     let para = format!("<w:p>{}</w:p>", diagram_run(None));
     for via_rel in [true, false] {
@@ -252,6 +268,7 @@ fn compat_03_smart_art_text_tree_and_drawing_part_shapes() {
 /// 同段其他绘图：照片进 `textboxes[]`（各自的锚点），图示自己锚定时 `diagramDisplay` 带偏移与 `floating`；
 /// 单绘图的锚定图示不给这些（TS 的 `frags.length > 1` 闸门）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_03_smart_art_siblings_become_textboxes_and_anchor_offsets() {
     let square = r#"<wp:wrapSquare wrapText="bothSides"/>"#;
     let para = format!("<w:p>{}{}</w:p>", diagram_run(Some((square, ""))), photo_run());
@@ -289,6 +306,7 @@ fn compat_03_smart_art_siblings_become_textboxes_and_anchor_offsets() {
 
 /// 关系悬空：块只剩 `label: "SmartArt"`——没有 `previewText`（TS `...(x ? {} : {})`），没有 `diagramDisplay`。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_03_smart_art_with_dangling_data_relationship_is_a_bare_chip() {
     let para = format!("<w:p>{}</w:p>", diagram_run(None));
     let v = parsed(&smart_art_docx(&para, false, "diagrams/missing.xml"));
@@ -367,6 +385,7 @@ fn canvas_docx(run: &str) -> Vec<u8> {
 /// A 在 0 / 29 / 58 / 86，E 在 35 / 64；最后按 y 排序。椭圆 (3714750−285750)/3/9525 = 120，60×60；
 /// 图片 x = (5715000−285750)/3/9525 = 190；矩形 y = (3000000−571500)/3/9525 = 85。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_03_canvas_scales_child_geometry_and_stacks_overflowing_text_columns() {
     let v = parsed(&canvas_docx(&canvas_run(None, true)));
     let b = &v["blocks"][0];
@@ -420,6 +439,7 @@ fn compat_03_canvas_scales_child_geometry_and_stacks_overflowing_text_columns() 
 /// 锚定的画布只带横向偏移（LO 丢竖向偏移）；`wrapNone` → `floating`，`wrapSquare` 不浮。
 /// 没有 `wp:extent` 时按子坐标系原尺寸画（TS 退成第一张图，`KNOWN_DIFFS.md`）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_03_canvas_anchor_offsets_and_missing_extent() {
     let v = parsed(&canvas_docx(&canvas_run(Some("<wp:wrapNone/>"), true)));
     let dd = &v["blocks"][0]["diagramDisplay"];
@@ -467,6 +487,7 @@ fn mod_11_canvas_and_diagram_blocks_in_the_model() {
 /// hostile（`TEST-09`）：成环 / 自指 / 5,000 个点的 `dgm:cxn`，退化的画布（chExt 0 / 负数、坐标 `1e30`、
 /// `sz=-5`、没有 blip 的 `a:pic`）：解析成功、投影不崩、局部降级。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn test_09_hostile_diagram_and_canvas_degrade_locally() {
     let cyclic =
         std::fs::read(common::corpus_dir("hostile").join("diagram-cyclic-cxn.docx")).unwrap();
