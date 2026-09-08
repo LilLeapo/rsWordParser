@@ -24,7 +24,21 @@ use serde_json::Value;
 /// `xml:space="preserve"`：`SAVE-03` 对 New `w:t` 一律写，TS 只对自己生成的文本写、逐字片段照抄。
 fn ignore_attr(dom: &Dom, node: NodeId, attr: QName) -> bool {
     let Some(element) = dom.name(node) else { return false };
-    if attr == QName::new(NsId::Xml, LocalName::Space) {
+    // `xml:space`：只对**文本元素**放行（`SAVE-03` 对 New 的 `w:t` 一族一律写，TS 只对自己
+    // 生成的文本写、逐字片段照抄）。别的元素上出现 `xml:space` 是真差异，不该被这条盖住
+    // （7.9 的复核：从"全元素放行"收窄到这四个，等价数一个没少）。
+    // `RSWORD_STRICT_XML_SPACE=1` 把这条整个关掉，用来量它到底盖住了多少——复核当天的读数
+    // 写在 `docs/04` §16 的 7.9b 条目里
+    if attr == QName::new(NsId::Xml, LocalName::Space)
+        && std::env::var("RSWORD_STRICT_XML_SPACE").is_err()
+        && matches!(
+            element,
+            QName { ns: NsId::W, local: LocalName::T }
+                | QName { ns: NsId::W, local: LocalName::DelText }
+                | QName { ns: NsId::W, local: LocalName::InstrText }
+                | QName { ns: NsId::W, local: LocalName::DelInstrText }
+        )
+    {
         return true;
     }
     // 墨迹 run 的 `relativeHeight` 由 `docPr/@id` 派生（TS `251658240 + docPrId`，id 从 9001 起计），

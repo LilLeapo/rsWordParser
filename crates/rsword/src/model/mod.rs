@@ -79,7 +79,7 @@ pub use hf::HfPart;
 pub use sdt::{DataBinding, DocPart, SdtControl, SdtLock, SdtRefusal, refusing_sdt};
 pub use section::{HfKind, HfVariant, SectionGeom, SectionInfo, SectionOwner, Sections};
 pub use sources::Source;
-pub use table::{BlockStep, Blocks, Cell, GridCol, Row};
+pub use table::{BlockStep, Blocks, Cell, GridCol, Row, box_flows};
 pub use theme::{ColorScheme, FontScheme, FontSlots, Theme, ThemeSlot};
 pub use vml::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};
 

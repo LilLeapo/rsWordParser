@@ -1761,3 +1761,25 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   **641 测试**（调试）、九道门仍为 0、保存语料 204 / 208 等价 0 跳过、clippy 零告警；
   1,000 条随机序列在调试与发布两种构建下都过（`save::enforce` 只在调试里把引擎不变式当错误，
   测试自己再查一遍，两种构建才会在同一处失败）。
+
+- [x] **7.9b toggle 探针、`xml:space` 复核、性能记录**（2026-09-08）：
+  **`docs/06` 第 2 件**（`tests/resolve.rs::res_04_toggle_ambiguity_probe`）：遍历
+  `corpus/synthetic` + `corpus/real`，数有多少 `(run, toggle 字段)` 落在歧义形状上。判据比
+  `docs/06` 第 3 节那个临时探针**收紧了**：run 自己的 `w:rPr` 声明了它就不算歧义（直接格式在
+  两条规则里都一票定音），真歧义是 run 没声明、而 `docDefaults` / 段落样式链 / 字符样式链里
+  两个及以上声明了它。读数：1,065 份文档、3,698 个 run，撞上 13 次，**全部**来自我们自己为
+  `RES-04` 造的校准件 `toggle-other-toggles-converted`，校准件之外 **0 次**。探针不 fail，
+  校准件之外非 0 时另打一行提醒（`docs/06` 已标完成）。
+  **`xml:space` 复核**（`docs/04` §8 那条债）：`save_blocks.rs` 的 `ignore_attr` 原来对**任何**
+  元素上的 `xml:space` 都放行，收窄成只对 `w:t` / `w:delText` / `w:instrText` / `w:delInstrText`
+  ——等价数一个没少（还是 204 / 208）。再加一个 `RSWORD_STRICT_XML_SPACE=1` 把这条整个关掉量它
+  盖住了多少：**208 份里只影响 1 份**（`comments__001.save.2`，TS 没给那个 `w:t` 写 `preserve`）。
+  结论：没有用例靠它掩盖结构差异。
+  **性能记录**（`benches/edit.rs`，`harness = false` 自己计时，不引 bench 框架）：语料里最大的
+  三份 + 带修订的那份最大的，量 `open` / `InsertText` / `AcceptAll` / `save_with` 的中位数。
+  319 KB 的 `large-report.docx`：open 5.2 ms、InsertText 0.65 ms、save_with 0.6 ms；
+  带修订的 23 KB 文档 `AcceptAll` 0.17 ms。建议观察值 `apply` < 5 ms、`save_with` < 50 ms / MB，
+  四份都在一个量级之内。数字进 `docs/05`「实测数字」。
+  `docs/05` 的 M6 期旧数字（测试数、嵌入对象域与全域的差分）一并刷新。
+  `TEST-09` 的 6 份修订 / 分节 / 绘图病态输入在 7.0 就已接进 `tests/revisions.rs`（三条：
+  解析成功、局部降级、无编辑保存字节相同），这里复核确认。

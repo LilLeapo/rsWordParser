@@ -105,8 +105,8 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
-| 源码行数 / 文件数 | 67,591 行 / 160 个（另有生成代码 18,592 行，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 514（单元 + 集成，40 个集成测试文件） | `cargo test --workspace` |
+| 源码行数 / 文件数 | 82,306 行 / 190 个（另有生成代码，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
+| 测试数 | 641（单元 + 集成，48 个集成测试文件） | `cargo test --workspace` |
 | 语料 | **266 份真实 Word 文档**（`corpus/real`，2026-09-07 三轮）+ **32 份 Word 对照 fixture**（`fixtures/{revisions,word-ops}`：Word 自己做操作的前后 / 四态）+ 799 份 synthetic（每份带 `expected.json`；其中 226 份是 M6 的嵌入对象语料 `m6-*`）+ 208 份 `save.<k>.json` + 38 份 hostile（含 4 份绘图、2 份表格、4 份页眉页脚 / 节、6 份嵌入对象、6 份修订 / 分节 / 绘图，7.0⑤） | `ls corpus/*` |
 | 往返字节保真 | 593 份文档、3,140 个 XML part 全部字节相同（3 个 part 按预期解析失败：两份不闭合 XML + 二进制页眉） | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
@@ -116,8 +116,8 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 解析差分（字段与 Span 域，M2 门） | 283 份用例（文本域 + 字段 / 标记 / 批注 / 注释），**0 处未知差异** | `cargo run -p diff-parse -- --scope fields` |
 | 解析差分（表格域，M3 门） | 352 份用例（字段域 + 表格，含单元格里的锚定形状与图片），**0 处未知差异** | `cargo run -p diff-parse -- --scope tables` |
 | 解析差分（页眉页脚域，M5 门） | 799 份用例，**0 处未知差异**（按**路径**筛，嵌入对象块上的差异剔除） | `cargo run -p diff-parse -- --scope hf` |
-| 解析差分（嵌入对象域，M6 门，**进行中**） | 799 份用例，182 份有未知差异、420 个差异点（按路径 + 期望块的 label 筛） | `cargo run -p diff-parse -- --scope embedded` |
-| 解析差分（全域） | 799 份里 196 份有未知差异、452 个差异点（嵌入对象域 420 + 零散 32） | `cargo run -p diff-parse -- --scope all` |
+| 解析差分（嵌入对象域，M6 门） | 799 份用例，**0 处未知差异**（按路径 + 期望块的 label 筛） | `cargo run -p diff-parse -- --scope embedded` |
+| 解析差分（全域） | 799 份用例，242 处已登记差异，**0 处未知差异** | `cargo run -p diff-parse -- --scope all` |
 | resolve 校准 fixture | 8 份（7 个 toggle + 1 个节继承）全部 `verified = true`，观察值来自 2026-09-06 的 Word 网页版实测（方法与结论见 `fixtures/resolve/README.md`，未决部分见 `docs/06-toggle-open-question.md`） | `cargo test -p rsword --test resolve_fixtures` |
 | 页眉页脚 / 节的随机序列 | 10 份语料 × 100 步（页眉段落内联编辑 + 五个节 / 页眉页脚操作）：986 次生效、10 次被拒，每步 `refresh == rebuild`、无引擎不变式破坏 | `cargo test -p rsword --test hf_ops -- --nocapture` |
 | 保存差分 | 208 份 TS 保存用例：204 份与 `saveDocx` 等价（其中 43 份逐字节相同）、4 份有意不同、0 份跳过 | `tests/save_blocks.rs` |
@@ -134,6 +134,9 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 字段索引 | 43 份文档 / 57 个字段（`Atom` 33、`Block` 6、`Picture` 6、`Form` 4、`Link` 3、`Object` 3、`Marker` 1、`Unknown` 1）；3 份 TS 截断夹具本来就缺 `end` | `cargo test -p rsword --test field -- --nocapture` |
 | 字段模型与 compat | 19 个用例（配对 / 指令 / 策略 / 坐标流 / R09 / 折叠 run / `fieldDisplay`） | `cargo test -p rsword --test field` |
 | 段落 / 书签 / 字段操作 | 17 个用例（`SPAN-06` 拆分与合并、`EDIT-06` 书签分配、`FLD-09`/`10`/`12` 各自的验收行） | `cargo test -p rsword --test para_ops` |
+| **`TEST-07` 随机编辑序列（M7 门 5）** | 1,000 条（语料 × 种子 × 100 步，操作全集 + 每步随机 `track_changes` + 随机接受 / 拒绝）：61,057 次生效、9,994 次被拒、2,625 次保存往返；每步 `MOD-13` 投影 == 重建、`FLD-13` 不增缺陷、`EDIT-06` 不重号、无引擎不变式破坏。PR 跑 100 条，`random.yml` 每天跑 1,000 条 | `RSWORD_RANDOM_SEQUENCES=1000 cargo test -p rsword --release --test random_ops -- --nocapture` |
+| **性能记录**（非门） | 319 KB 的 `large-report.docx`：`open` 5.2 ms、`InsertText` 0.65 ms、`save_with` 0.6 ms；带修订的 23 KB 文档 `AcceptAll` 0.17 ms。建议观察值 `apply` < 5 ms、`save_with` < 50 ms / MB，四份都在一个量级之内 | `cargo bench -p rsword --bench edit` |
+| **`RES-04` toggle 歧义探针** | 1,065 份文档、3,698 个 run：撞上歧义 13 次，**全部**来自我们自己为 `RES-04` 造的校准件（`toggle-other-toggles-converted`），校准件之外 **0 次**（判据与阈值见 `docs/06` 第 2 件） | `cargo test -p rsword --test resolve res_04_toggle -- --nocapture` |
 | 批注与注释 | 语料 11 份带批注（17 条）、5 条注释条目；13 个用例（三部件关联、结构条目、`commentIds` 三形态、`noteRef` 编号、`SAVE-05` 新建 part、三个编辑操作、compat 权威列表） | `cargo test -p rsword --test notes` |
 
 全域差异（`--scope all`）**为 0**（M6 6.9 后；m6.0a 扩充语料时 452 / 196 份，6.5 后 71，6.8 后 28）：已登记的 242 处见

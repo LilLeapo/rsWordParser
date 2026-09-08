@@ -27,5 +27,10 @@ toml = "1.1"
 toml = "1.1"
 serde = { version = "1", features = ["derive"] }
 
+# 性能记录（`spec/18` 7.9，非门）：不引 bench 框架，自己计时
+[[bench]]
+name = "edit"
+harness = false
+
 [lints]
 workspace = true

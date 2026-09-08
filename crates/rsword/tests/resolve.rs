@@ -429,3 +429,126 @@ fn res_05_symbol_fonts_decode_for_display() {
     assert_eq!(runs[0]["font"], "Wingdings");
     assert!(runs[0]["rawRPr"].as_str().unwrap().contains("w:rFonts"));
 }
+
+// ---- RES-04 toggle 歧义的常驻测量（`docs/06` 第 2 件，`spec/18` 7.9）-------------------------
+
+/// 这个 run 的这个 toggle 字段落在**歧义**上没有。
+///
+/// 歧义 = 「按层级异或」与「最具体的声明胜出」两条规则会给出不同答案的形状，也就是：
+/// run 自己的 `w:rPr` **没有**声明它（直接格式在两条规则里都一票定音，有它就没歧义），
+/// 而 `docDefaults` / 段落样式链 / 字符样式链里**两个及以上**声明了它
+/// （链内部的 `basedOn` 是普通的"子覆盖父"，整条链只算一层）。
+///
+/// 表格样式那一层这里不算：它要有表格上下文才取得到，语料里带 toggle 的表格样式是 0 份。
+fn toggle_ambiguous(
+    r: &Resolver<'_>,
+    doc_default: Option<&RunProps>,
+    para_style: Option<&str>,
+    char_style: Option<&str>,
+    direct: &RunProps,
+    f: rsword::semantic::props::RunPropsField,
+) -> bool {
+    use rsword::resolve::toggle_of;
+    if toggle_of(direct, f).is_some() {
+        return false;
+    }
+    let declared_in = |id: Option<&str>, kind: StyleType| {
+        id.is_some_and(|i| {
+            r.chain(i, kind)
+                .iter()
+                .any(|s| s.rpr.as_ref().is_some_and(|p| toggle_of(p, f).is_some()))
+        })
+    };
+    let levels = usize::from(doc_default.is_some_and(|p| toggle_of(p, f).is_some()))
+        + usize::from(declared_in(para_style, StyleType::Paragraph))
+        + usize::from(declared_in(char_style, StyleType::Character));
+    levels >= 2
+}
+
+/// `docs/06` 第 2 件：toggle 歧义在野外到底被触发没有。遍历 `corpus/synthetic` 与 `corpus/real`，
+/// 数有多少 (run, toggle 字段) 落在歧义形状上（判据见 [`toggle_ambiguous`]），按字段给出分布。
+///
+/// **这是测量，不是判定**：非 0 也不 fail，只把数字打出来（`--nocapture`）。判定阈值写在
+/// `docs/06`——只要一直是 0，`RES-04` 那条规则就一直不影响产品；一旦非 0，说明真实用户文档
+/// 会走到这条分支，桌面版复核的优先级立刻上升。
+#[test]
+fn res_04_toggle_ambiguity_probe() {
+    use rsword::model::{Block, Inline};
+    let mut runs = 0usize;
+    let mut docs = 0usize;
+    let mut hits: BTreeMap<String, usize> = BTreeMap::new();
+    let mut by_doc: BTreeMap<String, usize> = BTreeMap::new();
+    for kind in ["synthetic", "real"] {
+        for path in common::docx_paths(kind) {
+            let Ok(bytes) = std::fs::read(&path) else { continue };
+            let Ok(mut pkg) = Package::open(&bytes) else { continue };
+            let Ok(doc) = Document::rebuild(&mut pkg) else { continue };
+            docs += 1;
+            let r = Resolver::new(&doc);
+            let doc_default = doc.styles.as_ref().and_then(|s| s.doc_default_rpr());
+            // 正文 + 页眉页脚 + 脚注尾注 + 批注条目，每一处再下到文本框内容流
+            let mut roots: Vec<&[Block]> = vec![&doc.main];
+            roots.extend(doc.hf_parts.values().map(|hf| hf.blocks.as_slice()));
+            for notes in [&doc.footnotes, &doc.endnotes] {
+                roots.extend(notes.items.iter().map(|n| n.blocks.as_slice()));
+            }
+            roots.extend(doc.comments.items.iter().map(|c| c.blocks.as_slice()));
+            let mut queue: Vec<&[Block]> = roots;
+            let mut all: Vec<&Block> = Vec::new();
+            while let Some(list) = queue.pop() {
+                for b in rsword::model::Blocks::over(list) {
+                    all.push(b);
+                    queue.extend(
+                        rsword::model::box_flows(b)
+                            .into_iter()
+                            .map(|(c, _)| c)
+                            .filter(|c| !c.is_empty()),
+                    );
+                }
+            }
+            for b in all {
+                let Block::Text(tb) = b else { continue };
+                let para_style = tb.style_id.as_deref();
+                for i in &tb.inlines {
+                    let Inline::Run(run) = i else { continue };
+                    runs += 1;
+                    let char_style = run.props.style.as_deref();
+                    for &f in rsword::resolve::TOGGLE_FIELDS {
+                        if toggle_ambiguous(&r, doc_default, para_style, char_style, &run.props, f)
+                        {
+                            *hits.entry(format!("{f:?}")).or_default() += 1;
+                            *by_doc
+                                .entry(
+                                    path.file_stem()
+                                        .unwrap_or_default()
+                                        .to_string_lossy()
+                                        .to_string(),
+                                )
+                                .or_default() += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // 我们自己为 `RES-04` 造的校准件（`fixtures/resolve/toggle` 与它们在真实 Word 里另存的
+    // 那几份）本来就是**故意**歧义的，不算"野外撞上"
+    let ours = |stem: &str| stem.starts_with("toggle-") || stem.starts_with("c-toggle-");
+    let total: usize = hits.values().sum();
+    let wild: usize = by_doc.iter().filter(|(d, _)| !ours(d)).map(|(_, n)| n).sum();
+    eprintln!(
+        "RES-04 toggle 歧义探针：{docs} 份文档、{runs} 个 run，撞上歧义 {total} 次（校准件之外 {wild} 次）"
+    );
+    if total > 0 {
+        eprintln!("  按字段：{hits:?}");
+        eprintln!("  按文档：{by_doc:?}");
+    }
+    if wild > 0 {
+        eprintln!(
+            "  **校准件之外也撞上了**：按 `docs/06` 第 2 件的阈值，桌面版复核 `RES-04` 的优先级要提上来"
+        );
+    }
+    // 探针要真的扫过语料才有意义（语料 799 + 真实 266）
+    assert!(docs > 1000, "扫到的文档太少（{docs}），探针没意义");
+    assert!(runs > 2000, "扫到的 run 太少（{runs}），探针没意义");
+}
