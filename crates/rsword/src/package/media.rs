@@ -133,6 +133,16 @@ impl MediaStore {
         &self.media[id.idx()]
     }
 
+    /// 对外句柄的有界查询（`BIND-05`），未知编号不索引越界。
+    pub fn try_get(&self, id: MediaId) -> Option<&Media> {
+        self.media.get(id.idx())
+    }
+
+    /// 已登记 part 的稳定句柄；删除其他条目不会改变该值。
+    pub fn id_for_part(&self, part: PartId) -> Option<MediaId> {
+        self.iter().find_map(|(id, media)| (media.part == part).then_some(id))
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = (MediaId, &Media)> {
         self.media.iter().enumerate().map(|(i, m)| (MediaId(i as u32), m))
     }

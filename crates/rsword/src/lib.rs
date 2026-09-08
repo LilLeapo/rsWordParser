@@ -18,6 +18,9 @@
 //!
 //! 规范状态 = DOM + Span（`xml` + `span`）；`model` 与 `resolve` 是可重建的投影。
 
+#[cfg(test)]
+extern crate self as rsword;
+
 pub mod bind;
 pub mod diag;
 pub mod edit;

@@ -196,7 +196,7 @@ impl TableStyleView {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EffectiveCellProps {
     pub props: CellProps,
-    sources: Vec<Option<Provenance>>,
+    pub(crate) sources: Vec<Option<Provenance>>,
     /// 条件格式叠出来的 run 属性（`RES-03` 第 4 层：表格内 run 的样式层）。
     pub rpr: RunProps,
     /// 条件格式叠出来的段落属性。

@@ -1,6 +1,6 @@
 //! `rsword` 的 wasm 绑定（`spec/18` 7.10 的面 + M8′ 8.0② 的扩展）：`parse` /
 //! `parse_diagnostics` / `save` / `blank` / `version`。差分工具（`diff-parse --via-js`、
-//! `tools/js-parity/`）只走这五个入口。
+//! `tools/js-parity/`）继续走这五个兼容入口；8.4 新增 [`native::NativeSessions`] 有状态原生协议。
 //!
 //! 两条合同：
 //!
@@ -12,44 +12,16 @@
 //!
 //! 这里只做**类型转换**：真正的实现在 `rsword::bind::js`，错误是它那层的 `ApiError`——
 //! 抛成 JS `Error`，带 `code`（`DiagCode::as_str` 的字串或错误变体名）与 `message`；
-//! 调用方自己的 JSON 参数错误是 `BIND_BAD_ARGUMENT`。五个导出同形，由 [`wasm_export!`]
+//! 调用方自己的 JSON 参数错误是 `BIND_BAD_ARGUMENT`。五个导出同形，由 `bind_export!`
 //! 一张表收拢：展开 wasm 包装与「非法输入 → 错误码」的原生单测（核心函数不走 JS 边界，
 //! `cargo test --workspace` 就能跑）。
+
+pub mod native;
 
 use rsword::bind::js;
 use wasm_bindgen::prelude::*;
 
-/// `wasm_export!` 的表：每个入口一行——wasm 包装函数 + 背后的原生核心函数（`=>`），
-/// 跟一个 brace group，里面放若干 `test 名字 { … }`（断言核心函数对非法输入的错误码；
-/// 核心函数不走 JS 边界，原生 `cargo test --workspace` 就能跑）。
-///
-/// ```ignore
-/// wasm_export! {
-///     /// 文档说明（贴在 wasm 包装上）
-///     parse(bytes: &[u8]) -> String => js::parse {
-///         test parse_rejects_garbage {
-///             assert_eq!(js::parse(NOT_A_ZIP).unwrap_err().code, "ZIP");
-///         }
-///     },
-/// }
-/// ```
-macro_rules! wasm_export {
-    ( $(
-            $(#[doc = $doc:expr])*
-            $name:ident ( $( $arg:ident : $ty:ty ),* ) -> $ret:ty => $core:path
-            { $( test $tname:ident { $( $body:tt )* } )* }
-            $(,)?
-        )+ ) => { $(
-        $(#[doc = $doc])*
-        #[wasm_bindgen]
-        pub fn $name( $( $arg: $ty ),* ) -> Result<$ret, JsValue> {
-            $core( $( $arg ),* ).map_err(js_error)
-        }
-        $( #[test] fn $tname() { $( $body )* } )*
-    )+ };
-}
-
-wasm_export! {
+rsword::bind_export! { adapter [wasm_bindgen] error(js_error, JsValue);
     /// TS `ParsedDoc` JSON（`COMPAT-02`）。逐字节合同：与 `compat_ts::parsed_doc` 的
     /// `serde_json::to_string` 完全一致；`internal.originalBytes` 不进 JSON（调用方自己持有字节）。
     parse(bytes: &[u8]) -> String => js::parse {

@@ -61,7 +61,8 @@ pub fn apply_edit_json(
     let mut candidate = session.clone();
     let part = if let EditOpJson::SetHeaderFooter { sect, kind, variant, .. } = &wire {
         // 目标可能尚不存在。仅在候选会话中准备它，让表外名字驻留到真正承载内容的 DOM。
-        if candidate.dom().element(*sect).is_none()
+        if sect.0 as usize >= candidate.dom().node_count()
+            || candidate.dom().element(*sect).is_none()
             || !candidate.dom().is(*sect, crate::xml::QName::w(crate::xml::LocalName::SectPr))
         {
             return Err(Error::edit(

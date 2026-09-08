@@ -42,6 +42,8 @@ jobs:
       # wasm-bindgen-cli 必须与 Cargo.lock 的 wasm-bindgen 同版本（见 TOOLS.md）
       - run: cargo install wasm-bindgen-cli --version 0.2.128 --locked
       - run: tools/build-js.sh
+      # BIND-01/05/06/09：原生会话的真实 wasm 边界。
+      - run: node tools/js-parity/native_parity.mjs --pkg crates/rsword-js/pkg
       # 全语料 + 真实语料经绑定 parse：先与原生输出比字节，再走差分（仍为 0 未知差异）。
       # 原生的绑定等价（不起 node）由 `tests/js_binding.rs` 在 cargo test 里覆盖。
       - run: cargo run -p diff-parse -- --via-js --scope all

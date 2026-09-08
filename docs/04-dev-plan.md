@@ -1984,8 +1984,8 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
 全套 debug / release 各 **862 passed、0 failed、14 ignored**（12 个 ignored doctest）；fmt、clippy 零告警。
 八道差分门 **242 + 547 已知、0 未知**；save_blocks **204/208 等价、0 跳过**（4 项既有有意差异），
 辅助 part 仍为 189/289 等价；门 6：251 份带图文档 4,334,070B → 1,408,718B，**−67.5%**。
-- [ ] **8.4 会话、媒体句柄、`resolve` 查询与部件读取**（`bind_export!`、`resolve_query!`）
-  进行中（codex）。接口核对时报出三处内部不一致，项目负责人 2026-09-09 裁定，`spec/21` 升 **v3.1**
+- [x] **8.4 会话、媒体句柄、`resolve` 查询与部件读取**（`bind_export!`、`resolve_query!`）
+  已完成（本提交）。接口核对时报出三处内部不一致，项目负责人 2026-09-09 裁定，`spec/21` 升 **v3.1**
   （只对齐矛盾措辞，不改协议方向）：
   ① **按 `nodeId` 寻址的导出一律补可选 `part`**（缺省主 part）。`NodeId` 是每个 `Dom` 各自的 arena
   索引（`xml/dom.rs:18`），正文与页眉同号是常态；而写侧 `InlinePos` / `BlockPos` **早就带**
@@ -1998,6 +1998,28 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   ③ **`diagnostics` 返回 `{ diagnostics, xmlEscapeCount }`**（原导出表写 `[Diagnostic]`，与 BIND-03
   要求同时带会话级逃生口计数不能并存）。8.3 已按此实现（`edit_diagnostics_json`），且计数从**已成功
   提交**的诊断算出、失败请求不增加，与 BIND-01 的原子性一致。
+
+  8.4 实现记录：`SessionTable` 内持 `BTreeMap<SessionId, EditSession>` 与按 part 登记的稳定媒体表；
+  进程级单调分配会话句柄，成功 open 才入表。`bind_export!` 合并旧 `wasm_export!`，同时展开原生方法、
+  缺失会话测试与 wasm 外壳；wasm 导出 `SessionTable` 类，旧兼容五函数保持原语义。
+  `resolve_query!` 同表展开五个批量查询、投影组合与全语料对照；独立模型遍历 + DOM 祖先查找建立 oracle，
+  run / para / cell 的属性另外从 JSON 解码回引擎型并逐字段比较，来源含 Toggle 的层级。
+  表格 / 节的有效字段、六个页眉页脚槽和来源均校验；同号节点用 part 区分，坏节点在批次中保留错误位置。
+  `save` 只在克隆上执行；真实序列化故障与失败的 XML 逃生请求均有状态不变断言。
+  补修 `setHeaderFooter` 预备目标 part 时的 arena 上界检查，超大 `sect` 返回既有 `EDIT_TARGET_MISSING`。
+  媒体句柄不因前部删除重排，同字节同 MIME 与包内既有媒体去重；只读出口覆盖原 ZIP 字节与子树规范化。
+  `document` 同时实现 BIND-10 的 blockRange / fields / depth：跨块索引保持全量、超深为 Protected(TooDeep)。
+  同一份 schema 内的 `DocumentResponse` 承载裁剪和元数据；模型 `Document` 定义与 8.2 严格 checklist 保持原样。
+  全语料定向验证：1099 成功 / 4 点名拒绝；3779 run、3693 段落、526 单元格、1128 节、263 表格查询，
+  9060 part 原字节、344 媒体、12165 子树只读校验。真实 wasm 的 13 个缺失会话出口与生命周期验证已接 CI。
+最大真实文档 326406 B，31 次 clone 中位数 0.424 ms / p95 0.608 ms / 最大 0.681 ms；
+  1000-ID resolveRuns p95 11.768 ms，均低于 50 ms。完整数字与复现命令见 `docs/05`。
+  最终 workspace debug / release 各 **897 passed、0 failed、13 ignored**（11 个 ignored doctest；
+  合并导出宏时移除旧 wasm_export 的一个 ignored 文档示例，没有删除执行中的测试），fmt 干净、clippy 零告警。
+  八道差分门 **242 + 547 已知 / 0 未知**；save_blocks **204/208 等价 / 0 跳过**；
+  既有 BIND-02 模型投影体积门 **251 份，4,334,070B → 1,408,718B（−67.5%）**。
+  66 变体仍为 **57 无损往返 + 9 具名拒绝**。8.5–8.7 保持待办，本任务提交后停下复核。
+
 - [ ] **8.5 Rust crate 公共 API 定型**（公共面收敛、feature 划分、`missing_docs`、三个 example、README 改写）
 - [ ] **8.6 回归网换代**（`*.model.json` 自快照、`TEST-07` 走协议、`fuzz_bind`）
 - [ ] **8.7 `compat_ts` 降级、性能、体积与收尾**

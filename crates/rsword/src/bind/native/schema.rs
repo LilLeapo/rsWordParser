@@ -182,10 +182,19 @@ pub fn flatten_variant_json(v: Value, kind: &str) -> Value {
 /// `document()` 输出的整份 JSON Schema（`BIND-02` 顶层形态为根，命名类型全进 `$defs`）。
 pub fn document_schema() -> Value {
     let mut defs = SchemaDefs::default();
-    let root = <crate::model::Document as crate::bind::native::json::ToJson>::schema(&mut defs);
+    let mut root = <crate::model::Document as crate::bind::native::json::ToJson>::schema(&mut defs);
     let mut o = Map::new();
     o.insert("$schema".to_string(), Value::from("https://json-schema.org/draft/2020-12/schema"));
-    o.insert("$defs".to_string(), Value::Object(defs.into_map()));
+    let mut defs = defs.into_map();
+    // BIND-10：顶层可裁剪，跨块索引仍必填；元数据不属于模型字段。
+    let mut document = defs["Document"].clone();
+    document["required"] = serde_json::json!(["spans", "fields", "revisions"]);
+    document["properties"]["totalBlocks"] = int_schema();
+    document["properties"]["truncated"] = bool_schema();
+    defs.insert("DocumentResponse".into(), document);
+    root["$ref"] = Value::from("#/$defs/DocumentResponse");
+    o.insert("$defs".to_string(), Value::Object(defs));
+
     if let Value::Object(r) = root {
         o.extend(r);
     }

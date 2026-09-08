@@ -21,35 +21,10 @@
 use crate::bind::compat_ts::{apply_save_blocks, parsed_doc};
 use crate::diag::{DiagCode, ValidationOrigin};
 use crate::edit::EditSession;
-use crate::error::Error;
 use crate::package::Package;
 use crate::save::options::CompatSaveOptions as SaveOptions;
 
-/// 绑定层的错误。`code` 稳定、可依赖；`message` 是给人看的。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ApiError {
-    pub code: String,
-    pub message: String,
-}
-
-impl ApiError {
-    fn new(code: &str, message: impl Into<String>) -> Self {
-        Self { code: code.to_string(), message: message.into() }
-    }
-}
-
-impl From<Error> for ApiError {
-    fn from(e: Error) -> Self {
-        let code = match &e {
-            Error::NotOoxml(_) => "NOT_OOXML",
-            Error::Limit { code, .. } | Error::Edit { code, .. } => code.as_str(),
-            Error::Zip(_) => "ZIP",
-            Error::Malformed { .. } => "XML_MALFORMED",
-            Error::Invariant(d) => d.code.as_str(),
-        };
-        ApiError::new(code, e.to_string())
-    }
-}
+pub use crate::bind::native::ApiError;
 
 /// 调用方契约错误（参数不是合法 JSON、类型不对、漏了必填项）：`BIND_BAD_ARGUMENT`。
 fn bad_argument(message: impl Into<String>) -> ApiError {

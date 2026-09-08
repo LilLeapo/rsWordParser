@@ -176,6 +176,12 @@ pub enum DiagCode {
     BindBadArgument,
     /// `BIND-03`：成功应用的 XML / 原字节逃生口，每次使用记一条。
     BindXmlEscape,
+    /// 会话不存在（BIND-01）。
+    BindNoSession,
+    /// 会话内句柄不存在（BIND-05/06/09）。
+    BindIdUnknown,
+    /// 调用方要求的协议版本不匹配（BIND-08）。
+    BindProtocolMismatch,
 }
 
 impl DiagCode {
@@ -246,6 +252,9 @@ impl DiagCode {
             Self::SaveTableGrid => "SAVE_TABLE_GRID",
             Self::BindBadArgument => "BIND_BAD_ARGUMENT",
             Self::BindXmlEscape => "BIND_XML_ESCAPE",
+            Self::BindNoSession => "BIND_NO_SESSION",
+            Self::BindIdUnknown => "BIND_ID_UNKNOWN",
+            Self::BindProtocolMismatch => "BIND_PROTOCOL_MISMATCH",
         }
     }
 }

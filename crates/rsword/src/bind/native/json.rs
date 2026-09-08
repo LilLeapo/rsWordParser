@@ -79,7 +79,7 @@ pub struct ProjCx<'a> {
     pub display: bool,
 }
 
-/// `document(opts?)` 的选项（`BIND-10` 的 `blockRange` / `fields` / `depth` 随 8.4 的会话导出加入）。
+/// 完整模型投影选项；`SessionTable::document` 的 JSON 参数另支持 BIND-10 的预算裁剪。
 #[derive(Debug, Clone, Copy, Default)]
 pub struct DocumentOpts {
     /// 显示模型投影，缺省 `false`（`BIND-02` 决策 4）。

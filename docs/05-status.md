@@ -36,8 +36,52 @@ Keep / Unset / Set / Patch 的分支不塌缩；EditContext 全字段可选，Mu
 实测 **1065 份 synthetic + real** 的结构化插段经协议 / 原生保存逐字节相等，空选项保存原字节不变。
 最终 workspace debug / release 各 **862 passed、0 failed、14 ignored**（其中 12 个 ignored doctest），clippy 零告警。
 八道差分门仍为 **242 + 547 已知 / 0 未知**；save_blocks **204/208 等价、0 跳过**；门 6 体积
-4,334,070B → 1,408,718B（251 份带图文档，**−67.5%**）。下一项为 8.4：会话表、导出、媒体、resolve 及克隆成本实测。
+4,334,070B → 1,408,718B（251 份带图文档，**−67.5%**）。会话表、导出、媒体、resolve 与克隆成本已由 8.4 交付（见下）。
 包括 hostile 的全语料无编辑保存专门门、TEST-07 协议迁移与 fuzz_bind 按排期在 8.6。
+
+**8.4 已完成**（2026-09-09，`spec/21` v3.1，分支 `m8-native-json`）：
+原生入口为 `bind::native::SessionTable`，`open(bytes, options_json?)` 返回不透明字符串；
+各 JSON 参数以 `Option<&str>` / `&str` 传入，结果 JSON 为 `String`，字节出口为 `Vec<u8>`。
+`close` 幂等；`apply` 成功才提交；`save` 在克隆上做，成功与失败都不推进会话。
+`document` 支持 display / blockRange / fields / depth，并返回 totalBlocks / truncated；
+跨块 spans / fields / revisions 始终全量。原 `Document` 模型 schema 不改，另由同份 schema 的
+`DocumentResponse` 定义声明可裁剪字段与元数据，8.2 的完整模型 checklist 继续严格生效。
+五个批量 resolve 输入 nodeId JSON 数组，`resolveSections` 的隐式节收 `{ "sectionIndex": N }`；
+可选 part 缺省主 part。坏 part 返回 BIND_ID_UNKNOWN，坏节点逐项 `{ "error": "BIND_ID_UNKNOWN" }`。
+输出 `{ value, provenance }`：run / para / cell 的 props 与逐字段来源分别在两侧；run 的 cs 单列，
+cell 的 rpr / ppr / conditions 完整保留。节的 hf 六槽带 Declared / Inherited / Absent；表格保留
+列宽来源、条件样式层、有效单元格、行高、边框和边距。原生查询不改模型或 DOM。
+媒体表只追加句柄，按内容与 MIME 去重；`partBytes` / `nodeXml` 为只读调试设施。
+Clean XML 的 partBytes 从 ZIP 取原编码，脏 part 用当前 DOM 序列化；nodeXml 在临时克隆上补继承声明，
+保留原前缀，原会话不变。`diagnostics` 复用 `{ diagnostics, xmlEscapeCount }`，只统计成功提交的逃生口。
+wasm 的 `SessionTable` 类与旧兼容五函数共享 `bind_export!`；真实 wasm 的 13 个缺失会话出口、
+open / apply / save / close、媒体、查询与调试出口经 Node 验证，`native_parity.mjs` 已接 CI。
+
+定向语料：**1099 成功 + 4 点名拒绝**（synthetic + real + hostile），五个查询分别覆盖
+**3779 run / 3693 段落 / 526 单元格 / 1128 节 / 263 表格**；只读出口校验
+**9060 part / 344 媒体 / 12165 XML 子树**。属性 JSON 独立解码回引擎型，来源逐字段比较。
+破坏性验证：把 run 的 cs 输出取反，`bind_06_run_full_corpus` 立即失败；恢复后重跑全套。
+另补修既有 `setHeaderFooter` 预备 part 的越界索引：用 u32::MAX 的 sect 先复现 panic，
+加上界检查后返回既有 EDIT_TARGET_MISSING，失败后的会话字节与诊断不变。
+
+`cargo bench -p rsword --bench session` 在 **266** 份真实文档中按 ZIP 文件大小取最大者
+`corpus/real/misc/large-report.docx`（**326406 B**），预热后 **31** 次采样。批量请求按该文档实际 run 顺序循环取足 1000 个 ID（不要求互异）：
+
+| 操作 | 中位数 | p95 | 最大 |
+| --- | --- | --- | --- |
+| EditSession::clone（不含释放） | 0.424 ms | 0.608 ms | 0.681 ms |
+| resolveRuns（1000 个 ID，含索引、解析参数与 JSON 输出） | 11.523 ms | 11.768 ms | 13.522 ms |
+
+均低于 50 ms，保留克隆实现，不引入回滚式保存或 resolveAll。
+最终 workspace debug / release 各 **897 passed、0 failed、13 ignored**（11 个 ignored doctest）；
+合并导出宏时移除了旧 wasm_export 的一个 ignored 文档示例，没有删除执行中的测试。fmt 干净、clippy 零告警。
+八道差分门 **242 + 547 已知 / 0 未知**；save_blocks **204/208 等价、0 跳过**（4 项既有有意差异）；
+既有 BIND-02 模型投影体积门仍为 **251 份，4,334,070B → 1,408,718B（−67.5%）**。
+66 个 EditOp 的分类仍为 **57 无损往返 + 9 具名拒绝**。真实 wasm 重建及 Node 验证也包含超大 sect 的具名错误。
+复现：`cargo test --workspace`、`cargo test --workspace --release`、`cargo clippy --workspace --all-targets`；
+`cargo bench -p rsword --bench session`；`tools/build-js.sh` 后执行
+`node tools/js-parity/native_parity.mjs --pkg crates/rsword-js/pkg`。差分与体积沿用本文既有门命令。
+8.5 公共 API / feature 收敛、8.6 hostile 无编辑保存专门门与协议随机序列、8.7 文档改名仍待各自任务。
 
 **M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖），**已全部并入 `main`**（2026-09-04）。
 **M3 完成**（2026-09-05，分支 `m3-tables`，3.1–3.9 全部落地，**M3 门四条都跑过**：

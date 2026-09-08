@@ -36,5 +36,9 @@ serde = { version = "1", features = ["derive"] }
 name = "edit"
 harness = false
 
+[[bench]]
+name = "session"
+harness = false
+
 [lints]
 workspace = true
