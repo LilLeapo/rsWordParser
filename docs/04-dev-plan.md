@@ -441,6 +441,10 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `EDIT-03 MoveBlock` | `{ node, to }` | 多一个 `from: Option<PartId>` | 跨 part 搬块得知道 `node` 在哪个 part 的 DOM 里——`NodeId` 只在自己 part 内有意义。`None` = 主 part，与其余操作一致 |
 | `spec/18` 7.6 跨 part 搬块「一端在外的按 `SPAN-07` 容器删除处理」 | — | 整个落在被搬块内的范围**从源索引里摘掉**（不是折叠留在删除点） | 内容不是被销毁而是搬走了，标记已经跟着到了目标 part。按 `SPAN-07` 的书签规则折叠，`SPAN-09` 会在源处再物化出一个同名标记——同一个书签就在两个 part 里各有一份。目标容器 `rescan`，搬过去的标记在新 part 里重新成范围 |
 | `ModelFingerprint` 与真实 Word 的对照 | — | 与 `fixtures/word-ops` 比时只算主 part（`fingerprint_main`） | Word 另存时会顺手补上 `footnotes.xml` / `endnotes.xml` 这些它总要写的 part（`delete-break/after.docx` 就比 `before.docx` 多两个），那是它的保存行为、与被测的操作无关；本引擎不新建没人要的 part |
+| `spec/18` 7.7 `SetDrawingWrap`「切换只重建外壳」 | 换壳 | **本来就是 `wp:anchor` 的只就地改**：只动 `behindDoc`、给了 `z_order` 才动 `relativeHeight`、换绕排元素、横轴写着 `wp:align` 时跟着绕排改对齐；壳的属性（`distT/B/L/R`、`locked`、`layoutInCell`、`allowOverlap`、`simplePos`）与两个位置元素的字节都留着。只有随文 ↔ 锚定才真换壳 | TS `applyImageWrap` 无条件重写 anchor 开标签与两个位置元素，等于把 Word 写的绕排边距与锁定标志抹成模板值。不变式 1：没要求改的字节不动。给了 `pos` 时两个位置元素照写 |
+| `spec/18` 7.7 `SetDrawingWrap` 的紧密 / 穿越 | 生成矩形多边形 | 生成真正的 `wp:wrapTight` / `wp:wrapThrough` + `wp:wrapPolygon`（整幅图的矩形，21600 相对坐标） | TS 这两种一律落成 `wp:wrapSquare`（`generate.ts` 的 `isSide` 分支），Word 里看不出紧密与方形的区别。计划里写的"我们更强，登记" |
+| `SetDrawingWrap` 的 `wp:wrapPolygon` 复用 | 同类保留 | 紧密 ↔ 穿越**互相**保留（TS 只在标签一模一样时复用，且连 `@wrapText` 一起复用；我们只搬多边形，`wrapText` 重新写成 `bothSides`） | 多边形是用户描的轮廓，紧密与穿越只差"文字进不进凹处"，跨这两种丢掉它没道理。`wrapText` 是绕排侧，跟着这次的绕排走 |
+| `SaveOptions.normalize_z_order`（7.7） | — | 本引擎独有的保存选项，缺省 **false** | TS 的 `SaveOptions` 没有这一项：它的 `normalizeImageZOrders` 只在**投影**里压平 z 序（`imageZOrderNormalized`），从不写回 XML。开着时闸门与投影层同一条（某个 `\|z\| > 10000` 才动手），按 z 稳定排序（同值按文档序）重排成 `251658240 + 0..n`；compat 的保存路径在块表带回 `imageZOrderNormalized` 时自动置上 |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -1605,5 +1609,25 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   两个 `wp:posOffset` 四个数字与 Word 的 `after.docx` 逐字相同）。
   `tests/drawing_ops.rs` 8 个用例。**609 测试**（调试 + 发布）、九道门仍为 0、
   保存语料 204 / 208 等价 0 跳过、clippy 零告警。
-  7.7b（`SetDrawingWrap` 的 `wp:inline ↔ wp:anchor` 换壳、`mc:Fallback` 孪生同步、
-  `NewBlock::Textbox / Shape / Line`、`SaveOptions.normalize_z_order`）另起一提交。
+  7.7b / 7.7c 另起提交。
+
+- [x] **7.7b 绕排切换与 z 序归一**（`edit/drawing_ops.rs`、`save/options`，2026-09-08）：
+  `SetDrawingWrap { drawing, wrap, pos, z_order }`——`wrap: None` = 随文（`wp:inline`），
+  `Some(ImageWrap)` = 锚定（`wp:anchor`）。**壳的种类不变就不换壳**（§8）：锚定 → 锚定只改
+  `behindDoc` / 绕排元素 / 横轴对齐（写着 `wp:align` 时；写着明确 `wp:posOffset` 的不动），
+  给了 `pos` 才重写两个位置元素。随文 ↔ 锚定才重建外壳：新壳插在旧壳前，`wp:extent` /
+  `effectExtent` / `docPr` / `cNvGraphicFramePr` / `a:graphic` 用 `move_within_part` 搬进去
+  （`XML-12` 规则 E，原字节保住 → `SAVE-08`），旧壳连它的 `simplePos` / `positionH` /
+  `positionV` / `wrap*` 一起删掉。紧密 / 穿越发真正的 `wp:wrapTight` / `wp:wrapThrough`
+  （TS 落成 `wrapSquare`，§8），两者之间切换时原 `wp:wrapPolygon` 原字节搬过去。
+  `AnchorPos { h, v }` 每轴 = `relative_from` + `AxisPos::Offset(emu) | Align(…)`。
+  `SaveOptions.normalize_z_order`（缺省 false，§8）：闸门与投影层同一条，开着且真有野值时
+  主 part 全部 `wp:anchor` 按 z 稳定重排成 `251658240 + 0..n`；compat 的保存路径在块表带回
+  `imageZOrderNormalized` 时自动置上。**DoD**：`image-wrap__*` 二十份语料（`spec/18` 写的
+  「11 份」是导语料之前的估数）逐份切到十种取值再切回，`ModelFingerprint` 一路相等、
+  `a:graphic` 子树逐字节相同、每一步模型读回来的绕排就是刚设的那个；
+  `anchor-z-order__003`（LibreOffice 的 `relativeHeight="3" "1" "2"`）开归一后成
+  `251658242 / 251658240 / 251658241`（按 z 排、不是按文档序）且幂等，
+  `anchor-z-order__001`（z = 3 与 1）闸门不开、一个字节不动。
+  `tests/drawing_ops.rs` 15 个用例。**616 测试**（调试）、九道门仍为 0、clippy 零告警。
+  7.7c（`mc:Fallback` 孪生同步、`NewBlock::Textbox / Shape / Line`）另起一提交。

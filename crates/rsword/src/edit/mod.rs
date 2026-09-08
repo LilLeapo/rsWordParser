@@ -29,7 +29,7 @@ pub mod table_ops;
 pub(crate) mod track;
 
 pub use chart_ops::{ChartPatch, ChartSeriesPatch, NewChart, NewChartKind, NewChartSeries};
-pub use drawing_ops::{DrawingGeometry, SrcRect};
+pub use drawing_ops::{AnchorAxis, AnchorPos, AxisPos, DrawingGeometry, SrcRect};
 pub use ink_ops::{InkSave, NewInk};
 pub use inline::{NewInline, NewLinkTarget, NewMarker, NewRevision, NewRun};
 pub use media_ops::{ImageWrap, NewImage, ParaSpacing, PosOffset};
@@ -304,6 +304,17 @@ pub enum EditOp {
     SetDrawingGeometry { drawing: NodeId, geom: DrawingGeometry },
     /// `EDIT-03 SetDrawingZOrder`：`relativeHeight = 251658240 + z`（只对锚定图片有意义）。
     SetDrawingZOrder { drawing: NodeId, z: i64 },
+    /// `EDIT-03 SetDrawingWrap`（`spec/18` 7.7）：绕排方式。`wrap: None` = 随文（`wp:inline`），
+    /// `Some(_)` = 锚定（`wp:anchor`）。壳换了也只重建壳：`wp:extent` / `effectExtent` /
+    /// `docPr` / `cNvGraphicFramePr` / `a:graphic` 原字节搬过去（`SAVE-08`）。
+    SetDrawingWrap {
+        drawing: NodeId,
+        wrap: Option<media_ops::ImageWrap>,
+        /// 不给时：本来就锚定的保留原 `positionH` / `positionV`，随文转锚定的按绕排方向取缺省。
+        pos: Option<AnchorPos>,
+        /// 不给时：本来就锚定的保留原 `relativeHeight`，随文转锚定的取基数。
+        z_order: Option<i64>,
+    },
     /// `EDIT-03 SetShapeStyle`：`wps:spPr` 的填充与描边。`None` = 不动，`Some(None)` = 无。
     SetShapeStyle { shape: NodeId, fill: Option<Option<String>>, outline: Option<Option<String>> },
     /// `EDIT-03 InsertSectionBreak`（`spec/18` 7.6）：在 `after` 这一段之后断节。

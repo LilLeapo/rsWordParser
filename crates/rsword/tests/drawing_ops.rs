@@ -322,3 +322,371 @@ fn drawing_edits_are_not_tracked() {
     );
     assert!(s.document().revisions.is_empty(), "没有生成修订");
 }
+
+// ---------------------------------------------------------------- SetDrawingWrap
+
+use rsword::edit::ImageWrap;
+use rsword::model::drawing::Wrap;
+
+/// 九种绕排 + 随文，`SetDrawingWrap` 的完整取值域。
+const ALL_WRAPS: [Option<ImageWrap>; 10] = [
+    None,
+    Some(ImageWrap::SquareLeft),
+    Some(ImageWrap::SquareRight),
+    Some(ImageWrap::TightLeft),
+    Some(ImageWrap::TightRight),
+    Some(ImageWrap::ThroughLeft),
+    Some(ImageWrap::ThroughRight),
+    Some(ImageWrap::TopBottom),
+    Some(ImageWrap::Front),
+    Some(ImageWrap::Behind),
+];
+
+/// `word/document.xml` 里每一棵 `a:graphic` 的原字节。
+fn graphics(docx: &[u8]) -> Vec<String> {
+    let xml = String::from_utf8_lossy(&common::part_bytes(docx, "word/document.xml")).to_string();
+    let mut out = Vec::new();
+    let mut rest = xml.as_str();
+    while let Some(i) = rest.find("<a:graphic ").or_else(|| rest.find("<a:graphic>")) {
+        let tail = &rest[i..];
+        let Some(j) = tail.find("</a:graphic>") else { break };
+        out.push(tail[..j + 12].to_string());
+        rest = &tail[j + 12..];
+    }
+    out
+}
+
+/// `image-wrap__*` 的二十份文档（`spec/18` 写的「11 份」是导语料之前的估数）：逐份切到
+/// 每一种绕排再切回。内容指纹一路不变、
+/// `a:graphic` 子树一个字节没动（`SAVE-08`），最后一步回到原来的绕排。
+#[test]
+fn set_wrap_round_trips_on_the_image_wrap_corpus() {
+    let mut seen = 0;
+    for path in common::docx_paths("synthetic") {
+        let name = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
+        if !name.starts_with("image-wrap__") {
+            continue;
+        }
+        let bytes = std::fs::read(&path).expect("语料");
+        let base = EditSession::open(&bytes).unwrap();
+        seen += 1;
+        let want_fp = common::fingerprint::fingerprint(&base);
+        let want_graphics = graphics(&bytes);
+        let start = original_wrap(&base);
+        let mut s = EditSession::open(&bytes).unwrap();
+        for step in ALL_WRAPS.into_iter().chain([start]) {
+            let d = drawing(&s, 0);
+            s.apply(
+                EditOp::SetDrawingWrap { drawing: d, wrap: step, pos: None, z_order: None },
+                &EditContext::default(),
+            )
+            .unwrap_or_else(|e| panic!("{name}: 切到 {step:?} 失败: {e}"));
+            let out = s.save().unwrap();
+            assert_fingerprint_eq!(
+                common::fingerprint::fingerprint(&s),
+                want_fp,
+                "{name}: 切到 {step:?} 之后内容变了"
+            );
+            assert_eq!(graphics(&out), want_graphics, "{name}: 切到 {step:?} 动了 a:graphic");
+            assert_eq!(shell_wrap(&s), step, "{name}: 切到 {step:?} 之后模型读回来不一样");
+        }
+    }
+    assert_eq!(seen, 20, "image-wrap__* 应有 20 份带图文档");
+}
+
+/// 从模型读回当前的绕排（`None` = 随文）。`wrapNone` 靠 `behindDoc` 分前后，
+/// 方形 / 紧密 / 穿越靠 `positionH` 的对齐分左右——正好是我们生成时写进去的那两样。
+fn shell_wrap(s: &EditSession) -> Option<ImageWrap> {
+    let dom = s.package().part(s.document().main_part).dom().expect("主 part");
+    let d = rsword::model::drawing::drawing_display(dom, drawing(s, 0));
+    let a = d.anchor.as_ref()?;
+    let right = a.h.align.as_deref() == Some("right");
+    Some(match &a.wrap {
+        Wrap::None if a.behind_doc => ImageWrap::Behind,
+        Wrap::None => ImageWrap::Front,
+        Wrap::TopAndBottom => ImageWrap::TopBottom,
+        Wrap::Square { .. } if right => ImageWrap::SquareRight,
+        Wrap::Square { .. } => ImageWrap::SquareLeft,
+        Wrap::Tight { .. } if right => ImageWrap::TightRight,
+        Wrap::Tight { .. } => ImageWrap::TightLeft,
+        Wrap::Through { .. } if right => ImageWrap::ThroughRight,
+        Wrap::Through { .. } => ImageWrap::ThroughLeft,
+        Wrap::Unspecified => return None,
+    })
+}
+
+/// 打开时第一张图的绕排（回环的终点）。
+fn original_wrap(s: &EditSession) -> Option<ImageWrap> {
+    shell_wrap(s)
+}
+
+/// 随文 → 锚定：新壳的属性与子元素次序按 `CT_Anchor`，搬进去的五样原字节。
+#[test]
+fn set_wrap_inline_to_anchor_rebuilds_only_the_shell() {
+    let bytes = inline_pic_doc();
+    let before = graphics(&bytes);
+    let mut s = EditSession::open(&bytes).unwrap();
+    let d = drawing(&s, 0);
+    s.apply(
+        EditOp::SetDrawingWrap {
+            drawing: d,
+            wrap: Some(ImageWrap::SquareRight),
+            pos: None,
+            z_order: Some(5),
+        },
+        &EditContext::default(),
+    )
+    .expect("换成方形绕排");
+    let out = s.save().unwrap();
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//wp:inline)", ["0"]),
+            ("//wp:anchor/@relativeHeight", ["251658245"]),
+            ("//wp:anchor/@behindDoc", ["0"]),
+            ("//wp:anchor/@simplePos", ["0"]),
+            ("//wp:anchor/@distL", ["114300"]),
+            ("//wp:positionH/@relativeFrom", ["column"]),
+            ("//wp:positionH/wp:align/text()", ["right"]),
+            ("//wp:positionV/wp:posOffset/text()", ["0"]),
+            ("//wp:wrapSquare/@wrapText", ["bothSides"]),
+            // 搬进去的五样都在，一份不多
+            ("count(//wp:anchor/wp:extent)", ["1"]),
+            ("count(//wp:anchor/wp:effectExtent)", ["1"]),
+            ("count(//wp:anchor/wp:docPr)", ["1"]),
+            ("count(//wp:anchor/a:graphic)", ["1"]),
+        ]
+    );
+    assert_eq!(graphics(&out), before, "a:graphic 子树原字节（SAVE-08）");
+    // 次序：simplePos → positionH → positionV → extent → effectExtent → wrapSquare → docPr → graphic
+    let xml = String::from_utf8_lossy(&common::part_bytes(&out, "word/document.xml")).to_string();
+    let at = |t: &str| xml.find(t).unwrap_or_else(|| panic!("找不到 {t}"));
+    let order = [
+        "<wp:simplePos",
+        "<wp:positionH",
+        "<wp:positionV",
+        "<wp:extent",
+        "<wp:effectExtent",
+        "<wp:wrapSquare",
+        "<wp:docPr",
+        "<a:graphic",
+    ]
+    .map(at);
+    assert!(order.windows(2).all(|w| w[0] < w[1]), "CT_Anchor 的子元素次序: {order:?}");
+}
+
+/// 紧密与穿越之间保留原来的 `wp:wrapPolygon`；从方形切过来则生成整幅图的矩形。
+#[test]
+fn set_wrap_keeps_a_hand_edited_polygon_between_tight_and_through() {
+    let mut s = EditSession::open(&inline_pic_doc()).unwrap();
+    let d = drawing(&s, 0);
+    s.apply(
+        EditOp::SetDrawingWrap {
+            drawing: d,
+            wrap: Some(ImageWrap::TightLeft),
+            pos: None,
+            z_order: None,
+        },
+        &EditContext::default(),
+    )
+    .expect("紧密");
+    common::xpath_asserts!(
+        &s.save().unwrap(),
+        "word/document.xml",
+        [
+            ("//wp:wrapTight/wp:wrapPolygon/@edited", ["0"]),
+            ("//wp:wrapTight/wp:wrapPolygon/wp:start/@x", ["0"]),
+            ("count(//wp:wrapTight/wp:wrapPolygon/wp:lineTo)", ["4"]),
+        ]
+    );
+    let d = drawing(&s, 0);
+    s.apply(
+        EditOp::SetDrawingWrap {
+            drawing: d,
+            wrap: Some(ImageWrap::ThroughRight),
+            pos: None,
+            z_order: None,
+        },
+        &EditContext::default(),
+    )
+    .expect("穿越");
+    common::xpath_asserts!(
+        &s.save().unwrap(),
+        "word/document.xml",
+        [
+            ("count(//wp:wrapTight)", ["0"]),
+            ("count(//wp:wrapThrough/wp:wrapPolygon)", ["1"]),
+            ("count(//wp:wrapThrough/wp:wrapPolygon/wp:lineTo)", ["4"]),
+            ("//wp:positionH/wp:align/text()", ["right"]),
+        ]
+    );
+    // 切到方形再切回紧密：方形没有多边形，回来时重新生成
+    let d = drawing(&s, 0);
+    s.apply(
+        EditOp::SetDrawingWrap {
+            drawing: d,
+            wrap: Some(ImageWrap::SquareLeft),
+            pos: None,
+            z_order: None,
+        },
+        &EditContext::default(),
+    )
+    .unwrap();
+    common::xpath_asserts!(
+        &s.save().unwrap(),
+        "word/document.xml",
+        [("count(//wp:wrapPolygon)", ["0"]), ("count(//wp:wrapSquare)", ["1"])]
+    );
+}
+
+/// 给了 `pos` 就照写；锚定 → 随文把位置与绕排一起丢掉。
+#[test]
+fn set_wrap_explicit_position_then_back_to_inline() {
+    let mut s = EditSession::open(&inline_pic_doc()).unwrap();
+    let d = drawing(&s, 0);
+    s.apply(
+        EditOp::SetDrawingWrap {
+            drawing: d,
+            wrap: Some(ImageWrap::Behind),
+            pos: Some(rsword::edit::AnchorPos {
+                h: rsword::edit::AnchorAxis {
+                    relative_from: "page".into(),
+                    pos: rsword::edit::AxisPos::Offset(914_400),
+                },
+                v: rsword::edit::AnchorAxis {
+                    relative_from: "page".into(),
+                    pos: rsword::edit::AxisPos::Align("center".into()),
+                },
+            }),
+            z_order: None,
+        },
+        &EditContext::default(),
+    )
+    .expect("衬于文字下方");
+    common::xpath_asserts!(
+        &s.save().unwrap(),
+        "word/document.xml",
+        [
+            ("//wp:anchor/@behindDoc", ["1"]),
+            ("count(//wp:wrapNone)", ["1"]),
+            ("//wp:positionH/@relativeFrom", ["page"]),
+            ("//wp:positionH/wp:posOffset/text()", ["914400"]),
+            ("//wp:positionV/wp:align/text()", ["center"]),
+        ]
+    );
+    let d = drawing(&s, 0);
+    s.apply(
+        EditOp::SetDrawingWrap { drawing: d, wrap: None, pos: None, z_order: None },
+        &EditContext::default(),
+    )
+    .expect("回到随文");
+    common::xpath_asserts!(
+        &s.save().unwrap(),
+        "word/document.xml",
+        [
+            ("count(//wp:anchor)", ["0"]),
+            ("count(//wp:positionH)", ["0"]),
+            ("count(//wp:wrapNone)", ["0"]),
+            ("//wp:inline/@distL", ["0"]),
+            ("count(//wp:inline/wp:extent)", ["1"]),
+        ]
+    );
+}
+
+/// 文档里本来就有的手绘多边形：紧密 → 穿越同类，原样搬过去（连 `edited="1"` 与坐标）。
+#[test]
+fn set_wrap_moves_an_existing_polygon_verbatim() {
+    let body = concat!(
+        r#"<w:p><w:r><w:drawing><wp:anchor xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing""#,
+        r#" distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="251658240""#,
+        r#" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1">"#,
+        r#"<wp:simplePos x="0" y="0"/>"#,
+        r#"<wp:positionH relativeFrom="column"><wp:align>left</wp:align></wp:positionH>"#,
+        r#"<wp:positionV relativeFrom="paragraph"><wp:posOffset>0</wp:posOffset></wp:positionV>"#,
+        r#"<wp:extent cx="914400" cy="914400"/>"#,
+        r#"<wp:wrapTight wrapText="largest"><wp:wrapPolygon edited="1">"#,
+        r#"<wp:start x="123" y="456"/><wp:lineTo x="789" y="1011"/><wp:lineTo x="123" y="456"/>"#,
+        r#"</wp:wrapPolygon></wp:wrapTight>"#,
+        r#"<wp:docPr id="1" name="p1"/>"#,
+        r#"<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">"#,
+        r#"<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"/>"#,
+        r#"</a:graphic></wp:anchor></w:drawing></w:r></w:p>"#,
+    );
+    let mut s = EditSession::open(&common::docx_with_body(body)).unwrap();
+    let d = drawing(&s, 0);
+    s.apply(
+        EditOp::SetDrawingWrap {
+            drawing: d,
+            wrap: Some(ImageWrap::ThroughLeft),
+            pos: None,
+            z_order: None,
+        },
+        &EditContext::default(),
+    )
+    .expect("穿越");
+    let out = s.save().unwrap();
+    let xml = String::from_utf8_lossy(&common::part_bytes(&out, "word/document.xml")).to_string();
+    assert!(
+        xml.contains(concat!(
+            r#"<wp:wrapPolygon edited="1">"#,
+            r#"<wp:start x="123" y="456"/><wp:lineTo x="789" y="1011"/><wp:lineTo x="123" y="456"/>"#,
+            r#"</wp:wrapPolygon>"#
+        )),
+        "多边形应当原字节搬过去:\n{xml}"
+    );
+    common::xpath_asserts!(
+        &out,
+        "word/document.xml",
+        [
+            ("count(//wp:wrapTight)", ["0"]),
+            ("//wp:wrapThrough/@wrapText", ["bothSides"]),
+            ("count(//wp:wrapThrough/wp:wrapPolygon)", ["1"]),
+        ]
+    );
+}
+
+// ---------------------------------------------------------------- normalize_z_order
+
+fn rel_heights(docx: &[u8]) -> Vec<i64> {
+    let xml = String::from_utf8_lossy(&common::part_bytes(docx, "word/document.xml")).to_string();
+    xml.match_indices("relativeHeight=\"")
+        .filter_map(|(i, _)| xml[i + 16..].split('"').next()?.parse().ok())
+        .collect()
+}
+
+/// `SaveOptions.normalize_z_order`：LibreOffice 写 `relativeHeight="1" / "2" / "3"` 的语料
+/// 开启后按 z 序稳定重排成 `251658240 + 0..n`，再跑一遍不动；关闭时一个字节都不动。
+#[test]
+fn normalize_z_order_rewrites_wild_relative_heights() {
+    let path = common::corpus_dir("synthetic").join("anchor-z-order__003.docx");
+    let bytes = std::fs::read(&path).expect("anchor-z-order__003.docx");
+    // 文档序是 3、1、2：正好能看出名次按 z 排、不是按文档序
+    assert_eq!(rel_heights(&bytes), [3, 1, 2], "语料前提：LibreOffice 的野值");
+
+    // 关着：一个字节都不动（不变式 1）
+    let mut s = EditSession::open(&bytes).unwrap();
+    assert_eq!(s.save().unwrap(), bytes, "缺省不归一");
+
+    let opts = rsword::save::SaveOptions { normalize_z_order: true, ..Default::default() };
+    let mut s = EditSession::open(&bytes).unwrap();
+    let out = s.save_with(&opts).unwrap();
+    assert_eq!(rel_heights(&out), [251_658_242, 251_658_240, 251_658_241]);
+    // 幂等：归一过的文档再归一什么都不发生
+    let mut s = EditSession::open(&out).unwrap();
+    assert_eq!(s.save_with(&opts).unwrap(), out, "归一是幂等的");
+}
+
+/// z 序本来就规矩（Word 自己写的 `251658240 + 小数`）的文档，开着归一也不动。
+#[test]
+fn normalize_z_order_leaves_sane_documents_alone() {
+    let path = common::corpus_dir("synthetic").join("anchor-z-order__001.docx");
+    let bytes = std::fs::read(&path).expect("anchor-z-order__001.docx");
+    assert_eq!(rel_heights(&bytes), [251_658_243, 251_658_241], "语料前提：z = 3 与 1");
+    let mut s = EditSession::open(&bytes).unwrap();
+    let out = s
+        .save_with(&rsword::save::SaveOptions { normalize_z_order: true, ..Default::default() })
+        .unwrap();
+    assert_eq!(rel_heights(&out), [251_658_243, 251_658_241], "闸门没开，名次不动");
+    assert_eq!(out, bytes, "一个字节都不动");
+}

@@ -100,6 +100,12 @@ pub struct SaveOptions {
     /// （`EditOp::RemoveInks` + `InsertInk`；旧媒体与关系随资源回收消失）；`Some(vec![])` 只删；`None` 不动。
     pub inks: Option<Vec<InkSave>>,
 
+    // ---- 7.7：z 序归一 ----
+    /// 主 part 的浮动对象按 z 序稳定重排成 `251658240 + 0..n`（TS `normalizeImageZOrders`）。
+    /// 缺省 **false**：没人要求就不动未编辑的字节（不变式 1）。开着时也只在文档里真有
+    /// 「野值」（某个 `|z| > 10000`，LibreOffice 一类的产出）时才动手——与投影层的闸门同一条。
+    pub normalize_z_order: bool,
+
     // ---- 6.7：资源回收 ----
     /// 保存时回收**本次会话**让引用数归零的图片 / 图表 / 图示 / OLE / 超链接关系与它们的 part 子图
     /// （`save/prune.rs`）。`None` = 开（缺省）；原本就是孤儿的 part 一个字节不动（TS 会一并删掉，`docs/04` §8）。
@@ -134,6 +140,7 @@ impl SaveOptions {
             || self.theme_colors.is_some()
             || !self.style_upserts.is_empty()
             || self.inks.is_some()
+            || self.normalize_z_order
     }
 }
 
@@ -169,12 +176,53 @@ pub(crate) fn edit_ops(
     if !patch.is_empty() {
         ops.push(EditOp::SetDocumentSettings { patch });
     }
+    if opts.normalize_z_order {
+        ops.extend(z_order_ops(s));
+    }
     // 6.8：墨迹层整体重发（TS 对每个最终块 `stripInkRuns` 再注入）
     if let Some(inks) = &opts.inks {
         ops.push(EditOp::RemoveInks);
         ops.extend(inks.iter().map(|e| EditOp::InsertInk { para: e.para, ink: e.ink.clone() }));
     }
     (ops, created)
+}
+
+/// z 序归一（TS `normalizeImageZOrders` 的写回方向，`docs/01` §13.7）：主 part 的每个
+/// `wp:anchor` 按 `relativeHeight - 251658240` 稳定排序（同值按文档序），名次就是新的 z。
+///
+/// 闸门与投影层同一条：全部 `|z| <= 10000` 说明这份文档的 z 序本来就是规矩的，一个字节都不动。
+/// 名次已经对上的那些也不发操作（`SetDrawingZOrder` 会让节点 `SelfDirty`）。
+fn z_order_ops(s: &crate::edit::EditSession) -> Vec<EditOp> {
+    const Z_BASE: i64 = crate::edit::media_ops::Z_ORDER_BASE;
+    let main = s.document().main_part;
+    let Some(dom) = s.package().part(main).dom() else { return Vec::new() };
+    let mut anchored: Vec<(NodeId, i64)> = Vec::new();
+    for n in dom.descendants(dom.root()) {
+        if dom.node(n).dirty == Dirty::Deleted
+            || !dom.is(n, QName::new(NsId::Wp, LocalName::Anchor))
+        {
+            continue;
+        }
+        let z = dom
+            .attr_value(n, QName::new(NsId::None, LocalName::RelativeHeight))
+            .and_then(|v| v.trim().parse::<i64>().ok())
+            .map_or(0, |h| h - Z_BASE);
+        let Some(drawing) = dom.ancestors(n).find(|&a| dom.is(a, w(LocalName::Drawing))) else {
+            continue;
+        };
+        anchored.push((drawing, z));
+    }
+    if !anchored.iter().any(|&(_, z)| z.abs() > 10_000) {
+        return Vec::new();
+    }
+    let mut order: Vec<usize> = (0..anchored.len()).collect();
+    order.sort_by_key(|&i| (anchored[i].1, i));
+    order
+        .into_iter()
+        .enumerate()
+        .filter(|&(rank, i)| anchored[i].1 != rank as i64)
+        .map(|(rank, i)| EditOp::SetDrawingZOrder { drawing: anchored[i].0, z: rank as i64 })
+        .collect()
 }
 
 /// `SAVE-07` 第二轮：`hfAllSections` 要等第一轮把 part 建出来才知道挂哪个。

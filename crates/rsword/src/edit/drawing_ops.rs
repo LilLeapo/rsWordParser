@@ -13,7 +13,7 @@ use super::plan::{MutationPlan, MutationResult};
 use super::session::EditSession;
 
 /// TS `applyImageZOrder` 的基数：`relativeHeight = Z_BASE + z`。
-pub const Z_BASE: i64 = 251_658_240;
+pub const Z_BASE: i64 = super::media_ops::Z_ORDER_BASE;
 
 fn w(local: LocalName) -> QName {
     QName::new(NsId::W, local)
@@ -337,4 +337,325 @@ fn fill_element(color: Option<&str>) -> NewElement {
         ),
         None => NewElement::new(a(LocalName::NoFill)),
     }
+}
+
+/// 一根轴的定位（`wp:positionH` / `wp:positionV`）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AnchorAxis {
+    /// `@relativeFrom`：`column` / `page` / `margin` / `paragraph` / `character` / `line` …
+    pub relative_from: String,
+    pub pos: AxisPos,
+}
+
+/// 轴上的位置：偏移或对齐（`wp:posOffset` / `wp:align`，两者互斥）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AxisPos {
+    /// `wp:posOffset`（EMU）。
+    Offset(i64),
+    /// `wp:align`：`left` / `center` / `right` / `top` / `bottom` / `inside` / `outside`。
+    Align(String),
+}
+
+/// 锚定图片的两根轴。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AnchorPos {
+    pub h: AnchorAxis,
+    pub v: AnchorAxis,
+}
+
+/// 换壳时**搬进新壳**的子元素，按 `CT_Inline` / `CT_Anchor` 的次序。壳里别的东西
+/// （`simplePos` / `positionH` / `positionV` / `wrap*` / `wp14:sizeRel*`）只属于旧壳，跟着它一起走。
+const CARRIED: [(NsId, LocalName); 5] = [
+    (NsId::Wp, LocalName::Extent),
+    (NsId::Wp, LocalName::EffectExtent),
+    (NsId::Wp, LocalName::DocPr),
+    (NsId::Wp, LocalName::CNvGraphicFramePr),
+    (NsId::A, LocalName::Graphic),
+];
+
+fn is_wrap_element(dom: &Dom, n: NodeId) -> bool {
+    [
+        LocalName::WrapNone,
+        LocalName::WrapSquare,
+        LocalName::WrapTight,
+        LocalName::WrapThrough,
+        LocalName::WrapTopAndBottom,
+    ]
+    .iter()
+    .any(|&l| dom.is(n, wp(l)))
+}
+
+/// `SetDrawingWrap`：`wp:inline ↔ wp:anchor` 的绕排切换。
+///
+/// 壳的种类不变（锚定 → 锚定）时**就地改**：只换绕排元素、`behindDoc` / `relativeHeight`、
+/// 给了 `pos` 才动 `positionH` / `positionV`。种类变了才重建外壳，`wp:extent` /
+/// `effectExtent` / `docPr` / `cNvGraphicFramePr` / `a:graphic` 用 `move_within_part`
+/// 搬进去，原字节保住（`SAVE-08`）。
+pub(crate) fn set_wrap(
+    s: &mut EditSession,
+    drawing: NodeId,
+    wrap: Option<super::media_ops::ImageWrap>,
+    pos: Option<&AnchorPos>,
+    z_order: Option<i64>,
+) -> Result<MutationResult> {
+    require_drawing(s, drawing)?;
+    let part = s.main_part();
+    let dom = s.dom();
+    let old = shell(dom, drawing)?;
+    let was_anchor = dom.is(old, wp(LocalName::Anchor));
+    let mut plan = MutationPlan::new(part);
+    if let Some(p) = dom.ancestors(drawing).find(|&x| dom.is(x, w(LocalName::P))) {
+        plan.touch(p);
+    }
+    match (was_anchor, wrap) {
+        // 锚定 → 锚定：就地改
+        (true, Some(new_wrap)) => in_place_anchor(dom, &mut plan, old, new_wrap, pos, z_order),
+        // 随文 → 随文：绕排本来就没有，只有 `pos` / `z` 无处可放
+        (false, None) => {}
+        // 换壳
+        (_, next) => rebuild_shell(dom, &mut plan, drawing, old, next, pos, z_order),
+    }
+    s.commit_plan(plan)
+}
+
+/// 锚定壳的就地改写。
+fn in_place_anchor(
+    dom: &Dom,
+    plan: &mut MutationPlan,
+    anchor: NodeId,
+    wrap: super::media_ops::ImageWrap,
+    pos: Option<&AnchorPos>,
+    z_order: Option<i64>,
+) {
+    use super::media_ops::ImageWrap;
+    let none = |l: LocalName| QName::new(NsId::None, l);
+    plan.node_edits.push(NodeEdit::SetAttr {
+        node: Target::Node(anchor),
+        name: none(LocalName::BehindDoc),
+        value: if wrap == ImageWrap::Behind { "1".into() } else { "0".into() },
+    });
+    if let Some(z) = z_order {
+        plan.node_edits.push(NodeEdit::SetAttr {
+            node: Target::Node(anchor),
+            name: none(LocalName::RelativeHeight),
+            value: (Z_BASE + z).max(0).to_string(),
+        });
+    }
+    // 绕排元素：旧的删掉，新的插在原位（没有旧的就插在 `docPr` 之前）
+    let old_wrap = live_children(dom, anchor).find(|&c| is_wrap_element(dom, c));
+    let polygon = old_wrap
+        .filter(|_| keeps_polygon(dom, old_wrap, wrap))
+        .and_then(|w| live_children(dom, w).find(|&c| dom.is(c, wp(LocalName::WrapPolygon))));
+    let before =
+        old_wrap.or_else(|| live_children(dom, anchor).find(|&c| dom.is(c, wp(LocalName::DocPr))));
+    let at = plan.node_edits.len();
+    plan.node_edits.push(NodeEdit::Insert {
+        parent: Target::Node(anchor),
+        before,
+        node: wrap_element(wrap, polygon.is_none()),
+    });
+    if let Some(poly) = polygon {
+        plan.node_edits.push(NodeEdit::Move { node: poly, parent: Target::New(at), before: None });
+    }
+    if let Some(w) = old_wrap {
+        plan.node_edits.push(NodeEdit::Delete(w));
+    }
+    let Some(p) = pos else {
+        // 没给位置：`square-left` ↔ `square-right` 说的正是图靠哪一边，所以横轴**用对齐写着**
+        // 的时候跟着绕排走；写着明确偏移的（用户摆过位置）不动。
+        if let Some(align) = live_children(dom, anchor)
+            .find(|&c| dom.is(c, wp(LocalName::PositionH)))
+            .and_then(|h| live_children(dom, h).find(|&c| dom.is(c, wp(LocalName::Align))))
+        {
+            super::ops::set_segment_text(dom, align, super::media_ops::default_align(wrap), plan);
+        }
+        return;
+    };
+    for (which, axis) in [(LocalName::PositionH, &p.h), (LocalName::PositionV, &p.v)] {
+        let e = position_element(which, axis);
+        match live_children(dom, anchor).find(|&c| dom.is(c, wp(which))) {
+            Some(old) => plan.node_edits.push(NodeEdit::Replace { old, node: e }),
+            None => plan.node_edits.push(NodeEdit::Insert {
+                parent: Target::Node(anchor),
+                before: live_children(dom, anchor).find(|&c| !dom.is(c, wp(LocalName::SimplePos))),
+                node: e,
+            }),
+        }
+    }
+}
+
+/// 同类绕排（紧密 ↔ 穿越）之间保留原来的 `wp:wrapPolygon`，别的情况重新生成矩形。
+fn keeps_polygon(dom: &Dom, old_wrap: Option<NodeId>, next: super::media_ops::ImageWrap) -> bool {
+    use super::media_ops::ImageWrap;
+    let polygonal = matches!(
+        next,
+        ImageWrap::TightLeft
+            | ImageWrap::TightRight
+            | ImageWrap::ThroughLeft
+            | ImageWrap::ThroughRight
+    );
+    polygonal
+        && old_wrap.is_some_and(|w| {
+            dom.is(w, wp(LocalName::WrapTight)) || dom.is(w, wp(LocalName::WrapThrough))
+        })
+}
+
+/// 重建外壳：新壳插在旧壳之前，要保的子元素搬进去，旧壳删掉。
+fn rebuild_shell(
+    dom: &Dom,
+    plan: &mut MutationPlan,
+    drawing: NodeId,
+    old: NodeId,
+    wrap: Option<super::media_ops::ImageWrap>,
+    pos: Option<&AnchorPos>,
+    z_order: Option<i64>,
+) {
+    let shell_at = plan.node_edits.len();
+    plan.node_edits.push(NodeEdit::Insert {
+        parent: Target::Node(drawing),
+        before: Some(old),
+        node: shell_element(wrap, pos, z_order),
+    });
+    let carry = |plan: &mut MutationPlan, upto: usize| {
+        for &(ns, local) in &CARRIED[..upto] {
+            if let Some(n) = live_children(dom, old).find(|&c| dom.is(c, QName::new(ns, local))) {
+                plan.node_edits.push(NodeEdit::Move {
+                    node: n,
+                    parent: Target::New(shell_at),
+                    before: None,
+                });
+            }
+        }
+    };
+    // `wp:extent` / `effectExtent` 在绕排元素之前，`docPr` 之后的三个在它之后
+    carry(plan, 2);
+    if let Some(w) = wrap {
+        plan.node_edits.push(NodeEdit::Insert {
+            parent: Target::New(shell_at),
+            before: None,
+            node: wrap_element(w, true),
+        });
+    }
+    for &(ns, local) in &CARRIED[2..] {
+        if let Some(n) = live_children(dom, old).find(|&c| dom.is(c, QName::new(ns, local))) {
+            plan.node_edits.push(NodeEdit::Move {
+                node: n,
+                parent: Target::New(shell_at),
+                before: None,
+            });
+        }
+    }
+    plan.node_edits.push(NodeEdit::Delete(old));
+}
+
+/// 新的 `wp:inline` / `wp:anchor` 外壳（不含要搬进去的子元素与绕排元素）。
+fn shell_element(
+    wrap: Option<super::media_ops::ImageWrap>,
+    pos: Option<&AnchorPos>,
+    z_order: Option<i64>,
+) -> NewElement {
+    use super::media_ops::ImageWrap;
+    let none = |l: LocalName| QName::new(NsId::None, l);
+    let Some(wrap) = wrap else {
+        let mut e = NewElement::new(wp(LocalName::Inline));
+        for l in [LocalName::DistT, LocalName::DistB, LocalName::DistL, LocalName::DistR] {
+            e.push_attr(none(l), "0");
+        }
+        return e;
+    };
+    let mut e = NewElement::new(wp(LocalName::Anchor));
+    for (l, v) in [
+        (LocalName::DistT, "0"),
+        (LocalName::DistB, "0"),
+        (LocalName::DistL, "114300"),
+        (LocalName::DistR, "114300"),
+        (LocalName::SimplePos, "0"),
+    ] {
+        e.push_attr(none(l), v);
+    }
+    e.push_attr(
+        none(LocalName::RelativeHeight),
+        (Z_BASE + z_order.unwrap_or(0)).max(0).to_string(),
+    );
+    e.push_attr(none(LocalName::BehindDoc), if wrap == ImageWrap::Behind { "1" } else { "0" });
+    for (l, v) in
+        [(LocalName::Locked, "0"), (LocalName::LayoutInCell, "1"), (LocalName::AllowOverlap, "1")]
+    {
+        e.push_attr(none(l), v);
+    }
+    e.push_child(
+        NewElement::new(wp(LocalName::SimplePos))
+            .with_attr(none(LocalName::X), "0")
+            .with_attr(none(LocalName::Y), "0"),
+    );
+    let default = default_pos(wrap);
+    let pos = pos.unwrap_or(&default);
+    e.push_child(position_element(LocalName::PositionH, &pos.h));
+    e.push_child(position_element(LocalName::PositionV, &pos.v));
+    e
+}
+
+/// 没给位置时的缺省（TS `applyImageWrap`：横向按绕排方向对齐、纵向贴段落）。
+fn default_pos(wrap: super::media_ops::ImageWrap) -> AnchorPos {
+    AnchorPos {
+        h: AnchorAxis {
+            relative_from: "column".into(),
+            pos: AxisPos::Align(super::media_ops::default_align(wrap).into()),
+        },
+        v: AnchorAxis { relative_from: "paragraph".into(), pos: AxisPos::Offset(0) },
+    }
+}
+
+fn position_element(which: LocalName, axis: &AnchorAxis) -> NewElement {
+    let mut e = NewElement::new(wp(which))
+        .with_attr(QName::new(NsId::None, LocalName::RelativeFrom), axis.relative_from.clone());
+    e.push_child(match &axis.pos {
+        AxisPos::Offset(v) => NewElement::new(wp(LocalName::PosOffset)).with_text(v.to_string()),
+        AxisPos::Align(a) => NewElement::new(wp(LocalName::Align)).with_text(a.clone()),
+    });
+    e
+}
+
+/// 绕排元素。`fresh_polygon` 为真时给紧密 / 穿越配一个矩形多边形（否则等着把旧的搬进来）。
+fn wrap_element(wrap: super::media_ops::ImageWrap, fresh_polygon: bool) -> NewElement {
+    use super::media_ops::ImageWrap;
+    let none = |l: LocalName| QName::new(NsId::None, l);
+    let both = |e: NewElement| e.with_attr(none(LocalName::WrapText), "bothSides");
+    match wrap {
+        ImageWrap::Front | ImageWrap::Behind => NewElement::new(wp(LocalName::WrapNone)),
+        ImageWrap::TopBottom => NewElement::new(wp(LocalName::WrapTopAndBottom)),
+        ImageWrap::SquareLeft | ImageWrap::SquareRight => {
+            both(NewElement::new(wp(LocalName::WrapSquare)))
+        }
+        ImageWrap::TightLeft
+        | ImageWrap::TightRight
+        | ImageWrap::ThroughLeft
+        | ImageWrap::ThroughRight => {
+            let name = if matches!(wrap, ImageWrap::TightLeft | ImageWrap::TightRight) {
+                LocalName::WrapTight
+            } else {
+                LocalName::WrapThrough
+            };
+            let mut e = both(NewElement::new(wp(name)));
+            if fresh_polygon {
+                e.push_child(rect_polygon());
+            }
+            e
+        }
+    }
+}
+
+/// 整幅图的矩形多边形（21600 = 一幅图的宽 / 高，OOXML 的相对坐标）。
+fn rect_polygon() -> NewElement {
+    let none = |l: LocalName| QName::new(NsId::None, l);
+    let pt = |name: LocalName, x: &str, y: &str| {
+        NewElement::new(wp(name)).with_attr(none(LocalName::X), x).with_attr(none(LocalName::Y), y)
+    };
+    let mut e = NewElement::new(wp(LocalName::WrapPolygon))
+        .with_attr(none(LocalName::Edited), "0")
+        .with_child(pt(LocalName::Start, "0", "0"));
+    for (x, y) in [("0", "21600"), ("21600", "21600"), ("21600", "0"), ("0", "0")] {
+        e.push_child(pt(LocalName::LineTo, x, y));
+    }
+    e
 }

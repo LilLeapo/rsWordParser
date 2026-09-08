@@ -127,6 +127,9 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
             super::drawing_ops::set_geometry(s, drawing, &geom)
         }
         EditOp::SetDrawingZOrder { drawing, z } => super::drawing_ops::set_z_order(s, drawing, z),
+        EditOp::SetDrawingWrap { drawing, wrap, pos, z_order } => {
+            super::drawing_ops::set_wrap(s, drawing, wrap, pos.as_ref(), z_order)
+        }
         EditOp::SetShapeStyle { shape, fill, outline } => {
             super::drawing_ops::set_shape_style(s, shape, fill, outline)
         }
@@ -160,6 +163,7 @@ fn not_tracked_name(op: &EditOp) -> Option<&'static str> {
         // 7.7：Word 不把图片的格式改动记成修订
         EditOp::SetDrawingGeometry { .. } => "SetDrawingGeometry",
         EditOp::SetDrawingZOrder { .. } => "SetDrawingZOrder",
+        EditOp::SetDrawingWrap { .. } => "SetDrawingWrap",
         EditOp::SetShapeStyle { .. } => "SetShapeStyle",
         EditOp::InsertSectionBreak { .. } => "InsertSectionBreak",
         EditOp::DeleteSectionBreak { .. } => "DeleteSectionBreak",
@@ -290,7 +294,8 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
         // 分节符：目标是段落 / `w:sectPr`，内容控件的锁不该拦它
         EditOp::InsertSectionBreak { .. } | EditOp::DeleteSectionBreak { .. } => Vec::new(),
         EditOp::SetDrawingGeometry { drawing: n, .. }
-        | EditOp::SetDrawingZOrder { drawing: n, .. } => {
+        | EditOp::SetDrawingZOrder { drawing: n, .. }
+        | EditOp::SetDrawingWrap { drawing: n, .. } => {
             vec![(None, *n)]
         }
         EditOp::SetShapeStyle { shape, .. } => vec![(None, *shape)],

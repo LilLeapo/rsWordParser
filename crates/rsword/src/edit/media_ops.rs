@@ -408,6 +408,15 @@ pub(crate) fn image_run(s: &mut EditSession, img: &NewImage) -> Result<NewElemen
         .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "图片段落里没有 run"))
 }
 
+/// 没给位置时 `wp:positionH` 的对齐（TS `applyImageWrap`）：向右绕排的贴右、上下型居中、其余贴左。
+pub(crate) fn default_align(wrap: ImageWrap) -> &'static str {
+    match wrap {
+        ImageWrap::SquareRight | ImageWrap::TightRight | ImageWrap::ThroughRight => "right",
+        ImageWrap::TopBottom => "center",
+        _ => "left",
+    }
+}
+
 /// `wp:anchor` 的三段：开标签、`位置 \0 绕排元素`（绕排元素要放在 extent / effectExtent 之后、docPr 之前）、闭标签
 /// （TS `applyImageWrap`）。
 fn anchor_parts(
@@ -430,11 +439,7 @@ fn anchor_parts(
             )
         }
         None => {
-            let h = match wrap {
-                ImageWrap::SquareRight | ImageWrap::TightRight | ImageWrap::ThroughRight => "right",
-                ImageWrap::TopBottom => "center",
-                _ => "left",
-            };
+            let h = default_align(wrap);
             format!(
                 r#"<{wp}:simplePos x="0" y="0"/><{wp}:positionH relativeFrom="column"><{wp}:align>{h}</{wp}:align></{wp}:positionH><{wp}:positionV relativeFrom="paragraph"><{wp}:posOffset>0</{wp}:posOffset></{wp}:positionV>"#
             )

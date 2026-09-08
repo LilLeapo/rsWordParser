@@ -456,6 +456,10 @@ pub fn apply_save_blocks(
     let (mut save_options, lists, hf_json) = save_options_of(options)?;
     let final_blocks =
         final_blocks.as_array().ok_or_else(|| unsupported("finalBlocks 不是数组"))?;
+    // 7.7：投影层判过这份文档的 z 序是野值（`imageZOrderNormalized`），块表带着归一后的名次
+    // 回来——那就把 z 序也写回 XML，不然屏幕上的叠放次序与文件里的对不上。
+    save_options.normalize_z_order |=
+        final_blocks.iter().any(|b| truthy(b, "imageZOrderNormalized"));
     // 保存路径按 docxIndex / 原字节匹配块，用不到图片 dataURL，给一张空的媒体表即可。
     let parsed = parsed_doc_of(session.package(), session.document(), &MediaSet::default());
     let body = session
