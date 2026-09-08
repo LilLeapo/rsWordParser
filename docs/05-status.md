@@ -24,8 +24,8 @@
 **8.2 已完成**（2026-09-08，分支 `m8-native-json`）：`bind/native/` 模型 JSON 投影——`model_json!` 同表展开
 `impl ToJson`（编译期完整解构「不丢字段」）+ JSON Schema + 覆盖测试；30 张生成属性表由 `build/props.rs`
 从同一份 TOML 发射投影（`$OUT_DIR/props_json.rs`）。门 1：1,099 份语料过 `document_schema()`
-（display 开 / 关两遍，4 份 hostile 打不开属 `Err` 降级）+ serde 往返逐字节幂等 + `MOD-01`–`MOD-11`
-独立 checklist；门 6 体积：251 份带图文档较 `compat_ts::parsed_doc` **-67.5%**；测试 659 → **777**。
+（display 开 / 关两遍，精确点名 4 份 hostile 必须在 `Package::open` 失败）+ 投影确定性 + 重建稳定性 + 键集严格性 + 深度护栏（448 层；规范措辞待批准，见 `docs/04` §8）+ `MOD-01`–`MOD-11`
+独立 checklist；门 6 体积：251 份带图文档较 `compat_ts::parsed_doc` **-67.5%**；本次修复后测试 **765 passed**（debug / release 各 0 failed、14 ignored，其中 12 个 ignored doctest）。
 
 **M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖），**已全部并入 `main`**（2026-09-04）。
 **M3 完成**（2026-09-05，分支 `m3-tables`，3.1–3.9 全部落地，**M3 门四条都跑过**：
@@ -128,7 +128,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
 | 源码行数 / 文件数 | 82,306 行 / 190 个（另有生成代码，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 777（单元 + 集成 + 绑定，52 个集成测试文件；debug 与 release 双跑） | `cargo test --workspace` |
+| 测试数 | 765 passed、0 failed、14 ignored（其中 12 个 ignored doctest；单元 + 集成 + 绑定，52 个集成测试文件；debug 与 release 双跑） | `cargo test --workspace` |
 | 语料 | **266 份真实 Word 文档**（`corpus/real`，2026-09-07 三轮）+ **32 份 Word 对照 fixture**（`fixtures/{revisions,word-ops}`：Word 自己做操作的前后 / 四态）+ 799 份 synthetic（每份带 `expected.json`；其中 226 份是 M6 的嵌入对象语料 `m6-*`）+ 208 份 `save.<k>.json` + 38 份 hostile（含 4 份绘图、2 份表格、4 份页眉页脚 / 节、6 份嵌入对象、6 份修订 / 分节 / 绘图，7.0⑤） | `ls corpus/*` |
 | 往返字节保真 | 593 份文档、3,140 个 XML part 全部字节相同（3 个 part 按预期解析失败：两份不闭合 XML + 二进制页眉） | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |

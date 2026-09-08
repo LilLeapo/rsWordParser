@@ -462,9 +462,10 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `COMPAT-08` 保存差分的比较范围 | `documentXml` | 扩到 `changedParts` 里**每个被 TS 改写的 XML part**；`.rels` 比 `(类型, 目标, 模式)` 的多重集合而不是逐条（`rId` 是分配细节） | `spec/18` 门 4。10 种 part 的差异登记在 `tests/save_blocks.rs` 的 `PART_INTENTIONAL` 里，每条都写了原因：`[Content_Types].xml` 的排序、新媒体 part 的命名、我们保留 `comments.xml` 根上的 `mc:Ignorable`、水印**加进**原页眉而不是替换、注释 part 模板的繁简、`w15:paraId` 与我们多写的 `paraIdParent`、`styleUpsert` 我们写 `w:type`、`settings.xml` 我们只合并请求的字段、没给 `savedAt` 时我们不动 `dcterms:modified` |
 | `BIND-02` 的键名 = 字段名 camelCase | 无例外 | 枚举内标签键 `kind` 与载荷自己的 `kind` 字段撞名处改名：`textKind` / `protectedKind` / `atomKind` / `drawingKind` / `vmlKind` / `breakKind` / `formatKind`（表内 `~` 行带理由）；其余键严格 camelCase | 带载荷枚举平铺（`{"kind": …, …字段}`）会顶掉载荷自己的 `kind` 键——`flatten_variant_json` 遇撞名直接 panic，改名是显式登记的决定，不是静默行为 |
 | `BIND-02` 的 `QName` 投影 | — | `LocalName::Other` / `NsId::Other|Unbound`（interner 句柄）投 `"?"`；已知名投 `"w:p"` 形式 | interner 是 per-Dom 的，脱离所在 part 无法还原。触发处仅 `ProtectedKind::Unknown` / `SegmentKind::Other` / `AtomKind::Other` / `CompatFacts.flags` |
-| `BIND-02` 的依赖（`spec/19` 待决 1） | `serde` + 可选 `schemars` | 8.2 只加 **dev-dependency**：`jsonschema`（门 1 校验）与 `serde`（测试反序列化）；`serde_json` 开 `unbounded_depth`（深表往返；`MOD-07` 已把嵌套截断在 64 层）；**不引** `schemars`（schema 由 `model_json!` 同表生成，引它反而两套来源）；`serde` 运行期 derive 随 8.3（其规范在修订） | 核心 crate 运行期依赖不长（`spec/20` 风险 7）；schema 校验器必须现成 |
+| `BIND-02` 的依赖（`spec/19` 待决 1） | `serde` + 可选 `schemars` | 8.2 只加 **dev-dependency**：`jsonschema`（门 1 校验）与 `serde`（测试反序列化）；`serde_json` 仅在 **dev-dependencies** 开 `unbounded_depth`（深表输出语法检查；先检查 JSON 深度 ≤ 448）；**不引** `schemars`（schema 由 `model_json!` 同表生成，引它反而两套来源）；`serde` 运行期 derive 随 8.3（其规范在修订） | 核心 crate 运行期依赖不长（`spec/20` 风险 7）；schema 校验器必须现成 |
 | `Note` / `Comment` 的 `text` / `rich` / `paragraphs` | `MOD-01` 的 Note / Comment 全字段 | 三字段 skip 不投影（表内登记理由） | TS 形态半解析字段（`BIND-02` 禁止项），`model/notes.rs` 文件头注明随 `compat_ts` 在 M9 删除 |
-| `BIND-02` 的 JSON Schema | 全语料过校验 | 不用 `additionalProperties: false`；`required` = 表内恒写行 | flatten 变体是 `allOf` 拼的，`false` 会把拼进分支的 `kind` 键判掉；键集正确性由 `model_json!` 的覆盖测试保证 |
+| `BIND-02` 的 JSON Schema | 全语料过校验 | 不用 `additionalProperties: false`；`required` = 表内恒写行 | flatten 变体是 `allOf` 拼的，`false` 会把拼进分支的 `kind` 键判掉；投影实例的键集由 `tests/native_bind.rs` 沿 schema 引用迭代检查，合并 `allOf` 声明键并选择匹配变体，动态映射继续检查值 |
+| `BIND-02` 的类型化往返验收 | JSON → `DocumentJson` → JSON 幂等 | 门 1 实际由「投影确定性 + 重建稳定性 + 键集严格性」三条替代；display 开 / 关均覆盖全部可打开语料 | 决策 2（模型 JSON 单向，只有 `EditOp` 能改文档）使类型化往返无意义；现有 `DocumentJson(pub Value)` 只是输出包装，`Value` 自往返无法验证投影层。**待项目负责人批准后回写 BIND-02**，本次不改规范 |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -1884,7 +1885,7 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
 
 ### M8′ 门（`spec/19`「M8′ 门」六条）
 
-1. 协议一致性：全语料 `document()` 过 JSON Schema、serde 往返幂等、`MOD-01`–`MOD-11` 字段不丢。
+1. 协议一致性：全语料 `document()` 过 JSON Schema、投影确定性 + 重建稳定性 + 键集严格性、`MOD-01`–`MOD-11` 字段不丢（验收措辞偏差见 §8，待批准回写规范）。
 2. 操作全覆盖：60 个 `EditOp` 变体 JSON 往返；协议 `apply` 与原生 `apply` 保存结果逐字节相同。
 3. 公共 API：`cargo doc` 零警告、`missing_docs` 为零、默认 feature 不含 `compat_ts` 且能完成 `open → document → apply → save`、三个 example 在 CI 跑。
 4. 回归网换代：`*.model.json` 快照进 CI、`TEST-07` 走协议、`fuzz_bind` 10 分钟无崩溃。
@@ -1910,17 +1911,17 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   归 BIND-04；文件尾部列了 6 条待决（BIND-11 保守程度、serde 依赖、list_markers、快照位置、
   `native/1` 时点、`docs/03` §8.2 是否升版）。评审通过才动 8.2–8.5。
 - [x] **8.2 模型 JSON 投影**（`bind/native/json.rs`、`schema.rs`、`model_json!`）
-  （本提交）`bind/native/` 落地：`ToJson` + `model_json!`——一张「Rust 字段 → JSON 字段」表同表展开
+  `bind/native/` 落地：`ToJson` + `model_json!`——一张「Rust 字段 → JSON 字段」表同表展开
   `impl ToJson`（表头 `(cx)` 声明上下文参数名；行用解构绑定，`to_json` 开头**完整解构**，Rust 结构体
   加字段即编译失败）、JSON Schema 片段（`$defs` 装配）、`json_fields_cover_*` 覆盖测试（camelCase 键规则、
   schema 键集 / 必填集与表一致、`skip` 带理由且确实缺席）。30 张生成属性表与 `types.toml` 的枚举 /
   属性结构体由 `build/props.rs` 从同一份 TOML 发射 `$OUT_DIR/props_json.rs`（不手写 269 个字段）；
   `set_some!` / `set_if!` / `display_json!` 从 `compat_ts/json.rs` 搬入 `bind/native/json.rs`，
   `compat_ts` 反向引用。带载荷枚举统一内标签 `{"kind": …}`；区间 / 元组一律二元数组；id 一律整数；
-  display 全家只在 `display: true`。门 1：1,099 份语料（4 份 hostile 打不开属 `Err` 降级）过
-  `document_schema()`（`jsonschema` 校验，display 开 / 关两遍）+ serde 往返逐字节幂等 +
+  display 全家只在 `display: true`。门 1：精确断言 1,099 份成功投影、4 份点名 hostile 在 `Package::open` 阶段失败，过
+  `document_schema()`（`jsonschema` 校验，display 开 / 关两遍）+ 投影确定性 + 重建稳定性 + 键集严格性 + 深度护栏（448 层）+
   `MOD-01`–`MOD-11` 独立 checklist（`tests/native_bind.rs`）；门 6 体积：251 份带图文档
-  `compat_ts::parsed_doc` 4,334,070B → native 1,408,718B（**-67.5%**）。测试 659 → 777
+  `compat_ts::parsed_doc` 4,334,070B → native 1,408,718B（**-67.5%**）。本次评审修复后 debug / release 各 **765 passed、0 failed、14 ignored**（其中 12 个 ignored doctest，不计入通过数）；新增键集负向与深度扫描两项测试。全语料最深为 `deep-nested-table__001.docx` 的 392 层，护栏为 448 层；八道差异检查仍为 242 + 547 处已知差异、0 处未知差异。
 - [ ] **8.3 `EditOp` / `EditContext` / `MutationResult` 的 JSON**（`edit_op_json!`、`SaveOptions` 收缩到五项）
 - [ ] **8.4 会话、媒体句柄、`resolve` 查询与部件读取**（`bind_export!`、`resolve_query!`）
 - [ ] **8.5 Rust crate 公共 API 定型**（公共面收敛、feature 划分、`missing_docs`、三个 example、README 改写）

@@ -16,9 +16,10 @@ zip.workspace = true
 memchr.workspace = true
 thiserror.workspace = true
 # compat_ts 适配器的 ParsedDoc JSON（COMPAT-02）与差分工具
-serde_json = { version = "1", features = ["unbounded_depth"] }
+serde_json = "1"
 
 [dev-dependencies]
+serde_json = { version = "1", features = ["unbounded_depth"] }
 jsonschema = "0.55.0"
 serde = "1"
 # `RES-12` fixture 的 `expected.toml`（任务 5.8）；只在测试里用

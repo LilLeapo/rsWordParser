@@ -86,8 +86,7 @@ pub struct DocumentOpts {
 }
 
 /// `document()` 的返回类型（`BIND-02` 顶层形态；投影本体是 `Document` 的 [`model_json!`] 表）。
-/// 门 1 的 serde 往返逐字节幂等：`to_string` 输出经 `serde_json::from_str::<Value>`
-/// 再 `to_string` 不变。
+/// 单向输出包装；门 1 校验投影确定性、重建稳定性与键集严格性（偏差见 `docs/04` §8）。
 #[derive(Debug, Clone, PartialEq)]
 pub struct DocumentJson(pub Value);
 
