@@ -29,8 +29,10 @@
 | `RES` | `07-resolve.md` | resolve 视图 |
 | `EDIT` | `08-edit.md` | L4 编辑引擎 |
 | `SAVE` | `09-save.md` | 校验、序列化、包写回 |
-| `COMPAT` | `10-compat-ts.md` | 兼容适配器 |
+| `COMPAT` | `10-compat-ts.md` | 兼容适配器（自 `docs/03` v3.3 起为**测试专用**，见该文件头部） |
 | `TEST` | `11-testing.md` | 测试基础设施 |
+| `BIND` | `21-bind.md` | 原生协议（M8′ 8.1 建立；会话、模型 JSON、`EditOp` JSON、媒体句柄、`resolve` 查询） |
+| `AGENT` | `22-agent.md` | Agent 接口层（M9′ 9.1 建立；文本投影、大纲与定位、预算、文本锚定编辑） |
 | — | `12-m0-m1-plan.md` | M0 / M1 任务分解 |
 | — | `13-m2-plan.md` | M2 任务分解 |
 | — | `14-m3-plan.md` | M3 任务分解 |
@@ -38,8 +40,8 @@
 | — | `16-m5-plan.md` | M5 任务分解（页眉页脚 / 节 / 声明 part / resolve 校准；基线为 M0–M4 全部并入的 `main`） |
 | — | `17-m6-plan.md` | M6 任务分解（图表 / SmartArt / 画布 / OLE / 公式 / 墨迹、媒体写侧；基线为 M0–M5 全部并入的 `main` = bf1f906） |
 | — | `18-m7-plan.md` | M7 任务分解（修订生成与接受 / 拒绝、`EditOp` 全集、分节符、绘图编辑、块字段生成器、空白模板、`TEST-07` / `fuzz_edit` 门） |
-| — | `19-m8-plan.md` | M8 任务分解（编辑器切换到 Rust 引擎：wasm 绑定包与 drop-in 替换、双引擎对照、e2e 与视觉基线、切换开关与发布说明；基线为 M0–M7 全部并入的 `main`） |
-| — | `20-m9-plan.md` | M9 任务分解（原生协议 `BIND-*`：会话与句柄、模型 JSON、`EditOp` JSON、媒体句柄、`resolve` 查询；渲染器接管排版启发式；删除 `compat_ts` 与 TS 引擎） |
+| — | `19-m8-plan.md` | **M8′** 任务分解（原生协议与独立交付：`spec/21-bind.md`、模型 JSON 投影、`EditOp` JSON、会话与媒体句柄、Rust crate 公共 API 定型、`*.model.json` 自快照网、`compat_ts` 降为测试专用 feature；基线为 M0–M7 全部并入的 `main` = 32234ce）。原「M8：编辑器切换到 Rust 引擎」已于 2026-09-08 随范围改定**撤销**，见该文件头部 |
+| — | `20-m9-plan.md` | **M9′** 任务分解（Agent 接口层与文件级工具：文本投影与双向锚点、大纲与定位、预算与截断、文本锚定编辑与预览、CLI 与 MCP server）。原「M9：渲染器接管排版启发式 + 删除 `compat_ts` 与 TS 引擎」的 genoffice 半边**撤销**、rsword 半边前移至 M8′，见该文件头部 |
 
 ## 0.3 术语
 
@@ -82,5 +84,9 @@
 
 ## 0.6 与 TS 实现的关系
 
-- `docs/01` 描述的行为是**兼容目标**，不是设计目标：凡是 `docs/03` 明确改变的行为（Strict 保持、控制字符改原子、逻辑 run 不合并、排版启发式移出），以 `docs/03` 为准，差异由 `compat_ts` 吸收。
+自 `docs/03` v3.3（2026-09-08）起，genoffice 的 TS 引擎**只是测试基准**：只读地跑它生成 `corpus/**/*.expected.json`，
+不再是本项目的使用者，也不再有「切换 / 迁移 / 删除」的计划。
+
+- `docs/01` 描述的行为是**差分基准**，不是设计目标：凡是 `docs/03` 明确改变的行为（Strict 保持、控制字符改原子、逻辑 run 不合并、排版启发式移出），以 `docs/03` 为准，差异由 `compat_ts` 吸收并登记在 `KNOWN_DIFFS.md`。
 - 兼容性细节清单（`docs/01` 第 12 节）中的每一条都应在对应 spec 中有归属条目或在 `11-testing` 的语料中有用例。
+- 差分门是**发现回归的手段**，不是目标；TS 的缺陷不跟随（`CLAUDE.md`「TS 不是权威」）。

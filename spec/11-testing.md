@@ -20,6 +20,10 @@ fixtures/resolve/<area>/<case>/    # RES-12
 
 ## TEST-02 语料导出（运行在 genoffice 仓库）
 
+> 自 `docs/03` v3.3（2026-09-08）起，这是**唯一**用到 genoffice 的地方，而且是**只读**的：跑它的 TS 引擎产出期望值，
+> 不改它的任何代码。实现在本仓库的 `tools/export-golden/`（`GENOFFICE_DIR=~/code/genoffice tools/export-golden/run.sh`）。
+> 每个里程碑至少跑通一次，别让它烂掉（`spec/19` 风险 9）。
+
 `tools/export-golden.ts`（待写于 genoffice）：
 
 1. 对 `packages/docx-engine/tests/*.test.ts` 中每次 `buildDocx(...)`/`buildKitchenSinkDocx()` 调用，用 vitest 的自定义 reporter 或包装 helper 拦截生成的字节，以 `<测试文件>__<用例序号>.docx` 落盘。
@@ -104,5 +108,7 @@ run `image / math / ruby` 的文档（M4 域）；`all` = 全部。每个 scope 
 | M4 | 绘图域**路径**的 diff 为 0（`--scope drawing`：全部文档照跑，只计绘图域路径；按文档筛关不上——绘图文档同时带着别的域的差异） |
 | M5 / M6 | 对应域的 `synthetic` diff 为 0 |
 | M7 | `COMPAT-08` XPath 等价全部通过；`TEST-07` 1,000 序列无失败；`fuzz_edit` |
-| M8 | genoffice e2e 通过（`spec/19`「M8 门」：绑定输出的 JSON 与原生 `compat_ts` 逐字节相同；`apps/docs` 151 个测试在 rs 引擎下全过；22 个 e2e spec 全绿且 `docs-visual` 像素基线零 diff） |
-| M9 | 协议一致性（模型 JSON schema 校验 + serde 往返 + `*.model.json` 快照）；逃生口 `InsertBlock{Xml}` / `ReplacePartXml` 计数为 0；genoffice 测试与 e2e 全绿、像素基线零 diff；`compat_ts` 与 TS 引擎删除；`fuzz_bind` 10 分钟无崩溃（`spec/20`「M9 门」） |
+| ~~M8~~ | ~~genoffice e2e 通过~~ —— **2026-09-08 撤销**（`docs/03` v3.3：genoffice 退为测试基准，不再切换其引擎） |
+| ~~M9~~ | ~~协议一致性 + 逃生口归零 + genoffice 迁移完成 + 删除 `compat_ts` 与 TS 引擎~~ —— **2026-09-08 重划**为 M8′ / M9′ |
+| M8′ | 六道门（`spec/19`「M8′ 门」）：① 协议一致性——全语料 `document()` 过 JSON Schema、serde 往返幂等、`MOD-01`–`MOD-11` 字段不丢；② 60 个 `EditOp` 变体 JSON 往返，协议 `apply` 与原生 `apply` 保存结果逐字节相同；③ 公共 API——`cargo doc` 零警告、`missing_docs` 为零、**默认 feature 不含 `compat_ts`** 且能完成 `open → document → apply → save`、三个 example 在 CI 跑；④ 回归网换代——`*.model.json` 快照进 CI、`TEST-07` 走协议、`fuzz_bind` 10 分钟无崩溃；⑤ 既有门不退（`--features compat-ts` 下九道差分门仍 0 未知差异）；⑥ `document()` JSON 体积较 `parsed_doc` 降 ≥ 50%、`apply` p95 < 5 ms、`save` < 50 ms/MB、`.wasm` gzip ≤ 3 MiB |
+| M9′ | 六道门（`spec/20`「M9′ 门」）：① 9.0 的 Agent 任务集全通过，改类任务的输出 docx 过 Word 打开检查且满足不变式 2；② 文本投影双向锚点全语料往返一致、丢弃项逐类计数且不静默；③ 预算——`outline()` 在 token 上限内、任何读取可限量且续读拼接等于一次性读取；④ 改类任务的逃生口 `BIND_XML_ESCAPE` 计数为 0；⑤ CLI 每个子命令端到端测试 + 一次真实 Agent 会话经 MCP 完成三条改类任务；⑥ 既有门不退 |

@@ -1,192 +1,189 @@
-# SPEC 19 · M8 任务分解
+# SPEC 19 · M8′ 任务分解（原生协议与独立交付）
 
-对应 `docs/03` 第 12 节 M8 行（「编辑器切换到 Rust 引擎（`compat_ts`）」，验收「e2e 通过」）与 `spec/11` TEST-10 的 M8 行
-（「genoffice e2e 通过」）。格式同 `spec/12`–`spec/18`：每个任务给出产出、依赖的规范条目与完成定义（DoD）。顺序即建议的
-实现顺序；同一编号内的子任务可并行。
+> **本文件在 2026-09-08 被整体替换。** 原 SPEC 19 是「M8：编辑器切换到 Rust 引擎」——把 genoffice `apps/docs` 的
+> `parseDocx / saveDocx / buildBlankDocx` 换成 rsword wasm 绑定，附带双引擎分派、151 个 vitest、22 个 e2e、5 份像素基线、
+> 切换开关与发布说明。项目负责人于 2026-09-08 改定范围：**rsword 是独立的 docx 读写内核，genoffice 退为测试基准**
+> （只读地跑它的 TS 引擎生成 `corpus/**/*.expected.json`），不再切换它的引擎、不再迁移它的编辑器、不再删它的代码。
+> 原 M8 的全部任务（8.0–8.6）与六道门**撤销**，git 历史里可查（`m8-editor` 分支的 `6ac8618` / `e481f2e` 曾实现过 8.1a / 8.0a，基线在 M7 7.9 之前）。
+> 新的 M8′ = 原 `spec/20` M9 里**属于 rsword 的那半边**（9.1–9.4、9.8）前移，再加两件独立交付才需要的事：
+> Rust crate 公共 API 定型，以及在删 `compat_ts` 之前先把自快照回归网建起来。
 
-M8 的内容 = 让 genoffice `apps/docs` 的三个引擎入口（`parseDocx` / `saveDocx` / `buildBlankDocx`）换成 rsword 的 wasm 绑定，
-编辑器**其余代码零改动**——这正是 `compat_ts` 存在的意义（`docs/03` §1.1「第一阶段经 `compat_ts` 适配器输出与今天 TS
-`ParsedDoc` 字段兼容的 JSON」、`spec/10` COMPAT-01「使编辑器零改动接入」）。按出处：
+对应 `docs/03` v3.3 §12 的 M8′ 行。格式同 `spec/12`–`spec/18`：每个任务给出产出、依赖的规范条目与完成定义（DoD）。
+顺序即建议的实现顺序；同一编号内的子任务可并行。基线：`main` = `32234ce`（M7 全部并入），分支 `m8-native`，工作树 `../rsWordParser-m8n`。
 
-- **绑定**：`spec/18` 7.10（已拍板进 M7、用 wasm-bindgen，`docs/04` §16「待决的落地」第 1 行）。7.10 的最小面是
-  `parse / save / blank / version`，DoD 最后一条「`apps/docs` 里用一行替换 `parseDocx` 能打开语料文档（不进本里程碑门，是 M8
-  第一步的预演）」在 M8 变成门。`bind/mod.rs` 模块头「napi / wasm 绑定在 M8 接入编辑器时加入」。
-- **编辑器接入与 e2e**：`spec/18`「不在 M7」明确推给 M8；`hashProtectionPassword` 编辑器继续调 TS（同处）。
-- **发布说明**：`docs/03` §14「基线之后 TS 的变化：`ooxml-normalize.ts`（装载时归一化为 Transitional）与本方案的 Strict 策略
-  相反，M8 切换时 Strict 文档的行为会改变，需在发布说明中写明」。
-- **metafile 转换留 TS**：`docs/03` §3.5「EMF/WMF 转换 Rust 侧暂不实现，输出 `MediaKind::Metafile` 由 TS 侧继续转换」——
-  `KNOWN_DIFFS.md` 里 `emf-image__*` / `image-emf` / `ole-*` 那几条一直靠这句口头承诺，M8 要把它落成代码。
-- **零改动接入**：`docs/01` §13.4「`apps/docs` 可以先零改动接入」「`internal.originalBytes` 不进 JSON（编辑器自己持有字节）」。
+## 目标
 
-M8 是 M7 之后的**串行**里程碑，工作面**主要在 genoffice 仓库**（`~/code/genoffice`，见 `docs/04` §1 环境核查与 `tools/export-golden`）。
-rsWordParser 侧只有绑定扩展与对照工具，分支 `m8-editor`（从并入 M7 后的 `main` 开）；genoffice 侧建议分支 `rsword-engine`
-（见「待决」1）。本计划在 2026-09-07 写成，当时 M7 只完成到 7.1（`m7-edit` = 70e8333），7.8 `blank()` 与 7.10 绑定都还没开工——
-**它们是 M8 的前置**；下文凡涉及 M7 产物的地方都按 `spec/18` 的 DoD 假定，开工前按并入后的 `main` 与 genoffice 当时的 HEAD 重测基线。
+（1）**对外只剩一个原生协议**（`spec/21-bind.md`，前缀 `BIND`）：`open → document / resolve / media → apply / save → close`；
+（2）**模型 JSON 是 `Document`（`MOD-01`）的投影**——字段是文档事实与声明值，不含 dataURL、原字节切片、TS 形态的半解析字段、
+排版决定的字段（`MOD-11` 的禁令延伸到协议）；（3）**每条写路径都是 `EditOp`**（60 个变体全部可 JSON 往返）；
+（4）**媒体经 `MediaId` 按需取字节**，格式转换由调用方接管；（5）**Rust crate 的公共 API 定型**——今天 `lib.rs` 把 11 个模块
+全部 `pub` 出去、758 个 `pub fn`、318 个公共类型，没有一处是按「对外 API」设计的，这在独立交付下是不可接受的；
+（6）**回归网换代**：`*.model.json` 自快照 + `TEST-07` 走协议 + `fuzz_bind`，建成之后 `compat_ts` 降为
+`#[cfg(feature = "compat-ts")]` 的测试专用件（**不删**，见「分层决策」2）。
 
-## M8 · 编辑器切换：wasm 绑定包、drop-in 替换、双引擎对照、e2e 与视觉基线、切换开关与发布说明
+做完之后 rsword 是一个可以独立发布的 crate：`cargo add rsword` → `open` 一份 docx → 读模型 JSON → 发 `EditOp` → 存回字节。
 
-目标：（1）`apps/docs` 的五条引擎路径——打开、新建、保存、保存后重解析、比较文档——全部走 rsword；（2）编辑器其余代码零改动：
-TS 的 XML 生成器 / 补丁函数 / 节与保护与公式与图表工具函数继续用，它们的产物是 `SaveBlock kind:'xml'` 与 `SaveOptions`，
-`compat_ts` 已全部覆盖（`docs/05`「保存选项：TS `SaveOptions` 已全部覆盖」）；（3）与 TS 引擎的每一处行为差异**有名有姓**——
-要么已登记（`KNOWN_DIFFS.md` / `INTENTIONAL` / `docs/04` §8）且编辑器不可见，要么由绑定包吸收（metafile / TIFF 转换），要么
-进发布说明；（4）genoffice 全部测试与 e2e 在 rs 引擎下通过；（5）一个开关可回退到 TS 引擎一个发布周期；TS 引擎代码**不删**（M9）。
+**M8′ 门**（同步写进 `spec/11` TEST-10 M8′ 行）：
 
-**M8 门**（`spec/11` TEST-10 M8 行的具体化）：
+1. **协议一致性**：`document()` 对全部语料（799 synthetic + 266 real + 38 hostile）的输出通过 JSON Schema 校验；
+   JSON → Rust `DocumentJson` → JSON 幂等（serde 往返逐字节相同）；与 `Document::rebuild` 的字段逐一对应——`MOD-01`–`MOD-11`
+   的字段清单做成 checklist 测试，投影**不丢字段**（由 `model_json!` 宏同表展开，见「实现约定」）。
+2. **操作全覆盖**：60 个 `EditOp` 变体各至少一条 JSON 往返测试（构造 → `to_string` → `from_str` → 相等）；同一条操作
+   经协议 `apply` 与经原生 `EditSession::apply` 产生**逐字节相同**的保存结果（全语料抽样 + `TEST-07` 的 1,000 条序列）。
+3. **公共 API**：`cargo doc --no-deps` 零警告；公共面开 `#![warn(missing_docs)]` 且为零；**默认 feature 构建不含 `compat_ts`**
+   并能完成 `open → document → apply → save`；`examples/` 至少三个（读、改、Agent 式定位改写）在 CI 里跑；
+   公共类型全部 `#[non_exhaustive]` 或有明确的稳定性声明（`BIND-11`）。
+4. **回归网换代**：`corpus/**/*.model.json` 快照进 CI，改动必须由带理由的提交更新；`TEST-07` 改走协议 JSON
+   （PR 100 条 / nightly 1,000 条）；`fuzz_bind`（任意 JSON 喂 `apply` / `document` / `resolve*`：不 panic、`Err` 时状态逐字节不变）
+   10 分钟无崩溃。
+5. **既有门不退**：`--features compat-ts` 下，九道 `diff-parse` 门（七个 scope + `corpus/real` + `save_blocks`）继续 0 处未知差异；
+   往返、编辑保真、`TEST-07`、四个 fuzz、hostile 全绿；`cargo test --workspace` 与 `--release` 双绿。
+6. **体积与性能**：带图语料（`m6-*`、`image-*`、`hf-images__*`、`corpus/real` 带图的）`document()` JSON 体积相对
+   `compat_ts::parsed_doc`（含 dataURL 与 `internal.documentXml`）下降 **≥ 50%**；单操作 `apply` p95 < 5 ms；
+   `save` < 50 ms / MB；`.wasm` gzip ≤ 3 MiB。数字进 `docs/05`。
 
-1. **绑定等价**：`diff-parse --via js` 对八道 scope（`text / fields / tables / drawing / hf / embedded / all`）与 `--corpus corpus/real`
-   全部 0 未知差异，且绑定输出的 JSON 与原生 `compat_ts::parsed_doc` **逐字节相同**；`tests/save_blocks.rs` 的 208 份用例经绑定
-   `save` 的结果与原生逐字节相同；`blank({ eastAsiaFont })` 对编辑器支持的每种 UI 语言各一份，与 TS `buildBlankDocx` 输出 canon 相等
-   （`xml::canon`）。
-2. **编辑器测试**：`apps/docs` 的 151 个 vitest 文件在 `GENOFFICE_DOCX_ENGINE=rs` 下全部通过（49 个直接调引擎的无一 skip）；
-   `packages/file-parse` 与 `apps/markdown` 的测试同样（8.3 决定同批切换时）。
-3. **e2e**：genoffice `npm run test:e2e` 的 22 个 playwright spec 全绿（Linux CI + xvfb，与今天同一 job）；`docs-visual` 的 5 份像素
-   基线**零 diff、不重录**（JSON 相同 → DOM 相同 → 像素相同）；新增 `docs-rsword-roundtrip.spec.ts`（打开 → 改字 → 保存 → 重开 →
-   文字在，且保存文件里其他 zip 条目 CRC 不变）通过。这一条就是 TEST-10 M8 行。
-4. **差异审计闭合**：`KNOWN_DIFFS.md` 全部条目 + `docs/05`「与 TS 有意不同」15 行 + `INTENTIONAL` 4 条逐条分类为
-   「编辑器不可见 / 绑定包吸收 / 用户可见改进」三类之一，表进 `docs/10-m8-engine-switch.md`；metafile / TIFF 图片在编辑器里
-   **显示为图片**而不是 `brokenImage`（8.1 的转换表生效）。
-5. **性能与体积**（记录并设上限，超限要解释）：`corpus/real` 里字节数最大的 10 份文档上 wasm `parse` 中位耗时 ≤ TS `parseDocx` 的
-   1.0×、`save` ≤ 1.0×；`.wasm` gzip 后 ≤ 3 MiB；数字进 `docs/05`。
-6. **既有门不退**：rsWordParser 全部 Rust 门继续绿；`corpus/real` 往返与 `tests/real_edits.rs` 的 Word 验收流程不变；rsWordParser CI
-   新增 `wasm32-unknown-unknown` 构建 + `--via js` 等价两步。
-
-### 实测基线（2026-09-07）
+### 实测基线（2026-09-08，`main` = `32234ce`）
 
 | 量 | 值 | 来源 |
 | --- | --- | --- |
-| genoffice 基线 | HEAD `f105f36` + 32 个脏文件（与语料导出时相同，`manifest.jsonl` 首行） | `git -C ~/code/genoffice status --porcelain` |
-| TS 引擎规模 | `packages/docx-engine/src` 33 个文件 21,309 行（`parse.ts` 5,591、`generate.ts` 3,268、`patch.ts` 1,892、`types.ts` 1,710）；87 个测试文件 | `wc -l` |
-| 编辑器对引擎的**值**导入 | 54 个名字。M8 要换的 3 个：`parseDocx`（`file-actions.ts:265/380/822`、`review-actions.ts:244`）、`saveDocx`（`file-actions.ts:551`）、`buildBlankDocx`（`file-actions.ts:379`）；`BLANK_BULLET_NUM_ID / BLANK_ORDERED_NUM_ID` 随 `blank()` 一起来；其余 49 个是 XML 生成 / 补丁 / 节 / 公式 / 图表 / 保护 / 参考文献 / 列表标记工具函数，M8 **不动** | node 脚本统计 `apps/docs/src` 的 import（多行 import 也算） |
-| 编辑器对引擎的**类型**导入 | 57 个类型（全在 `types.ts`） | 同上 |
-| 编辑器对 compat 形态字段的消费（文件数） | `docxIndex` 28、`textboxes` 15、`dataUrl` 15、`imageDataUrl` 7、`originalXml` 7、`rawRPr` 7、`sdtShell` 5、`fieldDisplay` 5、`hfParts` 4、`extras` 3、`strayRuns` 2、`rawPPr` 1、`chartParts` 1、`internal.documentXml` 0 | `grep -l`；M8 只读它做风险面，M9 用它做迁移清单 |
-| 编辑器测试 | `apps/docs/tests` 151 个文件，49 个直接调 `parseDocx / saveDocx`；vitest `jsdom` 环境，`@genoffice/docx-engine` 用 alias 指到源码 `packages/docx-engine/src/index.ts` | `ls`、`grep -l`、`apps/docs/vitest.config.ts` |
-| e2e | 22 个 spec；5 个打开 docs：`docs-visual`（像素回归，5 份文档，**只在 Linux 跑**）、`docs-table-gap-flicker`、`new-file-tab`、`home`、`theme-visual`；CI job `e2e` 在 ubuntu-22.04，`npm ci → build:all → xvfb-run npm run test:e2e`，已装 Rust stable（给 sheets 的 sidecar） | `e2e/`、`.github/workflows/ci.yml` |
-| 其他引擎消费者 | `packages/file-parse/src/docx.ts`（`parseDocx` → 纯文本）、`apps/markdown/src/renderer/export/docxExport.ts`（`parseDocx(buildBlankDocx())` + `saveDocx`）；`pdf2docx` 不依赖引擎 | `grep` |
-| genoffice 里的 Rust 先例 | `apps/sheets/native/xlsx-engine`（crate `xlsx-sidecar`：独立进程 sidecar，`cargo build --release`，CI 有缓存与 universal 构建脚本） | `apps/sheets/package.json` |
-| rsword 的 wasm 可移植性 | 依赖只有 `zip`（`deflate-flate2-zlib-rs`，纯 Rust）/ `memchr` / `thiserror` / `serde_json`；源码里没有 `std::fs` / 时间 / 随机 / 线程（`fresh_para_id` 是确定性的） | `Cargo.toml`、`grep` |
-| 本机工具链 | `wasm-pack` / `wasm-bindgen` 未装、`wasm32-unknown-unknown` 目标未装；node v24.15.0（genoffice 要求 ≥ 22.12，CI 用 22） | `which`、`rustup target list --installed` |
-| `compat_ts` | 18 个文件 12,684 行；`KNOWN_DIFFS.md` 三十余条；`INTENTIONAL` 4 条；`parsed_doc` 经 `serde_json::Value` 中转 | `wc`、`bind/compat_ts/mod.rs:43` |
-| M7 状态 | `m7-edit` = 70e8333：7.0 部分、7.1 完成；7.8 `blank()`、7.9 门、7.10 绑定未开始 | `docs/04` §16 |
+| 测试 | 646 通过 / 0 失败（debug 与 release 双跑），51 个集成测试文件 | `cargo test --workspace` |
+| 语料 | 799 synthetic + 266 real + 38 hostile；1,065 份 `*.expected.json`；208 份 `*.save.<k>.json` | `find corpus` |
+| 差分门 | 七个 scope + `corpus/real`：242 + 547 处已知差异，**0 处未知**；`save_blocks` 204/208 等价 + 189/289 部件比对 | `diff-parse`、`save_blocks.rs` |
+| 引擎源码 | `crates/rsword/src` 57,457 行；`bind/compat_ts/` 17 文件 12,782 行；`KNOWN_DIFFS.md` 145 行 | `wc -l` |
+| 公共面 | `lib.rs` 导出 11 个模块全 `pub`；758 个 `pub fn`；318 个 `pub struct/enum/trait/type`；**零 `missing_docs` 约束** | `grep` |
+| `EditOp` | **60 个变体** | `edit/mod.rs` |
+| 绑定 | `crates/rsword-js`（wasm-bindgen，7.10）：`version / parse / save / blank`；`bind/js.rs` 是语言中立核心 | `spec/18` 7.10 |
+| 依赖 | `zip` / `memchr` / `thiserror` / `serde_json`；**对 genoffice 零构建期与运行期依赖**（`.rs` 里 "genoffice" 出现 0 次） | `Cargo.toml`、`grep` |
 
-### 任务
+## 任务
 
 | # | 任务 | 规范 | DoD |
 | --- | --- | --- | --- |
-| 8.0 | **基线、环境与 genoffice 分支**：① M7 并入 `main` 后重测 rsword 数字（语料 / 门 / 测试数）写进 `docs/04` §17 开头；② genoffice 基线：从 genoffice 最新 `main` 开分支 `rsword-engine`，记录提交号；是否借机重导语料见「待决」1；③ 工具链：`rustup target add wasm32-unknown-unknown`、`cargo install wasm-bindgen-cli --locked`（版本与 `Cargo.lock` 的 `wasm-bindgen` 一致，写进 `rust-toolchain` 旁的 `TOOLS.md`）、binaryen `wasm-opt`（可选）；rsWordParser CI 加 `cargo build -p rsword-js --target wasm32-unknown-unknown --release` 一步；④ 盘点脚本 `tools/m8-audit/`（node，只读 genoffice 源码）：编辑器引擎导入面（值 / 类型）、compat 形态字段消费点、`SaveOptions` 键的使用点，输出上表那几行；⑤ 在 TS 引擎下跑一遍 `npm test`（`apps/docs`）与 `npm run test:e2e`，记录通过集合与耗时作为「不退」参照 | TEST-10 | 数字进 `docs/04` §17；CI 能编 wasm；genoffice 分支就位且 TS 引擎下的基线结果记录在 `docs/10` |
-| 8.1 | **绑定扩展与绑定包**（rsWordParser `crates/rsword-js`；genoffice `packages/docx-engine-rs/`）：**Rust 侧**在 7.10 的四个入口之上补齐：`parse(bytes) -> string`（JSON，与 `compat_ts::parsed_doc` 同一函数、同一 `to_string`）、`parse_diagnostics(bytes) -> string`（`Document.warnings` 的 JSON，**单独出口**，不进 `parse` 的 JSON——差分要逐字节相同）、`save(bytes, blocks_json, options_json) -> Vec<u8>`、`blank(options_json) -> Vec<u8>`（`{ eastAsiaFont? }`，对应 TS `BlankDocxOptions`：给了才写 docDefaults 的 `w:eastAsia`；7.8 若按无参移植则在此补参数）、`version() -> string`（crate 版本 + git sha + `protocol: "compat/1"`）；错误 → JS `Error`，带 `code`（`DiagCode` / `Error` 变体名）与 `message`；四个同形导出用 `wasm_export!` 收拢。构建 `wasm-bindgen --target web` + `wasm-opt -Oz`（有则用）；`rsword-js/Cargo.toml` 开 `panic = "abort"`、`opt-level = "z"` 的 release profile。**产物提交进 genoffice** `packages/docx-engine-rs/pkg/`（`.wasm` + glue），旁边 `RSWORD_COMMIT` 记 rsWordParser 提交号；rsWordParser 侧 `tools/sync-js.sh`：构建 → 拷贝 → 写提交号；genoffice CI 加一步「按 `RSWORD_COMMIT` 检出 rsWordParser、重建、`git diff --exit-code packages/docx-engine-rs/pkg`」（与它已有的 `fixtures/generated` 漂移检查同款；CI 已装 Rust）。**TS 包装** `packages/docx-engine-rs/src/index.ts`：导出与 TS 引擎**同名同签名**的 `parseDocx(bytes): Promise<ParsedDocFull>`、`saveDocx(parsed, blocks, options): Promise<Uint8Array>`、`buildBlankDocx(opts)`、`BLANK_BULLET_NUM_ID / BLANK_ORDERED_NUM_ID`、另加 `parseDocxDiagnostics(bytes): Promise<Diagnostic[]>`。`parseDocx` = wasm `parse` → `JSON.parse` → **重建 TS 形态**：`styles` / `numbering` / `headingStyleIds`（键是数字）从对象回到 `Map`（TS 类型是 `Map`，编辑器到处 `.get()`；差分工具比的是导出时 `Map → 对象` 的规范化 JSON，所以 JSON 里是对象——`TEST-02` 第 2 步）、`internal.originalBytes = bytes`（TS 的 `saveDocx` 读它，我们的 `save` 也从这里拿原字节）、`undefined` 语义靠字段缺失天然成立（`COMPAT-09`）。`saveDocx(parsed, blocks, options)` = `save(parsed.internal.originalBytes, JSON.stringify(blocks), JSON.stringify(options))`；复核 TS `SaveOptions` 里二进制字段的编码（`partBinary` / 图片 `base64` / `inks[]` 在 TS 里已是 base64 或 dataURL 字符串；若有 `Uint8Array` 字段则包装层转 base64）。**metafile / TIFF 转换留在 TS**（`docs/03` §3.5）：包装在 `parseDocx` 之后按一张路径表 `DATA_URL_PATHS`（由 8.0 的脚本从 `types.ts` 生成：`blocks[*].imageDataUrl`、`blocks[*].runs[*].image.dataUrl`、`blocks[*].table.rows[*][*].richParas[*].runs[*].image.dataUrl`、`blocks[*].textboxes[*]…`、`headerImages / footerImages / hfParts.*.images[*].dataUrl`、`inks[*].dataUrl`、`diagramDisplay.shapes[*].picture`、`oleDisplay` 预览……）遍历，凡 MIME 为 `image/x-emf \| emf \| x-wmf \| wmf \| x-emz \| x-wmz \| tiff` 的 dataURL 调 `metafileToDataUrl`（`@genoffice/docx-engine/metafile` 已单独导出）/ `tiffToDataUrl`（`tiff.ts` 今天没从包入口导出，加一行）转 PNG dataURL；转换失败按 TS 行为：图片块置 `brokenImage`、run 去掉 `dataUrl`。**加载**：渲染进程用 vite `?url` 拿 wasm 地址 + `init(url)`；vitest / node 用 `initSync(readFileSync(wasmPath))`——包装里按 `typeof process` 分支，一份产物两处用；`init` 惰性、首个调用前 `await` | COMPAT-02, COMPAT-08, COMPAT-09, TEST-02, TEST-03 | 门 1 全部（`diff-parse --via js` 八道 scope + `corpus/real` 逐字节相同；`save_blocks --via js` 208 份相同；`blank` canon 相等）；`packages/docx-engine-rs/tests`：三处 `Map` 重建、`originalBytes`、`DATA_URL_PATHS` 覆盖全部 dataURL 路径（用 `corpus/synthetic/emf-image__*` 与 `corpus/real/image-emf` / `ole-*` 验证转换后是 PNG dataURL）、错误映射（非 docx → `Error.code`、超限、主 part 畸形各一）、`version()` 与 `RSWORD_COMMIT` 一致；genoffice CI 的重建校验绿；体积与 parse 耗时表初稿进 `docs/05` |
-| 8.2 | **双引擎对照**（genoffice `packages/docx-engine/src/engine.ts`；rsWordParser `tools/js-parity/`）：`packages/docx-engine/src/index.ts` 的 `parseDocx / saveDocx / buildBlankDocx` 三个导出改为**分派**：TS 实现改名 `parseDocxTs` 等，`engine.ts` 按 `GENOFFICE_DOCX_ENGINE=ts \| rs`（缺省见 8.5）选择；类型与其余导出不变——`apps/docs` 的 import 一行不改就切换。`apps/docs/tests` 151 个文件在 `rs` 下跑，失败逐个归因为三类：绑定包 bug（回 8.1 修）/ 已登记差异被断言到（改测试并**登记**进 `docs/10`）/ 测试断言的是 TS 私有形态（同上）；不放宽断言。`packages/docx-engine/tests` 87 个文件仍只测 TS（它们是语料源，`TEST-02`）。rsWordParser 侧：`diff-parse --via js` 扩到 `--corpus corpus/real`；`tests/save_blocks.rs` 加 `--via js` 模式——建议由 node 脚本 `tools/js-parity/` 跑绑定把 208 份输出落到临时目录，Rust 测试只比字节，不给 Rust 测试加 wasm 运行时依赖 | TEST-03, TEST-10, COMPAT-08 | 门 1 与门 2；两套引擎下 `apps/docs/tests` 的通过集合相同（`ts` 全过 → `rs` 全过）；归因表进 `docs/10` |
-| 8.3 | **编辑器接入与差异审计**（`apps/docs`、`packages/file-parse`、`apps/markdown`、`docs/10-m8-engine-switch.md`）：五条路径（`file-actions.ts` 打开 / 新建 / 保存 / 保存后重解析、`review-actions.ts` 比较）经 8.2 的分派层自动切换，**代码零改动**是目标；允许的改动只有两处：① 诊断透出——`parseDocxDiagnostics` 的结果在开发模式打 console、生产写日志；`PreExistingDamage` 不打扰用户，`EngineInvariantViolation` 弹错并对该文档回退 TS 解析（8.5）；② `catch` 分支按 `Error.code` 给更准确的文案（`PKG_NOT_OOXML` / `PKG_PART_TOO_LARGE` / `XML_MALFORMED`…）。其他消费者走同一分派层零成本切换：`file-parse`（纯文本提取是 `ParsedDoc` 的子集）、`apps/markdown` docxExport（`blank` + `saveDocx`）；「待决」4。**差异审计**：逐条过 `KNOWN_DIFFS.md`、`docs/05`「与 TS 有意不同」15 行、`INTENTIONAL` 4 条，三类处置——(a) 编辑器不可见（`rawRPr` 字节 vs 重序列化、`w14:paraId` / `w:rsid*` 保留、修订 `w:id` 分配、`xml:space` 一律 preserve、`commentReference` 空 run 删除…）记「无影响」并写明理由；(b) 绑定包吸收（metafile / TIFF dataURL）→ 8.1；(c) 用户可见的行为变化 → 发布说明条目：Strict 文档保存后仍是 Strict（`docs/03` §14）、`x:` 等非规范前缀原样保留、`remove_date_and_time` 新能力、保存不再删除文件里原有的孤儿 part、`replaceImage` / 墨迹锚点非法时不再静默、EMF 图片块不再 broken、VML 文本框里的图片能显示、反斜杠超链接可点、单元格里的公式 / ruby / OLE 可见、画布子形状位置正确、SmartArt 箭头颜色按 tint、TOC 结果区整体保护、`REF` 指令拆多个 `instrText` 也能认……（`KNOWN_DIFFS` 里标「功能更强」的每一条都是一条）。主进程不动：`docx-encryption.ts`（officecrypto 在字节层解密 / 加密）、`external-change.ts`、`atomic-write.ts`、`window.desktop.saveDocx` 收的仍是字节 | COMPAT-01, COMPAT-09, TEST-10 | 门 4；`apps/docs/src` 的 diff 只含诊断透出与错误文案（评审时 `git diff --stat` 钉住）；`docs/10` 审计表每条有处置与理由；`file-parse` / `markdown` 测试在 `rs` 下通过 |
-| 8.4 | **e2e、往返 e2e 与视觉基线**（genoffice `e2e/`）：全套 `npm run test:e2e` 在 `rs` 下跑（Linux CI；本机 macOS 只能跑非视觉的 spec）。`docs-visual` 5 份基线**不重录**：若像素不同，先比两套引擎的 JSON（应为 0 差异），再查包装层（`Map` / metafile），基线本身不动。新增 `e2e/docs-rsword-roundtrip.spec.ts`：用 `launchShell({ openFile })` 打开 `fixtures/generated/kitchen-sink.docx` 与一份从 `corpus/real` 挑的真实 Word 文档（许可允许，拷进 genoffice `fixtures/`；「待决」6），打字 → 保存 → 关标签 → 重开 → 断言文字在；保存文件读回后用 jszip 比 CRC：除主 part（及 `docProps/core.xml`）外每个条目 CRC 与原文件相同（不变式 2 在真实应用流程里成立）。`new-file-tab` 加分支：新建（`blank()`）→ 打字 → 保存 → 重开 | TEST-04, TEST-10 | 门 3；CI `e2e` job 在 `GENOFFICE_DOCX_ENGINE=rs` 下绿；新 spec 进 `e2e/`，本机 macOS 能跑 |
-| 8.5 | **切换开关、回退与发布说明**（genoffice `engine.ts`、`app-settings.json`、`docs/10` 第 2 节）：缺省引擎切到 `rs`；`ts` 保留一个发布周期。开关三层：环境变量（测试）、`app-settings.json`（用户 / 支持人员可改）、运行期自动回退——`rs` 抛 `EngineInvariantViolation` 或 wasm 初始化失败时对**该文档**回退 TS 解析，状态栏提示 + 日志，不是静默换引擎；同一份文档不会一半 rs 一半 ts。发布说明：8.3 (c) 类全部条目 + 「打开 Strict 文档后保存仍为 Strict」的显著提示，进 genoffice 的 CHANGELOG。日志：每次 parse / save 记引擎名、耗时、诊断计数（本地，不上传） | — | 三层开关各一条测试；自动回退一条测试（注入 `EngineInvariantViolation`）；发布说明就位并经项目负责人过目 |
-| 8.6 | **性能、体积与收尾**（`tools/js-parity/bench.mjs`、`docs/`）：`corpus/real` 最大 10 份 + `kitchen-sink`，两套引擎各跑 parse / save 5 次取中位数；`.wasm` 体积 raw / gzip；写 `docs/05`。若 rs 慢于 TS（预期不会）先查 JSON 序列化：`compat_ts::parsed_doc` 经 `serde_json::Value` 中转，可改直接写 `String`（`json.rs` 的 `set_some!` / `set_if!` 不受影响）。文档：`docs/04` §17 逐条进度、§8 若有新偏差、`docs/05` 数字与「明确未实现」、`README` / `CLAUDE.md` 状态行与命令表（加 `--via js`）、`spec/11` TEST-10 M8 行细化为门 3 的措辞 | TEST-10 | 门 5、门 6；文档同步 |
+| 8.0 | **范围收口与分支归并**：① `docs/03` v3.3、`spec/00` / `spec/10` / `spec/11` / `CLAUDE.md` / `docs/04` / `docs/05` 按新范围改完（本次提交）；② `m8-editor` 分支收口——把 `6ac8618`（m8.1a）里**值得留的**摘到 `main`：`crates/rsword-js` 的 `wasm_export!` 表、`parse_diagnostics` 出口、`DiagCode::BindBadArgument`、`tools/js-parity/{parse,save,blank}_parity.mjs`（node 里实测过 1,065 份文档 + 208 份 save + blank 字节相同）、`TOOLS.md` 钉 `wasm-bindgen-cli` 版本、CI 的 wasm 步骤；**丢弃** `e481f2e`（m8.0a）的 `tools/m8-audit/` 与 `docs/10-m8-engine-switch.md`（genoffice 审计，已无对象）；冲突处 `save_blocks.rs` 取 `main` 的 7.9c 版本再嫁接 `js_binding_save_bytes_parity`；③ `tools/export-golden/README` 写明「genoffice 只读使用」的定位与最后重导提交号 | TEST-02, TEST-03, COMPAT-08 | 文档改完且自洽（`spec/00` 表、`spec/11` 门行、`CLAUDE.md` 三处）；`m8-editor` 的绑定并入 `main` 后九道门与 646 测试重跑全绿；`m8-editor` 分支删除或标废弃 |
+| 8.1 | **协议规范 `spec/21-bind.md`**（前缀 `BIND`，`spec/00` §0.2 加一行）：把「分层决策」誊成可验收条目——`BIND-01` 会话与生命周期（`open(bytes) -> SessionId`、`close(id)`；一个会话一份文档；任何失败不留半状态）；`BIND-02` 模型 JSON（`MOD-01` 的投影；字段名 = Rust 字段的 camelCase；单位按 `spec/00` §0.4 原值；`named_enum!` 的字串即 JSON 值；`Run` = 物理 `w:r`；坐标流 UTF-16；**不含** dataURL / 原字节 / 排版字段；`nodeId / partId / spanId / fieldId / revisionId / mediaId` 的稳定性范围）；`BIND-03` `EditOp` JSON（`#[serde(tag = "op")]`；60 个变体清单；`EditContext`；`MutationResult`）；`BIND-04` 保存与 `SaveOptions`（收缩到包级五项：`savedAt / removePersonalInfo / removeDateAndTime / pruneOrphans / normalizeZOrder`，其余翻译入口公开为 `EditOp`）；`BIND-05` 媒体句柄（`media(id) -> bytes`、`addMedia`；不内联）；`BIND-06` `resolve` 查询（五个批量接口）；`BIND-07` 诊断与错误码（`code` + `message`，`DiagCode` 稳定）；`BIND-08` 协议版本（`protocolVersion` 不匹配即拒绝，不静默）；`BIND-09` 只读出口 `partBytes` / `nodeXml`（调试用，生产 lint 禁用）；`BIND-10` **按需取与预算**（`document(opts)` 的块范围、字段裁剪、深度上限——见「分层决策」3）；`BIND-11` crate 公共 API 的稳定性承诺 | 全部 | `spec/21` 评审通过（**关口**：8.2–8.5 的 API 面在它之后才定）；`spec/00` §0.2 表加 `BIND` 行；`docs/03` §8.2 之外的新操作（`spec/18` 待决 5）在此收进清单 |
+| 8.2 | **模型 JSON 投影**（`bind/native/json.rs`、`bind/native/schema.rs`）：独立投影层——**不**在 `model/` 类型上直接 `derive(Serialize)`（模型持 `NodeId` / `Range<u32>` / arena 引用，`Display` 里有节点引用，`RevisionMeta` 里有承载节点）。`model_json!` 宏按「Rust 字段 → JSON 字段（可选换名 / 转换函数）」一张表同时展开 `to_json`、schema 条目与门 1 的「不丢字段」checklist 测试；`Option` / `bool` 沿用 `set_some!` / `set_if!`（从 `bind/compat_ts/json.rs` 搬到 `bind/native/`，`compat_ts` 反过来引用它）。覆盖：`main` 块序列、`Table` / 单元格、`sections`、`hfParts`、`notes` / `comments` / `sources` / `inks`、`styles` / `numbering` / `theme` / `fontTable` / `settings` / `CompatFacts`、`revisions`（7.1 的 `RevisionIndex`）、`spans` / `fields`、`display`（**可选投影**，缺省关闭，见「分层决策」4） | MOD-01–MOD-11, BIND-02 | 门 1 全绿；`display` 关闭时全语料 JSON 体积达标（门 6） |
+| 8.3 | **`EditOp` / `EditContext` / `MutationResult` 的 JSON**（`edit/mod.rs` 的 serde、`build/props.rs` 给 patch 类型加 serde）：`EditOp` 与 `NewBlock / NewInline / NewAtom / NewField / NewComment / NewImage / NewChart / NewInk` 及属性表 `*Patch` 全部 `Serialize / Deserialize`（`#[serde(tag = "op", rename_all = "camelCase")]`；属性 patch 的 serde 由 `build/props.rs` 生成——`PROP-06` 的 diff / patch 形态已有）。`edit_op_json!` 宏展开每个变体的往返测试与 `spec/21` `BIND-03` 的清单（生成后人工校对），并在 `InsertBlock{Xml}` / `ReplacePartXml` 两处打开 `BIND_XML_ESCAPE` 计数点。`SaveOptions` 里只为 TS 存在的翻译入口（5.6 / 5.7 / 6.6–6.8 的节 / 页眉页脚 / 水印 / 编号 / 样式 / 主题 / 墨迹）**公开为 `EditOp`**，`SaveOptions` 收缩到 `BIND-04` 的五项 | EDIT-01–EDIT-06, PROP-06, BIND-03, BIND-04 | 门 2 全绿；`SaveOptions` 只剩五个包级键，其余有对应 `EditOp` 且各有一处测试 |
+| 8.4 | **会话、媒体句柄、`resolve` 查询与部件读取**（`crates/rsword-js` 改为有状态；`bind/native/session.rs`、`bind/native/resolve.rs`）：`SessionTable: BTreeMap<SessionId, EditSession>`；导出 `open / close / document / apply / save / media / addMedia / resolveRuns / resolveParas / resolveCells / resolveSections / resolveTable / partBytes / nodeXml / diagnostics / version`。同形导出用 `bind_export!` 收拢（7.10 的 `wasm_export!` 是它的无会话前身），五个 `resolve*` 用 `resolve_query!`。**会话有状态、保存函数式**：`save(ops)` 在克隆上做，失败不影响读会话（「分层决策」5） | BIND-01, BIND-05, BIND-06, BIND-09, RES-01–RES-12 | 每个导出有「不存在的 `sessionId` → `BIND_NO_SESSION`」单测；五个 `resolve*` 对全语料与 `Resolver::*` 逐字段相等；`EditSession: Clone` 在最大真实文档上实测（超 50 ms 则改「apply 后回滚」，语义相同） |
+| 8.5 | **Rust crate 公共 API 定型**（`lib.rs`、`Cargo.toml` 的 feature、`examples/`、`README.md`）：**这是原 `spec/20` 没有的任务，独立交付才需要**。① 公共面收敛：今天 11 个模块全 `pub`，逐个判定「对外 / `pub(crate)` / 藏进 `bind::native`」，对外的加 `#[non_exhaustive]`；② 错误面统一：`Error` / `DiagCode` 作为公共契约冻结，`DiagCode` 的 `as_str` 即 `BIND-07` 的 `code`；③ feature 划分：`default = ["native"]`；`compat-ts`（**测试专用**，默认关）；`wasm`；`serde`；④ `#![warn(missing_docs)]` 打开并补齐公共项文档；⑤ `examples/`：`read.rs`（open → 大纲 + 文本）、`edit.rs`（定位一段 → `ReplaceInlines` → save）、`agent.rs`（模型 JSON 进 / `EditOp` JSON 出，为 M9′ 打样）；⑥ `README.md` 从「genoffice 引擎替换品」改写为「独立 docx 内核」，给三段能跑的代码 | BIND-11 | 门 3 全绿；`cargo build -p rsword`（默认 feature）不编译 `compat_ts`；三个 example 在 CI 里跑 |
+| 8.6 | **回归网换代**（`corpus/**/*.model.json`、`tests/model_snapshot.rs`、`tests/random_ops.rs`、`fuzz/fuzz_targets/fuzz_bind.rs`）：① 自快照——全语料 `document()`（`display` 关）落 `*.model.json`，与 `*.expected.json` **并存**；快照测试比对，差异必须由带理由的提交更新（`corpus/README` 写清规则，和「禁止手改 `*.expected.json`」不同：`*.model.json` 是**我们自己的**输出，可以改，但要说明为什么）；② `TEST-07` 的 1,000 条序列改走协议 JSON，`ModelFingerprint` 两视图等价断言不变；③ `fuzz_bind`；④ CI 增 nightly 的协议随机门 | TEST-06, TEST-07, TEST-10 | 门 4 全绿；自快照建成**之后**才允许做 8.7 的降级 |
+| 8.7 | **`compat_ts` 降级、性能、体积与收尾**（`Cargo.toml`、`benches/bind.rs`、`docs/`）：① `bind/compat_ts/` 整体挂 `#[cfg(feature = "compat-ts")]`，连同 `tests/compat*.rs`、`tests/save_blocks.rs`、`tools/diff-parse`、`KNOWN_DIFFS.md`；`spec/10` 头部改写生命周期（**不撤销条目**，改为「测试专用」）；② `benches/bind.rs`：open / document / apply / save / media 在最大三份真实文档上；③ JSON 体积对比表（`compat_ts::parsed_doc` vs `document()`）；④ 文档：`docs/03` v3.3 §12 勾掉 M8′、`docs/04` §17 逐条进度、`docs/05` 数字、`spec/11` TEST-10 M8′ 行 | COMPAT-01, TEST-10 | 门 5 与门 6 全绿；`cargo test --workspace`（默认 feature）与 `cargo test --workspace --features compat-ts` 双绿 |
 
-建议顺序：8.0 → 8.1（rsWordParser 侧先把 `--via js` 逐字节相同做出来，这是后面一切的地基）→ 8.2（分派层 + 双引擎测试）→
-8.3 / 8.4 并行 → 8.5 → 8.6。8.1 的 metafile 路径表与 8.3 的审计表由同一个人做最省——两者都是把 `KNOWN_DIFFS.md` 从头过一遍。
+建议顺序：8.0 → 8.1（**关口**，评审通过才动代码）→ 8.2 / 8.3 / 8.4 并行 → 8.5 → 8.6 → 8.7（最后）。
 
 ## 分层决策（实现前定死）
 
-1. **绑定无状态**：`parse(bytes)` / `save(bytes, …)` 每次从字节开始，wasm 里不留会话；M9 才引入句柄。代价是保存时重新解析一次
-   （`EditSession::open` 在最大真实文档上是毫秒到几十毫秒量级，8.6 量），换来的是编辑器与主进程之间的字节流协议一个字不用改。
-2. **JSON 逐字节相同是绑定的合同**：wasm `parse` 输出 = `compat_ts::parsed_doc` 的 `serde_json::to_string`（同一函数），
-   `diff-parse --via js` 直接比字节；包装层的加工（`Map`、`originalBytes`、metafile）**只发生在 JS 侧**，不进 wasm。
-3. **差异只在三处登记，不新增第四处**：解析侧 `KNOWN_DIFFS.md`、保存侧 `INTENTIONAL`、语义 `docs/04` §8（`CLAUDE.md` 既有政策）。
-   `docs/10` 的审计表是这三处的**分类视图**（对编辑器与用户的影响），不是新的登记处。
-4. **TS 引擎不删、不改语义**：只加分派层与函数改名；`packages/docx-engine/tests` 继续测 TS——它们是语料源（`TEST-02`）。删除是 M9。
-5. **wasm 产物提交进 genoffice，CI 重建校验**：`npm ci` 不需要 Rust；漂移靠 CI 的 `git diff --exit-code` 抓（genoffice 对
-   `fixtures/generated` 已经这么做）。两仓库的版本关系由 `RSWORD_COMMIT` + `version()` 显式表达。
-6. **编辑器零改动既是目标也是门**：`apps/docs/src` 允许的 diff 只有诊断透出与错误文案（8.3）。任何「为了让 rs 过而改编辑器逻辑」
-   都说明 `compat_ts` 有 bug，回 rsword 修，不改编辑器。
-7. **metafile / TIFF 转换是 TS 侧的可插拔服务**（`docs/03` §3.5 冻结）：在包装层做，不进 rsword；M9 换成媒体句柄后同一服务改为按需转换。
-8. **回退按文档、有提示**：不做静默双写；`EngineInvariantViolation` 是引擎自己承认出错的唯一信号，只有它触发回退。
+1. **协议是 `Document`（`MOD-01`）与 `EditOp` 的 serde 投影，不是第三个模型**：JSON 字段名 = Rust 字段名的 camelCase；
+   不为调用方方便新造语义字段——调用方要的派生值（px、合并 run、标签文字）自己算或问 `resolve`。
+2. **`compat_ts` 保留、降级，不删**（对 `docs/03` v3.2 与原 `spec/20` 决策 10 的改判）。它原本被判为「纯负担、M9 删除」，
+   前提是它要作为**对外契约**长期维护。genoffice 退为测试基准之后：它是 1,065 份文档差分的对接点，是目前最强的正确性证据，
+   删了就没有外部裁判。做法是 `#[cfg(feature = "compat-ts")]` + 默认关 + 不进公共 API + 不承诺稳定。
+   `KNOWN_DIFFS.md`、`tests/save_blocks.rs`、`tools/diff-parse`、`corpus/**/*.expected.json` 同此处置——**一律不删**。
+3. **`document()` 首版就支持按需取**（对原 `spec/20` 待决 1「首版整份，量过再加」的改判）。原来的消费者是编辑器：
+   一次性拿整份、常驻内存、增量刷新。M9′ 的消费者是 Agent：一份百页文档的完整模型 JSON 是数 MB，塞不进上下文。
+   `BIND-10` 从第一版就给块范围、字段裁剪与深度上限；`document()` 无参调用返回整份仍然保留（本地工具与测试用）。
+4. **显示模型不进默认 JSON**：`ChartDisplay` / `VmlDisplay` / `DiagramDisplay` / `AnchorGeom` 是为渲染器造的，
+   Agent 不需要 WordArt 的 EMU 坐标。已建成的不删，做成 `document(opts.display = true)` 的可选投影。
+5. **会话有状态、保存函数式**：读会话在 `open` 之后只被换会话改变；`save(ops)` 在克隆上做，失败不影响读会话；
+   调用方写盘成功才换会话。实时 `apply`（每次击键一条操作、引擎成为编辑期真相）另立里程碑。
+6. **id 会话内稳定、跨会话无意义**：`nodeId`（arena 稳定，`MOD-13`）、`revisionId`、`spanId / fieldId / mediaId`；
+   调用方不得持久化 id；换会话后按块序 + 文本指纹重对齐。
+7. **偏移单位仍是 UTF-16**（`docs/03` §8.1 留给 M9 的决定，v3.3 拍定**不改**）。
+8. **媒体不进 JSON、转换不进 Rust**：`MediaId` + 按需字节；metafile / TIFF 转换是调用方的服务（`docs/03` §3.5 冻结）。
+9. **不是文档语义的东西不进引擎**（`docs/03` §1.2）：密码哈希、引文格式化、编号显示的**文字与缩进**留给调用方；
+   编号计算本身（`lvlRestart` / `numStyleLink` / `startOverride` / 跨文档序累加）是文档语义，进 `resolve::list_markers`。
+10. **逃生口有名有姓**：`InsertBlock{Xml}` / `ReplacePartXml` 保留，每次使用记诊断 + 计数（`BIND_XML_ESCAPE`）。
+    M8′ **不**要求计数为 0（那是原 M9 门 2 的编辑器指标，已随之撤销）；M9′ 用它衡量 Agent 路径的成熟度。
+11. **删除是最后一步且要有替代品**：8.7 的降级只在 8.6 的自快照网建成、门 4 绿之后做。
 
-## 实现约定：多用声明宏（用户要求，2026-09-05；与 `spec/14` / `spec/16` / `spec/17` / `spec/18` 同一条）
+## 实现约定：多用声明宏（用户要求，2026-09-05 / 09-07 再次强调；与 `spec/14` / `spec/16` / `spec/17` / `spec/18` 同一条）
 
-M8 的 Rust 侧很小，同形重复只有一处：
+M8′ 的**同形重复**是历次里程碑里最多的：几十个结构要投影成 JSON、60 个 `EditOp` 变体要往返、十几个导出同形、五个 `resolve`
+查询同形。判断标准仍是**同一形状重复三次以上就收成 `macro_rules!`**；每个宏同时展开实现、schema 与测试三样，让
+「投影不丢字段」「变体都能往返」「导出都会映射错误」不靠人记：
 
-- `wasm_export!`：四个导出（`parse / parse_diagnostics / save / blank`）同形——「`&[u8]` / `&str` 入 → 调 rsword → `Result` 映射为
-  `JsValue` 错误 `{ code, message }`」，收成一张表，同时展开导出函数与「非 docx → `Error.code`」的单测。
-- 沿用 `xpath_asserts!`、`set_some!` / `set_if!`（8.6 若把 `parsed_doc` 从 `Value` 改成直写 `String`，字段写法不变）。
-- TS 侧不适用宏，但 metafile 路径表 `DATA_URL_PATHS` 用数据表驱动一个遍历器，不写散落的 `if`；表由 8.0 的脚本从 `types.ts` 生成并
-  带一条「`types.ts` 里每个 `dataUrl` / `imageDataUrl` 字段都在表里」的单测。
+- `model_json!`：一张「Rust 类型 → { JSON 字段 ← Rust 字段 [via 转换函数] }」的表，展开 `impl ToJson`（`set_some!` /
+  `set_if!` 处理 `Option` / `bool`）、`schema()`（该类型的 JSON Schema 片段）、`#[test] json_fields_cover_struct`
+  （键集与表里的字段集比对——门 1 的「不丢字段」）。**不**在 `model/` 类型上 `derive(Serialize)`。
+- `edit_op_json!`：`EditOp` 变体清单，展开每个变体一条 JSON 往返测试、`BIND-03` 的变体与字段清单、`BIND_XML_ESCAPE`
+  的计数点。`EditOp` 本身用 `serde` derive（结构简单、无 arena 引用），宏只管测试与清单。
+- `bind_export!`：导出「`sessionId` + JSON 字符串入 → JSON / `Vec<u8>` 出 + `Error → { code, message }` 映射」，
+  十几个同形；展开导出函数与「不存在的 `sessionId` → `BIND_NO_SESSION`」的单测。7.10 的 `wasm_export!` 并入它。
+- `resolve_query!`：五个 `resolve*`（run / para / cell / section / table）同形——「`[nodeId]` 入 → 每个 id 一条
+  `{ value, provenance }`」，展开导出、JSON 投影与「对全语料与 `Resolver::*` 逐字段相等」的测试。
+- 沿用：`named_enum!`（`as_str` 直接就是 JSON 字符串，`schema_enum!` 从同一名字表生成枚举 schema）、`set_some!` /
+  `set_if!`、`xpath_asserts!`、`fixture_tests!`、`oracle_tests!`。
+- **不上宏**：`SessionTable` 的生命周期（两个函数）；`examples/`；feature 门控。
+- 宏带文档注释与 ```ignore 用例；跨模块用 `macro_rules!` + `pub(super) use`，展开里写 `$crate::…` 全路径；
+  会把函数定义藏起来、让人跳不到声明处的，用共享模块而不是宏。
 
-其余约定照旧：一个任务一个提交 `m8.<n>: 英文摘要 (SPEC-ID…)`（genoffice 侧提交信息同款，前缀 `rsword:`）；提交前同步 `docs/04` §17
-勾选、§8 偏差表、`docs/05` 数字。
+其余约定照旧：树遍历写成**迭代**；属性容器只走 `plan_apply_*`；一个任务一个提交 `m8.<n>: 英文摘要 (SPEC-ID…)`；
+提交前同步 `docs/04` §17 勾选、§8 偏差表、`docs/05` 数字。
 
-## 从 M0–M7 带过来的债（M8 内解决）
+## 从 M0–M7 带过来的债（M8′ 内解决）
 
 | 债 | 位置 | 解决任务 |
 | --- | --- | --- |
-| `bind/mod.rs` 模块头「napi / wasm 绑定在 M8 接入编辑器时加入」 | `bind/mod.rs` | 8.1（改措辞：绑定在 `crates/rsword-js`，M7 7.10 建、M8 接入） |
-| 7.10 DoD 最后一条「`apps/docs` 里用一行替换 `parseDocx` 能打开语料文档（不进本里程碑门）」 | `spec/18` | 8.2 变成门 2 |
-| `blank()` 没有 `eastAsiaFont` 参数（7.8 按 TS `blank.ts` 逐字移植，`blank-template__001` 的期望值是无参输出） | `save/blank.rs` | 8.1 |
-| `KNOWN_DIFFS.md` 里 `emf-image__*` / `image-emf` / `ole-*` / `ole-with-text`「转换在 TS 侧」只是口头承诺 | `KNOWN_DIFFS.md` | 8.1 的 `DATA_URL_PATHS` |
-| `compat_ts::parsed_doc` 经 `serde_json::Value` 中转 | `bind/compat_ts/mod.rs` | 8.6（若成为耗时瓶颈） |
-| `docs/03` §14「M8 切换时 Strict 文档的行为会改变，需在发布说明中写明」 | — | 8.5 |
-| `tiff.ts` 没从 `@genoffice/docx-engine` 入口导出 | genoffice `packages/docx-engine/src/index.ts` | 8.1 |
+| 公共 API 从未设计过（11 个模块全 `pub`、758 个 `pub fn`、无 `missing_docs`） | `lib.rs` | 8.5 |
+| `compat_ts` 12,782 行长期挂在默认构建里 | `bind/compat_ts/` | 8.7（降级，不删） |
+| `docs/03` §8.1「M9 若前端协议改变再考虑标量或字素单位」 | — | v3.3 已拍定不改，记 `docs/04` §8 |
+| `spec/18` 待决 5：`docs/03` §8.2 之外的新操作收进下一版 | `docs/03` §8.2 | 8.1 |
+| `save/options/` 的 TS `SaveOptions` 翻译层（5.6 / 5.7 / 6.6–6.8） | `save/options/` | 8.3 公开为 `EditOp`，收缩到五项 |
+| `TocOptions.ts_shape` 与 `fixtures/fieldgen` 的 TS 夹具（7.8） | `span/field/generate/` | 随 `compat-ts` feature 一起门控（8.7） |
+| `compat_ts::parsed_doc` 经 `serde_json::Value` 中转 | `bind/compat_ts/mod.rs` | 不动（测试专用件，性能不再是对外指标） |
+| `docs/06` toggle 未决（`strike` 一族桌面版复核） | `resolve` | 不挡 M8′；仍是项目负责人择机 |
+| `m8-editor` 分支上 8.1a 的绑定与 node 实测 harness 尚未并入 `main` | `crates/rsword-js` | 8.0② |
 
 ## 基线与复用
 
 | 来自 | 复用什么 | 在哪个任务 |
 | --- | --- | --- |
-| M7 7.10 `crates/rsword-js` | 四个入口、错误映射、`diff-parse --via js` | 8.1 / 8.2 |
-| M7 7.8 `EditSession::blank()` | 空白模板 | 8.1 |
-| `bind/compat_ts/` 全部 | `ParsedDoc` JSON 与 `SaveBlock[]` / `SaveOptions` 翻译 | 8.1（绑定只是它的出口） |
-| `tools/diff-parse`、`tests/save_blocks.rs`、`xml::canon` | 差分与保存等价比较 | 8.2 |
-| genoffice `e2e/helpers.ts`（`launchShell({ openFile })`、`waitForPageWithUrl`） | 往返 e2e | 8.4 |
-| genoffice CI 的 `fixtures/generated` 漂移检查 | wasm 产物重建校验 | 8.1 |
-| `@genoffice/docx-engine/metafile`（vendored `emf-converter`）、`tiff.ts`（UTIF） | 转换服务 | 8.1 |
-| `apps/sheets/native/xlsx-engine` | 「Rust 进 genoffice」的构建 / CI 缓存先例（sidecar 形态；docx 选 wasm 是因为要在渲染进程与 vitest 里同位置调用，`spec/18` 待决 1） | 8.0 |
-| `docs/05`「与 TS 有意不同」表、`KNOWN_DIFFS.md`、`INTENTIONAL` | 审计表的输入 | 8.3 |
+| M7 7.10 / `m8-editor` 8.1a `crates/rsword-js` | wasm 构建与产物、错误映射、`wasm_export!`、node 实测 harness | 8.0② / 8.4 |
+| M7 7.1 `RevisionIndex` / `RevisionId` | `revisions` JSON 与 Accept / Reject 引用 | 8.2 |
+| M7 7.9 `ModelFingerprint`、`TEST-07` 生成器、`fuzz_edit` | 协议往返 oracle、`fuzz_bind` 的种子与断言 | 8.6 |
+| M6 6.7 `EditSession::add_media`、6.6 xlsx 生成器 | `addMedia`；`SetChartData` | 8.4 / 8.3 |
+| M5 5.6 / 5.7 `save/options/*` | 翻译逻辑 → 公开 `EditOp` | 8.3 |
+| M4–M6 显示模型（`Display`、`ChartDisplay`、`DiagramDisplay`、`FormulaDisplay`、`VmlDisplay`） | 可选 `display` 投影 | 8.2 |
+| `resolve` `RES-01`–`RES-12`（含 `TableView`、节视图、`Provenance`） | `resolve*` 查询 | 8.4 |
+| 属性表生成器 `build/props.rs` | patch 类型的 serde 派生 | 8.3 |
+| `model/macros.rs::named_enum!`、`bind/compat_ts/json.rs::set_some! / set_if!` | 投影层的两个基础宏（`json.rs` 搬到 `bind/native/`，`compat_ts` 反过来引用） | 8.2 |
 
-## 依赖与被阻塞
+## 不在 M8′
 
-| 事项 | 状态 |
-| --- | --- |
-| M7 全部并入 `main`（尤其 7.8 `blank()`、7.9 门、7.10 绑定） | **前置**；8.0 之前 |
-| genoffice 基线（`f105f36` + 32 脏文件）：8.0 决定是否重导语料 | 「待决」1 |
-| Linux CI：`docs-visual` 只在 Linux 跑，本机 macOS 判不了像素门 | 门 3 在 CI 上判 |
-| 真实 Word：M8 不新增 Word 人工核对——M7 的 `real_edits` 流程已覆盖引擎输出；往返 e2e 用的真实文档从 `corpus/real` 挑许可允许的一份 | 「待决」6 |
-| genoffice 仓库的评审 / 合并权限与 CI 时长（`e2e` job 上限 45 分钟） | 项目负责人 |
-| `docs/06` 的 toggle 桌面版复核 | 与 M8 无关（`compat_ts` 的 `runs[].bold` 发声明值，不走 `resolve`）；照旧择机 |
-
-## 不在 M8
-
-- **删除**任何东西：TS 引擎、`compat_ts`、`types.ts`、`KNOWN_DIFFS.md`——M9。
-- **原生协议**：会话句柄、模型 JSON、`EditOp` JSON、媒体句柄、去 dataURL——M9。编辑器在 M8 里仍走 `SaveBlock[]` / `SaveOptions`，
-  M7 的新能力（`\h` TOC、`AcceptAll { author }` 原生、`remove_date_and_time`、分节符增删…）编辑器在 M8 **用不到**，随 M9 协议来。
-- **渲染器接管排版启发式**、`resolve` 暴露给编辑器——M9。
-- `hashProtectionPassword` 搬 Rust——不搬（`spec/18`「不在 M7」）。
-- napi 形态——只在 wasm 性能不够时考虑（`spec/18` 待决 1 的备选；8.6 的数字决定要不要重开这个问题）。
-- 编辑器 UI 变化、Web 版 / 移动端部署。
+- **Agent 接口层**（文本投影、大纲与定位、变更摘要、预算）与 **CLI / MCP server** —— M9′（`spec/20`）。
+- **实时 `apply`**（每次击键一条 `EditOp`、引擎成为编辑期真相）与协同编辑 —— 决策 5 保留保存时差分；另立里程碑。
+- **分页 / 排版进引擎**（`docs/03` §1.2 永久不做）。
+- **删除 `compat_ts` / `KNOWN_DIFFS.md` / `tools/diff-parse` / `corpus/**/*.expected.json`** —— 决策 2 明确不删。
+- **genoffice 的任何改动** —— v3.3 之后它只是测试基准。`tools/export-golden/` 保留且只读使用。
+- `.doc` / RTF / ODT；napi 形态；多线程 wasm。
+- **`resolve` 的新规则**（toggle 复核、Wingdings 2/3 补全）——按 `docs/06` 择机，不在 M8′ 门。
+- **引擎新能力**：WordArt 新建、图表工作簿同步等原 `spec/20` 9.3 的两个缺口——没有编辑器逼门，推迟到有真实需求时再立项。
 
 ## 风险提示（实现前确认）
 
-1. **`Map` 与 `undefined`**：TS 类型里 `styles / numbering / headingStyleIds` 是 `Map`，编辑器到处 `.get()`；JSON 回来是对象，包装忘了
-   重建就是运行期 `TypeError`，而且 vitest 全绿之外的地方（e2e）才暴露。8.1 单测钉住三处；`headingStyleIds` 的键是**数字**，
-   `JSON.parse` 后是字符串键，重建时要 `Number()`。
-2. **wasm 内存**：`parse(bytes)` 要把字节拷进线性内存、JSON 再拷出来（`internal.documentXml` 是整个主 part 的字符串，带图文档的 dataURL
-   几十 MB）；线性内存只增不减，大文档反复保存会让驻留内存停在峰值。8.6 量化；M9 去 dataURL 与句柄化是根治。
-3. **jsdom / node 里加载 wasm**：`--target web` 的 glue 用 `fetch` / `URL`，node 需要 `initSync(bytes)`；vitest 的 alias 把
-   `@genoffice/docx-engine` 指向源码，分派层必须在源码入口 `index.ts` 生效，不能只在打包产物里。
-4. **像素基线的假阴性**：`docs-visual` 只有 5 份文档且全是表格；JSON 相同不代表所有渲染路径被覆盖——门 3 只能证明「这 5 份不变」，
-   编辑器级正确性主要靠门 2 的 151 个测试与 8.3 的审计。
-5. **测试断言 TS 私有形态**：`apps/docs/tests` 里可能有断言 `rawRPr` 自闭合、修订 `w:id === '0'`、EMF 占位 dataURL 之类的用例；
-   改测试必须登记（`docs/10`），防止把 rs 的 bug 当差异放过。
-6. **Strict 文档的用户可见变化**：TS 装载时归一化为 Transitional，rs 保 Strict。Word 两种都能开，但下游若有只认 Transitional 的工具
-   会受影响（`docs/03` §14 原话）；发布说明 + 开关回退。
-7. **genoffice 是另一个仓库**：分支策略、评审、CI 时间都不在本仓库控制；8.0 先把分支与 CI 跑通再动代码。
-8. **7.10 若在 M7 里被顺延**：M8 第一步就是它。8.1 写成「扩展」，7.10 没做则 8.1 连它一起做，工期相应加。
-9. **保存路径的 `isUnchanged` 短路**：TS `saveDocx` 在「全 original 顺序不变、无选项」时返回原字节（`EDIT-04`），编辑器可能依赖
-   「保存后字节相同 → 不重解析」这类隐含行为；`compat_ts` 已复现该短路（`save_blocks` 有 43 份逐字节相同），但 `saved_at` 单独
-   设置时我们不触发保存（`docs/05` 有意不同表第 2 行）——审计时点名核对编辑器有没有靶向 `dcterms:modified` 的逻辑。
+1. **公共 API 一次定型的难度**：758 个 `pub fn` 逐个判定是苦工，且判错了以后要破坏性变更。缓解：8.5 先只承诺
+   `bind::native` + 六个核心类型 + `EditSession` 的稳定，其余标 `#[doc(hidden)]` 或 `unstable` feature，留出一版的观察期。
+2. **`compat_ts` 门控的连锁**：17 个文件、`tests/compat*.rs`、`save_blocks.rs`、`diff-parse`、`fixtures/fieldgen`
+   都要挂 feature，CI 要跑两套构建。缓解：8.7 一次性做完，且放在最后。
+3. **自快照的信噪比**：1,065 份 `*.model.json` 一旦有个字段改名就会整体飘红，容易养成「无脑更新快照」的习惯。
+   缓解：`corpus/README` 写死「快照变更必须在提交信息里说明原因与影响面」；CI 对快照 diff 超过 N 份的提交打醒目提示。
+4. **JSON 体积与 schema 规模**：`Document` 及其子结构几十个类型，schema 手写不可维护——必须由 `model_json!` 同表生成，
+   否则会漂。TS 类型若将来要生成，走同一份 schema。
+5. **`EditSession: Clone` 的成本**：保存函数式依赖克隆；arena 与索引是纯数据但最大真实文档可能有百万节点。
+   8.4 先量，超 50 ms 换「apply 后回滚」实现，对调用方语义相同。
+6. **`resolve` 暴露后的性能**：调用方对每个 run 问一次就是 O(n) 次跨边界调用；`BIND-06` **只给批量接口**；
+   若仍慢，`document()` 顺带返回一份 `resolveAll`——8.4 先量再定。
+7. **协议漂移**：`protocolVersion` 不匹配时启动拒绝，不静默；schema 进 CI 校验。
+8. **`TEST-07` 走协议后变慢**：JSON 往返 × 1,000 序列；PR 只跑 100 条（`spec/18` 7.9 同款）。
+9. **失去 TS 裁判的时点**：决策 2 已经把「删除」换成「降级」，所以本里程碑内不会失去裁判。但 `corpus/**/*.expected.json`
+   的再生依赖 genoffice 的 TS 引擎仍然存在且能跑——`tools/export-golden/run.sh` 至少每个里程碑跑通一次，别让它烂掉。
 
 ## 待决（需要项目负责人拍板）
 
 | # | 事项 | 建议 |
 | --- | --- | --- |
-| 1 | genoffice 基线：从当前脏树还是干净提交开分支；是否借机重导语料（`TEST-02`） | 建议：从 genoffice 最新 `main` 开 `rsword-engine`，**重导一次**语料对齐（M7 7.0 的 `changedParts` 重导本来就要做，合成一次），`manifest.jsonl` 记新提交号 |
-| 2 | 绑定包放哪：genoffice `packages/docx-engine-rs/`（提交产物）vs rsWordParser 发 npm 包 vs git submodule | 建议：genoffice 内提交产物 + `RSWORD_COMMIT` + CI 重建校验（`npm ci` 不需 Rust；两仓库版本关系显式） |
-| 3 | 缺省引擎切换时机：M8 合并即缺省 `rs`，还是先 `ts` 缺省灰度一个版本 | 建议：M8 合并即 `rs` 缺省（否则门 3 不算通过），`ts` 保留一个发布周期可回退 |
-| 4 | `file-parse` / `markdown` 是否同批切换 | 建议：同批（同一分派层零成本；`file-parse` 的纯文本提取是 `ParsedDoc` 的子集，`markdown` 的导出走 `blank + saveDocx`） |
-| 5 | 诊断透出的 UI 形态 | 建议：开发模式 console + 生产仅日志；只有 `EngineInvariantViolation` 提示用户并回退 |
-| 6 | 往返 e2e 用的真实文档：从 `corpus/real` 挑哪份、许可 | 项目负责人挑一份自有样本（`docs/07` 任务 A 那批） |
+| 1 | TS / 其他语言类型生成：`serde` + `schemars` → JSON Schema，还是 `ts-rs`；是否允许 rsword 加 `serde` derive 依赖（今天只有 `serde_json`） | 建议：`serde` + `schemars`（schema 同时服务 `fuzz_bind` 与门 1 校验），类型生成留给调用方 |
+| 2 | crate 发不发 crates.io，什么名字（`rsword` 已被占用与否未查） | 建议：M8′ 内先不发，`README` 给 git 依赖写法；名字与发布在 M9′ 交付时一起定 |
+| 3 | 8.5 公共面的保守程度：一次全定 vs 只定 `bind::native` 留观察期 | 建议：只定 `bind::native` + 六个核心类型（风险 1） |
+| 4 | 编号显示计算（原 `spec/20` 待决 3）归 `resolve::list_markers` 还是调用方 | 建议：进 `resolve`（决策 9 已按此写，需你确认） |
+| 5 | `*.model.json` 快照放 `corpus/` 内还是单独 `snapshots/` 目录 | 建议：放 `corpus/` 内与 `*.expected.json` 并列，一份文档的所有期望值在一处 |
+| 6 | `m8-editor` 分支：并入后删除，还是留作历史 | 建议：8.0② 摘完后删分支，git 历史里 reflog 与 `362b555` 可查 |

@@ -474,6 +474,7 @@ crate 名 `rsword`；nightly 与 cargo-fuzz 已装）。已决的政策见 §8 �
 | 2 | ~~`m1.15-diff-tools` 何时并入 `main`~~ 已并入（2026-09-04） | M2 直接从 `main` 开分支 |
 | 3 | ~~M2 计划文档~~ 已写：`spec/13-m2-plan.md`（10 个任务 + 从 M1 带过来的债 + 5 条风险提示）；M4 计划见 `spec/15-m4-plan.md`（8 个任务，与 M2 并行） | 开工前复核第 1 条（语料基线）对 2.5 / 2.6 差分基准的影响 |
 | 4 | ~~`RES-04` toggle 与 `RES-10` 节继承的 fixture 观察值~~ **已完成**（2026-09-06，Word 网页版，见 `fixtures/resolve/README.md` 的实测记录）：八份 fixture 全部 `verified = true`，`RES-04` 的规则按实测改写（原来的"最具体胜出"在前六份里错了三份，补测的第七份又推翻了"九个 toggle 一视同仁"，于是规则改成按字段选），`spec/07` 的 `RES-04` 条目同步重写。M5 门第 4 条**通过**。<br>② `pageColor` 要不要同时写 `w:displayBackgroundShape`：**已决**——要写。复核 TS 的 `patch.ts` 时发现它其实也写（`if (options.pageColor && !xml.includes('<w:displayBackgroundShape'))`），当时那条备注记错了；5.6a 按写实现 | 当时列的两个角都已补测（见上）；剩下的未决部分转成第 5 条 |
+| 6 | **范围改定（2026-09-08）已拍板**：genoffice 只当测试基准；交付 Rust crate 优先；目标形态是 Word / WPS 的**外挂应用**（文件级工具 A 形态），对 docx 阅读与修改，后续接入 Agent，不做渲染。落地见 `docs/03` v3.3 与 §17；由此新生的待决在 `spec/19` / `spec/20` 各自的「待决」表里（共 12 条），其中要先拍的是 `spec/19` 待决 3（公共面的保守程度）与 `spec/20` 待决 1（MCP server 用原生 Rust 还是 node） | 已决部分照 §17 执行；未决部分不挡 8.0–8.1 |
 | 5 | **`RES-04` toggle 规则还有一块没定**：`strike` / `caps` / `smallCaps` / `dstrike` 不抵消这条只在 **Word 网页版**上测过，与 ECMA-376 §17.7.3 的字面冲突最大，值得在桌面版复核一次（十分钟，步骤写在 `docs/06-toggle-open-question.md` 第 4 节）。**不挡进度**：语料 + 真实文档共 24,177 个 run 里撞上歧义的是 0 个，生产代码也还没有人调 `Resolver::run` | 复核前不要再拿网页版读数改规则；`corpus/real` 里放进真实文档后，把歧义频率探针固化成常驻测量 |
 
 ---
@@ -510,12 +511,17 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
 1,000 序列与 `fuzz_edit`；另建议把 JS 绑定（M8 的前提）收进来，形态待拍板。六条门、11 个任务、修订生成规则表与 13 条风险都在
 那份文件里；逐条进度开工后记 §16。基线数字写作时 M6 只到 6.2，开工前按并入后的 `main` 重测。
 
-**M8 / M9 计划**（2026-09-07 写成，`spec/19-m8-plan.md` / `spec/20-m9-plan.md`）：M8 = 编辑器切换到 Rust 引擎——`crates/rsword-js`
-扩展为 drop-in 的 `parseDocx / saveDocx / buildBlankDocx`（wasm 产物提交进 genoffice 并由其 CI 重建校验），genoffice 侧加引擎分派开关、
-双引擎跑 `apps/docs` 151 个测试与 22 个 e2e、metafile / TIFF 转换留在 TS 包装层、差异审计（`docs/10`）与发布说明；六条门、7 个任务、
-6 条待决。M9 = 原生协议 `spec/21-bind.md`（`BIND-*`）：会话句柄、`Document` 的 serde 投影、`EditOp` JSON、媒体句柄、`resolve` 批量查询，
-12 条排版启发式搬到渲染器（先录像素基线再搬），编辑器按路径迁移（`docs/11` 迁移清单），最后删 `compat_ts` 与 TS 引擎；六条门、9 个任务、
-10 条待决。两份计划的基线数字来自 2026-09-07 的两个仓库（M7 只到 7.1、M8 未开始），开工前重测；逐条进度开工后分别记 §17 / §18。
+**~~M8 / M9 计划~~（2026-09-07 写成）已于 2026-09-08 随范围改定作废**，两份文件整体重写，见下面的 §17。
+原 M8（编辑器切换到 Rust 引擎：drop-in `parseDocx / saveDocx / buildBlankDocx`、双引擎分派、151 个 vitest、22 个 e2e、
+像素基线、切换开关与发布说明）**撤销**；原 M9 的 genoffice 半边（12 条排版启发式搬进渲染器、编辑器按路径迁移、删 TS 引擎）
+**撤销**，rsword 半边（原生协议、模型 JSON、`EditOp` JSON、会话与媒体句柄、`fuzz_bind`）**前移为 M8′**。
+
+**M8′ / M9′ 计划**（2026-09-08 写成，`spec/19-m8-plan.md` / `spec/20-m9-plan.md`）：M8′ = 原生协议与独立交付——
+`spec/21-bind.md`（`BIND-*`）、模型 JSON 投影、`EditOp` JSON（60 个变体）、有状态会话 + 媒体句柄 + `resolve` 批量查询、
+**Rust crate 公共 API 定型**、`*.model.json` 自快照回归网、`compat_ts` 降为 `#[cfg(feature = "compat-ts")]` 的测试专用件
+（**不删**）；六条门、8 个任务、6 条待决。M9′ = Agent 接口层与文件级工具——`spec/22-agent.md`（`AGENT-*`）：
+文本投影与双向锚点、大纲与定位、预算与截断游标、文本锚定编辑与预览、变更摘要，交付 `rsword` CLI 与 `rsword-mcp`；
+六条门、9 个任务、6 条待决。逐条进度分别记 §17 / §18。
 
 **M1 遗留债的处置**：事务快照已改成覆盖事务碰过的每个 part（`edit/session.rs`，单元测试
 `edit_05_transaction_rolls_back_every_touched_part`）；投影刷新遇到不在正文顶层的段落改为整体重建，不再留过期投影。
@@ -1828,3 +1834,84 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   `unsafe` 都不写，放行的是 wasm-bindgen 宏展开的那些）。
   **646 测试**、九道门 + 两条 `--via js` 全为 0、clippy 零告警。
   **M7 到此收完。**
+
+---
+
+## 17. 范围改定与 M8′ 执行进度
+
+### 范围改定（2026-09-08，项目负责人）
+
+原范围（`docs/03` v3.2 首页）：「方案 A。Rust 整体替换 genoffice `parseDocx` 与 `saveDocx`，产出编辑器消费的模型」。
+改定后：**rsword 是独立的 docx 读写内核**；genoffice 从「使用者」退为「测试基准」——只读地跑它的 TS 引擎生成
+`corpus/**/*.expected.json`，不再切换它的引擎、不再迁移它的编辑器、不再删它的代码。交付 **Rust crate 优先**，
+wasm / CLI 是绑定。目标形态是 **Word / WPS 的外挂应用**（`spec/20`「形态取舍」的 A：文件级工具），
+对 docx 做阅读与修改，后续接入 Agent 读改内容，**不考虑渲染**。
+
+改定的连带处置：
+
+| 项 | 处置 |
+| --- | --- |
+| `docs/03` | 升 **v3.3**：首页范围与交付、§1.1 输入输出、§1.2 不做、§3.5 媒体、§8.1 偏移单位（拍定不改）、§9 `SaveBlock[]`、§11 差分、§12 里程碑表（M8 / M9 划掉，加 M8′ / M9′）、§14 两条。**分层、六个核心类型、三条不变式一字未动**，故为 v3.3 而非 v4 |
+| `spec/19` | 整体重写为 M8′（原生协议与独立交付） |
+| `spec/20` | 整体重写为 M9′（Agent 接口层与文件级工具） |
+| `spec/00` | §0.2 前缀表加 `BIND`（`21-bind.md`）与 `AGENT`（`22-agent.md`）；`19` / `20` 行改写；§0.6 改写 |
+| `spec/10` | 生命周期从「M9 删除」改为「M8′ 8.7 降级为测试专用 feature，**不删**」；条目全部继续有效，不标 `[已撤销]` |
+| `spec/11` | TEST-10 的 M8 / M9 行划掉，加 M8′ / M9′ 两行；TEST-02 加「唯一且只读地用到 genoffice」的说明 |
+| `CLAUDE.md` | 「这是什么」「权威顺序」「TS 不是权威」三处改写 |
+| `m8-editor` 分支 | 另一会话已做的 8.1a（wasm 绑定 + node 实测 harness）在 8.0② 摘进 `main`；8.0a（genoffice 审计工具、`docs/10`）丢弃 |
+| genoffice `rsword-engine` 分支 | 不再使用（零提交，可删） |
+
+**为什么 `compat_ts` 不删**（对 v3.2 §14「纯负担、删除期限 M9」的改判）：那个判断的前提是它要作为对外契约长期维护。
+genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差分的对接点，是目前最强的正确性证据，删了就没有外部裁判。
+改为 feature 门控：默认构建不含、不进公共 API、不承诺稳定。真正要还的债换成「先把 `*.model.json` 自快照网建起来」（8.6）。
+
+### 开工基线（2026-09-08，`main` = 32234ce，M7 全部并入）
+
+| 量 | 值 |
+| --- | --- |
+| 测试 | 646 通过 / 0 失败（debug 与 release 双跑），51 个集成测试文件 |
+| 语料 | 799 synthetic + 266 real + 38 hostile；1,065 份 `*.expected.json`；208 份 `*.save.<k>.json` |
+| 差分门 | 七个 scope + `corpus/real`：242 + 547 处已知差异，**0 处未知**；`save_blocks` 204/208 等价 + 189/289 部件比对 |
+| 引擎源码 | `crates/rsword/src` 57,457 行；`bind/compat_ts/` 17 文件 12,782 行；`KNOWN_DIFFS.md` 145 行 |
+| 公共面 | `lib.rs` 导出 11 个模块全 `pub`；758 个 `pub fn`；318 个 `pub struct/enum/trait/type`；**无 `missing_docs` 约束** |
+| `EditOp` | 60 个变体 |
+| 依赖 | `zip` / `memchr` / `thiserror` / `serde_json`；对 genoffice **零构建期与运行期依赖**（`.rs` 里 "genoffice" 出现 0 次） |
+
+### M8′ 门（`spec/19`「M8′ 门」六条）
+
+1. 协议一致性：全语料 `document()` 过 JSON Schema、serde 往返幂等、`MOD-01`–`MOD-11` 字段不丢。
+2. 操作全覆盖：60 个 `EditOp` 变体 JSON 往返；协议 `apply` 与原生 `apply` 保存结果逐字节相同。
+3. 公共 API：`cargo doc` 零警告、`missing_docs` 为零、默认 feature 不含 `compat_ts` 且能完成 `open → document → apply → save`、三个 example 在 CI 跑。
+4. 回归网换代：`*.model.json` 快照进 CI、`TEST-07` 走协议、`fuzz_bind` 10 分钟无崩溃。
+5. 既有门不退：`--features compat-ts` 下九道差分门仍 0 未知差异；四个 fuzz、hostile、双构建全绿。
+6. 体积与性能：`document()` JSON 较 `parsed_doc` 降 ≥ 50%、`apply` p95 < 5 ms、`save` < 50 ms/MB、`.wasm` gzip ≤ 3 MiB。
+
+### 逐条进度
+
+- [ ] **8.0 范围收口与分支归并**
+  - [x] ① 文档改定（本提交）：`docs/03` v3.3、`spec/19` / `spec/20` 重写、`spec/00` / `spec/10` / `spec/11` / `CLAUDE.md` / `docs/04` / `docs/05` 同步
+  - [ ] ② `m8-editor` 的 8.1a 摘进 `main`（绑定、`parse_diagnostics`、`BindBadArgument`、`tools/js-parity/`、`TOOLS.md`、CI wasm 步骤），丢弃 8.0a
+  - [x] ③ `tools/export-golden/README` 写明「genoffice 只读使用」与最后重导提交号（本提交；`f105f36` / `2026-09-08T03:14:56Z`）
+- [ ] **8.1 协议规范 `spec/21-bind.md`**（`BIND-01`–`BIND-11`）—— **关口**
+- [ ] **8.2 模型 JSON 投影**（`bind/native/json.rs`、`schema.rs`、`model_json!`）
+- [ ] **8.3 `EditOp` / `EditContext` / `MutationResult` 的 JSON**（`edit_op_json!`、`SaveOptions` 收缩到五项）
+- [ ] **8.4 会话、媒体句柄、`resolve` 查询与部件读取**（`bind_export!`、`resolve_query!`）
+- [ ] **8.5 Rust crate 公共 API 定型**（公共面收敛、feature 划分、`missing_docs`、三个 example、README 改写）
+- [ ] **8.6 回归网换代**（`*.model.json` 自快照、`TEST-07` 走协议、`fuzz_bind`）
+- [ ] **8.7 `compat_ts` 降级、性能、体积与收尾**
+
+---
+
+## 18. M9′ 执行进度
+
+开工前按并入 M8′ 后的 `main` 重测基线。任务与门见 `spec/20-m9-plan.md`。
+
+- [ ] **9.0 场景、验收集与预算基线**（`docs/12-agent-tasks.md`）
+- [ ] **9.1 规范 `spec/22-agent.md`**（`AGENT-01`–`AGENT-10`）—— **关口**
+- [ ] **9.2 文本投影与双向锚点**
+- [ ] **9.3 大纲、定位与上下文**
+- [ ] **9.4 预算、截断与游标**
+- [ ] **9.5 文本锚定编辑、预览与变更摘要**
+- [ ] **9.6 CLI（`crates/rsword-cli`）**
+- [ ] **9.7 MCP server（`crates/rsword-mcp`）**
+- [ ] **9.8 门、性能与文档**

@@ -1,5 +1,10 @@
 # SPEC 18 · M7 任务分解
 
+> **已完成**（2026-09-08，11 个任务与六条门全部通过，并入 `main` = 32234ce；逐条进度见 `docs/04` §16）。
+> 文中凡是把 **M8「编辑器切换到 Rust 引擎」**当作下游动机的地方（7.10 的立项理由、「不在 M7」的推给 M8 / M9 的清单），
+> 都已随 2026-09-08 的范围改定作废：genoffice 退为测试基准，原 M8 撤销，接续的是 **M8′**（`spec/19`，原生协议与独立交付）
+> 与 **M9′**（`spec/20`，Agent 接口层与文件级工具）。7.10 的绑定本身仍然有效，M8′ 8.4 在它之上改为有状态会话。
+
 对应 `docs/03` 第 12 节 M7 行（「L4 + 保存：`EditOp` 全集、Span 变换、修订生成（`track_changes`）、保存前校验、部件写回、
 `SaveBlock[]` 兼容；与 `saveDocx` 差分」，验收「现有 roundtrip / text-patch / table-edit / textbox-edit / ai-track-revisions
 场景通过；随机编辑序列测试通过」）与 `spec/11` TEST-10 的 M7 行（「`COMPAT-08` XPath 等价全部通过；`TEST-07` 1,000 序列
