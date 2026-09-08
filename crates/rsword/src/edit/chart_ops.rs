@@ -116,6 +116,10 @@ pub(crate) fn materialize(s: &mut EditSession, block: NewBlock) -> Result<NewBlo
         NewBlock::Wrapped { wrapper, block } => {
             NewBlock::Wrapped { wrapper, block: Box::new(materialize(s, *block)?) }
         }
+        // 7.7：新建文本框 / 形状 / 线条
+        b @ (NewBlock::Textbox { .. } | NewBlock::Shape { .. } | NewBlock::Line { .. }) => {
+            NewBlock::Xml(super::shape_gen::shape_paragraph(s, b)?)
+        }
         other => other,
     })
 }

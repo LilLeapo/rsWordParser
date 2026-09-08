@@ -31,6 +31,12 @@ use super::{
 pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<MutationResult> {
     guard_sdt(s, &op)?;
     guard_main_only(s, &op)?;
+    // 7.7：位置落在 `mc:Fallback` 里直接拒；落在 `mc:Choice` 的文本框里的记下来，提交后同步孪生
+    let targets = op_targets(s, &op);
+    let twins = super::twin::sites(s, &targets)?;
+    // 几何与样式不改内容，改的是 VML 那边的 `@style` / `@fillcolor` / `@strokecolor`
+    let styled = matches!(op, EditOp::SetDrawingGeometry { .. } | EditOp::SetShapeStyle { .. })
+        .then_some(targets);
     // `spec/18` 7.3：Word 自己也不把这些记成修订（或另有机制）。照常执行，留一条
     // `REV_NOT_TRACKED`——编辑器开着修订时改页面颜色不该失败（分层决策 5）
     if ctx.track_changes.is_some()
@@ -44,6 +50,17 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
             format!("{what} 不产生修订（Word 也不记，或另有机制）"),
         )]);
     }
+    let mut result = dispatch(s, op, ctx)?;
+    if !twins.is_empty() {
+        result.absorb(super::twin::sync(s, &twins)?);
+    }
+    if let Some(targets) = styled {
+        result.absorb(super::twin::sync_shape_style(s, &targets)?);
+    }
+    Ok(result)
+}
+
+fn dispatch(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<MutationResult> {
     match op {
         EditOp::InsertText { at, text, props } => insert_text(s, at, &text, props, ctx),
         EditOp::DeleteRange { from, to } => delete_range(s, from, to, ctx),
@@ -133,6 +150,9 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
         EditOp::SetShapeStyle { shape, fill, outline } => {
             super::drawing_ops::set_shape_style(s, shape, fill, outline)
         }
+        EditOp::SetTextboxContent { textbox, blocks } => {
+            super::shape_gen::set_textbox_content(s, textbox, blocks, ctx)
+        }
         EditOp::InsertSectionBreak { after, kind } => {
             super::section_ops::insert_section_break(s, after, kind, ctx)
         }
@@ -217,17 +237,15 @@ fn guard_main_only(s: &EditSession, op: &EditOp) -> Result<()> {
     Ok(())
 }
 
-/// `EDIT-03` / `MOD-08`：编辑目标落在只读（`contentLocked` / `sdtContentLocked`）或数据绑定的内容
-/// 控件里 → 整体拒绝，状态不变（`EDIT-05`）。第一阶段绑定控件一律只读：显示文字只是 customXml 的
-/// 缓存，改了 Word 重开会刷回去。
+/// 操作在正文树上的目标节点：内容控件守卫、`mc:Fallback` 守卫与孪生同步共用。
 ///
-/// 目标节点连它所在的 part 一起收集（任务 5.5）：`NodeId` 只在自己 part 的 DOM 里有意义，
-/// 拿页眉的节点去主 part 的树上走祖先会越界。
-fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
+/// 连它所在的 part 一起收集（任务 5.5）：`NodeId` 只在自己 part 的 DOM 里有意义，拿页眉的节点
+/// 去主 part 的树上走祖先会越界。这里**不写通配分支**：新增操作时编译器会提醒你决定它要不要守卫。
+fn op_targets(s: &EditSession, op: &EditOp) -> Vec<(Option<PartId>, NodeId)> {
     let pos = |p: &InlinePos| (p.part, p.para);
     let block_pos = |p: &BlockPos| (p.part, p.node());
     let field = |id: FieldId| s.document().fields.get(id).map(|f| (None, f.form.head()));
-    let targets: Vec<(Option<PartId>, NodeId)> = match op {
+    match op {
         EditOp::InsertText { at, .. }
         | EditOp::SplitParagraph { at }
         | EditOp::InsertAtom { at, .. }
@@ -299,8 +317,15 @@ fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
             vec![(None, *n)]
         }
         EditOp::SetShapeStyle { shape, .. } => vec![(None, *shape)],
-    };
-    for (part, node) in targets {
+        EditOp::SetTextboxContent { textbox, .. } => vec![(None, *textbox)],
+    }
+}
+
+/// `EDIT-03` / `MOD-08`：编辑目标落在只读（`contentLocked` / `sdtContentLocked`）或数据绑定的内容
+/// 控件里 → 整体拒绝，状态不变（`EDIT-05`）。第一阶段绑定控件一律只读：显示文字只是 customXml 的
+/// 缓存，改了 Word 重开会刷回去。
+fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
+    for (part, node) in op_targets(s, op) {
         let dom = s.dom_in(part)?;
         let Some((info, why)) = refusing_sdt(dom, node) else { continue };
         let what = info
@@ -1786,8 +1811,13 @@ pub(super) fn new_block_element(dom: &Dom, block: NewBlock) -> NewElement {
     match block {
         NewBlock::Xml(e) => e,
         // 每个接收 `NewBlock` 的入口都先过 `chart_ops::materialize`（建 part、换成 `Xml`）
-        NewBlock::Chart { .. } | NewBlock::Image(_) | NewBlock::MathPara { .. } => {
-            unreachable!("NewBlock::Chart / Image / MathPara 必须先经 chart_ops::materialize")
+        NewBlock::Chart { .. }
+        | NewBlock::Image(_)
+        | NewBlock::MathPara { .. }
+        | NewBlock::Textbox { .. }
+        | NewBlock::Shape { .. }
+        | NewBlock::Line { .. } => {
+            unreachable!("图表 / 图片 / 公式 / 文本框 / 形状 / 线条必须先经 chart_ops::materialize")
         }
         NewBlock::Table { rows, cols, widths, style, header } => {
             super::table_ops::new_table(rows, cols, widths, style, header)

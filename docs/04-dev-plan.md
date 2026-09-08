@@ -445,6 +445,9 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `spec/18` 7.7 `SetDrawingWrap` 的紧密 / 穿越 | 生成矩形多边形 | 生成真正的 `wp:wrapTight` / `wp:wrapThrough` + `wp:wrapPolygon`（整幅图的矩形，21600 相对坐标） | TS 这两种一律落成 `wp:wrapSquare`（`generate.ts` 的 `isSide` 分支），Word 里看不出紧密与方形的区别。计划里写的"我们更强，登记" |
 | `SetDrawingWrap` 的 `wp:wrapPolygon` 复用 | 同类保留 | 紧密 ↔ 穿越**互相**保留（TS 只在标签一模一样时复用，且连 `@wrapText` 一起复用；我们只搬多边形，`wrapText` 重新写成 `bothSides`） | 多边形是用户描的轮廓，紧密与穿越只差"文字进不进凹处"，跨这两种丢掉它没道理。`wrapText` 是绕排侧，跟着这次的绕排走 |
 | `SaveOptions.normalize_z_order`（7.7） | — | 本引擎独有的保存选项，缺省 **false** | TS 的 `SaveOptions` 没有这一项：它的 `normalizeImageZOrders` 只在**投影**里压平 z 序（`imageZOrderNormalized`），从不写回 XML。开着时闸门与投影层同一条（某个 `\|z\| > 10000` 才动手），按 z 稳定排序（同值按文档序）重排成 `251658240 + 0..n`；compat 的保存路径在块表带回 `imageZOrderNormalized` 时自动置上 |
+| `spec/18` 7.7 `NewBlock::Textbox / Shape` 的字段 | `{ extent, anchor, fill, outline, … }` 各自摊开 | 三个变体共用一个 `ShapeLook { extent_emu, pos_offset_emu, wrap, z_order, fill, outline }` | 三种新块的外观与定位字段完全一样，摊开就是抄三遍；`Line` 的位置由 `from` / `to` 算出来，自己不带 `ShapeLook` |
+| `spec/18` 7.7 的 `PresetGeom` | 枚举 | `pub struct PresetGeom(pub String)`，值原样进 `a:prstGeom/@prst` | `ST_ShapeType` 有两百来个值且还在长，闭集挡住的是调用方而不是错误。解析侧本来就把 `@prst` 当不透明字符串 |
+| `SetDrawingGeometry` / `SetShapeStyle` 的 VML 孪生同步 | 同步 `v:shape/@style @fillcolor @strokecolor` | `@style` 只改 `width` / `height` / `margin-left` / `margin-top` 四个键，别的键（`position`、`z-index`、`mso-*`）原样留着 | 那些是 VML 自己的排版参数，DrawingML 这边没有对应物；猜着改不如不动。填充关掉时只写 `filled="f"`、不删 `@fillcolor`（VML 里 `filled` 才是开关，Word / TS 同） |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -1630,4 +1633,32 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   `251658242 / 251658240 / 251658241`（按 z 排、不是按文档序）且幂等，
   `anchor-z-order__001`（z = 3 与 1）闸门不开、一个字节不动。
   `tests/drawing_ops.rs` 15 个用例。**616 测试**（调试）、九道门仍为 0、clippy 零告警。
-  7.7c（`mc:Fallback` 孪生同步、`NewBlock::Textbox / Shape / Line`）另起一提交。
+  7.7c 另起一提交。
+
+- [x] **7.7c `mc:Fallback` 孪生同步与新建文本框 / 形状 / 线条**（`edit/twin.rs`、`edit/shape_gen.rs`，
+  2026-09-08）：
+  **孪生同步**（`edit/twin.rs`）：`ops::run` 里在 `guard_sdt` / `guard_main_only` 之后多一道
+  `twin::sites`——目标落在 `mc:Fallback` 里 → `EDIT_TARGET_FALLBACK`（改那一份下一次同步就被
+  覆盖，没有意义）；落在 `mc:Choice` 的 `w:txbxContent` 里就记下 `(mc:AlternateContent, 第几个框)`，
+  操作提交完把 `mc:Fallback` 的同序 `w:txbxContent` 内容整体换成 Choice 那份的深克隆
+  （`InsertClone`，`XML-12` 规则 F）。往上收祖先、也往下收子树里的框（`SetTextboxContent` 的目标
+  在框之上），**由内到外**排：里层先同步，外层再克隆时拿到的就是同步过的里层。
+  `SetDrawingGeometry` / `SetShapeStyle` 走另一条（`twin::sync_shape_style`）：按 Choice 现在的
+  `wp:extent` / `wp:posOffset` / `wps:spPr` 改 VML 的 `@style` 四个键与 `@fillcolor` / `@filled` /
+  `@strokecolor` / `@stroked`（§8）。守卫与同步共用 `ops::op_targets`（原来只有内容控件守卫用它）。
+  为此 `Document::text_block_in` 现在会下到文本框内容流里找段落（`Blocks` 的平铺不含框内，
+  框里的块挂在 `ShapeDisplay.content` / `VmlShape.content` 上）——平铺没命中才下去，常见位置的代价不变。
+  **新建三种块**（`edit/shape_gen.rs`）：`NewBlock::Textbox { look, blocks }` /
+  `Shape { preset, look, text }` / `Line { kind, from, to, color }`，都落成 DrawingML `wps:wsp`。
+  Transitional 包发 `mc:AlternateContent`（`Choice Requires="wps"` + VML 孪生，`xmlns:wps` 声明写在
+  `mc:AlternateContent` 那一层——不然 Word 把整份文件报成内容有问题，TS 同一条注释），
+  **Strict 包只发 Choice**（Strict 里没有 VML）。模板里 `w:txbxContent` 先留空，解析完再把
+  内容块挂进 Choice 与孪生两处（内容是 `NewBlock`，拼字符串拼不出来）。线条没有 VML 孪生（TS 同），
+  位置与大小由 `from` / `to` 两点算出。`SetTextboxContent { textbox, blocks }` 走 `replace_part_blocks`
+  同一套（追踪时按段落规则 del + ins），孪生由上面那条自动跟。
+  `tests/twin_sync.rs` 11 个用例：改 Choice 一段 → 孪生同步且没碰的那段原字节、结构编辑（删段）
+  同步、Fallback 内位置 `Err` 且零字节改动、框外编辑不惊动孪生、`SetTextboxContent` 两边都换、
+  三种新块各一条 XPath、Strict 包无 VML、重解析后三种都是锚定的 `DrawingKind::Shape` 且预置几何对得上、
+  几何与样式改完 VML 的 `@style` 只动四个键。
+  **627 测试**（调试 + 发布）、九道门仍为 0、保存语料 204 / 208 等价 0 跳过、clippy 零告警。
+  7.7 到此收完。

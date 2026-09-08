@@ -90,6 +90,11 @@ impl VmlKind {
     }
 }
 
+/// 这个节点是会画出东西的 VML 形状（`v:shapetype` 一类的模板不算）。
+pub fn drawn_shape(dom: &Dom, node: NodeId) -> bool {
+    dom.name(node).and_then(|n| VmlKind::from_local(n.local)).is_some_and(VmlKind::is_drawn)
+}
+
 /// 一个 VML 形状。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VmlShape {

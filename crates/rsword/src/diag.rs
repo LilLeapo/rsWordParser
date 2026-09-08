@@ -142,6 +142,9 @@ pub enum DiagCode {
     EditCrossParagraph,
     /// `EDIT-03`（M7 7.5）：跨段删除的两端不在同一个内容容器里（一个在单元格里、一个在正文）。
     EditCrossContainer,
+    /// `EDIT-03`（M7 7.7）：编辑位置落在 `mc:Fallback` 里。那是 `mc:Choice` 的 VML 孪生，
+    /// 由引擎跟着 Choice 同步——直接改它下一次同步就会被覆盖。改 Choice 那一份。
+    EditTargetFallback,
     /// `EDIT-03`：文本含 XML 非法字符，已剔除。
     EditBadText,
     /// `EDIT-03`（M1）：删除范围覆盖范围标记或字段结构段，标记 / 结构原地保留（Anchor 变换在 M2）。
@@ -217,6 +220,7 @@ impl DiagCode {
             Self::EditBadPosition => "EDIT_BAD_POSITION",
             Self::EditCrossParagraph => "EDIT_CROSS_PARAGRAPH",
             Self::EditCrossContainer => "EDIT_CROSS_CONTAINER",
+            Self::EditTargetFallback => "EDIT_TARGET_FALLBACK",
             Self::EditBadText => "EDIT_BAD_TEXT",
             Self::EditAnchorUnmoved => "EDIT_ANCHOR_UNMOVED",
             Self::EditPlanInvalid => "EDIT_PLAN_INVALID",

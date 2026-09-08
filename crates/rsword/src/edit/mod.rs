@@ -25,8 +25,10 @@ pub(crate) mod revision_ops;
 pub mod sdt_ops;
 pub mod section_ops;
 pub mod session;
+pub mod shape_gen;
 pub mod table_ops;
 pub(crate) mod track;
+pub(crate) mod twin;
 
 pub use chart_ops::{ChartPatch, ChartSeriesPatch, NewChart, NewChartKind, NewChartSeries};
 pub use drawing_ops::{AnchorAxis, AnchorPos, AxisPos, DrawingGeometry, SrcRect};
@@ -36,6 +38,7 @@ pub use media_ops::{ImageWrap, NewImage, ParaSpacing, PosOffset};
 pub use plan::{MutationPlan, MutationResult};
 pub use pos::{InlinePos, Loc, Utf16Offset, inline_spans, locate};
 pub use session::EditSession;
+pub use shape_gen::{LineKind, PresetGeom, ShapeLook};
 
 use crate::model::{HfKind, HfVariant};
 use crate::package::PartId;
@@ -136,6 +139,16 @@ pub enum NewBlock {
     /// 独立公式段（TS `mathParagraphXml`，7.5）：`omml` 是 `m:oMath` 的**内容**，
     /// `align` 是 `left` / `center` / `right`。
     MathPara { omml: NewMath, align: String },
+    /// 新建浮动文本框（`spec/18` 7.7）：`wps:wsp` + `w:txbxContent`。Transitional 包发
+    /// `mc:AlternateContent`（Choice + VML 孪生），Strict 包只发 Choice。`blocks` 为空时
+    /// 放一个空格段（Word 不接受空文本框）。
+    Textbox { look: ShapeLook, blocks: Vec<NewBlock> },
+    /// 新建形状：`preset` 进 `a:prstGeom/@prst`。`text` 给了就当一个段落放进框里，
+    /// 不给就没有 `wps:txbx`（纯图形）。
+    Shape { preset: PresetGeom, look: ShapeLook, text: Option<String> },
+    /// 新建线条 / 连接符（TS `LINE_KINDS`）：两点（EMU）定位置与大小，只有描边。
+    /// 没有 VML 孪生（TS 同），永远浮在文字上（`wrapNone`）。
+    Line { kind: LineKind, from: (i64, i64), to: (i64, i64), color: Option<String> },
 }
 
 /// `EDIT-03 InsertAtom` 的内容（`spec/18` 7.5）。每一种在坐标流里都恒占 1 个 UTF-16 单位。
@@ -317,6 +330,10 @@ pub enum EditOp {
     },
     /// `EDIT-03 SetShapeStyle`：`wps:spPr` 的填充与描边。`None` = 不动，`Some(None)` = 无。
     SetShapeStyle { shape: NodeId, fill: Option<Option<String>>, outline: Option<Option<String>> },
+    /// `EDIT-03 SetTextboxContent`（`spec/18` 7.7）：一个文本框里的块整体换掉。`textbox` 可以是
+    /// `w:txbxContent` 自己，也可以是包着它的 `wps:wsp` / `wps:txbx` / `v:shape` / `v:textbox`。
+    /// 落在 `mc:Choice` 里时 `mc:Fallback` 的 VML 孪生跟着同步。
+    SetTextboxContent { textbox: NodeId, blocks: Vec<NewBlock> },
     /// `EDIT-03 InsertSectionBreak`（`spec/18` 7.6）：在 `after` 这一段之后断节。
     /// 该段的 `pPr` 里新建一个 `w:sectPr`（原节属性的克隆，含页眉页脚引用），
     /// 原来的 `sectPr` 从此描述**后**一节，它的 `w:type` 换成 `kind`。

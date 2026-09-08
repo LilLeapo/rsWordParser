@@ -478,6 +478,62 @@ impl<'a> Iterator for Blocks<'a> {
     }
 }
 
+/// 一个块直接挂着的文本框内容流：`(块列表, 这些 `NodeId` 属于哪个 part)`；`None` = 与宿主同 part。
+pub fn box_flows(block: &Block) -> Vec<(&[Block], Option<PartId>)> {
+    use crate::model::drawing::Display;
+    let mut out: Vec<(&[Block], Option<PartId>)> = Vec::new();
+    fn push<'b>(out: &mut Vec<(&'b [Block], Option<PartId>)>, d: Option<&'b Display>) {
+        match d {
+            Some(Display::Drawing(d)) => {
+                out.extend(d.shapes.iter().map(|s| (s.content.as_slice(), s.content_part)));
+            }
+            Some(Display::Vml(v)) => {
+                out.extend(v.shapes.iter().map(|s| (s.content.as_slice(), None)));
+            }
+            Some(Display::Formula(_)) | None => {}
+        }
+    }
+    match block {
+        Block::Text(t) => {
+            for i in &t.inlines {
+                let crate::model::Inline::Run(r) = i else { continue };
+                for seg in &r.segments {
+                    push(&mut out, seg.display.as_ref());
+                }
+            }
+        }
+        Block::Image(b) => push(&mut out, b.display.as_ref()),
+        Block::Protected(b) => push(&mut out, b.display.as_ref()),
+        Block::Table(_) => {}
+    }
+    out.retain(|(blocks, _)| !blocks.is_empty());
+    out
+}
+
+/// 深搜（表格 → 单元格，文本框 → 内容流）找 `part` 里的段落 `para`。`here` 是 `blocks` 所属的 part。
+fn text_block_deep(
+    blocks: &[Block],
+    here: PartId,
+    part: PartId,
+    para: NodeId,
+) -> Option<&TextBlock> {
+    for b in Blocks::over(blocks) {
+        if here == part
+            && b.node() == para
+            && let Some(t) = b.as_text()
+        {
+            return Some(t);
+        }
+        for (content, cpart) in box_flows(b) {
+            let hit = text_block_deep(content, cpart.unwrap_or(here), part, para);
+            if hit.is_some() {
+                return hit;
+            }
+        }
+    }
+    None
+}
+
 impl<'a> Blocks<'a> {
     /// 任意块列表的深度遍历（页眉页脚 part、注释 / 批注条目、文本框内容流都用它）。
     pub fn over(blocks: &'a [Block]) -> Blocks<'a> {
@@ -531,17 +587,46 @@ impl Document {
         self.aux_flows.get(&part).map(|i| &i.fields)
     }
 
-    /// 任意 part 里的文本段落（含单元格内任意深度），按 part + 节点找（`EDIT-02`）。
+    /// 任意 part 里的文本段落（含单元格内任意深度、**文本框内容流**），按 part + 节点找
+    /// （`EDIT-02`）。文本框里的段落是独立内容流，不在 [`Blocks`] 的平铺里，所以要单独下去
+    /// （`spec/18` 7.7：`InlinePos.para` 任意深度）。
     pub fn text_block_in(&self, part: PartId, para: NodeId) -> Option<&TextBlock> {
-        if part == self.main_part {
-            return self.text_block(para);
-        }
-        let tops = self.blocks_of_part(part)?;
-        tops.into_iter().find_map(|b| {
-            Blocks::over(std::slice::from_ref(b))
-                .find(|x| x.node() == para)
+        // 先走平铺（正文 / 单元格）：绝大多数位置在这里就命中，代价与文本框那条路无关
+        if let Some(tops) = self.blocks_of_part(part)
+            && let Some(hit) = tops
+                .into_iter()
+                .find_map(|b| Blocks::over(std::slice::from_ref(b)).find(|x| x.node() == para))
                 .and_then(Block::as_text)
-        })
+        {
+            return Some(hit);
+        }
+        // 没命中才下到框里。宿主块可能在别的 part（页眉里的文本框），所以每个 part 都走一遍
+        let mut parts = vec![self.main_part];
+        parts.extend(self.hf_parts.keys().copied());
+        parts
+            .extend([self.footnotes.part, self.endnotes.part, self.comments.part].iter().flatten());
+        for here in parts {
+            let Some(tops) = self.blocks_of_part(here) else { continue };
+            for b in tops {
+                for (content, cpart) in box_flows(b) {
+                    let hit = text_block_deep(content, cpart.unwrap_or(here), part, para);
+                    if hit.is_some() {
+                        return hit;
+                    }
+                }
+                if let Block::Table(_) = b {
+                    for x in Blocks::over(std::slice::from_ref(b)) {
+                        for (content, cpart) in box_flows(x) {
+                            let hit = text_block_deep(content, cpart.unwrap_or(here), part, para);
+                            if hit.is_some() {
+                                return hit;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        None
     }
 
     /// 全部可编辑段落，含单元格内任意深度的。`text_blocks()` 仍只给顶层的。
