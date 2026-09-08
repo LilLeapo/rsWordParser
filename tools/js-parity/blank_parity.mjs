@@ -7,7 +7,7 @@
 // 用法: node blank_parity.mjs --pkg DIR --out DIR --fonts "SimSun,Yu Gothic,PingFang SC"
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { emit, loadBinding } from './wasm-loader.mjs'
+import { emit, ensureDir, loadBinding } from './wasm-loader.mjs'
 
 function arg(name) {
   const i = process.argv.indexOf(`--${name}`)
@@ -17,6 +17,7 @@ function arg(name) {
 
 const pkg = arg('pkg')
 const out = arg('out')
+ensureDir(out)
 const fonts = (arg('fonts') ?? '').split(',').map((f) => f.trim()).filter((f) => f.length > 0)
 const glue = await loadBinding(pkg)
 

@@ -100,8 +100,16 @@ close(id: SessionId)                                            // 幂等；不�
   至少一条 JSON 往返测试（构造 → `to_string` → `from_str` → 相等，`edit_op_json!` 展开），
   同一条操作经协议 `apply` 与原生 `EditSession::apply` 的保存结果**逐字节相同**（门 2）。
 
-  **60 变体清单**（`edit/mod.rs`；▲ = `docs/03` §8.2 冻结清单之外、`spec/18` 待决 5 在此
-  收编的操作或形态变化，偏差登记 `docs/04` §8）：
+  **60 变体清单**（`edit/mod.rs`）。与 `docs/03` §8.2 冻结清单的差异共 **34 项，分两类**
+  （`spec/18` 待决 5 在此收编，偏差登记 `docs/04` §8）：
+  **★ = §8.2 没有的新增操作（20 个）**——分节符增删、墨迹增删、`linkHeaderFooter`、
+  `regenerateBlockField`、`removeNote` / `removeSdtShell` / `setNoteContent`、part 整体替换与
+  换图、绘图几何 / z 序 / 绕排 / 形状样式 / 文本框、数学 token、水印、页面底色；
+  **▲ = 同名操作的形态变化（14 个）**——位置带 `part`（`replaceInlines` / `setParaProps` /
+  `mergeWithNext` / `deleteBlock` / `moveBlock`）、`replaceParaProps`（`EDIT-04` rawPPr 语义）、
+  `insertColumn` 带 `width`、`toggleCheckbox` 去 `checked`、`setLinkTarget` 枚举形态、
+  `removeBookmark` 按 `name`、`removeComment` / `setCommentText` 按 `id`、
+  `acceptAll` / `rejectAll` 带 `author` 过滤：
 
   | 组 | 变体（`op` 字串） |
   | --- | --- |
@@ -109,14 +117,14 @@ close(id: SessionId)                                            // 幂等；不�
   | 段落 | `splitParagraph`、`mergeWithNext`（▲ 带 `part`）、`setParaProps`（▲ 带 `part`）、`replaceParaProps`（▲ `EDIT-04` rawPPr 语义） |
   | 块 | `insertBlock`、`deleteBlock`（▲ 带 `part`）、`moveBlock`（▲ `from`/`to` 带 part，跨 part 走 `XML-12` E′） |
   | 表格 | `setTableProps`、`setRowProps`、`setCellProps`、`insertRow`、`deleteRow`、`insertColumn`（▲ 带 `width`）、`deleteColumn`、`mergeCells` |
-  | 字段 | `setFieldResultProps`、`toggleCheckbox`（▲ 无 `checked` 参数，语义=取反）、`setFormText`、`setLinkTarget`（▲ `LinkRef`/`LinkDest` 枚举形态）、`updateBlockField`、`regenerateBlockField`（▲ 7.8 生成器） |
+  | 字段 | `setFieldResultProps`、`toggleCheckbox`（▲ 无 `checked` 参数，语义=取反）、`setFormText`、`setLinkTarget`（▲ `LinkRef`/`LinkDest` 枚举形态）、`updateBlockField`、`regenerateBlockField`（★ 7.8 生成器） |
   | Span | `addBookmark`、`removeBookmark`（▲ 按 `name`）、`addComment`、`removeComment`（▲ 按 `id`）、`setCommentText`（▲ 按 `id`，带 `done`） |
   | 修订 | `acceptRevision`、`rejectRevision`、`acceptAll`（▲ `author` 过滤）、`rejectAll`（▲ 同） |
-  | 节与页眉页脚 | `setSectionProps`、`setHeaderFooter`、`linkHeaderFooter`（▲）、`setWatermark`（▲）、`setPageColor`（▲）、`insertSectionBreak`（▲ 7.6）、`deleteSectionBreak`（▲ 7.6） |
-  | 声明 part | `setDocumentSettings`、`setNoteContent`（▲ `endnote: bool`）、`removeNote`（▲）、`setSdtContent`、`removeSdtShell`（▲） |
-  | 图表与 part | `setChartData`、`replacePartXml`（▲）、`replacePartBytes`（▲）、`replaceImageMedia`（▲ 6.7） |
-  | 绘图 | `setDrawingGeometry`（▲ 7.7）、`setDrawingZOrder`（▲ 7.7）、`setDrawingWrap`（▲ 7.7）、`setShapeStyle`（▲ 7.7）、`setTextboxContent`（▲ 7.7）、`setMathTokens`（▲） |
-  | 墨迹 | `removeInks`（▲ 6.8）、`insertInk`（▲ 6.8） |
+  | 节与页眉页脚 | `setSectionProps`、`setHeaderFooter`、`linkHeaderFooter`（★）、`setWatermark`（★）、`setPageColor`（★）、`insertSectionBreak`（★ 7.6）、`deleteSectionBreak`（★ 7.6） |
+  | 声明 part | `setDocumentSettings`、`setNoteContent`（★ `endnote: bool`）、`removeNote`（★）、`setSdtContent`、`removeSdtShell`（★） |
+  | 图表与 part | `setChartData`、`replacePartXml`（★）、`replacePartBytes`（★）、`replaceImageMedia`（★ 6.7） |
+  | 绘图 | `setDrawingGeometry`（★ 7.7）、`setDrawingZOrder`（★ 7.7）、`setDrawingWrap`（★ 7.7）、`setShapeStyle`（★ 7.7）、`setTextboxContent`（★ 7.7）、`setMathTokens`（★） |
+  | 墨迹 | `removeInks`（★ 6.8）、`insertInk`（★ 6.8） |
 
   `docs/03` 是冻结稿，§8.2 的旧清单**不**随本表更新（改动需项目负责人批准；见「待决」6）。
   本表是协议的权威清单。
@@ -292,4 +300,4 @@ close(id: SessionId)                                            // 幂等；不�
 | 3 | 编号显示计算归 `resolve::list_markers`（`spec/19` 待决 4） | 按决策 9 写进 BIND-06 |
 | 4 | `*.model.json` 放 `corpus/` 内与 `*.expected.json` 并列（`spec/19` 待决 5；BIND-02 验收的快照位置） | 按建议写 |
 | 5 | `protocol` 升 `native/1` 的时点（BIND-08） | 建议门 3 关闭时 |
-| 6 | `docs/03` §8.2 与 BIND-03 的 60 变体清单脱节（22 个 ▲ 项）：`docs/03` 是冻结稿，是否升 v3.4 收编——本文件不改 `docs/03` | 需批准才动 |
+| 6 | `docs/03` §8.2 与 BIND-03 的 60 变体清单脱节（34 项：20 个新增操作 ★ + 14 个形态变化 ▲）：`docs/03` 是冻结稿，是否升 v3.4 收编——本文件不改 `docs/03` | 需批准才动 |

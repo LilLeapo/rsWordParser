@@ -219,14 +219,27 @@ pub fn part_bytes(docx: &[u8], name: &str) -> Vec<u8> {
 }
 
 /// `--via js` 的产物目录门控（M8′ 8.0②）：node 侧脚本（`tools/js-parity/`）先把绑定输出
-/// 落到 `$RSWORD_JS_SAVE_DIR` / `$RSWORD_JS_BLANK_DIR`，Rust 测试只比字节——没设变量就整条
-/// 测试跳过，缺省的 `cargo test` 不依赖 node / wasm。
+/// 落到 `$RSWORD_JS_SAVE_DIR` / `$RSWORD_JS_BLANK_DIR`，Rust 测试只比字节。缺省的
+/// `cargo test` 不依赖 node：没设变量就跳过**并打印一行**，绝不无声 PASS。
+/// CI 的门控步骤额外设 `RSWORD_JS_PARITY_REQUIRED=1`——它置位而产物变量缺失时直接断言失败，
+/// 防止「配置丢了、门却绿着」（评审复盘：门不该能悄悄通过）。
 #[allow(unused_macros)]
 macro_rules! via_js_dir {
     ($var:literal) => {
         match std::env::var_os($var) {
             Some(v) if !v.is_empty() => std::path::PathBuf::from(v),
-            _ => return,
+            _ => {
+                assert!(
+                    std::env::var_os("RSWORD_JS_PARITY_REQUIRED").is_none(),
+                    "RSWORD_JS_PARITY_REQUIRED 置位但 {} 没设——node 等价门不该静默跳过",
+                    $var
+                );
+                eprintln!(
+                    "via_js_dir: 跳过（未设 {}；先跑 tools/js-parity/ 落产物再设变量才执行这门）",
+                    $var
+                );
+                return;
+            }
         }
     };
 }

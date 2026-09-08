@@ -6,7 +6,7 @@
 // 用法: node save_parity.mjs --pkg DIR --corpus DIR --out DIR
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { collectFiles, emit, loadBinding, stringifyValue } from './wasm-loader.mjs'
+import { collectFiles, emit, ensureDir, loadBinding, stringifyValue } from './wasm-loader.mjs'
 
 function arg(name) {
   const i = process.argv.indexOf(`--${name}`)
@@ -17,6 +17,7 @@ function arg(name) {
 const pkg = arg('pkg')
 const corpus = arg('corpus')
 const out = arg('out')
+ensureDir(out)
 const glue = await loadBinding(pkg)
 
 // 与 tests/save_blocks.rs 相同的发现规则：文件名含 `.save.`，按文件名排序

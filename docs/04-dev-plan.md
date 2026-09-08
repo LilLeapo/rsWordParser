@@ -1888,7 +1888,7 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
 
 ### 逐条进度
 
-- [ ] **8.0 范围收口与分支归并**
+- [x] **8.0 范围收口与分支归并**
   - [x] ① 文档改定（本提交）：`docs/03` v3.3、`spec/19` / `spec/20` 重写、`spec/00` / `spec/10` / `spec/11` / `CLAUDE.md` / `docs/04` / `docs/05` 同步
   - [x] ② `m8-editor` 的 8.1a 摘进 `main`（绑定、`parse_diagnostics`、`BindBadArgument`、`tools/js-parity/`、`TOOLS.md`、CI wasm 步骤），丢弃 8.0a
     （本提交）。落到 main 的 7.10 骨架上：`wasm_export!` 表收在 `rsword::bind::js` 之外层，
@@ -1899,11 +1899,12 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
     `js_binding_save_bytes_parity` 与 `common::save_cases()`。wasm 产物 2.25 MB / gzip 796 KB
     （`opt-level = "z"`）。`m8-editor` 分支的删除见 `spec/19` 待决 6
   - [x] ③ `tools/export-golden/README` 写明「genoffice 只读使用」与最后重导提交号（本提交；`f105f36` / `2026-09-08T03:14:56Z`）
-- [ ] **8.1 协议规范 `spec/21-bind.md`**（`BIND-01`–`BIND-11`）—— **关口**
-  （本提交）初稿已交，**待项目负责人评审**：11 条分层决策誊为 BIND-01–11；60 变体清单收进
-  BIND-03（22 个 `docs/03` §8.2 之外的 ▲ 项）；`SaveOptions` 收缩五项与 5.7 族公开为 `EditOp`
-  归 BIND-04；文件尾部列了 6 条待决（BIND-11 保守程度、serde 依赖、list_markers、快照位置、
-  `native/1` 时点、`docs/03` §8.2 是否升版）。评审通过才动 8.2–8.5。
+- [x] **8.1 协议规范 `spec/21-bind.md`**（`BIND-01`–`BIND-11`）—— **关口**
+  初稿（76f2542）：11 条分层决策誊为 BIND-01–11；60 变体清单收进
+  BIND-03；`SaveOptions` 收缩五项与 5.7 族公开为 `EditOp` 归 BIND-04；文件尾部列了 6 条待决
+  （BIND-11 保守程度、serde 依赖、list_markers、快照位置、`native/1` 时点、`docs/03` §8.2 是否升版）。
+  **评审通过（2026-09-08）**，4 处意见已落地（本提交）：js-parity 自建 `--out` 目录、门控不许静默通过、
+  清单差异数订正为 **34 项（20 个新增操作 ★ + 14 个形态变化 ▲）**、本表 8.0 父框勾上。
 - [ ] **8.2 模型 JSON 投影**（`bind/native/json.rs`、`schema.rs`、`model_json!`）
 - [ ] **8.3 `EditOp` / `EditContext` / `MutationResult` 的 JSON**（`edit_op_json!`、`SaveOptions` 收缩到五项）
 - [ ] **8.4 会话、媒体句柄、`resolve` 查询与部件读取**（`bind_export!`、`resolve_query!`）

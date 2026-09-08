@@ -386,7 +386,7 @@ fn rel_multiset(dom: &Dom) -> BTreeMap<(String, String, String), usize> {
 /// `--via js`（M8′ 8.0②，`COMPAT-08` 的绑定等价门）：同一批保存用例经 wasm 绑定 `save`
 /// 的输出与原生逐字节相同；原生被拒（`EditUnsupported`）的用例绑定也以同一个 `code` 拒绝。
 /// 产物由 `tools/js-parity/save_parity.mjs` 先落 `$RSWORD_JS_SAVE_DIR`；缺省 `cargo test`
-/// 不依赖 node（`common::via_js_dir!` 门控）。
+/// 跳过并打印（`common::via_js_dir!`；`RSWORD_JS_PARITY_REQUIRED=1` 时缺变量直接失败）。
 #[test]
 fn js_binding_save_bytes_parity() {
     let js = common::via_js_dir!("RSWORD_JS_SAVE_DIR");
