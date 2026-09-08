@@ -48,6 +48,10 @@ fn main() {
     let local_map: BTreeMap<String, String> = locals.iter().cloned().collect();
     let props_src = props::generate(&props_dir, &prefixes, &local_map);
     fs::write(Path::new(&out_dir).join("props.rs"), props_src).unwrap();
+
+    // `BIND-02`：同一份 TOML 元数据再发射 JSON 投影（`bind::native::json` include）。
+    let props_json = props::generate_json(&props_dir, &prefixes, &local_map);
+    fs::write(Path::new(&out_dir).join("props_json.rs"), props_json).unwrap();
 }
 
 fn parse_namespaces(text: &str) -> Vec<Ns> {

@@ -13,7 +13,7 @@ use crate::semantic::props::{
 };
 use crate::xml::Dom;
 
-use super::json::set_some;
+use crate::bind::native::json::set_some;
 
 pub(super) fn i32_of(v: &Option<Val<i32>>) -> Option<i64> {
     v.as_ref().and_then(|x| x.value().map(|&n| i64::from(n)))

@@ -18,9 +18,9 @@ use crate::resolve::drawingml::{Rgb, average, color_in, hex};
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
 use super::blocks::Ctx;
-use super::json::{display_json, set, set_some};
 use super::media::{MediaMap, MediaSet};
 use super::textbox;
+use crate::bind::native::json::{display_json, set, set_some};
 
 /// 主 part 的一个 SmartArt 关系：part 模型 + 绘图 part 的 DOM（形状里的颜色节点属于它）+ 绘图 part 的
 /// 媒体表（图片填充按**那个 part** 的关系解）。

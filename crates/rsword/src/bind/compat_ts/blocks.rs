@@ -16,11 +16,11 @@ use super::decl::{
 };
 use super::diagram;
 use super::image;
-use super::json::set_some;
 use super::math;
 use super::media::MediaMap;
 use super::textbox;
 use super::utf16::Utf16Index;
+use crate::bind::native::json::set_some;
 use crate::model::section::Sections;
 use crate::model::vml::vml_display;
 use crate::model::{

@@ -33,7 +33,7 @@ struct EnumDecl {
     values: Vec<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 struct StructDecl {
     #[serde(default)]
@@ -41,7 +41,7 @@ struct StructDecl {
     attrs: Vec<AttrDecl>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 struct AttrDecl {
     name: String,
@@ -211,12 +211,19 @@ impl Names<'_> {
     }
 }
 
-/// 生成 `props.rs` 源码。`prefixes`：前缀 → `NsId` 变体；`locals`：局部名 → `LocalName` 变体。
-pub fn generate(
+/// 解析后的属性模型（`generate` 与 `generate_json` 共用同一份解析，`BIND-02` 的投影永不漂移）。
+struct Model {
+    enums: Vec<(String, EnumDecl)>,
+    structs: Vec<(String, StructDecl, Vec<Attr>)>,
+    tables: Vec<Table>,
+}
+
+/// 读取并校验 `schema/props/*.toml`（名字解析、`PROP-05` 顺序、缺失局部名断言）。
+fn parse_all(
     dir: &Path,
     prefixes: &BTreeMap<String, String>,
     locals: &BTreeMap<String, String>,
-) -> String {
+) -> Model {
     let mut names = Names { prefixes, locals, missing_locals: BTreeSet::new() };
 
     let types_path = dir.join("types.toml");
@@ -290,11 +297,11 @@ pub fn generate(
     };
 
     // 结构体
-    let mut structs: Vec<(String, &StructDecl, Vec<Attr>)> = Vec::new();
+    let mut structs: Vec<(String, StructDecl, Vec<Attr>)> = Vec::new();
     for (name, decl) in &types.structs {
         let mut taken = BTreeSet::new();
         let attrs = resolve_attrs(&mut names, &decl.attrs, &format!("struct {name}"), &mut taken);
-        structs.push((name.clone(), decl, attrs));
+        structs.push((name.clone(), decl.clone(), attrs));
     }
 
     // 表
@@ -390,19 +397,218 @@ pub fn generate(
         names.missing_locals.iter().cloned().collect::<Vec<_>>().join("\n")
     );
 
+    Model { enums: types.enums.into_iter().collect(), structs, tables }
+}
+
+/// 生成 `props.rs` 源码。`prefixes`：前缀 → `NsId` 变体；`locals`：局部名 → `LocalName` 变体。
+pub fn generate(
+    dir: &Path,
+    prefixes: &BTreeMap<String, String>,
+    locals: &BTreeMap<String, String>,
+) -> String {
+    let m = parse_all(dir, prefixes, locals);
     let mut out = String::new();
     writeln!(out, "// 由 build/props.rs 从 schema/props/*.toml 生成，勿手改。\n").unwrap();
-    for (name, decl) in &types.enums {
+    for (name, decl) in &m.enums {
         gen_enum(&mut out, name, decl);
     }
-    for (name, decl, attrs) in &structs {
+    for (name, decl, attrs) in &m.structs {
         gen_struct(&mut out, name, decl, attrs);
     }
-    for t in &tables {
+    for t in &m.tables {
         gen_table(&mut out, t);
     }
-    gen_index(&mut out, &tables);
+    gen_index(&mut out, &m.tables);
     out
+}
+
+// ---- 生成：BIND-02 的 JSON 投影（$OUT_DIR/props_json.rs，include 进 bind::native::json） -------
+
+/// 生成 `props_json.rs`：同一份 TOML 元数据展开每张表 / 每个属性结构体 / 每个枚举的
+/// `impl ToJson` 与 schema（生成器只按类型名发射，codec 的 JSON 语义在 `bind::native::json` 的
+/// `ToJson` 实现里）。与 8.3 的 serde derive 无关——不碰 `props.rs` 的任何 derive 行。
+pub fn generate_json(
+    dir: &Path,
+    prefixes: &BTreeMap<String, String>,
+    locals: &BTreeMap<String, String>,
+) -> String {
+    let m = parse_all(dir, prefixes, locals);
+    let mut out = String::new();
+    writeln!(
+        out,
+        "// 由 build/props.rs 从 schema/props/*.toml 生成，勿手改（BIND-02 的 JSON 投影）。\n"
+    )
+    .unwrap();
+    for (name, decl) in &m.enums {
+        gen_json_enum(&mut out, name, decl);
+    }
+    for (name, _, attrs) in &m.structs {
+        gen_json_struct(&mut out, name, attrs);
+    }
+    for t in &m.tables {
+        gen_json_table(&mut out, t);
+    }
+    gen_json_camel_test(&mut out, &m);
+    out
+}
+
+/// 字段名的 JSON 键（`BIND-02`：camelCase）。
+fn camel(snake: &str) -> String {
+    let p = pascal(snake);
+    let mut c = p.chars();
+    match c.next() {
+        Some(f) => f.to_lowercase().chain(c.as_str().chars()).collect(),
+        None => String::new(),
+    }
+}
+
+/// `Option<值>` 的写出：`set_some!`（有值才写）。值类型全部实现 `ToJson`。
+fn gen_json_set_some(out: &mut String, key: &str, field: &str) {
+    writeln!(
+        out,
+        "        crate::bind::native::json::set_some!(&mut o, {key:?} => self.{field}.as_ref().map(|v| crate::bind::native::json::ToJson::to_json(v, cx)));"
+    )
+    .unwrap();
+}
+
+/// 字段类型的 schema 表达式：`multi` 套数组；`Raw` 字段按 `NodeId`（整数）。
+fn gen_json_schema_expr(kind: &Kind, multi: bool) -> String {
+    let ty = match kind {
+        Kind::Scalar { value, .. } => value.clone(),
+        Kind::Struct(s) | Kind::Table(s) => s.clone(),
+        Kind::Raw => "crate::xml::NodeId".to_string(),
+    };
+    let inner = format!("<{ty} as crate::bind::native::json::ToJson>::schema(defs)");
+    if multi { format!("crate::bind::native::schema::arr_schema({inner})") } else { inner }
+}
+
+fn gen_json_schema_fn(out: &mut String, name: &str, body: &str, has_required: bool) {
+    writeln!(out, "    fn schema(defs: &mut crate::bind::native::schema::SchemaDefs) -> ::serde_json::Value {{").unwrap();
+    writeln!(out, "        defs.define({name:?}, |defs| {{").unwrap();
+    writeln!(out, "            let mut p = ::serde_json::Map::new();").unwrap();
+    if has_required {
+        writeln!(
+            out,
+            "            let mut r: ::std::vec::Vec<&'static str> = ::std::vec::Vec::new();"
+        )
+        .unwrap();
+    } else {
+        writeln!(out, "            let r: ::std::vec::Vec<&'static str> = ::std::vec::Vec::new();")
+            .unwrap();
+    }
+    write!(out, "{body}").unwrap();
+    writeln!(out, "            crate::bind::native::schema::obj_schema(p, r)").unwrap();
+    writeln!(out, "        }})\n    }}\n}}\n").unwrap();
+}
+
+fn gen_json_enum(out: &mut String, name: &str, decl: &EnumDecl) {
+    writeln!(out, "impl crate::bind::native::json::ToJson for {name} {{").unwrap();
+    writeln!(out, "    fn to_json(&self, _cx: &crate::bind::native::json::ProjCx<'_>) -> ::serde_json::Value {{").unwrap();
+    writeln!(out, "        ::serde_json::Value::from(self.as_str())\n    }}").unwrap();
+    writeln!(out, "    fn schema(_defs: &mut crate::bind::native::schema::SchemaDefs) -> ::serde_json::Value {{").unwrap();
+    let values: Vec<String> = decl.values.iter().map(|v| format!("{v:?}")).collect();
+    writeln!(out, "        crate::bind::native::schema::enum_str_schema(&[{}])", values.join(", "))
+        .unwrap();
+    writeln!(out, "    }}\n}}\n").unwrap();
+}
+
+fn gen_json_struct(out: &mut String, name: &str, attrs: &[Attr]) {
+    writeln!(out, "impl crate::bind::native::json::ToJson for {name} {{").unwrap();
+    writeln!(out, "    fn to_json(&self, cx: &crate::bind::native::json::ProjCx<'_>) -> ::serde_json::Value {{").unwrap();
+    writeln!(out, "        let mut o = ::serde_json::Map::new();").unwrap();
+    let mut body = String::new();
+    for a in attrs {
+        gen_json_set_some(out, &camel(&a.name), &a.name);
+        writeln!(
+            body,
+            "            p.insert({:?}.into(), {});",
+            camel(&a.name),
+            gen_json_schema_expr(
+                &Kind::Scalar { codec: a.codec.clone(), value: a.value.clone() },
+                false
+            )
+        )
+        .unwrap();
+    }
+    writeln!(out, "        ::serde_json::Value::Object(o)\n    }}").unwrap();
+    gen_json_schema_fn(out, name, &body, false);
+}
+
+fn gen_json_table(out: &mut String, t: &Table) {
+    let name = &t.name;
+    writeln!(out, "impl crate::bind::native::json::ToJson for {name} {{").unwrap();
+    writeln!(out, "    fn to_json(&self, cx: &crate::bind::native::json::ProjCx<'_>) -> ::serde_json::Value {{").unwrap();
+    writeln!(out, "        let mut o = ::serde_json::Map::new();").unwrap();
+    let mut body = String::new();
+    for a in &t.attrs {
+        gen_json_set_some(out, &camel(&a.name), &a.name);
+        writeln!(
+            body,
+            "            p.insert({:?}.into(), {});",
+            camel(&a.name),
+            gen_json_schema_expr(
+                &Kind::Scalar { codec: a.codec.clone(), value: a.value.clone() },
+                false
+            )
+        )
+        .unwrap();
+    }
+    for f in &t.fields {
+        if f.multi {
+            writeln!(out, "        crate::bind::native::json::set(&mut o, {:?}, crate::bind::native::json::ToJson::to_json(&self.{}, cx));", camel(&f.name), f.name).unwrap();
+            writeln!(
+                body,
+                "            p.insert({:?}.into(), {});",
+                camel(&f.name),
+                gen_json_schema_expr(&f.kind, true)
+            )
+            .unwrap();
+            writeln!(body, "            r.push({:?});", camel(&f.name)).unwrap();
+        } else {
+            gen_json_set_some(out, &camel(&f.name), &f.name);
+            writeln!(
+                body,
+                "            p.insert({:?}.into(), {});",
+                camel(&f.name),
+                gen_json_schema_expr(&f.kind, false)
+            )
+            .unwrap();
+        }
+    }
+    writeln!(
+        out,
+        "        // `raw_unmodeled`：未建模子元素的原位引用，属 BIND-02 禁止投影的原字节邻接项。"
+    )
+    .unwrap();
+    writeln!(out, "        ::serde_json::Value::Object(o)\n    }}").unwrap();
+    gen_json_schema_fn(out, name, &body, t.fields.iter().any(|f| f.multi));
+}
+
+/// 全部生成键 == `camel_case(字段名)`（与 `bind::native::json` 的同名校验函数对拍，防生成器漂移）。
+fn gen_json_camel_test(out: &mut String, m: &Model) {
+    let mut pairs: Vec<(String, String)> = Vec::new();
+    for (_, _, attrs) in &m.structs {
+        for a in attrs {
+            pairs.push((a.name.clone(), camel(&a.name)));
+        }
+    }
+    for t in &m.tables {
+        for a in &t.attrs {
+            pairs.push((a.name.clone(), camel(&a.name)));
+        }
+        for f in &t.fields {
+            pairs.push((f.name.clone(), camel(&f.name)));
+        }
+    }
+    writeln!(out, "\n#[cfg(test)]\nmod json_cover {{").unwrap();
+    writeln!(out, "    #[test]\n    fn json_fields_camel_props() {{").unwrap();
+    writeln!(out, "        for (field, key) in [").unwrap();
+    for (f, k) in &pairs {
+        writeln!(out, "            ({f:?}, {k:?}),").unwrap();
+    }
+    writeln!(out, "        ] {{").unwrap();
+    writeln!(out, "            assert_eq!(crate::bind::native::json::camel_case(field), key, \"{{field}} 的 JSON 键须为 camelCase\");").unwrap();
+    writeln!(out, "        }}\n    }}\n}}").unwrap();
 }
 
 // ---- 名字工具 ----------------------------------------------------------------------------------

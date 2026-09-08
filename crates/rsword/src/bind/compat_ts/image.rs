@@ -12,7 +12,7 @@ use crate::resolve::drawingml::{ColorBase, color_in, hex};
 use crate::xml::{Dom, LocalName, NodeId, QName};
 
 use super::blocks::Ctx;
-use super::json::{set, set_if, set_some};
+use crate::bind::native::json::{set, set_if, set_some};
 
 /// Word 的 `relativeHeight` 基数：`relativeHeight - 251658240` 才是 z 序。
 const Z_ORDER_BASE: i64 = 251_658_240;

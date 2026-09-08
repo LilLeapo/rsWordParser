@@ -460,6 +460,11 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `EDIT-03 AcceptRevision / RejectRevision` 的粒度 | 一条修订 | 一个**字段**、一张表的**列改动**整个一起解决 | 追踪删除时每个内容项各包一层 `w:del`（7.2 的锚点规则），一个字段的 begin / 指令 / separate / 结果 / end 就分在好几条修订里；单独接受其中一条会丢半个字段，另一半成孤儿（`FLD-13` 从此每次保存都失败）。表格同理：`tblGridChange` 与 `cellIns` / `cellDel` 是同一次列改动的两面，只解决一面网格与格数就对不上（`SAVE_TABLE_GRID`）。批量解决时网格快照排在最后还原——它整块换掉 `w:tblGrid`，掉格时删的 `w:gridCol` 会被它盖掉 |
 | `EDIT-03 InsertRow` 的模板行 | 克隆模板行的 `trPr` | 模板行**自己的**修订标记（`w:ins` / `w:del` / `trPrChange`）不跟着走 | 新行是这次插进来的，不是模板那次被删 / 被改的。照抄会让新行同时带 `w:ins` 与 `w:del`，`PROP-05` 的顺序自检当场拦下 |
 | `COMPAT-08` 保存差分的比较范围 | `documentXml` | 扩到 `changedParts` 里**每个被 TS 改写的 XML part**；`.rels` 比 `(类型, 目标, 模式)` 的多重集合而不是逐条（`rId` 是分配细节） | `spec/18` 门 4。10 种 part 的差异登记在 `tests/save_blocks.rs` 的 `PART_INTENTIONAL` 里，每条都写了原因：`[Content_Types].xml` 的排序、新媒体 part 的命名、我们保留 `comments.xml` 根上的 `mc:Ignorable`、水印**加进**原页眉而不是替换、注释 part 模板的繁简、`w15:paraId` 与我们多写的 `paraIdParent`、`styleUpsert` 我们写 `w:type`、`settings.xml` 我们只合并请求的字段、没给 `savedAt` 时我们不动 `dcterms:modified` |
+| `BIND-02` 的键名 = 字段名 camelCase | 无例外 | 枚举内标签键 `kind` 与载荷自己的 `kind` 字段撞名处改名：`textKind` / `protectedKind` / `atomKind` / `drawingKind` / `vmlKind` / `breakKind` / `formatKind`（表内 `~` 行带理由）；其余键严格 camelCase | 带载荷枚举平铺（`{"kind": …, …字段}`）会顶掉载荷自己的 `kind` 键——`flatten_variant_json` 遇撞名直接 panic，改名是显式登记的决定，不是静默行为 |
+| `BIND-02` 的 `QName` 投影 | — | `LocalName::Other` / `NsId::Other|Unbound`（interner 句柄）投 `"?"`；已知名投 `"w:p"` 形式 | interner 是 per-Dom 的，脱离所在 part 无法还原。触发处仅 `ProtectedKind::Unknown` / `SegmentKind::Other` / `AtomKind::Other` / `CompatFacts.flags` |
+| `BIND-02` 的依赖（`spec/19` 待决 1） | `serde` + 可选 `schemars` | 8.2 只加 **dev-dependency**：`jsonschema`（门 1 校验）与 `serde`（测试反序列化）；`serde_json` 开 `unbounded_depth`（深表往返；`MOD-07` 已把嵌套截断在 64 层）；**不引** `schemars`（schema 由 `model_json!` 同表生成，引它反而两套来源）；`serde` 运行期 derive 随 8.3（其规范在修订） | 核心 crate 运行期依赖不长（`spec/20` 风险 7）；schema 校验器必须现成 |
+| `Note` / `Comment` 的 `text` / `rich` / `paragraphs` | `MOD-01` 的 Note / Comment 全字段 | 三字段 skip 不投影（表内登记理由） | TS 形态半解析字段（`BIND-02` 禁止项），`model/notes.rs` 文件头注明随 `compat_ts` 在 M9 删除 |
+| `BIND-02` 的 JSON Schema | 全语料过校验 | 不用 `additionalProperties: false`；`required` = 表内恒写行 | flatten 变体是 `allOf` 拼的，`false` 会把拼进分支的 `kind` 键判掉；键集正确性由 `model_json!` 的覆盖测试保证 |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -1904,7 +1909,18 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   BIND-03（22 个 `docs/03` §8.2 之外的 ▲ 项）；`SaveOptions` 收缩五项与 5.7 族公开为 `EditOp`
   归 BIND-04；文件尾部列了 6 条待决（BIND-11 保守程度、serde 依赖、list_markers、快照位置、
   `native/1` 时点、`docs/03` §8.2 是否升版）。评审通过才动 8.2–8.5。
-- [ ] **8.2 模型 JSON 投影**（`bind/native/json.rs`、`schema.rs`、`model_json!`）
+- [x] **8.2 模型 JSON 投影**（`bind/native/json.rs`、`schema.rs`、`model_json!`）
+  （本提交）`bind/native/` 落地：`ToJson` + `model_json!`——一张「Rust 字段 → JSON 字段」表同表展开
+  `impl ToJson`（表头 `(cx)` 声明上下文参数名；行用解构绑定，`to_json` 开头**完整解构**，Rust 结构体
+  加字段即编译失败）、JSON Schema 片段（`$defs` 装配）、`json_fields_cover_*` 覆盖测试（camelCase 键规则、
+  schema 键集 / 必填集与表一致、`skip` 带理由且确实缺席）。30 张生成属性表与 `types.toml` 的枚举 /
+  属性结构体由 `build/props.rs` 从同一份 TOML 发射 `$OUT_DIR/props_json.rs`（不手写 269 个字段）；
+  `set_some!` / `set_if!` / `display_json!` 从 `compat_ts/json.rs` 搬入 `bind/native/json.rs`，
+  `compat_ts` 反向引用。带载荷枚举统一内标签 `{"kind": …}`；区间 / 元组一律二元数组；id 一律整数；
+  display 全家只在 `display: true`。门 1：1,099 份语料（4 份 hostile 打不开属 `Err` 降级）过
+  `document_schema()`（`jsonschema` 校验，display 开 / 关两遍）+ serde 往返逐字节幂等 +
+  `MOD-01`–`MOD-11` 独立 checklist（`tests/native_bind.rs`）；门 6 体积：251 份带图文档
+  `compat_ts::parsed_doc` 4,334,070B → native 1,408,718B（**-67.5%**）。测试 659 → 777
 - [ ] **8.3 `EditOp` / `EditContext` / `MutationResult` 的 JSON**（`edit_op_json!`、`SaveOptions` 收缩到五项）
 - [ ] **8.4 会话、媒体句柄、`resolve` 查询与部件读取**（`bind_export!`、`resolve_query!`）
 - [ ] **8.5 Rust crate 公共 API 定型**（公共面收敛、feature 划分、`missing_docs`、三个 example、README 改写）

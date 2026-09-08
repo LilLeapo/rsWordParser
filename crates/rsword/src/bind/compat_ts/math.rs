@@ -8,7 +8,7 @@ use crate::model::{Display, ProtectedBlock};
 use crate::xml::NodeId;
 
 use super::blocks::Ctx;
-use super::json::{display_json, set};
+use crate::bind::native::json::{display_json, set};
 
 /// 公式块（R11，`label: "Equation"` 由调用方写）。TS：`previewText` = token 拼接，`formulaDisplay` 四个字段里
 /// `mathml` / `omml` / `latex` 空则不给。

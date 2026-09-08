@@ -29,8 +29,8 @@ use serde_json::{Map, Value};
 
 use crate::bind::compat_ts::blocks::{Ctx, set};
 use crate::bind::compat_ts::decl::NumberingOut;
-use crate::bind::compat_ts::json::{set_if, set_some};
 use crate::bind::compat_ts::{MediaSet, Utf16Index};
+use crate::bind::native::json::{set_if, set_some};
 use crate::model::{
     Block, Cell, Display, Document, HfKind, HfPart, HfVariant, Inline, TableBlock, TextBlock,
 };

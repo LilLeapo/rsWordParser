@@ -21,7 +21,7 @@ use crate::xml::{LocalName, NodeId, NsId, QName};
 use super::blocks::Ctx;
 use super::box_json;
 use super::image;
-use super::json::{set, set_some};
+use crate::bind::native::json::{set, set_some};
 
 /// 细横线的高度上限：`wp:extent cy` 在 (0, 130000] EMU（约 10 px）之内的无字形状是装饰线。
 const THIN_RULE_EMU: i64 = 130_000;
