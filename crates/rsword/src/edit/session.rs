@@ -19,6 +19,7 @@ use super::pos::{InlinePos, Loc, locate};
 use super::{EditContext, EditOp, ops};
 
 /// 编辑会话。规范状态是包里各 part 的 DOM；`document()` 是可重建的投影。
+#[derive(Clone)]
 pub struct EditSession {
     pkg: Package,
     doc: Document,
@@ -50,12 +51,13 @@ pub struct EditSession {
 /// 事务快照（`EDIT-05`）：按需记录被写入 part 的 DOM 写前镜像——[`EditSession::commit_plan`] 在
 /// 第一次写某个 part 之前克隆它，所以回滚覆盖事务真正碰过的每个 part，而不是只有主 part；
 /// 没碰过的 part 不付克隆代价。投影用整体 `rebuild` 恢复。
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub(crate) struct Snapshot {
     images: Vec<(PartId, Image)>,
 }
 
 /// 一个 part 的写前镜像：节点级编辑记 DOM（与范围索引），整体替换记整个 part。
+#[derive(Clone)]
 enum Image {
     Dom(Box<Dom>, Option<SpanIndex>),
     Part(PartImage),
@@ -739,14 +741,33 @@ impl EditSession {
     /// `SAVE-01` 全流程：
     ///
     /// 1. 无脏节点且 `opts` 没有变更请求（`saved_at` 单独设置不算，与 TS `isUnchanged` 一致）
-    ///    且文档没有 `w:removePersonalInformation` / `w:removeDateAndTime` 标志 → 返回原字节（不变式 1）。
+    ///    → 返回原字节（BIND-04 v3：不隐式沿用文档的隐私清洗标志）。
     /// 2. 校验（`SAVE-02`，在 [`Package::save`] 里）。
     /// 3. 物化 Span（`SPAN-08`）与范围校验（`SPAN-09`）：位置没变的标记不动，变了的重发。
     /// 4. 应用保存选项（`SAVE-07`）：全部先 `validate`（只读）再逐个 `commit`，所以要么全做要么不动。
     /// 5. / 6. 序列化脏 part 并写回（`XML-13` / `SAVE-06`，在 [`Package::save`] 里）。
     pub fn save_with(&mut self, opts: &SaveOptions) -> Result<Vec<u8>> {
+        let compat = crate::save::options::CompatSaveOptions::from(opts);
+        self.save_inner(&compat, opts.remove_personal_info, opts.remove_date_and_time)
+    }
+
+    /// 测试专用旧选项入口；保留 TS 宿主保存策略，原生内容修改通过 EditOp。
+    #[doc(hidden)]
+    pub fn save_with_compat(
+        &mut self,
+        opts: &crate::save::options::CompatSaveOptions,
+    ) -> Result<Vec<u8>> {
         let authors = opts.remove_personal_info.unwrap_or_else(|| self.remove_personal_info_flag());
         let dates = opts.remove_date_and_time.unwrap_or_else(|| self.remove_date_and_time_flag());
+        self.save_inner(opts, authors, dates)
+    }
+
+    fn save_inner(
+        &mut self,
+        opts: &crate::save::options::CompatSaveOptions,
+        authors: bool,
+        dates: bool,
+    ) -> Result<Vec<u8>> {
         if !self.pkg.is_dirty() && !opts.forces_save() && !authors && !dates {
             return Ok(self.pkg.original_bytes().to_vec());
         }

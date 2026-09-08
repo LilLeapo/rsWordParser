@@ -23,7 +23,7 @@ use crate::diag::{DiagCode, ValidationOrigin};
 use crate::edit::EditSession;
 use crate::error::Error;
 use crate::package::Package;
-use crate::save::SaveOptions;
+use crate::save::options::CompatSaveOptions as SaveOptions;
 
 /// 绑定层的错误。`code` 稳定、可依赖；`message` 是给人看的。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -112,7 +112,7 @@ pub fn save(bytes: &[u8], blocks_json: &str, options_json: &str) -> Result<Vec<u
     let options = json_arg(options_json, "SaveOptions")?;
     let mut session = EditSession::open(bytes)?;
     let outcome = apply_save_blocks(&mut session, &blocks, &options)?;
-    Ok(session.save_with(&outcome.save_options)?)
+    Ok(session.save_with_compat(&outcome.save_options)?)
 }
 
 /// `buildBlankDocx`：一份最小可用的空白文档（`SAVE-05`，7.8a）。

@@ -9,7 +9,8 @@ use crate::package::PartId;
 use crate::xml::{LocalName, NewElement, NsId, QName};
 
 /// 修订元数据；`id == None` 时按 `EDIT-06` 分配（文档内全部修订 `w:id` 的最大值 + 1）。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NewRevision {
     pub id: Option<String>,
     pub author: String,
@@ -17,7 +18,8 @@ pub struct NewRevision {
 }
 
 /// 超链接目标：已有关系 `r:id`，或文内书签 `w:anchor`。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum NewLinkTarget {
     Rel(String),
     Anchor(String),
@@ -37,7 +39,8 @@ impl NewRun {
 }
 
 /// 范围标记与批注引用（compat 侧重发，`SPAN` 索引在 M2 接管）。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum NewMarker {
     BookmarkStart {
         id: String,

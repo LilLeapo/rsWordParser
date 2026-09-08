@@ -126,8 +126,12 @@ impl<'a> KeyChecker<'a> {
                     }
                 }
                 if let Some(map) = schema.get("additionalProperties") {
-                    assert!(map.is_object(), "新增 schema 形态需补充键集遍历");
-                    maps.push(map);
+                    if map == &Value::Bool(false) {
+                        fixed_object = true;
+                    } else {
+                        assert!(map.is_object(), "新增 schema 形态需补充键集遍历");
+                        maps.push(map);
+                    }
                 }
                 if let Some(item) = schema.get("items") {
                     items.push(item);
@@ -416,4 +420,18 @@ fn bind_02_volume_reduction() {
     );
     assert!(with_media >= 50, "带图语料数不对：{with_media}");
     assert!(pct >= 50.0, "体积降幅不足 50%：{pct:.1}%");
+}
+
+#[test]
+fn bind_03_patch_keys_are_declared_and_checked() {
+    use rsword::bind::native::{SchemaDefs, ToJson};
+    use rsword::semantic::props::{RunProps, RunPropsPatch, TableChange};
+    let mut defs = SchemaDefs::default();
+    let mut schema = <TableChange<RunProps, RunPropsPatch>>::schema(&mut defs);
+    schema["$defs"] = Value::Object(defs.into_map());
+    let mut checker = KeyChecker::new(&schema);
+    checker.check(&serde_json::json!({"$patch": {}})).unwrap();
+    checker.check(&serde_json::json!({"$patch": {"bold": false}})).unwrap();
+    let error = checker.check(&serde_json::json!({"$patch": {"zzSabotage": true}})).unwrap_err();
+    assert!(error.contains("zzSabotage: schema 未声明的键"), "{error}");
 }

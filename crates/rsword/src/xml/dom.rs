@@ -16,7 +16,19 @@ use crate::xml::lex::{Lex, urange};
 use crate::xml::names::{NsId, QName};
 
 /// arena 索引，会话内稳定且永不复用；`Deleted` 节点保留在 arena 中。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    ::serde::Serialize,
+    ::serde::Deserialize,
+)]
+#[serde(transparent)]
 pub struct NodeId(pub u32);
 
 impl NodeId {

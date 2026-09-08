@@ -14,7 +14,7 @@ use rsword::edit::{
     NewInline, NewRun,
 };
 use rsword::model::{Block, HfKind, HfVariant, ProtectedKind, SectionOwner};
-use rsword::save::SaveOptions;
+use rsword::save::options::CompatSaveOptions as SaveOptions;
 use rsword::xml::NodeId;
 
 fn out_dir() -> PathBuf {
@@ -183,7 +183,7 @@ fn generate_edited_real_documents() {
                 offset_y_px: -5.0,
                 payload: Some(r#"{"strokes":[]}"#.into()),
             };
-            let out = s.save_with(&SaveOptions {
+            let out = s.save_with_compat(&SaveOptions {
                 inks: Some(vec![InkSave { para: p, ink }]),
                 ..SaveOptions::default()
             })?;

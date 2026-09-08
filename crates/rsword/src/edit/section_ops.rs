@@ -175,7 +175,7 @@ pub(super) fn set_header_footer(
 }
 
 /// 这一节这个变体的 part：自己声明了就用它，否则按 `SAVE-05` 新建并把引用插进这一节。
-fn ensure_hf_part(
+pub(crate) fn ensure_hf_part(
     s: &mut EditSession,
     sect: NodeId,
     kind: HfKind,

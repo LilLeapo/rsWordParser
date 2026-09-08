@@ -426,7 +426,7 @@ pub fn generate(
 
 /// 生成 `props_json.rs`：同一份 TOML 元数据展开每张表 / 每个属性结构体 / 每个枚举的
 /// `impl ToJson` 与 schema（生成器只按类型名发射，codec 的 JSON 语义在 `bind::native::json` 的
-/// `ToJson` 实现里）。与 8.3 的 serde derive 无关——不碰 `props.rs` 的任何 derive 行。
+/// `ToJson` 实现里）。BIND-03 的 patch schema 同样从字段表生成。
 pub fn generate_json(
     dir: &Path,
     prefixes: &BTreeMap<String, String>,
@@ -447,6 +447,7 @@ pub fn generate_json(
     }
     for t in &m.tables {
         gen_json_table(&mut out, t);
+        gen_json_patch(&mut out, t);
     }
     gen_json_camel_test(&mut out, &m);
     out
@@ -584,6 +585,23 @@ fn gen_json_table(out: &mut String, t: &Table) {
     gen_json_schema_fn(out, name, &body, t.fields.iter().any(|f| f.multi));
 }
 
+/// BIND-03 patch 与属性值共用字段表；字段缺席就是 Keep，所以没有 required。
+fn gen_json_patch(out: &mut String, t: &Table) {
+    let name = format!("{}Patch", t.name);
+    writeln!(out, "impl crate::bind::native::json::ToJson for {name} {{").unwrap();
+    writeln!(out, "    fn to_json(&self, _cx: &crate::bind::native::json::ProjCx<'_>) -> ::serde_json::Value {{ ::serde_json::to_value(self).expect(\"patch serialization\") }}").unwrap();
+    let mut body = String::new();
+    for (key, ty) in t
+        .attrs
+        .iter()
+        .map(|a| (&a.name, format!("Change<{}>", a.value)))
+        .chain(t.fields.iter().map(|f| (&f.name, patch_ty(f))))
+    {
+        writeln!(body, "            p.insert({:?}.into(), <{ty} as crate::bind::native::json::ToJson>::schema(defs));", camel(key)).unwrap();
+    }
+    gen_json_schema_fn(out, &name, &body, false);
+}
+
 /// 全部生成键 == `camel_case(字段名)`（与 `bind::native::json` 的同名校验函数对拍，防生成器漂移）。
 fn gen_json_camel_test(out: &mut String, m: &Model) {
     let mut pairs: Vec<(String, String)> = Vec::new();
@@ -686,10 +704,11 @@ fn gen_enum(out: &mut String, name: &str, decl: &EnumDecl) {
     }
     doc_attr(out, "", &decl.doc);
     // Ord 按声明顺序：枚举值要能当 BTreeMap 的键（resolve 的条件格式表）
-    writeln!(out, "#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]").unwrap();
+    writeln!(out, "#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, ::serde::Serialize, ::serde::Deserialize)]").unwrap();
     writeln!(out, "pub enum {name} {{").unwrap();
     for (v, var) in &variants {
         writeln!(out, "    /// `{v}`").unwrap();
+        writeln!(out, "    #[serde(rename = {v:?})]").unwrap();
         writeln!(out, "    {var},").unwrap();
     }
     writeln!(out, "}}\n").unwrap();
@@ -736,7 +755,12 @@ fn gen_enum(out: &mut String, name: &str, decl: &EnumDecl) {
 
 fn gen_struct(out: &mut String, name: &str, decl: &StructDecl, attrs: &[Attr]) {
     doc_attr(out, "", &decl.doc);
-    writeln!(out, "#[derive(Debug, Clone, Default, PartialEq, Eq)]").unwrap();
+    writeln!(
+        out,
+        "#[derive(Debug, Clone, Default, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]"
+    )
+    .unwrap();
+    writeln!(out, "#[serde(default, rename_all = \"camelCase\", deny_unknown_fields)]").unwrap();
     writeln!(out, "pub struct {name} {{").unwrap();
     for a in attrs {
         let doc = if a.doc.is_empty() {
@@ -745,6 +769,7 @@ fn gen_struct(out: &mut String, name: &str, decl: &StructDecl, attrs: &[Attr]) {
             format!("`@{}`：{}", a.attr.text, a.doc)
         };
         doc_attr(out, "    ", &doc);
+        writeln!(out, "    #[serde(skip_serializing_if = \"Option::is_none\")]").unwrap();
         writeln!(out, "    pub {}: Option<{}>,", a.name, a.value).unwrap();
     }
     writeln!(out, "}}\n").unwrap();
@@ -888,7 +913,9 @@ fn gen_table(out: &mut String, t: &Table) {
         format!("`{}`：{}", t.element.text, t.doc)
     };
     doc_attr(out, "", &doc);
-    writeln!(out, "#[derive(Debug, Clone, Default)]").unwrap();
+    writeln!(out, "#[derive(Debug, Clone, Default, ::serde::Serialize, ::serde::Deserialize)]")
+        .unwrap();
+    writeln!(out, "#[serde(default, rename_all = \"camelCase\", deny_unknown_fields)]").unwrap();
     writeln!(out, "pub struct {name} {{").unwrap();
     for a in &t.attrs {
         let d = if a.doc.is_empty() {
@@ -897,6 +924,7 @@ fn gen_table(out: &mut String, t: &Table) {
             format!("容器属性 `@{}`：{}", a.attr.text, a.doc)
         };
         doc_attr(out, "    ", &d);
+        writeln!(out, "    #[serde(skip_serializing_if = \"Option::is_none\")]").unwrap();
         writeln!(out, "    pub {}: Option<{}>,", a.name, a.value).unwrap();
     }
     for f in &t.fields {
@@ -908,11 +936,14 @@ fn gen_table(out: &mut String, t: &Table) {
             write!(d, "：{}", f.doc).unwrap();
         }
         doc_attr(out, "    ", &d);
+        if !f.multi {
+            writeln!(out, "    #[serde(skip_serializing_if = \"Option::is_none\")]").unwrap();
+        }
         writeln!(out, "    pub {}: {},", f.name, field_ty(f)).unwrap();
     }
     writeln!(out, "    /// 未建模的子元素（含重复出现的建模元素）：原位保留，不参与比较。")
         .unwrap();
-    writeln!(out, "    pub raw_unmodeled: Vec<NodeId>,").unwrap();
+    writeln!(out, "    #[serde(skip)]\n    pub raw_unmodeled: Vec<NodeId>,").unwrap();
     writeln!(out, "}}\n").unwrap();
 
     writeln!(out, "impl PartialEq for {name} {{").unwrap();
@@ -1107,12 +1138,21 @@ fn gen_table(out: &mut String, t: &Table) {
         "/// [`{name}`] 的变更集（`PROP-06`）：每个字段 `Keep | Unset | Set`，嵌套表另有 `Patch`。"
     )
     .unwrap();
-    writeln!(out, "#[derive(Debug, Clone, Default, PartialEq, Eq)]").unwrap();
+    writeln!(
+        out,
+        "#[derive(Debug, Clone, Default, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]"
+    )
+    .unwrap();
+    writeln!(out, "#[serde(default, rename_all = \"camelCase\", deny_unknown_fields)]").unwrap();
     writeln!(out, "pub struct {patch} {{").unwrap();
     for a in &t.attrs {
+        writeln!(out, "    #[serde(skip_serializing_if = \"Change::wire_is_keep\")]").unwrap();
         writeln!(out, "    pub {}: Change<{}>,", a.name, a.value).unwrap();
     }
     for f in &t.fields {
+        let change =
+            if matches!(&f.kind, Kind::Table(_)) && !f.multi { "TableChange" } else { "Change" };
+        writeln!(out, "    #[serde(skip_serializing_if = \"{change}::wire_is_keep\")]").unwrap();
         writeln!(out, "    pub {}: {},", f.name, patch_ty(f)).unwrap();
     }
     writeln!(out, "}}\n").unwrap();

@@ -49,6 +49,7 @@ impl From<CompressionMethod> for Compression {
 }
 
 /// 打开的 docx 容器：原始字节 + 中和后的 zip 视图 + 条目表。
+#[derive(Clone)]
 pub struct ZipPackage {
     original: Arc<[u8]>,
     archive: ZipArchive<Cursor<Vec<u8>>>,

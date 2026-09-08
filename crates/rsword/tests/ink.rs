@@ -14,7 +14,7 @@ use rsword::diag::DiagCode;
 use rsword::edit::{EditContext, EditOp, EditSession, InkSave, InlinePos, NewInk};
 use rsword::model::Block;
 use rsword::package::Package;
-use rsword::save::SaveOptions;
+use rsword::save::options::CompatSaveOptions as SaveOptions;
 use serde_json::Value;
 
 const WP: &str = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
@@ -108,7 +108,7 @@ fn para(s: &EditSession, i: usize) -> rsword::xml::NodeId {
 }
 
 fn save_inks(s: &mut EditSession, inks: Vec<InkSave>) -> Vec<u8> {
-    s.save_with(&SaveOptions { inks: Some(inks), ..SaveOptions::default() }).expect("save")
+    s.save_with_compat(&SaveOptions { inks: Some(inks), ..SaveOptions::default() }).expect("save")
 }
 
 /// 墨迹 run 对分类与坐标流不可见：被批注的段落是文本块、坐标流没有 U+FFFC、`InsertText` 的偏移按 TS `runs` 算；

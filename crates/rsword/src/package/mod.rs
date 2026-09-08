@@ -25,7 +25,19 @@ use crate::error::{Error, NotOoxml, Result};
 use crate::xml::{Dom, NsId, XmlError, sniff_root};
 
 /// part 在会话内的稳定编号（zip 中非目录条目的顺序）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    ::serde::Serialize,
+    ::serde::Deserialize,
+)]
+#[serde(transparent)]
 pub struct PartId(pub u32);
 
 impl PartId {
@@ -80,6 +92,7 @@ enum PartDom {
 /// 一个 part 的写前镜像（`EDIT-05`）：整体替换（`ReplacePartXml` / `ReplacePartBytes`）之前由
 /// [`Package::snapshot_part`] 记下，回滚时 [`Package::restore_part`] 放回。字段对外不可见——它就是 `Part` 的
 /// 那几个会被替换改动的字段。
+#[derive(Clone)]
 pub struct PartImage {
     dom: PartDom,
     is_xml: bool,
@@ -102,7 +115,7 @@ impl Clone for PartDom {
 /// 新建 part 的 `zip_index`：原 zip 里没有对应条目（`SAVE-05` / `SAVE-06`：新 part 追加在末尾）。
 pub const NO_ZIP_ENTRY: u32 = u32::MAX;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Part {
     pub id: PartId,
     pub uri: PartUri,
@@ -170,7 +183,7 @@ impl Part {
 }
 
 /// 打开的 docx 包：part 表、关系图、flavor、内容类型。
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Package {
     zip: ZipPackage,
     parts: Vec<Part>,

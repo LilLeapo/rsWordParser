@@ -60,7 +60,7 @@ fn compat_08_js_save_matches_the_native_path() {
         let native = (|| {
             let mut s = EditSession::open(&bytes)?;
             let o = apply_save_blocks(&mut s, &case["blocks"], &case["options"])?;
-            s.save_with(&o.save_options)
+            s.save_with_compat(&o.save_options)
         })();
         // 绑定那条路：两个参数都是 JSON 文本
         let via = js::save(

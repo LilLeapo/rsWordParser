@@ -15,11 +15,25 @@ use crate::package::PartId;
 use crate::xml::NodeId;
 
 /// UTF-16 code unit 偏移。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    ::serde::Serialize,
+    ::serde::Deserialize,
+)]
+#[serde(transparent)]
 pub struct Utf16Offset(pub u32);
 
 /// 段内位置：`para` 是 `w:p`，`0 ≤ offset ≤ len`；`part` 为 `None` 表示主 part。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct InlinePos {
     /// 段落所在的 part；`None` = 主 part。
     pub part: Option<PartId>,

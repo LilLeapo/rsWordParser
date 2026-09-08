@@ -26,7 +26,8 @@ use super::session::EditSession;
 use super::{EditContext, NewBlock};
 
 /// `RegenerateBlockField` 的重算方式。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum BlockFieldOptions {
     /// 按字段自己的指令开关重算（`TOC` / `INDEX` 各自认得的那些）。
     Auto {
@@ -47,7 +48,8 @@ impl Default for BlockFieldOptions {
 }
 
 /// 新插入的块字段（`NewBlock::Field`）。条目由当前文档算。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum NewBlockField {
     Toc { opts: Box<TocOptions>, pages: Option<HashMap<NodeId, u32>> },
     Index(Box<IndexOptions>),

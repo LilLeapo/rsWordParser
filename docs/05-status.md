@@ -1,4 +1,4 @@
-# 05 · 现状快照（2026-09-08）
+# 05 · 现状快照（2026-09-09）
 
 这份文档回答"现在能做什么、不能做什么、数字是多少"。任务清单在 `docs/04-dev-plan.md`，规范在 `spec/`。
 数字都可以用文末的命令复现；改动代码后请一并更新这里。
@@ -24,8 +24,20 @@
 **8.2 已完成**（2026-09-08，分支 `m8-native-json`）：`bind/native/` 模型 JSON 投影——`model_json!` 同表展开
 `impl ToJson`（编译期完整解构「不丢字段」）+ JSON Schema + 覆盖测试；30 张生成属性表由 `build/props.rs`
 从同一份 TOML 发射投影（`$OUT_DIR/props_json.rs`）。门 1：1,099 份语料过 `document_schema()`
-（display 开 / 关两遍，精确点名 4 份 hostile 必须在 `Package::open` 失败）+ 投影确定性 + 重建稳定性 + 键集严格性 + 深度护栏（448 层；规范措辞待批准，见 `docs/04` §8）+ `MOD-01`–`MOD-11`
+（display 开 / 关两遍，精确点名 4 份 hostile 必须在 `Package::open` 失败）+ 投影确定性 + 重建稳定性 + 键集严格性 + 深度护栏（448 层；规范措辞已随 c19fbb3 回写 v3，见 `docs/04` §8）+ `MOD-01`–`MOD-11`
 独立 checklist；门 6 体积：251 份带图文档较 `compat_ts::parsed_doc` **-67.5%**；本次修复后测试 **765 passed**（debug / release 各 0 failed、14 ignored，其中 12 个 ignored doctest）。
+
+**8.3 已完成**（2026-09-09，分支 `m8-native-json`，按项目负责人 c19fbb3 的 BIND-03/04 v3）：
+66 变体的线型 / 上下文化转换 / 逐变体测试同源；**57 无损往返 + 9 具名拒绝**，九项另有结构化正向往返。
+成文拒绝集见 `native-edit-json.md`，与独立常量及实跑分类双向锁死。属性 patch serde/schema 由生成器维护，
+Keep / Unset / Set / Patch 的分支不塌缩；EditContext 全字段可选，MutationResult 五字段完整投影。
+六族声明操作已公开且按键幂等，参考文献未变条目原字节有断言；原生保存不再隐式清洗，compat 显式沿用文档标志。
+协议 apply 失败不提交 DOM / interner / 诊断，逃生口按会话累计并随诊断返回。
+实测 **1065 份 synthetic + real** 的结构化插段经协议 / 原生保存逐字节相等，空选项保存原字节不变。
+最终 workspace debug / release 各 **862 passed、0 failed、14 ignored**（其中 12 个 ignored doctest），clippy 零告警。
+八道差分门仍为 **242 + 547 已知 / 0 未知**；save_blocks **204/208 等价、0 跳过**；门 6 体积
+4,334,070B → 1,408,718B（251 份带图文档，**−67.5%**）。下一项为 8.4：会话表、导出、媒体、resolve 及克隆成本实测。
+包括 hostile 的全语料无编辑保存专门门、TEST-07 协议迁移与 fuzz_bind 按排期在 8.6。
 
 **M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖），**已全部并入 `main`**（2026-09-04）。
 **M3 完成**（2026-09-05，分支 `m3-tables`，3.1–3.9 全部落地，**M3 门四条都跑过**：

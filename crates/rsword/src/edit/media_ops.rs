@@ -51,7 +51,8 @@ impl ImageWrap {
 }
 
 /// 图片所在段落的 `w:spacing`（TS `paraSpacing`）。
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ParaSpacing {
     pub before_twips: Option<i64>,
     pub after_twips: Option<i64>,
@@ -61,7 +62,8 @@ pub struct ParaSpacing {
 }
 
 /// 一张新图片（TS `NewImage`）。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NewImage {
     pub bytes: Vec<u8>,
     /// `image/png` / `image/jpeg` / `image/gif` …
@@ -82,7 +84,8 @@ pub struct NewImage {
     pub para_spacing: Option<ParaSpacing>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PosOffset {
     pub x: i64,
     pub y: i64,

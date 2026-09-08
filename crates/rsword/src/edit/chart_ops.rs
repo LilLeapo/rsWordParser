@@ -29,7 +29,8 @@ named_enum! {
 }
 
 /// 一个新图表的数据（TS `NewChart`）。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NewChart {
     pub kind: NewChartKind,
     pub title: Option<String>,
@@ -37,7 +38,8 @@ pub struct NewChart {
     pub series: Vec<NewChartSeries>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NewChartSeries {
     pub name: String,
     /// 按类别位置；`None` = 空档（缓存里不写这个点）。
@@ -45,7 +47,8 @@ pub struct NewChartSeries {
 }
 
 /// `SetChartData` 的补丁（TS `ChartPatch`）：每一项 `None` = 不动；数组里的 `None` = 那一个不动。
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ChartPatch {
     pub title: Option<String>,
     /// 与 `ChartDisplay.categories` 对齐。
@@ -54,7 +57,8 @@ pub struct ChartPatch {
     pub series: Option<Vec<Option<ChartSeriesPatch>>>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ChartSeriesPatch {
     pub name: Option<String>,
     /// 与 `ChartSeries.values` 对齐；`None` = 保留原值。

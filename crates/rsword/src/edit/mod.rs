@@ -52,14 +52,17 @@ use crate::span::FieldId;
 use crate::xml::{NewElement, NodeId};
 
 /// 修订作者（`track_changes` 开启时写入 `w:author` / `w:date`）。M1 不生成修订，字段保留供 M7。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RevisionAuthor {
     pub author: String,
     pub date: Option<String>,
 }
 
 /// `EDIT-01`：一次操作的上下文。
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(default)]
 pub struct EditContext {
     /// `Some` → 生成修订（M7）；M1 忽略并按直接修改执行。
     pub track_changes: Option<RevisionAuthor>,
@@ -70,7 +73,8 @@ pub struct EditContext {
 }
 
 /// `EDIT-02`：块位置在容器里的落点。`End(body)` 落在尾部 `w:sectPr` 之前。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum BlockAt {
     Start(NodeId),
     Before(NodeId),
@@ -79,7 +83,8 @@ pub enum BlockAt {
 }
 
 /// `EDIT-02`：块位置 = 哪个 part + 落点。`part` 为 `None` 表示主 part（任务 5.5）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BlockPos {
     pub part: Option<PartId>,
     pub at: BlockAt,
@@ -177,7 +182,8 @@ pub enum NewAtom {
 }
 
 /// 公式的两种给法。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum NewMath {
     /// 现成的 OMML（可以是 `<m:oMath>…</m:oMath>`，也可以只给里面的内容）。
     Omml(String),
@@ -186,7 +192,8 @@ pub enum NewMath {
 }
 
 /// `EDIT-03 AddComment` 的内容。`text` 里的 `\n` 分段。
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NewComment {
     pub author: String,
     pub initials: Option<String>,
@@ -363,10 +370,23 @@ pub enum EditOp {
     AcceptAll { author: Option<String> },
     /// `EDIT-03 RejectAll`：拒绝全部修订；`author` 同上。
     RejectAll { author: Option<String> },
+    /// `BIND-03 v3`：参考文献权威列表，未变条目保留原字节。
+    SetSources { sources: Vec<crate::save::options::decl::SourceSave> },
+    /// `BIND-03 v3`：按 numId 追加，已存在即 no-op。
+    AddNumberingDefinition { definition: crate::save::options::decl::NumberingDefSave },
+    /// `BIND-03 v3`：按 numId 追加重启定义，已存在即 no-op。
+    RestartNumbering { restart: crate::save::options::decl::RestartNumSave },
+    /// `BIND-03 v3`：替换主题字体槽。
+    SetThemeFonts { fonts: crate::save::options::decl::ThemeFontsSave },
+    /// `BIND-03 v3`：替换主题配色槽。
+    SetThemeColors { colors: crate::save::options::decl::ThemeColorsSave },
+    /// `BIND-03 v3`：按 styleId upsert，相同请求不改状态。
+    UpsertStyle { style: crate::save::options::decl::StyleUpsertSave },
 }
 
 /// `SetLinkTarget` 要改哪个链接。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum LinkRef {
     /// HYPERLINK 字段。
     Field(FieldId),
@@ -375,7 +395,8 @@ pub enum LinkRef {
 }
 
 /// 链接目标。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum LinkDest {
     /// 外部 URL。`w:hyperlink` 会先按 `EDIT-06` 分配一条外部关系。
     Url(String),

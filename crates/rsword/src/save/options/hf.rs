@@ -22,7 +22,7 @@ use crate::model::{Document, HfKind, HfVariant, SectionOwner};
 use crate::package::PartId;
 use crate::xml::{Dirty, Dom, LocalName, NodeId, QName};
 
-use super::SaveOptions;
+use super::CompatSaveOptions as SaveOptions;
 
 /// 六个槽（kind × variant）一张表：一次展开 [`HfSlots`] 的字段、迭代与 TS 键名的对应。
 ///

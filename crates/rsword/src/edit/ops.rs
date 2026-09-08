@@ -62,6 +62,48 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
 
 fn dispatch(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<MutationResult> {
     match op {
+        EditOp::SetSources { sources } => declarations(
+            s,
+            crate::save::options::CompatSaveOptions {
+                sources: Some(sources),
+                ..Default::default()
+            },
+        ),
+        EditOp::AddNumberingDefinition { definition } => declarations(
+            s,
+            crate::save::options::CompatSaveOptions {
+                numbering_new_defs: vec![definition],
+                ..Default::default()
+            },
+        ),
+        EditOp::RestartNumbering { restart } => declarations(
+            s,
+            crate::save::options::CompatSaveOptions {
+                numbering_restart_nums: vec![restart],
+                ..Default::default()
+            },
+        ),
+        EditOp::SetThemeFonts { fonts } => declarations(
+            s,
+            crate::save::options::CompatSaveOptions {
+                theme_fonts: Some(fonts),
+                ..Default::default()
+            },
+        ),
+        EditOp::SetThemeColors { colors } => declarations(
+            s,
+            crate::save::options::CompatSaveOptions {
+                theme_colors: Some(colors),
+                ..Default::default()
+            },
+        ),
+        EditOp::UpsertStyle { style } => declarations(
+            s,
+            crate::save::options::CompatSaveOptions {
+                style_upserts: vec![style],
+                ..Default::default()
+            },
+        ),
         EditOp::InsertText { at, text, props } => insert_text(s, at, &text, props, ctx),
         EditOp::DeleteRange { from, to } => delete_range(s, from, to, ctx),
         EditOp::SetRunProps { from, to, patch } => set_run_props(s, from, to, &patch, ctx),
@@ -190,6 +232,12 @@ fn not_tracked_name(op: &EditOp) -> Option<&'static str> {
         EditOp::SetShapeStyle { .. } => "SetShapeStyle",
         EditOp::InsertSectionBreak { .. } => "InsertSectionBreak",
         EditOp::DeleteSectionBreak { .. } => "DeleteSectionBreak",
+        EditOp::SetSources { .. } => "SetSources",
+        EditOp::AddNumberingDefinition { .. } => "AddNumberingDefinition",
+        EditOp::RestartNumbering { .. } => "RestartNumbering",
+        EditOp::SetThemeFonts { .. } => "SetThemeFonts",
+        EditOp::SetThemeColors { .. } => "SetThemeColors",
+        EditOp::UpsertStyle { .. } => "UpsertStyle",
         EditOp::SetChartData { .. } => "SetChartData",
         EditOp::ReplacePartXml { .. } => "ReplacePartXml",
         EditOp::ReplacePartBytes { .. } => "ReplacePartBytes",
@@ -286,7 +334,13 @@ fn op_targets(s: &EditSession, op: &EditOp) -> Vec<(Option<PartId>, NodeId)> {
         | EditOp::SetCommentText { .. }
         | EditOp::RemoveBookmark { .. } => Vec::new(),
         // 图表 part 与整 part 替换：目标是别的 part，不在正文树上（任务 6.6）
-        EditOp::SetChartData { .. }
+        EditOp::SetSources { .. }
+        | EditOp::AddNumberingDefinition { .. }
+        | EditOp::RestartNumbering { .. }
+        | EditOp::SetThemeFonts { .. }
+        | EditOp::SetThemeColors { .. }
+        | EditOp::UpsertStyle { .. }
+        | EditOp::SetChartData { .. }
         | EditOp::ReplacePartXml { .. }
         | EditOp::ReplacePartBytes { .. } => Vec::new(),
         EditOp::ReplaceImageMedia { drawing, .. } => vec![(None, *drawing)],
@@ -3795,4 +3849,27 @@ pub(super) fn update_block_field(
         });
     }
     s.commit_plan(plan)
+}
+
+// BIND-03 v3：复用声明 part 计划，事务仍由 apply/apply_all 统一持有。
+fn declarations(
+    s: &mut EditSession,
+    opts: crate::save::options::CompatSaveOptions,
+) -> Result<MutationResult> {
+    crate::save::options::decl::ensure_parts(s, &opts)?;
+    let (plans, diagnostics) =
+        crate::save::options::plan_all(s.package_mut(), &opts, false, false)?;
+    for plan in &plans {
+        plan.validate(s.package().part(plan.part).dom().ok_or_else(|| {
+            Error::edit(DiagCode::EditTargetOpaque, "declaration part has no DOM")
+        })?)?;
+    }
+    let mut result = MutationResult::default();
+    for plan in plans {
+        result.absorb(s.commit_plan(plan)?);
+    }
+    result.diagnostics.extend(diagnostics.iter().cloned());
+    s.record(diagnostics);
+    s.rebuild()?;
+    Ok(result)
 }

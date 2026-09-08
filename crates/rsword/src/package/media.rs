@@ -247,7 +247,7 @@ pub fn base64_decode(s: &str) -> Option<Vec<u8>> {
 }
 
 /// 标准 base64（带 `=` 填充）。自己写是为了不给 L0 引第三方依赖。
-fn base64_into(bytes: &[u8], out: &mut String) {
+pub(crate) fn base64_into(bytes: &[u8], out: &mut String) {
     let (chunks, rest) = bytes.as_chunks::<3>();
     for c in chunks {
         let n = (u32::from(c[0]) << 16) | (u32::from(c[1]) << 8) | u32::from(c[2]);

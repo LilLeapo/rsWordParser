@@ -465,7 +465,11 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `BIND-02` 的依赖（`spec/19` 待决 1） | `serde` + 可选 `schemars` | 8.2 只加 **dev-dependency**：`jsonschema`（门 1 校验）与 `serde`（测试反序列化）；`serde_json` 仅在 **dev-dependencies** 开 `unbounded_depth`（深表输出语法检查；先检查 JSON 深度 ≤ 448）；**不引** `schemars`（schema 由 `model_json!` 同表生成，引它反而两套来源）；`serde` 运行期 derive 随 8.3（其规范在修订） | 核心 crate 运行期依赖不长（`spec/20` 风险 7）；schema 校验器必须现成 |
 | `Note` / `Comment` 的 `text` / `rich` / `paragraphs` | `MOD-01` 的 Note / Comment 全字段 | 三字段 skip 不投影（表内登记理由） | TS 形态半解析字段（`BIND-02` 禁止项），`model/notes.rs` 文件头注明随 `compat_ts` 在 M9 删除 |
 | `BIND-02` 的 JSON Schema | 全语料过校验 | 不用 `additionalProperties: false`；`required` = 表内恒写行 | flatten 变体是 `allOf` 拼的，`false` 会把拼进分支的 `kind` 键判掉；投影实例的键集由 `tests/native_bind.rs` 沿 schema 引用迭代检查，合并 `allOf` 声明键并选择匹配变体，动态映射继续检查值 |
-| `BIND-02` 的类型化往返验收 | JSON → `DocumentJson` → JSON 幂等 | 门 1 实际由「投影确定性 + 重建稳定性 + 键集严格性」三条替代；display 开 / 关均覆盖全部可打开语料 | 决策 2（模型 JSON 单向，只有 `EditOp` 能改文档）使类型化往返无意义；现有 `DocumentJson(pub Value)` 只是输出包装，`Value` 自往返无法验证投影层。**待项目负责人批准后回写 BIND-02**，本次不改规范 |
+| `BIND-02` 的类型化往返验收 | JSON → `DocumentJson` → JSON 幂等 | 门 1 实际由「投影确定性 + 重建稳定性 + 键集严格性」三条替代；display 开 / 关均覆盖全部可打开语料 | 决策 2（模型 JSON 单向，只有 `EditOp` 能改文档）使类型化往返无意义；现有 `DocumentJson(pub Value)` 只是输出包装，`Value` 自往返无法验证投影层。**项目负责人已于 c19fbb3 批准并回写 BIND-02 v3**，8.3 不再修改规范 |
+
+| `BIND-03 v3` 结构化属性反向转换 | b 类正向往返与成文拒绝集 | `docs/native-edit-json.md` 列出 9 个拒绝载荷变体；另 57 个样例无损，合计 66；成文表、独立常量与实跑分类双向锁死 | 调试 / 审计出口不承担协议输入保真；读取后重新 emit 不能完全重建原 NewElement 时具名拒绝 |
+| `BIND-03 v3` `$patch` | Keep 缺席、Unset null、Set 值、Patch 为鉴别对象 | 生成器为 patch 生成 serde 与 schema；只跳过真正 Keep；Set/Patch 的 oneOf 与 required `$patch` 同时验证，空 Patch 保留 | 已随 c19fbb3 批准写入规范；KeyChecker 支持 additionalProperties false 的封闭对象，继续拒绝未声明属性 |
+| `BIND-03` NewElement 逃生口 | XML 字符串 / part bytes 的 base64 | 元素 XML 必须恰有一个元素，顶层文本、注释 / PI / CDATA 无法落入 NewElement 时明确拒绝；part 整体替换保持原接口能力 | NewElement 只有 Element/Text 两种子节点，不能静默吞掉不可承载内容；转换元数据只在成功 apply 后并入诊断与计数 |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -1885,7 +1889,7 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
 
 ### M8′ 门（`spec/19`「M8′ 门」六条）
 
-1. 协议一致性：全语料 `document()` 过 JSON Schema、投影确定性 + 重建稳定性 + 键集严格性、`MOD-01`–`MOD-11` 字段不丢（验收措辞偏差见 §8，待批准回写规范）。
+1. 协议一致性：全语料 `document()` 过 JSON Schema、投影确定性 + 重建稳定性 + 键集严格性、`MOD-01`–`MOD-11` 字段不丢（验收措辞已由项目负责人回写 v3，见 §8）。
 2. 操作全覆盖：60 个 `EditOp` 变体 JSON 往返；协议 `apply` 与原生 `apply` 保存结果逐字节相同。
 3. 公共 API：`cargo doc` 零警告、`missing_docs` 为零、默认 feature 不含 `compat_ts` 且能完成 `open → document → apply → save`、三个 example 在 CI 跑。
 4. 回归网换代：`*.model.json` 快照进 CI、`TEST-07` 走协议、`fuzz_bind` 10 分钟无崩溃。
@@ -1947,8 +1951,8 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   `document_schema()`（`jsonschema` 校验，display 开 / 关两遍）+ 投影确定性 + 重建稳定性 + 键集严格性 + 深度护栏（448 层）+
   `MOD-01`–`MOD-11` 独立 checklist（`tests/native_bind.rs`）；门 6 体积：251 份带图文档
   `compat_ts::parsed_doc` 4,334,070B → native 1,408,718B（**-67.5%**）。本次评审修复后 debug / release 各 **765 passed、0 failed、14 ignored**（其中 12 个 ignored doctest，不计入通过数）；新增键集负向与深度扫描两项测试。全语料最深为 `deep-nested-table__001.docx` 的 392 层，护栏为 448 层；八道差异检查仍为 242 + 547 处已知差异、0 处未知差异。
-- [ ] **8.3 `EditOp` / `EditContext` / `MutationResult` 的 JSON**（`edit_op_json!`、`SaveOptions` 收缩到五项）
-  进行中（codex）。开工核代码时报出三处规范问题，项目负责人 2026-09-09 一并裁定，`spec/21` 升 **v3**：
+- [x] **8.3 `EditOp` / `EditContext` / `MutationResult` 的 JSON**（`edit_op_json!`、`SaveOptions` 收缩到五项）
+  已完成（2026-09-09，分支 `m8-native-json`）。开工核代码时报出三处规范问题，项目负责人 2026-09-09 一并裁定，`spec/21` 升 **v3**：
   ① **BIND-04 的隐私清洗缺省改 `false`**（原「沿用文档标志」与同条「无编辑 `save({})` 逐字节相同」冲突，
   且与同表上一行已裁的「`savedAt` 不触发保存（不变式 1 优先）」不一致）。实测
   `write-protection__005.docx`（全语料唯一带该标志者，前缀 `s:`）无编辑 `save({})` 2446→2440 B、
@@ -1959,7 +1963,7 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   是调试 / 审计设施而非协议数据路径。验收口径：每变体落到「无损往返」或「按清单具名拒绝」之一、
   两类分别报计数并双向锁死，**禁止**把样例收窄再声称全部通过。
   ③ **5.7 六族公开为 `EditOp`**（清单 60 → **66**），形态复用 `save/options/decl.rs` 的现有声明类型，
-  三个键控操作（`numId` / `numId` / `styleId`）**已存在即 no-op** 并各配「同会话发两次 = 发一次」测试，
+  编号按 `numId` 已存在即 no-op；样式按 `styleId` upsert，相同请求 no-op，三项各配「同会话发两次 = 发一次」测试，
   `setSources` 另验未变条目原字节（不变式 2）。
   ④ **`TableChange` 的 `$patch` 线型编码**定案（`Keep` 键缺席 / `Unset` 为 `null` / `Set(v)` 值本身 /
   `Patch(p)` 为 `{"$patch": p}`，空 `Patch` 仍写不许用 `is_keep()` 省略；schema 必须声明 `$patch`，
@@ -1968,6 +1972,18 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   **并发现一个从 M0 潜伏的门洞**：不变式 1 从未被全语料测过——`xml_roundtrip.rs` 只测每个 XML part 的
   `parse → serialize`，包级「无编辑保存字节相同」只散落在几份手挑文档上。已把「全语料无编辑
   `EditSession::save()` 字节相同」加进 `spec/19` 门 5，落在 8.6。
+实现与验收：`edit_op_json!` 完整解构引擎 / 线型，66 变体逐项分类 **57 无损 + 9 具名拒绝**；
+九项各有结构化正向往返，成文拒绝表、独立常量、实跑集合相等（详见 `native-edit-json.md`）。
+属性 serde/schema 由 `build/props.rs` 生成；Change 三态和 TableChange 四态逐臂验证，KeyChecker
+对 `$patch` 及额外键有正反例。`MutationResult` 五字段由 `model_json!` 投影。
+协议 apply 转换前克隆，失败不提交 DOM / interner / 诊断；逃生口随诊断返回累计次数，页眉 XML
+使用目标 DOM 驻留名。克隆成本预算随 8.4 实测。原生 SaveOptions 五项，隐私默认 false；
+旧 CompatSaveOptions 及 save_with_compat 保留测试专用调用点，compat 显式传文档清洗标志。
+**1065 份 synthetic + real** 实际插入结构化段落，协议 / 原生保存逐字节相等，空选项保存逐字节相同。
+六族按 apply 事务提交；三个键控操作与主题重复调用无新增计划，文献未变条目原子树字节仍在输出中。
+全套 debug / release 各 **862 passed、0 failed、14 ignored**（12 个 ignored doctest）；fmt、clippy 零告警。
+八道差分门 **242 + 547 已知、0 未知**；save_blocks **204/208 等价、0 跳过**（4 项既有有意差异），
+辅助 part 仍为 189/289 等价；门 6：251 份带图文档 4,334,070B → 1,408,718B，**−67.5%**。
 - [ ] **8.4 会话、媒体句柄、`resolve` 查询与部件读取**（`bind_export!`、`resolve_query!`）
 - [ ] **8.5 Rust crate 公共 API 定型**（公共面收敛、feature 划分、`missing_docs`、三个 example、README 改写）
 - [ ] **8.6 回归网换代**（`*.model.json` 自快照、`TEST-07` 走协议、`fuzz_bind`）

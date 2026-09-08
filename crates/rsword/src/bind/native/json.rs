@@ -63,6 +63,7 @@ mod props_gen {
     //! schema：由 `build/props.rs` 从同一份 TOML 元数据发射（`$OUT_DIR/props_json.rs`），
     //! 字段永不漂移。
     use crate::semantic::props::*;
+    use crate::xml::NodeId;
 
     include!(concat!(env!("OUT_DIR"), "/props_json.rs"));
 }

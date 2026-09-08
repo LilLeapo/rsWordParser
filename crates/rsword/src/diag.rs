@@ -174,6 +174,8 @@ pub enum DiagCode {
     /// 绑定入口的 JSON 参数解析不了（`blocks` / `options` / blank 选项）。调用方契约错误，
     /// 不是文档的问题；对应的 JS 错误码同名。
     BindBadArgument,
+    /// `BIND-03`：成功应用的 XML / 原字节逃生口，每次使用记一条。
+    BindXmlEscape,
 }
 
 impl DiagCode {
@@ -243,6 +245,7 @@ impl DiagCode {
             Self::SaveStrictNoVml => "SAVE_STRICT_NO_VML",
             Self::SaveTableGrid => "SAVE_TABLE_GRID",
             Self::BindBadArgument => "BIND_BAD_ARGUMENT",
+            Self::BindXmlEscape => "BIND_XML_ESCAPE",
         }
     }
 }

@@ -128,7 +128,7 @@ fn compat_08_save_blocks_match_ts_save_docx_output() {
             Err(e) => panic!("{file}: {e}"),
         };
         let saved = session
-            .save_with(&outcome.save_options)
+            .save_with_compat(&outcome.save_options)
             .unwrap_or_else(|e| panic!("{file}: save: {e}"));
         if case["outputIdenticalToSource"] == Value::Bool(true) {
             // TS 自己记录的"输出与源文件逐字节相同"：我们也必须走不变式 1 的短路
@@ -301,7 +301,7 @@ fn compare_changed_parts(
         let Ok(outcome) = apply_save_blocks(&mut session, &case["blocks"], &case["options"]) else {
             continue;
         };
-        let Ok(saved) = session.save_with(&outcome.save_options) else { continue };
+        let Ok(saved) = session.save_with_compat(&outcome.save_options) else { continue };
         let Ok(mut pkg) = Package::open(&saved) else { continue };
         for (name, content) in parts {
             if name == "word/document.xml" {
@@ -400,7 +400,7 @@ fn js_binding_save_bytes_parity() {
         let mut session = EditSession::open(&bytes).unwrap();
         match apply_save_blocks(&mut session, &case["blocks"], &case["options"]) {
             Ok(outcome) => {
-                let saved = session.save_with(&outcome.save_options).unwrap();
+                let saved = session.save_with_compat(&outcome.save_options).unwrap();
                 let js_name = format!("{file}.docx");
                 assert_eq!(
                     common::binding_bytes(&js, &js_name),

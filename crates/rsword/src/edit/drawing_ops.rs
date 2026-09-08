@@ -50,22 +50,34 @@ fn require_drawing(s: &EditSession, drawing: NodeId) -> Result<()> {
 }
 
 /// 一次几何改动（`None` = 不动这一项）。
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DrawingGeometry {
     /// 显示尺寸（EMU）。
     pub extent_emu: Option<(i64, i64)>,
     /// 锚定位置（EMU）：`(positionH, positionV)` 的 `wp:posOffset`。随文图片没有位置，给了也不动。
     pub pos_offset_emu: Option<(i64, i64)>,
     /// 旋转角（度）；`Some(None)` = 去掉旋转。
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::semantic::props::serde::double_option"
+    )]
     pub rot_deg: Option<Option<i64>>,
     pub flip_h: Option<bool>,
     pub flip_v: Option<bool>,
     /// 裁剪窗（`a:srcRect` 的四个千分比）；`Some(None)` = 去掉裁剪。
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "crate::semantic::props::serde::double_option"
+    )]
     pub crop: Option<Option<SrcRect>>,
 }
 
 /// `a:srcRect`：四边各裁掉的千分比（0..100000）。
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SrcRect {
     pub l: i64,
     pub t: i64,
@@ -340,7 +352,8 @@ fn fill_element(color: Option<&str>) -> NewElement {
 }
 
 /// 一根轴的定位（`wp:positionH` / `wp:positionV`）。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AnchorAxis {
     /// `@relativeFrom`：`column` / `page` / `margin` / `paragraph` / `character` / `line` …
     pub relative_from: String,
@@ -348,7 +361,8 @@ pub struct AnchorAxis {
 }
 
 /// 轴上的位置：偏移或对齐（`wp:posOffset` / `wp:align`，两者互斥）。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum AxisPos {
     /// `wp:posOffset`（EMU）。
     Offset(i64),
@@ -357,7 +371,8 @@ pub enum AxisPos {
 }
 
 /// 锚定图片的两根轴。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AnchorPos {
     pub h: AnchorAxis,
     pub v: AnchorAxis,

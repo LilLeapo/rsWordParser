@@ -23,7 +23,8 @@ pub struct TocEntry {
 }
 
 /// 生成选项。缺省是 **Word 的形态**；`ts_shape` 切到 TS 的。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TocOptions {
     /// `\o "a-b"` 的级别范围（含两端）。
     pub levels: (u8, u8),

@@ -20,7 +20,8 @@ const NS_A: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
 const NS_PIC: &str = "http://schemas.openxmlformats.org/drawingml/2006/picture";
 
 /// 一条要写进文档的墨迹（TS `NewInkImage` 去掉 `blockIndex`）。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NewInk {
     /// PNG 字节。
     pub png: Vec<u8>,

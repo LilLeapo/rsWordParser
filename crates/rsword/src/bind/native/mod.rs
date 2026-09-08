@@ -8,8 +8,13 @@
 //!
 //! 会话、媒体句柄与导出（`BIND-01/05/06/09`）在任务 8.4 落地；`EditOp` JSON（`BIND-03`）在 8.3。
 
+pub mod edit;
 pub mod json;
 pub mod schema;
 
+pub use edit::{
+    EditJsonError, EditOpJson, apply_edit_json, edit_op_from_json, edit_op_to_json,
+    xml_escape_count,
+};
 pub use json::{DocumentJson, DocumentOpts, ProjCx, ToJson, document_json};
 pub use schema::{SchemaDefs, document_schema};
