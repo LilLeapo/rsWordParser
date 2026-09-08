@@ -1985,6 +1985,19 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
 八道差分门 **242 + 547 已知、0 未知**；save_blocks **204/208 等价、0 跳过**（4 项既有有意差异），
 辅助 part 仍为 189/289 等价；门 6：251 份带图文档 4,334,070B → 1,408,718B，**−67.5%**。
 - [ ] **8.4 会话、媒体句柄、`resolve` 查询与部件读取**（`bind_export!`、`resolve_query!`）
+  进行中（codex）。接口核对时报出三处内部不一致，项目负责人 2026-09-09 裁定，`spec/21` 升 **v3.1**
+  （只对齐矛盾措辞，不改协议方向）：
+  ① **按 `nodeId` 寻址的导出一律补可选 `part`**（缺省主 part）。`NodeId` 是每个 `Dom` 各自的 arena
+  索引（`xml/dom.rs:18`），正文与页眉同号是常态；而写侧 `InlinePos` / `BlockPos` **早就带**
+  `part: Option<PartId>`（`edit/pos.rs:38`）——读侧 BIND-06 / BIND-09 收裸 `[nodeId]` 是与写侧不一致，
+  补齐即可，**不重编现有节点 id**。越界 → `BIND_ID_UNKNOWN`。
+  ② **`close` 保持幂等**，BIND-01 的「任何导出 → `BIND_NO_SESSION`」carve out `close`。原文两句本就
+  矛盾（第 39 行「不存在的 id 忽略」vs 第 47 行「任何导出」），而且**我在派 8.4 时按第 47 行说成
+  「每个导出都要有该单测」，把矛盾放大了**。理由：`close` 是清理路径、常在错误处理里调用，逼调用方
+  先判存在会让清理代码变脆；且「关一个不存在的会话」与「关成功」无可观察差异。
+  ③ **`diagnostics` 返回 `{ diagnostics, xmlEscapeCount }`**（原导出表写 `[Diagnostic]`，与 BIND-03
+  要求同时带会话级逃生口计数不能并存）。8.3 已按此实现（`edit_diagnostics_json`），且计数从**已成功
+  提交**的诊断算出、失败请求不增加，与 BIND-01 的原子性一致。
 - [ ] **8.5 Rust crate 公共 API 定型**（公共面收敛、feature 划分、`missing_docs`、三个 example、README 改写）
 - [ ] **8.6 回归网换代**（`*.model.json` 自快照、`TEST-07` 走协议、`fuzz_bind`）
 - [ ] **8.7 `compat_ts` 降级、性能、体积与收尾**

@@ -21,6 +21,21 @@
 >   无意义，实际由「投影确定性 + 重建稳定性 + 键集严格性」三条替代（8.2 已落地并经破坏性验证）。
 > ④ **5.7 六族公开为 `EditOp`**，清单增补进 BIND-03（60 → 66）；`TableChange` 的 `$patch` 线型编码同时定案。
 
+> 修订：**v3.1（2026-09-09）三处内部不一致的对齐**（8.4 接口核对时发现，均经独立复核；
+> 不改协议方向，只把互相矛盾或与写侧不一致的措辞对齐）：
+> ① **节点查询补 `part`**——`NodeId` 是**每个 `Dom` 各自的 arena 索引**（`xml/dom.rs:18`），
+>   正文与页眉可以有同号节点，而写侧 `InlinePos` / `BlockPos` **早就带 `part: Option<PartId>`**
+>   （`edit/pos.rs:38`，`None` = 主 part）。读侧 BIND-06 / BIND-09 收裸 `[nodeId]` 因此有歧义，
+>   按写侧同一约定补上可选 `part`。**不重编现有节点 id。**
+> ② **`close` 保持幂等**——BIND-01 原有两句自相矛盾：`close` 一行写「不存在的 id 忽略」，
+>   下面又写「任何导出收到不存在的 `SessionId` → `Err(BIND_NO_SESSION)`」。裁定：**`close` 例外**。
+>   理由：`close` 是清理路径，常在错误处理里被调用，逼调用方先判存在会让清理代码变脆；
+>   且「关一个不存在的会话」与「关成功」没有可观察差异，无事可报。
+> ③ **`diagnostics` 的返回形状定为对象**——导出表原写 `[Diagnostic]`，而 BIND-03 要求同时带
+>   会话级逃生口计数，两者不能并存。定为 `{ diagnostics, xmlEscapeCount }`（8.3 已按此实现，
+>   `bind/native/edit/mod.rs::edit_diagnostics_json`；计数从**已成功提交**的诊断算出，
+>   失败请求不增加，与 BIND-01 的原子性一致）。
+
 对应 `docs/03` v3.3 §12 的 M8′ 行与 `spec/19` 任务 8.1。职责：定义 rsword 独立交付的**唯一对外协议**——
 `open → document / resolve / media → apply / save → close`。本文件是 M8′ 的**关口**：
 评审通过之前不动 8.2–8.5 的代码；条目一经评审即冻结语义，后续只许增补。
@@ -44,7 +59,12 @@ close(id: SessionId)                                            // 幂等；不�
   进程内单调分配），调用方**禁止**解析其内容或跨进程复用。
 - **必须**：会话有状态、保存函数式（决策 5）——`apply` 推进会话状态；`save` 在会话当前状态的
   克隆上执行（`EDIT-05` 事务），保存失败**禁止**影响会话；调用方写盘成功后才继续编辑该会话。
+- **必须**（v3.1）：**一切按 `nodeId` 寻址的导出都带可选 `part`**，缺省 = 主 part，与写侧
+  `InlinePos` / `BlockPos` 的 `part: Option<PartId>` 同一约定（`None` / 缺席 = 主 part）。
+  `NodeId` 是每个 `Dom` 各自的 arena 索引，跨 part 同号是常态；**禁止**用裸 `nodeId` 做跨 part
+  寻址。`part` 给了但该 part 不存在、或 `nodeId` 不在该 part 的 arena 内 → `Err(BIND_ID_UNKNOWN)`。
 - **必须**：任何导出收到不存在的 `SessionId` → `Err(BIND_NO_SESSION)`，**禁止**静默重建。
+  **例外：`close`**（v3.1）——它是幂等的清理路径，关一个不存在的会话直接返回成功。
 - **必须**：`apply` 失败（`Err` 或部分校验不过）会话状态与操作前逐字节一致（`EDIT-05` 延伸
   到协议层；`fuzz_bind` 的 oracle）。
 - 导出全集（8.4 落地；`bind_export!` 同形收拢）：
@@ -56,9 +76,9 @@ close(id: SessionId)                                            // 幂等；不�
   | `apply` | `(id, op, ctx?) → MutationResult` | BIND-03 |
   | `save` | `(id, opts?) → bytes` | BIND-04 |
   | `media` / `addMedia` | `(id, mediaId) → bytes` / `(id, bytes, mime) → MediaId` | BIND-05 |
-  | `resolveRuns` / `resolveParas` / `resolveCells` / `resolveSections` / `resolveTable` | `(id, [nodeId]) → [{ value, provenance }]` | BIND-06 |
-  | `partBytes` / `nodeXml` | `(id, partId) → bytes` / `(id, nodeId) → string` | BIND-09 |
-  | `diagnostics` | `(id) → [Diagnostic]` | BIND-07 |
+  | `resolveRuns` / `resolveParas` / `resolveCells` / `resolveSections` / `resolveTable` | `(id, [nodeId], part?) → [{ value, provenance }]` | BIND-06 |
+  | `partBytes` / `nodeXml` | `(id, partId) → bytes` / `(id, nodeId, part?) → string` | BIND-09 |
+  | `diagnostics` | `(id) → { diagnostics, xmlEscapeCount }` | BIND-07 |
   | `version` | `() → { version, git, protocol }` | BIND-08 |
 
 - 会话内并发：首版**不**承诺线程安全；同一 `SessionId` 的并发调用行为未定义（调用方串行化）。
