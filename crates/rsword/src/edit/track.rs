@@ -237,7 +237,10 @@ impl Tracker {
         match existing {
             Some(c) => {
                 let mine = order(w(mark)).unwrap_or(0);
+                // 只看元素：容器里常有缩进用的空白文本节点，`dom.name` 给 `None`，
+                // 按"次序未知就插在它前面"会把标记塞到最前面（`PROP-05` 顺序自检会拦下来）
                 let before = live_children(dom, c)
+                    .filter(|&x| dom.element(x).is_some())
                     .find(|&x| dom.name(x).and_then(order).is_none_or(|i| i > mine));
                 plan.node_edits.push(NodeEdit::Insert {
                     parent: Target::Node(c),

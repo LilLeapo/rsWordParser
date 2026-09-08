@@ -789,6 +789,22 @@ impl EditSession {
         })?;
         self.diagnostics.extend(diags.iter().cloned());
         self.pkg.push_diagnostics(diags);
+        // `PROP-05` 的兜底整理：脏了的属性容器按 schema 序重排（`save::plan_reorder_props`）。
+        // 同一次提交里好几处各自往同一个容器插子元素时，各自算的插入位置可能排错——在这里收口
+        self.transaction(|s| {
+            let parts: Vec<PartId> = (0..s.pkg.parts().len()).map(|i| PartId(i as u32)).collect();
+            for part in parts {
+                let Some(dom) = s.pkg.part(part).dom() else { continue };
+                let edits = crate::save::plan_reorder_props(dom);
+                if edits.is_empty() {
+                    continue;
+                }
+                let mut plan = MutationPlan::new(part);
+                plan.node_edits = edits;
+                s.commit_plan(plan)?;
+            }
+            Ok(())
+        })?;
         if touches_main {
             self.rebuild()?;
         }

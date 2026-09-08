@@ -15,4 +15,4 @@ pub mod validate;
 pub use blank::{BLANK_BULLET_NUM_ID, BLANK_ORDERED_NUM_ID, blank_docx};
 pub use options::SaveOptions;
 pub use serialize::{SerializeError, serialize, serialize_subtree};
-pub use validate::{enforce, ensure_extension_declarations, validate_part};
+pub use validate::{enforce, ensure_extension_declarations, plan_reorder_props, validate_part};

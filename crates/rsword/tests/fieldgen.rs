@@ -217,10 +217,7 @@ fn inserting_a_toc_field_generates_one_paragraph_per_heading() {
     s.apply(
         EditOp::InsertBlock {
             at: BlockPos { part: None, at: BlockAt::After(at) },
-            block: NewBlock::Field(NewBlockField::Toc {
-                opts: Box::default(),
-                pages: None,
-            }),
+            block: NewBlock::Field(NewBlockField::Toc { opts: Box::default(), pages: None }),
         },
         &EditContext::default(),
     )
@@ -277,10 +274,7 @@ fn regenerating_a_toc_reuses_its_bookmarks_and_writes_pagerefs() {
     s.apply(
         EditOp::InsertBlock {
             at: BlockPos { part: None, at: BlockAt::After(at) },
-            block: NewBlock::Field(NewBlockField::Toc {
-                opts: Box::default(),
-                pages: None,
-            }),
+            block: NewBlock::Field(NewBlockField::Toc { opts: Box::default(), pages: None }),
         },
         &EditContext::default(),
     )

@@ -504,13 +504,21 @@ impl Document {
         let fields = FieldIndex::build(dom);
         let mut spans = SpanIndex::build(dom);
         spans.snap_to_field_atoms(dom, &fields);
+        // `SpanId` 是按文档序编的号（`SPAN-04`）。中间多出或少掉一个范围，它后面的全部改号——
+        // 而增量刷新只重建被碰过的块，没刷的块里 `Run.comments` 还存着旧号，那号现在指着**别的**
+        // 范围。识别到改号就整体重建（`TEST-07` 在「先加批注、后加书签」上抓到的）
+        if span_identities(&self.spans) != span_identities(&spans)
+            || field_identities(&self.fields) != field_identities(&fields)
+        {
+            return Ok(blocks.to_vec());
+        }
         let mut missing = Vec::new();
         // 先把路径与上下文取齐，再借出块表——构建器借着 `self.styles`
         let mut work: Vec<RefreshItem> = Vec::new();
         for &p in blocks {
             match self.block_path(p).and_then(|path| {
                 let blk = self.block_at(&path)?;
-                Some((path, blk.sdt().cloned(), blk.revisions().to_vec()))
+                Some((path, blk.sdt().cloned(), wrapper_revisions(blk)))
             }) {
                 Some((path, sdt, revs)) => work.push((p, path, sdt, revs)),
                 None => missing.push(p),
@@ -521,6 +529,16 @@ impl Document {
         for (p, path, sdt, revs) in work {
             // body 级 `w:sectPr` 也是一个块（`MOD-01` 的 R01），但它没有段落 / 表格的内容流，
             // 交给 `build_paragraph` 会得出一个假段落，节投影随后就崩（`MOD-10` 的 owner 断言）。
+            // 整体重建时 `depth` 是一路 `build_container` 累出来的（正文 1、每进一层单元格 /
+            // 文本框 +1），`MOD-07` 的 `TooDeep` 就看它。增量刷新直接从这一块开始，得把那个
+            // 层数补回来，不然深层的嵌套表在这里会被完整建出来、与重建不一致
+            b.depth = 1 + dom
+                .ancestors(p)
+                .filter(|&a| {
+                    dom.is(a, QName::w(LocalName::Tc))
+                        || dom.is(a, QName::w(LocalName::TxbxContent))
+                })
+                .count() as u32;
             let rebuilt = if dom.is(p, QName::w(LocalName::Tbl)) {
                 b.build_table(p, sdt.as_ref(), &revs)
             } else if dom.is(p, QName::w(LocalName::SectPr)) {
@@ -528,6 +546,10 @@ impl Document {
             } else {
                 b.build_paragraph(p, sdt.as_ref(), &revs)
             };
+            // 内容在别的 part 里的文本框：增量建不出来（外部 part 的索引只在整体重建时装好）
+            if crate::model::table::has_external_textbox(&rebuilt) {
+                missing.push(p);
+            }
             match block_at_mut_in(&mut main, &path) {
                 Some(slot) => *slot = rebuilt,
                 None => missing.push(p),
@@ -550,6 +572,7 @@ impl Document {
     }
 
     /// 管辖某个节点的节下标（`RES-10` 的 `section_of`）。
+    // （`wrapper_revisions` 见文件末尾）
     pub fn section_of(&self, dom: &Dom, node: NodeId) -> Option<usize> {
         crate::model::section::section_of(dom, &self.sections, node)
     }
@@ -1025,11 +1048,15 @@ impl<'a> Builder<'a> {
         self.spans.find(RangeClass::Comment, id).map(|s| s.id)
     }
 
-    /// 可见文本预览：`w:t` 文本拼接，截到 80 个字符。
+    /// 可见文本预览：`w:t` 文本拼接，截到 80 个字符。已删除的子树不算——那些字节还在 DOM 里
+    /// （`XML-12` 的 `Deleted` 是标记不是移除），但它们不再是可见文本。
     fn preview(&self, node: NodeId) -> String {
         let dom = self.dom;
         let mut s = String::new();
         for n in dom.descendants(node) {
+            if dom.node(n).dirty == crate::xml::Dirty::Deleted {
+                continue;
+            }
             if dom.is(n, w(LocalName::T)) {
                 for c in dom.semantic_children(n) {
                     if let Some(t) = dom.text(c) {
@@ -1537,4 +1564,36 @@ impl ListRef {
     pub fn new(num_id: i32, ilvl: i32) -> Self {
         Self { num_id, ilvl, from_style: false }
     }
+}
+
+/// 块**外面**那层修订（`w:ins` / `w:del` / `moveFrom` / `moveTo` 包着整块）。
+///
+/// 增量刷新（`MOD-13`）只把这些带回给 `build_*`：段落标记、`pPrChange`、`tblPrChange`、
+/// `tblGridChange` 都由构建器自己从 DOM 再读一遍，带回去就成了两份——`TEST-07` 的随机序列
+/// 在「同一个表格连改两次属性」上抓到过。
+fn wrapper_revisions(blk: &Block) -> Vec<Revision> {
+    blk.revisions()
+        .iter()
+        .filter(|r| {
+            matches!(
+                r,
+                Revision::Insert(_)
+                    | Revision::Delete(_)
+                    | Revision::MoveFrom(_)
+                    | Revision::MoveTo(_)
+            )
+        })
+        .cloned()
+        .collect()
+}
+
+/// 范围索引的编号身份：`(SpanId, 类别, 配对 id)` 的序列。两次构建这个序列相同，就说明
+/// 已有范围的 `SpanId` 一个都没变，未刷新的块里存着的号还指着同一个范围。
+fn span_identities(idx: &SpanIndex) -> Vec<(u32, crate::span::RangeClass, String)> {
+    idx.live().map(|s| (s.id.0, s.class(), s.pair_id().to_string())).collect()
+}
+
+/// 同理的 `FieldId`（`FLD-02` 也是按文档序编号）：`(FieldId, begin 节点)` 的序列。
+fn field_identities(idx: &FieldIndex) -> Vec<(u32, NodeId)> {
+    idx.fields().iter().map(|f| (f.id.0, f.form.head())).collect()
 }

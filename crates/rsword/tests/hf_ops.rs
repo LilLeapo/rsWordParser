@@ -626,26 +626,8 @@ fn test_09_deeply_nested_textboxes_in_a_header() {
     assert!(json["headerText"].is_string(), "{}", json["headerText"]);
 }
 
-/// 确定性伪随机（xorshift64*）：失败可复现。
-struct Rng(u64);
-
-impl Rng {
-    fn next(&mut self) -> u64 {
-        let mut x = self.0;
-        x ^= x >> 12;
-        x ^= x << 25;
-        x ^= x >> 27;
-        self.0 = x;
-        x.wrapping_mul(0x2545_F491_4F6C_DD1D)
-    }
-
-    fn below(&mut self, n: usize) -> usize {
-        if n == 0 { 0 } else { (self.next() % n as u64) as usize }
-    }
-}
-
 /// 页眉页脚域的随机操作：页眉段落里的内联编辑 + 五个节 / 页眉页脚操作。
-fn random_hf_op(s: &EditSession, rng: &mut Rng) -> Option<EditOp> {
+fn random_hf_op(s: &EditSession, rng: &mut common::Rng) -> Option<EditOp> {
     let doc = s.document();
     let sect = doc.sections.last().filter(|x| x.owner == SectionOwner::Body)?.node?;
     // 页眉页脚 part 里的段落（带 part 的位置，5.5a）
@@ -737,7 +719,7 @@ fn test_07_random_header_footer_sequences() {
     for (di, path) in docs.iter().enumerate() {
         let bytes = std::fs::read(path).unwrap();
         let mut s = EditSession::open(&bytes).unwrap();
-        let mut rng = Rng(0x5DEE_CE66_D3B1_1EAD ^ di as u64);
+        let mut rng = common::Rng(0x5DEE_CE66_D3B1_1EAD ^ di as u64);
         for step in 0..STEPS {
             let Some(op) = random_hf_op(&s, &mut rng) else { continue };
             let what = format!("{}: step {step}", path.display());

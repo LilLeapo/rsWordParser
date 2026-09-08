@@ -115,6 +115,7 @@ pub(crate) fn sync(s: &mut EditSession, sites: &[TwinSite]) -> Result<MutationRe
             continue;
         };
         let mut plan = MutationPlan::new(part);
+        touch_block(dom, &mut plan, site.ac);
         for c in dom.children(to).iter().copied().filter(|&c| live(dom, c)) {
             plan.node_edits.push(NodeEdit::Delete(c));
         }
@@ -159,6 +160,7 @@ pub(crate) fn sync_shape_style(
         };
         let Some(shape) = vml_shape(dom, fallback) else { continue };
         let mut plan = MutationPlan::new(p);
+        touch_block(dom, &mut plan, ac);
         for (name, value) in vml_attrs(dom, choice, shape) {
             plan.node_edits.push(NodeEdit::SetAttr {
                 node: Target::Node(shape),
@@ -171,6 +173,18 @@ pub(crate) fn sync_shape_style(
         }
     }
     Ok(out)
+}
+
+/// 同步是**另一个** plan：投影得跟着刷新，不然宿主段落的投影停在同步之前
+/// （`TEST-07` 的随机序列在「插分节符 + 换绕排」两步上抓到过）。
+fn touch_block(dom: &Dom, plan: &mut MutationPlan, node: NodeId) {
+    let is_block = |n: NodeId| {
+        dom.is(n, QName::new(NsId::W, LocalName::P))
+            || dom.is(n, QName::new(NsId::W, LocalName::Tbl))
+    };
+    if let Some(b) = std::iter::once(node).chain(dom.ancestors(node)).find(|&n| is_block(n)) {
+        plan.touch(b);
+    }
 }
 
 /// `mc:Fallback` 里第一个会画东西的 VML 形状。

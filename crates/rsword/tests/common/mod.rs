@@ -4,6 +4,37 @@ pub mod fingerprint;
 
 use std::path::{Path, PathBuf};
 
+/// 确定性伪随机（xorshift64*）：随机序列测试失败时靠种子复现。
+#[allow(dead_code)]
+pub struct Rng(pub u64);
+
+#[allow(dead_code)]
+impl Rng {
+    pub fn next(&mut self) -> u64 {
+        let mut x = self.0;
+        x ^= x >> 12;
+        x ^= x << 25;
+        x ^= x >> 27;
+        self.0 = x;
+        x.wrapping_mul(0x2545_F491_4F6C_DD1D)
+    }
+
+    /// `0..n`（`n == 0` 时给 0）。
+    pub fn below(&mut self, n: usize) -> usize {
+        if n == 0 { 0 } else { (self.next() % n as u64) as usize }
+    }
+
+    /// 从切片里随机取一个。
+    pub fn pick<'a, T>(&mut self, xs: &'a [T]) -> Option<&'a T> {
+        xs.get(self.below(xs.len()))
+    }
+
+    /// `n` 分之一的概率为真。
+    pub fn chance(&mut self, n: usize) -> bool {
+        self.below(n.max(1)) == 0
+    }
+}
+
 /// 仓库根目录（`crates/rsword/../..`）。
 pub fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").canonicalize().expect("repo root")

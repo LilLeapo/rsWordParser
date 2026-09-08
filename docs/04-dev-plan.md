@@ -454,6 +454,11 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `spec/18` 7.8「TOC 的条目 = 正文里的匹配段落」 | — | `\u` 时用 `ParagraphFacts.outline_level`（段落 `outlineLvl` + 1，没有就退回样式链），不带 `\u` 时只认 `Resolver::heading_level` | 两条路本来就是 `RES-02` 与 `MOD-04` 已经算好的，重算一遍只会分叉 |
 | `FLD-09 UpdateBlockField`「结构 run 与外层容器都保留」 | — | 重算块字段（`RegenerateBlockField`）之后，结构 run 会**搬进**新的首 / 末段（`move_within_part`，原字节保住），空掉的旧首 / 末段删掉 | 目录字段自己的 begin 就在第一条条目那一段里；只换结果区的话，重算一次就多两个空的 `TOC1` 段。`FLD-12` 要求 begin + 指令 + separate 在首段开头、end 在末段末尾——搬过去正好是这个形态。旧段落里除结构 run 之外还有别的内容时不动（那不是纯结构段） |
 | `FLD-09 UpdateBlockField` 的旧结果清理 | 删结果节点 | 结果节点的**外壳**（`w:hyperlink` / `w:ins` …）整包都成废墟时连壳一起删 | 目录条目的文字与页码裹在 `w:hyperlink` 里，`result_nodes` 记的是里面的 run；只删 run 会留下空的 `w:hyperlink`，重算一次多一个空壳 |
+| `PROP-05` 的元素次序 | 每个写点自己算插入位置 | 多一道**保存前的兜底整理**（`save::plan_reorder_props`）：脏了的属性容器按 schema 序重排 | `plan_apply_*` 算插入位置用的是**计划开始时**的子节点表。同一次提交里好几处各自往同一个容器插子元素（属性补丁 + 修订快照 + 还原旧值…）时，后面那几处看到的表是旧的。与其在每个写点各自补，不如在保存前统一收口——只动本来就脏的容器，未编辑的字节不受影响（不变式 2）。`TEST-07` 反复撞到这一类 |
+| `SPAN-05`「起点不在终点之后」被破坏时 | 不物化（记引擎不变式违反） | **收成起点上的空范围**再物化，诊断降为 `PreExistingDamage` | 整对不写会让标记就此消失；空范围 Word 也认，位置至少留住了。修好了就不该让保存失败，但要看得见 |
+| `EDIT-06` 的 `w:id` 在 part 内重号 | 记引擎不变式违反 | **书签**重新发号（`w:bookmarkStart/@w:id` 只在 part 内配对，没有别处引用）；**批注 / 权限 / 移动**的后一个不物化（它们的 id 是跨 part 的引用，改不得，写进去 Word 会当损坏） | 同上：能修就修，修完不该让保存失败。`AddBookmark` / `AddComment` 发号时也改成同时看**范围索引**（条目删了、范围还留着等物化时，只看 DOM / `comments.xml` 会把号再发一次） |
+| `EDIT-03 AcceptRevision / RejectRevision` 的粒度 | 一条修订 | 一个**字段**、一张表的**列改动**整个一起解决 | 追踪删除时每个内容项各包一层 `w:del`（7.2 的锚点规则），一个字段的 begin / 指令 / separate / 结果 / end 就分在好几条修订里；单独接受其中一条会丢半个字段，另一半成孤儿（`FLD-13` 从此每次保存都失败）。表格同理：`tblGridChange` 与 `cellIns` / `cellDel` 是同一次列改动的两面，只解决一面网格与格数就对不上（`SAVE_TABLE_GRID`）。批量解决时网格快照排在最后还原——它整块换掉 `w:tblGrid`，掉格时删的 `w:gridCol` 会被它盖掉 |
+| `EDIT-03 InsertRow` 的模板行 | 克隆模板行的 `trPr` | 模板行**自己的**修订标记（`w:ins` / `w:del` / `trPrChange`）不跟着走 | 新行是这次插进来的，不是模板那次被删 / 被改的。照抄会让新行同时带 `w:ins` 与 `w:del`，`PROP-05` 的顺序自检当场拦下 |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -1707,3 +1712,52 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   题注编号按落点之前同标签的 `SEQ` 数（图 1 / 图 2 / 表 1）。
   **639 测试**、九道门仍为 0、保存语料 204 / 208 等价 0 跳过、clippy 零告警。
   7.8c（compat 债 `instrField` / `fldBeginXml` 的复核）随 7.9 一起清。
+
+- [x] **7.9a `TEST-07` 随机编辑序列（门 5）**（`tests/random_ops.rs`、`fuzz/fuzz_targets/fuzz_edit.rs`、
+  `.github/workflows/random.yml`，2026-09-08）：
+  一条序列 = 一份语料 × 一个种子 × 100 步，每步随机挑一个 `EditOp`（全集：内联 / 块 / 表格 /
+  书签批注 / 字段 / 绘图 / 注释与控件 / 接受拒绝修订 / 节 / 包级）、随机开关 `track_changes`
+  （不追踪 / 甲 / 乙）。每步断言：不 panic（引擎 panic 也当失败，捕获后照样最小化）、
+  `MOD-13` 投影 == 重建、`FLD-13` 字段缺陷不增加、`EDIT-06` 范围重号不增加、无
+  `EngineInvariantViolation`；每 20 步保存一次，`ModelFingerprint` 与**保存之后**的会话相等
+  （`SPAN-08` 的标记在保存时才物化，保存前 DOM 里的位置是暂定的）。
+  **最小化**：先二分找最短失败前缀，再反复贪心地逐条删，只认**同一种**失败（比对说明的指纹）；
+  复放的是记录下来的具体 `EditOp`。实测把 60 步收到 1–2 步（`SetShapeStyle` 一步、
+  `InsertColumn` + `RejectAll` 两步）。报错里直接给复现命令
+  （`RSWORD_RANDOM_ONLY=<stem> RSWORD_RANDOM_SEED=<seed>`），另有 `RSWORD_RANDOM_TRACE=1`
+  逐步打印、`RSWORD_RANDOM_DUMP=<目录>` 把出问题那一步的包落盘。
+  规模由 `RSWORD_RANDOM_SEQUENCES`（缺省 100）/ `RSWORD_RANDOM_STEPS`（缺省 100）控制：
+  PR 的 `cargo test` 跑 100 条，新的 `random.yml`（每天）跑 **1,000 条 × 100 步**——
+  实测 61,057 次生效、9,994 次被拒、2,625 次保存往返，全过。
+  `fuzz/fuzz_targets/fuzz_edit.rs` 进 `fuzz.yml` 矩阵：`arbitrary` 派生的 `OpSketch`
+  （种类 + 相对位置 + 短文本）映射到 `EditOp`，五份内嵌小语料；断言不 panic、`Err` 之后主 part
+  字节不变（`EDIT-05`）、保存出来的包能重开。
+
+  **这一道门当场抓出并修掉的引擎缺陷（17 处）**——都写了原因注释，指向 `TEST-07`：
+  1. `MOD-13`：增量刷新把**已有投影的全部修订**带回给构建器，`tblPrChange` / `pPrChange` /
+     段落标记于是各多一份（`wrapper_revisions` 只带块外面那层包裹）。
+  2. `MOD-13`：`SpanId` / `FieldId` 是按文档序编的号，中间多出或少掉一个范围 / 字段就全体改号，
+     没刷新的块里存的号指向别的东西 → 识别到改号就整体重建。
+  3. `MOD-13`：增量刷新没把容器层数补回来，深层嵌套表不再降级成 `TooDeep`。
+  4. `MOD-13`：内容在别的 part 里的文本框（`wps:txbx/@r:txbx`）增量建不出来 → 退回整体重建。
+  5. `MOD-13`：7.7c 的孪生同步与几何 / 样式同步是另一个 plan，没 `touch` 宿主块，投影停在同步之前。
+  6. `MOD-13`：`RejectRevision` 解决 body 级 `sectPr` 的 `sectPrChange` 时没有块可刷 → 整体重建。
+  7. `MOD-13`：`SetFormText` / `ToggleCheckbox` / `SetFieldResultProps` 只刷 begin 那一段，
+     跨段字段的其余段落投影发霉（`touch_field_paragraphs`）。
+  8. 不变式 4：`guard_sdt` 拿别的 part 的 `NodeId` 走祖先链 → 越界 panic（改成让操作自己拒）。
+  9. `MOD-11`：`preview` 把**已删除**子树里的文字也算进去了。
+  10. `PROP-05`：`container_mark` 找插入位置时把容器里缩进用的空白文本节点当成"次序未知"，
+      标记被塞到最前面。
+  11. `PROP-05`：`restore` 把还原的子元素一律插在 `*Change` 之前，与**留下来的**那些排不到一起
+      （`w:ind` 落到 `w:rPr` 后面）。
+  12. `PROP-05`：多处写同一个容器时插入位置算错的那一类，加了保存前的兜底整理（§8）。
+  13. `FLD-13`：追踪删除把字段的结构 run 也真删了（本作者自己插的内容会真删），另一半成孤儿。
+  14. `FLD-13`：单独接受 / 拒绝一个字段的某一条修订会丢半个字段（改成整个字段一起解决，§8）。
+  15. `SAVE_TABLE_GRID`：`tblGridChange` 与 `cellIns` 分开解决把列删了两遍（§8）。
+  16. `PROP-05`：`InsertRow` 照抄模板行的修订标记（§8）。
+  17. `SPAN-05` / `EDIT-06`：范围两端被变换挪交叉、`w:id` 重号——保存时能修就修（§8），
+      `AddBookmark` / `AddComment` 发号时同时看范围索引。
+
+  **641 测试**（调试）、九道门仍为 0、保存语料 204 / 208 等价 0 跳过、clippy 零告警；
+  1,000 条随机序列在调试与发布两种构建下都过（`save::enforce` 只在调试里把引擎不变式当错误，
+  测试自己再查一遍，两种构建才会在同一处失败）。

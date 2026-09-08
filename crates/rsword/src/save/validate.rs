@@ -16,7 +16,7 @@ use crate::diag::{DiagCode, Diagnostic, ValidationOrigin};
 use crate::error::{Error, Result};
 use crate::semantic::props::{TABLES, TableInfo};
 use crate::xml::ns::PrefixUse;
-use crate::xml::{Dirty, Dom, LocalName, NodeId, NsId, QName};
+use crate::xml::{Dirty, Dom, LocalName, NodeEdit, NodeId, NsId, QName, Target};
 
 fn is_dirty_self(d: Dirty) -> bool {
     matches!(d, Dirty::New | Dirty::SelfDirty)
@@ -163,14 +163,69 @@ pub fn validate_part(dom: &Dom) -> Vec<Diagnostic> {
                     dom,
                     *child,
                     format!(
-                        "`{}` 里新写的 `{}` 不在 PROP-05 顺序位置（前面最大序号 {:?}，后面最小序号 {:?}，自身 {o}）",
+                        "`{}` 里新写的 `{}` 不在 PROP-05 顺序位置（前面最大序号 {:?}，后面最小序号 {:?}，自身 {o}）；容器现在是 [{}]",
                         table.name,
                         dom.name(*child).map(|q| q.display(interner).to_string()).unwrap_or_default(),
                         before_max,
-                        after_min
+                        after_min,
+                        kids.iter()
+                            .map(|(c, o, _)| format!(
+                                "{}={o:?}",
+                                dom.name(*c).map(|q| q.display(interner).to_string()).unwrap_or_default()
+                            ))
+                            .collect::<Vec<_>>()
+                            .join(" ")
                     ),
                 ));
             }
+        }
+    }
+    out
+}
+
+/// `PROP-05` 的兜底整理：属性容器里只要有一个 `New` / `SelfDirty` 的子元素，就把这个容器的
+/// 子元素按 schema 序重排。
+///
+/// 为什么需要它：`plan_apply_*` 算插入位置用的是**计划开始时**的子节点表。同一次提交里有好几
+/// 处各自往同一个容器插子元素（属性补丁 + 修订快照 + 还原旧值…）时，后面那几处看到的表是旧的，
+/// 顺序就可能排错——`TEST-07` 的随机序列反复撞到。与其在每个写点各自补，不如在保存前统一收口。
+///
+/// 只动**本来就脏**的容器：未编辑的字节一个不碰（不变式 2）。序号未知的子元素（表外的扩展
+/// 元素）保持相对位置，不参与排序。
+pub fn plan_reorder_props(dom: &Dom) -> Vec<NodeEdit> {
+    let mut out = Vec::new();
+    if dom.node(dom.root()).dirty == Dirty::Clean {
+        return out;
+    }
+    let tables: HashMap<QName, &'static TableInfo> =
+        TABLES.iter().map(|t| (t.element, *t)).collect();
+    for node in dom.descendants(dom.root()) {
+        let n = dom.node(node);
+        if n.dirty == Dirty::Deleted || n.dirty == Dirty::Clean {
+            continue;
+        }
+        let Some(e) = dom.element(node) else { continue };
+        let Some(table) = tables.get(&e.name) else { continue };
+        let kids: Vec<(NodeId, Option<u16>, Dirty)> = dom
+            .semantic_children(node)
+            .filter_map(|c| dom.name(c).map(|q| (c, (table.order_index)(q), dom.node(c).dirty)))
+            .collect();
+        if !kids.iter().any(|k| is_dirty_self(k.2)) {
+            continue;
+        }
+        // 已知序号的那些是不是已经不降序了？
+        let known: Vec<u16> = kids.iter().filter_map(|k| k.1).collect();
+        if known.windows(2).all(|w| w[0] <= w[1]) {
+            continue;
+        }
+        // 稳定排序：序号未知的排在最后，相对次序不变
+        let mut want: Vec<NodeId> = kids.iter().map(|k| k.0).collect();
+        want.sort_by_key(|id| {
+            let k = kids.iter().find(|k| k.0 == *id).expect("来自同一张表");
+            (k.1.unwrap_or(u16::MAX), kids.iter().position(|x| x.0 == *id).unwrap_or(0))
+        });
+        for id in want {
+            out.push(NodeEdit::Move { node: id, parent: Target::Node(node), before: None });
         }
     }
     out

@@ -332,6 +332,11 @@ fn op_targets(s: &EditSession, op: &EditOp) -> Vec<(Option<PartId>, NodeId)> {
 fn guard_sdt(s: &EditSession, op: &EditOp) -> Result<()> {
     for (part, node) in op_targets(s, op) {
         let dom = s.dom_in(part)?;
+        // 目标节点根本不在这个 part 里（调用方给了别的 part 的 `NodeId`，或者早就被删了）：
+        // 这里不能走祖先链——那会越界 panic（不变式 4）。让操作自己去拒
+        if (node.0 as usize) >= dom.node_count() {
+            continue;
+        }
         let Some((info, why)) = refusing_sdt(dom, node) else { continue };
         let what = info
             .alias
@@ -1252,14 +1257,18 @@ fn delete_range_tracked(
                 if matches!(site_of(dom, run.node, from.para, &t.author), TrackSite::Deleted(_)) {
                     continue;
                 }
-                let structural = run.segments.iter().any(|sg| is_structural(&sg.kind));
-                if structural
-                    && run.field.is_none()
-                    && run.segments.iter().any(|sg| {
-                        is_field_structure(&sg.kind) && fields.field_of(run.node).is_none()
-                    })
-                {
-                    kept_structure += 1;
+                // 结构 run（`fldChar` / `instrText` / 批注引用 / 注释分隔符）一律**原地保留**，
+                // 与不追踪那条路同一条规则（`EDIT-03`）。追踪时更要紧：本作者自己插的内容会被
+                // 真删，真删掉半个字段另一半就成了孤儿，`FLD-13` 从此每次保存都失败
+                // （`TEST-07` 在「追踪插题注 → 追踪删它一段」上抓到的）
+                if run.segments.iter().any(|sg| is_structural(&sg.kind)) {
+                    if run.field.is_none()
+                        && run.segments.iter().any(|sg| {
+                            is_field_structure(&sg.kind) && fields.field_of(run.node).is_none()
+                        })
+                    {
+                        kept_structure += 1;
+                    }
                     continue;
                 }
                 // 本作者自己插的 → 真删（Word：自己插的字删掉就没了）
@@ -2435,7 +2444,23 @@ fn add_comment(
 
     // 批注部件与条目（`SAVE-05` + `EDIT-06`）
     let comments_part = s.ensure_comments_part()?;
-    let id = s.document().comments.next_id().to_string();
+    // `w:id` 要在**范围索引**里也没人用过：条目删了、范围还留在索引里等物化时，只看
+    // `comments.xml` 会把那个号再发一次（保存时 `SPAN_DUP_START`，`TEST-07` 抓到的）
+    let id = {
+        let from_entries = s.document().comments.next_id();
+        let part = s.main_part();
+        let from_index = s
+            .spans_of(part)
+            .map(|idx| {
+                idx.live()
+                    .filter(|sp| sp.class() == crate::span::RangeClass::Comment)
+                    .filter_map(|sp| sp.pair_id().trim().parse::<u32>().ok())
+                    .max()
+                    .map_or(1, |m| m + 1)
+            })
+            .unwrap_or(1);
+        from_entries.max(from_index).to_string()
+    };
     let para_id = fresh_para_id(s, s.document().comments.items.len() as u32 + 1);
     let mut entry = NewElement::new(w(LocalName::Comment)).with_attr(w(LocalName::Id), id.clone());
     entry.push_attr(w(LocalName::Author), c.author.clone());
@@ -3063,9 +3088,21 @@ pub(super) fn plan_merge_with_next(
 // ---- 书签（`EDIT-03` AddBookmark / RemoveBookmark，任务 2.9）-----------------------------------
 
 /// `EDIT-06`：书签 `w:id` 在 part 内取最大值 + 1。
-fn next_bookmark_id(s: &EditSession) -> u32 {
+fn next_bookmark_id(s: &mut EditSession) -> u32 {
+    let part = s.main_part();
+    // 索引里的书签也要算：标记被某次编辑从 DOM 里摘掉、范围还留着等 `SPAN-09` 重新物化时，
+    // 只看 DOM 就会把那个号再发一次，保存时撞成 `SPAN_DUP_START`（`TEST-07` 抓到的）
+    let mut max = s
+        .spans_of(part)
+        .map(|idx| {
+            idx.live()
+                .filter(|sp| sp.kind.bookmark_name().is_some())
+                .filter_map(|sp| sp.pair_id().trim().parse::<u32>().ok())
+                .max()
+                .unwrap_or(0)
+        })
+        .unwrap_or(0);
     let dom = s.dom();
-    let mut max = 0u32;
     for n in dom.descendants(dom.root()) {
         if dom.node(n).dirty == Dirty::Deleted {
             continue;
@@ -3436,13 +3473,10 @@ fn toggle_checkbox(s: &mut EditSession, id: crate::span::FieldId) -> Result<Muta
     let crate::span::FormData::CheckBox { node, checked, .. } = data else {
         return Err(unsupported("这个字段不是复选框"));
     };
-    let head = f.form.head();
     let want = !checked;
     let existing = dom.semantic_children(node).find(|&c| dom.is(c, w(LocalName::Checked)));
     let mut plan = MutationPlan::new(part);
-    if let Some(p) = dom.ancestors(head).find(|&a| dom.is(a, w(LocalName::P))) {
-        plan.touch(p);
-    }
+    touch_field_paragraphs(dom, &mut plan, f);
     match existing {
         Some(c) => plan.node_edits.push(NodeEdit::SetAttr {
             node: Target::Node(c),
@@ -3481,9 +3515,7 @@ fn set_form_text(
         && let Some(t) = dom.semantic_children(results[0]).find(|&c| dom.is(c, w(LocalName::T)))
     {
         let mut plan = MutationPlan::new(part);
-        if let Some(p) = dom.ancestors(results[0]).find(|&a| dom.is(a, w(LocalName::P))) {
-            plan.touch(p);
-        }
+        touch_field_paragraphs(dom, &mut plan, f);
         set_segment_text(dom, t, text, &mut plan);
         return s.commit_plan(plan);
     }
@@ -3500,9 +3532,7 @@ fn set_form_text(
         }
     };
     let mut plan = MutationPlan::new(part);
-    if let Some(p) = dom.ancestors(f.form.head()).find(|&a| dom.is(a, w(LocalName::P))) {
-        plan.touch(p);
-    }
+    touch_field_paragraphs(dom, &mut plan, f);
     let new_run = {
         let mut r = NewElement::new(w(LocalName::R));
         if let Some(p) = &rpr {
@@ -3578,10 +3608,9 @@ fn set_field_result_props(
         }
     }
     let dom = s.dom();
+    let f = field_of(s, id)?;
     let mut plan = MutationPlan::new(part);
-    if let Some(p) = dom.ancestors(head).find(|&a| dom.is(a, w(LocalName::P))) {
-        plan.touch(p);
-    }
+    touch_field_paragraphs(dom, &mut plan, f);
     let flavor = s.flavor();
     for r in &results {
         if !dom.is(*r, w(LocalName::R)) {
@@ -3592,6 +3621,27 @@ fn set_field_result_props(
     }
     result.absorb(s.commit_plan(plan)?);
     Ok(result)
+}
+
+/// 字段涉及的每个段落都要刷新投影（`MOD-13`）：跨段字段的结果区横跨好几段，只刷 begin
+/// 那一段的话，别的段落的投影就停在编辑之前（`TEST-07` 一步就抓到：`SetFormText` 改完，
+/// 另一段的 `FieldBlockResult` 预览还是旧的）。
+fn touch_field_paragraphs(dom: &Dom, plan: &mut MutationPlan, f: &crate::span::FieldSpan) {
+    let para_of = |n: NodeId| {
+        std::iter::once(n).chain(dom.ancestors(n)).find(|&a| dom.is(a, w(LocalName::P)))
+    };
+    let nodes = f
+        .form
+        .structure_nodes()
+        .into_iter()
+        .chain(f.form.result_nodes().iter().copied())
+        .chain(std::iter::once(f.form.head()))
+        .chain(std::iter::once(f.form.tail()));
+    for n in nodes {
+        if let Some(p) = para_of(n) {
+            plan.touch(p);
+        }
+    }
 }
 
 /// `FLD-09`：块字段更新——用给定的块替换 `separate..end` 之间的全部节点。

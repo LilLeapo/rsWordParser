@@ -240,21 +240,32 @@ pub(crate) fn insert_row(
             source: src,
         });
     }
-    // 追踪：整行插入 → `trPr/w:ins`（`spec/08`）。`trPr` 是模板行的字节克隆，标记加在克隆之后
+    // 追踪：整行插入 → `trPr/w:ins`（`spec/08`）。`trPr` 是模板行的字节克隆，标记加在克隆之后。
+    // 模板行**自己的**修订标记不跟着走：新行是这次插进来的，不是模板那次被删 / 被改的
+    // （`TEST-07` 在「先追踪删一行、再照它插一行」上抓到过：`w:ins` 落在 `w:del` 后面，
+    // `PROP-05` 的顺序自检当场拦下）
+    let src_revs = tr_pr.is_some_and(|src| row_revision_marks(s.dom(), src).next().is_some());
     match (&mut tracker, tr_pr) {
-        (None, Some(src)) => plan.node_edits.push(NodeEdit::InsertClone {
+        (None, Some(src)) if !src_revs => plan.node_edits.push(NodeEdit::InsertClone {
             parent: Target::New(row_k),
             before: None,
             source: src,
         }),
+        (None, Some(src)) => {
+            clone_row_props_without_revisions(&mut plan, s.dom(), row_k, src);
+        }
         (None, None) => {}
         (Some(t), Some(src)) => {
             let k = plan.node_edits.len();
-            plan.node_edits.push(NodeEdit::InsertClone {
-                parent: Target::New(row_k),
-                before: None,
-                source: src,
-            });
+            if src_revs {
+                clone_row_props_without_revisions(&mut plan, s.dom(), row_k, src);
+            } else {
+                plan.node_edits.push(NodeEdit::InsertClone {
+                    parent: Target::New(row_k),
+                    before: None,
+                    source: src,
+                });
+            }
             plan.node_edits.push(NodeEdit::Insert {
                 parent: Target::New(k),
                 before: None,
@@ -1013,4 +1024,38 @@ pub(crate) fn new_table(
         tbl.push_child(tr);
     }
     tbl
+}
+
+/// 行属性里的修订标记（`trPr/w:ins` / `w:del` / `w:trPrChange`）。
+fn row_revision_marks(dom: &Dom, tr_pr: NodeId) -> impl Iterator<Item = NodeId> + '_ {
+    element_children(dom, tr_pr).into_iter().filter(move |&c| {
+        [LocalName::Ins, LocalName::Del, LocalName::TrPrChange].iter().any(|&l| dom.is(c, w(l)))
+    })
+}
+
+/// 把模板行的 `trPr` 逐个子元素克隆过去，**跳过修订标记**。子元素各自还是字节克隆
+/// （`XML-12` 规则 F），只是那几个不跟着走。
+fn clone_row_props_without_revisions(
+    plan: &mut MutationPlan,
+    dom: &Dom,
+    row_k: usize,
+    src: NodeId,
+) {
+    let k = plan.node_edits.len();
+    plan.node_edits.push(NodeEdit::Insert {
+        parent: Target::New(row_k),
+        before: None,
+        node: NewElement::new(w(LocalName::TrPr)),
+    });
+    let revs: Vec<NodeId> = row_revision_marks(dom, src).collect();
+    for c in element_children(dom, src) {
+        if revs.contains(&c) {
+            continue;
+        }
+        plan.node_edits.push(NodeEdit::InsertClone {
+            parent: Target::New(k),
+            before: None,
+            source: c,
+        });
+    }
 }

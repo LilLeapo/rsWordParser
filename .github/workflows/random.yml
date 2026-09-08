@@ -1,0 +1,20 @@
+name: random
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * *"
+
+jobs:
+  # TEST-07（spec/18 门 5）：1,000 条随机编辑序列 × 100 步。PR 上跑的是缺省的 100 条
+  # （ci.yml 的 `cargo test --workspace` 里），这里跑全量。
+  random-ops:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: TEST-07 1,000 条随机序列
+        env:
+          RSWORD_RANDOM_SEQUENCES: "1000"
+          RSWORD_RANDOM_STEPS: "100"
+        run: cargo test -p rsword --release --test random_ops -- --nocapture

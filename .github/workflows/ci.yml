@@ -37,4 +37,5 @@ jobs:
       - run: cargo run -p diff-parse -- --scope all
       # 真实 Word 语料（docs/07，2026-09-07 收到 124 份）：TS 参考输出的差分除 KNOWN_DIFFS.md 外为 0
       - run: cargo run -p diff-parse -- --corpus corpus/real
-  # fuzz 在 .github/workflows/fuzz.yml（手动 / 每周），不挂在每次 push 上。
+  # fuzz 在 .github/workflows/fuzz.yml（手动 / 每周）、TEST-07 的 1,000 条随机序列在
+  # random.yml（每天），都不挂在每次 push 上；`cargo test --workspace` 里已经跑了缺省的 100 条。

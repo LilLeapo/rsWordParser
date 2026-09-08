@@ -27,39 +27,73 @@ pub struct MaterializePlan {
     pub markers: Vec<(usize, SpanId, SpanEnd)>,
     /// `SPAN-09` 修复掉的范围。
     pub removed: Vec<SpanId>,
+    /// 号撞了、重新发过号的书签：`(范围, 新的 w:id)`。
+    pub reminted: Vec<(SpanId, String)>,
     pub diagnostics: Vec<Diagnostic>,
 }
 
 impl MaterializePlan {
     pub fn is_empty(&self) -> bool {
-        self.edits.is_empty() && self.removed.is_empty() && self.diagnostics.is_empty()
+        self.edits.is_empty()
+            && self.removed.is_empty()
+            && self.diagnostics.is_empty()
+            && self.reminted.is_empty()
     }
 }
 
 /// `SPAN-08` + `SPAN-09`：产出保存前要做的标记变更（只读）。
 pub fn plan_save(dom: &Dom, index: &SpanIndex) -> MaterializePlan {
     let mut plan = MaterializePlan::default();
-    let mut seen: HashMap<(RangeClass, &str), SpanId> = HashMap::new();
+    let mut seen: HashMap<(RangeClass, String), SpanId> = HashMap::new();
+    // 书签号撞了就重新发一个：`w:bookmarkStart/@w:id` 只在 part 内配对 `w:bookmarkEnd`，
+    // 没有别处引用它，重发是安全的（`EDIT-06`）。批注 / 权限 / 移动的 id 是跨 part 的引用，
+    // 不能改——那些仍旧只记诊断
+    let mut next_bookmark = index
+        .live()
+        .filter(|sp| sp.class() == RangeClass::Bookmark)
+        .filter_map(|sp| sp.pair_id().trim().parse::<u32>().ok())
+        .max()
+        .unwrap_or(0);
     for span in index.live() {
         if span.implicit {
             continue;
         }
+        let mut span = std::borrow::Cow::Borrowed(span);
         if !span.pair_id().is_empty() {
-            let key = (span.class(), span.pair_id());
+            let key = (span.class(), span.pair_id().to_string());
             if let Some(prev) = seen.insert(key, span.id) {
-                plan.diagnostics.push(diag(
-                    dom,
-                    span,
-                    DiagCode::SpanDupStart,
-                    format!(
-                        "{:?} w:id=\"{}\" 在 part 内不唯一（另一个是 span {}）",
-                        span.class(),
-                        span.pair_id(),
-                        prev.0
-                    ),
-                ));
+                if span.class() == RangeClass::Bookmark {
+                    next_bookmark += 1;
+                    let id = next_bookmark.to_string();
+                    let mut fixed = span.clone().into_owned();
+                    if let RangeKind::Bookmark { id: slot, .. } = &mut fixed.kind {
+                        *slot = id.clone();
+                    }
+                    plan.reminted.push((fixed.id, id));
+                    span = std::borrow::Cow::Owned(fixed);
+                } else {
+                    // 批注 / 权限 / 移动的 `w:id` 是跨 part 的引用（`comments.xml` 的条目、
+                    // 移动的配对名），改不得。同一个号出现两次时后来那个没有条目可指——
+                    // 把它摘掉，别写进文件（写了 Word 会当成损坏）。记一条诊断留痕。
+                    let mut d = diag(
+                        dom,
+                        &span,
+                        DiagCode::SpanDupStart,
+                        format!(
+                            "{:?} w:id=\"{}\" 在 part 内不唯一（另一个是 span {}），后一个不物化",
+                            span.class(),
+                            span.pair_id(),
+                            prev.0
+                        ),
+                    );
+                    d.origin = ValidationOrigin::PreExistingDamage;
+                    plan.diagnostics.push(d);
+                    plan.removed.push(span.id);
+                    continue;
+                }
             }
         }
+        let span = &*span;
         match (span.start, span.end) {
             (Some(s), Some(e)) => {
                 if index.compare(dom, &s, &e).is_none() {
@@ -72,12 +106,20 @@ pub fn plan_save(dom: &Dom, index: &SpanIndex) -> MaterializePlan {
                     continue;
                 }
                 if !index.is_ordered(dom, span) {
-                    plan.diagnostics.push(diag(
+                    // 两端被变换挪交叉了（`SPAN-05` 不许反序）。整对不写会让标记就此消失；
+                    // 收成起点上的**空范围**再物化——位置留住了，Word 也认空的批注 / 书签范围。
+                    // 记一条 `PreExistingDamage` 级的诊断：修好了，不该让保存失败，但要看得见。
+                    // （`TEST-07` 在「同段两条重叠批注 + 反复重写块字段结果」上抓到的）
+                    let mut d = diag(
                         dom,
                         span,
                         DiagCode::SpanOrphanEnd,
-                        "起点在终点之后，不物化".to_string(),
-                    ));
+                        "起点在终点之后，收成空范围".to_string(),
+                    );
+                    d.origin = crate::diag::ValidationOrigin::PreExistingDamage;
+                    plan.diagnostics.push(d);
+                    let collapsed = RangeSpan { end: span.start, ..span.clone() };
+                    materialize_pair(dom, &collapsed, &mut plan);
                     continue;
                 }
                 materialize_pair(dom, span, &mut plan);
@@ -104,6 +146,13 @@ pub fn apply_save(index: &mut SpanIndex, created: &[Option<NodeId>], plan: &Mate
     for &span in &plan.removed {
         if let Some(s) = index.get_mut(span) {
             s.removed = true;
+        }
+    }
+    for (span, id) in &plan.reminted {
+        if let Some(s) = index.get_mut(*span)
+            && let RangeKind::Bookmark { id: slot, .. } = &mut s.kind
+        {
+            *slot = id.clone();
         }
     }
 }

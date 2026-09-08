@@ -488,24 +488,6 @@ fn test_09_hostile_cell_without_paragraph() {
     assert_refresh_matches_rebuild(&mut s, "hostile InsertBlock");
 }
 
-/// 确定性伪随机（xorshift64*）：失败可复现。
-struct Rng(u64);
-
-impl Rng {
-    fn next(&mut self) -> u64 {
-        let mut x = self.0;
-        x ^= x >> 12;
-        x ^= x << 25;
-        x ^= x >> 27;
-        self.0 = x;
-        x.wrapping_mul(0x2545_F491_4F6C_DD1D)
-    }
-
-    fn below(&mut self, n: usize) -> usize {
-        if n == 0 { 0 } else { (self.next() % n as u64) as usize }
-    }
-}
-
 /// `TEST-07` 的表格子集：随机操作序列，每步断言投影一致、无引擎不变式破坏，定期保存重解析。
 #[test]
 fn test_07_random_table_edit_sequences() {
@@ -527,7 +509,7 @@ fn test_07_random_table_edit_sequences() {
     for (di, path) in docs.iter().enumerate() {
         let bytes = std::fs::read(path).unwrap();
         let mut s = EditSession::open(&bytes).unwrap();
-        let mut rng = Rng(0x9E37_79B9_7F4A_7C15 ^ di as u64);
+        let mut rng = common::Rng(0x9E37_79B9_7F4A_7C15 ^ di as u64);
         for step in 0..STEPS {
             let Some(op) = random_table_op(&s, &mut rng) else { continue };
             let what = format!("{}: step {step} {op:?}", path.display());
@@ -591,7 +573,7 @@ fn table_shapes(doc: &Document) -> Vec<Vec<(Vec<u32>, Vec<String>)>> {
 }
 
 /// 随机挑一个表格相关的操作；文档里没有表格时 `None`。
-fn random_table_op(s: &EditSession, rng: &mut Rng) -> Option<EditOp> {
+fn random_table_op(s: &EditSession, rng: &mut common::Rng) -> Option<EditOp> {
     let tables: Vec<&TableBlock> = s.document().tables().collect();
     if tables.is_empty() {
         return None;
@@ -652,16 +634,16 @@ fn random_table_op(s: &EditSession, rng: &mut Rng) -> Option<EditOp> {
     })
 }
 
-fn pick_cell(t: &TableBlock, rng: &mut Rng) -> Option<NodeId> {
+fn pick_cell(t: &TableBlock, rng: &mut common::Rng) -> Option<NodeId> {
     let row = t.rows.get(rng.below(t.rows.len()))?;
     row.cells.get(rng.below(row.cells.len())).map(|c| c.node)
 }
 
-fn pick_cell_paragraph(t: &TableBlock, rng: &mut Rng) -> Option<NodeId> {
+fn pick_cell_paragraph(t: &TableBlock, rng: &mut common::Rng) -> Option<NodeId> {
     pick_cell_paragraph_len(t, rng).map(|(n, _)| n)
 }
 
-fn pick_cell_paragraph_len(t: &TableBlock, rng: &mut Rng) -> Option<(NodeId, u32)> {
+fn pick_cell_paragraph_len(t: &TableBlock, rng: &mut common::Rng) -> Option<(NodeId, u32)> {
     let row = t.rows.get(rng.below(t.rows.len()))?;
     let cell = row.cells.get(rng.below(row.cells.len()))?;
     let paras: Vec<&TextBlock> = cell.text_blocks().collect();

@@ -15,27 +15,9 @@ use rsword::model::{Block, Document, ProtectedKind};
 use rsword::package::{Package, RelTarget};
 use rsword::xml::{LocalName, NodeId, NsId, QName};
 
-/// 确定性伪随机（xorshift64*）：失败可复现。
-struct Rng(u64);
-
-impl Rng {
-    fn next(&mut self) -> u64 {
-        let mut x = self.0;
-        x ^= x >> 12;
-        x ^= x << 25;
-        x ^= x >> 27;
-        self.0 = x;
-        x.wrapping_mul(0x2545_F491_4F6C_DD1D)
-    }
-
-    fn below(&mut self, n: usize) -> usize {
-        if n == 0 { 0 } else { (self.next() % n as u64) as usize }
-    }
-}
-
 const GIF_1X1: &str = "R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==";
 
-fn image(rng: &mut Rng) -> NewImage {
+fn image(rng: &mut common::Rng) -> NewImage {
     let gif = rng.below(2) == 0;
     NewImage {
         bytes: common::b64(if gif { GIF_1X1 } else { common::PNG_1X1 }),
@@ -97,12 +79,12 @@ fn drawings_with_blip(s: &EditSession) -> Vec<NodeId> {
         .collect()
 }
 
-fn random_op(s: &EditSession, rng: &mut Rng, step: usize) -> Option<EditOp> {
+fn random_op(s: &EditSession, rng: &mut common::Rng, step: usize) -> Option<EditOp> {
     let doc = s.document();
     let blocks = content_blocks(doc);
     let paras = text_paragraphs(doc);
-    let pick = |rng: &mut Rng, v: &[NodeId]| v.get(rng.below(v.len())).copied();
-    let at = |rng: &mut Rng| {
+    let pick = |rng: &mut common::Rng, v: &[NodeId]| v.get(rng.below(v.len())).copied();
+    let at = |rng: &mut common::Rng| {
         pick(rng, &blocks)
             .map(BlockPos::after)
             .unwrap_or_else(|| BlockPos::after(doc.main.last().expect("至少有 sectPr").node()))
@@ -216,7 +198,7 @@ fn test_07_random_embedded_edit_sequences() {
         let bytes = std::fs::read(path).unwrap();
         let (base_dangling, base_orphans) = dangling_and_orphans(&bytes);
         let mut s = EditSession::open(&bytes).unwrap();
-        let mut rng = Rng(0xD1B5_4A32_D192_ED03 ^ (di as u64 + 1));
+        let mut rng = common::Rng(0xD1B5_4A32_D192_ED03 ^ (di as u64 + 1));
         for step in 0..STEPS {
             let Some(op) = random_op(&s, &mut rng, step) else { continue };
             let what = format!("{}: step {step} {op:?}", path.display());

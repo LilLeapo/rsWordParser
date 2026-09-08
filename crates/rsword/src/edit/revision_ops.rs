@@ -142,8 +142,88 @@ pub(crate) fn one(s: &mut EditSession, rev: RevisionId, accept: bool) -> Result<
     let e = s.document().revisions.get(rev).ok_or_else(|| {
         Error::edit(DiagCode::EditPlanInvalid, format!("修订 {} 不在索引里", rev.0))
     })?;
-    let jobs = vec![job_of(s, e)];
+    // 一个字段、一个表格的列改动都要整个一起解决（见 `field_group` / `table_group`）
+    let mut group = field_group(s, e);
+    for id in table_group(s, e) {
+        if !group.contains(&id) {
+            group.push(id);
+        }
+    }
+    group.sort_by_key(|&id| {
+        // 网格快照最后还原：它整块替换 `w:tblGrid`，前面掉格时删掉的 `w:gridCol` 会被它盖掉
+        let last = s
+            .document()
+            .revisions
+            .get(id)
+            .is_some_and(|x| x.kind == crate::model::RevKind::TableGridChange);
+        (last, id.0)
+    });
+    let jobs: Vec<Job> = group
+        .into_iter()
+        .filter_map(|id| s.document().revisions.get(id))
+        .map(|e| job_of(s, e))
+        .collect();
     apply_jobs(s, jobs, accept)
+}
+
+/// 与这条修订同属**一次列改动**的那几条：一张表的 `tblGridChange` 与它的 `cellIns` / `cellDel`
+/// 是同一次操作的两面，单独解决一面就会让网格与行里的格数对不上（`SAVE_TABLE_GRID`）。
+fn table_group(s: &EditSession, e: &crate::model::RevisionEntry) -> Vec<RevisionId> {
+    use crate::model::RevKind;
+    if !matches!(e.kind, RevKind::TableGridChange | RevKind::CellInsert | RevKind::CellDelete) {
+        return Vec::new();
+    }
+    let Ok(dom) = s.dom_in(Some(e.part)) else { return Vec::new() };
+    let table_of = |n: NodeId| dom.ancestors(n).find(|&a| dom.is(a, w(LocalName::Tbl)));
+    let Some(tbl) = table_of(e.meta.node) else { return Vec::new() };
+    s.document()
+        .revisions
+        .entries()
+        .iter()
+        .filter(|x| x.part == e.part && x.author() == e.author())
+        .filter(|x| {
+            matches!(x.kind, RevKind::TableGridChange | RevKind::CellInsert | RevKind::CellDelete)
+        })
+        .filter(|x| table_of(x.meta.node) == Some(tbl))
+        .map(|x| x.id)
+        .collect()
+}
+
+/// 与这条修订同属一个字段的那几条（含它自己），按索引序。
+///
+/// 追踪删除时**每个内容项各包一层** `w:del`（7.2：一个包裹顶替一个内容项，锚点才不动），
+/// 于是一个字段的 begin / 指令 / separate / 结果 / end 分在好几条修订里。单独接受其中一条就
+/// 丢了半个字段，另一半成孤儿——`FLD-13` 从此每次保存都失败（`TEST-07` 用两步就抓到了：
+/// 追踪删一段盖住 `REF` 字段 → 接受其中一条）。
+fn field_group(s: &EditSession, e: &crate::model::RevisionEntry) -> Vec<RevisionId> {
+    let Some(fields) = s.document().fields_in(e.part) else { return vec![e.id] };
+    let Ok(dom) = s.dom_in(Some(e.part)) else { return vec![e.id] };
+    let ids_under = |node: NodeId| -> Vec<crate::span::FieldId> {
+        let mut out: Vec<crate::span::FieldId> = Vec::new();
+        for n in dom.descendants(node) {
+            if dom.node(n).dirty == Dirty::Deleted {
+                continue;
+            }
+            if let Some(f) = fields.field_of(n)
+                && !out.contains(&f.id)
+            {
+                out.push(f.id);
+            }
+        }
+        out
+    };
+    let mine = ids_under(e.meta.node);
+    if mine.is_empty() {
+        return vec![e.id];
+    }
+    s.document()
+        .revisions
+        .entries()
+        .iter()
+        .filter(|x| x.part == e.part && x.kind == e.kind && x.author() == e.author())
+        .filter(|x| x.id == e.id || ids_under(x.meta.node).iter().any(|f| mine.contains(f)))
+        .map(|x| x.id)
+        .collect()
 }
 
 /// `AcceptAll` / `RejectAll`（`author` 给定时只处理那个作者的）。
@@ -166,7 +246,12 @@ pub(crate) fn all(
     let (mut marks, content): (Vec<Job>, Vec<Job>) =
         picked.into_iter().partition(|j| j.kind.is_para_mark());
     marks.reverse();
-    let jobs: Vec<Job> = content.into_iter().chain(marks).collect();
+    // 网格快照排在内容那一组的最后：`Restore` 整块换掉 `w:tblGrid`，掉格时删掉的 `w:gridCol`
+    // 会被它盖掉。反过来（先还原再掉格）就会把列删两遍（`TEST-07` 两步就抓到了：
+    // 追踪插一列 → 拒绝全部）
+    let (grid, content): (Vec<Job>, Vec<Job>) =
+        content.into_iter().partition(|j| j.kind == crate::model::RevKind::TableGridChange);
+    let jobs: Vec<Job> = content.into_iter().chain(grid).chain(marks).collect();
     apply_jobs(s, jobs, accept)
 }
 
@@ -248,8 +333,11 @@ fn plan_job(
     let part = Some(job.part);
     let dom = s.dom_in(part)?;
     let mut plan = MutationPlan::new(job.part);
-    if let Some(p) = dom.ancestors(job.node).find(|&x| dom.is(x, w(LocalName::P))) {
-        plan.touch(p);
+    match dom.ancestors(job.node).find(|&x| dom.is(x, w(LocalName::P))) {
+        Some(p) => plan.touch(p),
+        // 不在段落里的修订（body 级 `w:sectPr` 的 `sectPrChange`、行 / 格标记…）：
+        // 没有块可以刷，整体重建。解决修订不是热路径，稳比快要紧（`TEST-07` 抓到的）
+        None => plan.structure_changed = true,
     }
     match act {
         Act::Unsupported => {
@@ -435,10 +523,26 @@ fn restore(
     let snapshot = live_children(dom, change).find(|&c| dom.is(c, w(inner)));
     let mut restored = 0usize;
     if let Some(snapshot) = snapshot {
+        // 还原的子元素要与**留下来的**那些排在一起（`PROP-05`）：`w:pPr` 里 `w:rPr`（33）不在
+        // 快照里、原地不动，还原的 `w:ind`（22）就得插在它前面。一律插在 `*Change` 之前会排到
+        // 它后面去，保存时的顺序自检当场拦下（`TEST-07` 五步就抓到：追踪改两次段落属性 +
+        // 中间拒绝一次）
+        let order = crate::semantic::props::TABLES
+            .iter()
+            .find(|t| dom.name(container) == Some(t.element))
+            .map(|t| t.order_index);
         for c in live_children(dom, snapshot).collect::<Vec<_>>() {
+            let before = order
+                .zip(dom.name(c).and_then(|q| order.and_then(|f| f(q))))
+                .and_then(|(f, mine)| {
+                    live_children(dom, container)
+                        .filter(|&k| k != change)
+                        .find(|&k| dom.name(k).and_then(f).is_some_and(|i| i > mine))
+                })
+                .unwrap_or(change);
             plan.node_edits.push(NodeEdit::InsertClone {
                 parent: Target::Node(container),
-                before: Some(change),
+                before: Some(before),
                 source: c,
             });
             restored += 1;

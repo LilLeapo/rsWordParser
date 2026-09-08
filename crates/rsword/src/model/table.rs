@@ -510,6 +510,38 @@ pub fn box_flows(block: &Block) -> Vec<(&[Block], Option<PartId>)> {
     out
 }
 
+/// 块里有没有内容在**别的 part** 里的文本框（`wps:txbx/@r:txbx` → `word/txbx1.xml`）。
+///
+/// 增量刷新（`MOD-13`）建不出那种内容：外部 part 的 DOM 与索引只在整体 `rebuild` 时装好。
+/// 碰上就退回整体重建（`TEST-07` 一步就抓到：`SetShapeStyle` 之后外部文本框的内容空了）。
+pub fn has_external_textbox(block: &Block) -> bool {
+    use crate::model::drawing::Display;
+    let external = |d: Option<&Display>| match d {
+        Some(Display::Drawing(d)) => d.shapes.iter().any(|s| s.txbx_rel.is_some()),
+        _ => false,
+    };
+    for b in Blocks::over(std::slice::from_ref(block)) {
+        let hit = match b {
+            Block::Text(t) => t.inlines.iter().any(|i| {
+                let crate::model::Inline::Run(r) = i else { return false };
+                r.segments.iter().any(|seg| external(seg.display.as_ref()))
+            }),
+            Block::Image(x) => external(x.display.as_ref()),
+            Block::Protected(x) => external(x.display.as_ref()),
+            Block::Table(_) => false,
+        };
+        if hit {
+            return true;
+        }
+        for (content, _) in box_flows(b) {
+            if content.iter().any(has_external_textbox) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 /// 深搜（表格 → 单元格，文本框 → 内容流）找 `part` 里的段落 `para`。`here` 是 `blocks` 所属的 part。
 fn text_block_deep(
     blocks: &[Block],
