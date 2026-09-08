@@ -11,7 +11,9 @@ import { latexToOmml, mathParagraphXml } from '../src/math'
 
 const OUT = process.env.EXPORT_GOLDEN_HOSTILE_OUT
 if (!OUT) throw new Error('EXPORT_GOLDEN_HOSTILE_OUT is not set')
-const DIR = join(OUT, '..', 'fieldgen')
+// 写进仓库的 `fixtures/fieldgen`（`EXPORT_GOLDEN_HOSTILE_OUT` 是 `<repo>/corpus/hostile`）。
+// `try.sh` 下它落在临时目录旁边，照 README 拷过来即可
+const DIR = join(OUT, '..', '..', 'fixtures', 'fieldgen')
 mkdirSync(DIR, { recursive: true })
 
 /** 覆盖 latexToOmml 的每一条分支 */

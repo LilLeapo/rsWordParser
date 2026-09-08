@@ -114,11 +114,25 @@ export async function recordSave(
   let k = 1
   while (existsSync(join(OUT!, `${stem}.save.${k}.json`))) k++
   let documentXml: string | null = null
+  // 每个**被改写的** XML part 的内容（`spec/18` 门 4：保存差分从 documentXml 扩到全部改动的
+  // part）。只收 XML 与 .rels：媒体是二进制，比它没意义，`outputSha256` 已经覆盖。
+  let changedParts: Record<string, string> | null = null
   try {
     const zip = await JSZip.loadAsync(output)
     documentXml = (await zip.file('word/document.xml')?.async('string')) ?? null
+    const srcZip = await JSZip.loadAsync(src)
+    changedParts = {}
+    for (const partName of Object.keys(zip.files).sort()) {
+      const f = zip.files[partName]
+      if (f.dir) continue
+      if (!partName.endsWith('.xml') && !partName.endsWith('.rels')) continue
+      const after = await f.async('string')
+      const before = await srcZip.file(partName)?.async('string')
+      if (before !== after) changedParts[partName] = after
+    }
   } catch {
     documentXml = null
+    changedParts = null
   }
   const payload = {
     test: `${file} > ${name}`,
@@ -127,6 +141,7 @@ export async function recordSave(
     outputSha256: sha256(output),
     outputIdenticalToSource: sha256(output) === sha256(src),
     documentXml,
+    changedParts,
   }
   writeFileSync(join(OUT!, `${stem}.save.${k}.json`), JSON.stringify(payload))
   manifest({ stem, test: `${file} > ${name}`, builder: 'saveDocx', save: `${stem}.save.${k}.json` })

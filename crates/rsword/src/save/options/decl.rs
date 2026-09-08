@@ -475,7 +475,14 @@ pub fn ensure_parts(s: &mut crate::edit::EditSession, opts: &SaveOptions) -> Res
     if (!opts.numbering_new_defs.is_empty() || !opts.numbering_restart_nums.is_empty())
         && s.package().find_name("word/numbering.xml").is_none()
     {
-        let xml = empty_w_part(flavor, "numbering");
+        // 文档本来没有 `word/numbering.xml`：按 TS 的做法用空白模板那份当底子
+        // （项目符号 `numId 1` + 十进制 `numId 2`），不是一个空壳。新定义追加在后面。
+        // Strict 包退回空壳：模板里的命名空间是 Transitional 的
+        let xml = if flavor == PartFlavor::Strict {
+            empty_w_part(flavor, "numbering")
+        } else {
+            crate::save::blank::blank_numbering_xml()
+        };
         s.add_part(main, RelType::Numbering, "word/numbering.xml", CT_NUMBERING, &xml)?;
         created = true;
     }
@@ -511,6 +518,9 @@ fn theme_template(flavor: PartFlavor) -> String {
         )
     };
     let slot = |tag: &str, hex: &str| format!(r#"<a:{tag}><a:srgbClr val="{hex}"/></a:{tag}>"#);
+    let sys_slot = |tag: &str, val: &str, hex: &str| {
+        format!(r#"<a:{tag}><a:sysClr val="{val}" lastClr="{hex}"/></a:{tag}>"#)
+    };
     let fill = r#"<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>"#;
     format!(
         concat!(
@@ -530,8 +540,10 @@ fn theme_template(flavor: PartFlavor) -> String {
         ),
         uri = uri,
         colors = [
-            slot("dk1", "000000"),
-            slot("lt1", "FFFFFF"),
+            // `dk1` / `lt1` 用 `a:sysClr`：Word 自己的主题就是这么写的（跟随系统的窗口 / 文字色），
+            // TS 的模板也是。真要改这两个槽时另有一条路把它换成 `a:srgbClr`（见 `theme_colors`）
+            sys_slot("dk1", "windowText", "000000"),
+            sys_slot("lt1", "window", "FFFFFF"),
             slot("dk2", "44546A"),
             slot("lt2", "E7E6E6"),
             slot("accent1", "4472C4"),

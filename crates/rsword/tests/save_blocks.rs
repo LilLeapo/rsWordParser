@@ -171,6 +171,11 @@ fn compat_08_save_blocks_match_ts_save_docx_output() {
         }
         failed.push((file, detail));
     }
+    // `spec/18` 门 4：比较范围从 `documentXml` 扩到**每个被 TS 改写的 XML part**
+    let (part_stats, part_failed) = compare_changed_parts(&dir, &files, &opts);
+    for line in &part_stats {
+        eprintln!("save-blocks: {line}");
+    }
     eprintln!(
         "save-blocks: {} 用例，{} 等价（其中 {} 份逐字节相同），{} 失败，{} 跳过",
         files.len(),
@@ -188,6 +193,17 @@ fn compat_08_save_blocks_match_ts_save_docx_output() {
     let unexpected: Vec<_> =
         failed.iter().filter(|(f, _)| !INTENTIONAL.iter().any(|(k, _)| k == f)).collect();
     assert!(unexpected.is_empty(), "{} 个用例意外地与 TS saveDocx 输出不等价", unexpected.len());
+    for (case, part, detail) in &part_failed {
+        eprintln!("save-blocks: FAIL part {case} :: {part}\n  {detail}");
+    }
+    let unexpected: Vec<_> = part_failed
+        .iter()
+        .filter(|(case, part, _)| {
+            !PART_INTENTIONAL.iter().any(|(p, _)| p == part)
+                && !INTENTIONAL.iter().any(|(k, _)| k == case)
+        })
+        .collect();
+    assert!(unexpected.is_empty(), "{} 个 part 意外地与 TS 不等价", unexpected.len());
     // 必须覆盖的 text-patch 用例
     for must in [
         "insert-and-layout__001.save.8.json",
@@ -222,4 +238,152 @@ fn compat_08_save_blocks_match_ts_save_docx_output() {
             "{f} 现在与 TS 等价（有意差异：{why}），请从 INTENTIONAL 移除"
         );
     }
+}
+
+/// 整个 part 就是**分配细节**、与 TS 不可能逐项相同的那些（`spec/18` 门 4 的登记）。
+const PART_INTENTIONAL: &[(&str, &str)] = &[
+    (
+        "[Content_Types].xml",
+        "TS 每次保存整份重写并按自己的顺序排 Default / Override；我们只在新建 part 时补一条（`SAVE-05`），未变的原字节不动（不变式 1）",
+    ),
+    (
+        "word/_rels/document.xml.rels",
+        "新媒体 part 的命名：TS 叫 `media/aidocs{N}.{ext}` / `media/aidocsink{N}.png`，我们按 6.7 的规则叫 `media/image{N}.{ext}`（第一个空闲的 N）。`rId` 本身不比——这里比的是 `(类型, 目标, 模式)` 的多重集合",
+    ),
+    (
+        "word/comments.xml",
+        "我们保留原 part 根元素上的 `mc:Ignorable`；TS 整份重写成裸根。保留更忠实（不变式 1）",
+    ),
+    (
+        "word/header1.xml",
+        "水印：我们把水印段落**加进**原有页眉；TS 把页眉正文整个换成只剩水印那一段。页眉里本来有内容时 TS 的做法会把它丢掉",
+    ),
+    (
+        "word/footnotes.xml",
+        "`SAVE-05` 新建注释 part 的模板：TS 的分隔段带 `pPr/spacing`、引用 run 带 `rPr/vertAlign`，我们发的是最小合法形态。两者 Word 都认",
+    ),
+    ("word/endnotes.xml", "同 `word/footnotes.xml`"),
+    (
+        "word/commentsExtended.xml",
+        "`w15:paraId` 是分配细节（TS 从 `10001112` 起数、我们按 `EDIT-06` 铸）；另外我们给回复写 `w15:paraIdParent`，TS 不写（真实 Word 是写的，`docs/09` 第三轮）",
+    ),
+    (
+        "word/styles.xml",
+        "`styleUpsert` 建的样式我们写 `w:type`，TS 不写。没有 `w:type` 的 `w:style` 不合 schema",
+    ),
+    (
+        "word/settings.xml",
+        "TS 整份从自己的模型重写（顺手丢掉源里的 `w:zoom`、补自己的默认项）；我们只按 `PROP-06` 合并请求里的字段，别的原字节不动",
+    ),
+    (
+        "docProps/core.xml",
+        "没给 `savedAt` 时 TS 照样把 `dcterms:modified` 盖成**保存那一刻**；我们不动它（`SAVE-07`：单独设 `savedAt` 都不该让未编辑的文档产生输出）。对照件里记的是导语料那天的时间，本来就不可能对上",
+    ),
+];
+
+/// 门 4：`changedParts` 里每个 part 的规范化对照。返回 `(统计行, 失败明细)`。
+///
+/// `.rels` 的 `rId` 是分配细节（TS 从 `rId100` 起、我们按 `EDIT-06` 取最大值 + 1），逐项比没有
+///意义——比**关系的类型与目标的多重集合**：语义一样就算等价。
+fn compare_changed_parts(
+    dir: &std::path::Path,
+    files: &[std::path::PathBuf],
+    opts: &CanonOptions<'_>,
+) -> (Vec<String>, Vec<(String, String, String)>) {
+    let mut seen: BTreeMap<String, usize> = BTreeMap::new();
+    let mut equal: BTreeMap<String, usize> = BTreeMap::new();
+    let mut failed: Vec<(String, String, String)> = Vec::new();
+    for path in files {
+        let file = path.file_name().unwrap().to_string_lossy().to_string();
+        let case: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        let Some(parts) = case["changedParts"].as_object() else { continue };
+        let stem = file.split(".save.").next().unwrap();
+        let Ok(bytes) = std::fs::read(dir.join(format!("{stem}.docx"))) else { continue };
+        let mut session = match EditSession::open(&bytes) {
+            Ok(s) => s,
+            Err(_) => continue,
+        };
+        let Ok(outcome) = apply_save_blocks(&mut session, &case["blocks"], &case["options"]) else {
+            continue;
+        };
+        let Ok(saved) = session.save_with(&outcome.save_options) else { continue };
+        let Ok(mut pkg) = Package::open(&saved) else { continue };
+        for (name, content) in parts {
+            if name == "word/document.xml" {
+                continue; // 主 part 由上面那段专门比
+            }
+            *seen.entry(name.clone()).or_default() += 1;
+            let Some(text) = content.as_str() else { continue };
+            let Some(id) = pkg.find_name(name) else {
+                failed.push((file.clone(), name.clone(), "我们的包里没有这个 part".into()));
+                continue;
+            };
+            let Ok(Some(ours)) = pkg.dom(id) else {
+                failed.push((file.clone(), name.clone(), "这个 part 不是 XML".into()));
+                continue;
+            };
+            let Ok(theirs) = Dom::parse(PartId(0), text.as_bytes()) else {
+                failed.push((file.clone(), name.clone(), "TS 的内容解析不了".into()));
+                continue;
+            };
+            let same = if name.ends_with(".rels") {
+                rel_multiset(ours) == rel_multiset(&theirs)
+            } else {
+                canonical(ours, ours.root(), opts) == canonical(&theirs, theirs.root(), opts)
+            };
+            if same {
+                *equal.entry(name.clone()).or_default() += 1;
+            } else {
+                let detail = if name.ends_with(".rels") {
+                    format!(
+                        "关系集合不同\n    ours: {:?}\n    ts:   {:?}",
+                        rel_multiset(ours),
+                        rel_multiset(&theirs)
+                    )
+                } else {
+                    match first_difference(
+                        &canonical(ours, ours.root(), opts),
+                        &canonical(&theirs, theirs.root(), opts),
+                    ) {
+                        Some((x, y)) => format!("规范化文本差异\n    ours: {x}\n    ts:   {y}"),
+                        None => "规范化文本相同但比较判定不等（不该发生）".into(),
+                    }
+                };
+                failed.push((file.clone(), name.clone(), detail));
+            }
+        }
+    }
+    let mut stats: Vec<String> = Vec::new();
+    let total: usize = seen.values().sum();
+    let ok: usize = equal.values().sum();
+    stats.push(format!(
+        "门 4：`changedParts` 里主 part 之外的 {total} 项，{ok} 项等价、{} 项不等价（{} 种 part）",
+        total - ok,
+        seen.len()
+    ));
+    for (name, n) in &seen {
+        let e = equal.get(name).copied().unwrap_or(0);
+        if e != *n {
+            stats.push(format!("  {name}: {e} / {n} 等价"));
+        }
+    }
+    (stats, failed)
+}
+
+/// `.rels` 的语义视图：`(类型, 目标, 模式)` 的多重集合。`rId` 是分配细节，不进比较。
+fn rel_multiset(dom: &Dom) -> BTreeMap<(String, String, String), usize> {
+    let mut out: BTreeMap<(String, String, String), usize> = BTreeMap::new();
+    let attr = |n: NodeId, name: &str| {
+        dom.element(n)
+            .and_then(|e| e.attrs.iter().find(|a| a.name.local.as_str(dom.interner()) == name))
+            .map(|a| dom.attr_str(a).into_owned())
+            .unwrap_or_default()
+    };
+    for n in dom.descendants(dom.root()) {
+        if dom.name(n).is_some_and(|q| q.local.as_str(dom.interner()) == "Relationship") {
+            let key = (attr(n, "Type"), attr(n, "Target"), attr(n, "TargetMode"));
+            *out.entry(key).or_default() += 1;
+        }
+    }
+    out
 }

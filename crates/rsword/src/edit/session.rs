@@ -462,10 +462,11 @@ impl EditSession {
             return Err(Error::edit(DiagCode::EditPlanInvalid, format!("part {uri} 已存在")));
         }
         let part = self.pkg.register_new_part(uri.clone(), content_type, xml)?;
-        // 关系目标是相对 owner 所在目录的路径
+        // 关系目标是**相对 owner 所在目录**的路径（`PKG-04`）：新 part 不在那个目录底下时
+        // 要用 `../` 走出去。写成包根相对的路径 Word 会解析成 `word/customXml/…` 而找不到
+        // （门 4 的 part 对照抓到的：`sources` 保存选项建的 `customXml/item1.xml`）
         let owner_dir = self.pkg.part(owner).uri.dir().to_string();
-        let target =
-            uri.as_str().strip_prefix(&format!("{owner_dir}/")).unwrap_or(uri.as_str()).to_string();
+        let target = relative_target(&owner_dir, uri.as_str());
         let rid = self.add_relationship(owner, kind, &target, RelTarget::Internal(uri.clone()))?;
         self.add_content_type_override(&uri, content_type)?;
         Ok((part, rid))
@@ -1191,5 +1192,38 @@ mod tests {
         } else {
             assert!(saved.is_ok(), "发布构建只记诊断");
         }
+    }
+}
+
+/// `dir` 目录下的一个 part 指向 `uri` 时该写的相对路径（`PKG-04`）。
+///
+/// 两边共同的前缀去掉，`dir` 剩下几层就补几个 `../`。`dir` 为空（包根的 part）时就是 `uri` 本身。
+fn relative_target(dir: &str, uri: &str) -> String {
+    let from: Vec<&str> = dir.split('/').filter(|s| !s.is_empty()).collect();
+    let to: Vec<&str> = uri.split('/').collect();
+    let common = from.iter().zip(&to).take_while(|(a, b)| a == b).count();
+    let mut out = String::new();
+    for _ in common..from.len() {
+        out.push_str("../");
+    }
+    out.push_str(&to[common..].join("/"));
+    out
+}
+
+#[cfg(test)]
+mod relative_target_tests {
+    use super::relative_target;
+
+    #[test]
+    fn pkg_04_relative_targets() {
+        assert_eq!(relative_target("word", "word/media/image1.png"), "media/image1.png");
+        assert_eq!(relative_target("word", "customXml/item1.xml"), "../customXml/item1.xml");
+        assert_eq!(relative_target("word", "docProps/core.xml"), "../docProps/core.xml");
+        assert_eq!(relative_target("", "word/document.xml"), "word/document.xml");
+        assert_eq!(
+            relative_target("word/charts", "word/charts/embeddings/wb.xlsx"),
+            "embeddings/wb.xlsx"
+        );
+        assert_eq!(relative_target("word/charts", "word/media/i.png"), "../media/i.png");
     }
 }

@@ -459,6 +459,7 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `EDIT-06` 的 `w:id` 在 part 内重号 | 记引擎不变式违反 | **书签**重新发号（`w:bookmarkStart/@w:id` 只在 part 内配对，没有别处引用）；**批注 / 权限 / 移动**的后一个不物化（它们的 id 是跨 part 的引用，改不得，写进去 Word 会当损坏） | 同上：能修就修，修完不该让保存失败。`AddBookmark` / `AddComment` 发号时也改成同时看**范围索引**（条目删了、范围还留着等物化时，只看 DOM / `comments.xml` 会把号再发一次） |
 | `EDIT-03 AcceptRevision / RejectRevision` 的粒度 | 一条修订 | 一个**字段**、一张表的**列改动**整个一起解决 | 追踪删除时每个内容项各包一层 `w:del`（7.2 的锚点规则），一个字段的 begin / 指令 / separate / 结果 / end 就分在好几条修订里；单独接受其中一条会丢半个字段，另一半成孤儿（`FLD-13` 从此每次保存都失败）。表格同理：`tblGridChange` 与 `cellIns` / `cellDel` 是同一次列改动的两面，只解决一面网格与格数就对不上（`SAVE_TABLE_GRID`）。批量解决时网格快照排在最后还原——它整块换掉 `w:tblGrid`，掉格时删的 `w:gridCol` 会被它盖掉 |
 | `EDIT-03 InsertRow` 的模板行 | 克隆模板行的 `trPr` | 模板行**自己的**修订标记（`w:ins` / `w:del` / `trPrChange`）不跟着走 | 新行是这次插进来的，不是模板那次被删 / 被改的。照抄会让新行同时带 `w:ins` 与 `w:del`，`PROP-05` 的顺序自检当场拦下 |
+| `COMPAT-08` 保存差分的比较范围 | `documentXml` | 扩到 `changedParts` 里**每个被 TS 改写的 XML part**；`.rels` 比 `(类型, 目标, 模式)` 的多重集合而不是逐条（`rId` 是分配细节） | `spec/18` 门 4。10 种 part 的差异登记在 `tests/save_blocks.rs` 的 `PART_INTENTIONAL` 里，每条都写了原因：`[Content_Types].xml` 的排序、新媒体 part 的命名、我们保留 `comments.xml` 根上的 `mc:Ignorable`、水印**加进**原页眉而不是替换、注释 part 模板的繁简、`w15:paraId` 与我们多写的 `paraIdParent`、`styleUpsert` 我们写 `w:type`、`settings.xml` 我们只合并请求的字段、没给 `savedAt` 时我们不动 `dcterms:modified` |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -1783,3 +1784,26 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   `docs/05` 的 M6 期旧数字（测试数、嵌入对象域与全域的差分）一并刷新。
   `TEST-09` 的 6 份修订 / 分节 / 绘图病态输入在 7.0 就已接进 `tests/revisions.rs`（三条：
   解析成功、局部降级、无编辑保存字节相同），这里复核确认。
+
+- [x] **7.9c 语料重导与门 4：保存差分扩到每个改动的 part**（2026-09-08，7.0①② 的延后项）：
+  `tools/export-golden/record.ts` 的 `.save.<k>.json` 多记一个 `changedParts`：输出包里
+  **每个与源不同**的 XML / `.rels` part 的内容（媒体是二进制，`outputSha256` 已经覆盖）。
+  重导一遍语料（genoffice 还是 `f105f36` + 32 个未提交改动，与上次导出**同一状态**）：
+  799 份 docx、208 份 save.json、**`expected.json` 一份都没变**——解析侧的 oracle 原封不动，
+  只有 208 份 `save.json` 多了 `changedParts`。50 份 docx 的字节变化经核对**只是 zip 时间戳**
+  （含嵌套 xlsx 的），逐份比过内容后还原，manifest 只留新的 `exported_at`。
+  两份 `hostile` 手工件（`table-grid-mismatch` / `table-cell-no-paragraph`，M3 手搭的、生成器
+  不产）被 `run.sh` 的清理删掉，已还原；`fieldgen` / `blankgen` 两个导出用例原来把产物写到
+  `corpus/fieldgen`（`run.sh` 下的相对路径算错），改成写 `fixtures/fieldgen`。
+  `tests/save_blocks.rs` 加 `compare_changed_parts`：主 part 之外 **289 项**对照，**189 项等价**、
+  100 项按 10 种 part 登记（§8）。`.rels` 比关系的多重集合——`rId` 是分配细节。
+  **这道门当场抓出并修掉两处引擎缺陷**：
+  1. `PKG-04`：`add_part` 算关系目标时，新 part **不在** owner 目录底下就退回包根相对路径
+     （`sources` 建的 `customXml/item1.xml`）。Word 会把它解析成 `word/customXml/…` 而找不到。
+     改成按 `../` 走出去（`relative_target`，带单测）。
+  2. `SAVE-05`：文档本来没有 `word/numbering.xml` 时我们建一个**空壳**，TS 用空白模板那份当底子
+     （项目符号 `numId 1` + 十进制 `numId 2`）。现在复用 7.8a 的 `blank_numbering_xml()`
+     （Strict 包仍退回空壳：模板的命名空间是 Transitional 的）。
+  外加一处形态对齐：新建 `theme1.xml` 的 `dk1` / `lt1` 改用 `a:sysClr`（Word 与 TS 都是这么写的），
+  真要改这两个槽时那条"换成 `a:srgbClr`"的路不变。
+  **642 测试**、九道门仍为 0、保存语料 204 / 208 等价 0 跳过、clippy 零告警。

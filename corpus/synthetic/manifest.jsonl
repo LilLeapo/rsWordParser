@@ -1,4 +1,4 @@
-{"genoffice_commit":"f105f36","genoffice_dirty_files":32,"exported_at":"2026-09-06T05:02:18Z"}
+{"genoffice_commit":"f105f36","genoffice_dirty_files":32,"exported_at":"2026-09-08T03:14:56Z"}
 {"stem":"header-footer-rich__001","test":"header-footer-rich > rich header / footer > keeps an RTL header right-to-left and keeps its alignment side","builder":"buildDocx","sha256":"169ca1ca005614a4426aa2b5630c0e6f3aec87d282e5bd9781a561e1525973dc","parse":"ok"}
 {"stem":"header-footer-rich__001","test":"header-footer-rich > rich header / footer > keeps an RTL header right-to-left and keeps its alignment side","builder":"saveDocx","save":"header-footer-rich__001.save.1.json"}
 {"stem":"header-footer-rich__002","test":"header-footer-rich > rich header / footer > saves multi-paragraph styled header and reparses it as headerParas","builder":"buildDocx","sha256":"169ca1ca005614a4426aa2b5630c0e6f3aec87d282e5bd9781a561e1525973dc","duplicate_of":"header-footer-rich__001"}
