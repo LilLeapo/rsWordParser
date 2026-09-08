@@ -21,6 +21,7 @@ struct Ns {
 }
 
 fn main() {
+    println!("cargo:rustc-check-cfg=cfg(rsword_api_docs)");
     println!("cargo:rerun-if-env-changed=RSWORD_COMMIT");
     let git = env::var("RSWORD_COMMIT")
         .ok()

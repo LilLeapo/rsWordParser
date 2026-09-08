@@ -150,13 +150,10 @@ fn edit_02_note_ref_atom_creates_the_entry() {
 fn tracked_atom_goes_into_ins() {
     let mut s = open();
     let p = para(&s);
-    let ctx = EditContext {
-        track_changes: Some(rsword::edit::RevisionAuthor {
-            author: "甲".into(),
-            date: Some("2026-01-01T00:00:00Z".into()),
-        }),
-        ..Default::default()
-    };
+    let ctx = EditContext::default().with_track_changes(Some(rsword::edit::RevisionAuthor {
+        author: "甲".into(),
+        date: Some("2026-01-01T00:00:00Z".into()),
+    }));
     s.apply(
         EditOp::InsertAtom {
             at: InlinePos::new(p, 1),
@@ -237,13 +234,10 @@ fn cross_paragraph_delete_collapses_bookmarks() {
 fn tracked_cross_paragraph_delete_keeps_everything() {
     let mut s = EditSession::open(&common::docx_with_body(THREE)).unwrap();
     let (a, c) = (nth(&s, 0), nth(&s, 2));
-    let ctx = EditContext {
-        track_changes: Some(rsword::edit::RevisionAuthor {
-            author: "甲".into(),
-            date: Some("2026-01-01T00:00:00Z".into()),
-        }),
-        ..Default::default()
-    };
+    let ctx = EditContext::default().with_track_changes(Some(rsword::edit::RevisionAuthor {
+        author: "甲".into(),
+        date: Some("2026-01-01T00:00:00Z".into()),
+    }));
     s.apply(EditOp::DeleteRange { from: InlinePos::new(a, 1), to: InlinePos::new(c, 2) }, &ctx)
         .expect("追踪跨段删除");
     let out = s.save().unwrap();

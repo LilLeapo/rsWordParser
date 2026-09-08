@@ -21,6 +21,7 @@ pub enum ValidationOrigin {
 /// 新代码随实现追加（一经发布不改名）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub enum DiagCode {
     // ---- PKG（spec/01）----
     /// `PKG-02`：part 数超过 10,000。
@@ -184,6 +185,7 @@ pub enum DiagCode {
     BindProtocolMismatch,
 }
 
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl DiagCode {
     /// 规范文本中的大写下划线写法（`XML_UNBOUND_PREFIX`），用于日志与差分工具输出。
     pub const fn as_str(self) -> &'static str {

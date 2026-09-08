@@ -31,7 +31,7 @@ use super::CompatSaveOptions as SaveOptions;
 /// ```ignore
 /// let mut slots = HfSlots::default();
 /// *slots.by_ts_key("headerFirst").unwrap() = Some(blocks);
-/// for (kind, variant, blocks) in slots.iter() { … }
+/// for (kind, variant, blocks) in slots.iter() { /* 处理每个槽位 */ }
 /// ```
 macro_rules! hf_slots {
     ($( $field:ident : $kind:ident / $variant:ident = $key:literal ),+ $(,)?) => {

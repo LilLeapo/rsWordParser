@@ -1,6 +1,6 @@
 //! `EDIT-03` 操作实现（M1 子集）。每个操作是一个或多个 plan/commit 阶段；事务边界在
 //! [`EditSession::apply`]（失败整体回滚）。这里的函数只读 DOM 与投影、产出 [`MutationPlan`]，
-//! 写入全部经 [`EditSession::commit_plan`]。
+//! 写入全部经 `EditSession::commit_plan`。
 
 use crate::diag::{DiagCode, Diagnostic};
 use crate::error::{Error, Result};

@@ -61,8 +61,10 @@ open / apply / save / close、媒体、查询与调试出口经 Node 验证，`n
 **3779 run / 3693 段落 / 526 单元格 / 1128 节 / 263 表格**；只读出口校验
 **9060 part / 344 媒体 / 12165 XML 子树**。属性 JSON 独立解码回引擎型，来源逐字段比较。
 破坏性验证：把 run 的 cs 输出取反，`bind_06_run_full_corpus` 立即失败；恢复后重跑全套。
-另补修既有 `setHeaderFooter` 预备 part 的越界索引：用 u32::MAX 的 sect 先复现 panic，
-加上界检查后返回既有 EDIT_TARGET_MISSING，失败后的会话字节与诊断不变。
+8.4 修复绑定会话路径在 `setHeaderFooter` 预备 part 时的越界索引：该代码由 8.3 的
+`69def07` 在 `bind/native/edit/mod.rs::apply_edit_json` 引入，`7a72140` 补上界检查。
+u32::MAX 的 sect 经绑定复现 panic，修复后返回 EDIT_TARGET_MISSING，失败后的会话字节与诊断不变。
+撤回将其归为原生引擎缺陷的表述；原生 `EditSession::apply` 的 EDIT_BAD_POSITION 守卫不经过此路径。
 
 `cargo bench -p rsword --bench session` 在 **266** 份真实文档中按 ZIP 文件大小取最大者
 `corpus/real/misc/large-report.docx`（**326406 B**），预热后 **31** 次采样。批量请求按该文档实际 run 顺序循环取足 1000 个 ID（不要求互异）：
@@ -81,7 +83,38 @@ open / apply / save / close、媒体、查询与调试出口经 Node 验证，`n
 复现：`cargo test --workspace`、`cargo test --workspace --release`、`cargo clippy --workspace --all-targets`；
 `cargo bench -p rsword --bench session`；`tools/build-js.sh` 后执行
 `node tools/js-parity/native_parity.mjs --pkg crates/rsword-js/pkg`。差分与体积沿用本文既有门命令。
-8.5 公共 API / feature 收敛、8.6 hostile 无编辑保存专门门与协议随机序列、8.7 文档改名仍待各自任务。
+8.5 观察版见下；8.6 hostile 无编辑保存专门门与协议随机序列、8.7 文档改名仍待各自任务。
+
+**8.5 已完成观察版**（2026-09-09，BIND-11）：根部重导出稳定核心类型，旧路径仅从文档隐藏，
+下游仍可调用。**缩小实际 semver 面推迟到观察期之后（负责人 2026-09-09 决定），门 3 的“缺省小面”
+这半条未达成**；默认构建排除 compat_ts 也仍待 8.7。feature 名称已定为 native / wasm / serde / compat-ts，
+默认 native；serde 仍是共享运行期依赖，不承诺关闭 feature 就去掉依赖，重复的 dev serde 已删除。
+稳定类型及其固有 impl 由 `rsword_api_docs` 下的 rustc 检查文档；成文清单见 [11-public-api.md](11-public-api.md)，
+**27 个类型、46 处审计注解位置**与整个 src 的 token 扫描双向锁死，包含宏模板，并锁定祖先可见性。
+结构体 / 枚举用 non_exhaustive；固定值对象的豁免逐项登记。DiagCode 发布表禁止删除或更名。
+
+实测破坏性验证：EditContext 新增无文档方法 → audit 构建退出 **101**；摘掉其 impl 注解 → 清单门退出 **101**。
+恢复后两道门均绿，CI 中 audit 显式传 `--cfg rsword_api_docs -D warnings`，不是只记录 warning。
+read / edit / agent 三个 example 已实际执行并进 CI，README 三段代码与可执行 example 一致。
+大纲示例在 large-report 输出标题；编辑示例另存后重开读到替换文字；agent 从模型 JSON 生成 EditOp JSON，
+apply / save / reopen 验证结果。不会调用外部模型服务，也不覆盖输入。
+
+本轮 workspace debug / release 均 **901 passed、0 failed、13 ignored**，fmt 干净，clippy 零告警；
+`cargo doc --no-deps` 与 audit 均带 `-D warnings` 通过。八道差分门 **242 + 547 已知 / 0 未知**，
+save_blocks **204/208 等价、0 跳过**（4 项已登记有意差异；其中 43 份字节相同），
+模型投影体积门 **251 份、4,334,070B → 1,408,718B（−67.5%）**；操作分类 **57 无损 + 9 具名拒绝 = 66**。
+
+`cargo bench -p rsword --bench session` 本轮仍在 266 份真实文档中选中
+`corpus/real/misc/large-report.docx`（326406 B），预热后 31 次；与 8.4 相同采样方式：
+
+| 操作 | 中位数 | p95 | 最大 |
+| --- | --- | --- | --- |
+| EditSession::clone（不含释放） | 0.433 ms | 0.555 ms | 0.604 ms |
+| resolveRuns（循环取足 1000 个 ID，含索引、参数解析与 JSON 输出） | 11.501 ms | 12.237 ms | 13.241 ms |
+
+仍低于 50 ms，不改变克隆实现；本任务没有性能优化，不把计时浮动解释为性能改进。
+`--no-default-features` / `--all-features` 构建均通过；真实 wasm 重建后，Node 会话 parity
+验证通过（缺失会话、生命周期、原子性、媒体、查询和只读出口）。
 
 **M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖），**已全部并入 `main`**（2026-09-04）。
 **M3 完成**（2026-09-05，分支 `m3-tables`，3.1–3.9 全部落地，**M3 门四条都跑过**：

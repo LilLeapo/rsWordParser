@@ -90,7 +90,7 @@ enum PartDom {
 }
 
 /// 一个 part 的写前镜像（`EDIT-05`）：整体替换（`ReplacePartXml` / `ReplacePartBytes`）之前由
-/// [`Package::snapshot_part`] 记下，回滚时 [`Package::restore_part`] 放回。字段对外不可见——它就是 `Part` 的
+/// `Package::snapshot_part` 记下，回滚时 `Package::restore_part` 放回。字段对外不可见——它就是 `Part` 的
 /// 那几个会被替换改动的字段。
 #[derive(Clone)]
 pub struct PartImage {

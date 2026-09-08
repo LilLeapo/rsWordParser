@@ -119,11 +119,17 @@ pub enum NodeKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+/// 无损 DOM 节点；修改须经编辑事务维护脏状态和祖先关系（XML-12）。
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub struct Node {
+    /// 元素、文本或不透明节点的内容。
     pub kind: NodeKind,
+    /// 父节点，根节点为 `None`。
     pub parent: Option<NodeId>,
     /// 原文词法区间；`New` 节点为 `None`。
     pub lex: Option<Lex>,
+    /// 当前编辑脏状态。
     pub dirty: Dirty,
 }
 

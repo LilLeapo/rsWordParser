@@ -80,7 +80,7 @@ pub enum NewInline {
         inlines: Vec<NewInline>,
     },
     Marker(NewMarker),
-    /// 复杂字段（`FLD-12`）：begin / `w:instrText` / [separate] / 结果 / end 五组 run。
+    /// 复杂字段（`FLD-12`）：begin / `w:instrText` / `[separate]` / 结果 / end 五组 run。
     ///
     /// `instr` 是指令原文（生成时 trim 后前后各补一个空格，与 Word 一致）；`separate == false`
     /// 时不发 separate 也不发结果（XE / TA 一类 `Marker` 策略字段就是这个形状）。

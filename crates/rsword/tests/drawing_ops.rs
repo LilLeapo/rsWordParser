@@ -301,13 +301,10 @@ fn set_shape_style() {
 fn drawing_edits_are_not_tracked() {
     let mut s = EditSession::open(&inline_pic_doc()).unwrap();
     let d = drawing(&s, 0);
-    let ctx = EditContext {
-        track_changes: Some(rsword::edit::RevisionAuthor {
-            author: "甲".into(),
-            date: Some("2026-01-01T00:00:00Z".into()),
-        }),
-        ..Default::default()
-    };
+    let ctx = EditContext::default().with_track_changes(Some(rsword::edit::RevisionAuthor {
+        author: "甲".into(),
+        date: Some("2026-01-01T00:00:00Z".into()),
+    }));
     s.apply(
         EditOp::SetDrawingGeometry {
             drawing: d,

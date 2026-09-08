@@ -5,12 +5,12 @@
 //! docDefaults 异或；而 [MS-OI29500] 又记录了 Word 在 docDefaults、表格样式、多层 `basedOn`
 //! 上的一串偏差，且与 Word 版本有关。
 //!
-//! 所以规则在这里**参数化**，由 [`ACTIVE_TOGGLE_RULE`] 选一条，`fixtures/resolve/toggle/*`
+//! 所以规则在这里**参数化**，由 `ACTIVE_TOGGLE_RULE` 选一条，`fixtures/resolve/toggle/*`
 //! 用真实 Word 的显示结果校准（`RES-12` / `TEST-08`）。fixture 的观察值填好之前，激活的仍是
 //! M1 起用的 [`ToggleRule::MostSpecificWins`]——它与非 toggle 属性同规则，也是 TS `display`
 //! 的行为，所以 `tests/resolve.rs` 的八万多项对照保持全等。
 //!
-//! 换规则只改 [`ACTIVE_TOGGLE_RULE`] 一行：层叠已经按层把各层的声明喂给 [`resolve_toggle`]。
+//! 换规则只改 `ACTIVE_TOGGLE_RULE` 一行：层叠已经按层把各层的声明喂给 [`resolve_toggle`]。
 
 use crate::semantic::props::{RunProps, RunPropsField};
 

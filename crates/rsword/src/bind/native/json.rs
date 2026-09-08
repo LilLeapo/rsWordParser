@@ -4,7 +4,7 @@
 //! camelCase，枚举值 = `named_enum!` 的 `as_str` 字串，单位按 `spec/00` §0.4 原值（twips /
 //! half-points / eighth-points / EMU / UTF-16 code unit；旋转 1/60000 度）。**禁止**在 `model/`
 //! 类型上 `derive(Serialize)`（模型持 `NodeId` / `Range<u32>` / interner 句柄），投影是这里的
-//! 独立一层：每个模型类型一张 [`model_json!`] 表，同表展开 `impl ToJson`、JSON Schema 片段与
+//! 独立一层：每个模型类型一张 `model_json!` 表，同表展开 `impl ToJson`、JSON Schema 片段与
 //! 「不丢字段」覆盖测试（门 1）。
 //!
 //! 约定（`spec/19`「分层决策」与评审裁定）：
@@ -18,7 +18,7 @@
 //!   投影为 `"?"`（已知名不受限）。触发处：`ProtectedKind::Unknown`、`SegmentKind::Other`、
 //!   `AtomKind::Other`、`CompatFacts.flags`。
 //!
-//! `set` / [`set_some!`] / [`set_if!`] / [`display_json!`] 是本投影层的基础宏（原在
+//! `set` / `set_some!` / `set_if!` / `display_json!` 是本投影层的基础宏（原在
 //! `bind/compat_ts/json.rs`，8.2 搬到此处，`compat_ts` 反向引用）。
 
 use std::collections::BTreeMap;
@@ -73,23 +73,33 @@ pub mod revision;
 // ---- 投影上下文与入口 --------------------------------------------------------------------------
 
 /// 投影上下文：包（`media[]` 条目用）与 `BIND-02` 决策 4 的显示模型开关。
+/// BIND-11 值对象豁免：这两个输入字段固定，可直接构造。
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub struct ProjCx<'a> {
+    /// 所投影文档所属的包。
     pub pkg: &'a Package,
     /// `true` 才投影显示模型（`ChartDisplay` / `VmlDisplay` / `DiagramDisplay` / `AnchorGeom` 等）。
     pub display: bool,
 }
 
 /// 完整模型投影选项；`SessionTable::document` 的 JSON 参数另支持 BIND-10 的预算裁剪。
+/// BIND-11 值对象豁免：只控制显示投影，字段集合固定；会话预算选项另行演进。
 #[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub struct DocumentOpts {
     /// 显示模型投影，缺省 `false`（`BIND-02` 决策 4）。
     pub display: bool,
 }
 
-/// `document()` 的返回类型（`BIND-02` 顶层形态；投影本体是 `Document` 的 [`model_json!`] 表）。
+/// `document()` 的返回类型（`BIND-02` 顶层形态；投影本体是 `Document` 的 `model_json!` 表）。
 /// 单向输出包装；门 1 校验投影确定性、重建稳定性与键集严格性（偏差见 `docs/04` §8）。
+/// BIND-11 值对象豁免：始终是一个 JSON 值的透明包装。
 #[derive(Debug, Clone, PartialEq)]
-pub struct DocumentJson(pub Value);
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
+pub struct DocumentJson(
+    /// 投影的 JSON 值。
+    pub Value,
+);
 
 impl std::fmt::Display for DocumentJson {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -106,7 +116,8 @@ pub fn set<T: Into<Value>>(m: &mut Map<String, Value>, k: &str, v: T) {
 
 /// 模型类型 → JSON 的投影（`BIND-02`）与同表生成的 schema 片段。
 ///
-/// 实现由 [`model_json!`] / `build/props.rs` 展开；手写仅限容器与基础类型。
+/// 实现由 `model_json!` / `build/props.rs` 展开；手写仅限容器与基础类型。
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub trait ToJson {
     /// 投影为 JSON 值。
     fn to_json(&self, cx: &ProjCx<'_>) -> Value;
@@ -411,11 +422,18 @@ pub fn id_keyed<T: ToJson>(m: &BTreeMap<PartId, T>, cx: &ProjCx<'_>) -> Value {
 
 /// `BIND-05` 的 `media[]` 条目（字节不进 JSON，经 `media(id, mediaId)` 按需取——8.4）。
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub struct MediaEntry {
+    /// 会话内媒体句柄。
     pub media_id: MediaId,
+    /// 媒体所在的包 part。
     pub part_id: PartId,
+    /// 包内 URI。
     pub uri: String,
+    /// 内容类型。
     pub mime: String,
+    /// 显示能力分类。
     pub kind: MediaKind,
 }
 
@@ -550,7 +568,7 @@ macro_rules! set_if {
 ///
 /// - `"key" => expr` 恒写；
 /// - `opt "key" => expr` 的 `expr` 是 `Option`，有值才写（`set_some!`）；
-/// - `flag "key" => expr` 的 `expr` 是 `bool`，为真才写 `true`（[`set_if!`]）。
+/// - `flag "key" => expr` 的 `expr` 是 `bool`，为真才写 `true`（`set_if!`）。
 ///
 /// `compat_ts` 的 TS 形态投影专用（8.2 随 `set_some!` / `set_if!` 一起搬到本模块）。
 macro_rules! display_json {

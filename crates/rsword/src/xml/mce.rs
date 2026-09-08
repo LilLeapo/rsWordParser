@@ -1,6 +1,6 @@
 //! MCE（`XML-09`）与语义遍历（`XML-10`）。
 //!
-//! 解析后一次遍历为每个元素计算 [`Mce`]：`mc:AlternateContent` 选分支、`mc:Ignorable` 标记可忽略元素、
+//! 解析后一次遍历为每个元素计算 `Mce`：`mc:AlternateContent` 选分支、`mc:Ignorable` 标记可忽略元素、
 //! `mc:ProcessContent` 标记透明容器、`mc:MustUnderstand` 记诊断。非 active 分支与可忽略元素都保留在 DOM，
 //! 只对 [`Dom::semantic_children`] 不可见。
 

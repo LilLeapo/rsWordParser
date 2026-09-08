@@ -471,6 +471,8 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `BIND-03 v3` `$patch` | Keep 缺席、Unset null、Set 值、Patch 为鉴别对象 | 生成器为 patch 生成 serde 与 schema；只跳过真正 Keep；Set/Patch 的 oneOf 与 required `$patch` 同时验证，空 Patch 保留 | 已随 c19fbb3 批准写入规范；KeyChecker 支持 additionalProperties false 的封闭对象，继续拒绝未声明属性 |
 | `BIND-03` NewElement 逃生口 | XML 字符串 / part bytes 的 base64 | 元素 XML 必须恰有一个元素，顶层文本、注释 / PI / CDATA 无法落入 NewElement 时明确拒绝；part 整体替换保持原接口能力 | NewElement 只有 Element/Text 两种子节点，不能静默吞掉不可承载内容；转换元数据只在成功 apply 后并入诊断与计数 |
 
+| `BIND-11` 公共面观察期与文档约束 | `doc(hidden)` 或 unstable feature；稳定面 missing_docs 为零 | 取 `doc(hidden)` + `rsword_api_docs` 审计构建。CI 带 `-D warnings`，成文清单 `docs/11-public-api.md` 与稳定定义、固有 impl、deny 注解位置双向锁死；新增无文档方法和摘掉注解均做破坏性验证 | 负责人 2026-09-09 决定缩小实际 semver 面推迟到观察期之后。**隐藏项仍可被下游调用，门 3 的“缺省小面”这半条未达成**；代价是维护 audit cfg、逐项注解及一条 CI 构建。serde 仍是共享运行期依赖，compat_ts 实际编译门控留到 8.7 |
+
 ## 9. 待决事项（需要项目负责人拍板）
 
 2026-09-04 复核：原先 6 条里 5 条已落地或已决（仓库已有提交历史；语料 8.9 MB 直接入库；导出脚本留在本仓库；
@@ -2006,7 +2008,9 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   run / para / cell 的属性另外从 JSON 解码回引擎型并逐字段比较，来源含 Toggle 的层级。
   表格 / 节的有效字段、六个页眉页脚槽和来源均校验；同号节点用 part 区分，坏节点在批次中保留错误位置。
   `save` 只在克隆上执行；真实序列化故障与失败的 XML 逃生请求均有状态不变断言。
-  补修 `setHeaderFooter` 预备目标 part 时的 arena 上界检查，超大 `sect` 返回既有 `EDIT_TARGET_MISSING`。
+  修复绑定会话路径在 `setHeaderFooter` 预备 part 时的 arena 越界索引，超大 `sect` 返回 `EDIT_TARGET_MISSING`。
+  8.5 更正归因：代码在 8.3 的 `69def07`（`bind/native/edit/mod.rs::apply_edit_json`）引入，8.4 的
+  `7a72140` 修复；不是原生 `EditSession::apply` 的缺陷，撤回“原生引擎既有 panic”的归因。
   媒体句柄不因前部删除重排，同字节同 MIME 与包内既有媒体去重；只读出口覆盖原 ZIP 字节与子树规范化。
   `document` 同时实现 BIND-10 的 blockRange / fields / depth：跨块索引保持全量、超深为 Protected(TooDeep)。
   同一份 schema 内的 `DocumentResponse` 承载裁剪和元数据；模型 `Document` 定义与 8.2 严格 checklist 保持原样。
@@ -2020,7 +2024,27 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   既有 BIND-02 模型投影体积门 **251 份，4,334,070B → 1,408,718B（−67.5%）**。
   66 变体仍为 **57 无损往返 + 9 具名拒绝**。8.5–8.7 保持待办，本任务提交后停下复核。
 
-- [ ] **8.5 Rust crate 公共 API 定型**（公共面收敛、feature 划分、`missing_docs`、三个 example、README 改写）
+- [x] **8.5 Rust crate 公共 API 观察版**（稳定承诺、文档审计、feature 名称、三个 example、README）
+
+  根部重导出六个核心类型与 EditSession / EditContext / MutationResult / Error / DiagCode；
+  原生模块全部导出纳入稳定承诺，其余旧公共路径 `doc(hidden)` 留一版观察期。
+  **稳定面文档由 audit cfg 硬检查；缩小 semver 面推迟到观察期之后（负责人 2026-09-09 决定），
+  门 3 的“缺省小面”这半条未达成。** 下游仍可调用隐藏项，默认构建也仍含 compat_ts，实际门控留到 8.7。
+  default 为 native；native / wasm / serde / compat-ts 的名称和依赖关系已声明，serde 仍为共享运行期依赖，
+  删除重复 dev serde。稳定结构体 / 枚举 non_exhaustive，四个固定值对象明确豁免；DiagCode 发布表只追加。
+  `docs/11-public-api.md` 成文列出 **27 个类型、46 处定义/固有 impl 注解位置**；源码 token 扫描包含宏模板，
+  与注解及成文清单双向锁死，并校验祖先在 audit 下取消隐藏。trait impl 沿用 trait 文档，不属于固有 impl 清单。
+  破坏性验证：给 EditContext 加无文档方法，audit cargo check 退出 101（missing documentation）；
+  去掉其固有 impl 的 deny 注解，清单测试退出 101（定义/impl 与注解漂移）。恢复后两道检查均通过。
+  `cargo fmt --all`、clippy 零告警；cargo doc 与 audit（均带 `-D warnings`）通过；
+  workspace debug / release 各 **901 passed、0 failed、13 ignored**。
+  八道差分门 **242 + 547 已知 / 0 未知**；save_blocks **204/208 等价、0 跳过**；
+  模型投影体积门 **251 份、4,334,070B → 1,408,718B（−67.5%）**；**57 无损 + 9 具名拒绝 = 66**。
+  三个 example 已实际运行并进 CI，README 的三段 Rust 与对应 example 一致；默认公开 API 的
+  open → document → apply → save 经协议与根部核心 API 保存字节相同。
+  本轮最大真实文档克隆 **p95 0.555 ms**（31 次），继续保留克隆实现；完整计时见 docs/05。
+  8.4 的越界索引历史归因已更正为“8.3 绑定层引入、8.4 修复”，不再归因原生引擎。
+
 - [ ] **8.6 回归网换代**（`*.model.json` 自快照、`TEST-07` 走协议、`fuzz_bind`）
 - [ ] **8.7 `compat_ts` 降级、性能、体积与收尾**
 

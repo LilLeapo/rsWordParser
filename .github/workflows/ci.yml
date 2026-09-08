@@ -20,6 +20,19 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets
+      - name: BIND-11 stable API documentation
+        run: cargo check -p rsword --lib
+        env:
+          RUSTFLAGS: --cfg rsword_api_docs -D warnings
+      - run: cargo doc --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+      # BIND-11：实际执行示例，写入临时目录，绝不改语料。
+      - run: |
+          cargo run -p rsword --example read -- corpus/synthetic/layout-fidelity__001.docx
+          cargo run -p rsword --example edit -- corpus/synthetic/layout-fidelity__001.docx "$RUNNER_TEMP/rsword-example-edited.docx"
+          cargo run -p rsword --example read -- "$RUNNER_TEMP/rsword-example-edited.docx"
+          cargo run -p rsword --example agent -- corpus/synthetic/layout-fidelity__001.docx
       - run: cargo test --workspace
       # TEST-03 / TEST-10 M1 门：synthetic 文本段落用例与 TS 的差分为 0（KNOWN_DIFFS 除外）
       - run: cargo run -p diff-parse -- --scope text

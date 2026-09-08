@@ -520,8 +520,8 @@ fn check_step(
 }
 
 fn ctx_for(rng: &mut Rng) -> EditContext {
-    EditContext {
-        track_changes: match rng.below(3) {
+    EditContext::default()
+        .with_track_changes(match rng.below(3) {
             0 => None,
             1 => Some(RevisionAuthor {
                 author: "甲".into(),
@@ -531,10 +531,8 @@ fn ctx_for(rng: &mut Rng) -> EditContext {
                 author: "乙".into(),
                 date: Some("2026-02-02T00:00:00Z".into()),
             }),
-        },
-        mark_updated_fields_dirty: rng.chance(2),
-        ..Default::default()
-    }
+        })
+        .with_mark_updated_fields_dirty(rng.chance(2))
 }
 
 /// 只为报错信息好读：操作的名字。

@@ -269,13 +269,11 @@ fn bind_03_context_defaults_and_result_shape() {
     assert_eq!(serde_json::to_value(context).unwrap(), source);
     let bytes = common::docx_with_body("<w:p/>");
     let session = EditSession::open(&bytes).unwrap();
-    let result = rsword::edit::MutationResult {
-        created: vec![None, Some(NodeId(2))],
-        affected_blocks: vec![NodeId(3)],
-        structure_changed: true,
-        diagnostics: vec![],
-        offset_delta: vec![(NodeId(3), rsword::edit::Utf16Offset(4), -2)],
-    };
+    let mut result = rsword::MutationResult::default();
+    result.created.extend([None, Some(NodeId(2))]);
+    result.affected_blocks.push(NodeId(3));
+    result.structure_changed = true;
+    result.offset_delta.push((NodeId(3), rsword::edit::Utf16Offset(4), -2));
     let value = result.to_json(&ProjCx { pkg: session.package(), display: false });
     assert_eq!(
         value,

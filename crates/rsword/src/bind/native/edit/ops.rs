@@ -17,10 +17,17 @@ macro_rules! edit_op_json {
         #[derive(Debug, Clone, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
         #[serde(tag = "op", rename_all = "camelCase", rename_all_fields = "camelCase", deny_unknown_fields)]
         #[allow(clippy::large_enum_variant)]
+        /// BIND-03 编辑线型；语义及拒绝条件见对应的引擎操作。
+        #[non_exhaustive]
+        #[cfg_attr(rsword_api_docs, deny(missing_docs))]
         pub enum EditOpJson {
-            $($variant { $($(#[$attr])* $field: <$codec as Codec>::Wire),* },)+
+            $(#[doc = concat!("对应 [`EditOp::", stringify!($variant), "`]；字段采用 BIND-03 线型。")]
+            $variant { $($(#[$attr])* #[doc = concat!("操作的 `", stringify!($field), "` 参数，语义见对应引擎变体。")]
+                $field: <$codec as Codec>::Wire),* },)+
         }
+        #[cfg_attr(rsword_api_docs, deny(missing_docs))]
         impl EditOpJson {
+            /// 在指定 part 的 DOM 上转换，用于调试和审计；不能无损表示时返回具名错误。
             pub fn from_engine(op: &EditOp, dom: &Dom) -> Result<Self> {
                 Ok(match op {
                     $(EditOp::$variant { $($field),* } => Self::$variant {
@@ -39,6 +46,7 @@ macro_rules! edit_op_json {
             pub(crate) fn context_part(&self) -> Option<PartId> {
                 match self { $(Self::$variant { $($field),* } => $part,)+ }
             }
+            /// 同表生成的完整变体清单，名称为 Rust 变体名。
             pub const VARIANTS: &'static [&'static str] = &[$(stringify!($variant)),+];
         }
         #[cfg(test)]

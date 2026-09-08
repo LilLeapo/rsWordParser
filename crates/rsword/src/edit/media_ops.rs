@@ -113,10 +113,12 @@ pub fn extension_for(mime: &str) -> String {
     }
 }
 
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl EditSession {
     /// 把图片字节落成主 part 的媒体 part + `image` 关系，返回 `rId`。**相同字节只建一个 part**（同一会话内按
     /// `(mime, 哈希)` 去重，TS 同）；part 名 `word/media/image{N}.{ext}`（第一个空闲 N），`[Content_Types]` 缺该
     /// 扩展名的 `Default` 就补。
+    #[doc(hidden)]
     pub fn add_media(&mut self, bytes: Vec<u8>, mime: &str) -> Result<String> {
         self.add_media_with(bytes, mime, true)
     }

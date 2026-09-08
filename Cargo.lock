@@ -1137,6 +1137,7 @@ version = "0.0.1"
 dependencies = [
  "jsonschema",
  "memchr",
+ "proc-macro2",
  "serde",
  "serde_json",
  "thiserror",

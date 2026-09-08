@@ -3,8 +3,8 @@
 //! 模型只存**声明值**：`grid` 是 `gridCol/@w:w` 原值（允许 0 与缺失），`hMerge` 不折叠、`trHeight`
 //! 不截、`tcW` 不校正——折叠与校正在 `resolve`（`RES-08`）与 `compat_ts`（`COMPAT-10`）。
 //! 行 / 格穿透 `w:sdt`、`w:customXml` 与修订包裹取得；单元格内容复用正文构建器
-//! （[`Builder::build_container`]），所以嵌套表、sdt、修订包裹在格里和在正文里一个样。
-//! 嵌套超过 [`MAX_CONTAINER_DEPTH`] 层的子表降级为 `Protected(TooDeep)`（语料有 2,000 层、hostile 有
+//! （`Builder::build_container`），所以嵌套表、sdt、修订包裹在格里和在正文里一个样。
+//! 嵌套超过 `MAX_CONTAINER_DEPTH` 层的子表降级为 `Protected(TooDeep)`（语料有 2,000 层、hostile 有
 //! 5,000 层的文档，深度上限就是栈的保险）。
 //!
 //! 另外给 [`Document`] 补跨表格的遍历：[`Document::blocks`] / [`Document::paragraphs`] 深入单元格，

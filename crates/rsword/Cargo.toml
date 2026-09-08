@@ -11,18 +11,27 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
+[features]
+default = ["native"]
+native = ["serde"]
+wasm = ["native"]
+serde = []
+# 8.7 才移除默认构建里的兼容适配器；本任务先固定 feature 名称。
+# serde 仍是共享依赖，关闭 feature 暂不承诺免除 serde 依赖。
+compat-ts = ["serde"]
+
 [dependencies]
 zip.workspace = true
 memchr.workspace = true
 thiserror.workspace = true
-# compat_ts 适配器的 ParsedDoc JSON（COMPAT-02）与差分工具
+# 原生协议 JSON（BIND-02/03）与 compat_ts 差分适配器共用。
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
+proc-macro2 = "1"
 serde_json = { version = "1", features = ["unbounded_depth"] }
 jsonschema = "0.55.0"
-serde = "1"
 # `RES-12` fixture 的 `expected.toml`（任务 5.8）；只在测试里用
 toml = "1.1"
 

@@ -8,8 +8,13 @@ use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+/// 文本 run 的结构化输入，可由 JSON 解码构造。
+#[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub struct NewRunJson {
+    /// run 的文本。
     pub text: String,
+    /// run 属性补丁；缺席时由编辑操作决定继承格式。
     pub props: Option<RunPropsPatch>,
 }
 pub struct RunCodec;
@@ -33,29 +38,51 @@ impl Codec for RunCodec {
     rename_all_fields = "camelCase",
     deny_unknown_fields
 )]
+#[non_exhaustive]
+/// 行内内容的协议线型，嵌套包装仍使用结构化行内内容。
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub enum NewInlineJson {
+    /// 文本 run。
     Run(NewRunJson),
+    /// 超链接。
     Hyperlink {
+        /// 外部 URL 或文档内部锚点。
         target: NewLinkTarget,
+        /// 鼠标提示文字。
         tooltip: Option<String>,
+        /// 链接内的内容。
         inlines: Vec<NewInlineJson>,
     },
+    /// 插入修订包装。
     Ins {
+        /// 修订作者与时间。
         rev: NewRevision,
+        /// 被插入的内容。
         inlines: Vec<NewInlineJson>,
     },
+    /// 删除修订包装。
     Del {
+        /// 修订作者与时间。
         rev: NewRevision,
+        /// 被删除的内容。
         inlines: Vec<NewInlineJson>,
     },
+    /// 范围标记。
     Marker(NewMarker),
+    /// 复杂字段。
     Field {
+        /// 字段指令。
         instr: String,
+        /// 缓存结果内容。
         result: Vec<NewInlineJson>,
+        /// 是否生成 separate 标记。
         separate: bool,
+        /// 是否要求宿主重算。
         dirty: bool,
+        /// 字段 run 属性补丁。
         props: Option<RunPropsPatch>,
     },
+    /// 原始 XML 逃生口，成功 apply 后记录诊断和计数。
     Xml(String),
 }
 
@@ -167,9 +194,15 @@ impl Codec for InlineCodec {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+/// 字段输入，可由 JSON 解码构造。
+#[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub struct NewFieldJson {
+    /// 字段指令。
     pub instr: String,
+    /// 缓存结果。
     pub result: Vec<NewInlineJson>,
+    /// 是否要求宿主重算。
     pub mark_dirty: bool,
 }
 pub struct FieldCodec;
@@ -201,11 +234,34 @@ impl Codec for FieldCodec {
     rename_all_fields = "camelCase",
     deny_unknown_fields
 )]
+#[non_exhaustive]
+/// 占一个内容坐标的原子输入。
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub enum NewAtomJson {
-    Break { kind: crate::model::inline::BreakKind, clear: Option<String> },
-    Symbol { font: String, code: u32 },
-    NoteRef { endnote: bool, content: Vec<Vec<NewRunJson>> },
+    /// 换行、分页或分栏。
+    Break {
+        /// 换行种类。
+        kind: crate::model::inline::BreakKind,
+        /// 绕排清除方式。
+        clear: Option<String>,
+    },
+    /// 字体符号。
+    Symbol {
+        /// 符号字体。
+        font: String,
+        /// 字符码。
+        code: u32,
+    },
+    /// 脚注或尾注引用，同时提供注释正文。
+    NoteRef {
+        /// 为真时创建尾注，否则为脚注。
+        endnote: bool,
+        /// 按段落分组的 run。
+        content: Vec<Vec<NewRunJson>>,
+    },
+    /// 图片。
     Image(NewImage),
+    /// 行内公式。
     Math(NewMath),
 }
 pub struct AtomCodec;
@@ -254,19 +310,92 @@ impl Codec for AtomCodec {
     rename_all_fields = "camelCase",
     deny_unknown_fields
 )]
+#[non_exhaustive]
+/// 块内容输入；XML 逃生口与结构化段落属性分开编码。
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub enum NewBlockJson {
-    Paragraph { props: Box<Option<ParaPropsPatch>>, inlines: Vec<NewInlineJson> },
-    Table { rows: u32, cols: u32, widths: Option<Vec<i32>>, style: Option<String>, header: bool },
+    /// 段落。
+    Paragraph {
+        /// 段落属性补丁。
+        props: Box<Option<ParaPropsPatch>>,
+        /// 行内内容。
+        inlines: Vec<NewInlineJson>,
+    },
+    /// 空表格。
+    Table {
+        /// 行数。
+        rows: u32,
+        /// 列数。
+        cols: u32,
+        /// 各列宽度，单位 twips。
+        widths: Option<Vec<i32>>,
+        /// 表格样式 ID。
+        style: Option<String>,
+        /// 首行是否为表头。
+        header: bool,
+    },
+    /// 原始块 XML 逃生口。
     Xml(String),
-    Wrapped { wrapper: String, block: Box<NewBlockJson> },
-    Chart { chart: NewChart, extent_emu: Option<(i64, i64)> },
+    /// XML 包装器逃生口，内部块仍可结构化。
+    Wrapped {
+        /// 包装元素 XML。
+        wrapper: String,
+        /// 包装内容。
+        block: Box<NewBlockJson>,
+    },
+    /// 图表。
+    Chart {
+        /// 图表内容。
+        chart: NewChart,
+        /// 宽高，单位 EMU。
+        extent_emu: Option<(i64, i64)>,
+    },
+    /// 图片段落。
     Image(NewImage),
-    MathPara { omml: NewMath, align: String },
-    Textbox { look: ShapeLook, blocks: Vec<NewBlockJson> },
-    Shape { preset: PresetGeom, look: ShapeLook, text: Option<String> },
-    Line { kind: LineKind, from: (i64, i64), to: (i64, i64), color: Option<String> },
+    /// 独立公式段落。
+    MathPara {
+        /// 公式内容。
+        omml: NewMath,
+        /// 段落对齐方式。
+        align: String,
+    },
+    /// 文本框。
+    Textbox {
+        /// 外观。
+        look: ShapeLook,
+        /// 文本框内容。
+        blocks: Vec<NewBlockJson>,
+    },
+    /// 预设形状。
+    Shape {
+        /// 几何预设。
+        preset: PresetGeom,
+        /// 外观。
+        look: ShapeLook,
+        /// 可选文字。
+        text: Option<String>,
+    },
+    /// 线条。
+    Line {
+        /// 线条种类。
+        kind: LineKind,
+        /// 起点，单位 EMU。
+        from: (i64, i64),
+        /// 终点，单位 EMU。
+        to: (i64, i64),
+        /// 可选颜色。
+        color: Option<String>,
+    },
+    /// 块字段生成器。
     Field(NewBlockField),
-    Caption { label: String, text: String },
+    /// 题注。
+    Caption {
+        /// 编号标签。
+        label: String,
+        /// 题注正文。
+        text: String,
+    },
+    /// 顺序插入多个块。
     Many(Vec<NewBlockJson>),
 }
 pub struct BlockCodec;

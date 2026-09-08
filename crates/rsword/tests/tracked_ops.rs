@@ -24,13 +24,10 @@ const B: &str = "M7 乙";
 const DATE: &str = "2026-09-07T10:00:00Z";
 
 fn tracked(author: &str) -> EditContext {
-    EditContext {
-        track_changes: Some(RevisionAuthor {
-            author: author.to_string(),
-            date: Some(DATE.to_string()),
-        }),
-        ..Default::default()
-    }
+    EditContext::default().with_track_changes(Some(RevisionAuthor {
+        author: author.to_string(),
+        date: Some(DATE.to_string()),
+    }))
 }
 
 fn open(body: &str) -> EditSession {

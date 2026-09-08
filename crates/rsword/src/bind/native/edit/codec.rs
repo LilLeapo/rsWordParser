@@ -6,9 +6,14 @@ use std::collections::BTreeMap;
 use std::marker::PhantomData;
 
 #[derive(Debug, thiserror::Error)]
+/// 上下文化转换失败；不可表达的属性必须显式拒绝，不丢弃未知 XML。
+#[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub enum EditJsonError {
+    /// 输入形状或 XML 片段不合法。
     #[error("BIND_BAD_ARGUMENT: {0}")]
     BadArgument(String),
+    /// 反向审计转换不能无损表达该引擎值。
     #[error("BIND_EDIT_UNREPRESENTABLE: {0}")]
     Unrepresentable(String),
 }
@@ -289,7 +294,9 @@ impl Codec for Binary {
     }
 }
 
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl EditJsonError {
+    /// 在错误信息前附加载荷字段路径。
     pub fn at(self, path: &str) -> Self {
         match self {
             Self::BadArgument(s) => Self::BadArgument(format!("{path}: {s}")),

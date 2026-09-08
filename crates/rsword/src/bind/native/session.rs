@@ -13,12 +13,15 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// 不透明会话句柄；只在当前进程内有效。
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub type SessionId = String;
 const PROTOCOL: &str = "native/0";
 static NEXT_SESSION: AtomicU64 = AtomicU64::new(1);
 
 /// 同进程的会话表。语言外壳持有此表，禁止暴露可写的引擎引用。
 #[derive(Default)]
+#[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub struct SessionTable {
     sessions: BTreeMap<SessionId, EditSession>,
     media: BTreeMap<SessionId, MediaStore>,
@@ -45,6 +48,7 @@ pub(super) fn decode<T: serde::de::DeserializeOwned + Default>(
     }
 }
 
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl SessionTable {
     /// `BIND-01/08`：成功解析才分配会话；版本不匹配在打开文件之前拒绝。
     pub fn open(&mut self, bytes: &[u8], options: Option<&str>) -> Result<SessionId, ApiError> {
@@ -229,6 +233,7 @@ crate::bind_export! { sessions SessionTable;
 
 macro_rules! session_queries {
     ($($name:ident, $inner:ident, $test:ident;)*) => {
+        #[cfg_attr(rsword_api_docs, deny(missing_docs))]
         impl SessionTable {$(
             fn $inner(&self, id: &str, ids: &str, part: Option<u32>) -> Result<String, ApiError> {
                 super::query::$name(&self.sessions[id], ids, part)

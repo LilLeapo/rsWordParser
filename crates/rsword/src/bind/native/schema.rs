@@ -14,10 +14,13 @@ use serde_json::{Map, Value};
 
 /// `$defs` 收集器：同名只注册一次（先占位打断递归，再回填）。
 #[derive(Debug, Default)]
+#[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub struct SchemaDefs {
     map: BTreeMap<&'static str, Value>,
 }
 
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl SchemaDefs {
     /// 注册并返回 `{"$ref": "#/$defs/<name>"}`；递归引用在占位期命中已有条目，直接返回 `$ref`。
     pub fn define(

@@ -1,5 +1,5 @@
-//! 图表的写侧（`EDIT-03` / `SAVE-05` / `SAVE-06`，`spec/17` 任务 6.6）：改缓存文本（[`set_chart_data`]）、
-//! 新建图表（[`materialize`]：图表 part + 内嵌工作簿 + 关系 + 绘图段落）。
+//! 图表的写侧（`EDIT-03` / `SAVE-05` / `SAVE-06`，`spec/17` 任务 6.6）：改缓存文本（`set_chart_data`）、
+//! 新建图表（`materialize`：图表 part + 内嵌工作簿 + 关系 + 绘图段落）。
 //!
 //! `SetChartData` 只改缓存文本节点（TS `patchChartPartXml` 的语义）：数据引用 `c:f`、样式、布局一个字节不动，
 //! 所以保存时只有被改的文本节点脏；锚不到的地方（没有标题、缓存里缺的点）留着不补。新图表的 part 内容按
@@ -90,7 +90,7 @@ pub(crate) fn materialize(s: &mut EditSession, block: NewBlock) -> Result<NewBlo
     materialize_at(s, block, None)
 }
 
-/// 同 [`materialize`]，但知道这块要落在哪儿——`NewBlock::Caption` 的编号是「位置之前同标签的
+/// 同 `materialize`，但知道这块要落在哪儿——`NewBlock::Caption` 的编号是「位置之前同标签的
 /// `SEQ` 数 + 1」，非知道不可。
 pub(crate) fn materialize_at(
     s: &mut EditSession,

@@ -27,17 +27,25 @@ pub struct MutationPlan {
 
 /// `commit` 的结果。
 #[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub struct MutationResult {
     /// 每条 `NodeEdit` 创建的节点（与 `node_edits` 对齐；不创建节点的为 `None`）。
     pub created: Vec<Option<NodeId>>,
+    /// 需要刷新投影的块节点。
     pub affected_blocks: Vec<NodeId>,
+    /// 块结构是否发生变化。
     pub structure_changed: bool,
+    /// 本次操作产生的诊断。
     pub diagnostics: Vec<Diagnostic>,
+    /// 段落、UTF-16 位置与长度变化量。
     pub offset_delta: Vec<(NodeId, Utf16Offset, i32)>,
 }
 
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl MutationResult {
     /// 合并多阶段结果（后一阶段的 `created` 覆盖）。
+    #[doc(hidden)]
     pub fn absorb(&mut self, later: MutationResult) {
         self.created = later.created;
         for p in later.affected_blocks {

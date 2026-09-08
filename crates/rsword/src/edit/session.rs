@@ -20,6 +20,8 @@ use super::{EditContext, EditOp, ops};
 
 /// 编辑会话。规范状态是包里各 part 的 DOM；`document()` 是可重建的投影。
 #[derive(Clone)]
+#[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub struct EditSession {
     pkg: Package,
     doc: Document,
@@ -83,7 +85,9 @@ impl Snapshot {
     }
 }
 
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl EditSession {
+    /// 打开 DOCX 包并重建只读模型；包损坏或超过限制时返回错误。
     pub fn open(bytes: &[u8]) -> Result<Self> {
         Self::from_package(Package::open(bytes)?)
     }
@@ -96,6 +100,7 @@ impl EditSession {
         Self::open(&crate::save::blank_docx(east_asia_font)?)
     }
 
+    #[doc(hidden)]
     pub fn from_package(mut pkg: Package) -> Result<Self> {
         let doc = Document::rebuild(&mut pkg)?;
         let mut s = Self {
@@ -125,15 +130,18 @@ impl EditSession {
         &self.doc
     }
 
+    /// 只读包上下文，供原生 JSON 投影使用；Package 的低层接口仍处于观察期。
     pub fn package(&self) -> &Package {
         &self.pkg
     }
 
     /// 直接改包（测试与工具用）；之后应调用 [`EditSession::rebuild`]。
+    #[doc(hidden)]
     pub fn package_mut(&mut self) -> &mut Package {
         &mut self.pkg
     }
 
+    /// 主文档 part 的会话内 ID。
     pub fn main_part(&self) -> PartId {
         self.pkg.main_part()
     }
@@ -143,6 +151,7 @@ impl EditSession {
         self.pkg.part(self.pkg.main_part()).dom().expect("main part is parsed")
     }
 
+    #[doc(hidden)]
     pub fn flavor(&self) -> PartFlavor {
         self.pkg.flavor_of(self.pkg.main_part())
     }
@@ -150,6 +159,7 @@ impl EditSession {
     // ---- 按 part 的位置（`EDIT-02`，任务 5.5）--------------------------------------------------
 
     /// 位置里的 part：`None` → 主 part。
+    #[doc(hidden)]
     pub fn part_or_main(&self, part: Option<PartId>) -> PartId {
         part.unwrap_or_else(|| self.pkg.main_part())
     }
@@ -170,6 +180,7 @@ impl EditSession {
     }
 
     /// 某个 part 的 flavor（Strict / Transitional 的写法按 part 定，`PKG-08`）。
+    #[doc(hidden)]
     pub fn flavor_in(&self, part: Option<PartId>) -> PartFlavor {
         self.pkg.flavor_of(self.part_or_main(part))
     }
@@ -189,6 +200,7 @@ impl EditSession {
     }
 
     /// `owner` 指向 `target` 的关系 id（`LinkHeaderFooter` 要把已有 part 挂到节上）。
+    #[doc(hidden)]
     pub fn relationship_id(&self, owner: PartId, target: PartId) -> Option<String> {
         let uri = &self.pkg.part(target).uri;
         self.pkg
@@ -200,23 +212,27 @@ impl EditSession {
     }
 
     /// 某个 part 里的文本段落投影（页眉页脚 / 注释 / 批注条目 / 正文）。
+    #[doc(hidden)]
     pub fn text_block_in(&self, part: Option<PartId>, para: NodeId) -> Option<&TextBlock> {
         self.doc.text_block_in(self.part_or_main(part), para)
     }
 
     /// 主 part 的范围索引（`SPAN-04`）。第一次调用时建立。
+    #[doc(hidden)]
     pub fn spans(&mut self) -> Result<&SpanIndex> {
         let part = self.pkg.main_part();
         self.spans_of(part)
     }
 
     /// 某个 part 的范围索引；不是 XML part 时 `Err`。
+    #[doc(hidden)]
     pub fn spans_of(&mut self, part: PartId) -> Result<&SpanIndex> {
         self.ensure_spans(part)?;
         Ok(self.spans.get(&part).expect("just built"))
     }
 
     /// 已建立的范围索引（不触发建立）。
+    #[doc(hidden)]
     pub fn spans_built(&self, part: PartId) -> Option<&SpanIndex> {
         self.spans.get(&part)
     }
@@ -228,12 +244,14 @@ impl EditSession {
     }
 
     /// 主 part 的字段索引（`FLD-02`）。
+    #[doc(hidden)]
     pub fn fields(&mut self) -> Result<&FieldIndex> {
         let part = self.pkg.main_part();
         self.fields_of(part)
     }
 
     /// 某个 part 的字段索引；编辑之后第一次调用会重建。
+    #[doc(hidden)]
     pub fn fields_of(&mut self, part: PartId) -> Result<&FieldIndex> {
         if !self.fields.contains_key(&part) {
             let index = self.build_fields(part)?;
@@ -451,6 +469,7 @@ impl EditSession {
     ///
     /// `xml` 是新 part 的整份内容。`owner` 必须已经有 `.rels`（新建 `.rels` 目前不支持——
     /// 语料里每个 docx 的主 part 都有）。
+    #[doc(hidden)]
     pub fn add_part(
         &mut self,
         owner: PartId,
@@ -517,6 +536,7 @@ impl EditSession {
     ///
     /// 走 `commit_plan`，所以它在事务里、可回滚，`.rels` 也按脏节点序列化。
     /// part 没有 `.rels` 时报 `EditUnsupported`——新建 `.rels` 属 `SAVE-05`（2.6）。
+    #[doc(hidden)]
     pub fn add_external_relationship(
         &mut self,
         part: PartId,
@@ -681,11 +701,13 @@ impl EditSession {
     }
 
     /// 正文第 `i` 个文本段落（测试便利）。
+    #[doc(hidden)]
     pub fn nth_text_block(&self, i: usize) -> Option<&TextBlock> {
         self.doc.text_blocks().nth(i)
     }
 
     /// `EDIT-02`：定位。
+    #[doc(hidden)]
     pub fn locate(&self, pos: InlinePos) -> Result<Loc> {
         let tb = self
             .text_block(pos.para)
@@ -878,16 +900,19 @@ impl EditSession {
     }
 
     /// 文档自带的 `w:removePersonalInformation`（`SAVE-07`：设置或文档标志为真时清洗作者）。
+    #[doc(hidden)]
     pub fn remove_personal_info_flag(&self) -> bool {
         self.doc.settings.as_ref().and_then(|s| s.remove_personal_information) == Some(true)
     }
 
     /// 文档自带的 `w:removeDateAndTime`（设置或文档标志为真时删批注日期）。
+    #[doc(hidden)]
     pub fn remove_date_and_time_flag(&self) -> bool {
         self.doc.settings.as_ref().and_then(|s| s.remove_date_and_time) == Some(true)
     }
 
     /// 投影整体重建。
+    #[doc(hidden)]
     pub fn rebuild(&mut self) -> Result<()> {
         self.doc = Document::rebuild(&mut self.pkg)?;
         self.stabilize_revisions();
@@ -971,6 +996,7 @@ impl EditSession {
 
     /// `SAVE-05`：新建一个二进制 part（内嵌工作簿、媒体），接上关系与按扩展名的 `Default` 内容类型，
     /// 返回 `(part, rId)`。
+    #[doc(hidden)]
     pub fn add_binary_part(
         &mut self,
         owner: PartId,

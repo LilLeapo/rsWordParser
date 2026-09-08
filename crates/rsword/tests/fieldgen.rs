@@ -302,7 +302,7 @@ fn regenerating_a_toc_reuses_its_bookmarks_and_writes_pagerefs() {
             field,
             options: BlockFieldOptions::Auto { pages: Some(pages) },
         },
-        &EditContext { mark_updated_fields_dirty: true, ..Default::default() },
+        &EditContext::default().with_mark_updated_fields_dirty(true),
     )
     .expect("重算");
     let out = s.save().expect("save");
@@ -354,7 +354,7 @@ fn regenerating_the_toc_corpus_keeps_every_field_well_formed() {
         for field in tocs {
             s.apply(
                 EditOp::RegenerateBlockField { field, options: Default::default() },
-                &EditContext { mark_updated_fields_dirty: true, ..Default::default() },
+                &EditContext::default().with_mark_updated_fields_dirty(true),
             )
             .unwrap_or_else(|e| panic!("{name}: 重算失败 {e}"));
         }

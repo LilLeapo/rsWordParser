@@ -31,6 +31,7 @@ macro_rules! bind_export {
         $name:ident($($arg:ident: $ty:ty = $sample:expr),*) -> $ret:ty => $core:ident,
         test $test:ident;
     )+) => {
+        #[cfg_attr(rsword_api_docs, deny(missing_docs))]
         impl $table {$(
             $(#[doc = $doc])*
             pub fn $name(&mut self, id: &str, $($arg: $ty),*) -> Result<$ret, $crate::bind::native::ApiError> {

@@ -29,20 +29,28 @@ pub enum Affinity {
 /// 附着在 DOM 上的位置（`SPAN-02`）：容器 + 内容序列边界 + affinity。
 ///
 /// `marker` 指向物理标记元素；新建范围与字段边界为 `None`（`FLD`）。
+/// BIND-11 值对象豁免：容器、边界、亲和性、物理标记四个字段固定，可直接构造。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub struct Anchor {
+    /// 包含内容序列的节点。
     pub container: NodeId,
     /// 内容序列边界，`0..=content_len(container)`；标记自身不计入。
     pub index: u32,
+    /// 边界插入时跟随左侧或右侧内容。
     pub affinity: Affinity,
+    /// 原有物理标记；新建逻辑锚点可为 `None`。
     pub marker: Option<NodeId>,
 }
 
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl Anchor {
+    /// 构造不带物理标记的锚点。
     pub fn new(container: NodeId, index: u32, affinity: Affinity) -> Self {
         Self { container, index, affinity, marker: None }
     }
 
+    /// 构造附着于已有物理标记的锚点。
     pub fn at(container: NodeId, index: u32, affinity: Affinity, marker: NodeId) -> Self {
         Self { container, index, affinity, marker: Some(marker) }
     }
@@ -185,11 +193,18 @@ pub enum SpanOrigin {
 /// `start` / `end` 为 `None` 表示该端在 part 内缺失（损坏输入：孤儿终点 / 未闭合起点），
 /// 由 `SPAN-09` 在保存前按 `PreExistingDamage` 修复。
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub struct RangeSpan {
+    /// 会话内范围 ID。
     pub id: SpanId,
+    /// 所属 part。
     pub part: PartId,
+    /// 所属内容流。
     pub flow: FlowId,
+    /// 范围种类及文件中的配对信息。
     pub kind: RangeKind,
+    /// 范围来自原文件、损坏输入或本次编辑。
     pub origin: SpanOrigin,
     /// 文件里没有物理标记元素（只有 `commentReference` 的批注就是这样）。
     /// `SPAN-08` 物化**不得**为它插入标记，否则未编辑内容会被改写（不变式 1/2）。
@@ -197,19 +212,25 @@ pub struct RangeSpan {
     pub implicit: bool,
     /// 本次会话按 `SPAN-07` 整体删除。保留在索引里供撤销；物化与校验跳过。
     pub removed: bool,
+    /// 起点，损坏输入可能缺席。
     pub start: Option<Anchor>,
+    /// 终点，损坏输入可能缺席。
     pub end: Option<Anchor>,
 }
 
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl RangeSpan {
+    /// 不带载荷的范围分类。
     pub fn class(&self) -> RangeClass {
         self.kind.class()
     }
 
+    /// 文件中的配对 ID。
     pub fn pair_id(&self) -> &str {
         self.kind.pair_id()
     }
 
+    /// 读取指定端点。
     pub fn anchor(&self, end: SpanEnd) -> Option<&Anchor> {
         match end {
             SpanEnd::Start => self.start.as_ref(),
@@ -217,6 +238,7 @@ impl RangeSpan {
         }
     }
 
+    #[doc(hidden)]
     pub fn anchor_mut(&mut self, end: SpanEnd) -> Option<&mut Anchor> {
         match end {
             SpanEnd::Start => self.start.as_mut(),

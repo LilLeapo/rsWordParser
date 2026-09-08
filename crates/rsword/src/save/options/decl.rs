@@ -1,6 +1,6 @@
 //! `SAVE-07` 的声明 part 保存选项（`spec/16` 任务 5.7）：参考文献、编号追加、主题、样式 upsert。
 //!
-//! 这四项都改**声明 part**，不是正文，所以走 [`plan_all`](super::plan_all) 的 `MutationPlan` 路
+//! 这四项都改**声明 part**，不是正文，所以走 `plan_all` 的 `MutationPlan` 路
 //! 而不是编辑操作——它们没有对应的 `EditOp`（正文里没有任何位置可以指）。缺 part 时先按
 //! `SAVE-05` 建（[`ensure_parts`]），再翻成计划。
 //!

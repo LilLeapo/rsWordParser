@@ -3,8 +3,8 @@
 //! 每项选项都翻译成普通 DOM 变更，没有旁路。两条路：
 //!
 //! - **元数据与清洗**（`saved_at` / `remove_personal_info` / `remove_date_and_time`）走
-//!   [`plan_all`]，直接产出各 part 的 [`MutationPlan`]。它们不是"编辑"，没有对应的 `EditOp`。
-//! - **文档内容**（节 / 页眉页脚 / 水印 / 页面底色 / 保护 / 奇偶页眉）走 [`edit_ops`]，翻成
+//!   `plan_all`，直接产出各 part 的 [`MutationPlan`]。它们不是"编辑"，没有对应的 `EditOp`。
+//! - **文档内容**（节 / 页眉页脚 / 水印 / 页面底色 / 保护 / 奇偶页眉）走 `edit_ops`，翻成
 //!   5.5 的编辑操作再由 `EditSession::apply_all` 执行。同一条路意味着同一套校验、同一套脏标记、
 //!   同一套 `SAVE-05` 新建 part（`spec/16` 任务 5.6 的"没有旁路"）。
 //!
