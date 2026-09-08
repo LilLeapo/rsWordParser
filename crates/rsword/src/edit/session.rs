@@ -86,6 +86,14 @@ impl EditSession {
         Self::from_package(Package::open(bytes)?)
     }
 
+    /// 新建一份空白文档（`SAVE-05`，`spec/18` 7.8）：一个空段、A4 竖向、标准样式与两条编号
+    /// 定义。与 TS `buildBlankDocx` 的六个 part 逐字节相同（`save::blank`）。
+    ///
+    /// `east_asia_font` 是 `docDefaults` 的 `w:eastAsia`；不给就不写。
+    pub fn blank(east_asia_font: Option<&str>) -> Result<Self> {
+        Self::open(&crate::save::blank_docx(east_asia_font)?)
+    }
+
     pub fn from_package(mut pkg: Package) -> Result<Self> {
         let doc = Document::rebuild(&mut pkg)?;
         let mut s = Self {

@@ -448,6 +448,7 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `spec/18` 7.7 `NewBlock::Textbox / Shape` 的字段 | `{ extent, anchor, fill, outline, … }` 各自摊开 | 三个变体共用一个 `ShapeLook { extent_emu, pos_offset_emu, wrap, z_order, fill, outline }` | 三种新块的外观与定位字段完全一样，摊开就是抄三遍；`Line` 的位置由 `from` / `to` 算出来，自己不带 `ShapeLook` |
 | `spec/18` 7.7 的 `PresetGeom` | 枚举 | `pub struct PresetGeom(pub String)`，值原样进 `a:prstGeom/@prst` | `ST_ShapeType` 有两百来个值且还在长，闭集挡住的是调用方而不是错误。解析侧本来就把 `@prst` 当不透明字符串 |
 | `SetDrawingGeometry` / `SetShapeStyle` 的 VML 孪生同步 | 同步 `v:shape/@style @fillcolor @strokecolor` | `@style` 只改 `width` / `height` / `margin-left` / `margin-top` 四个键，别的键（`position`、`z-index`、`mso-*`）原样留着 | 那些是 VML 自己的排版参数，DrawingML 这边没有对应物；猜着改不如不动。填充关掉时只写 `filled="f"`、不删 `@fillcolor`（VML 里 `filled` 才是开关，Word / TS 同） |
+| `spec/18` 7.8 空白模板的 part 清单 | 含 `settings.xml` | 六个 part，**没有** `settings.xml` | TS `buildBlankDocx` 就是六个（`[Content_Types].xml`、两个 `.rels`、`document.xml`、`styles.xml`、`numbering.xml`）。缺它 Word 照常打开；补一个反而与 TS 的输出有差，而这份模板的意义正是两个引擎新建的文档一模一样 |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -1662,3 +1663,16 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   几何与样式改完 VML 的 `@style` 只动四个键。
   **627 测试**（调试 + 发布）、九道门仍为 0、保存语料 204 / 208 等价 0 跳过、clippy 零告警。
   7.7 到此收完。
+
+- [x] **7.8a 空白文档模板**（`save/blank.rs`，2026-09-08）：`EditSession::blank(east_asia_font)` /
+  `save::blank_docx()`，TS `blank.ts` `buildBlankDocx` 的逐字移植——六个 part
+  （`[Content_Types].xml`、`_rels/.rels`、`word/_rels/document.xml.rels`、`document.xml` 单空段 +
+  A4 `sectPr`、`styles.xml` 的 `Normal` / `Heading1`–`6` / `ListParagraph` / `Hyperlink` /
+  `TOC1`–`9`、`numbering.xml` 的 bullet `numId 1` + decimal `numId 2`），导出
+  `BLANK_BULLET_NUM_ID` / `BLANK_ORDERED_NUM_ID`。没有 `settings.xml`（§8）。
+  对照件 `fixtures/fieldgen/blank.json`（连带 7.8b/c 要用的 `generators.json`）由新的
+  `tools/export-golden/blankgen.export.test.ts` 导出。
+  `tests/blank.rs` 3 个用例：六个 part 与 TS **逐字节相同**（不给 `w:eastAsia` 与给了各一遍，
+  在 zip 里也一样）；打开是一个可见段落、标准样式都在、没编辑保存字节不变、零诊断；
+  TS `blank-template` 第二场景（空白模板上生成一级标题 + 正文 + 两种列表 → 保存重解析后
+  `type` / `level` / `list.kind` 都对）。
