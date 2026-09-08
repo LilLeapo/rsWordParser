@@ -124,23 +124,36 @@ close(id: SessionId)                                            // 幂等；不�
   | 类 | 位置 | 线型 | 计数 |
   | --- | --- | --- | --- |
   | a. 真逃生口 | `NewBlock::Xml`、`NewBlock::Wrapped.wrapper`、`NewInline::Xml`、`ReplacePartXml`、`ReplacePartBytes` | XML 字符串（`ReplacePartBytes` 为 base64） | `BIND_XML_ESCAPE` 诊断 + 计数 |
-  | b. 结构化属性 | `NewBlock::Paragraph.props`（`w:pPr`）、`NewRun.props`（`w:rPr`）、`NewField.props`（结构 run 的 `w:rPr`） | `ParaPropsPatch` / `RunPropsPatch` 的 serde 形态（`SetParaProps` / `SetRunProps` 已在用的同一族） | 不计逃生口 |
+  | b. 结构化属性 | `NewBlock::Paragraph.props`（`w:pPr`）、`NewRun.props`（`w:rPr`）、`NewInline::Field.props`（字段结构 run 的 `w:rPr`） | `ParaPropsPatch` / `RunPropsPatch` 的 serde 形态（`SetParaProps` / `SetRunProps` 已在用的同一族） | 不计逃生口 |
   | c. 整块替换 | `ReplaceParaProps.props`（`EDIT-04` rawPPr 语义） | XML 字符串 | `BIND_XML_ESCAPE` 诊断 + 计数 |
 
   - **a（真逃生口）**：`insertBlock`（`NewBlock::Xml` / `Wrapped.wrapper`）、内联片段
     （`NewInline::Xml`，`m:oMath`、带 `w:ruby` / `w:drawing` 的 run 等）与 part 整体替换
     （`ReplacePartXml` / `ReplacePartBytes`）的线型是 XML 字符串，每次使用记一条
     `BIND_XML_ESCAPE` 诊断并计数（会话级计数器随 `diagnostics` 返回）。M8′ 不要求计数为 0。
-    （`NewInline::Xml` 与下表 b 的 `NewField.props` 是 v2 复核穷举时补进分类的两处，
-    评审时请一并确认。）
-  - **b（结构化属性）**：`NewBlock::Paragraph.props`、`NewRun.props`、`NewField.props`
-    **复用 `*Patch` 的 serde 形态，不计逃生口**。理由：同一个概念不能在协议里有两种形态；
-    一刀切成 XML 字符串会逼调用方手写 `w:pPr` / `w:rPr`——原生协议就是要消灭手写 XML，
-    M9′ 的 Agent 尤其用不了。
-    **引擎侧连带（明确是 8.3 的工作量，本次只改规范、不动 `edit/`）**：这三个位置今天持
-    `Option<NewElement>`（「完整的 `w:pPr` / `w:rPr`」）。8.3 把它们改成持 patch——新建容器
-    按 `PROP-06` 从零构建（`plan_apply_*`），`InsertBlock` / `NewInline` / `InsertField` 的
-    构建路径与 `compat_ts` 的适配随之一并改。
+    （`NewInline::Xml` 与下表 b 的 `NewInline::Field.props` 是 v2 复核穷举时补进分类的两处，
+    评审时请一并确认。**注意与 `NewField` 区分**：`NewField`（`edit/mod.rs:390`，`InsertField`
+    的载荷）是另一个类型，字段只有 `instr` / `result` / `mark_dirty`，**不含** `props`，
+    不在本表七处之列。）
+  - **b（结构化属性）**：`NewBlock::Paragraph.props`、`NewRun.props`、`NewInline::Field.props`
+    的**线型**是 `ParaPropsPatch` / `RunPropsPatch` 的 serde 形态，**不计逃生口**。理由：同一个
+    概念不能在协议里有两种形态；一刀切成 XML 字符串会逼调用方手写 `w:pPr` / `w:rPr`——原生协议
+    就是要消灭手写 XML，M9′ 的 Agent 尤其用不了。
+  - **b 的落地方式：只在线型边界转换，`edit/` 的引擎型不动**（v2 复核时改定；原稿写的
+    「8.3 把这三个位置改成持 patch」**撤销**）。`edit_op_from_json` 收到 patch 后就地物化成
+    `NewElement` 再交给引擎：patch → `ParaProps` / `RunProps` → `emit_para_props` /
+    `emit_run_props`（`build/props.rs` 生成，**不需要 `Dom`**，`compat_ts` 今天就在用，
+    见 `save_blocks.rs:988`、`:1239`）。`edit_op_to_json` 反向读回。
+    **为什么不改引擎型**：`compat_ts`（测试专用，扛着 `COMPAT-08` 的 `save_blocks` 204/208 门）
+    把调用方的 `rawPPr` **原样透传**——`generated_paragraph` 用 `parse_fragment` 把整份
+    `w:pPr` 变成 `NewElement` 直接塞进 `Paragraph.props`（`save_blocks.rs:900`–`:914`），
+    rich run 的 `w:rPr` 同理（`:2034` 一带）。引擎型若改成 patch，凡是落在生成属性表之外的
+    内容都会被丢掉，`COMPAT-08` 必然回归。只换线型则两边都成立：原生 / Agent 调用方发结构化
+    patch，`compat_ts` 继续走原字节，互不干扰，8.3 的工作量也随之缩小。
+    **代价与出口**：原生调用方若确实需要发属性表之外的 `w:pPr` 内容，走 a 类的
+    `NewBlock::Xml`（计逃生口）——这是有名有姓的既定出口，不是缺口。
+    **8.3 的 DoD 追加一条**：改完 `save_blocks` 仍为 **204/208 等价、0 跳过**（`spec/19` 门 5
+    「既有门不许退」在这条上最容易破）。
   - **c（`ReplaceParaProps.props`）判定：留 XML 字符串线型，并入 a 的 `BIND_XML_ESCAPE`
     计数**（v2 评审要定的点）。理由：
     1. 这个操作的定义语义是「用调用方给的整份 `w:pPr` 替换现有容器」——它能表达 patch

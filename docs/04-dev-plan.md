@@ -1899,13 +1899,13 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
     `js_binding_save_bytes_parity` 与 `common::save_cases()`。wasm 产物 2.25 MB / gzip 796 KB
     （`opt-level = "z"`）。`m8-editor` 分支的删除见 `spec/19` 待决 6
   - [x] ③ `tools/export-golden/README` 写明「genoffice 只读使用」与最后重导提交号（本提交；`f105f36` / `2026-09-08T03:14:56Z`）
-- [ ] **8.1 协议规范 `spec/21-bind.md`**（`BIND-01`–`BIND-11`）—— **关口**
+- [x] **8.1 协议规范 `spec/21-bind.md`**（`BIND-01`–`BIND-11`）—— **关口，v2 已通过**
   v1（76f2542）评审通过、4 处意见落地（784b96a；js-parity 自建 `--out`、门控不许静默通过、
   清单差异数订正为 34 项、8.0 父框勾上）。
   **v2（本提交）：协议语义变更，BIND-03 的 v1 评审作废，重走评审。** 8.2/8.3 会话开工前核代码
   发现（项目负责人独立复核属实）：BIND-03 v1 的前提「`EditOp` 结构简单、无 arena 引用，
   可直接 derive serde」不成立——`NewElement`（`NewBlock::Paragraph.props` / `Xml` /
-  `Wrapped.wrapper`、`NewRun.props`、`NewField.props`、`NewInline::Xml`、`ReplaceParaProps.props`，
+  `Wrapped.wrapper`、`NewRun.props`、`NewInline::Field.props`、`NewInline::Xml`、`ReplaceParaProps.props`，
   协议面共 7 处）经 `QName` 携带 `NsId::Other(Interned)` / `LocalName::Other(Interned)`，
   而 `Interned` 是 per-Dom `Interner` 的句柄（`xml/interner.rs`），离开产生它的 Dom 不能渲染
   也不能反序列化。错话源自 `spec/19`「实现约定」（已随 v2 订正，风险提示加第 10 条）。
@@ -1916,6 +1916,19 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   `Option<NewElement>` 改持 patch 是 **8.3 的工作量**，本提交不动 `edit/`）、
   c `ReplaceParaProps` 留 XML 字符串并入 a（判定与理由在 BIND-03 v2，评审要定的点）。
   BIND-01/02/04–11 未动，其 v1 评审结论仍然有效。
+  **v2 评审结论（2026-09-08）：通过**，穷举的 7 处与判定 c（`ReplaceParaProps` 留字符串——
+  整份容器替换能表达 `pPrChange` / `sectPr` / 段落标记 `rPr` / 未建模元素，merge 语义表达不了，
+  且结构化修改已由 `SetParaProps` 覆盖）均复核认可。评审时改掉两处（项目负责人直接落笔）：
+  ① `NewField.props` **写错了**——真实位置是 `NewInline::Field.props`（`edit/inline.rs:91`）；
+  `NewField`（`edit/mod.rs:390`，`InsertField` 的载荷）是另一个真实类型且**没有 `props`**，
+  照原文找会扑空，七处里那一处会从三类划分中漏出去。
+  ② **b 的落地方式改定为「只换线型、不动引擎型」**：原稿要 8.3 把三个 `Option<NewElement>`
+  改成持 patch，但 `compat_ts` 的 `generated_paragraph` 是把调用方 `rawPPr` 经 `parse_fragment`
+  **原样透传**进 `Paragraph.props`（`save_blocks.rs:900`–`:914`，rich `rPr` 同理 `:2034`），
+  引擎型改 patch 会丢掉生成属性表之外的内容，`COMPAT-08` 的 204/208 必然回归。改为在
+  `edit_op_from_json` 边界物化（patch → `ParaProps`/`RunProps` → `emit_para_props`/
+  `emit_run_props`，`build/props.rs` 生成、不需要 `Dom`、`compat_ts` 今天就在用），
+  两边互不干扰，8.3 工作量同时缩小；8.3 的 DoD 追加「`save_blocks` 仍为 204/208、0 跳过」。
 - [ ] **8.2 模型 JSON 投影**（`bind/native/json.rs`、`schema.rs`、`model_json!`）
 - [ ] **8.3 `EditOp` / `EditContext` / `MutationResult` 的 JSON**（`edit_op_json!`、`SaveOptions` 收缩到五项）
 - [ ] **8.4 会话、媒体句柄、`resolve` 查询与部件读取**（`bind_export!`、`resolve_query!`）
