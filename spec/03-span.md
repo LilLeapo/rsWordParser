@@ -1,15 +1,20 @@
 # SPEC 03 · L2 范围层（span）
 
+> 2026-09-09 增补（9.2 评审批准）：外部文本框 part 根 `w14:txbx` 与每个构建基块 `w:docPartBody` 也是内容容器和流根。
+> 原实现未赋予这些容器流身份（外部文本框段落已暴露于模型，glossary 未展开）；本次只补原先无身份的节点，旧流先编号、新流追加，既有 FlowId 不重编。
+> 不拆单元格流、不改变既有跨单元格范围语义。所有段落容器若仍无流归属，记 `SPAN_NO_FLOW`，禁止无声遗漏。
+> 各 docPartBody 是独立流，不把 glossaryDocument 合并为一条流；全语料可解析 XML 的无流段落数精确断言为 0。
+
 对应 `docs/03` 第 5.1–5.3、5.5、5.6 节。职责：把跨节点的范围结构（书签、批注、权限、移动范围、customXml 修订范围）表示为附着在 DOM 上的位置语义，并在编辑时维护它们。字段子系统见 `04-field.md`。
 
 ## SPAN-01 内容序列与内容流
 
-- **内容序列** `content(container)`：`semantic_children(container)` 去掉属性元素（`w:pPr w:tcPr w:trPr w:tblPr w:tblGrid w:sectPr w:tblPrEx`）与所有范围标记元素后的有序列表。容器包括 `w:body w:p w:tc w:tr w:tbl w:txbxContent w:sdtContent w:hdr w:ftr w:footnote w:endnote w:comment w:ins w:del w:hyperlink w:smartTag w:customXml w:fldSimple`。
+- **内容序列** `content(container)`：`semantic_children(container)` 去掉属性元素（`w:pPr w:tcPr w:trPr w:tblPr w:tblGrid w:sectPr w:tblPrEx`）与所有范围标记元素后的有序列表。容器包括 `w:body w:p w:tc w:tr w:tbl w:txbxContent w14:txbx w:docPartBody w:sdtContent w:hdr w:ftr w:footnote w:endnote w:comment w:ins w:del w:hyperlink w:smartTag w:customXml w:fldSimple`。
 - 边界 `k` 表示 `content[k-1]` 与 `content[k]` 之间，`0 ≤ k ≤ len`。
 - 内容序列**只含元素节点**：容器里的文本与 Opaque（注释 / PI）节点不是内容项。缩进排版产生的空白
   文本节点若占据边界，同一份文档换个产出工具就会改变锚点坐标；而这些容器的合法内容本来只有元素。
-- **内容流**：body（`w:body` 及其后代容器）、每个 `w:txbxContent`、每个 `w:hdr`/`w:ftr`、每个脚注/尾注/批注条目各为独立流。范围**禁止**跨流。
-- **FlowId**：每个流分配 `FlowId(u32)`；`flow_of(container) -> FlowId` 由"容器 → 流根"的缓存映射给出（流根：`w:body`、`w:txbxContent`、`w:hdr`、`w:ftr`、`w:footnote`、`w:endnote`、`w:comment`）。`flow_of(&Anchor) = flow_of(anchor.container)`。同流判定**必须**比较 `FlowId`，不得靠祖先树临时推断。子树移动跨越流根时，缓存对该子树失效并重建。
+- **内容流**：body（`w:body` 及其后代容器）、每个 `w:txbxContent`、每个外部文本框 `w14:txbx`、每个构建基块 `w:docPartBody`、每个 `w:hdr`/`w:ftr`、每个脚注/尾注/批注条目各为独立流。范围**禁止**跨流。
+- **FlowId**：每个流分配 `FlowId(u32)`；`flow_of(container) -> FlowId` 由"容器 → 流根"的缓存映射给出（流根：`w:body`、`w:txbxContent`、`w14:txbx`、`w:docPartBody`、`w:hdr`、`w:ftr`、`w:footnote`、`w:endnote`、`w:comment`）。`flow_of(&Anchor) = flow_of(anchor.container)`。同流判定**必须**比较 `FlowId`，不得靠祖先树临时推断。子树移动跨越流根时，缓存对该子树失效并重建。
 
 ## SPAN-02 Anchor
 

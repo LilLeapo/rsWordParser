@@ -28,6 +28,8 @@
 #[cfg(test)]
 extern crate self as rsword;
 
+#[doc(hidden)]
+pub mod agent;
 pub mod bind;
 // audit 构建取消祖先的隐藏，让稳定定义及固有 impl 上的 deny(missing_docs) 生效。
 // 观察项仍不要求文档；注解位置由 BIND-11 成文清单和源码扫描双向锁定。

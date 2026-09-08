@@ -32,7 +32,7 @@
 | `COMPAT` | `10-compat-ts.md` | 兼容适配器（自 `docs/03` v3.3 起为**测试专用**，见该文件头部） |
 | `TEST` | `11-testing.md` | 测试基础设施 |
 | `BIND` | `21-bind.md` | 原生协议（M8′ 8.1 建立；会话、模型 JSON、`EditOp` JSON、媒体句柄、`resolve` 查询） |
-| `AGENT` | `22-agent.md` | Agent 接口层（M9′ 9.1 关口稿，待评审；AGENT-01–10：投影/锚点、查询、预算、编辑与工具） |
+| `AGENT` | `22-agent.md` | Agent 接口层（9.1 关口评审通过（2026-09-09）；AGENT-01–10：投影/锚点、查询、预算、编辑与工具） |
 | — | `12-m0-m1-plan.md` | M0 / M1 任务分解 |
 | — | `13-m2-plan.md` | M2 任务分解 |
 | — | `14-m3-plan.md` | M3 任务分解 |

@@ -720,3 +720,126 @@ impl Document {
         block_at_mut_in(&mut self.main, path)
     }
 }
+
+impl Document {
+    /// AGENT-02 的只读定位：复用原生流索引，单元格不另建流。
+    pub fn flow_of_in(&self, part: PartId, node: NodeId) -> Option<crate::span::FlowId> {
+        if part == self.main_part {
+            return self.flows.flow_of(node);
+        }
+        if let Some(hf) = self.hf_parts.get(&part) {
+            return hf.idx.flows.flow_of(node);
+        }
+        for notes in [&self.footnotes, &self.endnotes] {
+            if notes.part == Some(part) {
+                return notes.idx.as_ref()?.flows.flow_of(node);
+            }
+        }
+        if self.comments.part == Some(part) {
+            return self.comments.idx.as_ref()?.flows.flow_of(node);
+        }
+        self.aux_flows.get(&part)?.flows.flow_of(node)
+    }
+    /// AGENT-01 的只读字段定位；Agent 无需遍历字段索引。
+    pub fn field_projection_label(
+        &self,
+        part: PartId,
+        id: crate::span::FieldId,
+    ) -> Option<(NodeId, &str)> {
+        let f = self.fields_in(part)?.get(id)?;
+        Some((f.form.head(), f.instr.keyword.as_str()))
+    }
+}
+
+/// AGENT-01：构建基块的可寻址身份与省略数量，正文模型不自动展开声明 part。
+/// 在包副本上惰性解析 glossary；调用方包的缓存、诊断与规范状态均不改变。
+pub fn glossary_flows(
+    pkg: &crate::package::Package,
+) -> crate::error::Result<Vec<(PartId, NodeId, crate::span::FlowId, usize)>> {
+    use crate::package::RelType;
+    let mut ids: std::collections::BTreeSet<_> =
+        pkg.parts().iter().flat_map(|p| pkg.related(p.id, RelType::GlossaryDocument)).collect();
+    ids.extend(
+        pkg.parts()
+            .iter()
+            .filter(|p| {
+                p.content_type
+                    .as_deref()
+                    .is_some_and(|t| t.ends_with("wordprocessingml.document.glossary+xml"))
+            })
+            .map(|p| p.id),
+    );
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    let mut scratch = pkg.clone();
+    let mut out = Vec::new();
+    for id in ids {
+        let Some(dom) = scratch.dom(id)? else {
+            continue;
+        };
+        let flows = crate::span::FlowMap::build(dom);
+        for &root in flows.roots() {
+            if dom.is(root, QName::w(LocalName::DocPartBody)) {
+                let flow = flows.flow_of(root).expect("已枚举的流根有身份");
+                let paragraphs = dom
+                    .descendants(root)
+                    .filter(|&n| {
+                        dom.is(n, QName::w(LocalName::P)) && flows.flow_of(n) == Some(flow)
+                    })
+                    .count();
+                out.push((id, root, flow, paragraphs));
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// AGENT-01 使用的只读范围定位摘要；不向 Agent 暴露可变 Span 索引。
+pub struct RangeLocation {
+    pub node: NodeId,
+    pub id: u32,
+    pub flow: crate::span::FlowId,
+    pub pair_id: String,
+    pub comment: bool,
+    pub start: Option<(NodeId, u32)>,
+    pub end: Option<(NodeId, u32)>,
+}
+impl Document {
+    /// 既有范围的模型摘要，包含无可见文字的标记。
+    pub fn range_locations_in(&self, part: PartId) -> Vec<RangeLocation> {
+        let idx = if part == self.main_part {
+            Some(&self.spans)
+        } else if let Some(h) = self.hf_parts.get(&part) {
+            Some(&h.idx.spans)
+        } else if self.footnotes.part == Some(part) {
+            self.footnotes.idx.as_ref().map(|i| &i.spans)
+        } else if self.endnotes.part == Some(part) {
+            self.endnotes.idx.as_ref().map(|i| &i.spans)
+        } else if self.comments.part == Some(part) {
+            self.comments.idx.as_ref().map(|i| &i.spans)
+        } else {
+            self.aux_flows.get(&part).map(|i| &i.spans)
+        };
+        let Some(idx) = idx else { return Vec::new() };
+        idx.spans()
+            .iter()
+            .filter(|s| !s.removed)
+            .map(|s| {
+                let anchor = s.start.as_ref().or(s.end.as_ref());
+                let node = anchor
+                    .map(|a| a.marker.unwrap_or(a.container))
+                    .unwrap_or_else(|| idx.flows().root_of(s.flow));
+                RangeLocation {
+                    node,
+                    id: s.id.0,
+                    flow: s.flow,
+                    pair_id: s.pair_id().to_owned(),
+                    comment: s.class() == crate::span::RangeClass::Comment,
+                    start: s.start.as_ref().map(|a| (a.container, a.index)),
+                    end: s.end.as_ref().map(|a| (a.container, a.index)),
+                }
+            })
+            .collect()
+    }
+}

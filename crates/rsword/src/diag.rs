@@ -183,6 +183,8 @@ pub enum DiagCode {
     BindIdUnknown,
     /// 调用方要求的协议版本不匹配（BIND-08）。
     BindProtocolMismatch,
+    /// `SPAN-01`：段落容器未被任何原生内容流覆盖，不能进行同流定位。
+    SpanNoFlow,
 }
 
 #[cfg_attr(rsword_api_docs, deny(missing_docs))]
@@ -213,6 +215,7 @@ impl DiagCode {
             Self::SpanUnclosed => "SPAN_UNCLOSED",
             Self::SpanDupStart => "SPAN_DUP_START",
             Self::SpanCrossFlow => "SPAN_CROSS_FLOW",
+            Self::SpanNoFlow => "SPAN_NO_FLOW",
             Self::FldStraySeparate => "FLD_STRAY_SEPARATE",
             Self::FldStrayEnd => "FLD_STRAY_END",
             Self::FldUnclosed => "FLD_UNCLOSED",

@@ -305,6 +305,8 @@ impl Document {
         let mut fields = FieldIndex::build(dom);
         warnings.extend(fields.take_diagnostics());
         let mut spans = SpanIndex::build(dom);
+        warnings
+            .extend(spans.diagnostics().iter().filter(|d| d.code == DiagCode::SpanNoFlow).cloned());
         // `SPAN-10`：端点落在原子字段内部时移到原子边界（7.5）
         spans.snap_to_field_atoms(dom, &fields);
         let ext_txbx: crate::model::aux::ExtTxbxMap<'_> = txbx_rels

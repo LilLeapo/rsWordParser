@@ -622,6 +622,18 @@ impl<'d> Builder<'d> {
 
     fn run(mut self) -> SpanIndex {
         let flows = FlowMap::build(self.dom);
+        for node in self.dom.descendants(self.dom.root()) {
+            if self.dom.name(node).is_some_and(is_content_container)
+                && flows.flow_of(node).is_none()
+            {
+                self.diagnostics.push(Diagnostic::pre_existing(
+                    self.part,
+                    None,
+                    DiagCode::SpanNoFlow,
+                    format!("内容容器 {} 无原生流身份", node.0),
+                ));
+            }
+        }
         for i in 0..flows.flow_count() {
             let flow = FlowId(i as u32);
             self.walk_flow(flow, flows.root_of(flow));

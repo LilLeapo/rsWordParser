@@ -12,28 +12,30 @@ use super::{is_property_element, is_range_marker};
 ///
 /// `w:sdt` 自身不是容器（它的内容在 `w:sdtContent` 里）；`w:r` 也不是——标记不能是 run 的子节点。
 pub fn is_content_container(name: QName) -> bool {
-    name.ns == NsId::W
-        && matches!(
-            name.local,
-            LocalName::Body
-                | LocalName::P
-                | LocalName::Tc
-                | LocalName::Tr
-                | LocalName::Tbl
-                | LocalName::TxbxContent
-                | LocalName::SdtContent
-                | LocalName::Hdr
-                | LocalName::Ftr
-                | LocalName::Footnote
-                | LocalName::Endnote
-                | LocalName::Comment
-                | LocalName::Ins
-                | LocalName::Del
-                | LocalName::Hyperlink
-                | LocalName::SmartTag
-                | LocalName::CustomXml
-                | LocalName::FldSimple
-        )
+    name == QName { ns: NsId::W14, local: LocalName::Txbx }
+        || name.ns == NsId::W
+            && matches!(
+                name.local,
+                LocalName::Body
+                    | LocalName::P
+                    | LocalName::Tc
+                    | LocalName::Tr
+                    | LocalName::Tbl
+                    | LocalName::TxbxContent
+                    | LocalName::DocPartBody
+                    | LocalName::SdtContent
+                    | LocalName::Hdr
+                    | LocalName::Ftr
+                    | LocalName::Footnote
+                    | LocalName::Endnote
+                    | LocalName::Comment
+                    | LocalName::Ins
+                    | LocalName::Del
+                    | LocalName::Hyperlink
+                    | LocalName::SmartTag
+                    | LocalName::CustomXml
+                    | LocalName::FldSimple
+            )
 }
 
 /// 单个语义子节点是否算内容项。

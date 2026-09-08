@@ -1,6 +1,9 @@
 # SPEC 22 · Agent 接口层与文件级工具
 
-> 9.1 关口稿，2026-09-09，**待评审，未实现**。评审通过前禁止开始 9.2。
+> 9.1 关口评审通过（2026-09-09）；实现按任务逐项验收。
+> v1.1 订正（2026-09-09）：原“单元格子流”措辞与 SPAN-01 冲突。单元格是所在流的子范围，
+> 以 ObjectRef 选择、按对象身份去重；不新增单元格 FlowId，否则既有跨单元格范围会被误判为非法跨流。
+> 同日评审增补：SPAN-01 为外部文本框与各 docPartBody 追加流身份；glossary 基块可寻址但不自动展开为当前文档文本，按 glossary 类报告身份、段落数与省略原因。
 > 依据：docs/03 v3.3、spec/20、已复核的 docs/12（22 项任务、预算实测）。
 > 本稿采用已批准的“源文字 / 呈现”两类锚点。spec/20 门 2 的旧 InlinePos 全覆盖措辞待负责人订正；
 > 本文件不修改 spec/18、spec/20、spec/21，也不裁定 M8′ 门 2 / 门 4。
@@ -16,7 +19,7 @@ Agent 层只读取模型、resolve 与内核提供的只读定位结果；不得
 时间为带时区的 ISO 8601 字符串；缺失作者/日期原样报告缺失，不以当前用户或当前时间补齐输入事实。
 
 共同身份：`ObjectRef={part,node,flow,kind}`。part 为会话内 part id，输出必带；输入省略 part 表示主 part（BIND v3.1）。
-flow 是同 part 内正文/单元格/文本框/批注/注释等内容流的身份，不用 nodeId 或 partId 代替它。
+flow 是 SPAN-01 定义的原生内容流身份，不用 nodeId 或 partId 代替它。单元格保留所在流的 FlowId，以 ObjectRef 区分投影子范围。
 不存在的 part 或不在该 arena 内的 node 返回 `BIND_ID_UNKNOWN`。id 不跨会话复用。
 所有读取遵守 AGENT-06；错误统一为 `{code,message,details}`，原生错误保留原 code，不全部包成 AGENT 错误。
 
@@ -30,7 +33,7 @@ flow 是同 part 内正文/单元格/文本框/批注/注释等内容流的身�
 用呈现标记区分，不偷偷接受或拒绝修订。其他 view 值本版返回参数错误。
 
 投影是确定性纯函数；规范化顺序来自文档内容序列、part URI 与流内顺序，不来自 HashMap 迭代。
-scope=all 按主流、页眉页脚（part URI 排序）、脚注、尾注、批注及剩余子流的规范顺序输出。表格单元格若已随父表展开，访问集合标记其子流已输出，不再附加一次；只请求该子流时单独输出。
+scope=all 按主流、页眉页脚（part URI 排序）、脚注、尾注、批注及剩余子流的规范顺序输出。表格单元格若已随父表展开，按 ObjectRef 标记其子范围已输出，不再附加一次；显式选择该 ObjectRef 时返回同一子范围。单元格不另建 FlowId。
 无需反解析轻标记来获得编辑地址：结构化 anchors 才是权威。呈现语法接近 Markdown，但不承诺通用 Markdown 渲染器的视觉效果。
 正文中的 `\`、`[`、`]`、`|`、`#` 用反斜线转义；新加的转义符是呈现字符，原字符仍有源文字锚点。
 
@@ -50,6 +53,7 @@ scope=all 按主流、页眉页脚（part URI 排序）、脚注、尾注、批�
 | tab、软换行 | 保留 tab / LF 的文本语义 | 仍经 EDIT-02 判断其边界能否编辑，不制造 XML 文本位置 |
 | 分节/分页、书签和范围标记 | `[section-break #object]` / `[page-break #object]` / `[range #object]` | 计 structure/rangeMetadata；不假定真实页码；有锚点但无文字的节点也有对象定位 |
 | Protected、未知扩展或未支持类型 | `[protected KIND #object]` / `[unknown #object]` | 非空省略计数 protected/unknown，带原诊断；不得消失或伪造成空段落 |
+| glossary 构建基块 | 每个 `w:docPartBody` 有独立原生流身份，不自动展开到 text(main/all) | 它们是声明的可复用内容，不是当前正文；每个基块计 glossary 一次，addressableNotProjected 给 ObjectRef、段落数与原因，不伪造文字区间 |
 
 `#object` 为本投影内稳定且带类型的对象键，在 anchors/object 索引中可解析成 ObjectRef；不裸用 mediaId。
 同一媒体的两处出现有两个对象键；对象键与 segmentKey 在同 snapshot/config 下不随分页变化。标记里的动态字符串用 JSON 字符串转义，禁止原始换行破坏标记边界。用户文字不能通过伪造占位符获得对象身份。
@@ -71,6 +75,7 @@ R10 的 CHART_NO_SERIES 必须说明“没有带缓存值的系列，不能据�
 ### 验收
 
 每种表列类别至少一个正例；字面伪占位符、未知变体、深嵌套、同媒体多处引用分别有负例。
+单元格显式选择与父表展开对应区间逐字符相等；随父表展开后再次选择同一对象不得重复输出。
 两次投影逐字节相同；所有遍历迭代实现。全语料检查分类计数，删除任一分类分派/fixture 必须红。
 R3–R6、R8–R10 对独立模型事实逐字段相等；注入未知诊断，原 code/message/定位必须仍在输出且 known=false。
 
