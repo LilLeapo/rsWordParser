@@ -1948,6 +1948,26 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   `MOD-01`–`MOD-11` 独立 checklist（`tests/native_bind.rs`）；门 6 体积：251 份带图文档
   `compat_ts::parsed_doc` 4,334,070B → native 1,408,718B（**-67.5%**）。本次评审修复后 debug / release 各 **765 passed、0 failed、14 ignored**（其中 12 个 ignored doctest，不计入通过数）；新增键集负向与深度扫描两项测试。全语料最深为 `deep-nested-table__001.docx` 的 392 层，护栏为 448 层；八道差异检查仍为 242 + 547 处已知差异、0 处未知差异。
 - [ ] **8.3 `EditOp` / `EditContext` / `MutationResult` 的 JSON**（`edit_op_json!`、`SaveOptions` 收缩到五项）
+  进行中（codex）。开工核代码时报出三处规范问题，项目负责人 2026-09-09 一并裁定，`spec/21` 升 **v3**：
+  ① **BIND-04 的隐私清洗缺省改 `false`**（原「沿用文档标志」与同条「无编辑 `save({})` 逐字节相同」冲突，
+  且与同表上一行已裁的「`savedAt` 不触发保存（不变式 1 优先）」不一致）。实测
+  `write-protection__005.docx`（全语料唯一带该标志者，前缀 `s:`）无编辑 `save({})` 2446→2440 B、
+  作者「张三」被清掉——**HEAD 既有行为就违反不变式 1，非本轮引入**。`compat_ts` 那条路继续照 TS 显式传 `true`，
+  `COMPAT-08` 的 204/208 不动。
+  ② **BIND-03 的 b 类往返改为「正向往返 + 成文拒绝集」**，反向遇不可无损表示必须返具名错误、禁止静默丢弃；
+  依据是 BIND-01 的导出表里没有任何导出返回 `EditOp`——反向只服务往返测试与 M9′ 门 4 的可审计打印，
+  是调试 / 审计设施而非协议数据路径。验收口径：每变体落到「无损往返」或「按清单具名拒绝」之一、
+  两类分别报计数并双向锁死，**禁止**把样例收窄再声称全部通过。
+  ③ **5.7 六族公开为 `EditOp`**（清单 60 → **66**），形态复用 `save/options/decl.rs` 的现有声明类型，
+  三个键控操作（`numId` / `numId` / `styleId`）**已存在即 no-op** 并各配「同会话发两次 = 发一次」测试，
+  `setSources` 另验未变条目原字节（不变式 2）。
+  ④ **`TableChange` 的 `$patch` 线型编码**定案（`Keep` 键缺席 / `Unset` 为 `null` / `Set(v)` 值本身 /
+  `Patch(p)` 为 `{"$patch": p}`，空 `Patch` 仍写不许用 `is_keep()` 省略；schema 必须声明 `$patch`，
+  否则 BIND-02 验收第 3 条的键集检查误伤）。
+  另外订正 `spec/19` 8.3 任务行残留的 v1 措辞（v2 时只改了「实现约定」一节，漏了任务表）。
+  **并发现一个从 M0 潜伏的门洞**：不变式 1 从未被全语料测过——`xml_roundtrip.rs` 只测每个 XML part 的
+  `parse → serialize`，包级「无编辑保存字节相同」只散落在几份手挑文档上。已把「全语料无编辑
+  `EditSession::save()` 字节相同」加进 `spec/19` 门 5，落在 8.6。
 - [ ] **8.4 会话、媒体句柄、`resolve` 查询与部件读取**（`bind_export!`、`resolve_query!`）
 - [ ] **8.5 Rust crate 公共 API 定型**（公共面收敛、feature 划分、`missing_docs`、三个 example、README 改写）
 - [ ] **8.6 回归网换代**（`*.model.json` 自快照、`TEST-07` 走协议、`fuzz_bind`）

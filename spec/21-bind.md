@@ -9,6 +9,18 @@
 > （已随 v2 订正）。v2 改为**线型与引擎型分离**（BIND-03 重写）。**v1 对 BIND-03 的评审通过
 > 作废，重新评审**；BIND-01 / BIND-02 / BIND-04–11 未动，其 v1 评审结论仍然有效。
 
+> 修订：**v3（2026-09-09）项目负责人裁定四处**（8.3 开工核代码时发现，均经独立复核）：
+> ① **BIND-04 的隐私清洗缺省改为 `false`**——原写「沿用文档标志」与同条「无编辑 `save({})` 逐字节相同」
+>   直接冲突，且与**同一张表上一行**已裁定的「`savedAt` 单独设置不触发保存（不变式 1 优先）」不一致。
+>   实测 `corpus/synthetic/write-protection__005.docx`（全语料唯一带该标志者，前缀为 `s:`）无编辑
+>   `save({})` 2446 B → 2440 B、作者「张三」被清掉——**HEAD 既有行为就已违反不变式 1，非本轮引入**。
+> ② **BIND-03 的 b 类往返条款改为「正向往返 + 成文拒绝集」**——`edit_op_to_json` 对 b 类无法无损表示，
+>   这是 v2 评审改定「b 类只换线型、引擎型不动」的必然结果（属性表外内容会丢，且 `emit_*_props`
+>   可能规范化子元素顺序）。
+> ③ **BIND-02 的验收条款回写**——原「JSON → `DocumentJson` → JSON 幂等」因决策 2（模型 JSON 单向）
+>   无意义，实际由「投影确定性 + 重建稳定性 + 键集严格性」三条替代（8.2 已落地并经破坏性验证）。
+> ④ **5.7 六族公开为 `EditOp`**，清单增补进 BIND-03（60 → 66）；`TableChange` 的 `$patch` 线型编码同时定案。
+
 对应 `docs/03` v3.3 §12 的 M8′ 行与 `spec/19` 任务 8.1。职责：定义 rsword 独立交付的**唯一对外协议**——
 `open → document / resolve / media → apply / save → close`。本文件是 M8′ 的**关口**：
 评审通过之前不动 8.2–8.5 的代码；条目一经评审即冻结语义，后续只许增补。
@@ -74,7 +86,13 @@ close(id: SessionId)                                            // 幂等；不�
   checklist，见 `spec/19`「实现约定」）。**禁止**在 `model/` 类型上直接 `derive(Serialize)`
   （模型持 `NodeId` / 区间 / arena 引用）；独立投影层在 `bind/native/json.rs`。
 - **必须**：全语料 `document()` 输出通过 JSON Schema 校验（schema 由同一张 `model_json!` 表
-  生成，进 CI）；JSON → `DocumentJson` → JSON 的 serde 往返逐字节幂等。
+  生成，进 CI）。**验收三条**（v3 回写；原写「JSON → `DocumentJson` → JSON 的 serde 往返逐字节幂等」，
+  因决策 2「调用方永远不能把 JSON 改一改送回来，只有 `EditOp` 能改文档」而无意义——协议不接收模型 JSON，
+  造一个 `DocumentJson` 反序列化目标是死代码，且「`Value` 自往返」是同义反复、不可能失败）：
+  1. **投影确定性**：同一 `Document` 连投两次逐字节相同（防 `HashMap` 迭代序——7.9 的 `hf_parts` 有前科）；
+  2. **重建稳定性**：同一份字节 `open` + `rebuild` 两次，两次投影逐字节相同；
+  3. **键集严格性**：递归比对每个对象的键集 ⊆ 该类型 schema 声明的 `properties`（schema 不用
+     `additionalProperties: false`，理由见 `docs/04` §8，故多余键由此条兜住）。
 - 顶层形态（`MOD-01` 的投影；`spans` / `fields` / `revisions` 一并投影，`warnings` 经
   BIND-07 的诊断形态）：
 
@@ -113,8 +131,17 @@ close(id: SessionId)                                            // 幂等；不�
   `NewBlock` / `NewInline` / `NewAtom` / `NewField` / `NewComment` / `NewImage` / `NewChart` /
   `NewInk` 与属性表 `*Patch`（`PROP-06` 的 diff/patch 形态）中**不含** `NewElement` 的部分
   直接共享 serde 形态（见下「三类去处」）。
-- **必须**：往返测试的定义——scratch Dom 上构造引擎型 → `to_json` → `to_string` →
-  `from_str` → `from_json` → `PartialEq` 相等，60 变体各一条（`edit_op_json!` 同一张表展开
+- **必须**：往返测试的定义（**v3 按去处分类**）——a / c 类与不含 `NewElement` 的变体：scratch Dom 上
+  构造引擎型 → `to_json` → `to_string` → `from_str` → `from_json` → `PartialEq` 相等。
+  **b 类（结构化属性）改为正向往返** —— 线型 JSON → 引擎型 → 线型 → 引擎型 相等；**反向不承诺无损**：
+  `edit_op_to_json` 遇到无法用 patch 无损表示的引擎 `NewElement`（属性表外内容；或 `emit_*_props`
+  会规范化子元素顺序的情形）**必须返回具名错误，禁止静默丢弃**，并落在一份**成文的拒绝集**里。
+  理由：BIND-01 的导出表里**没有任何导出返回 `EditOp`**——反向转换只服务往返测试与 M9′ 门 4 的
+  可审计打印，是**调试 / 审计设施，不是协议数据路径**，其有损性不构成协议保真缺口（此判定要写进
+  `bind/native/edit/` 的模块头，防后人当成保证）。
+  **验收口径**：每个变体必须落到「无损往返通过」或「按清单具名拒绝」之一，两类**分别报计数**并
+  断言拒绝集与预期完全相等（照 8.2 `UNOPENABLE` 的双向锁死写法）；**禁止**把样例收窄到可表示的
+  结构再声称「全部往返通过」。66 变体各一条（`edit_op_json!` 同一张表展开
   线型、转换、测试与下文的变体清单）。同一 `Interner` 内同名同柄，故同一 scratch Dom 内
   相等成立；**跨 Dom 的句柄相等不做要求**（调用方禁止跨会话搬运操作 JSON 里的句柄——
   句柄根本不在线型里出现）。
@@ -168,15 +195,41 @@ close(id: SessionId)                                            // 幂等；不�
 - **必须**：位置形态与 `EDIT-02` 一致——`InlinePos { part: PartId | null, para: nodeId,
   offset }`（`part: null` = 主 part），`BlockPos { part: PartId | null, at: BlockAt }`；
   偏移是坐标流 UTF-16 code unit。
+- **必须**（v3）：**5.7 族六个新变体的形态与幂等规则**。载荷**复用现有声明类型**
+  （`save/options/decl.rs`），不另造语义：
+
+  | `op` | 载荷 | 键与重复调用规则 |
+  | --- | --- | --- |
+  | `setSources` | `sources: Vec<SourceSave>` | 权威列表替换；**未变条目保留原字节**（不变式 2，须有测试逐字节比对） |
+  | `addNumberingDefinition` | `definition: NumberingDefSave` | 键 = `numId`；**已存在即 no-op**，禁止追加出重复定义 |
+  | `restartNumbering` | `restart: RestartNumSave` | 键 = `numId`；已存在即 no-op |
+  | `setThemeFonts` | `fonts: ThemeFontsSave` | 整槽替换，相同槽值重复设置幂等 |
+  | `setThemeColors` | `colors: ThemeColorsSave` | 整槽替换，相同槽值重复设置幂等 |
+  | `upsertStyle` | `style: StyleUpsertSave` | 键 = `styleId`；同 `styleId` 替换、否则追加，相同请求重复执行 no-op |
+
+  幂等规则**必须**有测试：三个键控操作各一条「同会话发两次 = 发一次」；`setSources` 另加一条
+  未变条目的原字节比对。理由：这六项原是**存档选项**（每次保存应用一次），成为 `EditOp` 后调用方
+  可在同一会话内重复发送——`compat_ts` 若把旧选项翻成多条，`save_blocks` 的 208 份用例上会冒出
+  重复定义。
+- **必须**（v3）：**属性 patch 的 `TableChange` 线型编码**。`TableChange<T, P>` 有四个臂
+  （`semantic/props/mod.rs`：`Keep | Unset | Set(T) | Patch(P)`），而 `Set(T::default())` 与
+  `Patch(P::default())` 都会落成 `{}`，且 `is_keep()` 的实现是 `Patch(p) => p.is_empty()`——
+  **直接编码会丢分支**。定为：`Keep` = **键缺席**；`Unset` = **`null`**；`Set(v)` = **值本身**；
+  `Patch(p)` = **`{"$patch": p}`**；空 `Patch` 仍写 `{"$patch": {}}`，**禁止**用 `is_keep()` 省略。
+  `$` 前缀天然不撞（属性键全部来自属性表的 camelCase，`$` 只出现在 schema 关键字）。schema **必须**
+  声明 `$patch`（`Set` / `Patch` 两支 `oneOf` 分开，`Patch` 支 `required`），否则 BIND-02 验收第 3 条
+  的键集检查会误伤。四个臂各一条**分支相等**（不是值相等）的测试。注：`TableChange::diff` 在
+  `x == y` 时先返 `Keep`，故 `Patch(empty)` 现实中构造不出来，`{"$patch": {}}` 是防御性编码。
 - **必须**：`EditContext` JSON 全字段可选：`{ trackChanges?: { author, date } | null,
   defaultRunProps?, keepOrphanComments?, markUpdatedFieldsDirty? }`（`EDIT-01`）。
 - **必须**：`MutationResult` JSON 为 `{ created, affectedBlocks, structureChanged,
   diagnostics, offsetDelta }`（`EDIT-05`；`created` 的元素为 `nodeId | null`）。
-- **必须**：变体清单 = 下表 60 个 + 8.3 依 BIND-04 新增的 5.7 族（见 BIND-04）；往返测试
+- **必须**：变体清单 = 下表 **66** 个（v3：原 60 个 + 5.7 族 6 个，形态与幂等规则经项目负责人
+  2026-09-09 批准，见下表「声明 part（5.7 族）」行）；往返测试
   按本条上面的定义逐变体一条；同一条操作经协议 `apply`（线型进、`edit_op_from_json`
   转换）与原生 `EditSession::apply` 的保存结果**逐字节相同**（门 2）。
 
-  **60 变体清单**（`edit/mod.rs`，与引擎侧逐一对表；线型按上面三类去处分流）。
+  **66 变体清单**（`edit/mod.rs`，与引擎侧逐一对表；线型按上面三类去处分流）。
   与 `docs/03` §8.2 冻结清单的差异共 **34 项，分两类**
   （`spec/18` 待决 5 在此收编，偏差登记 `docs/04` §8）：
   **★ = §8.2 没有的新增操作（20 个）**——分节符增删、墨迹增删、`linkHeaderFooter`、
@@ -199,6 +252,7 @@ close(id: SessionId)                                            // 幂等；不�
   | 修订 | `acceptRevision`、`rejectRevision`、`acceptAll`（▲ `author` 过滤）、`rejectAll`（▲ 同） |
   | 节与页眉页脚 | `setSectionProps`、`setHeaderFooter`、`linkHeaderFooter`（★）、`setWatermark`（★）、`setPageColor`（★）、`insertSectionBreak`（★ 7.6）、`deleteSectionBreak`（★ 7.6） |
   | 声明 part | `setDocumentSettings`、`setNoteContent`（★ `endnote: bool`）、`removeNote`（★）、`setSdtContent`、`removeSdtShell`（★） |
+  | 声明 part（5.7 族，★ v3 新增 6 个） | `setSources`、`addNumberingDefinition`、`restartNumbering`、`setThemeFonts`、`setThemeColors`、`upsertStyle` |
   | 图表与 part | `setChartData`、`replacePartXml`（★）、`replacePartBytes`（★）、`replaceImageMedia`（★ 6.7） |
   | 绘图 | `setDrawingGeometry`（★ 7.7）、`setDrawingZOrder`（★ 7.7）、`setDrawingWrap`（★ 7.7）、`setShapeStyle`（★ 7.7）、`setTextboxContent`（★ 7.7）、`setMathTokens`（★） |
   | 墨迹 | `removeInks`（★ 6.8）、`insertInk`（★ 6.8） |
@@ -215,11 +269,17 @@ close(id: SessionId)                                            // 幂等；不�
   | 键 | 类型 | 缺省 | 语义 |
   | --- | --- | --- | --- |
   | `savedAt` | string | 不动 | `core.xml` 的 `dcterms:modified`；单独设置**不触发**保存（不变式 1 优先，`SAVE-07`） |
-  | `removePersonalInfo` | bool | 沿用文档标志 | 写 `w:removePersonalInformation` 并按值清洗作者（`SAVE-07`） |
-  | `removeDateAndTime` | bool | 沿用文档标志 | 写 `w:removeDateAndTime` 并按值删 `w:date`（`SAVE-07`，超过 TS 的能力） |
+  | `removePersonalInfo` | bool | **`false`**（v3 改；原为「沿用文档标志」） | 为真才写 `w:removePersonalInformation` 并清洗作者（`SAVE-07`） |
+  | `removeDateAndTime` | bool | **`false`**（v3 改） | 为真才写 `w:removeDateAndTime` 并删 `w:date`（`SAVE-07`，超过 TS 的能力） |
   | `pruneOrphans` | bool | true | 保存前回收**本次会话**造成的孤儿关系 / part（`SAVE-07`；原本就是孤儿的一字节不动） |
   | `normalizeZOrder` | bool | false | 主 part 浮动对象 z 序稳定重排（`spec/18` 待决 4 拍板 false） |
 
+- **必须**（v3 增补，隐私清洗缺省的裁定理由）：**不变式 1 优先于任何保存选项的缺省**。文档里的
+  `w:removePersonalInformation` / `w:removeDateAndTime` 是**文档事实**，调用方从模型 JSON 的
+  `settings` 读得到，据此显式传 `true` 是**调用方的决定**；「保存时按标志清洗」是 Word 这个**宿主
+  应用**的行为，不是文档格式的要求——rsword 是内核，不是 Word。**禁止**让一次无编辑保存变成破坏性
+  操作（它会静默丢掉修订 / 批注的作者身份）。`compat_ts`（测试专用）那条路**继续照 TS 行为**：
+  看见文档标志就显式传 `true`，`COMPAT-08` 的 204/208 因此不动。
 - **必须**：今天 `SaveOptions` 里其余为 TS 存在的翻译入口**全部公开为 `EditOp`**，不留在
   保存选项里——5.6 族（节四项 / 页眉页脚槽 / 逐节页眉页脚 / `hfAllSections` / 水印 / 页面
   底色 / 保护 / 奇偶页眉）与 6.8 墨迹权威列表在 BIND-03 的 60 变体里已有对应
