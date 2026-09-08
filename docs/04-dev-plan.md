@@ -1894,7 +1894,7 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
 
 ### 逐条进度
 
-- [ ] **8.0 范围收口与分支归并**
+- [x] **8.0 范围收口与分支归并**
   - [x] ① 文档改定（本提交）：`docs/03` v3.3、`spec/19` / `spec/20` 重写、`spec/00` / `spec/10` / `spec/11` / `CLAUDE.md` / `docs/04` / `docs/05` 同步
   - [x] ② `m8-editor` 的 8.1a 摘进 `main`（绑定、`parse_diagnostics`、`BindBadArgument`、`tools/js-parity/`、`TOOLS.md`、CI wasm 步骤），丢弃 8.0a
     （本提交）。落到 main 的 7.10 骨架上：`wasm_export!` 表收在 `rsword::bind::js` 之外层，
@@ -1905,11 +1905,36 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
     `js_binding_save_bytes_parity` 与 `common::save_cases()`。wasm 产物 2.25 MB / gzip 796 KB
     （`opt-level = "z"`）。`m8-editor` 分支的删除见 `spec/19` 待决 6
   - [x] ③ `tools/export-golden/README` 写明「genoffice 只读使用」与最后重导提交号（本提交；`f105f36` / `2026-09-08T03:14:56Z`）
-- [ ] **8.1 协议规范 `spec/21-bind.md`**（`BIND-01`–`BIND-11`）—— **关口**
-  （本提交）初稿已交，**待项目负责人评审**：11 条分层决策誊为 BIND-01–11；60 变体清单收进
-  BIND-03（22 个 `docs/03` §8.2 之外的 ▲ 项）；`SaveOptions` 收缩五项与 5.7 族公开为 `EditOp`
-  归 BIND-04；文件尾部列了 6 条待决（BIND-11 保守程度、serde 依赖、list_markers、快照位置、
-  `native/1` 时点、`docs/03` §8.2 是否升版）。评审通过才动 8.2–8.5。
+- [x] **8.1 协议规范 `spec/21-bind.md`**（`BIND-01`–`BIND-11`）—— **关口，v2 已通过**
+  v1（76f2542）评审通过、4 处意见落地（784b96a；js-parity 自建 `--out`、门控不许静默通过、
+  清单差异数订正为 34 项、8.0 父框勾上）。
+  **v2（本提交）：协议语义变更，BIND-03 的 v1 评审作废，重走评审。** 8.2/8.3 会话开工前核代码
+  发现（项目负责人独立复核属实）：BIND-03 v1 的前提「`EditOp` 结构简单、无 arena 引用，
+  可直接 derive serde」不成立——`NewElement`（`NewBlock::Paragraph.props` / `Xml` /
+  `Wrapped.wrapper`、`NewRun.props`、`NewInline::Field.props`、`NewInline::Xml`、`ReplaceParaProps.props`，
+  协议面共 7 处）经 `QName` 携带 `NsId::Other(Interned)` / `LocalName::Other(Interned)`，
+  而 `Interned` 是 per-Dom `Interner` 的句柄（`xml/interner.rs`），离开产生它的 Dom 不能渲染
+  也不能反序列化。错话源自 `spec/19`「实现约定」（已随 v2 订正，风险提示加第 10 条）。
+  v2 的 BIND-03：**线型与引擎型分离**——线型 `EditOpJson` derive serde，引擎 `EditOp` 禁止
+  derive；转换上下文化（`edit_op_from_json(&str, &mut Dom)` / `edit_op_to_json(&EditOp, &Dom)`，
+  形状以此为准、签名以实现时为准）；`NewElement` 三类去处分治：a 真逃生口（XML 字符串，
+  `BIND_XML_ESCAPE` 计数）、b 结构化属性（复用 `*Patch` serde 形态不计数；引擎侧三处
+  `Option<NewElement>` 改持 patch 是 **8.3 的工作量**，本提交不动 `edit/`）、
+  c `ReplaceParaProps` 留 XML 字符串并入 a（判定与理由在 BIND-03 v2，评审要定的点）。
+  BIND-01/02/04–11 未动，其 v1 评审结论仍然有效。
+  **v2 评审结论（2026-09-08）：通过**，穷举的 7 处与判定 c（`ReplaceParaProps` 留字符串——
+  整份容器替换能表达 `pPrChange` / `sectPr` / 段落标记 `rPr` / 未建模元素，merge 语义表达不了，
+  且结构化修改已由 `SetParaProps` 覆盖）均复核认可。评审时改掉两处（项目负责人直接落笔）：
+  ① `NewField.props` **写错了**——真实位置是 `NewInline::Field.props`（`edit/inline.rs:91`）；
+  `NewField`（`edit/mod.rs:390`，`InsertField` 的载荷）是另一个真实类型且**没有 `props`**，
+  照原文找会扑空，七处里那一处会从三类划分中漏出去。
+  ② **b 的落地方式改定为「只换线型、不动引擎型」**：原稿要 8.3 把三个 `Option<NewElement>`
+  改成持 patch，但 `compat_ts` 的 `generated_paragraph` 是把调用方 `rawPPr` 经 `parse_fragment`
+  **原样透传**进 `Paragraph.props`（`save_blocks.rs:900`–`:914`，rich `rPr` 同理 `:2034`），
+  引擎型改 patch 会丢掉生成属性表之外的内容，`COMPAT-08` 的 204/208 必然回归。改为在
+  `edit_op_from_json` 边界物化（patch → `ParaProps`/`RunProps` → `emit_para_props`/
+  `emit_run_props`，`build/props.rs` 生成、不需要 `Dom`、`compat_ts` 今天就在用），
+  两边互不干扰，8.3 工作量同时缩小；8.3 的 DoD 追加「`save_blocks` 仍为 204/208、0 跳过」。
 - [x] **8.2 模型 JSON 投影**（`bind/native/json.rs`、`schema.rs`、`model_json!`）
   `bind/native/` 落地：`ToJson` + `model_json!`——一张「Rust 字段 → JSON 字段」表同表展开
   `impl ToJson`（表头 `(cx)` 声明上下文参数名；行用解构绑定，`to_json` 开头**完整解构**，Rust 结构体

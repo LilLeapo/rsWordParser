@@ -1,6 +1,6 @@
 // 共享的 wasm 绑定装载（node 用 initSync；浏览器分支不属于本仓库的工具面）。
 // `--target web` 的 glue 在 node 里不能走 fetch/URL，直接喂 wasm 字节。
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -10,6 +10,11 @@ export async function loadBinding(pkgDir) {
   const version = JSON.parse(glue.version())
   console.error(`js-parity: 绑定 ${version.version} (git ${version.git}, ${version.protocol})`)
   return glue
+}
+
+/** `--out` 目录由 runner 自建（干净机器 / CI 首跑没有任何预建目录；评审复盘：漏了它 CI 必红）。 */
+export function ensureDir(dir) {
+  mkdirSync(dir, { recursive: true })
 }
 
 /** 递归收集目录下名字含 `needle` 的文件，排序——顺序必须与 Rust 测试一致（`fs::read_dir` 后 sort）。 */
@@ -35,8 +40,10 @@ export function stringifyValue(v) {
 /**
  * 跑一个用例并把结果落到 `<out>/<name>`：成功写 `name`，绑定抛错写 `name.err`
  * （`{ code, message }`）。三个 runner 共用这一个出口，错误形态保持一致。
+ * `outDir` 在这里兜底自建——runner 入口已 `ensureDir`，这层保证任何未来调用方也安全。
  */
 export function emit(outDir, name, run) {
+  ensureDir(outDir)
   try {
     const bytes = run()
     writeFileSync(join(outDir, name), bytes)

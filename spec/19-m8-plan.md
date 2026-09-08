@@ -104,8 +104,10 @@ M8′ 的**同形重复**是历次里程碑里最多的：几十个结构要投�
 - `model_json!`：一张「Rust 类型 → { JSON 字段 ← Rust 字段 [via 转换函数] }」的表，展开 `impl ToJson`（`set_some!` /
   `set_if!` 处理 `Option` / `bool`）、`schema()`（该类型的 JSON Schema 片段）、`#[test] json_fields_cover_struct`
   （键集与表里的字段集比对——门 1 的「不丢字段」）。**不**在 `model/` 类型上 `derive(Serialize)`。
-- `edit_op_json!`：`EditOp` 变体清单，展开每个变体一条 JSON 往返测试、`BIND-03` 的变体与字段清单、`BIND_XML_ESCAPE`
-  的计数点。`EditOp` 本身用 `serde` derive（结构简单、无 arena 引用），宏只管测试与清单。
+- `edit_op_json!`：`EditOp` 变体清单，展开线型、上下文化转换、每个变体一条往返测试、`BIND-03` 的变体与字段清单、
+  `BIND_XML_ESCAPE` 的计数点。**`EditOp` 不做无上下文 serde**（这里曾写「`EditOp` 本身用 `serde` derive
+  （结构简单、无 arena 引用）」——**错了**：`NewElement` 经 `QName` 携带 per-Dom 的 `Interned` 句柄，
+  见 `spec/21` BIND-03 v2）：线型 `EditOpJson` derive，引擎型不 derive，转换带 `&Dom` / `&mut Dom`。
 - `bind_export!`：导出「`sessionId` + JSON 字符串入 → JSON / `Vec<u8>` 出 + `Error → { code, message }` 映射」，
   十几个同形；展开导出函数与「不存在的 `sessionId` → `BIND_NO_SESSION`」的单测。7.10 的 `wasm_export!` 并入它。
 - `resolve_query!`：五个 `resolve*`（run / para / cell / section / table）同形——「`[nodeId]` 入 → 每个 id 一条
@@ -176,6 +178,10 @@ M8′ 的**同形重复**是历次里程碑里最多的：几十个结构要投�
 8. **`TEST-07` 走协议后变慢**：JSON 往返 × 1,000 序列；PR 只跑 100 条（`spec/18` 7.9 同款）。
 9. **失去 TS 裁判的时点**：决策 2 已经把「删除」换成「降级」，所以本里程碑内不会失去裁判。但 `corpus/**/*.expected.json`
    的再生依赖 genoffice 的 TS 引擎仍然存在且能跑——`tools/export-golden/run.sh` 至少每个里程碑跑通一次，别让它烂掉。
+10. **引擎类型持 per-Dom 句柄**：`QName` 可能装着 `NsId::Other(Interned)` / `LocalName::Other(Interned)`，
+    `Interned` 只在产生它的 `Dom` 的 `Interner` 里有意义（`xml/interner.rs`）。任何「无上下文序列化」的假设
+    （derive serde、跨会话搬运、句柄持久化）落笔前都要先验证类型里没有 `Interned`——8.1 v1 的 BIND-03 就栽在
+    这上面（`spec/21` v2 改为线型与引擎型分离，`edit_op_from_json` / `edit_op_to_json` 带 Dom 上下文）。
 
 ## 待决（需要项目负责人拍板）
 

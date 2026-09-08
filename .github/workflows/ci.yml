@@ -46,10 +46,13 @@ jobs:
       # 原生的绑定等价（不起 node）由 `tests/js_binding.rs` 在 cargo test 里覆盖。
       - run: cargo run -p diff-parse -- --via-js --scope all
       - run: cargo run -p diff-parse -- --via-js --corpus corpus/real
-      # 208 份保存用例与「无字体 + 四种 UI 语言」的 blank 经绑定逐字节相同
+      # 208 份保存用例与「无字体 + 四种 UI 语言」的 blank 经绑定逐字节相同。
+      # RSWORD_JS_PARITY_REQUIRED=1：门控测试在变量缺失时断言失败，门不许静默通过
       - run: node tools/js-parity/save_parity.mjs --pkg crates/rsword-js/pkg --corpus corpus/synthetic --out /tmp/save-js
-      - run: RSWORD_JS_SAVE_DIR=/tmp/save-js cargo test -p rsword --test save_blocks js_binding_save_bytes_parity
+      - run: RSWORD_JS_SAVE_DIR=/tmp/save-js RSWORD_JS_PARITY_REQUIRED=1 cargo test -p rsword --test save_blocks js_binding_save_bytes_parity
       - run: node tools/js-parity/blank_parity.mjs --pkg crates/rsword-js/pkg --out /tmp/blank-js --fonts "宋体,Yu Mincho,Malgun Gothic,PMingLiU"
-      - run: RSWORD_JS_BLANK_DIR=/tmp/blank-js cargo test -p rsword --test js_binding
+      - run: RSWORD_JS_BLANK_DIR=/tmp/blank-js RSWORD_JS_PARITY_REQUIRED=1 cargo test -p rsword --test js_binding
+      # 回归（评审复盘）：--out 指向不存在的嵌套目录，runner 必须自己建出来并正常完成
+      - run: node tools/js-parity/blank_parity.mjs --pkg crates/rsword-js/pkg --out /tmp/blank-fresh/nested --fonts "SimSun"
   # fuzz 在 .github/workflows/fuzz.yml（手动 / 每周）、TEST-07 的 1,000 条随机序列在
   # random.yml（每天），都不挂在每次 push 上；`cargo test --workspace` 里已经跑了缺省的 100 条。

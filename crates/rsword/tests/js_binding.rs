@@ -144,8 +144,8 @@ fn errors_carry_a_stable_code() {
 
 /// 绑定等价（M8′ 8.0②，blank 部分）：`tools/js-parity/blank_parity.mjs` 用 wasm 绑定对
 /// 「无字体 + 每种 UI 语言一个 `eastAsiaFont`」产出空白文档，本测试对同一组字体跑原生
-/// `blank_docx`，按 `manifest.json` 逐一比字节。缺省 `cargo test` 不依赖 node
-/// （`common::via_js_dir!` 门控）。
+/// `blank_docx`，按 `manifest.json` 逐一比字节。缺省 `cargo test` 跳过并打印
+/// （`common::via_js_dir!`；`RSWORD_JS_PARITY_REQUIRED=1` 时缺变量直接失败）。
 #[test]
 fn js_binding_blank_bytes_parity() {
     let js = common::via_js_dir!("RSWORD_JS_BLANK_DIR");

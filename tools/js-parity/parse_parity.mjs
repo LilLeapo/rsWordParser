@@ -5,7 +5,7 @@
 // 用法: node parse_parity.mjs --pkg DIR --out DIR --docs-file LIST
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { loadBinding } from './wasm-loader.mjs'
+import { ensureDir, loadBinding } from './wasm-loader.mjs'
 
 function arg(name) {
   const i = process.argv.indexOf(`--${name}`)
@@ -15,6 +15,7 @@ function arg(name) {
 
 const pkg = arg('pkg')
 const out = arg('out')
+ensureDir(out)
 const docs = readFileSync(arg('docs-file'), 'utf8').split('\n').filter((l) => l.length > 0)
 const glue = await loadBinding(pkg)
 
