@@ -104,4 +104,5 @@ run `image / math / ruby` 的文档（M4 域）；`all` = 全部。每个 scope 
 | M4 | 绘图域**路径**的 diff 为 0（`--scope drawing`：全部文档照跑，只计绘图域路径；按文档筛关不上——绘图文档同时带着别的域的差异） |
 | M5 / M6 | 对应域的 `synthetic` diff 为 0 |
 | M7 | `COMPAT-08` XPath 等价全部通过；`TEST-07` 1,000 序列无失败；`fuzz_edit` |
-| M8 | genoffice e2e 通过 |
+| M8 | genoffice e2e 通过（`spec/19`「M8 门」：绑定输出的 JSON 与原生 `compat_ts` 逐字节相同；`apps/docs` 151 个测试在 rs 引擎下全过；22 个 e2e spec 全绿且 `docs-visual` 像素基线零 diff） |
+| M9 | 协议一致性（模型 JSON schema 校验 + serde 往返 + `*.model.json` 快照）；逃生口 `InsertBlock{Xml}` / `ReplacePartXml` 计数为 0；genoffice 测试与 e2e 全绿、像素基线零 diff；`compat_ts` 与 TS 引擎删除；`fuzz_bind` 10 分钟无崩溃（`spec/20`「M9 门」） |

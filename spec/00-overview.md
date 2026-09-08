@@ -38,6 +38,8 @@
 | — | `16-m5-plan.md` | M5 任务分解（页眉页脚 / 节 / 声明 part / resolve 校准；基线为 M0–M4 全部并入的 `main`） |
 | — | `17-m6-plan.md` | M6 任务分解（图表 / SmartArt / 画布 / OLE / 公式 / 墨迹、媒体写侧；基线为 M0–M5 全部并入的 `main` = bf1f906） |
 | — | `18-m7-plan.md` | M7 任务分解（修订生成与接受 / 拒绝、`EditOp` 全集、分节符、绘图编辑、块字段生成器、空白模板、`TEST-07` / `fuzz_edit` 门） |
+| — | `19-m8-plan.md` | M8 任务分解（编辑器切换到 Rust 引擎：wasm 绑定包与 drop-in 替换、双引擎对照、e2e 与视觉基线、切换开关与发布说明；基线为 M0–M7 全部并入的 `main`） |
+| — | `20-m9-plan.md` | M9 任务分解（原生协议 `BIND-*`：会话与句柄、模型 JSON、`EditOp` JSON、媒体句柄、`resolve` 查询；渲染器接管排版启发式；删除 `compat_ts` 与 TS 引擎） |
 
 ## 0.3 术语
 
