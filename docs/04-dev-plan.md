@@ -1890,7 +1890,14 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
 
 - [ ] **8.0 范围收口与分支归并**
   - [x] ① 文档改定（本提交）：`docs/03` v3.3、`spec/19` / `spec/20` 重写、`spec/00` / `spec/10` / `spec/11` / `CLAUDE.md` / `docs/04` / `docs/05` 同步
-  - [ ] ② `m8-editor` 的 8.1a 摘进 `main`（绑定、`parse_diagnostics`、`BindBadArgument`、`tools/js-parity/`、`TOOLS.md`、CI wasm 步骤），丢弃 8.0a
+  - [x] ② `m8-editor` 的 8.1a 摘进 `main`（绑定、`parse_diagnostics`、`BindBadArgument`、`tools/js-parity/`、`TOOLS.md`、CI wasm 步骤），丢弃 8.0a
+    （本提交）。落到 main 的 7.10 骨架上：`wasm_export!` 表收在 `rsword::bind::js` 之外层，
+    `blank` 改收 `BlankDocxOptions` JSON、`save`/`blank` 的参数错误统一 `BIND_BAD_ARGUMENT`；
+    `diff-parse` 的原生 `--via js` 由 node 版 `--via-js` 取代（原生等价由 `tests/js_binding.rs`
+    在 `cargo test` 里覆盖）；`tools/sync-js.sh` 只留本地构建一半并改名 `tools/build-js.sh`
+    （genoffice 只读，同步进它那半已撤销）；`save_blocks.rs` 取 7.9c 版本再嫁接
+    `js_binding_save_bytes_parity` 与 `common::save_cases()`。wasm 产物 2.25 MB / gzip 796 KB
+    （`opt-level = "z"`）。`m8-editor` 分支的删除见 `spec/19` 待决 6
   - [x] ③ `tools/export-golden/README` 写明「genoffice 只读使用」与最后重导提交号（本提交；`f105f36` / `2026-09-08T03:14:56Z`）
 - [ ] **8.1 协议规范 `spec/21-bind.md`**（`BIND-01`–`BIND-11`）—— **关口**
 - [ ] **8.2 模型 JSON 投影**（`bind/native/json.rs`、`schema.rs`、`model_json!`）

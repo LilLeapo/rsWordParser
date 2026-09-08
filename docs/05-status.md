@@ -19,6 +19,8 @@
 其中 `TEST-07` 一道门就查出并修掉 **17 个引擎缺陷**。任务分解见 `spec/18-m7-plan.md`，逐条进度见 `docs/04` §16。
 
 **下一步：M8′**（分支 `m8-native`，工作树 `../rsWordParser-m8n`）——`spec/19-m8-plan.md`，8 个任务、6 条门。
+**8.0 已收口**（2026-09-08）：文档改定并入；`m8-editor` 的 8.1a 摘进 `m8-native`（`parse_diagnostics`、
+`BindBadArgument`、node 实测 harness `tools/js-parity/`、`TOOLS.md`、CI wasm 步骤），8.0a 丢弃；门重跑全绿。
 
 **M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖），**已全部并入 `main`**（2026-09-04）。
 **M3 完成**（2026-09-05，分支 `m3-tables`，3.1–3.9 全部落地，**M3 门四条都跑过**：
@@ -121,7 +123,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 指标 | 值 | 来源 |
 | --- | --- | --- |
 | 源码行数 / 文件数 | 82,306 行 / 190 个（另有生成代码，属性表 32 张） | `find crates tools -name '*.rs' \| xargs wc -l` |
-| 测试数 | 641（单元 + 集成，48 个集成测试文件） | `cargo test --workspace` |
+| 测试数 | 659（单元 + 集成 + 绑定，51 个集成测试文件；debug 与 release 双跑） | `cargo test --workspace` |
 | 语料 | **266 份真实 Word 文档**（`corpus/real`，2026-09-07 三轮）+ **32 份 Word 对照 fixture**（`fixtures/{revisions,word-ops}`：Word 自己做操作的前后 / 四态）+ 799 份 synthetic（每份带 `expected.json`；其中 226 份是 M6 的嵌入对象语料 `m6-*`）+ 208 份 `save.<k>.json` + 38 份 hostile（含 4 份绘图、2 份表格、4 份页眉页脚 / 节、6 份嵌入对象、6 份修订 / 分节 / 绘图，7.0⑤） | `ls corpus/*` |
 | 往返字节保真 | 593 份文档、3,140 个 XML part 全部字节相同（3 个 part 按预期解析失败：两份不闭合 XML + 二进制页眉） | `tests/xml_roundtrip.rs` |
 | 声明模型对照 | 2,897 个样式、6,732 项主题颜色等，1 处已知差异 | `tests/decl.rs` |
@@ -149,7 +151,7 @@ let bytes = s.save_with(&outcome.save_options)?;
 | 字段索引 | 43 份文档 / 57 个字段（`Atom` 33、`Block` 6、`Picture` 6、`Form` 4、`Link` 3、`Object` 3、`Marker` 1、`Unknown` 1）；3 份 TS 截断夹具本来就缺 `end` | `cargo test -p rsword --test field -- --nocapture` |
 | 字段模型与 compat | 19 个用例（配对 / 指令 / 策略 / 坐标流 / R09 / 折叠 run / `fieldDisplay`） | `cargo test -p rsword --test field` |
 | 段落 / 书签 / 字段操作 | 17 个用例（`SPAN-06` 拆分与合并、`EDIT-06` 书签分配、`FLD-09`/`10`/`12` 各自的验收行） | `cargo test -p rsword --test para_ops` |
-| **JS 绑定（`crates/rsword-js`，wasm-bindgen）** | `parse` / `save` / `blank` / `version` 四个函数。`--via js` 走绑定跑全语料：synthetic 799 份与 real 266 份都是 **0 处未知差异**（与原生 `compat_ts` 的 JSON 逐字节相同）；`save` 对 **208 / 208** 份保存用例与原生字节相同。wasm 产物 **3.2 MB**（`wasm-release` 档：体积优先 + LTO + 去符号；gzip 后 **1.0 MB**） | `cargo run -p diff-parse -- --scope all --via js`、`cargo test -p rsword --test js_binding`、`cargo build -p rsword-js --profile wasm-release --target wasm32-unknown-unknown` |
+| **JS 绑定（`crates/rsword-js`，wasm-bindgen）** | `parse` / `parse_diagnostics` / `save` / `blank` / `version` 五个函数（8.0② 起；`blank` 收 `BlankDocxOptions` JSON，参数错误一律 `BIND_BAD_ARGUMENT`）。`--via-js` 用 node 跑**真实 wasm 产物**复核：synthetic 799 份与 real 266 份都与原生输出**逐字节相同**（再带着绑定输出走差分，0 处未知差异）；`save` 对 **208 / 208** 份保存用例、`blank` 对 none + 四种字体与原生字节相同。wasm 产物 **2.25 MB**（`wasm-release` 档：体积优先 + LTO + 去符号；gzip 后 **796 KB**） | `tools/build-js.sh`、`cargo run -p diff-parse -- --via-js --scope all`、`cargo test -p rsword --test js_binding --test save_blocks`、`tools/js-parity/` |
 | **`TEST-07` 随机编辑序列（M7 门 5）** | 1,000 条（语料 × 种子 × 100 步，操作全集 + 每步随机 `track_changes` + 随机接受 / 拒绝）：61,057 次生效、9,994 次被拒、2,625 次保存往返；每步 `MOD-13` 投影 == 重建、`FLD-13` 不增缺陷、`EDIT-06` 不重号、无引擎不变式破坏。PR 跑 100 条，`random.yml` 每天跑 1,000 条 | `RSWORD_RANDOM_SEQUENCES=1000 cargo test -p rsword --release --test random_ops -- --nocapture` |
 | **性能记录**（非门） | 319 KB 的 `large-report.docx`：`open` 6.2 ms、`InsertText` 0.67 ms、`save_with` 0.5 ms、绑定的 `parse`（含 `ParsedDoc` 投影与 JSON 序列化）4.7 ms；带修订的 23 KB 文档 `AcceptAll` 0.18 ms。建议观察值 `apply` < 5 ms、`save_with` < 50 ms / MB，四份都在一个量级之内 | `cargo bench -p rsword --bench edit` |
 | **`RES-04` toggle 歧义探针** | 1,065 份文档、3,698 个 run：撞上歧义 13 次，**全部**来自我们自己为 `RES-04` 造的校准件（`toggle-other-toggles-converted`），校准件之外 **0 次**（判据与阈值见 `docs/06` 第 2 件） | `cargo test -p rsword --test resolve res_04_toggle -- --nocapture` |
@@ -232,6 +234,7 @@ cargo run -p diff-parse -- --scope hf                               # M5 门：�
 cargo run -p diff-parse -- --scope embedded                         # M6 门：嵌入对象域 0 未知差异
 cargo run -p diff-parse -- --scope all                              # 第八道门（M6 6.9）：全域 0 未知差异
 cargo run -p diff-parse -- --corpus corpus/real                     # 真实 Word 语料（266 份）：0 未知差异
+tools/build-js.sh && cargo run -p diff-parse -- --via-js --scope all # 绑定等价门：真实 wasm 产物与原生逐字节相同（需 node ≥ 22，见 TOOLS.md）
 cargo test -p rsword --test real_edits -- --ignored                 # 重新生成给 Word 验收的编辑后文档
 cd fuzz && cargo +nightly fuzz run fuzz_embedded -- -max_total_time=600 # M6 门第 4 条：图表 / 图示 / OMML / 画布解析无崩溃
 cd fuzz && cargo +nightly fuzz run fuzz_instr -- -max_total_time=600 # M2 门：指令 tokenizer 无崩溃

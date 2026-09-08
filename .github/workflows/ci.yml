@@ -38,10 +38,18 @@ jobs:
       - run: cargo run -p diff-parse -- --scope all
       # 真实 Word 语料（docs/07，2026-09-07 收到 124 份）：TS 参考输出的差分除 KNOWN_DIFFS.md 外为 0
       - run: cargo run -p diff-parse -- --corpus corpus/real
-      # M7 7.10：ParsedDoc 走 JS 绑定那条路，两个语料上都必须与原生一模一样
-      - run: cargo run -p diff-parse -- --scope all --via js
-      - run: cargo run -p diff-parse -- --corpus corpus/real --via js
-      # JS 绑定的 wasm 产物构建得出来（`wasm-bindgen` 的后处理在发布流程里做，不在这道门）
-      - run: cargo build -p rsword-js --profile wasm-release --target wasm32-unknown-unknown
+      # M8′ 8.0②（COMPAT-02/08 的绑定等价门）：真实 wasm 产物与原生逐字节相同。
+      # wasm-bindgen-cli 必须与 Cargo.lock 的 wasm-bindgen 同版本（见 TOOLS.md）
+      - run: cargo install wasm-bindgen-cli --version 0.2.128 --locked
+      - run: tools/build-js.sh
+      # 全语料 + 真实语料经绑定 parse：先与原生输出比字节，再走差分（仍为 0 未知差异）。
+      # 原生的绑定等价（不起 node）由 `tests/js_binding.rs` 在 cargo test 里覆盖。
+      - run: cargo run -p diff-parse -- --via-js --scope all
+      - run: cargo run -p diff-parse -- --via-js --corpus corpus/real
+      # 208 份保存用例与「无字体 + 四种 UI 语言」的 blank 经绑定逐字节相同
+      - run: node tools/js-parity/save_parity.mjs --pkg crates/rsword-js/pkg --corpus corpus/synthetic --out /tmp/save-js
+      - run: RSWORD_JS_SAVE_DIR=/tmp/save-js cargo test -p rsword --test save_blocks js_binding_save_bytes_parity
+      - run: node tools/js-parity/blank_parity.mjs --pkg crates/rsword-js/pkg --out /tmp/blank-js --fonts "宋体,Yu Mincho,Malgun Gothic,PMingLiU"
+      - run: RSWORD_JS_BLANK_DIR=/tmp/blank-js cargo test -p rsword --test js_binding
   # fuzz 在 .github/workflows/fuzz.yml（手动 / 每周）、TEST-07 的 1,000 条随机序列在
   # random.yml（每天），都不挂在每次 push 上；`cargo test --workspace` 里已经跑了缺省的 100 条。

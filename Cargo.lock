@@ -164,7 +164,9 @@ version = "0.0.1"
 dependencies = [
  "js-sys",
  "rsword",
+ "serde_json",
  "wasm-bindgen",
+ "zip",
 ]
 
 [[package]]

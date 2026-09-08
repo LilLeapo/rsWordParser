@@ -169,6 +169,11 @@ pub enum DiagCode {
     SaveStrictNoVml,
     /// `SAVE-02`：`New` / 脏 `w:tbl` 的行网格宽度与 `tblGrid` 列数不一致。
     SaveTableGrid,
+
+    // ---- BIND（M8′ 8.0② 起；正式条目由 8.1 的 `spec/21` BIND-07 定）----
+    /// 绑定入口的 JSON 参数解析不了（`blocks` / `options` / blank 选项）。调用方契约错误，
+    /// 不是文档的问题；对应的 JS 错误码同名。
+    BindBadArgument,
 }
 
 impl DiagCode {
@@ -237,6 +242,7 @@ impl DiagCode {
             Self::SaveInvariant => "SAVE_INVARIANT",
             Self::SaveStrictNoVml => "SAVE_STRICT_NO_VML",
             Self::SaveTableGrid => "SAVE_TABLE_GRID",
+            Self::BindBadArgument => "BIND_BAD_ARGUMENT",
         }
     }
 }

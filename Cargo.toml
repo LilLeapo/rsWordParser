@@ -27,12 +27,13 @@ cast_possible_truncation = "allow"
 debug = 1
 
 # wasm 产物用（`spec/18` 7.10）：release 带 `debug = 1`，那点调试信息在 wasm 里是几十 MB。
-# 体积优先 + LTO + 去符号，构建 `rsword-js` 时用 `--profile wasm-release`
+# 体积优先 + LTO + 去符号；`tools/build-js.sh` 用 `--profile wasm-release` 构建 `rsword-js`
+# （cargo 不认 package 级 profile，所以放在 workspace 根）。
 [profile.wasm-release]
 inherits = "release"
 debug = false
 strip = true
-opt-level = "s"
+opt-level = "z"
 lto = true
 codegen-units = 1
 panic = "abort"
