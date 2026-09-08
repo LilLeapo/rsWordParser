@@ -1900,6 +1900,10 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
     （`opt-level = "z"`）。`m8-editor` 分支的删除见 `spec/19` 待决 6
   - [x] ③ `tools/export-golden/README` 写明「genoffice 只读使用」与最后重导提交号（本提交；`f105f36` / `2026-09-08T03:14:56Z`）
 - [ ] **8.1 协议规范 `spec/21-bind.md`**（`BIND-01`–`BIND-11`）—— **关口**
+  （本提交）初稿已交，**待项目负责人评审**：11 条分层决策誊为 BIND-01–11；60 变体清单收进
+  BIND-03（22 个 `docs/03` §8.2 之外的 ▲ 项）；`SaveOptions` 收缩五项与 5.7 族公开为 `EditOp`
+  归 BIND-04；文件尾部列了 6 条待决（BIND-11 保守程度、serde 依赖、list_markers、快照位置、
+  `native/1` 时点、`docs/03` §8.2 是否升版）。评审通过才动 8.2–8.5。
 - [ ] **8.2 模型 JSON 投影**（`bind/native/json.rs`、`schema.rs`、`model_json!`）
 - [ ] **8.3 `EditOp` / `EditContext` / `MutationResult` 的 JSON**（`edit_op_json!`、`SaveOptions` 收缩到五项）
 - [ ] **8.4 会话、媒体句柄、`resolve` 查询与部件读取**（`bind_export!`、`resolve_query!`）
