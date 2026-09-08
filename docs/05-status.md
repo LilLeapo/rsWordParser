@@ -5,6 +5,14 @@
 
 ## 结论
 
+**M9′ 9.0 文档与测量**（基点 e132df4）：[Agent 任务集](12-agent-tasks.md) 定义 22 条（读改各 11），
+输入条件已核实，尚未执行 Agent 验收或桌面 Word 打开验收，不报告任务通过率。最大真实件
+`misc/large-report.docx` 为 326406 B；真实 document(display=false) 为 **128519 B / 124146 UTF-16 单位**，
+按 ceil(bytes/4) 估算 **32130 token**，非 tokenizer 实测。复现脚本 `tools/agent-baseline.sh` 连跑两次结果相同。
+outline/text 尚未实现，预算为 9.1 的建议；B/C 宿主实测缺证据，未宣称复现。M8′ 门 2 / 门 4 待裁定状态不变。
+本轮实跑默认 debug/release 各 **792 / 0 / 13**、compat 各 **911 / 0 / 13**（通过/失败/ignored）；
+fmt 干净，两套 clippy/audit 零告警；八道差分 **242 + 547 已知 / 0 未知**。没有改引擎、规范或语料。
+
 > **范围改定（2026-09-08，项目负责人）**：rsword 是**独立的 docx 读写内核**，不再以「替换 genoffice 引擎」为目标。
 > genoffice 退为**测试基准**（只读地跑它的 TS 引擎生成 `corpus/**/*.expected.json`）。交付 **Rust crate 优先**，
 > wasm / CLI 是绑定。目标形态是 Word / WPS 的**外挂应用**（文件级工具），对 docx 阅读与修改、后续接入 Agent，**不做渲染**。
