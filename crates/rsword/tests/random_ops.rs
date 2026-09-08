@@ -1,6 +1,7 @@
 //! `TEST-07`（`spec/18` 门 5）：随机编辑序列。
 //!
-//! 每条序列 = 一份语料 × 一个种子 × N 步。每一步随机挑一个 `EditOp`、随机开关 `track_changes`
+//! 每条序列 = 一份语料 × 一个种子 × N 步。每一步随机挑一个 `EditOp`，编码并记录 JSON，
+//! 经 `edit_op_from_json` / `SessionTable::apply` 执行；随机开关 `track_changes`
 //! （`None` / 作者甲 / 作者乙），断言：
 //!
 //! - 不 panic；非 `Error::Edit` 的错误一律算失败（编辑层拒绝是合法结果，`EDIT-05` 保证状态没动）
@@ -20,6 +21,10 @@ mod common;
 
 use common::Rng;
 use common::fingerprint::fingerprint;
+use rsword::bind::native::edit::edit_diagnostics_json;
+use rsword::bind::native::{
+    DocumentOpts, SessionTable, document_json, edit_op_from_json, edit_op_to_json,
+};
 use rsword::edit::{
     BlockAt, BlockPos, EditContext, EditOp, EditSession, InlinePos, NewBlock, NewInline, NewRun,
     RevisionAuthor,
@@ -393,9 +398,11 @@ fn package_op(rng: &mut Rng) -> Option<EditOp> {
 /// `MOD-13`：增量刷新的投影 == 从 DOM 整体重建。
 ///
 /// 块投影整个 `Debug` 打出来有几万字，看不清；这里只报**第一处**不同的块，两边各截一段。
-fn refresh_matches_rebuild(s: &mut EditSession) -> Result<(), String> {
+fn refresh_matches_rebuild(s: &EditSession) -> Result<(), String> {
     let refreshed = s.document().clone();
-    let rebuilt = Document::rebuild(s.package_mut()).map_err(|e| format!("rebuild 失败: {e}"))?;
+    // 独立 oracle 的惰性解析等副作用不得进入活会话。
+    let rebuilt =
+        Document::rebuild(&mut s.package().clone()).map_err(|e| format!("rebuild 失败: {e}"))?;
     let n = refreshed.main.len().max(rebuilt.main.len());
     for i in 0..n {
         let (a, b) = (refreshed.main.get(i), rebuilt.main.get(i));
@@ -467,6 +474,7 @@ fn invariants_clean(s: &EditSession) -> Result<(), String> {
     let bad: Vec<String> = s
         .diagnostics()
         .iter()
+        .chain(s.package().diagnostics())
         .filter(|d| d.origin == rsword::ValidationOrigin::EngineInvariantViolation)
         .map(|d| format!("{:?} {}", d.code, d.message))
         .collect();
@@ -474,9 +482,11 @@ fn invariants_clean(s: &EditSession) -> Result<(), String> {
 }
 
 /// 主 part 里同类范围重号的对数（`EDIT-06`：`w:id` 在 part 内唯一）。
-fn dup_span_ids(s: &mut EditSession) -> usize {
+fn dup_span_ids(s: &EditSession) -> usize {
     let part = s.main_part();
-    let Ok(idx) = s.spans_of(part) else { return 0 };
+    // 查询可能建立索引并记诊断；oracle 不得推进被比较的原生会话。
+    let mut scratch = s.clone();
+    let Ok(idx) = scratch.spans_of(part) else { return 0 };
     let mut seen: std::collections::HashSet<(rsword::span::RangeClass, String)> =
         Default::default();
     let mut dups = 0;
@@ -493,7 +503,7 @@ fn dup_span_ids(s: &mut EditSession) -> usize {
 
 /// 一步之后的全部不变式。`Err` 里是给人看的说明。
 fn check_step(
-    s: &mut EditSession,
+    s: &EditSession,
     prev: &mut std::collections::HashMap<rsword::DiagCode, usize>,
     dups: &mut usize,
 ) -> Result<(), String> {
@@ -536,13 +546,99 @@ fn ctx_for(rng: &mut Rng) -> EditContext {
 }
 
 /// 只为报错信息好读：操作的名字。
-fn op_name(op: &EditOp) -> String {
-    let s = format!("{op:?}");
-    s.split([' ', '{', '(']).next().unwrap_or("?").to_string()
+fn op_name(op: &str) -> String {
+    serde_json::from_str::<serde_json::Value>(op).unwrap()["op"].as_str().unwrap().to_owned()
 }
 
 /// 每几步保存一次并重解析。
 const SAVE_EVERY: usize = 20;
+
+/// 协议会话执行记录下来的 JSON；原生会话只作为增量模型、Span 与两视图的 oracle。
+/// 保存后两边同时重开，保留原 TEST-07 的 arena/保存点与最小化语义。
+struct ProtocolSequence {
+    engine: EditSession,
+    table: SessionTable,
+    id: String,
+}
+impl std::ops::Deref for ProtocolSequence {
+    type Target = EditSession;
+    fn deref(&self) -> &Self::Target {
+        &self.engine
+    }
+}
+impl ProtocolSequence {
+    fn open(bytes: &[u8]) -> rsword::error::Result<Self> {
+        Ok(Self::reopened(EditSession::open(bytes)?, bytes))
+    }
+    fn reopened(engine: EditSession, bytes: &[u8]) -> Self {
+        let mut table = SessionTable::default();
+        let id = table.open(bytes, None).expect("协议与原生打开一致");
+        Self { engine, table, id }
+    }
+    fn observed(&mut self) -> (String, String, Result<Vec<u8>, String>) {
+        (
+            self.table.document(&self.id, None).unwrap(),
+            self.table.diagnostics(&self.id).unwrap(),
+            self.table.save(&self.id, None).map_err(|e| e.to_string()),
+        )
+    }
+    fn apply_json(&mut self, json: &str, ctx: &EditContext) -> rsword::error::Result<()> {
+        let before = self.observed();
+        // 本生成器不生成 XML 逃生口或原始属性；解码不得产生新的驻留名。
+        // 将来扩展生成器时此断言会阻止把新 interner 索引带入另一个 Dom。
+        let mut scratch = self.dom().clone();
+        let scratch_before = format!("{scratch:?}");
+        let op = edit_op_from_json(json, &mut scratch).expect("生成的 JSON 必须能解码");
+        assert_eq!(format!("{scratch:?}"), scratch_before, "生成器引入了需专属 Dom 的 XML");
+        let context = serde_json::to_string(ctx).unwrap();
+        let protocol = self.table.apply(&self.id, json, Some(&context));
+        let native = self.engine.apply(op, ctx);
+        assert_eq!(
+            protocol.as_ref().err().map(|e| e.code.as_str()),
+            native.as_ref().err().map(|e| match e {
+                rsword::Error::Edit { code, .. } => code.as_str(),
+                _ => panic!("非编辑错误 {e}"),
+            }),
+            "协议/原生错误码不同: {json}"
+        );
+        assert_eq!(
+            protocol.as_ref().err().map(|e| e.message.clone()),
+            native.as_ref().err().map(|e| e.to_string()),
+            "协议/原生错误说明不同: {json}"
+        );
+        if protocol.is_err() {
+            assert_eq!(self.observed(), before, "协议 Err 改变状态");
+        }
+        let mut expected =
+            document_json(self.package(), self.document(), DocumentOpts { display: false }).0;
+        expected["totalBlocks"] = self.document().main.len().into();
+        expected["truncated"] = false.into();
+        assert_eq!(
+            self.table.document(&self.id, None).unwrap(),
+            expected.to_string(),
+            "协议/原生模型不同: {json}"
+        );
+        assert_eq!(
+            self.table.diagnostics(&self.id).unwrap(),
+            edit_diagnostics_json(&self.engine).to_string(),
+            "协议/原生诊断不同: {json}"
+        );
+        native.map(|_| ())
+    }
+    fn save(&mut self) -> rsword::error::Result<Vec<u8>> {
+        let protocol = self.table.save(&self.id, None);
+        let native = self.engine.save();
+        assert_eq!(
+            protocol.as_ref().err().map(|e| e.message.clone()),
+            native.as_ref().err().map(|e| e.to_string()),
+            "协议/原生保存错误不同"
+        );
+        if let (Ok(a), Ok(b)) = (&protocol, &native) {
+            assert_eq!(a, b, "协议/原生保存字节不同");
+        }
+        native
+    }
+}
 
 /// 引擎 panic 也算失败（不变式 4：病态输入只能局部降级，不能炸）。捕获之后当成失败说明，
 /// 最小化照跑。默认的 panic 钩子先摘掉：复放会故意撞同一个 panic 几十次，日志刷不完。
@@ -565,15 +661,15 @@ fn guard<T>(f: impl FnOnce() -> T) -> Result<T, String> {
 ///
 /// 最小化时会照这条路复放子集：被删那一步造出来的节点没了，后面引用它的操作会被
 /// `EDIT-05` 拒掉——那正是我们想要的，拒绝不改变状态。
-fn replay(bytes: &[u8], ops: &[(EditOp, EditContext)]) -> Option<String> {
+fn replay(bytes: &[u8], ops: &[(String, EditContext)]) -> Option<String> {
     // `RSWORD_RANDOM_TRACE=1`：复放时逐步打印结果，看某一步到底生效了还是被拒了
     let trace = std::env::var("RSWORD_RANDOM_TRACE").is_ok();
-    let mut s = EditSession::open(bytes).ok()?;
+    let mut s = ProtocolSequence::open(bytes).ok()?;
     let mut defects = field_defects(&s);
-    let mut dups = dup_span_ids(&mut s);
+    let mut dups = dup_span_ids(&s);
     for (i, (op, ctx)) in ops.iter().enumerate() {
         let head = format!("第 {i} 步 {}", op_name(op));
-        match guard(|| s.apply(op.clone(), ctx)) {
+        match guard(|| s.apply_json(op, ctx)) {
             Err(why) => return Some(format!("{head}: {why}")),
             Ok(Ok(_)) => {
                 if trace {
@@ -584,17 +680,16 @@ fn replay(bytes: &[u8], ops: &[(EditOp, EditContext)]) -> Option<String> {
                 if trace {
                     eprintln!("{head}: 拒绝 {code:?} {message}");
                 }
-                continue;
             }
             Ok(Err(e)) => return Some(format!("{head}: 非编辑错误 {e}")),
         }
-        match guard(|| check_step(&mut s, &mut defects, &mut dups)) {
+        match guard(|| check_step(&s, &mut defects, &mut dups)) {
             Err(why) | Ok(Err(why)) => return Some(format!("{head}: {why}")),
             Ok(Ok(())) => {}
         }
         // 最后一步也保存一次：不这么做，删掉任何一步都会把保存点挪走，最小化就寸步难行
         if (i + 1).is_multiple_of(SAVE_EVERY) || i + 1 == ops.len() {
-            let saved = match s.save() {
+            let saved = match guard(|| s.save()).and_then(|r| r.map_err(|e| e.to_string())) {
                 Ok(b) => b,
                 Err(e) => return Some(format!("第 {i} 步 {}: 保存失败 {e}", op_name(op))),
             };
@@ -619,9 +714,9 @@ fn replay(bytes: &[u8], ops: &[(EditOp, EditContext)]) -> Option<String> {
                     op_name(op)
                 ));
             }
-            s = re;
+            s = ProtocolSequence::reopened(re, &saved);
             defects = field_defects(&s);
-            dups = dup_span_ids(&mut s);
+            dups = dup_span_ids(&s);
         }
     }
     None
@@ -636,9 +731,9 @@ fn signature(msg: &str) -> String {
 /// 最小化：先二分找最短的失败前缀，再贪心地逐条删掉删了还失败的那些步。
 fn minimize(
     bytes: &[u8],
-    ops: Vec<(EditOp, EditContext)>,
+    ops: Vec<(String, EditContext)>,
     want: &str,
-) -> Vec<(EditOp, EditContext)> {
+) -> Vec<(String, EditContext)> {
     let same = |x: Option<String>| x.is_some_and(|m| signature(&m) == want);
     // ① 最短失败前缀
     let (mut lo, mut hi) = (1usize, ops.len());
@@ -646,7 +741,7 @@ fn minimize(
         let mid = (lo + hi) / 2;
         if same(replay(bytes, &ops[..mid])) { hi = mid } else { lo = mid + 1 }
     }
-    let mut kept: Vec<(EditOp, EditContext)> = ops[..lo.min(ops.len())].to_vec();
+    let mut kept: Vec<(String, EditContext)> = ops[..lo.min(ops.len())].to_vec();
     // ② 逐条尝试删，反复扫到扫不动为止（有些步要等别的步先删掉才删得动）
     loop {
         let before = kept.len();
@@ -677,15 +772,19 @@ struct Stats {
 
 /// 一条序列。失败时最小化再 panic，消息里带 `(文档, 种子)` 与最小序列。
 fn run_sequence(path: &std::path::Path, seed: u64, steps: usize, st: &mut Stats) {
-    let Ok(bytes) = std::fs::read(path) else { return };
-    let Ok(mut s) = EditSession::open(&bytes) else { return };
+    if std::env::var_os("RSWORD_RANDOM_TRACE").is_some() {
+        eprintln!("sequence {} seed={seed}", path.display());
+    }
+    let bytes = std::fs::read(path).expect("随机序列语料必须可读");
+    let mut s = ProtocolSequence::open(&bytes).expect("synthetic 必须可打开，不得漏跑序列");
     let stem = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
     let mut rng = Rng(seed ^ 0x9E37_79B9_7F4A_7C15);
     let mut defects = field_defects(&s);
-    let mut dups = dup_span_ids(&mut s);
-    let mut trail: Vec<(EditOp, EditContext)> = Vec::new();
+    let mut dups = dup_span_ids(&s);
+    let mut trail: Vec<(String, EditContext)> = Vec::new();
     for step in 0..steps {
         let Some(op) = random_op(&s, &mut rng) else { continue };
+        let op = edit_op_to_json(&op, s.dom()).expect("生成器的结构化操作必须可表示，禁止跳过");
         let ctx = ctx_for(&mut rng);
         trail.push((op.clone(), ctx.clone()));
         let head = format!(
@@ -693,17 +792,16 @@ fn run_sequence(path: &std::path::Path, seed: u64, steps: usize, st: &mut Stats)
             trail.len() - 1,
             op_name(&op)
         );
-        match guard(|| s.apply(op, &ctx)) {
+        match guard(|| s.apply_json(&op, &ctx)) {
             Err(why) => fail(&bytes, &stem, seed, trail, st, &format!("{head}: {why}")),
             Ok(Ok(_)) => st.applied += 1,
             // 编辑层拒绝是合法结果：`EDIT-05` 保证 DOM / Span / Model 一点没动
             Ok(Err(rsword::Error::Edit { .. })) => {
                 st.refused += 1;
-                continue;
             }
             Ok(Err(e)) => fail(&bytes, &stem, seed, trail, st, &format!("{head}: 非编辑错误 {e}")),
         }
-        match guard(|| check_step(&mut s, &mut defects, &mut dups)) {
+        match guard(|| check_step(&s, &mut defects, &mut dups)) {
             Err(why) | Ok(Err(why)) => {
                 fail(&bytes, &stem, seed, trail, st, &format!("{head}: {why}"))
             }
@@ -711,7 +809,7 @@ fn run_sequence(path: &std::path::Path, seed: u64, steps: usize, st: &mut Stats)
         }
         // 保存点按**记录下来的步数**算，不按循环计数——复放时下标才对得上
         if trail.len().is_multiple_of(SAVE_EVERY) {
-            let saved = match s.save() {
+            let saved = match guard(|| s.save()).and_then(|r| r.map_err(|e| e.to_string())) {
                 Ok(b) => b,
                 Err(e) => fail(&bytes, &stem, seed, trail, st, &format!("{head}: 保存失败 {e}")),
             };
@@ -740,9 +838,9 @@ fn run_sequence(path: &std::path::Path, seed: u64, steps: usize, st: &mut Stats)
                 );
             }
             st.saves += 1;
-            s = re;
+            s = ProtocolSequence::reopened(re, &saved);
             defects = field_defects(&s);
-            dups = dup_span_ids(&mut s);
+            dups = dup_span_ids(&s);
         }
     }
 }
@@ -752,7 +850,7 @@ fn fail(
     bytes: &[u8],
     stem: &str,
     seed: u64,
-    trail: Vec<(EditOp, EditContext)>,
+    trail: Vec<(String, EditContext)>,
     st: &mut Stats,
     why: &str,
 ) -> ! {
@@ -764,12 +862,7 @@ fn fail(
         .enumerate()
         .map(|(i, (op, ctx))| {
             let track = ctx.track_changes.as_ref().map_or("不追踪", |a| a.author.as_str());
-            // 属性补丁的 `Debug` 有几千字，截一段就够定位
-            let mut d = format!("{op:?}");
-            if d.chars().count() > 200 {
-                d = d.chars().take(200).collect::<String>() + " …";
-            }
-            format!("  {i}. [{track}] {d}")
+            format!("  {i}. [{track}] {op} context={}", serde_json::to_string(ctx).unwrap())
         })
         .collect();
     panic!(
@@ -809,4 +902,163 @@ fn test_07_random_edit_sequences() {
     );
     assert!(st.applied > sequences * 10, "有效操作太少：{}", st.applied);
     assert!(st.saves > 0, "一次保存往返都没跑到");
+}
+
+#[test]
+fn test_07_settings_projection_survives_rejected_edit() {
+    let bytes = common::docx_with_parts(
+        "<w:p/>",
+        &[(
+            "word/settings.xml",
+            r#"<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:evenAndOddHeaders/></w:settings>"#,
+        )],
+    );
+    let mut s = EditSession::open(&bytes).unwrap();
+    s.apply(
+        EditOp::SetDocumentSettings {
+            patch: rsword::semantic::props::SettingsPatch {
+                even_and_odd_headers: Change::Set(false),
+                ..Default::default()
+            },
+        },
+        &EditContext::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        s.document().settings.as_ref().unwrap().even_and_odd_headers,
+        Some(false),
+        "成功编辑必须刷新 settings 投影"
+    );
+    let before =
+        document_json(s.package(), s.document(), DocumentOpts { display: false }).to_string();
+    assert!(
+        s.apply(EditOp::DeleteSectionBreak { sect: NodeId(u32::MAX) }, &EditContext::default())
+            .is_err()
+    );
+    assert_eq!(
+        document_json(s.package(), s.document(), DocumentOpts { display: false }).to_string(),
+        before
+    );
+}
+
+#[test]
+fn test_07_refused_edit_preserves_warning_projection() {
+    let bytes = common::docx_with_body(
+        r#"<w:p><w:r><w:t>a</w:t><w:pict><v:shape xmlns:v="urn:schemas-microsoft-com:vml"><v:textbox><w:txbxContent><w:tbl><w:tr/></w:tbl></w:txbxContent></v:textbox></v:shape></w:pict></w:r></w:p>"#,
+    );
+    let mut s = EditSession::open(&bytes).unwrap();
+    let para = s.document().paragraphs().next().unwrap().node;
+    s.apply(
+        EditOp::InsertText { at: InlinePos::new(para, 0), text: "x".into(), props: None },
+        &EditContext::default(),
+    )
+    .unwrap();
+    let before =
+        document_json(s.package(), s.document(), DocumentOpts { display: false }).to_string();
+    assert!(!s.document().warnings.is_empty(), "样例必须包含模型警告");
+    assert!(
+        s.apply(EditOp::DeleteSectionBreak { sect: NodeId(u32::MAX) }, &EditContext::default())
+            .is_err()
+    );
+    assert_eq!(
+        document_json(s.package(), s.document(), DocumentOpts { display: false }).to_string(),
+        before
+    );
+}
+
+#[test]
+fn test_07_refused_comment_does_not_create_parts() {
+    let bytes = include_bytes!("../../../corpus/synthetic/decorated-paragraphs__001.docx");
+    let mut s = EditSession::open(bytes).unwrap();
+    let op = edit_op_from_json(r#"{"op":"addComment","from":{"para":2,"offset":7},"to":{"para":2,"offset":17},"comment":{"author":"A","text":"rejected","done":false}}"#, &mut s.dom().clone()).unwrap();
+    let error = s.apply(op, &EditContext::default()).unwrap_err();
+    eprintln!("refused comment: {error}");
+    assert_eq!(s.save().unwrap(), bytes.as_slice(), "拒绝批注不得留下新 part 或关系");
+}
+
+#[test]
+fn test_07_rejected_edit_does_not_consume_revision_ids() {
+    let bytes = include_bytes!("../../../corpus/synthetic/smartart-ole__017.docx");
+    let tracked = |author: &str| {
+        EditContext::default().with_track_changes(Some(RevisionAuthor {
+            author: author.into(),
+            date: Some("2026-01-01T00:00:00Z".into()),
+        }))
+    };
+    let ops = vec![
+        (r#"{"op":"setRunProps","from":{"para":2,"offset":0},"to":{"para":2,"offset":9},"patch":{"bold":true}}"#.into(), tracked("乙")),
+        (r#"{"op":"splitParagraph","at":{"para":2,"offset":5}}"#.into(), EditContext::default()),
+        (r#"{"op":"setRunProps","from":{"para":2,"offset":8},"to":{"para":2,"offset":9},"patch":{"bold":true}}"#.into(), tracked("甲")),
+    ];
+    assert_eq!(replay(bytes, &ops), None);
+}
+
+#[test]
+fn test_07_fingerprint_deep_wrappers_keep_both_views() {
+    let body = "<w:p><w:r><w:t>deep</w:t></w:r></w:p>";
+    let plain = EditSession::open(&common::docx_with_body(body)).unwrap();
+    let wrapped = format!("{}{body}{}", "<w:smartTag>".repeat(5000), "</w:smartTag>".repeat(5000));
+    let deep = EditSession::open(&common::docx_with_body(&wrapped)).unwrap();
+    assert_eq!(fingerprint(&deep), fingerprint(&plain));
+}
+
+/// TEST-07：seed 10201016167453558198，40 → 26 步；保留第 20 步保存重开。
+#[test]
+fn test_07_reject_grid_keeps_later_untracked_column() {
+    let bytes = include_bytes!("../../../corpus/synthetic/m6-chart__070.docx");
+    let ops: Vec<(serde_json::Value, EditContext)> = serde_json::from_str(include_str!(
+        "../../../fixtures/regressions/table-revision-10201016167453558198.json"
+    ))
+    .unwrap();
+    assert_eq!(ops.len(), 26);
+    let mut s = ProtocolSequence::open(bytes).unwrap();
+    for (i, (op, ctx)) in ops.iter().enumerate() {
+        let result = s.apply_json(&op.to_string(), ctx);
+        if i == 25 {
+            result.expect("拒绝追踪插列必须成功，不能靠新增拒绝过门");
+            let table = s.document().tables().next().unwrap();
+            assert_eq!(table.grid.len(), 4);
+            assert_eq!(
+                table
+                    .rows
+                    .iter()
+                    .map(|r| r.cells.iter().map(|c| c.grid_span()).sum::<u32>())
+                    .collect::<Vec<_>>(),
+                [4, 4, 4]
+            );
+        }
+        if (i + 1).is_multiple_of(SAVE_EVERY) {
+            s = ProtocolSequence::open(&s.save().unwrap()).unwrap();
+        }
+    }
+    s.save().unwrap();
+    invariants_clean(&s).unwrap();
+    let wire = ops.into_iter().map(|(op, ctx)| (op.to_string(), ctx)).collect::<Vec<_>>();
+    assert_eq!(replay(bytes, &wire), None);
+}
+
+/// TEST-07 的门自检：release 的 SAVE-02 诊断在 Package，不在会话诊断列表。
+#[test]
+fn test_07_invariant_gate_reads_package_diagnostics() {
+    let body = "<w:tbl><w:tblGrid><w:gridCol/><w:gridCol/></w:tblGrid><w:tr><w:tc><w:p/></w:tc><w:tc><w:p/></w:tc></w:tr></w:tbl>";
+    let mut s = EditSession::open(&common::docx_with_body(body)).unwrap();
+    let col = s.document().tables().next().unwrap().grid[0].node;
+    let part = s.main_part();
+    // 故意绕过编辑器制造非法几何，只用于检验门本身能否发现包级诊断。
+    s.package_mut().dom_mut(part).unwrap().unwrap().delete(col);
+    let saved = s.save();
+    if cfg!(debug_assertions) {
+        assert!(matches!(saved, Err(rsword::Error::Invariant(_))));
+    } else {
+        saved.unwrap();
+        assert!(
+            !s.diagnostics()
+                .iter()
+                .any(|d| d.origin == rsword::ValidationOrigin::EngineInvariantViolation)
+        );
+        assert!(
+            s.package().diagnostics().iter().any(|d| d.code == rsword::DiagCode::SaveTableGrid)
+        );
+        assert!(invariants_clean(&s).unwrap_err().contains("SaveTableGrid"));
+    }
 }

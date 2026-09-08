@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [fuzz_xml, fuzz_zip, fuzz_instr, fuzz_embedded, fuzz_edit]
+        target: [fuzz_xml, fuzz_zip, fuzz_instr, fuzz_embedded, fuzz_edit, fuzz_bind]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly

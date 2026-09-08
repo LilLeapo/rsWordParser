@@ -4,10 +4,10 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
+use rsword::model::ColorScheme;
 use rsword::model::chart::ChartPart;
 use rsword::model::diagram::{canvas_display, diagram_shapes, diagram_text};
 use rsword::model::omml::{latex, mathml, tokens};
-use rsword::model::ColorScheme;
 use rsword::package::PartId;
 use rsword::xml::{Dom, LocalName, NsId, QName};
 

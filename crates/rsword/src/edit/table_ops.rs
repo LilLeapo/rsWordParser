@@ -103,7 +103,7 @@ impl Geometry {
         self.cols > 0 && self.rows.iter().all(|r| r.width() == self.cols)
     }
 
-    fn require_consistent(&self) -> Result<()> {
+    pub(super) fn require_consistent(&self) -> Result<()> {
         if self.consistent() {
             return Ok(());
         }

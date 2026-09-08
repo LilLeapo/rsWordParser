@@ -7,9 +7,7 @@ use crate::error::{Error, Result};
 use crate::model::Document;
 use crate::model::block::TextBlock;
 use crate::model::revision::RevisionId;
-use crate::package::{
-    Package, PartFlavor, PartId, PartImage, PartUri, RelTarget, RelType, Relationship,
-};
+use crate::package::{Package, PartFlavor, PartId, PartUri, RelTarget, RelType, Relationship};
 use crate::save::SaveOptions;
 use crate::span::{FieldIndex, SpanIndex, is_content_item, plan_save, plan_update};
 use crate::xml::{Dom, LocalName, NewElement, NodeEdit, NodeId, NsId, QName, Target};
@@ -46,43 +44,8 @@ pub struct EditSession {
     rev_ids: BTreeMap<(PartId, NodeId), RevisionId>,
     /// 上面那张表的单调计数器。
     next_rev_id: u32,
-    /// 事务期间每个被写入 part 的写前镜像（`EDIT-05`）。
-    txn: Option<Snapshot>,
-}
-
-/// 事务快照（`EDIT-05`）：按需记录被写入 part 的 DOM 写前镜像——[`EditSession::commit_plan`] 在
-/// 第一次写某个 part 之前克隆它，所以回滚覆盖事务真正碰过的每个 part，而不是只有主 part；
-/// 没碰过的 part 不付克隆代价。投影用整体 `rebuild` 恢复。
-#[derive(Default, Clone)]
-pub(crate) struct Snapshot {
-    images: Vec<(PartId, Image)>,
-}
-
-/// 一个 part 的写前镜像：节点级编辑记 DOM（与范围索引），整体替换记整个 part。
-#[derive(Clone)]
-enum Image {
-    Dom(Box<Dom>, Option<SpanIndex>),
-    Part(PartImage),
-}
-
-impl Snapshot {
-    /// 第一次写 `part` 时记下写前镜像（DOM 与范围索引一起，它们合起来是规范状态）。
-    fn remember(&mut self, part: PartId, dom: &Dom, spans: Option<&SpanIndex>) {
-        if !self.has(part) {
-            self.images.push((part, Image::Dom(Box::new(dom.clone()), spans.cloned())));
-        }
-    }
-
-    /// 第一次整体替换 `part` 之前记下整个 part（`ReplacePartXml` / `ReplacePartBytes`）。
-    fn remember_part(&mut self, part: PartId, image: PartImage) {
-        if !self.has(part) {
-            self.images.push((part, Image::Part(image)));
-        }
-    }
-
-    fn has(&self, part: PartId) -> bool {
-        self.images.iter().any(|(p, _)| *p == part)
-    }
+    /// 是否位于外层事务中；嵌套操作复用外层的完整写前快照。
+    txn: bool,
 }
 
 #[cfg_attr(rsword_api_docs, deny(missing_docs))]
@@ -114,7 +77,7 @@ impl EditSession {
             diagnostics: Vec::new(),
             rev_ids: BTreeMap::new(),
             next_rev_id: 0,
-            txn: None,
+            txn: false,
         };
         s.stabilize_revisions();
         Ok(s)
@@ -735,21 +698,21 @@ impl EditSession {
         })
     }
 
-    /// `EDIT-05` 事务边界：`f` 里的每个 plan/commit 阶段共享一个快照，任一阶段 `Err` 就把
-    /// 事务碰过的每个 part 恢复到写前镜像并重建投影。事务不可嵌套（内层直接复用外层快照）。
+    /// `EDIT-05`：失败恢复完整会话，包括新 part/关系、诊断、修订 ID 分配器与缓存。
+    /// 只恢复被写 DOM 再 rebuild 会改变可观察的警告历史、遗漏包级准备操作；嵌套复用外层快照。
     fn transaction<T>(&mut self, f: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {
-        if self.txn.is_some() {
-            return f(self); // 已在事务里：外层负责回滚
+        if self.txn {
+            return f(self);
         }
-        self.txn = Some(Snapshot::default());
+        let before = self.clone();
+        self.txn = true;
         match f(self) {
             Ok(v) => {
-                self.txn = None;
+                self.txn = false;
                 Ok(v)
             }
             Err(e) => {
-                let snap = self.txn.take().unwrap_or_default();
-                self.restore(snap)?;
+                *self = before;
                 Err(e)
             }
         }
@@ -886,9 +849,6 @@ impl EditSession {
                 Error::edit(DiagCode::EditPlanInvalid, format!("part#{} 不是 XML part", part.0))
             })?;
             plan.validate(dom)?;
-            if let Some(txn) = &mut self.txn {
-                txn.remember(part, dom, self.spans.get(&part));
-            }
             let has_edits = !plan.node_edits.is_empty();
             let result = plan.commit(dom);
             let index = self.spans.get_mut(&part).expect("key came from the map");
@@ -919,33 +879,6 @@ impl EditSession {
         Ok(())
     }
 
-    /// 把快照里的每个写前镜像放回去，并重建投影。
-    fn restore(&mut self, snap: Snapshot) -> Result<()> {
-        for (part, image) in snap.images {
-            match image {
-                Image::Dom(image, spans) => {
-                    if let Some(dom) = self.pkg.dom_mut(part)? {
-                        *dom = *image;
-                    }
-                    match spans {
-                        Some(idx) => {
-                            self.spans.insert(part, idx);
-                        }
-                        None => {
-                            self.spans.remove(&part);
-                        }
-                    }
-                }
-                Image::Part(image) => {
-                    self.pkg.restore_part(part, image);
-                    self.spans.remove(&part);
-                }
-            }
-            self.fields.remove(&part); // 投影，重建即可
-        }
-        self.rebuild()
-    }
-
     /// `ReplacePartXml`：整个 XML part 换成 `xml`（TS `partXml`）。只接受**已存在**的 XML part：
     /// 不存在 → `EDIT_TARGET_MISSING`（TS 静默忽略，`docs/04` §8），二进制 part → `EDIT_TARGET_OPAQUE`。
     /// 新内容经解析成为该 part 的新 DOM（良构校验），关系与内容类型不动；投影整体重建。
@@ -963,10 +896,6 @@ impl EditSession {
             ));
         }
         self.ensure_rel_baseline(part)?;
-        let image = self.pkg.snapshot_part(part);
-        if let Some(txn) = &mut self.txn {
-            txn.remember_part(part, image);
-        }
         self.pkg.replace_part_xml(part, xml)?;
         self.spans.remove(&part);
         self.fields.remove(&part);
@@ -983,10 +912,6 @@ impl EditSession {
         }
         if part == self.pkg.main_part() {
             return Err(Error::edit(DiagCode::EditUnsupported, "主 part 不能按二进制替换"));
-        }
-        let image = self.pkg.snapshot_part(part);
-        if let Some(txn) = &mut self.txn {
-            txn.remember_part(part, image);
         }
         self.pkg.replace_part_bytes(part, bytes);
         self.spans.remove(&part);
@@ -1045,9 +970,6 @@ impl EditSession {
             }
         }
         plan.validate(dom)?;
-        if let Some(txn) = &mut self.txn {
-            txn.remember(part, dom, self.spans.get(&part));
-        }
         let span_diags = std::mem::take(&mut update.diagnostics);
         let result = plan.commit(&mut *dom);
         if !update.is_empty() {

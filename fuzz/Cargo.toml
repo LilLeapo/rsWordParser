@@ -53,3 +53,10 @@ path = "fuzz_targets/fuzz_edit.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "fuzz_bind"
+path = "fuzz_targets/fuzz_bind.rs"
+test = false
+doc = false
+bench = false

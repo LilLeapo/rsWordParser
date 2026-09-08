@@ -107,7 +107,7 @@ fn render(s: &EditSession, view: View, main_only: bool) -> String {
     for part in list {
         let Some(dom) = s.package().part(part).dom() else { continue };
         out.push_str("PART\n");
-        let mut w = Walker { dom, view, out: &mut out, para: Para::default() };
+        let mut w = Walker { dom, view, out: &mut out, para: Para::default(), pending: Vec::new() };
         w.walk(dom.root());
         w.flush_para();
     }
@@ -136,6 +136,14 @@ struct Walker<'a> {
     view: View,
     out: &'a mut String,
     para: Para,
+    pending: Vec<Visit>,
+}
+
+// 显式的离开事件保留原递归遍历的后序动作，深包装层数不占调用栈。
+enum Visit {
+    Enter(NodeId),
+    CloseContainer(&'static str),
+    CloseParagraph { ppr: Option<NodeId>, mark_gone: bool },
 }
 
 fn wq(local: LocalName) -> QName {
@@ -293,7 +301,21 @@ impl Walker<'_> {
         self.out.push('\n');
     }
 
-    fn walk(&mut self, node: NodeId) {
+    fn walk(&mut self, root: NodeId) {
+        self.pending.push(Visit::Enter(root));
+        while let Some(visit) = self.pending.pop() {
+            match visit {
+                Visit::Enter(node) => self.enter(node),
+                Visit::CloseContainer(end) => {
+                    self.flush_para();
+                    self.out.push_str(end);
+                }
+                Visit::CloseParagraph { ppr, mark_gone } => self.finish_paragraph(ppr, mark_gone),
+            }
+        }
+    }
+
+    fn enter(&mut self, node: NodeId) {
         if self.dom.node(node).dirty == Dirty::Deleted {
             return;
         }
@@ -327,9 +349,8 @@ impl Walker<'_> {
                     // 不追踪时立刻就没了，两者没法在同一个视图里比。可见的几何在
                     // `w:tc` 的 `w:tcW` 与单元格结构里，那两样都在指纹里。
                     self.out.push_str(&format!("TBL{{{props}\n"));
+                    self.pending.push(Visit::CloseContainer("}TBL\n"));
                     self.descend(node);
-                    self.flush_para();
-                    self.out.push_str("}TBL\n");
                     return;
                 }
                 LocalName::Tr => {
@@ -355,9 +376,8 @@ impl Walker<'_> {
                     // 有 6 个，`accepted` / `rejected` 一个都没有，含没带 `*Change` 的那 3 个），
                     // 而本引擎不动未编辑的字节（不变式 1）。比它等于比 Word 的归一化行为。
                     self.out.push_str(&format!("TR{{{props}\n"));
+                    self.pending.push(Visit::CloseContainer("}TR\n"));
                     self.descend(node);
-                    self.flush_para();
-                    self.out.push_str("}TR\n");
                     return;
                 }
                 LocalName::Tc => {
@@ -381,9 +401,8 @@ impl Walker<'_> {
                         &[LocalName::CellIns, LocalName::CellDel, LocalName::CellMerge],
                     );
                     self.out.push_str(&format!("TC{{{props}\n"));
+                    self.pending.push(Visit::CloseContainer("}TC\n"));
                     self.descend(node);
-                    self.flush_para();
-                    self.out.push_str("}TC\n");
                     return;
                 }
                 LocalName::SectPr => {
@@ -430,9 +449,7 @@ impl Walker<'_> {
     }
 
     fn descend(&mut self, node: NodeId) {
-        for c in self.dom.children(node).to_vec() {
-            self.walk(c);
-        }
+        self.pending.extend(self.dom.children(node).iter().rev().copied().map(Visit::Enter));
     }
 
     fn paragraph(&mut self, p: NodeId) {
@@ -460,9 +477,12 @@ impl Walker<'_> {
             self.para.open = true;
             self.para.ppr = props;
         }
-        for c in dom.children(p).to_vec() {
-            self.walk(c);
-        }
+        self.pending.push(Visit::CloseParagraph { ppr, mark_gone });
+        self.descend(p);
+    }
+
+    fn finish_paragraph(&mut self, ppr: Option<NodeId>, mark_gone: bool) {
+        let dom = self.dom;
         // 段落级 `sectPr` 在 `walk` 里已经作为 `SECT` 输出（它是 `pPr` 的子节点，
         // 而 `pPr` 整体被跳过——这里补一条）
         if let Some(x) = ppr

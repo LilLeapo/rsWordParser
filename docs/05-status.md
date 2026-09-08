@@ -116,6 +116,56 @@ save_blocks **204/208 等价、0 跳过**（4 项已登记有意差异；其中 
 `--no-default-features` / `--all-features` 构建均通过；真实 wasm 重建后，Node 会话 parity
 验证通过（缺失会话、生命周期、原子性、媒体、查询和只读出口）。
 
+**8.6 实现已落地，验收待裁定**：全语料正式门精确覆盖 **1103 份输入 = 1099 成功 + 4 点名拒绝**，
+成功文档均保存原字节不变。原 8.3 的 1065 份 synthetic + real 空保存断言迁移到正式门，
+仅扩展 hostile，未重复实现。首次新增 **1099 份 `.model.json`、4,995,524 B**，来自 display=false 的
+`SessionTable::document`：799 synthetic、266 real、34 可打开 hostile；其余四份不得伪造快照。
+位置 **待追认**，TS expected/save 记录未改。CI 超过 **20** 份快照变动提示复核，本次 1099 份已触发；
+单份内容或文件集合漂移仍硬失败。注入 `zzSabotage` 后快照测试实际退出 101，恢复后通过。
+
+TEST-07 记录、解码和执行协议 JSON，与原生会话逐步比较模型及诊断；Err 时状态逐字节不变。
+每 20 步保存重开、失败最小化、同失败签名匹配和 ModelFingerprint 两视图断言均保留。
+深包装 Walker 改迭代：1099 份文档的新旧两视图输出逐字节相同；5000 层专门回归使用默认栈，
+未提高交付测试的栈大小，也未跳过深文档。
+
+新门暴露并修复 settings 修改后投影未刷新、AddComment 拒绝前创建 part，以及部分快照回滚
+遗漏新 part/关系、模型告警和 revision id；外层事务改为完整 EditSession 检查点。
+`invariants_clean` 同时查会话与包诊断，release 的 SAVE-02 警告不再漏报；门自检主动删除 gridCol，
+debug 必须 save Err，release 必须由包级诊断被门捕获。
+
+网格修订按评审授权修复：掉格阶段已同步删除当前 gridCol 时只摘历史标记，保留存活当前列宽；
+未掉列的纯宽度快照仍走旧路径。外层事务提交前校验所有行几何，失败完整回滚。
+不自动补网格，不扩大拒绝集掩盖原回归。`m6-chart__070`、seed **10201016167453558198** 的
+**40 → 26** 步序列永久保留，要求最后 reject 成功，得到四列网格与三行四列；另测不同宽度的
+后插列与非法快照原子拒绝。`revisions` 的 **24** 个既有测试均通过。
+**spec/18 7.4 措辞仍待负责人裁定，门 2 / 门 4 不判**；合法但语义错误的剩余快照交互已单列 docs/04 §8。
+
+完整事务检查点成本经 `cargo bench -p rsword --bench session` 实测：最大真实文档
+large-report.docx（326406 B），预热后 31 次采样，准备与释放不计时：
+
+| 操作 | 中位数 | p95 | 最大 |
+| --- | --- | --- | --- |
+| EditSession::clone | 0.264 ms | 0.334 ms | 0.383 ms |
+| resolveRuns（1000 个 ID） | 12.247 ms | 13.132 ms | 13.244 ms |
+| 原生 apply（含事务检查点） | 0.854 ms | 0.947 ms | 0.986 ms |
+| 协议 apply（含协议边界与事务检查点） | 1.417 ms | 1.525 ms | 1.757 ms |
+
+apply p95 均低于 5 ms；克隆与批量 resolve 低于 50 ms。计时浮动不解释为优化。
+
+本轮完整 workspace debug / release 均 **911 passed、0 failed、13 ignored**；fmt 干净，
+clippy 零告警，audit 与 rustdoc 均带 `-D warnings` 通过。八道差分门仍为
+**242 + 547 已知 / 0 未知**；save_blocks **204/208 等价、0 跳过**（4 项既有有意差异），
+本轮未另跑真实 Node 保存 parity，不将该条件分支的跳过计为已验证。
+体积门 **251 份、4,334,070 B → 1,408,718 B（−67.5%）**；**57 无损 + 9 具名拒绝 = 66**。
+TEST-07 **1000 条 × 100 步**在 debug / release 均通过，计数一致：
+**61,043 次生效、10,012 次拒绝、3,065 次保存往返**。
+另外三次破坏性验证均退出 **101**：禁用网格调和，保留后插列的成功断言失败；
+移除最终几何校验，非法快照的 unwrap_err 失败；移除 package diagnostics 链接，
+release 门自检失败。每次恢复源码后定向测试通过，并逐字节确认恢复结果。
+网格修复后重新运行 `fuzz_bind`：**28,853 runs / 601 秒，无崩溃**，任意 JSON 经 apply、document
+与五个 resolve 入口；Err 与只读查询均比较模型 JSON、诊断/逃生计数和保存字节。
+使用 `/tmp` 中的运行语料副本，工作区仅保留三个手工种子；10 分钟实跑不替代待裁定的门结论。
+
 **M0 完成，M1 完成**（1.1–1.15 全部落地，M1 门三条都有测试覆盖），**已全部并入 `main`**（2026-09-04）。
 **M3 完成**（2026-09-05，分支 `m3-tables`，3.1–3.9 全部落地，**M3 门四条都跑过**：
 `diff-parse --scope tables` 311 份 0 未知差异、单元格文本编辑保真 67 份、5,000 层 `xml-deep-table`、
@@ -319,7 +369,11 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 ```sh
 cargo fmt --all --check && cargo clippy --workspace --all-targets   # 零告警
-cargo test --workspace && cargo test --workspace --release          # 514 个测试，两种构建
+cargo test --workspace && cargo test --workspace --release          # 两种构建，实际计数见本轮记录
+cargo test -p rsword --test model_snapshot                          # 自快照 + 全语料无编辑原字节
+RSWORD_RANDOM_SEQUENCES=1000 cargo test -p rsword --test random_ops -- --nocapture
+RSWORD_RANDOM_SEQUENCES=1000 cargo test -p rsword --release --test random_ops -- --nocapture
+# fuzz_bind 使用临时 corpus，避免把 libFuzzer 自动扩充的种子写回工作区，见 fuzz/README.md
 cargo run -p diff-parse -- --scope text                             # M1 门第一条：0 未知差异
 cargo run -p diff-parse -- --scope fields                           # M2 门：字段与 Span 域 0 未知差异
 cargo run -p diff-parse -- --scope tables                           # M3 门：表格域 0 未知差异

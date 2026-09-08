@@ -197,8 +197,7 @@ fn bind_03_protocol_native_bytes_full_synthetic_real() {
         let bytes = std::fs::read(path).unwrap();
         let mut native = EditSession::open(&bytes).unwrap();
         let mut protocol = EditSession::open(&bytes).unwrap();
-        let options: rsword::save::SaveOptions = serde_json::from_str("{}").unwrap();
-        assert_eq!(protocol.save_with(&options).unwrap(), bytes, "{}: empty save", path.display());
+        // 无编辑原字节断言移至 model_snapshot 的 TEST-10 全语料门（含 hostile）。
         let body = first(native.dom(), LocalName::Body);
         let op = EditOp::InsertBlock {
             at: BlockPos::end(body),
@@ -231,7 +230,7 @@ fn bind_03_protocol_native_bytes_full_synthetic_real() {
         );
     }
     eprintln!(
-        "BIND-03: {} synthetic + real documents: protocol/native saved bytes equal, empty save identical",
+        "BIND-03: {} synthetic + real documents: protocol/native saved bytes equal",
         paths.len()
     );
 }

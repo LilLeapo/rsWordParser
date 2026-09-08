@@ -246,9 +246,8 @@ pub(crate) fn all(
     let (mut marks, content): (Vec<Job>, Vec<Job>) =
         picked.into_iter().partition(|j| j.kind.is_para_mark());
     marks.reverse();
-    // 网格快照排在内容那一组的最后：`Restore` 整块换掉 `w:tblGrid`，掉格时删掉的 `w:gridCol`
-    // 会被它盖掉。反过来（先还原再掉格）就会把列删两遍（`TEST-07` 两步就抓到了：
-    // 追踪插一列 → 拒绝全部）
+    // 网格标记排最后：先让掉格阶段同步删除当前 gridCol，再决定是否仍需恢复属性快照。
+    // 反过来先缩网格再掉格，会把同一列删两遍。
     let (grid, content): (Vec<Job>, Vec<Job>) =
         content.into_iter().partition(|j| j.kind == crate::model::RevKind::TableGridChange);
     let jobs: Vec<Job> = content.into_iter().chain(grid).chain(marks).collect();
@@ -269,6 +268,25 @@ fn job_of(s: &EditSession, e: &crate::model::RevisionEntry) -> Job {
 /// 逐条处理。整批在**一个事务**里（调用方 `EditSession::apply` 已经开了），任一步 `Err`
 /// 就把每个碰过的 part 恢复到写前镜像。
 fn apply_jobs(s: &mut EditSession, jobs: Vec<Job>, accept: bool) -> Result<MutationResult> {
+    // 记录本事务开始时的网格节点。掉格阶段已删掉对应 gridCol 时，不能再用旧快照
+    // 覆盖它：存活列可能包含后来未追踪插入的列及其宽度。
+    let mut grids = Vec::new();
+    if !accept {
+        for job in &jobs {
+            if job.kind != RevKind::TableGridChange || !alive(s, job.part, job.node)? {
+                continue;
+            }
+            let dom = s.dom_in(Some(job.part))?;
+            if let Some(grid) = dom.parent(job.node)
+                && let Some(table) = dom.ancestors(grid).find(|&n| dom.is(n, w(LocalName::Tbl)))
+            {
+                let cols: Vec<_> = live_children(dom, grid)
+                    .filter(|&n| dom.is(n, w(LocalName::GridCol)))
+                    .collect();
+                grids.push((job.part, job.node, table, cols));
+            }
+        }
+    }
     let mut result = MutationResult::default();
     let mut done: Vec<(PartId, NodeId)> = Vec::new();
     for job in jobs {
@@ -286,7 +304,14 @@ fn apply_jobs(s: &mut EditSession, jobs: Vec<Job>, accept: bool) -> Result<Mutat
             done.push((tp, tn));
         }
         let mut dead_spans: Vec<(PartId, SpanId)> = Vec::new();
-        for plan in plan_job(s, &job, accept, &mut dead_spans)? {
+        let reconciled_grid = grids
+            .iter()
+            .find(|(p, n, _, _)| (*p, *n) == (job.part, job.node))
+            .is_some_and(|(_, _, _, cols)| {
+                let dom = s.dom_in(Some(job.part)).expect("已验证 part");
+                cols.iter().any(|&n| dom.node(n).dirty == Dirty::Deleted)
+            });
+        for plan in plan_job(s, &job, accept, reconciled_grid, &mut dead_spans)? {
             result.absorb(s.commit_plan(plan)?);
         }
         if let Some((tp, tn)) = twin
@@ -294,13 +319,43 @@ fn apply_jobs(s: &mut EditSession, jobs: Vec<Job>, accept: bool) -> Result<Mutat
         {
             let kind = s.document().revisions.by_node(tp, tn).map(|e| e.kind).unwrap_or(job.kind);
             let twin_job = Job { part: tp, node: tn, kind, ..job.clone() };
-            for plan in plan_job(s, &twin_job, accept, &mut dead_spans)? {
+            for plan in plan_job(s, &twin_job, accept, false, &mut dead_spans)? {
                 result.absorb(s.commit_plan(plan)?);
             }
         }
         // 范围本身要从索引里摘掉，否则 `SPAN-09` 会在保存时按索引把标记重新物化出来
         for (part, span) in dead_spans {
             s.drop_span(part, span);
+        }
+    }
+    // 外层事务提交前检查最终几何；包含 Dirty::New 的行，不依赖保存校验的跳过规则。
+    // 任一失败由 EditSession 的完整检查点回滚，非法中间态不会发布给调用方。
+    for (part, _, table, _) in grids {
+        if !alive(s, part, table)? {
+            continue;
+        }
+        let mut pending = s.document().blocks_of_part(part).unwrap_or_default();
+        let mut found = false;
+        while let Some(block) = pending.pop() {
+            if let crate::model::Block::Table(t) = block {
+                if t.node == table {
+                    super::table_ops::geometry(t).require_consistent()?;
+                    found = true;
+                    break;
+                }
+                pending.extend(t.rows.iter().flat_map(|r| &r.cells).flat_map(|c| &c.blocks));
+            }
+            for (blocks, here) in crate::model::table::box_flows(block) {
+                if here.is_none_or(|p| p == part) {
+                    pending.extend(blocks);
+                }
+            }
+        }
+        if !found {
+            return Err(Error::edit(
+                DiagCode::EditTableGridInconsistent,
+                "无法验证还原后的表格网格",
+            ));
         }
     }
     Ok(result)
@@ -318,6 +373,7 @@ fn plan_job(
     s: &mut EditSession,
     job: &Job,
     accept: bool,
+    reconciled_grid: bool,
     dead_spans: &mut Vec<(PartId, SpanId)>,
 ) -> Result<Vec<MutationPlan>> {
     let (a, r) = match (row_actions(job.kind), job.owner) {
@@ -376,7 +432,12 @@ fn plan_job(
                 .parent(job.node)
                 .filter(|&c| dom.is(c, w(container)))
                 .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "快照不在预期的容器里"))?;
-            restore(&mut plan, dom, c, job.node, container, keep);
+            if container == LocalName::TblGrid && reconciled_grid {
+                // plan_drop_cells 已按当前列位置同时删除格与 gridCol；只摘掉历史标记。
+                plan.node_edits.push(NodeEdit::Delete(job.node));
+            } else {
+                restore(&mut plan, dom, c, job.node, container, keep);
+            }
         }
         Act::Merge => {
             plan.node_edits.push(NodeEdit::Delete(job.node));

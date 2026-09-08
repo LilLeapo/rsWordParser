@@ -46,14 +46,13 @@ struct Plan {
 }
 
 fn ctx_of(track: u8) -> EditContext {
-    EditContext {
-        track_changes: match track % 3 {
-            0 => None,
-            1 => Some(RevisionAuthor { author: "甲".into(), date: None }),
-            _ => Some(RevisionAuthor { author: "乙".into(), date: Some("2026-01-01T00:00:00Z".into()) }),
-        },
-        ..Default::default()
-    }
+    EditContext::default().with_track_changes(match track % 3 {
+        0 => None,
+        1 => Some(RevisionAuthor { author: "甲".into(), date: None }),
+        _ => {
+            Some(RevisionAuthor { author: "乙".into(), date: Some("2026-01-01T00:00:00Z".into()) })
+        }
+    })
 }
 
 /// 主 part 序列化后的字节——`EDIT-05` 的"一点没动"就比它。

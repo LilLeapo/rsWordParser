@@ -295,6 +295,11 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 
 | 处 | 规范写法 | 实现 | 原因 |
 | --- | --- | --- | --- |
+| `TEST-07`，8.6 包级诊断门洞 | `invariants_clean` 只查会话诊断 | 同时检查 `package.diagnostics()`；release 的 `SAVE-02` 违规记录在包上，旧检查会假绿。新增故意删 gridCol 的门自检，debug 必须 Err，release 必须由包级诊断被门捕获 | 未放宽诊断过滤，也不把已知输入损伤算作引擎违规；解释此前 release 随机门为何漏报 |
+| `EDIT-03` / `spec/18` 7.4，未追踪编辑 × 待决快照（未解决） | `restore()` 删除当前容器子元素并整体克隆历史快照，不与当前状态调和 | 未追踪编辑落在带未解决 `*Change` 的同一容器上，reject 仍可能悄悄回退它；涉及 `pPrChange` / `rPrChange` / `tcPrChange` / `trPrChange`，也包括无掉列的纯宽度 `tblGridChange` | 结果合法但语义错误：结构不变式不报错，保存两视图门只验证保存前后等价，缺少“保留后续未追踪改动”的独立语义 oracle；7.4 的 `revision_free()` 还跳过了相邻的已有修订目标。本次只修复破坏 `SAVE-02` 的列实例，其余留待协议层裁定交互语义，不记作已解决 |
+| `spec/18` 7.4，8.6 待负责人裁定 | TableGridChange Reject 写为快照克隆 | 按评审授权先实现：同批掉格已同步删除当前 gridCol 时，只摘快照标记，保留存活列当前宽度；纯宽度快照仍还原。外层事务提交前检查最终所有行几何，非法结果具名 Err 并完整回滚 | 26 步最小化回归要求 reject 成功，不靠拒绝过门。规范原文未改；措辞待裁定，门 2 / 门 4 暂不判；不声称解决所有未追踪属性与待决快照的交互 |
+| `TEST-10` / `spec/21` 待决 4，M8′ 8.6 | 自快照位置待定 | 按负责人未反对的建议，`corpus/**/*.model.json` 与 DOCX / TS 期望并列；**待追认**。普通测试只读，显式更新必须在提交中说明原因与影响面；CI 超过 20 份变动提示人工复核 | 自有输出可演进，不能混同禁止手改的 `*.expected.json` / `*.save.*.json`；任一快照漂移仍硬失败 |
+| `EDIT-05`，8.6 随机门发现 | 失败事务保持 DOM / Span / Model 不变，允许快照回滚 | 原生外层事务改为完整 `EditSession` 写前快照，失败直接恢复，嵌套复用；替代仅恢复被写 DOM 再 rebuild | 原部分快照遗漏新 part/关系、诊断历史与修订 ID 分配状态。新增定向回归；额外克隆成本实测见 docs/05，未放宽断言 |
 | `docs/03` §4.1 `Lex.name` | 原始限定名在 `Lex` | `Element::lex_name: Option<Range<u32>>`，与 `Attr::lex_name` 对称 | `None` 直接表达"改名 / New，需按作用域生成前缀"；`Lex` 只管位置 |
 | `docs/03` §4.4 `Mce` | 四个字段 | 多一个 `ignorable: bool` | 语义遍历需要按节点缓存"属于可忽略且未理解的命名空间"，否则每次重算作用域 |
 | `PKG-05` `Relationship` | `{id, kind, target, raw_type}` | 另有 `family: Option<PartFlavor>`、`node: NodeId` | flavor 判定要用关系类型的族别；写回要定位 `.rels` 节点 |
@@ -2046,6 +2051,22 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   8.4 的越界索引历史归因已更正为“8.3 绑定层引入、8.4 修复”，不再归因原生引擎。
 
 - [ ] **8.6 回归网换代**（`*.model.json` 自快照、`TEST-07` 走协议、`fuzz_bind`）
+  实现与验证记录见 docs/05；修订网格的规范措辞仍待负责人裁定，**门 2 / 门 4 不判**。
+  全语料无编辑保存门正式命名为 `test_10_full_corpus_model_snapshots_and_no_edit_save_identity`：
+  原 8.3 已顺带覆盖 1065 份 synthetic + real，本次迁移原断言并扩至 hostile，未重复建一道门。
+  精确 1103 份输入、1099 成功、4 份点名拒绝双向锁死；新增 1099 份 display=false 自快照，
+  位置待追认；快照增量超过 20 份在 CI 警示，单份内容或文件集合漂移仍硬失败。
+  TEST-07 记录/复放协议 JSON，保留每 20 步保存、最小化与失败签名匹配；原生与协议逐步比较，
+  失败状态逐字节不变，两视图 fingerprint 不变。深包装 Walker 改迭代，1099 份旧/新两视图字节相等。
+  完整 EditSession 检查点补齐事务回滚的新 part、关系、投影告警和 revision id；
+  SetDocumentSettings 成功后刷新投影，AddComment 在创建 part 前验证边界。
+  workspace debug / release 均 **911 passed、0 failed、13 ignored**；fmt、clippy、audit、rustdoc 全过。
+  TEST-07 双构建 **1000 条 × 100 步：61043 生效、10012 拒绝、3065 保存往返**，计数一致。
+  八道差分门 **242 + 547 已知 / 0 未知**，save_blocks **204/208 等价、0 跳过**，
+  体积门 **251 份、−67.5%**，分类 **57 无损 + 9 具名拒绝 = 66**。
+  破坏性验证：快照多键、禁用网格调和、移除几何兜底、移除包级诊断链接，均触发对应门失败；
+  恢复后定向验证通过。性能与 fuzz 实测详见 docs/05。
+
 - [ ] **8.7 `compat_ts` 降级、性能、体积与收尾**
 
 ---

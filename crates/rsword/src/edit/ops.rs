@@ -264,7 +264,10 @@ fn set_document_settings(
         patch,
         s.flavor_in(Some(part)),
     );
-    s.commit_plan(plan)
+    let result = s.commit_plan(plan)?;
+    // 声明属性的 SetAttr 没有 affected_blocks；不能依赖块刷新更新 settings。
+    s.rebuild()?;
+    Ok(result)
 }
 
 /// 只支持主 part 的操作（书签 / 批注 / 字段：它们的索引与 id 都只对主 part 建过）。位置带别的
@@ -2496,6 +2499,10 @@ fn add_comment(
     let loc_from = locate(tb, from.offset)?;
     split_at(s, from, loc_from, &mut result)?;
 
+    // 端点可能位于受保护的 inline 内；必须在创建 part/关系之前拒绝。
+    let a = content_boundary(s, from.para, from)?;
+    let b = content_boundary(s, to.para, to)?;
+
     // 批注部件与条目（`SAVE-05` + `EDIT-06`）
     let comments_part = s.ensure_comments_part()?;
     // `w:id` 要在**范围索引**里也没人用过：条目删了、范围还留在索引里等物化时，只看
@@ -2542,8 +2549,6 @@ fn add_comment(
     result.absorb(s.commit_plan(cplan)?);
 
     // 正文：范围标记 + reference run
-    let a = content_boundary(s, from.para, from)?;
-    let b = content_boundary(s, to.para, to)?;
     let dom = s.dom();
     let start_before = content_site(dom, from.para, a);
     let end_before = content_site(dom, to.para, b);

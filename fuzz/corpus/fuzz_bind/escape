@@ -1,0 +1,2 @@
+{"op":"replaceInlines","para":3,"inlines":[{"kind":"xml","value":"<w:r><w:t>seed</w:t></w:r>"}]}
+{"op":"replaceInlines","para":4294967295,"inlines":[{"kind":"xml","value":"<zz:x xmlns:zz='urn:fuzz'/>"}]}

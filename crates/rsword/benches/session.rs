@@ -4,6 +4,33 @@ use std::hint::black_box;
 use std::path::PathBuf;
 use std::time::Instant;
 
+// 同形采样统一：预热一次，准备状态与释放不计入计时；apply 内部的事务克隆计入。
+macro_rules! measure {
+    ($label:literal, $setup:expr, $run:expr) => {{
+        let mut samples = Vec::new();
+        for sample in 0..32 {
+            let mut state = $setup;
+            let start = Instant::now();
+            let output = black_box(($run)(&mut state));
+            let ms = start.elapsed().as_secs_f64() * 1000.0;
+            drop(output);
+            if sample != 0 {
+                samples.push(ms);
+            }
+        }
+        samples.sort_by(f64::total_cmp);
+        println!(
+            "{}: samples={}, median={:.3} ms, p95={:.3} ms, max={:.3} ms",
+            $label,
+            samples.len(),
+            samples[15],
+            samples[29],
+            samples[30]
+        );
+        samples[29]
+    }};
+}
+
 fn main() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let mut pending = vec![root.join("corpus/real")];
@@ -24,25 +51,14 @@ fn main() {
     let (size, path) = files.last().expect("real corpus");
     let bytes = std::fs::read(path).unwrap();
     let session = EditSession::open(&bytes).unwrap();
-    drop(black_box(session.clone()));
-    let mut times = vec![];
-    for _ in 0..31 {
-        let start = Instant::now();
-        let cloned = black_box(session.clone());
-        times.push(start.elapsed().as_secs_f64() * 1000.0);
-        drop(cloned);
-    }
-    times.sort_by(f64::total_cmp);
     println!(
-        "BIND-01 clone: {} real documents, largest {} ({} bytes); samples={}, median={:.3} ms, p95={:.3} ms, max={:.3} ms",
+        "BIND-01 corpus: {} real documents, largest {} ({} bytes)",
         files.len(),
         path.strip_prefix(&root).unwrap().display(),
-        size,
-        times.len(),
-        times[15],
-        times[29],
-        times[30]
+        size
     );
+    let clone_p95 = measure!("BIND-01 clone", (), |_: &mut ()| session.clone());
+    assert!(clone_p95 < 50.0, "BIND-01 clone p95 must be below 50 ms");
     let runs: Vec<u32> = session
         .document()
         .paragraphs()
@@ -54,21 +70,33 @@ fn main() {
         .unwrap();
     let mut table = rsword::bind::native::SessionTable::default();
     let id = table.open(&bytes, None).unwrap();
-    black_box(table.resolve_runs(&id, &ids, None).unwrap());
-    let mut queries = vec![];
-    for _ in 0..31 {
-        let start = Instant::now();
-        let output = black_box(table.resolve_runs(&id, &ids, None).unwrap());
-        queries.push(start.elapsed().as_secs_f64() * 1000.0);
-        drop(output);
-    }
-    queries.sort_by(f64::total_cmp);
-    println!(
-        "BIND-06 resolveRuns: 1000 ids, samples={}, median={:.3} ms, p95={:.3} ms, max={:.3} ms",
-        queries.len(),
-        queries[15],
-        queries[29],
-        queries[30]
+    let query_p95 = measure!("BIND-06 resolveRuns (1000 ids)", (), |_: &mut ()| table
+        .resolve_runs(&id, &ids, None)
+        .unwrap());
+    assert!(query_p95 < 50.0, "BIND-06 p95 must be below 50 ms");
+    let para = session.document().paragraphs().next().unwrap().node;
+    let op = rsword::edit::EditOp::InsertText {
+        at: rsword::edit::InlinePos::new(para, 0),
+        text: "bench".into(),
+        props: None,
+    };
+    let json = rsword::bind::native::edit_op_to_json(&op, session.dom()).unwrap();
+    let native_p95 = measure!(
+        "EDIT-05 apply with complete rollback snapshot",
+        session.clone(),
+        |s: &mut EditSession| s.apply(op.clone(), &rsword::EditContext::default()).unwrap()
     );
-    assert!(queries[29] < 50.0, "BIND-06 p95 must be below 50 ms");
+    let protocol_p95 = measure!(
+        "BIND-01 protocol apply",
+        {
+            let mut t = rsword::bind::native::SessionTable::default();
+            let id = t.open(&bytes, None).unwrap();
+            (t, id)
+        },
+        |s: &mut (rsword::bind::native::SessionTable, String)| s
+            .0
+            .apply(&s.1, &json, None)
+            .unwrap()
+    );
+    assert!(native_p95 < 5.0 && protocol_p95 < 5.0, "apply p95 must be below 5 ms");
 }
