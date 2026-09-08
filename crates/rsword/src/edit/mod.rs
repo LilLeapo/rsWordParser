@@ -14,6 +14,7 @@ pub mod atom_ops;
 pub mod chart_ops;
 pub(crate) mod diff;
 pub mod drawing_ops;
+pub mod field_ops;
 pub mod ink_ops;
 pub mod inline;
 pub mod media_ops;
@@ -32,6 +33,7 @@ pub(crate) mod twin;
 
 pub use chart_ops::{ChartPatch, ChartSeriesPatch, NewChart, NewChartKind, NewChartSeries};
 pub use drawing_ops::{AnchorAxis, AnchorPos, AxisPos, DrawingGeometry, SrcRect};
+pub use field_ops::{BlockFieldOptions, NewBlockField};
 pub use ink_ops::{InkSave, NewInk};
 pub use inline::{NewInline, NewLinkTarget, NewMarker, NewRevision, NewRun};
 pub use media_ops::{ImageWrap, NewImage, ParaSpacing, PosOffset};
@@ -149,6 +151,14 @@ pub enum NewBlock {
     /// 新建线条 / 连接符（TS `LINE_KINDS`）：两点（EMU）定位置与大小，只有描边。
     /// 没有 VML 孪生（TS 同），永远浮在文字上（`wrapNone`）。
     Line { kind: LineKind, from: (i64, i64), to: (i64, i64), color: Option<String> },
+    /// 新块字段（`FLD-09`，7.8）：条目由当前文档算，一条一段（`FLD-08` / `FLD-12` 的多段字段
+    /// 形态：begin + 指令 + separate 在首段开头、end 在末段末尾）。
+    Field(NewBlockField),
+    /// SEQ 题注段（TS `generateCaptionXml`）：`<标签> <SEQ 字段> <说明>`；
+    /// 编号 = 插入位置之前同标签的 `SEQ` 字段数 + 1。
+    Caption { label: String, text: String },
+    /// 一次插入好几个块（生成器展开成多段时用）。只由 `chart_ops::materialize` 产出。
+    Many(Vec<NewBlock>),
 }
 
 /// `EDIT-03 InsertAtom` 的内容（`spec/18` 7.5）。每一种在坐标流里都恒占 1 个 UTF-16 单位。
@@ -330,6 +340,9 @@ pub enum EditOp {
     },
     /// `EDIT-03 SetShapeStyle`：`wps:spPr` 的填充与描边。`None` = 不动，`Some(None)` = 无。
     SetShapeStyle { shape: NodeId, fill: Option<Option<String>>, outline: Option<Option<String>> },
+    /// `EDIT-03 RegenerateBlockField`（`spec/18` 7.8）：按生成器重算一个块字段的结果区
+    /// （`TOC` / `INDEX`）。走 `UpdateBlockField` 那条机制，`w:fldLock` 一样拒绝。
+    RegenerateBlockField { field: crate::span::FieldId, options: BlockFieldOptions },
     /// `EDIT-03 SetTextboxContent`（`spec/18` 7.7）：一个文本框里的块整体换掉。`textbox` 可以是
     /// `w:txbxContent` 自己，也可以是包着它的 `wps:wsp` / `wps:txbx` / `v:shape` / `v:textbox`。
     /// 落在 `mc:Choice` 里时 `mc:Fallback` 的 VML 孪生跟着同步。

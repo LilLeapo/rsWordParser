@@ -449,6 +449,11 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `spec/18` 7.7 的 `PresetGeom` | 枚举 | `pub struct PresetGeom(pub String)`，值原样进 `a:prstGeom/@prst` | `ST_ShapeType` 有两百来个值且还在长，闭集挡住的是调用方而不是错误。解析侧本来就把 `@prst` 当不透明字符串 |
 | `SetDrawingGeometry` / `SetShapeStyle` 的 VML 孪生同步 | 同步 `v:shape/@style @fillcolor @strokecolor` | `@style` 只改 `width` / `height` / `margin-left` / `margin-top` 四个键，别的键（`position`、`z-index`、`mso-*`）原样留着 | 那些是 VML 自己的排版参数，DrawingML 这边没有对应物；猜着改不如不动。填充关掉时只写 `filled="f"`、不删 `@fillcolor`（VML 里 `filled` 才是开关，Word / TS 同） |
 | `spec/18` 7.8 空白模板的 part 清单 | 含 `settings.xml` | 六个 part，**没有** `settings.xml` | TS `buildBlankDocx` 就是六个（`[Content_Types].xml`、两个 `.rels`、`document.xml`、`styles.xml`、`numbering.xml`）。缺它 Word 照常打开；补一个反而与 TS 的输出有差，而这份模板的意义正是两个引擎新建的文档一模一样 |
+| `spec/18` 7.8 INDEX 的排序 | `Collation::CodePoint` 缺省 | 缺省按 Unicode 码位，`Collation::Given` 让调用方排好 | TS 用 `localeCompare('zh-CN')`（浏览器的 ICU）。本引擎不带 ICU，中文与带音标的拉丁字母次序会与 TS 不同（`Apple` / `apple` / `banana` / `Ähnlich` / `中文`）。要 ICU 序就把排好的词表用 `Given` 传进来 |
+| TS `generateCaptionXml` 的 `w:pPr` 次序 | — | 缺省按 `CT_PPr` 的规范次序（`w:spacing` 在 `w:jc` 之前）；`ts_shape` 才照 TS 写 | TS 写的是 `<w:jc/><w:spacing/>`，违反 `PROP-05` 的元素次序（spacing 21 < jc 26），本引擎自己的保存校验（`SAVE-02`）会拦下来。Word 能读，但我们不生成自己都判定为坏的 XML |
+| `spec/18` 7.8「TOC 的条目 = 正文里的匹配段落」 | — | `\u` 时用 `ParagraphFacts.outline_level`（段落 `outlineLvl` + 1，没有就退回样式链），不带 `\u` 时只认 `Resolver::heading_level` | 两条路本来就是 `RES-02` 与 `MOD-04` 已经算好的，重算一遍只会分叉 |
+| `FLD-09 UpdateBlockField`「结构 run 与外层容器都保留」 | — | 重算块字段（`RegenerateBlockField`）之后，结构 run 会**搬进**新的首 / 末段（`move_within_part`，原字节保住），空掉的旧首 / 末段删掉 | 目录字段自己的 begin 就在第一条条目那一段里；只换结果区的话，重算一次就多两个空的 `TOC1` 段。`FLD-12` 要求 begin + 指令 + separate 在首段开头、end 在末段末尾——搬过去正好是这个形态。旧段落里除结构 run 之外还有别的内容时不动（那不是纯结构段） |
+| `FLD-09 UpdateBlockField` 的旧结果清理 | 删结果节点 | 结果节点的**外壳**（`w:hyperlink` / `w:ins` …）整包都成废墟时连壳一起删 | 目录条目的文字与页码裹在 `w:hyperlink` 里，`result_nodes` 记的是里面的 run；只删 run 会留下空的 `w:hyperlink`，重算一次多一个空壳 |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -1676,3 +1681,29 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   在 zip 里也一样）；打开是一个可见段落、标准样式都在、没编辑保存字节不变、零诊断；
   TS `blank-template` 第二场景（空白模板上生成一级标题 + 正文 + 两种列表 → 保存重解析后
   `type` / `level` / `list.kind` 都对）。
+
+- [x] **7.8b 块字段生成器 TOC / SEQ / INDEX**（`span/field/generate/`、`edit/field_ops.rs`，
+  2026-09-08）：生成器只把算好的条目摊成 XML 片段，从文档里**收**条目（走标题、收 `XE`、
+  数 `SEQ`）在 `edit/field_ops.rs`——分开之后生成器可以对着
+  `fixtures/fieldgen/generators.json` 逐字比 TS 的输出。
+  **`ts_shape`** 是 TS 的形态（制表位固定 9350 / 4300、页码写纯数字、不发书签与超链接）；
+  **缺省是 Word 的形态**：`\h` 时每条包 `w:hyperlink w:anchor`、页码走 `PAGEREF … \h` 字段、
+  制表位按调用方给的版心宽（TS 不做这些，`spec/18` 7.8 的「我们更强」）。
+  `TocOptions` 从指令读 `\o` / `\u` / `\t` / `\h` / `\n`，`\z` / `\p` / `\w` 原样发回；
+  级别：`\t` 的自定义样式 > `\u` 的 `outline_level` > 样式链的 `heading_level`（§8）。
+  `IndexOptions` 的排序缺省码位序（TS 用 ICU，§8），`Collation::Given` 让调用方排好。
+  `EditOp::RegenerateBlockField { field, options }` 走 `UpdateBlockField` 那条既有机制
+  （`w:fldLock` 一样拒），生成器这时**不发结构 run**（`emit_field_structure = false`），
+  换完再把 begin / 指令 / separate 搬进新首段、end 搬进新末段并删掉空掉的旧段（§8，`FLD-12` 形态）。
+  `NewBlock::Field(NewBlockField::Toc | Index)` / `NewBlock::Caption { label, text }` /
+  `NewBlock::Many`（生成器把一块展开成好几段，`materialize_all` 摊平）。
+  顺带修了 `UpdateBlockField` 的两处：同段字段的新内容现在也接受整段 `w:p`（取它 `pPr` 之外的
+  子元素内联），旧结果的空外壳连壳一起删（§8）。
+  `tests/fieldgen.rs` 9 个用例：TOC 三组、SEQ 两组与 TS **逐字相同**，INDEX 骨架相同
+  （次序按 §8 用 `Given` 喂 TS 的序）；码位序、Word 形态的超链接与 `PAGEREF`；
+  空白模板上四级标题 → 插目录（四段、四个 `_Toc` 书签成对、指令 `\o "1-9" \h \u`、
+  begin 带 `dirty`、没给页码就没有 `PAGEREF`）；重算（书签不重铸、页码写进 `PAGEREF`、
+  结构 run 只有一份）；四份带完整 TOC 字段的语料重算后字段仍完好、能保存、重开还认得；
+  题注编号按落点之前同标签的 `SEQ` 数（图 1 / 图 2 / 表 1）。
+  **639 测试**、九道门仍为 0、保存语料 204 / 208 等价 0 跳过、clippy 零告警。
+  7.8c（compat 债 `instrField` / `fldBeginXml` 的复核）随 7.9 一起清。

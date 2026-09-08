@@ -10,6 +10,7 @@
 //! 里程碑：M2 任务 2.4 建索引与策略；进模型与 compat 在 2.5，编辑操作在 2.9。
 
 pub mod form;
+pub mod generate;
 pub mod index;
 pub mod instr;
 

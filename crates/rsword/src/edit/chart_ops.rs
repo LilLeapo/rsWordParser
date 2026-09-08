@@ -83,6 +83,16 @@ fn a(local: LocalName) -> QName {
 /// `NewBlock::Chart`（含包在 `Wrapped` 里的）→ 建好 part 后的 `NewBlock::Xml` 绘图段落；其他块原样返回。
 /// 每个接收 `NewBlock` 的入口（`InsertBlock` / `UpdateBlockField` / 页眉页脚内容）都先过这里。
 pub(crate) fn materialize(s: &mut EditSession, block: NewBlock) -> Result<NewBlock> {
+    materialize_at(s, block, None)
+}
+
+/// 同 [`materialize`]，但知道这块要落在哪儿——`NewBlock::Caption` 的编号是「位置之前同标签的
+/// `SEQ` 数 + 1」，非知道不可。
+pub(crate) fn materialize_at(
+    s: &mut EditSession,
+    block: NewBlock,
+    anchor: Option<crate::edit::BlockAt>,
+) -> Result<NewBlock> {
     Ok(match block {
         NewBlock::Chart { chart, extent_emu } => {
             NewBlock::Xml(insert_chart_parts(s, &chart, extent_emu)?)
@@ -114,8 +124,24 @@ pub(crate) fn materialize(s: &mut EditSession, block: NewBlock) -> Result<NewBlo
             )
         }
         NewBlock::Wrapped { wrapper, block } => {
-            NewBlock::Wrapped { wrapper, block: Box::new(materialize(s, *block)?) }
+            NewBlock::Wrapped { wrapper, block: Box::new(materialize_at(s, *block, anchor)?) }
         }
+        // 7.8：块字段与题注
+        NewBlock::Field(f) => NewBlock::Many(super::field_ops::materialize_field(s, f)?),
+        NewBlock::Caption { label, text } => {
+            super::field_ops::materialize_caption(s, &label, &text, anchor)?
+        }
+        NewBlock::Many(v) => NewBlock::Many(
+            v.into_iter()
+                .map(|b| materialize_at(s, b, anchor))
+                .collect::<Result<Vec<_>>>()?
+                .into_iter()
+                .flat_map(|b| match b {
+                    NewBlock::Many(inner) => inner,
+                    b => vec![b],
+                })
+                .collect(),
+        ),
         // 7.7：新建文本框 / 形状 / 线条
         b @ (NewBlock::Textbox { .. } | NewBlock::Shape { .. } | NewBlock::Line { .. }) => {
             NewBlock::Xml(super::shape_gen::shape_paragraph(s, b)?)
@@ -124,8 +150,16 @@ pub(crate) fn materialize(s: &mut EditSession, block: NewBlock) -> Result<NewBlo
     })
 }
 
+/// 一批块：`NewBlock::Many` 就地摊平（生成器可以把一块展开成好几段）。
 pub(crate) fn materialize_all(s: &mut EditSession, blocks: Vec<NewBlock>) -> Result<Vec<NewBlock>> {
-    blocks.into_iter().map(|b| materialize(s, b)).collect()
+    let mut out = Vec::with_capacity(blocks.len());
+    for b in blocks {
+        match materialize(s, b)? {
+            NewBlock::Many(v) => out.extend(v),
+            b => out.push(b),
+        }
+    }
+    Ok(out)
 }
 
 /// 建图表 part、内嵌工作簿、两个 `.rels` 里的关系与内容类型，返回引用它的绘图段落。

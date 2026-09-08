@@ -153,6 +153,9 @@ fn dispatch(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<Mutati
         EditOp::SetTextboxContent { textbox, blocks } => {
             super::shape_gen::set_textbox_content(s, textbox, blocks, ctx)
         }
+        EditOp::RegenerateBlockField { field, options } => {
+            super::field_ops::regenerate(s, field, options, ctx)
+        }
         EditOp::InsertSectionBreak { after, kind } => {
             super::section_ops::insert_section_break(s, after, kind, ctx)
         }
@@ -318,6 +321,8 @@ fn op_targets(s: &EditSession, op: &EditOp) -> Vec<(Option<PartId>, NodeId)> {
         }
         EditOp::SetShapeStyle { shape, .. } => vec![(None, *shape)],
         EditOp::SetTextboxContent { textbox, .. } => vec![(None, *textbox)],
+        // 块字段按 `FieldId` 定位，重算走 `UpdateBlockField` 那条路，它自己做守卫
+        EditOp::RegenerateBlockField { .. } => Vec::new(),
     }
 }
 
@@ -1816,8 +1821,11 @@ pub(super) fn new_block_element(dom: &Dom, block: NewBlock) -> NewElement {
         | NewBlock::MathPara { .. }
         | NewBlock::Textbox { .. }
         | NewBlock::Shape { .. }
-        | NewBlock::Line { .. } => {
-            unreachable!("图表 / 图片 / 公式 / 文本框 / 形状 / 线条必须先经 chart_ops::materialize")
+        | NewBlock::Line { .. }
+        | NewBlock::Field(_)
+        | NewBlock::Caption { .. }
+        | NewBlock::Many(_) => {
+            unreachable!("这些块必须先经 chart_ops::materialize")
         }
         NewBlock::Table { rows, cols, widths, style, header } => {
             super::table_ops::new_table(rows, cols, widths, style, header)
@@ -1990,23 +1998,32 @@ fn insert_block(
     ctx: &EditContext,
 ) -> Result<MutationResult> {
     // 新图表先建 part（图表 / 工作簿 / 关系），块本身换成绘图段落（任务 6.6）
-    let block = super::chart_ops::materialize(s, block)?;
+    let block = super::chart_ops::materialize_at(s, block, Some(at.at))?;
+    // 生成器（TOC / INDEX）展开成好几段：按序全插进去
+    let blocks = match block {
+        NewBlock::Many(v) => v,
+        b => vec![b],
+    };
     let part = s.part_or_main(at.part);
     let dom = s.dom_in(at.part)?;
     let (parent, before) = block_site(dom, at.at)?;
-    let is_para = matches!(block, NewBlock::Paragraph { .. });
-    let opaque = matches!(block, NewBlock::Xml(_) | NewBlock::Wrapped { .. });
-    let node = new_block_element(dom, block);
-    // 追踪：段落的内容进 `w:ins` 且段落标记标插入；表格每行 `trPr/w:ins`；其他整块包 `w:ins`
-    let node = match &mut Tracker::new(s.document(), ctx) {
-        None => node,
-        Some(t) => super::track::mark_new_block_inserted(t, node, opaque),
-    };
+    let mut tracker = Tracker::new(s.document(), ctx);
     let mut plan = MutationPlan::new(part);
     plan.structure_changed = true;
-    plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(parent), before, node });
+    let mut last_is_para = true;
+    for block in blocks {
+        last_is_para = matches!(block, NewBlock::Paragraph { .. } | NewBlock::Xml(_));
+        let opaque = matches!(block, NewBlock::Xml(_) | NewBlock::Wrapped { .. });
+        let node = new_block_element(dom, block);
+        // 追踪：段落的内容进 `w:ins` 且段落标记标插入；表格每行 `trPr/w:ins`；其他整块包 `w:ins`
+        let node = match &mut tracker {
+            None => node,
+            Some(t) => super::track::mark_new_block_inserted(t, node, opaque),
+        };
+        plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(parent), before, node });
+    }
     // 插在格尾的非段落块（表格等）后面要补一个空段落
-    if before.is_none() && !is_para {
+    if before.is_none() && !last_is_para {
         keep_cell_paragraph(dom, parent, None, &mut plan);
     }
     s.commit_plan(plan)
@@ -3065,7 +3082,7 @@ fn next_bookmark_id(s: &EditSession) -> u32 {
     max + 1
 }
 
-fn add_bookmark(
+pub(super) fn add_bookmark(
     s: &mut EditSession,
     name: &str,
     from: InlinePos,
@@ -3582,7 +3599,7 @@ fn set_field_result_props(
 /// 生成器（TOC 重算等）在 M7；这里是机制：调用方给内容，`w:fldLock` 的字段拒绝（`FLD_LOCKED`）。
 /// 结构 run（begin / 指令 / separate / end）与外层容器都保留。跨段字段的结果区里，
 /// 中间的整段直接删，begin / end 所在段落里只删属于结果的 run。
-fn update_block_field(
+pub(super) fn update_block_field(
     s: &mut EditSession,
     id: crate::span::FieldId,
     blocks: Vec<NewBlock>,
@@ -3635,8 +3652,22 @@ fn update_block_field(
         // 同段：新块的 inline 直接插在 end run 之前（段落里不能塞段落）
         let parent = dom.parent(end).ok_or_else(|| unsupported("字段 end 没有父节点"))?;
         for b in blocks {
-            let NewBlock::Paragraph { inlines, .. } = b else {
-                return Err(unsupported("同段块字段的新内容只能是段落（它的 inline 会内联进去）"));
+            // 段落的 inline 直接内联；生成器给的是整段 `w:p`，取它 `pPr` 之外的子元素
+            let nodes: Vec<NewElement> = match b {
+                NewBlock::Paragraph { inlines, .. } => emit_inlines(dom, &inlines),
+                NewBlock::Xml(e) if e.name == w(LocalName::P) => e
+                    .children
+                    .into_iter()
+                    .filter_map(|c| match c {
+                        crate::xml::NewNode::Element(e) if e.name != w(LocalName::PPr) => Some(e),
+                        _ => None,
+                    })
+                    .collect(),
+                _ => {
+                    return Err(unsupported(
+                        "同段块字段的新内容只能是段落（它的 inline 会内联进去）",
+                    ));
+                }
             };
             let (iparent, ibefore) = match &mut tracker {
                 None => (Target::Node(parent), Some(end)),
@@ -3650,7 +3681,7 @@ fn update_block_field(
                     (Target::New(k), None)
                 }
             };
-            for node in emit_inlines(dom, &inlines) {
+            for node in nodes {
                 plan.node_edits.push(NodeEdit::Insert { parent: iparent, before: ibefore, node });
             }
         }
@@ -3669,6 +3700,26 @@ fn update_block_field(
         }
         if !victims.contains(&victim) {
             victims.push(victim);
+        }
+    }
+    // 结果 run 常裹在 `w:hyperlink`（目录条目）或 `w:ins` 里：整包都成废墟就连壳一起删。
+    // 不然留下一个空 `w:hyperlink`，重算一次多一个空壳（生成的目录第一条与最后一条就在
+    // begin / end 所在的段落里）。
+    loop {
+        let grown: Vec<NodeId> = victims
+            .iter()
+            .filter_map(|&v| dom.parent(v))
+            .filter(|&p| p != begin_para && p != end_para && !dom.is(p, w(LocalName::P)))
+            .filter(|&p| !victims.contains(&p))
+            .filter(|&p| live_children(dom, p).all(|c| victims.contains(&c)))
+            .collect();
+        if grown.is_empty() {
+            break;
+        }
+        for p in grown {
+            if !victims.contains(&p) {
+                victims.push(p);
+            }
         }
     }
     for v in victims {
