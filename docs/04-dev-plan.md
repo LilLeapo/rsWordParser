@@ -1807,3 +1807,24 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   外加一处形态对齐：新建 `theme1.xml` 的 `dk1` / `lt1` 改用 `a:sysClr`（Word 与 TS 都是这么写的），
   真要改这两个槽时那条"换成 `a:srgbClr`"的路不变。
   **642 测试**、九道门仍为 0、保存语料 204 / 208 等价 0 跳过、clippy 零告警。
+
+- [x] **7.10 JS 绑定 `crates/rsword-js`（wasm-bindgen）**（2026-09-08）：
+  面按计划的最小集：`parse(bytes) -> ParsedDoc JSON 文本`、`save(bytes, blocksJson, optionsJson)`、
+  `blank(eastAsiaFont?)`、`version()`。错误抛 JS `Error`，带 `code`（诊断码，稳定可依赖）与
+  `message`。
+  **实现分成两半**：语言无关的那半在 `rsword::bind::js`（四个函数 + 错误映射 + JSON 形态），
+  `crates/rsword-js` 只做类型转换。这么分是为了让绑定层能在**原生构建**里对着全语料验，不用起 node：
+  `diff-parse --via js` 走 `bind::js::parse`，synthetic 799 份与 real 266 份都是 **0 处未知差异**；
+  `tests/js_binding.rs` 4 个用例——`parse` 与原生投影在 1,065 份文档上逐字节相同、
+  `save` 对 **208 / 208** 份保存用例与原生字节相同、`blank` / `version` / 缺省参数、错误码稳定。
+  **`finalBlocks` 是必填的**：空的 `[]` 语义是「正文清空」（TS `saveDocx(doc, [])` 同义），
+  漏传参数不该悄悄走到那一步，所以空串 / `null` 直接报 `JSON_PARSE`；`SaveOptions` 缺省成 `{}`。
+  新增 `[profile.wasm-release]`（体积优先 + LTO + 去符号 + `panic = abort`）：普通 `release` 带
+  `debug = 1`，在 wasm 里是 37 MB，换档之后 **3.2 MB**（gzip 1.0 MB）。
+  `wasm32-unknown-unknown` 的构建与两条 `--via js` 差分进 CI（`wasm-bindgen` 的后处理属发布流程，
+  不进这道门）。绑定的 `parse` 也进了 `benches/edit.rs`：319 KB 的报告 4.7 ms——M8 里编辑器打开
+  一份文档的真实代价。
+  `unsafe_code`：workspace 的 `forbid` 拦得住宏，`rsword-js` 单独设 `allow`（我们自己一行
+  `unsafe` 都不写，放行的是 wasm-bindgen 宏展开的那些）。
+  **646 测试**、九道门 + 两条 `--via js` 全为 0、clippy 零告警。
+  **M7 到此收完。**

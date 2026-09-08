@@ -2,3 +2,4 @@
 //! napi / wasm 绑定在 M8 接入编辑器时加入。
 
 pub mod compat_ts;
+pub mod js;

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/rsword", "tools/diff-parse", "tools/gen-fixtures", "tools/xpath-assert"]
+members = ["crates/rsword", "crates/rsword-js", "tools/diff-parse", "tools/gen-fixtures", "tools/xpath-assert"]
 exclude = ["fuzz"]
 
 [workspace.package]
@@ -25,3 +25,15 @@ cast_possible_truncation = "allow"
 
 [profile.release]
 debug = 1
+
+# wasm 产物用（`spec/18` 7.10）：release 带 `debug = 1`，那点调试信息在 wasm 里是几十 MB。
+# 体积优先 + LTO + 去符号，构建 `rsword-js` 时用 `--profile wasm-release`
+[profile.wasm-release]
+inherits = "release"
+debug = false
+strip = true
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+

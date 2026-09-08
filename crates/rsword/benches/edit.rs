@@ -39,8 +39,8 @@ fn ms(d: Duration) -> f64 {
 
 fn main() {
     println!(
-        "{:<34} {:>8} {:>9} {:>10} {:>11} {:>10}",
-        "文档", "KB", "open", "InsertText", "AcceptAll", "save_with"
+        "{:<34} {:>8} {:>9} {:>10} {:>11} {:>10} {:>11}",
+        "文档", "KB", "open", "InsertText", "AcceptAll", "save_with", "js::parse"
     );
     for rel in DOCS {
         let path = repo_root().join(rel);
@@ -114,16 +114,28 @@ fn main() {
             5,
         );
 
+        // JS 绑定那条路（`ParsedDoc` JSON 文本）：M8 里编辑器打开一份文档的真实代价
+        let js_parse = median(
+            || {
+                let t = Instant::now();
+                let text = rsword::bind::js::parse(&bytes).expect("js parse");
+                std::hint::black_box(&text);
+                t.elapsed()
+            },
+            5,
+        );
+
         let mut stem = path.file_name().unwrap_or_default().to_string_lossy().to_string();
         if stem.chars().count() > 34 {
             stem = stem.chars().take(31).collect::<String>() + "…";
         }
         println!(
-            "{stem:<34} {kb:>8.0} {:>8.1}ms {:>9.2}ms {:>10.2}ms {:>9.1}ms",
+            "{stem:<34} {kb:>8.0} {:>8.1}ms {:>9.2}ms {:>10.2}ms {:>9.1}ms {:>10.1}ms",
             ms(open),
             ms(insert),
             ms(accept),
-            ms(save)
+            ms(save),
+            ms(js_parse)
         );
     }
 }

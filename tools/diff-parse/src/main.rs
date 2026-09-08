@@ -4,7 +4,7 @@
 //! 每落地一个任务就把 N 往下拧，归零后删掉参数。
 //!
 //! ```text
-//! diff-parse [--corpus DIR] [--scope text|fields|tables|drawing|hf|embedded|all] [--known FILE] [--doc PREFIX] [--show N] [--json] [--by-doc] [--max-unknown N]
+//! diff-parse [--corpus DIR] [--scope text|fields|tables|drawing|hf|embedded|all] [--known FILE] [--doc PREFIX] [--show N] [--json] [--by-doc] [--max-unknown N] [--via js]
 //! ```
 
 use std::path::{Path, PathBuf};
@@ -59,6 +59,8 @@ impl Scope {
 struct Args {
     corpus: PathBuf,
     scope: Scope,
+    /// `--via js`：ParsedDoc 走 JS 绑定（`bind::js::parse`）而不是 `compat_ts::parsed_doc`。
+    via_js: bool,
     known: Option<PathBuf>,
     doc_prefix: Option<String>,
     show: usize,
@@ -77,6 +79,7 @@ fn usage() -> ! {
                 hf = M5 门（全部文档，只计页眉页脚域**路径**），\n\
                 embedded = M6 门（全部文档，只计嵌入对象域：路径或所在块），all = 全部语料\n\
          --max-unknown N: 未知差异不超过 N 就退出码 0（还没关上的门在 CI 里的棘轮；归零后删掉），缺省 0\n\
+         --via js: ParsedDoc 走 JS 绑定（`bind::js::parse`）而不是直接调 `compat_ts::parsed_doc`\n\
          缺省 corpus = <仓库根>/corpus/synthetic，scope = all，known = 编进库里的 KNOWN_DIFFS.md，show = 3"
     );
     std::process::exit(2)
@@ -86,6 +89,7 @@ fn parse_args() -> Args {
     let mut a = Args {
         corpus: repo_root().join("corpus/synthetic"),
         scope: Scope::All,
+        via_js: false,
         known: None,
         doc_prefix: None,
         show: 3,
@@ -97,6 +101,12 @@ fn parse_args() -> Args {
     while let Some(arg) = it.next() {
         match arg.as_str() {
             "--corpus" => a.corpus = PathBuf::from(it.next().unwrap_or_else(|| usage())),
+            // 走 JS 绑定那条路（`bind::js::parse`）而不是直接调 `parsed_doc`
+            "--via-js" => a.via_js = true,
+            "--via" => match it.next().as_deref() {
+                Some("js") => a.via_js = true,
+                _ => usage(),
+            },
             "--scope" => {
                 a.scope = match it.next().as_deref() {
                     Some("text") => Scope::Text,
@@ -219,12 +229,30 @@ fn main() -> ExitCode {
             continue;
         }
         let bytes = std::fs::read(&path).unwrap();
-        let actual = match Package::open(&bytes).and_then(|mut pkg| parsed_doc(&mut pkg)) {
-            Ok(v) => v,
-            Err(e) => {
-                eprintln!("{file}: 打开 / 解析失败: {e}");
-                failed_open += 1;
-                continue;
+        // `--via js`（`spec/18` 7.10）：走 JS 绑定那条路（`bind::js::parse` → JSON 文本 → 再解回来）。
+        // wasm 那一层只是类型转换，真正的实现是同一份，所以这道门能在原生构建里跑全语料
+        let actual = if args.via_js {
+            match rsword::bind::js::parse(&bytes).and_then(|t| {
+                serde_json::from_str::<Value>(&t).map_err(|e| rsword::bind::js::ApiError {
+                    code: "JSON_PARSE".into(),
+                    message: e.to_string(),
+                })
+            }) {
+                Ok(v) => v,
+                Err(e) => {
+                    eprintln!("{file}: 绑定层失败: {} {}", e.code, e.message);
+                    failed_open += 1;
+                    continue;
+                }
+            }
+        } else {
+            match Package::open(&bytes).and_then(|mut pkg| parsed_doc(&mut pkg)) {
+                Ok(v) => v,
+                Err(e) => {
+                    eprintln!("{file}: 打开 / 解析失败: {e}");
+                    failed_open += 1;
+                    continue;
+                }
             }
         };
         let mut diffs = Vec::new();
