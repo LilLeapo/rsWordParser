@@ -1,0 +1,48 @@
+## size and hash
+evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C01.docx 15715 bytes
+e9a93eb960e5ca5c510e7755a4605aef9438aff2d803382ec442dd21bd410363  evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C01.docx
+## zip test
+Archive:  evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C01.docx
+    testing: [Content_Types].xml      OK
+    testing: _rels/.rels              OK
+    testing: word/document.xml        OK
+    testing: word/_rels/document.xml.rels   OK
+    testing: word/theme/theme1.xml    OK
+    testing: word/settings.xml        OK
+    testing: word/styles.xml          OK
+    testing: word/webSettings.xml     OK
+    testing: word/fontTable.xml       OK
+    testing: docProps/core.xml        OK
+    testing: docProps/app.xml         OK
+No errors detected in compressed data of evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C01.docx.
+## xmllint
+## pStyle counts
+   4 <w:pStyle w:val="1"
+   4 <w:pStyle w:val="2"
+   4 <w:pStyle w:val="3"
+   4 <w:pStyle w:val="4"
+## anchors
+   1 CASE-COMBINED-00
+   1 CASE-COMBINED-END
+   1 CASE-COMBINED-H1-01
+   1 CASE-COMBINED-H1-02
+   1 CASE-COMBINED-H1-03
+   1 CASE-COMBINED-H1-04
+   1 CASE-COMBINED-H2-01
+   1 CASE-COMBINED-H2-02
+   1 CASE-COMBINED-H2-03
+   1 CASE-COMBINED-H2-04
+   1 CASE-COMBINED-H3-01
+   1 CASE-COMBINED-H3-02
+   1 CASE-COMBINED-H3-03
+   1 CASE-COMBINED-H3-04
+   1 CASE-COMBINED-H4-01
+   1 CASE-COMBINED-H4-02
+   1 CASE-COMBINED-H4-03
+   1 CASE-COMBINED-H4-04
+## rust driver H1
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C01.docx","marker":"CASE-COMBINED-H1-01","no_edit_save_byte_identical":true}
+## rust driver END
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C01.docx","marker":"CASE-COMBINED-END","no_edit_save_byte_identical":true}
+## rust driver H4
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C01.docx","marker":"CASE-COMBINED-H4-04","no_edit_save_byte_identical":true}

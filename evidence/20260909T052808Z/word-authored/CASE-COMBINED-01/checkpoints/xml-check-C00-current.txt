@@ -1,0 +1,7 @@
+CASE-COMBINED-01-C00.docx
+size: 14488 bytes
+sha256: a7fbaafedb7818f775016a9f3c6bec0d233034f9bd9be23245fe297b799136cb
+zip: OK
+document.xml: XML OK
+CASE-COMBINED-00 occurrences: 1
+rsword driver: contains_marker=true; no_edit_save_byte_identical=true

@@ -1,0 +1,29 @@
+## size and hash
+evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C02.docx 40811 bytes
+c0a0a88ec8013f1c15ecd3f2118efc0f947b0b308c1f9817e6e9014df24ac207  evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C02.docx
+
+## zip test
+No errors detected in compressed data.
+
+## xmllint
+word/document.xml: OK
+
+## structure counts
+<w:tbl>       5
+<w:vMerge     3
+<w:tblHeader  1
+<w:drawing    1
+<w:tab/>      1
+<w:br/>       1
+<w:b/>        1
+<w:i/>        1
+<w:u          1
+U+00A0        1
+emoji         1
+Arabic        1
+Hebrew        1
+
+## rust driver
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C02.docx","marker":"CASE-COMBINED-END","no_edit_save_byte_identical":true}
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C02.docx","marker":"CASE-COMBINED-H1-01","no_edit_save_byte_identical":true}
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C02.docx","marker":"CASE-COMBINED-UNICODE-01","no_edit_save_byte_identical":true}
