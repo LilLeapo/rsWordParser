@@ -44,4 +44,6 @@ impl From<rsword::bind::native::ApiError> for QueryError {
     }
 }
 
+pub mod output;
 pub mod tools;
+pub mod transport;

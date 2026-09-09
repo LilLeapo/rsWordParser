@@ -12,6 +12,7 @@ use rsword_agent_query::{
     paging::{self, Unit},
     search::Worker,
     session::{ReadRequest, ReadTool, Sessions},
+    transport::common_bytes,
 };
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
@@ -250,7 +251,7 @@ fn agent_06_text_pages_equal_full_projection_and_counts() {
             );
             let b = Budget {
                 limit: single["usage"]["contentUtf16"].as_u64().unwrap().max(1) as usize,
-                max_bytes: single["usage"]["responseBytes"].as_u64().unwrap().max(512) as usize,
+                max_bytes: common_bytes(&single, false).max(512),
             };
             if b.limit > 1048576 || b.max_bytes > 4194304 {
                 assert_eq!(
@@ -445,7 +446,7 @@ fn agent_06_every_read_budget_includes_metadata_and_errors() {
         assert_eq!(full["content"], json!([huge,{"text":"end"}]));
         let exact = Budget {
             limit: full["usage"]["contentUtf16"].as_u64().unwrap() as usize,
-            max_bytes: serde_json::to_vec(&full).unwrap().len(),
+            max_bytes: common_bytes(&full, false),
         };
         check(&full, exact);
         assert_eq!(
@@ -701,7 +702,7 @@ fn agent_06_final_page_without_cursor_can_fit_after_rejected_prefix() {
     let r = req(ReadTool::Text);
     let full = Sessions::read_file(&path, &r, None, None, None).unwrap();
     assert_eq!(full["content"], "A\nB\n");
-    let bytes = full["usage"]["responseBytes"].as_u64().unwrap() as usize + 32;
+    let bytes = common_bytes(&full, false) + 32;
     let prefix =
         Sessions::read_file(&path, &r, Some(Budget { limit: 2, max_bytes: bytes }), None, None)
             .unwrap_err();
@@ -809,4 +810,38 @@ fn test_media() -> Vec<u8> {
         &std::fs::read(common::repo_root().join("corpus/real/image/image-svg.docx")).unwrap(),
         "word/media/image1.png",
     )
+}
+#[test]
+fn agent_06_cli_cursor_rejected_by_mcp() {
+    let dir = common::repo_root().join("target/m97-cursor-cli");
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("input.docx");
+    let bytes = fixture();
+    std::fs::write(&path, &bytes).unwrap();
+    let r = req(ReadTool::Text);
+    let b = Budget { limit: 12, max_bytes: 24000 };
+    let file = Sessions::read_file(&path, &r, Some(b), None, None).unwrap();
+    let token = file["nextCursor"].as_str().expect("必须实际产生文件游标");
+    let mut sessions = Sessions::default();
+    let id = sessions.open(&bytes).unwrap();
+    let e = sessions.read(&id, &r, Some(b), Some(token), None).unwrap_err();
+    assert_eq!(e.code, "AGENT_BAD_CURSOR");
+    assert_eq!(e.message, "MCP 需要会话句柄，不能接收 CLI 文件游标");
+}
+#[test]
+fn agent_06_mcp_cursor_rejected_by_cli() {
+    let dir = common::repo_root().join("target/m97-cursor-mcp");
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("input.docx");
+    let bytes = fixture();
+    std::fs::write(&path, &bytes).unwrap();
+    let r = req(ReadTool::Text);
+    let b = Budget { limit: 12, max_bytes: 24000 };
+    let mut sessions = Sessions::default();
+    let id = sessions.open(&bytes).unwrap();
+    let page = sessions.read(&id, &r, Some(b), None, None).unwrap();
+    let token = page["nextCursor"].as_str().expect("必须实际产生会话游标");
+    let e = Sessions::read_file(&path, &r, Some(b), Some(token), None).unwrap_err();
+    assert_eq!(e.code, "AGENT_BAD_CURSOR");
+    assert_eq!(e.message, "CLI 需要自包含文件游标，不能接收 MCP 会话句柄");
 }

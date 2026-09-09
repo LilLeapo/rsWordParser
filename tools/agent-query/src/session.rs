@@ -47,6 +47,7 @@ pub struct ReadRequest {
 fn empty_options() -> Value {
     json!({})
 }
+#[derive(Clone)]
 struct Session {
     native: SessionTable,
     native_id: String,
@@ -59,6 +60,64 @@ pub struct Sessions {
     cursors: Registry,
 }
 impl Sessions {
+    /// 传输回执预算也在提交前检查；失败恢复该会话与游标，不能已修改却报失败。
+    pub fn transaction<T>(
+        &mut self,
+        id: &str,
+        run: impl FnOnce(&mut Self) -> Result<T>,
+    ) -> Result<T> {
+        let checkpoint = self.get(id)?.clone();
+        let cursors = self.cursors.clone();
+        match run(self) {
+            Ok(value) => Ok(value),
+            Err(e) => {
+                self.sessions.insert(id.to_owned(), checkpoint);
+                self.cursors = cursors;
+                Err(e)
+            }
+        }
+    }
+    /// 已有会话上的有界记录，仍使用唯一 Registry，不另编游标。
+    pub fn records(
+        &mut self,
+        id: &str,
+        tool: &str,
+        config: &Value,
+        rows: Vec<Value>,
+        b: Budget,
+        token: Option<&str>,
+    ) -> Result<Value> {
+        let snapshot = self.snapshot(id)?.to_string();
+        let units: Vec<_> = rows.into_iter().enumerate().map(|(i, v)| Unit::record(v, i)).collect();
+        paging::page(
+            &mut self.cursors,
+            &snapshot,
+            tool,
+            &config.to_string(),
+            &units,
+            false,
+            json!({"tool":tool}),
+            b.validate()?,
+            token,
+            usize::MAX,
+        )
+    }
+    pub fn check_current(&self, id: &str) -> Result<Vec<Value>> {
+        let state = self.get(id)?;
+        let original =
+            state.native.inspect(&state.native_id, |s, _| s.package().original_bytes().clone())?;
+        let mut rows = self.check(id, &original)?;
+        if state.version != 0 {
+            for row in &mut rows {
+                if row["name"] == "noEditSaveIdentity" {
+                    row.as_object_mut().unwrap().remove("passed");
+                    row["status"] = json!("notApplicableAfterEdit");
+                }
+            }
+            rows[0]["scope"] = json!("当前会话的保存校验与内核可检查项；已编辑会话不判无编辑恒等");
+        }
+        Ok(rows)
+    }
     /// 文件工具的读取入口：先验指纹，再重建当前会话；从不沿用旧 native id。
     pub fn read_file(
         path: &std::path::Path,

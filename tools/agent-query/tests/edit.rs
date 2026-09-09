@@ -590,7 +590,8 @@ fn agent_09_report_cursor_survives_edit_and_preview_cache_eviction() {
     let r = s.edit(&id, 0, &input, None, Some(&worker())).unwrap();
     let report = r["reportId"].as_str().unwrap();
     let expected = summary(&mut s, &id, report);
-    let b = Budget { limit: 4000, max_bytes: 2000 };
+    // v1.4 对完整 MCP 信封计费；本例按内容预算强制分页，仍断言有游标及全部记录拼接。
+    let b = Budget { limit: 1600, max_bytes: 24000 };
     let page = s.summary(&id, report, b, None).unwrap();
     let mut rows = page["content"].as_array().unwrap().clone();
     let mut cursor = page["nextCursor"].as_str().map(str::to_owned);

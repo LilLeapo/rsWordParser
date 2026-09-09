@@ -37,7 +37,7 @@ struct Entry {
     config: String,
     position: Value,
 }
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Registry {
     entries: BTreeMap<String, Entry>,
     pub(crate) file: Option<Value>,
@@ -47,8 +47,10 @@ fn session(snapshot: &str) -> Option<String> {
 }
 pub(crate) fn validate_file(token: &str, file: &Value, tool: &str) -> Result<Value> {
     let wire = decode(token)?;
-    if wire["kind"] != "file"
-        || wire["binding"]["identity"] != file["identity"]
+    if wire["kind"] != "file" {
+        return Err(error("AGENT_BAD_CURSOR", "CLI 需要自包含文件游标，不能接收 MCP 会话句柄"));
+    }
+    if wire["binding"]["identity"] != file["identity"]
         || wire["binding"]["request"] != file["request"]
         || wire["tool"] != tool
     {
@@ -79,7 +81,7 @@ impl Registry {
             return Ok(Some(wire["position"].clone()));
         }
         if wire["kind"] != "session" {
-            return Err(error("AGENT_BAD_CURSOR", "此游标不属于当前传输会话"));
+            return Err(error("AGENT_BAD_CURSOR", "MCP 需要会话句柄，不能接收 CLI 文件游标"));
         }
         let e =
             self.entries.get(token).ok_or_else(|| error("AGENT_BAD_CURSOR", "未知或伪造游标"))?;

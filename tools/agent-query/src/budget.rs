@@ -52,7 +52,7 @@ pub fn measure(out: &mut Value) {
 }
 pub fn fits(v: &Value, b: Budget) -> bool {
     v["usage"]["contentUtf16"].as_u64().unwrap() <= b.limit as u64
-        && v["usage"]["responseBytes"].as_u64().unwrap() <= b.max_bytes as u64
+        && crate::transport::common_bytes(v, false) <= b.max_bytes
 }
 /// 所有读取的最长完整前缀选择；末页省去游标，字节预算不是单调的。
 pub fn longest_prefix<T>(
@@ -81,10 +81,9 @@ pub fn longest_prefix<T>(
 }
 pub fn too_small(v: &Value, object: Value) -> crate::QueryError {
     let mut e = error("AGENT_BUDGET_TOO_SMALL", "完整记录无法容纳；未返回内容、未消费游标");
-    e.details = json!({"object":object,"minLimit":v["usage"]["contentUtf16"],"minBytes":v["usage"]["responseBytes"]});
-    if v["usage"]["contentUtf16"].as_u64().unwrap() > 1048576
-        || v["usage"]["responseBytes"].as_u64().unwrap() > 4194304
-    {
+    let bytes = crate::transport::common_bytes(v, false);
+    e.details = json!({"object":object,"minLimit":v["usage"]["contentUtf16"],"minBytes":bytes});
+    if v["usage"]["contentUtf16"].as_u64().unwrap() > 1048576 || bytes > 4194304 {
         e.code = "AGENT_UNIT_TOO_LARGE".into();
     }
     e

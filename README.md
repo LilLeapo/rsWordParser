@@ -201,4 +201,9 @@ cargo run -p rsword-cli -- check corpus/real/misc/large-report.docx --json
 ```
 
 编辑用 `rsword ops INPUT --ops REQUEST.json --output NEW.docx`，默认保留原文件并写审计报告。
-预览、附件、游标与退出码见 [CLI 使用与边界](docs/18-cli.md)。MCP server 留给 9.7。
+预览、附件、游标与退出码见 [CLI 使用与边界](docs/18-cli.md)。
+
+MCP server（M9′ 9.7）：`cargo build -p rsword-mcp --release`，在客户端以 stdio 启动
+`target/release/rsword-mcp --result-shape text`。跨工具保持会话，先 open → outline，再按范围下钻，
+编辑提供 expectedVersion，最后 save/close。连接示例、单份载荷计费及能力边界见 [MCP 使用说明](docs/19-mcp.md)。
+原生 Rust 形态按建议执行、待追认；缺省 text 待真实 Agent 门 5 实测确认。

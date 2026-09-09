@@ -42,6 +42,113 @@ agent_tool! {
     Version,"version","version","version",false,CONTEXT,None;
 }
 impl Tool {
+    pub fn from_mcp(name: &str) -> Option<Self> {
+        Self::ALL.iter().copied().find(|t| t.mcp() == name)
+    }
+    pub fn needs_session(self) -> bool {
+        !matches!(self, Self::Open | Self::Version)
+    }
+    pub fn needs_version(self) -> bool {
+        matches!(self, Self::Edit | Self::AddMedia | Self::Save | Self::Preview)
+    }
+    pub fn description(self) -> String {
+        let purpose = match self {
+            Self::Open => "打开本机 path 指定的 DOCX，返回 sessionId/version；不修改输入文件。",
+            Self::Close => "释放会话、报告和游标；重复关闭成功，不要求 expectedVersion。",
+            Self::Outline => "读取标题层级、文字和可下钻的块范围，不预读完整正文。",
+            Self::Text => "读取可读文本、占位符和双向锚点；呈现锚点不能直接编辑。",
+            Self::Find => "字面/正则定位，支持归一化；返回原文前置条件、锚点与有界上下文。",
+            Self::Context => "以当前会话 anchor 按段落或 UTF-16 取窗口，不越过授权范围。",
+            Self::Document => {
+                "有界模型查询，须选择 blockRange/flow 或声明字段；非原生全量 document。"
+            }
+            Self::Preview => {
+                "克隆执行 operations，保存预览报告，不改文档；后续用 summary/reportId 读取。"
+            }
+            Self::Edit => {
+                "编译并原子执行 Agent operations，返回 reportId；歧义拒绝不猜，可用 previewId 核预览。nativeDebug 只作显式低层调试。"
+            }
+            Self::Save => {
+                "在克隆上保存到本机 output；已存在输出需 overwrite=true；失败保留原文件和会话。"
+            }
+            Self::Summary => {
+                "按 reportId 分页读原始请求、文本差异及可还原审计；报告有容量与淘汰上限。"
+            }
+            Self::Diff => {
+                "比较本机 before/after 两份 DOCX 的完整文本单位，不按 nodeId 配对，不宣称最小 diff。"
+            }
+            Self::Media => {
+                "分页列媒体；指定 id/output 可导出本机文件（上限 16 MiB），不把字节内联进文本。"
+            }
+            Self::AddMedia => {
+                "上传本机 path 的媒体并校验 MIME，返回 mediaId/hash/length，成功推进版本。"
+            }
+            Self::Check => "检查会话和包诊断、保存校验与可检查不变式；不声称已在桌面 Word 验证。",
+            Self::Version => "返回引擎、原生协议与 Agent 投影规则版本，不要求会话。",
+        };
+        format!(
+            "{}：{}先 open，再 outline 获取标题与范围，随后用 text/model/context 按需下钻。limit 计 UTF-16，maxBytes 计完整工具响应；默认 {} / {}。按两形态较大成本共同分页，超预算不截断段落，重试可增预算；cursor 绑定会话版本和查询。{}",
+            self.logical(),
+            purpose,
+            self.budget().limit,
+            self.budget().max_bytes,
+            if self.needs_version() {
+                "必须携带 expectedVersion；失败不改变会话。"
+            } else {
+                "close 幂等；会话默认空闲 30 分钟回收。"
+            }
+        )
+    }
+    /// MCP 的路径/会话路由扩展仍在共享声明侧，不在服务端复制工具表。
+    pub fn mcp_schema(self) -> Value {
+        let mut schema = self.input_schema();
+        schema["properties"]["resultShape"] = json!({"enum":["text","structured"],"description":"只改变传输信封；可在同一会话逐请求切换，游标仍通用"});
+        if self == Self::Context {
+            schema["properties"]["options"]["properties"]
+                .as_object_mut()
+                .unwrap()
+                .remove("anchorOffset");
+        }
+        let string = json!({"type":"string","minLength":1});
+        if self.needs_session() {
+            schema["properties"]["sessionId"] = string.clone();
+            schema["required"].as_array_mut().unwrap().push(json!("sessionId"));
+        }
+        if self.needs_version() {
+            schema["required"].as_array_mut().unwrap().push(json!("expectedVersion"));
+        }
+        let opts = &mut schema["properties"]["options"];
+        let (extra, required) = match self {
+            Self::Open => (json!({"path":string}), vec!["path"]),
+            Self::Save => (
+                json!({"output":string,"overwrite":{"type":"boolean"},"saveOptions":{"type":"object"}}),
+                vec!["output"],
+            ),
+            Self::Summary => (json!({"reportId":string}), vec!["reportId"]),
+            Self::Diff => (json!({"before":string,"after":string}), vec!["before", "after"]),
+            Self::AddMedia => (json!({"path":string,"mime":string}), vec!["path", "mime"]),
+            Self::Media => (
+                json!({"id":{"type":"integer","minimum":0,"maximum":4294967295u32},"output":string,"overwrite":{"type":"boolean"}}),
+                vec![],
+            ),
+            Self::Edit => (json!({"previewId":string,"nativeDebug":{"type":"boolean"}}), vec![]),
+            _ => (json!({}), vec![]),
+        };
+        opts["properties"].as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+        opts["required"].as_array_mut().unwrap().extend(required.into_iter().map(|s| json!(s)));
+        if self == Self::Edit {
+            // 原生调试仍显式选择，运行时由 BIND-03 的正向线型严格解析。
+            opts["if"] =
+                json!({"properties":{"nativeDebug":{"const":true}},"required":["nativeDebug"]});
+            opts["then"] =
+                json!({"properties":{"operations":{"type":"array","items":{"type":"object"}}}});
+            let agent_operations =
+                opts["properties"].as_object_mut().unwrap().remove("operations").unwrap();
+            opts["properties"]["operations"] = json!({"type":"array"});
+            opts["else"] = json!({"properties":{"operations":agent_operations}});
+        }
+        schema
+    }
     /// 业务选项的键与运行期校验共用清单；操作字段复用正向编译表的 schema。
     pub fn input_schema(self) -> Value {
         use crate::edit_schema::WireSchema;
@@ -159,7 +266,7 @@ pub fn diff_rows(before: &[Value], after: &[Value]) -> Vec<Value> {
 /// 完整错误信封同样有界；收缩候选保留总数，消息按比例收缩避免平方级重序列化。
 pub fn bounded_error(mut e: crate::QueryError, max_bytes: usize) -> crate::QueryError {
     loop {
-        let size = serde_json::to_vec(&e).unwrap().len();
+        let size = crate::transport::common_bytes(&serde_json::to_value(&e).unwrap(), true);
         if size <= max_bytes {
             return e;
         }

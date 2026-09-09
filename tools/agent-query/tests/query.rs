@@ -189,7 +189,7 @@ fn agent_06_record_budget_and_cursor_integrity() {
     assert_eq!(retry, pages.page("v1", "cfg", &rows, json!(null), budget, Some(key), 1).unwrap());
     let exact = Budget {
         limit: first["usage"]["contentUtf16"].as_u64().unwrap() as usize,
-        max_bytes: first["usage"]["responseBytes"].as_u64().unwrap() as usize,
+        max_bytes: rsword_agent_query::transport::common_bytes(&first, false),
     };
     assert!(budget::fits(&first, exact));
     assert!(!budget::fits(&first, Budget { max_bytes: exact.max_bytes - 1, ..exact }));

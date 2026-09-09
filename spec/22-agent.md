@@ -1,6 +1,8 @@
 # SPEC 22 · Agent 接口层与文件级工具
 
 > 9.1 关口评审通过（2026-09-09）；实现按任务逐项验收。
+> v1.4 订正（2026-09-09，9.7 评审批准）：共同分页按 text / structured 两形态成本的较大值选择最长前缀，minBytes 是两形态均可容纳所需最低预算；usage 仍报告实际形态成本。单一游标须能跨形态续读，不能引入形态专属分页规则。触发订正的是评审同时要求“同预算分页一致”与“各自最长前缀”的冲突。缺省 text、structured 可选，缺省待门 5 实测确认。
+> v1.4 同日增补（9.7 评审批准）：区分形态、接口、传输。相同 MCP 会话的两形态分页一致；同一传输的读接口共用游标格式（错接口仍拒绝）；CLI/MCP 只比较相同逻辑区间及完整续读的业务结果。CLI 自包含文件游标与 MCP 会话句柄成本不同，不要求同预算同页，两类错投必须双向 AGENT_BAD_CURSOR。
 > v1.3 订正（2026-09-09，9.5 评审批准）：审计记录与执行线型是两件产物。媒体字节外置，以操作序号、字段路径、SHA-256、长度、MIME 绑定；附件还原后的规范 EditOpJson 序列须与实际执行序列逐字节相等。缺附件返回 AGENT_ATTACHMENT_MISSING，摘要或附件不匹配返回 AGENT_ATTACHMENT_MISMATCH，禁止替代或跳过。原生协议不变。
 > v1.2 订正（2026-09-09，9.3 评审批准）：AGENT-04 零长命中在所选流或授权范围末端取 left，与 AGENT-02 的流末规则一致；末端右侧没有界内字符，不能让锚点归属越界。两端必须一致，中间仍默认 right。
 > v1.1 订正（2026-09-09）：原“单元格子流”措辞与 SPAN-01 冲突。单元格是所在流的子范围，
@@ -215,6 +217,10 @@ R11 全调用日志只有 outline 元数据及 [41,48) 内的正文，累计 UTF
 limit 计 content 的 UTF-16 长度；content 为结构化记录时计其规范紧凑 JSON 的 UTF-16 长度。
 maxBytes 计完整 JSON 信封，包含 anchors、诊断、游标、计数与转义，不用未转义字符串长度代替。
 普通文本 CLI 显示与 JSON 来自同一响应，不能用额外未计费文本绕过预算。传输协议固有 framing 不计入此数，工具内容全部计入。
+MCP 只返回一份业务载荷：text 放入 content 文本块；structured 放入 structuredContent，content 只说明应读取 structuredContent。
+MCP 成本计整个 CallToolResult 的紧凑 JSON（含该说明、isError 与转义），不计外层 JSON-RPC 信封；CLI 计实际业务 JSON。
+CLI/MCP 的分页统一按两种 MCP 形态成本的较大值判断 maxBytes，确保相同配置下共同分页，单一游标可跨形态续读。
+usage.responseBytes / estimatedTokens 仍按实际发出的形态求稳定值，不把共同分页预留成本冒充实际流量。
 调用方可提高上限：limit 范围 1–1048576，maxBytes 范围 512–4194304，maxHits 范围 1–1000；越界参数错误。
 这是读取响应上限，不授权修改或扩大 scope。`ceil(bytes/4)` 仅作可重复 token 代理，不能称为模型 tokenizer 的硬上界。
 真实 Agent 验收须另记 tokenizer 名称/版本与工具描述等完整会话开销。R1 回答和 R11 累计预算继续服从 docs/12。
@@ -225,8 +231,9 @@ estimatedTokens=ceil(responseBytes/4)，两个计数字段一起求序列化大�
 
 分页单位为完整段落、原子对象占位符、outline/find/detail/summary 的完整记录。
 表格可在单元格段落边界分页，结构标记附属于相邻单位，不能拆占位符或源文字；续页不重复表头或装饰前缀。
-取能装入两个预算的最长单位前缀。若尚无一个单位能装入，返回
+取满足 limit 且按两形态较大成本装入 maxBytes 的最长单位前缀。若尚无一个单位能装入，返回
 `AGENT_BUDGET_TOO_SMALL {object,minLimit,minBytes}`，content 不返回，游标不消费；超过允许最大值则 AGENT_UNIT_TOO_LARGE。
+minBytes 是两种形态均可容纳该单位所需的最低预算，不能只报告实际选用形态的较小成本。
 不得拆长段、超预算返回、丢掉对象，或成功返回空页且 nextCursor 不前进。find 全范围无匹配可返回空页，truncated=false；不能把有待返回命中的超预算错误伪装成空页。
 
 分页拼接定义：字符串按原样拼接、数组按记录拼接；不拼接重复的信封元数据。结果等于同 snapshot/config/scope 的一次性规范投影；
@@ -377,13 +384,17 @@ close 后报告不可访问；服务端每会话最多 32 个报告，FIFO 淘�
 | edit | ops INPUT --ops OPS --output OUTPUT | edit | 默认 Agent operations；显式 --native-ops 可作低层调试，仍经会话管理器/版本与审计；M9 任务禁止该旁路 |
 | save | ops 成功后写 OUTPUT | save | sessionId/options/output；克隆保存，失败会话不变 |
 | summary | ops/preview 可输出报告并以报告文件续读；summary REPORT | summary | reportId 或显式报告文件 + Budget/Cursor |
-| diff | diff BEFORE AFTER | diff | 两份输入的文本层差异 + Budget/Cursor；分别重建快照，不要求 nodeId 相同 |
+| diff | diff BEFORE AFTER | diff | 两份输入的文本层差异 + Budget/Cursor；MCP 以 sessionId 持有游标，分别重建文件快照，不要求 nodeId 相同 |
 | media | media INPUT --list 或 --id ID --output OUTPUT | media | 清单分页；字节按 id 单独传输，默认最大 16 MiB，超限具名拒绝，不 base64 注入 text |
 | addMedia | ops 的媒体附件文件绑定 | addMedia | bytes/附件 + MIME，返回句柄/hash/length、新 version |
 | check | check INPUT | check | 会话与 package 诊断、可检查不变式 + Budget/Cursor；明确没有 Word 打开证据 |
 | version | version | version | 引擎版本、native 协议版本与独立 agent 协议/投影版本；不改 BIND native/0 的时点 |
 
-CLI --json 输出与 MCP 的结构化 content 相等（排除传输和新会话身份）；人类文本模式从同一结果渲染。
+CLI --json 与 MCP 解包后比较相同逻辑区间的业务字段及完整续读终态，不要求任意相同 maxBytes 下成败或分页边界一致。
+维度分别为：形态（同一 MCP 会话的 text/structured 分页边界、游标、截断一致）；接口（同一传输内五个读取共用游标格式，错接口具名拒绝）；传输（文件游标自包含身份/hash/位置，会话游标为服务端短句柄，两类错投均 AGENT_BAD_CURSOR，不静默互解）。
+断言显式列出允许不同的 usage.responseBytes / usage.estimatedTokens、文件/会话快照身份与对应游标标识；同一逻辑区间的 contentUtf16、业务内容与覆盖范围不可排除。人类文本模式从同一结果渲染。
+MCP --result-shape text|structured，缺省 text，structured 可选；缺省待门 5 客户端消费实测确认。只返回一份载荷，不同时返回两份业务 JSON。
+请求可用 resultShape 覆盖进程缺省，从而在同一活会话跨形态续读；该字段不进入语义查询配置或游标绑定。
 固定大小的 open/close/version 回执不分页，仍受响应字节上限；其余只读命令支持 --limit/--max-bytes/--cursor，修改命令的结果读取也遵守同一预算；不能用无法分页的巨大总结绕过限制。
 MCP 写请求必须携带 expectedVersion。CLI 在本次 open 后绑定输入完整字节指纹；跨调用使用 `--preview REPORT` 时核对该指纹、operations/context hash 并重新编译文字选择器，不重用旧 native id。
 CLI summary 读取报告文件而不重开或修改文档，报告文件游标同样绑定其完整 SHA-256。
@@ -405,6 +416,7 @@ CLI 参数/业务拒绝退出 2，IO/内部错误退出 1，成功退出 0；MCP
 ### 验收
 
 表中每行至少一条 CLI/MCP 映射与 schema 用例；有 session 的工具均测不存在 id（close 幂等、version/open 除外）。
+同一请求、预算、快照的两形态分页边界、nextCursor、truncated 相同；预算落在两形态单单位成本之间时，两者均报 AGENT_BUDGET_TOO_SMALL，minBytes 等于较大成本。取得一种形态的 nextCursor 后切换另一形态续读，拼接与单一形态全程读取逐字符相等。
 缺省预算与错误在两个入口一致；CLI 每个真实子命令端到端，macOS/Linux 构建；MCP 真实 Agent 会话完成 docs/12 的三条 W 任务并保存证据。
 超限 JSON/媒体/会话、空闲回收、写盘失败、错误输出大小、native 调试写入口的版本推进均测试。
 不新增 rsword 核心运行期依赖；compat-ts 默认仍关，原生和兼容回归网继续运行。

@@ -27,7 +27,7 @@ pub struct Report {
     pub audit: Audit,
     pub bytes: usize,
 }
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Store {
     edits: VecDeque<Report>,
     previews: VecDeque<Report>,

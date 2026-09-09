@@ -54,6 +54,7 @@ genoffice 的 TS 引擎是**测试基准**（2026-09-08 起也只是测试基准
 | 路径 | 内容 |
 | --- | --- |
 | `crates/rsword-cli/` | 文件级 rsword CLI，复用 tools/agent-query 的工具表、预算、游标与编辑事务 |
+| `crates/rsword-mcp/` | 原生 stdio MCP，会话与共享工具表复用，连接/计费/待追认边界见 docs/19 |
 | `crates/rsword/src/package/` | L0 包层（zip、`[Content_Types].xml`、`.rels`、flavor） |
 | `crates/rsword/src/xml/` | L1 无损 DOM（tokenizer、`Dirty`、MCE、命名空间、`plan`、`fragment`、`canon`、`xpath`） |
 | `crates/rsword/src/span/` | L2 范围与字段（`content` / `index` / `transform` / `materialize` / `field`） |
@@ -79,6 +80,9 @@ genoffice 的 TS 引擎是**测试基准**（2026-09-08 起也只是测试基准
 ```sh
 cargo fmt --all
 cargo test -p rsword-cli                    # CLI 真实进程 E2E，CI 同跑 macOS/Linux
+cargo test -p rsword-mcp                    # MCP 真实进程、生命周期与独立堆泄漏检查
+cargo build -p rsword-cli -p rsword-mcp
+node tools/ci/check-agent-transports.mjs target/debug/rsword target/debug/rsword-mcp # 跨传输业务等价及游标双向拒绝
 cargo clippy --workspace --all-targets
 cargo clippy --workspace --all-targets --features compat-ts      # 必须零告警
 cargo test --workspace                      # 默认：原生协议/引擎测试

@@ -19,6 +19,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo test -p rsword-cli
+      - run: cargo test -p rsword-mcp
+      - run: cargo build -p rsword-cli -p rsword-mcp
+      - run: node tools/ci/check-agent-transports.mjs target/debug/rsword target/debug/rsword-mcp
   rust:
     strategy:
       matrix:
