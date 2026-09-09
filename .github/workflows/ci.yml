@@ -30,6 +30,17 @@ jobs:
       RSWORD_FEATURES: ${{ matrix.features }}
     runs-on: ubuntu-latest
     steps:
+      # ubuntu-latest 的 / 只有约 14 GB 空余，本仓库 debug + release 两套 target
+      # （加 wasm 依赖）会把它撑爆：症状是 release 链接期 `ld terminated with
+      # signal 7 [Bus error]` 与 `rustc-LLVM ERROR: No space left on device`，
+      # 看着像 LLVM 崩溃，其实是磁盘满。先腾掉用不到的预装 SDK。
+      - name: Free runner disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+            /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/powershell
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
+          df -h /
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
