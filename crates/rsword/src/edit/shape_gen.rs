@@ -182,13 +182,7 @@ fn wrap_paragraph(
         wps = NS_WPS,
         wsp = wsp,
     );
-    let drawing = format!(
-        "<w:drawing{wp_decl}>{anchor_head}{graphic}</{wp}:anchor></w:drawing>",
-        wp_decl = wp_decl,
-        anchor_head = anchor_head,
-        graphic = graphic,
-        wp = wp,
-    );
+    let drawing = format!("<w:drawing{wp_decl}>{anchor_head}{graphic}</{wp}:anchor></w:drawing>");
     match (flavor, vml) {
         (PartFlavor::Strict, _) | (_, None) => format!("<w:p><w:r>{drawing}</w:r></w:p>"),
         (_, Some(vml)) => format!(

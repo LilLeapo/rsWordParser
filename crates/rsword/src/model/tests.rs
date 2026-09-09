@@ -124,7 +124,12 @@ fn mod_06_symbols_atoms_and_run_props() {
     assert!(
         matches!(&fn_ref.segments[0].kind, SegmentKind::FootnoteRef { id: Some(id) } if id == "1")
     );
-    assert_eq!(tb.text(), format!("\u{F0FC}{o}{o}{o}{o}", o = OBJECT_REPLACEMENT));
+    assert_eq!(
+        tb.text(),
+        format!(
+            "\u{F0FC}{OBJECT_REPLACEMENT}{OBJECT_REPLACEMENT}{OBJECT_REPLACEMENT}{OBJECT_REPLACEMENT}"
+        )
+    );
     assert_eq!(tb.utf16_len(), 5);
 }
 

@@ -859,7 +859,7 @@ fn validate_options(r: &ReadRequest) -> Result<()> {
             "inks",
         ];
         if fields.iter().any(|f| {
-            f.as_str().is_none_or(|f| !declarations.contains(&f) && !(scoped && f == "main"))
+            f.as_str().is_none_or(|f| !(declarations.contains(&f) || scoped && f == "main"))
         }) {
             return Err(error(
                 "BIND_BAD_ARGUMENT",
