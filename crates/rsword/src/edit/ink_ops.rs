@@ -1,7 +1,7 @@
 //! 墨迹的写侧（`SAVE-07 inks`、`EDIT-03` / `EDIT-06`，`spec/17` 任务 6.8）。
 //!
-//! `inks` 是**权威列表**（与 `comments` 同语义）：[`EditSession::remove_inks`] 删掉主 part 里全部墨迹 run
-//! （它们的媒体与关系随保存时的资源回收消失，6.7），再对每条 [`InkSave`] 调 [`EditSession::insert_ink`]
+//! `inks` 是**权威列表**（与 `comments` 同语义）：`EditSession::remove_inks` 删掉主 part 里全部墨迹 run
+//! （它们的媒体与关系随保存时的资源回收消失，6.7），再对每条 [`InkSave`] 调 `EditSession::insert_ink`
 //! ——按 TS `anchoredInkRunXml` 的模板把一条浮动图片 run 追加在段落**全部内容之后**。墨迹的媒体**不去重**
 //! （每条一个 part，TS 同；两笔画出同一张 PNG 几乎不可能，去重只会让 `r:embed` 与 TS 分叉）。
 
@@ -20,7 +20,8 @@ const NS_A: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
 const NS_PIC: &str = "http://schemas.openxmlformats.org/drawingml/2006/picture";
 
 /// 一条要写进文档的墨迹（TS `NewInkImage` 去掉 `blockIndex`）。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NewInk {
     /// PNG 字节。
     pub png: Vec<u8>,
@@ -47,6 +48,7 @@ fn attr_escaped(s: &str) -> String {
     String::from_utf8(out).expect("escape_attr 只输出 UTF-8")
 }
 
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl EditSession {
     /// `EditOp::RemoveInks`：删掉主 part 里全部墨迹 run（`Document.inks`）。
     pub(crate) fn remove_inks(&mut self) -> Result<MutationResult> {

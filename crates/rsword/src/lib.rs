@@ -17,18 +17,67 @@
 //! | [`bind`] | 绑定与 `compat_ts` 适配器 | `spec/10-compat-ts.md` (`COMPAT-*`) |
 //!
 //! 规范状态 = DOM + Span（`xml` + `span`）；`model` 与 `resolve` 是可重建的投影。
+//!
+//! # 稳定面（BIND-11）
+//! 使用 [`bind::native`] 的会话协议，或本页列出的核心类型。隐藏模块保留旧路径供一版
+//! 观察期使用；下游仍可调用，因此本版尚未缩小实际公共面。
+//! 破坏性变更仅在 crate minor 版本发生，变更记录必须给出迁移路径；协议版本独立演进。
 
+#![warn(missing_docs)]
+
+#[cfg(test)]
+extern crate self as rsword;
+
+#[doc(hidden)]
+pub mod agent;
 pub mod bind;
+// audit 构建取消祖先的隐藏，让稳定定义及固有 impl 上的 deny(missing_docs) 生效。
+// 观察项仍不要求文档；注解位置由 BIND-11 成文清单和源码扫描双向锁定。
+// mod 声明保留在源码中，让 cargo fmt 能继续发现并检查各层文件。
+#[cfg_attr(not(rsword_api_docs), doc(hidden))]
+#[cfg_attr(rsword_api_docs, allow(missing_docs))]
 pub mod diag;
+#[cfg_attr(not(rsword_api_docs), doc(hidden))]
+#[cfg_attr(rsword_api_docs, allow(missing_docs))]
 pub mod edit;
+#[cfg_attr(not(rsword_api_docs), doc(hidden))]
+#[cfg_attr(rsword_api_docs, allow(missing_docs))]
 pub mod error;
+#[cfg_attr(not(rsword_api_docs), doc(hidden))]
+#[cfg_attr(rsword_api_docs, allow(missing_docs))]
 pub mod model;
+#[cfg_attr(not(rsword_api_docs), doc(hidden))]
+#[cfg_attr(rsword_api_docs, allow(missing_docs))]
 pub mod package;
+#[cfg_attr(not(rsword_api_docs), doc(hidden))]
+#[cfg_attr(rsword_api_docs, allow(missing_docs))]
 pub mod resolve;
+#[cfg_attr(not(rsword_api_docs), doc(hidden))]
+#[cfg_attr(rsword_api_docs, allow(missing_docs))]
 pub mod save;
+#[cfg_attr(not(rsword_api_docs), doc(hidden))]
+#[cfg_attr(rsword_api_docs, allow(missing_docs))]
 pub mod semantic;
+#[cfg_attr(not(rsword_api_docs), doc(hidden))]
+#[cfg_attr(rsword_api_docs, allow(missing_docs))]
 pub mod span;
+#[cfg_attr(not(rsword_api_docs), doc(hidden))]
+#[cfg_attr(rsword_api_docs, allow(missing_docs))]
 pub mod xml;
 
-pub use diag::{DiagCode, Diagnostic, ValidationOrigin};
-pub use error::{Error, NotOoxml, Result};
+#[doc(inline)]
+pub use diag::DiagCode;
+#[doc(hidden)]
+pub use diag::{Diagnostic, ValidationOrigin};
+#[doc(inline)]
+pub use edit::{EditContext, EditOp, EditSession, MutationResult};
+#[doc(inline)]
+pub use error::Error;
+#[doc(hidden)]
+pub use error::{NotOoxml, Result};
+#[doc(inline)]
+pub use span::field::FieldSpan;
+#[doc(inline)]
+pub use span::{Anchor, RangeSpan};
+#[doc(inline)]
+pub use xml::{Dirty, Node};

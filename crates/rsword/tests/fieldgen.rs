@@ -5,10 +5,14 @@
 
 mod common;
 
-use rsword::span::field::generate::index::{self, Collation, IndexOptions};
+#[cfg(feature = "compat-ts")]
+use rsword::span::field::generate::index::Collation;
+use rsword::span::field::generate::index::{self, IndexOptions};
+#[cfg(feature = "compat-ts")]
 use rsword::span::field::generate::seq;
 use rsword::span::field::generate::toc::{self, TocEntry, TocOptions};
 
+#[cfg(feature = "compat-ts")]
 fn fixture() -> serde_json::Value {
     let path = common::repo_root().join("fixtures/fieldgen/generators.json");
     serde_json::from_slice(&std::fs::read(&path).expect("generators.json")).expect("JSON")
@@ -16,12 +20,14 @@ fn fixture() -> serde_json::Value {
 
 const TEXT_OPEN: &str = r#"<w:t xml:space="preserve">"#;
 
+#[cfg(feature = "compat-ts")]
 fn strings(v: &serde_json::Value) -> Vec<String> {
     v.as_array().expect("数组").iter().map(|x| x.as_str().expect("字符串").to_string()).collect()
 }
 
 /// TOC：三组条目，`ts_shape` 的输出与 TS 逐字相同。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn toc_ts_shape_matches_the_ts_generator() {
     let want = fixture();
     let cases = want["toc"].as_array().expect("toc");
@@ -47,6 +53,7 @@ fn toc_ts_shape_matches_the_ts_generator() {
 
 /// SEQ 题注：两组，与 TS 逐字相同（第二组 `text` 为空）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn caption_matches_the_ts_generator() {
     let want = fixture();
     let cases = want["caption"].as_array().expect("caption");
@@ -65,6 +72,7 @@ fn caption_matches_the_ts_generator() {
 /// INDEX：`ts_shape` 的骨架与 TS 相同。**排序不同**：TS 用 `localeCompare('zh-CN')`（ICU），
 /// 我们用码位序（`docs/04` §8），所以逐段比之前先把 TS 那份的次序当成 `Collation::Given` 喂进去。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn index_ts_shape_matches_the_ts_generator_given_its_order() {
     let want = fixture();
     let cases = want["index"].as_array().expect("index");
@@ -302,7 +310,7 @@ fn regenerating_a_toc_reuses_its_bookmarks_and_writes_pagerefs() {
             field,
             options: BlockFieldOptions::Auto { pages: Some(pages) },
         },
-        &EditContext { mark_updated_fields_dirty: true, ..Default::default() },
+        &EditContext::default().with_mark_updated_fields_dirty(true),
     )
     .expect("重算");
     let out = s.save().expect("save");
@@ -354,7 +362,7 @@ fn regenerating_the_toc_corpus_keeps_every_field_well_formed() {
         for field in tocs {
             s.apply(
                 EditOp::RegenerateBlockField { field, options: Default::default() },
-                &EditContext { mark_updated_fields_dirty: true, ..Default::default() },
+                &EditContext::default().with_mark_updated_fields_dirty(true),
             )
             .unwrap_or_else(|e| panic!("{name}: 重算失败 {e}"));
         }

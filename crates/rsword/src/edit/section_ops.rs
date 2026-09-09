@@ -5,11 +5,11 @@
 //!
 //! | 操作 | 改什么 |
 //! | --- | --- |
-//! | [`set_section_props`] | 主 part 的 `w:sectPr`（属性表合并，`PROP-06`） |
-//! | [`set_header_footer`] | 页眉页脚 part 的内容（整体替换），或按 `SAVE-05` **新建** part |
-//! | [`link_header_footer`] | 主 part `sectPr` 里的一条引用（挂到已有 part） |
-//! | [`set_watermark`] | default 页眉里的 VML 水印段落 |
-//! | [`set_page_color`] | 主 part 的 `w:background` |
+//! | `set_section_props` | 主 part 的 `w:sectPr`（属性表合并，`PROP-06`） |
+//! | `set_header_footer` | 页眉页脚 part 的内容（整体替换），或按 `SAVE-05` **新建** part |
+//! | `link_header_footer` | 主 part `sectPr` 里的一条引用（挂到已有 part） |
+//! | `set_watermark` | default 页眉里的 VML 水印段落 |
+//! | `set_page_color` | 主 part 的 `w:background` |
 //!
 //! **新建 part 的语义**（与 Word / TS 的 `sectionHf` 一致）：这一节自己声明了该变体就改写它引用的
 //! part——共享这个 part 的前面各节跟着一起变（Word 的"同前"）；没声明（含从上一节继承）就新建一个
@@ -175,7 +175,7 @@ pub(super) fn set_header_footer(
 }
 
 /// 这一节这个变体的 part：自己声明了就用它，否则按 `SAVE-05` 新建并把引用插进这一节。
-fn ensure_hf_part(
+pub(crate) fn ensure_hf_part(
     s: &mut EditSession,
     sect: NodeId,
     kind: HfKind,

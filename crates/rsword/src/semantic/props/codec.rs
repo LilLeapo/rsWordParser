@@ -362,7 +362,8 @@ impl Codec for HexColorOrAuto {
 /// `ST_MeasurementOrPercent`（`CT_TblWidth/@w:w`）：无单位十进制数、带单位度量或字面 `NN%`。
 /// 无单位数的单位由同元素的 `w:type` 决定（`TblWidth::twips` / `TblWidth::percent`），codec 只区分
 /// "数"与"百分数字面"；带单位的度量换算成 twips（只有 `dxa` 才会带单位）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum Measure {
     /// 无单位数（`type=dxa` 时是 twips，`type=pct` 时是 1/50 百分点）；带单位的度量已换算为 twips。
     Number(i32),

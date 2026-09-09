@@ -465,7 +465,7 @@ fn fld_09_update_block_field_and_lock() {
         props: None,
         inlines: vec![NewInline::Run(NewRun::text("新目录"))],
     };
-    let ctx = EditContext { mark_updated_fields_dirty: true, ..Default::default() };
+    let ctx = EditContext::default().with_mark_updated_fields_dirty(true);
     s.apply(EditOp::UpdateBlockField { field: id, blocks: vec![block] }, &ctx).unwrap();
     let xml = saved_xml(&mut s);
     assert!(xml.contains("新目录"), "{xml}");

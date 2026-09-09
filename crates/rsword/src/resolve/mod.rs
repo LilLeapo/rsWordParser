@@ -21,6 +21,7 @@ use crate::semantic::props::{
 pub mod color;
 pub mod drawingml;
 pub mod fonts;
+pub mod numbering;
 pub mod section;
 pub mod symbol;
 pub mod table;
@@ -87,7 +88,7 @@ pub struct Resolver<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EffectiveRunProps {
     pub props: RunProps,
-    sources: Vec<Option<Provenance>>,
+    pub(crate) sources: Vec<Option<Provenance>>,
     /// `RES-06`：run 的复杂文种状态。
     pub cs: Effective<bool>,
 }
@@ -117,7 +118,7 @@ impl EffectiveRunProps {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EffectiveParaProps {
     pub props: ParaProps,
-    sources: Vec<Option<Provenance>>,
+    pub(crate) sources: Vec<Option<Provenance>>,
 }
 
 impl EffectiveParaProps {

@@ -1,6 +1,6 @@
 //! `SAVE-07` 的声明 part 保存选项（`spec/16` 任务 5.7）：参考文献、编号追加、主题、样式 upsert。
 //!
-//! 这四项都改**声明 part**，不是正文，所以走 [`plan_all`](super::plan_all) 的 `MutationPlan` 路
+//! 这四项都改**声明 part**，不是正文，所以走 `plan_all` 的 `MutationPlan` 路
 //! 而不是编辑操作——它们没有对应的 `EditOp`（正文里没有任何位置可以指）。缺 part 时先按
 //! `SAVE-05` 建（[`ensure_parts`]），再翻成计划。
 //!
@@ -18,10 +18,11 @@ use crate::package::{PartFlavor, PartId, RelType};
 use crate::semantic::props::{NewElement, NodeEdit, Target};
 use crate::xml::{Dirty, Dom, LocalName, NodeId, NsId, QName};
 
-use super::SaveOptions;
+use super::CompatSaveOptions as SaveOptions;
 
 /// 一条要写的文献源（TS `SourceInfo`）。
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SourceSave {
     pub tag: String,
     /// `b:SourceType`；空串按 TS 写 `Misc`。
@@ -35,7 +36,8 @@ pub struct SourceSave {
 }
 
 /// `numbering.newDefs` 的一条：`kind` 决定用哪套缺省级别，`levels` 给了就按它生成。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NumberingDefSave {
     /// `w:num/@w:numId`（由调用方指定：它是正文 `w:numPr` 已经引用的号）。
     pub num_id: String,
@@ -46,7 +48,8 @@ pub struct NumberingDefSave {
 }
 
 /// 一级自定义编号（TS `CustomNumberingLevel`）。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NumberingLevelSave {
     pub num_fmt: String,
     pub lvl_text: String,
@@ -58,7 +61,8 @@ pub struct NumberingLevelSave {
 }
 
 /// `numbering.restartNums` 的一条：指向已有 `abstractNum` 的新 `w:num` + 起始值覆盖。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RestartNumSave {
     pub num_id: String,
     pub abstract_num_id: String,
@@ -67,7 +71,8 @@ pub struct RestartNumSave {
 }
 
 /// 主题字体：`a:majorFont` / `a:minorFont` 的拉丁字体，以及可选的东亚字体（两组都写）。
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ThemeFontsSave {
     pub major: String,
     pub minor: String,
@@ -75,7 +80,8 @@ pub struct ThemeFontsSave {
 }
 
 /// 主题配色：只有这八个槽可写（`dk1` / `lt1` 常是 `a:sysClr`，Word 自己也不让改）。
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ThemeColorsSave {
     /// `a:clrScheme/@name`。
     pub name: Option<String>,
@@ -88,7 +94,8 @@ pub const THEME_COLOR_SLOTS: [&str; 8] =
     ["dk2", "lt2", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6"];
 
 /// 一条样式 upsert（TS `StyleUpsert`）。`r_pr` / `p_pr` 用属性表生成，不手写 XML。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct StyleUpsertSave {
     pub style_id: String,
     /// `w:style/@w:type`（`paragraph` / `character` / `table` / `numbering`）。
@@ -283,6 +290,12 @@ pub fn numbering_plan(dom: &Dom, part: PartId, opts: &SaveOptions) -> MutationPl
     let mut plan = MutationPlan::new(part);
     let root = dom.root();
     let kids: Vec<NodeId> = dom.semantic_children(root).filter(|&n| live(dom, n)).collect();
+    let mut num_ids: std::collections::BTreeSet<String> = kids
+        .iter()
+        .copied()
+        .filter(|&n| dom.is(n, w(LocalName::Num)))
+        .filter_map(|n| dom.attr_value(n, w(LocalName::NumId)).map(|v| v.into_owned()))
+        .collect();
     let first_num = kids.iter().copied().find(|&n| dom.is(n, w(LocalName::Num)));
     // 新 `abstractNumId` 从现有最大值 +1 起（`w:num` 只引用 abstract，号由引擎分配）
     let next_abs = kids
@@ -293,6 +306,9 @@ pub fn numbering_plan(dom: &Dom, part: PartId, opts: &SaveOptions) -> MutationPl
         .max()
         .map_or(0, |m| m + 1);
     for (i, def) in opts.numbering_new_defs.iter().enumerate() {
+        if !num_ids.insert(def.num_id.clone()) {
+            continue;
+        }
         let next_abs = next_abs + i as i64;
         let levels = if def.levels.is_empty() {
             default_levels(def.bullet)
@@ -322,6 +338,9 @@ pub fn numbering_plan(dom: &Dom, part: PartId, opts: &SaveOptions) -> MutationPl
         });
     }
     for r in &opts.numbering_restart_nums {
+        if !num_ids.insert(r.num_id.clone()) {
+            continue;
+        }
         let mut num = NewElement::new(w(LocalName::Num))
             .with_attr(w(LocalName::NumId), &r.num_id)
             .with_child(
@@ -356,6 +375,9 @@ fn font_group(dom: &Dom, root: NodeId, group: LocalName) -> Option<NodeId> {
 
 fn set_typeface(dom: &Dom, group: NodeId, script: LocalName, face: &str, plan: &mut MutationPlan) {
     if let Some(n) = dom.semantic_children(group).find(|&n| live(dom, n) && dom.is(n, a(script))) {
+        if dom.attr_value(n, QName::new(NsId::None, LocalName::Typeface)).as_deref() == Some(face) {
+            return;
+        }
         plan.node_edits.push(NodeEdit::SetAttr {
             node: Target::Node(n),
             name: QName::new(NsId::None, LocalName::Typeface),
@@ -384,7 +406,10 @@ pub fn theme_plan(dom: &Dom, part: PartId, opts: &SaveOptions) -> MutationPlan {
         else {
             return plan;
         };
-        if let Some(name) = &c.name {
+        if let Some(name) = &c.name
+            && dom.attr_value(scheme, QName::new(NsId::None, LocalName::Name)).as_deref()
+                != Some(name.as_str())
+        {
             plan.node_edits.push(NodeEdit::SetAttr {
                 node: Target::Node(scheme),
                 name: QName::new(NsId::None, LocalName::Name),
@@ -401,7 +426,12 @@ pub fn theme_plan(dom: &Dom, part: PartId, opts: &SaveOptions) -> MutationPlan {
                 .with_attr(QName::new(NsId::None, LocalName::Val), hex);
             // 槽里原来是 `a:sysClr`（windowText 一类）时也换成 `a:srgbClr`：不然请求会被静默丢掉
             match dom.semantic_children(node).find(|&n| live(dom, n)) {
-                Some(old) => plan.node_edits.push(NodeEdit::Replace { old, node: srgb }),
+                Some(old) => {
+                    let current = NewElement::from_dom(dom, old, &mut dom.interner().clone());
+                    if current.as_ref() != Some(&srgb) {
+                        plan.node_edits.push(NodeEdit::Replace { old, node: srgb });
+                    }
+                }
                 None => plan.node_edits.push(NodeEdit::Insert {
                     parent: Target::Node(node),
                     before: None,
@@ -416,7 +446,7 @@ pub fn theme_plan(dom: &Dom, part: PartId, opts: &SaveOptions) -> MutationPlan {
 /// 一条 `w:style`（TS `buildStyleXml`；`rPr` / `pPr` 走属性表的 emit，顺序由 `PROP-05` 保证）。
 fn style_element(up: &StyleUpsertSave, flavor: PartFlavor) -> NewElement {
     let mut e = NewElement::new(w(LocalName::Style))
-        .with_attr(w(LocalName::UType), &up.kind)
+        .with_attr(w(LocalName::Type), &up.kind)
         .with_attr(w(LocalName::StyleId), &up.style_id)
         .with_attr(w(LocalName::CustomStyle), "1");
     e.push_child(NewElement::new(w(LocalName::Name)).with_attr(w(LocalName::Val), &up.name));
@@ -449,7 +479,12 @@ pub fn styles_plan(
                 && dom.attr_value(n, w(LocalName::StyleId)).as_deref() == Some(up.style_id.as_str())
         });
         match existing {
-            Some(old) => plan.node_edits.push(NodeEdit::Replace { old, node }),
+            Some(old) => {
+                let current = NewElement::from_dom(dom, old, &mut dom.interner().clone());
+                if current.as_ref() != Some(&node) {
+                    plan.node_edits.push(NodeEdit::Replace { old, node });
+                }
+            }
             None => plan.node_edits.push(NodeEdit::Insert {
                 parent: Target::Node(root),
                 before: None,

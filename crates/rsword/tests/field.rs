@@ -407,8 +407,10 @@ fn fld_02_every_field_in_the_corpus_is_accounted_for() {
 
 // ---- 字段进模型与 compat（任务 2.5）----
 
+#[cfg(feature = "compat-ts")]
 use rsword::bind::compat_ts::parsed_doc;
 use rsword::model::{Block, Document, Inline, ProtectedKind};
+#[cfg(feature = "compat-ts")]
 use serde_json::Value;
 
 fn document(body: &str) -> (Package, Document) {
@@ -417,11 +419,13 @@ fn document(body: &str) -> (Package, Document) {
     (pkg, doc)
 }
 
+#[cfg(feature = "compat-ts")]
 fn json_of(body: &str) -> Value {
     let mut pkg = Package::open(&common::docx_with_body(body)).unwrap();
     parsed_doc(&mut pkg).unwrap()
 }
 
+#[cfg(feature = "compat-ts")]
 fn blocks(v: &Value) -> &Vec<Value> {
     v.get("blocks").unwrap().as_array().unwrap()
 }
@@ -506,6 +510,7 @@ fn mod_05_r09_block_field_protects_its_paragraphs() {
 
 /// `COMPAT-07`：可折叠字段折成一个 run（REF / XE / 简单内联 / FORMCHECKBOX）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_07_collapsible_fields_become_one_run() {
     let v = json_of(&format!(
         "<w:p>{}{}{}</w:p>",
@@ -540,6 +545,7 @@ fn compat_07_collapsible_fields_become_one_run() {
 
 /// `COMPAT-07`：可转换 HYPERLINK 的结果 run 带 `link`；带别的开关的不折叠（整段 passthrough）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_07_convertible_hyperlink_gets_a_link() {
     let v = json_of(&format!(
         "<w:p>{}{}</w:p>",
@@ -558,6 +564,7 @@ fn compat_07_convertible_hyperlink_gets_a_link() {
 
 /// `COMPAT-03`：不可折叠字段的段落是 passthrough，带 `fieldDisplay`。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_03_field_paragraph_is_passthrough_with_display() {
     // TOC 行：制表符切成 left / right，级别来自样式
     let v = json_of(&format!(

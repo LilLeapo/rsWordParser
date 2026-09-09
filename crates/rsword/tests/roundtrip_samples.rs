@@ -13,7 +13,7 @@ use rsword::edit::{
     NewBlock, NewChart, NewChartKind, NewChartSeries, NewImage, NewInk,
 };
 use rsword::model::Block;
-use rsword::save::SaveOptions;
+use rsword::save::options::CompatSaveOptions as SaveOptions;
 
 fn out_dir() -> PathBuf {
     let d = common::repo_root().join("corpus/real/_roundtrip");
@@ -194,7 +194,7 @@ fn generate_roundtrip_samples() {
         payload: Some(r#"{"strokes":[{"tool":"pen","color":"C00000"}]}"#.into()),
     };
     let out = s
-        .save_with(&SaveOptions {
+        .save_with_compat(&SaveOptions {
             inks: Some(vec![
                 InkSave { para: p, ink: ink(40.0, -10.0) },
                 InkSave { para: p, ink: ink(300.0, 20.0) },

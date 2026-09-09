@@ -8,16 +8,24 @@ mod common;
 
 use std::io::Read;
 
+#[cfg(feature = "compat-ts")]
 use rsword::bind::compat_ts::parsed_doc;
 use rsword::diag::DiagCode;
 use rsword::edit::{
-    BlockPos, EditContext, EditOp, EditSession, ImageWrap, NewBlock, NewChart, NewChartKind,
-    NewChartSeries, NewImage, ParaSpacing, PosOffset,
+    BlockPos, EditContext, EditOp, EditSession, ImageWrap, NewBlock, NewImage, PosOffset,
 };
-use rsword::model::{Block, ProtectedKind};
+#[cfg(feature = "compat-ts")]
+use rsword::edit::{NewChart, NewChartKind, NewChartSeries, ParaSpacing};
+#[cfg(feature = "compat-ts")]
+use rsword::model::Block;
+#[cfg(feature = "compat-ts")]
+use rsword::model::ProtectedKind;
+#[cfg(feature = "compat-ts")]
 use rsword::package::Package;
+#[cfg(feature = "compat-ts")]
 use rsword::save::SaveOptions;
 use rsword::xml::{LocalName, QName};
+#[cfg(feature = "compat-ts")]
 use serde_json::Value;
 
 const R: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -25,6 +33,7 @@ const A: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
 const WP: &str = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
 const PIC: &str = "http://schemas.openxmlformats.org/drawingml/2006/picture";
 /// 1×1 GIF。
+#[cfg(feature = "compat-ts")]
 const GIF_1X1: &str = "R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==";
 
 fn png() -> Vec<u8> {
@@ -56,6 +65,7 @@ fn names(bytes: &[u8]) -> Vec<String> {
     (0..z.len()).map(|i| z.by_index(i).unwrap().name().to_string()).collect()
 }
 
+#[cfg(feature = "compat-ts")]
 fn crcs(bytes: &[u8]) -> Vec<(String, u32)> {
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes.to_vec())).expect("zip");
     (0..z.len())
@@ -78,6 +88,7 @@ fn text(bytes: &[u8], name: &str) -> String {
     String::from_utf8(entry(bytes, name)).expect("utf-8")
 }
 
+#[cfg(feature = "compat-ts")]
 fn parsed(bytes: &[u8]) -> Value {
     let mut pkg = Package::open(bytes).expect("open");
     parsed_doc(&mut pkg).expect("parsed_doc")
@@ -93,6 +104,7 @@ fn first_para(s: &EditSession) -> rsword::xml::NodeId {
 
 /// 一张带图的文档：`copies` 段都引用 `rId10` → `word/media/image1.png`；`pre_orphan` 时再放一个没人引用的
 /// 媒体 part 与关系（`rId99` → `orphan.png`）。
+#[cfg(feature = "compat-ts")]
 fn docx_with_picture(copies: usize, pre_orphan: bool) -> Vec<u8> {
     let para = format!(
         r#"<w:p><w:r><w:drawing xmlns:wp="{WP}" xmlns:a="{A}" xmlns:r="{R}"><wp:inline><wp:extent cx="914400" cy="914400"/><wp:docPr id="1" name="Picture 1"/><a:graphic><a:graphicData uri="{PIC}"><pic:pic xmlns:pic="{PIC}"><pic:blipFill><a:blip r:embed="rId10"/><a:srcRect l="10000" t="20000" r="30000" b="40000"/><a:stretch><a:fillRect l="5000"/></a:stretch></pic:blipFill></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>"#
@@ -116,12 +128,14 @@ fn docx_with_picture(copies: usize, pre_orphan: bool) -> Vec<u8> {
 }
 
 /// 主 part 里第一个 `w:drawing`。
+#[cfg(feature = "compat-ts")]
 fn first_drawing(s: &EditSession) -> rsword::xml::NodeId {
     let dom = s.dom();
     dom.descendants(dom.root()).find(|&n| dom.is(n, QName::w(LocalName::Drawing))).expect("drawing")
 }
 
 /// 正文里第一个满足 `pred` 的块的节点。
+#[cfg(feature = "compat-ts")]
 fn block_node(s: &EditSession, pred: impl Fn(&Block) -> bool) -> rsword::xml::NodeId {
     s.document().main.iter().find(|b| pred(b)).expect("block").node()
 }
@@ -129,6 +143,7 @@ fn block_node(s: &EditSession, pred: impl Fn(&Block) -> bool) -> rsword::xml::No
 /// 新图片：媒体 part、`image` 关系、`Default` 内容类型、随文段落（`effectExtent` 记旋转外接框），`pPr` 的 spacing / jc；
 /// 同一字节插两次只有一个媒体 part、两个 run。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn edit_03_new_images_share_one_media_part_per_content() {
     let src = common::docx_with_body(r#"<w:p><w:r><w:t>前文</w:t></w:r></w:p>"#);
     let mut s = open(&src);
@@ -270,6 +285,7 @@ fn edit_03_anchored_images_follow_the_ts_wrap_templates() {
 /// `ReplaceImageMedia`：改指新媒体、删 `a:srcRect`、清 `a:fillRect` 属性；保存后旧媒体 part 与关系被回收。
 /// 反复替换只剩最新一份（TS `resource-cleanup` 「keeps only the newest media part」）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn edit_04_replace_image_media_and_prune_the_old_part() {
     let src = docx_with_picture(1, false);
     let mut s = open(&src);
@@ -368,6 +384,7 @@ fn edit_04_replace_image_edge_cases() {
 
 /// 删掉图表段落：图表 part、它的 `.rels`、工作簿与 Override 全部消失，其他条目 CRC 不变。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_07_deleting_a_chart_prunes_its_subgraph() {
     let src = common::docx_with_body(r#"<w:p><w:r><w:t>前文</w:t></w:r></w:p>"#);
     let mut s = open(&src);
@@ -426,6 +443,7 @@ fn save_07_deleting_a_chart_prunes_its_subgraph() {
 
 /// 删掉带图段落 → 媒体回收；另一段仍引用同一媒体 → 保留；原本就是孤儿的 part 一个字节不动；`prune_orphans: false` 全留。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_07_prunes_only_what_this_session_orphaned() {
     // 两段共用一张图（rId10），外加一个预先存在的孤儿 part（rId99 → orphan.png）
     let src = docx_with_picture(2, true);

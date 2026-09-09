@@ -4,6 +4,17 @@
 把每个 vitest 用例合成的 docx 与 TS `parseDocx` 的规范化输出落盘到本仓库 `corpus/synthetic/`，
 把 TEST-09 清单的恶意输入生成到 `corpus/hostile/`。
 
+> **这是本项目用到 genoffice 的唯一地方，而且是只读的。**（`docs/03` v3.3，2026-09-08：genoffice 从
+> 「使用者」退为「测试基准」。）脚本只在 genoffice 的工作树上**跑** vitest 与 `parseDocx`，
+> **不修改它的任何文件**，也不在它那边建分支。产出物属于本仓库。
+>
+> 每个里程碑至少跑通一次，别让它烂掉（`spec/19` 风险 9）——TS 引擎将来若因 genoffice 自身演进而改动，
+> 期望值会随之变，那时按 `KNOWN_DIFFS.md` 与 `save_blocks.rs` 的 `INTENTIONAL` 表重新登记差异，
+> **不要**手改 `*.expected.json` / `*.save.*.json`。
+>
+> 最近一次重导：`genoffice_commit = f105f36`、`exported_at = 2026-09-08T03:14:56Z`
+> （见 `corpus/synthetic/manifest.jsonl` 首行；M7 7.9c 带 `changedParts` 的那次）。
+
 ## 原理
 
 不改 genoffice 的任何文件。`run.sh` 把本目录的 `*.ts` 复制到

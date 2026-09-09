@@ -495,7 +495,7 @@ fn span_07_keep_orphan_comments_collapses_instead() {
            <w:commentRangeEnd w:id="9"/><w:r><w:commentReference w:id="9"/></w:r></w:p>"#,
     );
     let p = first_para(&s);
-    let ctx = EditContext { keep_orphan_comments: true, ..Default::default() };
+    let ctx = EditContext::default().with_keep_orphan_comments(true);
     s.apply(EditOp::DeleteRange { from: InlinePos::new(p, 2), to: InlinePos::new(p, 4) }, &ctx)
         .unwrap();
     let idx = s.spans().unwrap();

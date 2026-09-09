@@ -31,7 +31,8 @@ const EMU_PER_PT: f64 = 12700.0;
 
 /// `a:prstGeom/@prst`（ECMA-376 `ST_ShapeType`）：`rect` / `roundRect` / `ellipse` / `triangle` / …
 /// 不是闭集——Word 认的两百来个预置形状都能写，值原样进属性。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(transparent)]
 pub struct PresetGeom(pub String);
 
 impl PresetGeom {
@@ -65,7 +66,8 @@ impl LineKind {
 }
 
 /// 新建文本框 / 形状共用的外观与位置。
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ShapeLook {
     /// 显示尺寸（EMU）；缺省 1800000 × 1080000（TS `buildTextboxParagraphXml`）。
     pub extent_emu: Option<(i64, i64)>,

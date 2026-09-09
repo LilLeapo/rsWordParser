@@ -21,6 +21,7 @@ pub enum ValidationOrigin {
 /// 新代码随实现追加（一经发布不改名）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub enum DiagCode {
     // ---- PKG（spec/01）----
     /// `PKG-02`：part 数超过 10,000。
@@ -169,8 +170,24 @@ pub enum DiagCode {
     SaveStrictNoVml,
     /// `SAVE-02`：`New` / 脏 `w:tbl` 的行网格宽度与 `tblGrid` 列数不一致。
     SaveTableGrid,
+
+    // ---- BIND（M8′ 8.0② 起；正式条目由 8.1 的 `spec/21` BIND-07 定）----
+    /// 绑定入口的 JSON 参数解析不了（`blocks` / `options` / blank 选项）。调用方契约错误，
+    /// 不是文档的问题；对应的 JS 错误码同名。
+    BindBadArgument,
+    /// `BIND-03`：成功应用的 XML / 原字节逃生口，每次使用记一条。
+    BindXmlEscape,
+    /// 会话不存在（BIND-01）。
+    BindNoSession,
+    /// 会话内句柄不存在（BIND-05/06/09）。
+    BindIdUnknown,
+    /// 调用方要求的协议版本不匹配（BIND-08）。
+    BindProtocolMismatch,
+    /// `SPAN-01`：段落容器未被任何原生内容流覆盖，不能进行同流定位。
+    SpanNoFlow,
 }
 
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl DiagCode {
     /// 规范文本中的大写下划线写法（`XML_UNBOUND_PREFIX`），用于日志与差分工具输出。
     pub const fn as_str(self) -> &'static str {
@@ -198,6 +215,7 @@ impl DiagCode {
             Self::SpanUnclosed => "SPAN_UNCLOSED",
             Self::SpanDupStart => "SPAN_DUP_START",
             Self::SpanCrossFlow => "SPAN_CROSS_FLOW",
+            Self::SpanNoFlow => "SPAN_NO_FLOW",
             Self::FldStraySeparate => "FLD_STRAY_SEPARATE",
             Self::FldStrayEnd => "FLD_STRAY_END",
             Self::FldUnclosed => "FLD_UNCLOSED",
@@ -237,6 +255,11 @@ impl DiagCode {
             Self::SaveInvariant => "SAVE_INVARIANT",
             Self::SaveStrictNoVml => "SAVE_STRICT_NO_VML",
             Self::SaveTableGrid => "SAVE_TABLE_GRID",
+            Self::BindBadArgument => "BIND_BAD_ARGUMENT",
+            Self::BindXmlEscape => "BIND_XML_ESCAPE",
+            Self::BindNoSession => "BIND_NO_SESSION",
+            Self::BindIdUnknown => "BIND_ID_UNKNOWN",
+            Self::BindProtocolMismatch => "BIND_PROTOCOL_MISMATCH",
         }
     }
 }

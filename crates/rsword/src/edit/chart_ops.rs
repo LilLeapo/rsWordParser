@@ -1,5 +1,5 @@
-//! 图表的写侧（`EDIT-03` / `SAVE-05` / `SAVE-06`，`spec/17` 任务 6.6）：改缓存文本（[`set_chart_data`]）、
-//! 新建图表（[`materialize`]：图表 part + 内嵌工作簿 + 关系 + 绘图段落）。
+//! 图表的写侧（`EDIT-03` / `SAVE-05` / `SAVE-06`，`spec/17` 任务 6.6）：改缓存文本（`set_chart_data`）、
+//! 新建图表（`materialize`：图表 part + 内嵌工作簿 + 关系 + 绘图段落）。
 //!
 //! `SetChartData` 只改缓存文本节点（TS `patchChartPartXml` 的语义）：数据引用 `c:f`、样式、布局一个字节不动，
 //! 所以保存时只有被改的文本节点脏；锚不到的地方（没有标题、缓存里缺的点）留着不补。新图表的 part 内容按
@@ -29,7 +29,8 @@ named_enum! {
 }
 
 /// 一个新图表的数据（TS `NewChart`）。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NewChart {
     pub kind: NewChartKind,
     pub title: Option<String>,
@@ -37,7 +38,8 @@ pub struct NewChart {
     pub series: Vec<NewChartSeries>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NewChartSeries {
     pub name: String,
     /// 按类别位置；`None` = 空档（缓存里不写这个点）。
@@ -45,7 +47,8 @@ pub struct NewChartSeries {
 }
 
 /// `SetChartData` 的补丁（TS `ChartPatch`）：每一项 `None` = 不动；数组里的 `None` = 那一个不动。
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ChartPatch {
     pub title: Option<String>,
     /// 与 `ChartDisplay.categories` 对齐。
@@ -54,7 +57,8 @@ pub struct ChartPatch {
     pub series: Option<Vec<Option<ChartSeriesPatch>>>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ChartSeriesPatch {
     pub name: Option<String>,
     /// 与 `ChartSeries.values` 对齐；`None` = 保留原值。
@@ -86,7 +90,7 @@ pub(crate) fn materialize(s: &mut EditSession, block: NewBlock) -> Result<NewBlo
     materialize_at(s, block, None)
 }
 
-/// 同 [`materialize`]，但知道这块要落在哪儿——`NewBlock::Caption` 的编号是「位置之前同标签的
+/// 同 `materialize`，但知道这块要落在哪儿——`NewBlock::Caption` 的编号是「位置之前同标签的
 /// `SEQ` 数 + 1」，非知道不可。
 pub(crate) fn materialize_at(
     s: &mut EditSession,

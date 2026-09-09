@@ -108,7 +108,7 @@ impl MediaMiss {
 }
 
 /// 媒体表（`docs/03` §3.5）。按 part 去重：同一张图被多处引用只登记一次。
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct MediaStore {
     media: Vec<Media>,
     by_part: HashMap<PartId, MediaId>,
@@ -131,6 +131,16 @@ impl MediaStore {
 
     pub fn get(&self, id: MediaId) -> &Media {
         &self.media[id.idx()]
+    }
+
+    /// 对外句柄的有界查询（`BIND-05`），未知编号不索引越界。
+    pub fn try_get(&self, id: MediaId) -> Option<&Media> {
+        self.media.get(id.idx())
+    }
+
+    /// 已登记 part 的稳定句柄；删除其他条目不会改变该值。
+    pub fn id_for_part(&self, part: PartId) -> Option<MediaId> {
+        self.iter().find_map(|(id, media)| (media.part == part).then_some(id))
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (MediaId, &Media)> {
@@ -247,7 +257,7 @@ pub fn base64_decode(s: &str) -> Option<Vec<u8>> {
 }
 
 /// 标准 base64（带 `=` 填充）。自己写是为了不给 L0 引第三方依赖。
-fn base64_into(bytes: &[u8], out: &mut String) {
+pub(crate) fn base64_into(bytes: &[u8], out: &mut String) {
     let (chunks, rest) = bytes.as_chunks::<3>();
     for c in chunks {
         let n = (u32::from(c[0]) << 16) | (u32::from(c[1]) << 8) | u32::from(c[2]);

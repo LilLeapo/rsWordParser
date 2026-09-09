@@ -1,3 +1,4 @@
+#![cfg(feature = "compat-ts")]
 //! `COMPAT-10` 的定点验收（任务 3.5）：全语料的逐字段对照由 `diff-parse --scope tables` 做
 //! （M3 门第 1 条），这里钉住几条聚合数字看不出来的规则。
 

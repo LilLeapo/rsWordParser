@@ -7,6 +7,7 @@ mod common;
 
 use std::collections::BTreeMap;
 
+#[cfg(feature = "compat-ts")]
 use rsword::bind::compat_ts::parsed_doc;
 use rsword::model::units::emu_to_px;
 use rsword::model::{Block, Display, Document, DrawingKind, Inline, SegmentKind, Wrap};
@@ -209,6 +210,7 @@ fn mod_11_vml_and_ole_across_the_corpus() {
 /// 正常那段的字一个不少、未编辑保存字节不变（后者由 `save_01_no_edit_returns_original_bytes_for_all_corpus`
 /// 全语料覆盖），病态的那部分给不出就不给，不猜、不 panic、不爆栈。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn test_09_hostile_drawing_trees_degrade_locally() {
     /// 块里所有 run 的文字。
     fn texts(v: &Value) -> String {
@@ -303,6 +305,7 @@ fn test_09_hostile_drawing_trees_degrade_locally() {
 }
 
 /// 收集所有键名以 `suffix` 结尾的字符串值。
+#[cfg(feature = "compat-ts")]
 fn collect_by_key<'a>(v: &'a Value, suffix: &str, out: &mut Vec<&'a str>) {
     match v {
         Value::Object(o) => {

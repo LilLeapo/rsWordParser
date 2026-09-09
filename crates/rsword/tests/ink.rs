@@ -9,20 +9,31 @@ mod common;
 
 use std::io::Read;
 
+#[cfg(feature = "compat-ts")]
 use rsword::bind::compat_ts::parsed_doc;
 use rsword::diag::DiagCode;
-use rsword::edit::{EditContext, EditOp, EditSession, InkSave, InlinePos, NewInk};
+#[cfg(feature = "compat-ts")]
+use rsword::edit::{EditContext, EditOp, InlinePos};
+use rsword::edit::{EditSession, InkSave, NewInk};
+#[cfg(feature = "compat-ts")]
 use rsword::model::Block;
+#[cfg(feature = "compat-ts")]
 use rsword::package::Package;
-use rsword::save::SaveOptions;
+use rsword::save::options::CompatSaveOptions as SaveOptions;
+#[cfg(feature = "compat-ts")]
 use serde_json::Value;
 
+#[cfg(feature = "compat-ts")]
 const WP: &str = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+#[cfg(feature = "compat-ts")]
 const A: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
+#[cfg(feature = "compat-ts")]
 const PIC: &str = "http://schemas.openxmlformats.org/drawingml/2006/picture";
+#[cfg(feature = "compat-ts")]
 const R: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
 /// TS `anchoredInkRunXml` 的产物（`rIdInk` → `word/media/aidocsink1.png`）。
+#[cfg(feature = "compat-ts")]
 fn ink_run(x: i64, y: i64, descr: &str) -> String {
     format!(
         concat!(
@@ -46,6 +57,7 @@ fn ink_run(x: i64, y: i64, descr: &str) -> String {
 }
 
 /// 带一条 TS 写出的墨迹的文档：`body` 里 `{INK}` 处放墨迹 run。
+#[cfg(feature = "compat-ts")]
 fn docx_with_ink(body: &str) -> Vec<u8> {
     let run = ink_run(
         381_000,
@@ -98,6 +110,7 @@ fn media(bytes: &[u8]) -> Vec<String> {
     names(bytes).into_iter().filter(|n| n.starts_with("word/media/") && !n.ends_with('/')).collect()
 }
 
+#[cfg(feature = "compat-ts")]
 fn parsed(bytes: &[u8]) -> Value {
     let mut pkg = Package::open(bytes).expect("open");
     parsed_doc(&mut pkg).expect("parsed_doc")
@@ -108,12 +121,13 @@ fn para(s: &EditSession, i: usize) -> rsword::xml::NodeId {
 }
 
 fn save_inks(s: &mut EditSession, inks: Vec<InkSave>) -> Vec<u8> {
-    s.save_with(&SaveOptions { inks: Some(inks), ..SaveOptions::default() }).expect("save")
+    s.save_with_compat(&SaveOptions { inks: Some(inks), ..SaveOptions::default() }).expect("save")
 }
 
 /// 墨迹 run 对分类与坐标流不可见：被批注的段落是文本块、坐标流没有 U+FFFC、`InsertText` 的偏移按 TS `runs` 算；
 /// 只含墨迹的段落是空段落不是图片块；`Document.inks` 记下几何与载荷。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn mod_06_ink_runs_are_invisible_to_classification_and_the_coordinate_stream() {
     let src = docx_with_ink(
         r#"<w:p><w:r><w:t>批注</w:t></w:r>{INK}<w:r><w:t>段</w:t></w:r></w:p><w:p>{INK}</w:p><w:p><w:r><w:t>尾段</w:t></w:r></w:p>"#,
@@ -169,6 +183,7 @@ fn mod_06_ink_runs_are_invisible_to_classification_and_the_coordinate_stream() {
 /// compat `inks[]`：`anchorIndex` 是块的 `docxIndex`（单元格里的算到表格块），px = EMU / 9525（整除给整数），
 /// `dataUrl` 经媒体表，`payload` 实体解码。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_02_inks_json_matches_ts_shape() {
     let src = docx_with_ink(
         r#"<w:p><w:r><w:t>首段</w:t></w:r></w:p><w:p><w:r><w:t>批注段</w:t></w:r>{INK}</w:p><w:tbl><w:tr><w:tc><w:p>{INK}<w:r><w:t>格</w:t></w:r></w:p></w:tc></w:tr></w:tbl>"#,
@@ -191,6 +206,7 @@ fn compat_02_inks_json_matches_ts_shape() {
 /// `SaveOptions.inks` 权威列表：追加在段落全部内容之后（模板与 TS 一致）、媒体 + 关系 + `Default` 内容类型；
 /// 重开后 `inks[]` 与输入一致；`inks: Some([])` 删 run 并回收媒体与关系；重复保存不累积；换锚点旧 run 消失。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_07_inks_are_an_authoritative_list() {
     let src = common::docx_with_body(
         r#"<w:p><w:r><w:t>第一段</w:t></w:r></w:p><w:p><w:r><w:t>第二段</w:t></w:r></w:p>"#,
@@ -266,6 +282,7 @@ fn save_07_inks_are_an_authoritative_list() {
 
 /// 自闭合 `<w:p/>` 也能做锚点；同一段两条墨迹各自一个媒体 part（不去重，TS 同）且 `docPr/@id` 递增。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_07_ink_into_empty_paragraph_and_two_inks_on_one_anchor() {
     let src = common::docx_with_body(r#"<w:p/><w:p><w:r><w:t>尾段</w:t></w:r></w:p>"#);
     let mut s = open(&src);
@@ -327,6 +344,7 @@ fn save_07_non_paragraph_anchor_is_skipped_without_orphans() {
 /// `hostile/ink-garbage.docx`：`r:embed` 悬空 → `dataUrl: null`；`descr` 的 `&quot;` / `&amp;` 解码；
 /// `posOffset` 非数字 → 0；被批注的段落仍是正文。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn hostile_ink_garbage() {
     let bytes = std::fs::read(common::corpus_dir("hostile").join("ink-garbage.docx")).unwrap();
     let v = parsed(&bytes);

@@ -46,7 +46,7 @@ impl HfSlot {
 pub struct EffectiveSection {
     pub idx: usize,
     /// 六个槽：`hf[kind][variant]`，下标同 `HfKind::ALL` / `HfVariant::ALL`。
-    hf: [[HfSlot; 3]; 2],
+    pub(crate) hf: [[HfSlot; 3]; 2],
     /// 本节的 `w:titlePg`。
     pub title_pg: bool,
     /// 文档级的 `w:evenAndOddHeaders`（`settings.xml`）。

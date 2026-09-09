@@ -23,7 +23,7 @@ use crate::resolve::drawingml::{DrawingColor, Rgb, average, color_in, hex, parse
 use crate::xml::{LocalName, NodeId, NsId, QName};
 
 use super::blocks::Ctx;
-use super::json::{set, set_if, set_some};
+use crate::bind::native::json::{set, set_if, set_some};
 
 /// Word 的 `relativeHeight` 基数。
 const Z_ORDER_BASE: i64 = 251_658_240;

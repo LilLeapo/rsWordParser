@@ -9,16 +9,20 @@ mod common;
 
 use std::io::Read;
 
+#[cfg(feature = "compat-ts")]
 use rsword::bind::compat_ts::parsed_doc;
 use rsword::diag::DiagCode;
-use rsword::edit::{
-    BlockPos, ChartPatch, ChartSeriesPatch, EditContext, EditOp, EditSession, NewBlock, NewChart,
-    NewChartKind, NewChartSeries,
-};
+#[cfg(feature = "compat-ts")]
+use rsword::edit::{BlockPos, NewBlock};
+use rsword::edit::{ChartPatch, ChartSeriesPatch, EditContext, EditOp, EditSession};
+#[cfg(feature = "compat-ts")]
+use rsword::edit::{NewChart, NewChartKind, NewChartSeries};
 use rsword::error::Error;
 use rsword::package::Package;
+#[cfg(feature = "compat-ts")]
 use serde_json::{Value, json};
 
+#[cfg(feature = "compat-ts")]
 fn spec() -> NewChart {
     NewChart {
         kind: NewChartKind::Bar,
@@ -38,6 +42,7 @@ fn open(bytes: &[u8]) -> EditSession {
     EditSession::open(bytes).expect("open")
 }
 
+#[cfg(feature = "compat-ts")]
 fn zip_entries(bytes: &[u8]) -> Vec<(String, u32)> {
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes.to_vec())).expect("zip");
     (0..z.len())
@@ -60,17 +65,20 @@ fn text(bytes: &[u8], name: &str) -> String {
     String::from_utf8(entry(bytes, name)).expect("utf-8")
 }
 
+#[cfg(feature = "compat-ts")]
 fn parsed(bytes: &[u8]) -> Value {
     let mut pkg = Package::open(bytes).expect("open");
     parsed_doc(&mut pkg).expect("parsed_doc")
 }
 
+#[cfg(feature = "compat-ts")]
 fn first_para(s: &EditSession) -> rsword::xml::NodeId {
     s.nth_text_block(0).expect("paragraph").node
 }
 
 /// 新建图表：part、`.rels`、工作簿、内容类型、绘图段落；重解析的显示模型与输入相等；工作簿是合法的 xlsx。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn edit_03_new_chart_creates_parts_and_round_trips() {
     let src = common::docx_with_body(r#"<w:p><w:r><w:t>前文</w:t></w:r></w:p>"#);
     let before = zip_entries(&src);
@@ -153,6 +161,7 @@ fn edit_03_new_chart_creates_parts_and_round_trips() {
 
 /// 同一次保存两个图表：part 名 chart1 / chart2，`docPr/@id` 递增，饼图没有轴，`extent_emu` 生效。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn edit_03_two_charts_get_distinct_parts_and_ids() {
     let src = common::docx_with_body(r#"<w:p><w:r><w:t>前文</w:t></w:r></w:p>"#);
     let mut s = open(&src);
@@ -230,6 +239,7 @@ fn chart_part_of(s: &EditSession) -> rsword::package::PartId {
 
 /// TS `patchChartPartXml` 第一例：标题 / 系列名 / 值 / 类别都改，引用与结构原样，未改的字节一个不动。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn edit_03_set_chart_data_patches_cached_texts_only() {
     let src = chart_edit_docx();
     let original_part = text(&src, "word/charts/chart1.xml");
@@ -325,6 +335,7 @@ fn edit_03_set_chart_data_ignores_what_it_cannot_anchor() {
 }
 
 /// 图表 part 的段落 `chart_inner` 包成一份最小文档。
+#[cfg(feature = "compat-ts")]
 fn docx_with_chart(chart_inner: &str) -> Vec<u8> {
     const C: &str = "http://schemas.openxmlformats.org/drawingml/2006/chart";
     const A: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
@@ -348,8 +359,10 @@ fn docx_with_chart(chart_inner: &str) -> Vec<u8> {
     )
 }
 
+#[cfg(feature = "compat-ts")]
 const PLOT: &str = r#"<c:plotArea><c:barChart><c:barDir val="col"/><c:ser><c:idx val="0"/><c:order val="0"/><c:tx><c:strRef><c:f>S!$B$1</c:f><c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>S1</c:v></c:pt></c:strCache></c:strRef></c:tx><c:val><c:numLit><c:ptCount val="1"/><c:pt idx="0"><c:v>3</c:v></c:pt></c:numLit></c:val></c:ser></c:barChart></c:plotArea>"#;
 
+#[cfg(feature = "compat-ts")]
 fn set_title(bytes: &[u8], title: &str) -> String {
     let mut s = open(bytes);
     let part = chart_part_of(&s);
@@ -368,6 +381,7 @@ fn set_title(bytes: &[u8], title: &str) -> String {
 /// `a:endParaRPr` 之前；无缓存的 `strRef` → 整个 `c:tx` 换成 rich body；没有 `c:tx` → rich body 插为第一个子元素。
 /// strRef 有缓存 → 改 `c:v`。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn edit_03_set_chart_data_injects_text_into_textless_titles() {
     let auto = docx_with_chart(&format!(
         r#"<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr/></a:pPr><a:endParaRPr lang="en-US"/></a:p></c:rich></c:tx><c:overlay val="0"/></c:title><c:autoTitleDeleted val="0"/>{PLOT}"#
@@ -441,6 +455,7 @@ fn edit_03_set_chart_data_rejects_chartex_and_rolls_back() {
 
 /// `ReplacePartXml` / `ReplacePartBytes`：字节即内容；只接受已存在的 part；替换过的 part 重解析生效。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn edit_03_replace_part_xml_and_bytes() {
     let src = chart_edit_docx();
     let mut s = open(&src);

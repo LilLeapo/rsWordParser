@@ -217,3 +217,80 @@ pub fn part_bytes(docx: &[u8], name: &str) -> Vec<u8> {
         Err(_) => Vec::new(),
     }
 }
+
+/// `--via js` 的产物目录门控（M8′ 8.0②）：node 侧脚本（`tools/js-parity/`）先把绑定输出
+/// 落到 `$RSWORD_JS_SAVE_DIR` / `$RSWORD_JS_BLANK_DIR`，Rust 测试只比字节。缺省的
+/// `cargo test` 不依赖 node：没设变量就跳过**并打印一行**，绝不无声 PASS。
+/// CI 的门控步骤额外设 `RSWORD_JS_PARITY_REQUIRED=1`——它置位而产物变量缺失时直接断言失败，
+/// 防止「配置丢了、门却绿着」（评审复盘：门不该能悄悄通过）。
+#[allow(unused_macros)]
+macro_rules! via_js_dir {
+    ($var:literal) => {
+        match std::env::var_os($var) {
+            Some(v) if !v.is_empty() => std::path::PathBuf::from(v),
+            _ => {
+                assert!(
+                    std::env::var_os("RSWORD_JS_PARITY_REQUIRED").is_none(),
+                    "RSWORD_JS_PARITY_REQUIRED 置位但 {} 没设——node 等价门不该静默跳过",
+                    $var
+                );
+                eprintln!(
+                    "via_js_dir: 跳过（未设 {}；先跑 tools/js-parity/ 落产物再设变量才执行这门）",
+                    $var
+                );
+                return;
+            }
+        }
+    };
+}
+
+#[allow(unused_imports)]
+pub(crate) use via_js_dir;
+
+/// 保存差分用例：`corpus/synthetic` 下文件名含 `.save.` 的 JSON，按文件名排序。
+/// `tests/save_blocks.rs` 的原生差分与绑定差分共用这一份发现逻辑。
+#[allow(dead_code)]
+pub fn save_cases() -> Vec<PathBuf> {
+    let dir = corpus_dir("synthetic");
+    let mut files: Vec<_> = std::fs::read_dir(&dir)
+        .expect("corpus/synthetic")
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| p.file_name().is_some_and(|n| n.to_string_lossy().contains(".save.")))
+        .collect();
+    files.sort();
+    files
+}
+
+/// 绑定产物（成功路径）的字节；没有就说明两侧行为不一致，直接 panic。
+#[allow(dead_code)]
+pub fn binding_bytes(dir: &Path, name: &str) -> Vec<u8> {
+    match std::fs::read(dir.join(name)) {
+        Ok(b) => b,
+        Err(_) => {
+            let err = std::fs::read_to_string(dir.join(format!("{name}.err")))
+                .unwrap_or_else(|_| "<连 .err 都没有>".to_string());
+            panic!("绑定产物 {name} 缺失（绑定侧: {err}）")
+        }
+    }
+}
+
+/// 绑定产物（被拒路径）的错误码；产物居然是字节就 panic。
+#[allow(dead_code)]
+pub fn binding_error_code(dir: &Path, name: &str) -> String {
+    let err = std::fs::read_to_string(dir.join(format!("{name}.err")))
+        .unwrap_or_else(|_| panic!("用例 {name} 原生被拒，绑定侧却没写 .err"));
+    serde_json::from_str::<serde_json::Value>(&err)
+        .unwrap_or_else(|e| panic!(".err 不是 JSON: {e}: {err}"))["code"]
+        .as_str()
+        .expect("code 是字符串")
+        .to_string()
+}
+
+// TEST-10：全语料包/会话无编辑门共用的精确拒绝清单。
+#[allow(dead_code)]
+pub const UNOPENABLE: [&str; 4] = [
+    "hostile/xml-unbalanced-main.docx",
+    "hostile/zip-part-too-large.docx",
+    "hostile/zip-too-many-parts.docx",
+    "hostile/zip-total-too-large.docx",
+];

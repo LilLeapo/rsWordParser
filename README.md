@@ -1,53 +1,243 @@
 # rsWordParser
 
-高保真 DOCX 编辑内核（Rust）。目标是替换 genoffice `packages/docx-engine` 的 `parseDocx` 与 `saveDocx`：解析 Word 文档为编辑器可消费的模型，接受编辑操作，并以**字节级局部补丁**写回。不做布局与渲染。
+**独立的高保真 DOCX 读写内核**（Rust）。读取文档事实和内容，接受 `EditOp`，以字节级局部补丁写回。不做布局与渲染。
 
-核心原则：**文件是真相。** 未编辑的内容一个字节都不动；编辑只发生在被标脏的 XML 节点上。
+文件是真相：未编辑内容保持原字节，模型 JSON 是只读投影；修改必须经编辑操作提交。交付以 Rust crate 为先，wasm 是同一原生协议的薄壳。genoffice 仅用于差分测试。
 
-## 目录
+## Rust API
 
-| 目录 | 内容 |
-| --- | --- |
-| `CLAUDE.md` | 在这个仓库里干活的规则：权威顺序、不变式、命令、硬规则、踩过的坑（人与 AI 同用） |
-| `docs/` | 设计文档。`01` 现有 TS 实现的参考规格；`02` v2（已被取代）；`03` **v3.2 冻结架构**（宪法）；`04` 开发计划（环境核查、执行顺序、实现偏差、待决事项、M2 及以后）；`05` **现状快照**（能力矩阵、实测数字、明确未实现） |
-| `spec/` | 可验收的模块规范，每条规范带 ID（`XML-12`、`FLD-06`…），实现与测试引用这些 ID |
-| `crates/rsword/` | 内核 crate。模块目录与 `docs/03` §2 的分层一一对应；`src/lib.rs` 有模块 ↔ 规范映射表 |
-| `corpus/` | 测试语料：`synthetic/`（由 genoffice 测试导出的 docx + 期望 JSON + `SaveBlock[]` 记录）、`real/`（真实文档，每个带 `case.toml`）、`hostile/`（TEST-09 恶意输入） |
-| `fixtures/resolve/` | `resolve/` 的 Word 实测校准 fixture |
-| `tools/export-golden/` | 语料导出脚本（TS）。运行在 genoffice 仓库上，不修改它 |
+推荐从 `rsword::bind::native::SessionTable` 开始，完成 `open → document → apply → save → close`。
+也可使用根部的 `EditSession` / `EditOp` 做上下文化编辑。错误提供稳定机器码，失败操作不留下半修改状态。
 
-## 阅读顺序
+BIND-11 的稳定面为 `bind::native` 全部导出和根部列出的核心类型。旧模块路径保留一个观察版本，
+在文档中隐藏，不承诺其内部类型或辅助函数稳定。`DiagCode` 只追加变体；可扩展类型使用
+`#[non_exhaustive]`，值对象的例外在各类型文档中注明。破坏性变更只在 crate minor 版本做，
+变更记录须给出迁移方式；协议版本独立演进，目前仍为 `native/0`。
 
-0. `CLAUDE.md`（规则）与 `docs/05-status.md`（现在能做什么）
-1. `docs/03-architecture-v3.md` 第 0 节（冻结项）与第 13 节（六个核心类型索引）
-2. `spec/00-overview.md`（规范体系、术语、单位）
-3. `docs/04-dev-plan.md`（当前在做什么、下一步做什么）
-4. 按里程碑阅读对应 spec：M0 → `01-package`、`02-xml-dom`；M1 → `05-properties`、`06-model`、`10-compat-ts`；M2 → `03-span`、`04-field`、`13-m2-plan`；M3 → `06-model` 的表格部分；M7 → `08-edit`、`09-save`
+隐藏项仍可被下游调用。负责人于 2026-09-09 决定将缩小实际 semver 面推迟到观察期之后，
+此观察期安排不等同于物理私有化。稳定面文档由 audit cfg 下的 rustc 硬检查，注解位置与
+[成文清单](docs/13-public-api.md) 双向锁定。
 
-## 构建
+Feature 名称：默认 `native`，另有 `serde`、`wasm`、测试专用 `compat-ts`。
+默认构建不编译 `compat_ts` 或旧无状态 JS 入口；差分测试与工具需显式 `--features compat-ts`。
+`tools/ci/check-native-default.sh` 在隔离下游验证默认读改存成功、兼容模块导入失败。
+关闭 serde feature 暂不移除共享 serde 依赖。
+
+## 读取大纲和文本
+
+在仓库根目录运行：
 
 ```sh
-cargo fmt --all --check && cargo clippy --workspace --all-targets && cargo test --workspace
-GENOFFICE_DIR=~/code/genoffice tools/export-golden/run.sh   # 重新导出语料（需要 genoffice 已 npm install）
+cargo run -p rsword --example read -- corpus/synthetic/bidi__001.docx
 ```
 
-## 状态
+对应 `crates/rsword/examples/read.rs`（示例使用 `serde_json` 读取协议值）：
 
-架构 v3.2 已冻结（2026-09-03）。**M0、M1、M2、M4 均已完成并并入 `main`**（M0/M1 2026-09-04，
-M2 与 M4 2026-09-05）：字节保真的读写骨架、属性表、文本段落模型、`resolve` 首版、`compat_ts`
-（文本 + 字段 + 批注 + 绘图）、编辑引擎（`EditSession` + 内联 / 块 / 段落 / 范围 / 字段操作 + 事务）、
-L2 范围层（`Anchor` 变换与物化）、字段子系统（配对 / 指令 tokenizer / 策略表）、批注与注释
-（含 `SAVE-05` 新建 part）、绘图读侧全套（媒体解析、DrawingML 颜色、绘图 / 形状 / VML 显示模型、
-图片与文本框投影、嵌入对象）、`SaveBlock[]` 与保存选项的兼容映射、差分工具链与 fuzz 目标。
-M1 门三条、M2 门两条、M4 门一条都跑过（CI 里各一步）。
+```rust
+use rsword::bind::native::SessionTable;
+use serde_json::Value;
 
-能力矩阵、实测数字、明确未实现的清单在 **`docs/05-status.md`**；任务清单与偏差记录在
-`docs/04-dev-plan.md`（§11 是 M2、§13 是 M4 的逐条进度）。下一个里程碑是 M3（表格），
-分支 `m3-tables`，任务分解在 `spec/14-m3-plan.md`。
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let path = std::env::args().nth(1).ok_or("用法：read input.docx")?;
+    let mut sessions = SessionTable::default();
+    let id = sessions.open(&std::fs::read(path)?, None)?;
+    let model: Value = serde_json::from_str(&sessions.document(&id, None)?)?;
+    let mut work = vec![&model["main"]];
+    while let Some(value) = work.pop() {
+        match value {
+            Value::Array(items) => work.extend(items.iter().rev()),
+            Value::Object(fields) => {
+                if value["kind"] == "text" {
+                    if let Some(level) = value["textKind"]["level"].as_u64() {
+                        print!("[标题 {level}] ");
+                    }
+                    let mut inlines = vec![&value["inlines"]];
+                    while let Some(inline) = inlines.pop() {
+                        if inline["kind"] == "run" {
+                            print!("{}", inline["text"].as_str().unwrap_or_default());
+                        } else if let Some(items) = inline.as_array() {
+                            inlines.extend(items.iter().rev());
+                        } else if inline["kind"] == "field" {
+                            inlines.push(&inline["result"]);
+                        }
+                    }
+                    println!();
+                } else {
+                    work.extend(fields.values().rev());
+                }
+            }
+            _ => {}
+        }
+    }
+    sessions.close(&id);
+    Ok(())
+}
+```
 
-验收政策：TS 是参考实现而非权威，目标是**功能等价或更强**，有意差异逐条登记（`docs/04` §8）。
+## 替换段落并另存
 
-## 与 genoffice 的关系
+输出必须是不存在的新文件；示例不会覆盖输入。
 
-- 第一阶段通过 `compat_ts` 适配器输出与今天 `ParsedDoc` 兼容的 JSON，编辑器零改动接入，并与 TS 解析器做差分测试。
-- 语料导出脚本在本仓库 `tools/export-golden/`，运行时临时复制到 genoffice 并在结束后清理；产物提交到本仓库 `corpus/synthetic/`，`manifest.jsonl` 首行记录 genoffice 提交号。
+```sh
+cargo run -p rsword --example edit -- corpus/synthetic/bidi__001.docx target/example-edited.docx
+```
+
+对应 `crates/rsword/examples/edit.rs`：
+
+```rust
+use rsword::bind::native::edit_op_from_json;
+use rsword::{EditContext, EditOp, EditSession};
+use serde_json::json;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() != 3 {
+        return Err("用法：edit input.docx output.docx".into());
+    }
+    let mut session = EditSession::open(&std::fs::read(&args[1])?)?;
+    let model = rsword::bind::native::document_json(
+        session.package(),
+        session.document(),
+        Default::default(),
+    )
+    .0;
+    let para = model["main"]
+        .as_array()
+        .ok_or("缺少正文")?
+        .iter()
+        .find(|block| block["kind"] == "text")
+        .ok_or("没有顶层可编辑段落")?["node"]
+        .clone();
+    let json = json!({"op":"replaceInlines", "para":para,
+        "inlines":[{"kind":"run","value":{"text":"由 rsword 修改","props":null}}]});
+    // 本例纯文本载荷不引入新 XML 名。一般 JSON 输入应使用 apply_edit_json 管理目标 DOM。
+    let op: EditOp = edit_op_from_json(&json.to_string(), &mut session.dom().clone())?;
+    assert!(matches!(op, EditOp::ReplaceInlines { .. }));
+    session.apply(op, &EditContext::default())?;
+    // create_new 防止误覆盖输入或已有文件。
+    use std::io::Write;
+    let bytes = session.save()?;
+    let mut output = std::fs::OpenOptions::new().write(true).create_new(true).open(&args[2])?;
+    output.write_all(&bytes)?;
+    Ok(())
+}
+```
+
+## Agent 输入输出边界
+
+示例用确定性规划器代替外部模型服务：读取模型 JSON，打印候选 EditOp JSON，经协议 apply，
+保存并重新打开验证结果。不会调用外部服务，也不覆盖文件。
+
+```sh
+cargo run -p rsword --example agent -- corpus/synthetic/bidi__001.docx "新的段落内容"
+```
+
+对应 `crates/rsword/examples/agent.rs`：
+
+```rust
+use rsword::bind::native::SessionTable;
+use serde_json::{Value, json};
+
+// 最小确定性规划器；接入模型服务时保留同样的输入、输出和 apply 边界。
+fn propose(model: &Value, replacement: &str) -> Result<Value, &'static str> {
+    let para = model["main"]
+        .as_array()
+        .ok_or("缺少正文")?
+        .iter()
+        .find(|block| block["kind"] == "text")
+        .ok_or("没有顶层可编辑段落")?;
+    Ok(json!({"op":"replaceInlines", "para":para["node"],
+        "inlines":[{"kind":"run","value":{"text":replacement,"props":null}}]}))
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let path = std::env::args().nth(1).ok_or("用法：agent input.docx [替换文字]")?;
+    let replacement = std::env::args().nth(2).unwrap_or_else(|| "Agent 编辑示例".into());
+    let mut sessions = SessionTable::default();
+    let id = sessions.open(&std::fs::read(path)?, None)?;
+    let model: Value = serde_json::from_str(&sessions.document(&id, None)?)?;
+    let operation = propose(&model, &replacement)?.to_string();
+    println!("{operation}"); // 可审计输出，尚未修改会话。
+    sessions.apply(&id, &operation, None)?;
+    let saved = sessions.save(&id, None)?;
+    let reopened = sessions.open(&saved, None)?;
+    let model: Value = serde_json::from_str(&sessions.document(&reopened, None)?)?;
+    assert!(
+        model["main"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|block| block["inlines"][0]["text"] == replacement)
+    );
+    sessions.close(&reopened);
+    sessions.close(&id);
+    Ok(())
+}
+```
+
+## 开发与验收
+
+```sh
+cargo fmt --all --check
+cargo clippy --workspace --all-targets
+cargo doc --no-deps
+cargo test --workspace
+cargo test --workspace --release
+```
+
+三个示例在 CI 实际执行。差分门继续使用 synthetic / real 语料，与自身协议测试并行保留。
+测试基准不是格式权威，有意差异逐项登记，禁止手改 `*.expected.json` 和 `*.save.*.json`。
+
+仓库约束见 [CLAUDE.md](CLAUDE.md)，当前能力与实测数字见 [docs/05](docs/05-status.md)，
+逐任务进度和偏差见 [docs/04](docs/04-dev-plan.md)，冻结架构见 [docs/03](docs/03-architecture-v3.md)，
+原生协议见 [spec/21](spec/21-bind.md)。
+
+## 给 Agent 用
+
+从仓库根目录运行以下三个只读例子。先取大纲，再有界读文字；check 仅运行内核可检查项，不代替桌面 Word 验证：
+
+取大纲；若 truncated 为 true，用 nextCursor 续读：
+
+```sh
+cargo run -p rsword-cli -- outline corpus/real/misc/large-report.docx --json
+```
+
+限量读取正文，锚点及其他响应元数据也计入字节预算：
+
+```sh
+cargo run -p rsword-cli -- text corpus/real/misc/large-report.docx --limit 4000 --maxBytes 16000 --json
+```
+
+查看诊断与当前输入可检查的不变式：
+
+```sh
+cargo run -p rsword-cli -- check corpus/real/misc/large-report.docx --json
+```
+
+编辑用 `rsword ops INPUT --ops REQUEST.json --output NEW.docx`，默认保留原文件并写审计报告。
+预览、附件、游标与退出码见 [CLI 使用与边界](docs/18-cli.md)。
+
+MCP server（M9′ 9.7）：`cargo build -p rsword-mcp --release`，在客户端以 stdio 启动
+`target/release/rsword-mcp --result-shape text`。跨工具保持会话，先 open → outline，再按范围下钻，
+编辑提供 expectedVersion，最后 save/close。连接示例、单份载荷计费及能力边界见 [MCP 使用说明](docs/19-mcp.md)。
+原生 Rust 形态按建议执行、待追认；缺省 text 待真实 Agent 门 5 实测确认。
+
+### MCP 安装
+
+从源码本地安装（无需 node 运行时；产物留在本工作树）：
+
+```sh
+cargo install --locked --path crates/rsword-mcp --root ./target/agent-tools
+./target/agent-tools/bin/rsword-mcp --help
+```
+
+客户端 stdio 配置的 `command` 填上述二进制的绝对路径，`args` 为 `["--result-shape", "text"]`；
+完整配置见 [docs/19](docs/19-mcp.md)。文件路径相对于服务器，推荐传绝对路径；stdout 为 JSON-RPC，日志走 stderr。
+先 open/outline，再按返回的 blockRange 取 text/model；编辑需 expectedVersion，preview 不改原会话，save 才落盘。
+`--limit` 是 UTF-16，`--maxBytes` 是完整响应字节预算；遇 truncated 使用原接口的 nextCursor，不能混传 CLI 文件游标与 MCP 句柄。
+当前 W7（更新 TOC）尚不支持执行；22 项支持状态和真实 Agent 待验证项见 [docs/12](docs/12-agent-tasks.md)。
+
+find 的 `pageHits` 只是**本页**命中数，`hasMore=true` 时必须按 nextCursor 续读，才能得出完整计数。
+无标题文档的 outline group 只用于导航；编辑授权从 find 的源锚点构造 paragraph ObjectRef。
+[完整寻址流程与每个 action 的可运行请求](docs/17-agent-edit.md#6-完整请求样例每个-action-一份常规进程测试执行)包含
+`all:true`、`addComment.author`、`setBlockStyle.target` 与 `paraProps.indent.start:720` 的准确形状。

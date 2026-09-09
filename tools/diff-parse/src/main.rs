@@ -4,8 +4,15 @@
 //! 每落地一个任务就把 N 往下拧，归零后删掉参数。
 //!
 //! ```text
-//! diff-parse [--corpus DIR] [--scope text|fields|tables|drawing|hf|embedded|all] [--known FILE] [--doc PREFIX] [--show N] [--json] [--by-doc] [--max-unknown N] [--via js]
+//! diff-parse [--corpus DIR] [--scope text|fields|tables|drawing|hf|embedded|all] [--known FILE] [--doc PREFIX] [--show N] [--json] [--by-doc] [--max-unknown N]
+//!           [--via-js [--js-pkg DIR]]
 //! ```
+//!
+//! `--via-js`（M8′ 8.0②，`COMPAT-02` 的绑定等价门）：同样的差分，但「actual」来自 wasm
+//! 绑定而不是本进程——先用 node 跑 `tools/js-parity/parse_parity.mjs` 把绑定输出落到临时
+//! 目录，逐份与原生 `serde_json::to_string(parsed_doc)` 比对**字节**（绑定的逐字节合同），
+//! 再拿绑定输出走正常差分。任一环节非 0 即退出码 1。需要 node ≥ 22 与已构建的绑定包
+//! （`tools/build-js.sh`）。
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -59,8 +66,6 @@ impl Scope {
 struct Args {
     corpus: PathBuf,
     scope: Scope,
-    /// `--via js`：ParsedDoc 走 JS 绑定（`bind::js::parse`）而不是 `compat_ts::parsed_doc`。
-    via_js: bool,
     known: Option<PathBuf>,
     doc_prefix: Option<String>,
     show: usize,
@@ -68,6 +73,10 @@ struct Args {
     by_doc: bool,
     /// 放行的未知差异上限（棘轮）；缺省 0。
     max_unknown: usize,
+    /// `--via-js`：actual 从 wasm 绑定来，先做与原生的逐字节比对。
+    via_js: bool,
+    /// 绑定包目录（`rsword_js.js` + `rsword_js_bg.wasm`）；缺省 `crates/rsword-js/pkg`。
+    js_pkg: Option<PathBuf>,
 }
 
 fn usage() -> ! {
@@ -79,7 +88,8 @@ fn usage() -> ! {
                 hf = M5 门（全部文档，只计页眉页脚域**路径**），\n\
                 embedded = M6 门（全部文档，只计嵌入对象域：路径或所在块），all = 全部语料\n\
          --max-unknown N: 未知差异不超过 N 就退出码 0（还没关上的门在 CI 里的棘轮；归零后删掉），缺省 0\n\
-         --via js: ParsedDoc 走 JS 绑定（`bind::js::parse`）而不是直接调 `compat_ts::parsed_doc`\n\
+         --via-js: 绑定等价门——actual 经 wasm 绑定（node）产出，先与原生输出比字节再走差分\n\
+         --js-pkg DIR: 绑定包目录，缺省 <仓库根>/crates/rsword-js/pkg（tools/build-js.sh 构建）\n\
          缺省 corpus = <仓库根>/corpus/synthetic，scope = all，known = 编进库里的 KNOWN_DIFFS.md，show = 3"
     );
     std::process::exit(2)
@@ -89,24 +99,19 @@ fn parse_args() -> Args {
     let mut a = Args {
         corpus: repo_root().join("corpus/synthetic"),
         scope: Scope::All,
-        via_js: false,
         known: None,
         doc_prefix: None,
         show: 3,
         json: false,
         by_doc: false,
         max_unknown: 0,
+        via_js: false,
+        js_pkg: None,
     };
     let mut it = std::env::args().skip(1);
     while let Some(arg) = it.next() {
         match arg.as_str() {
             "--corpus" => a.corpus = PathBuf::from(it.next().unwrap_or_else(|| usage())),
-            // 走 JS 绑定那条路（`bind::js::parse`）而不是直接调 `parsed_doc`
-            "--via-js" => a.via_js = true,
-            "--via" => match it.next().as_deref() {
-                Some("js") => a.via_js = true,
-                _ => usage(),
-            },
             "--scope" => {
                 a.scope = match it.next().as_deref() {
                     Some("text") => Scope::Text,
@@ -127,6 +132,8 @@ fn parse_args() -> Args {
             "--max-unknown" => {
                 a.max_unknown = it.next().and_then(|s| s.parse().ok()).unwrap_or_else(|| usage())
             }
+            "--via-js" => a.via_js = true,
+            "--js-pkg" => a.js_pkg = Some(PathBuf::from(it.next().unwrap_or_else(|| usage()))),
             "-h" | "--help" => usage(),
             _ => usage(),
         }
@@ -198,6 +205,9 @@ fn main() -> ExitCode {
     let mut failed_open = 0usize;
     let mut samples: Vec<(String, String, String, String)> = Vec::new();
     let mut by_doc: Vec<(String, usize)> = Vec::new();
+
+    // 预筛：expected.json 在不在域里决定这份跑不跑，--via-js 的 node 阶段只跑域内文档
+    let mut docs: Vec<(PathBuf, String, Value)> = Vec::new();
     for path in paths {
         let file = path.file_name().unwrap().to_string_lossy().to_string();
         if let Some(p) = &args.doc_prefix
@@ -228,47 +238,74 @@ fn main() -> ExitCode {
             skipped_scope += 1;
             continue;
         }
-        let bytes = std::fs::read(&path).unwrap();
-        // `--via js`（`spec/18` 7.10）：走 JS 绑定那条路（`bind::js::parse` → JSON 文本 → 再解回来）。
-        // wasm 那一层只是类型转换，真正的实现是同一份，所以这道门能在原生构建里跑全语料
-        let actual = if args.via_js {
-            match rsword::bind::js::parse(&bytes).and_then(|t| {
-                serde_json::from_str::<Value>(&t).map_err(|e| rsword::bind::js::ApiError {
-                    code: "JSON_PARSE".into(),
-                    message: e.to_string(),
-                })
-            }) {
-                Ok(v) => v,
-                Err(e) => {
-                    eprintln!("{file}: 绑定层失败: {} {}", e.code, e.message);
-                    failed_open += 1;
-                    continue;
-                }
-            }
-        } else {
-            match Package::open(&bytes).and_then(|mut pkg| parsed_doc(&mut pkg)) {
-                Ok(v) => v,
-                Err(e) => {
-                    eprintln!("{file}: 打开 / 解析失败: {e}");
-                    failed_open += 1;
-                    continue;
-                }
+        docs.push((path, file, expected));
+    }
+
+    // --via-js 的 node 阶段：绑定输出按序号落临时目录
+    let js_dir = if args.via_js { Some(run_js_phase(&args, &docs)) } else { None };
+    let mut byte_mismatch = 0usize;
+    let mut js_samples: Vec<(String, String)> = Vec::new();
+
+    for (i, (path, file, expected)) in docs.iter().enumerate() {
+        let bytes = std::fs::read(path).unwrap();
+        let native = match Package::open(&bytes).and_then(|mut pkg| parsed_doc(&mut pkg)) {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("{file}: 打开 / 解析失败: {e}");
+                failed_open += 1;
+                continue;
             }
         };
+        // 绑定等价（`COMPAT-02` 的逐字节合同）：绑定输出与原生 `to_string` 逐字节相同；
+        // 相同则用绑定输出走差分（门 1 的语义：整条差分链都过一遍绑定）
+        let (actual, mismatch) = match js_dir.as_deref().map(|d| d.join(format!("{i}.json"))) {
+            Some(js_path) => match std::fs::read_to_string(&js_path) {
+                Ok(b) => {
+                    let native_line = serde_json::to_string(&native).expect("Value 序列化不可失败");
+                    if b == native_line {
+                        (serde_json::from_str(&b).expect("与原生相同的 JSON 必然可解析"), None)
+                    } else {
+                        let at = first_diff_byte(native_line.as_bytes(), b.as_bytes());
+                        (
+                            native,
+                            Some(format!(
+                                "绑定输出与原生不同（原生 {} 字节 / 绑定 {} 字节，首差在第 {at} 字节）",
+                                native_line.len(),
+                                b.len()
+                            )),
+                        )
+                    }
+                }
+                Err(_) => {
+                    let err = std::fs::read_to_string(
+                        js_dir.as_deref().unwrap().join(format!("{i}.err")),
+                    )
+                    .unwrap_or_else(|_| "<没有 .err 文件>".to_string());
+                    (native, Some(format!("绑定抛错: {err}")))
+                }
+            },
+            None => (native, None),
+        };
+        if let Some(note) = mismatch {
+            byte_mismatch += 1;
+            if js_samples.len() < args.show {
+                js_samples.push((file.clone(), note));
+            }
+        }
         let mut diffs = Vec::new();
-        diff_json(&expected, &actual, &mut diffs);
-        let (mut unknown, k) = split_known(diffs, &file, &known);
+        diff_json(expected, &actual, &mut diffs);
+        let (mut unknown, k) = split_known(diffs, file, &known);
         // 绘图门只看绘图域路径；别的域各归各的里程碑，混进来这道门永远关不上。
         // 嵌入对象块上的绘图路径差异（墨迹在 TS 里不可见、画布与 chartex 的图片回退、OLE 变体）
         // 属于 M6 的门（`embedded`），不进这两道门。
         if args.scope == Scope::Drawing {
-            unknown.retain(|d| is_drawing_path(&d.path) && !on_embedded_block(&d.path, &expected));
+            unknown.retain(|d| is_drawing_path(&d.path) && !on_embedded_block(&d.path, expected));
         }
         if args.scope == Scope::Hf {
-            unknown.retain(|d| is_hf_path(&d.path) && !on_embedded_block(&d.path, &expected));
+            unknown.retain(|d| is_hf_path(&d.path) && !on_embedded_block(&d.path, expected));
         }
         if args.scope == Scope::Embedded {
-            unknown.retain(|d| is_embedded_diff(&d.path, &expected));
+            unknown.retain(|d| is_embedded_diff(&d.path, expected));
         }
         if !unknown.is_empty() {
             by_doc.push((file.clone(), unknown.len()));
@@ -276,7 +313,7 @@ fn main() -> ExitCode {
         for d in unknown.iter().take(args.show) {
             samples.push((file.clone(), d.path.clone(), short(&d.expected), short(&d.actual)));
         }
-        report.add(&file, unknown, k);
+        report.add(file, unknown, k);
     }
 
     if args.json {
@@ -293,6 +330,7 @@ fn main() -> ExitCode {
             "docs": report.docs, "docsWithUnknown": report.docs_with_unknown,
             "known": report.known, "unknown": report.unknown,
             "skippedByScope": skipped_scope, "noExpected": no_expected, "failedOpen": failed_open,
+            "jsByteMismatch": byte_mismatch,
             "byPath": by_path,
             "byDoc": by_doc.iter().map(|(d, n)| json!({ "doc": d, "count": n })).collect::<Vec<_>>(),
         });
@@ -309,6 +347,12 @@ fn main() -> ExitCode {
             no_expected,
             failed_open
         );
+        if byte_mismatch > 0 {
+            println!("\n绑定等价: {} 份与原生输出不同", byte_mismatch);
+            for (f, note) in &js_samples {
+                println!("  {f}: {note}");
+            }
+        }
         if !report.by_path.is_empty() {
             println!("\n{:<8} {:<6} 路径", "次数", "文档");
             for (k, st) in &report.by_path {
@@ -336,7 +380,7 @@ fn main() -> ExitCode {
             }
         }
     }
-    if report.unknown > args.max_unknown || failed_open > 0 {
+    if report.unknown > args.max_unknown || failed_open > 0 || byte_mismatch > 0 {
         if args.max_unknown > 0 && !args.json {
             println!("diff-parse: 未知差异 {} 超过预算 {}", report.unknown, args.max_unknown);
         }
@@ -350,6 +394,55 @@ fn main() -> ExitCode {
         }
         ExitCode::SUCCESS
     }
+}
+
+/// `--via-js` 的 node 阶段：跑 `tools/js-parity/parse_parity.mjs`，把绑定输出按序号写进
+/// 临时目录并返回它。绑定包缺 / node 缺都是配置问题，退出码 2。
+fn run_js_phase(args: &Args, docs: &[(PathBuf, String, Value)]) -> PathBuf {
+    let pkg = args.js_pkg.clone().unwrap_or_else(|| repo_root().join("crates/rsword-js/pkg"));
+    if !pkg.join("rsword_js.js").is_file() {
+        eprintln!(
+            "--via-js: 绑定包不在 {}（先跑 tools/build-js.sh，或用 --js-pkg 指到已构建的包）",
+            pkg.display()
+        );
+        std::process::exit(2);
+    }
+    let script = repo_root().join("tools/js-parity/parse_parity.mjs");
+    let dir = std::env::temp_dir().join(format!("rsword-js-parity-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("临时目录");
+    let list = dir.join("docs.txt");
+    std::fs::write(
+        &list,
+        docs.iter().map(|(p, _, _)| p.display().to_string()).collect::<Vec<_>>().join("\n"),
+    )
+    .expect("写清单");
+    let status = std::process::Command::new("node")
+        .arg(&script)
+        .arg("--pkg")
+        .arg(&pkg)
+        .arg("--out")
+        .arg(&dir)
+        .arg("--docs-file")
+        .arg(&list)
+        .status();
+    match status {
+        Ok(st) if st.success() => dir,
+        Ok(st) => {
+            eprintln!("--via-js: node 阶段失败（{st}）");
+            let _ = std::fs::remove_dir_all(&dir);
+            std::process::exit(2)
+        }
+        Err(e) => {
+            eprintln!("--via-js: 起不了 node（{e}）；js-parity 需要 node ≥ 22");
+            std::process::exit(2)
+        }
+    }
+}
+
+/// 两条字节串首个不同处的下标（相同返回长度）。
+fn first_diff_byte(a: &[u8], b: &[u8]) -> usize {
+    a.iter().zip(b.iter()).position(|(x, y)| x != y).unwrap_or_else(|| a.len().min(b.len()))
 }
 
 #[allow(dead_code)]

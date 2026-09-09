@@ -52,25 +52,58 @@ use crate::span::FieldId;
 use crate::xml::{NewElement, NodeId};
 
 /// 修订作者（`track_changes` 开启时写入 `w:author` / `w:date`）。M1 不生成修订，字段保留供 M7。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RevisionAuthor {
     pub author: String,
     pub date: Option<String>,
 }
 
 /// `EDIT-01`：一次操作的上下文。
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(default)]
+#[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub struct EditContext {
-    /// `Some` → 生成修订（M7）；M1 忽略并按直接修改执行。
+    /// `Some` → 生成修订；`None` → 直接修改（EDIT-01）。
     pub track_changes: Option<RevisionAuthor>,
     /// 新 run 没有可继承的左侧 run 时使用的格式。
     pub default_run_props: Option<RunProps>,
+    /// 删除批注范围后保留无引用的批注正文。
     pub keep_orphan_comments: bool,
+    /// 更新字段结果后设置重算标志。
     pub mark_updated_fields_dirty: bool,
 }
 
+macro_rules! context_option {
+    ($(#[doc = $doc:expr] $method:ident($field:ident: $ty:ty);)*) => {
+        $(
+            #[doc = $doc]
+            pub fn $method(mut self, value: $ty) -> Self {
+                self.$field = value;
+                self
+            }
+        )*
+    };
+}
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
+impl EditContext {
+    context_option! {
+        /// 设置修订作者；`None` 表示直接编辑。
+        with_track_changes(track_changes: Option<RevisionAuthor>);
+        /// 设置新 run 无可继承格式时使用的属性。
+        with_default_run_props(default_run_props: Option<RunProps>);
+        /// 设置更新字段后的重算标志。
+        with_mark_updated_fields_dirty(mark_updated_fields_dirty: bool);
+        /// 设置是否保留没有引用的批注正文。
+        with_keep_orphan_comments(keep_orphan_comments: bool);
+    }
+}
+
 /// `EDIT-02`：块位置在容器里的落点。`End(body)` 落在尾部 `w:sectPr` 之前。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum BlockAt {
     Start(NodeId),
     Before(NodeId),
@@ -79,7 +112,8 @@ pub enum BlockAt {
 }
 
 /// `EDIT-02`：块位置 = 哪个 part + 落点。`part` 为 `None` 表示主 part（任务 5.5）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BlockPos {
     pub part: Option<PartId>,
     pub at: BlockAt,
@@ -177,7 +211,8 @@ pub enum NewAtom {
 }
 
 /// 公式的两种给法。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum NewMath {
     /// 现成的 OMML（可以是 `<m:oMath>…</m:oMath>`，也可以只给里面的内容）。
     Omml(String),
@@ -186,7 +221,8 @@ pub enum NewMath {
 }
 
 /// `EDIT-03 AddComment` 的内容。`text` 里的 `\n` 分段。
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NewComment {
     pub author: String,
     pub initials: Option<String>,
@@ -198,175 +234,515 @@ pub struct NewComment {
     pub done: bool,
 }
 
-/// `docs/03` §8.2 的操作枚举（M1 子集）。
+/// 编辑操作枚举（EDIT-03）；各变体注明目标、边界与保真约束。
 // 属性补丁（`ParaPropsPatch`）体积大；操作是一次性传入的值，不装箱。
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub enum EditOp {
     /// `EDIT-03 InsertText`：`props == None` 且紧邻 `Text` 段 → 写入该 `w:t`；否则边界插入继承格式的新 run。
-    InsertText { at: InlinePos, text: String, props: Option<RunPropsPatch> },
+    InsertText {
+        /// 操作落点；坐标单位和边界见本变体说明。
+        at: InlinePos,
+        /// 新文本内容。
+        text: String,
+        /// 新属性或属性补丁，继承及清空规则见本变体说明。
+        props: Option<RunPropsPatch>,
+    },
     /// `EDIT-03 DeleteRange`（同段）。
-    DeleteRange { from: InlinePos, to: InlinePos },
+    DeleteRange {
+        /// 来源或范围起点，语义见本变体说明。
+        from: InlinePos,
+        /// 目的地或范围终点，语义见本变体说明。
+        to: InlinePos,
+    },
     /// `EDIT-03 SetRunProps`：两端拆分 run，范围内每个 run 按 `PROP-06` 计划 `rPr` 变更。
-    SetRunProps { from: InlinePos, to: InlinePos, patch: RunPropsPatch },
+    SetRunProps {
+        /// 来源或范围起点，语义见本变体说明。
+        from: InlinePos,
+        /// 目的地或范围终点，语义见本变体说明。
+        to: InlinePos,
+        /// 已建模属性补丁；未涉及字段保持原值。
+        patch: RunPropsPatch,
+    },
     /// `EDIT-03 ReplaceInlines`（compat 路径）：段落全部内容子节点 `Deleted`，新内容为 `New`；`pPr` 不动。
-    ReplaceInlines { part: Option<PartId>, para: NodeId, inlines: Vec<NewInline> },
+    ReplaceInlines {
+        /// 目标 part；可选值缺席时表示主 part。
+        part: Option<PartId>,
+        /// 目标段落节点 ID。
+        para: NodeId,
+        /// 替换后的行内内容序列。
+        inlines: Vec<NewInline>,
+    },
     /// `EDIT-03 SetParaProps`：`PROP-06` 计划 `pPr` 变更（无 `pPr` → `New` 插为第一子）。
-    SetParaProps { part: Option<PartId>, para: NodeId, patch: ParaPropsPatch },
+    SetParaProps {
+        /// 目标 part；可选值缺席时表示主 part。
+        part: Option<PartId>,
+        /// 目标段落节点 ID。
+        para: NodeId,
+        /// 已建模属性补丁；未涉及字段保持原值。
+        patch: ParaPropsPatch,
+    },
     /// compat 路径：整个 `w:pPr` 替换为给定片段（`None` = 删除 `pPr`）。`EDIT-04` 的 `rawPPr` 语义。
-    ReplaceParaProps { part: Option<PartId>, para: NodeId, props: Option<NewElement> },
+    ReplaceParaProps {
+        /// 目标 part；可选值缺席时表示主 part。
+        part: Option<PartId>,
+        /// 目标段落节点 ID。
+        para: NodeId,
+        /// 新属性或属性补丁，继承及清空规则见本变体说明。
+        props: Option<NewElement>,
+    },
     /// `EDIT-03 SetTableProps`：`w:tblPr` 按 `PROP-06` 合并（容器缺失时插为 `w:tbl` 第一个子元素）。
-    SetTableProps { table: NodeId, patch: TablePropsPatch },
+    SetTableProps {
+        /// 目标表格节点。
+        table: NodeId,
+        /// 已建模属性补丁；未涉及字段保持原值。
+        patch: TablePropsPatch,
+    },
     /// `EDIT-03 SetRowProps`：`w:trPr` 按 `PROP-06` 合并（容器缺失时插在 `w:tblPrEx` 之后、首个 `w:tc` 之前）。
-    SetRowProps { row: NodeId, patch: RowPropsPatch },
+    SetRowProps {
+        /// 目标行节点。
+        row: NodeId,
+        /// 已建模属性补丁；未涉及字段保持原值。
+        patch: RowPropsPatch,
+    },
     /// `EDIT-03 SetCellProps`：`w:tcPr` 按 `PROP-06` 合并（容器缺失时插为 `w:tc` 第一个子元素）。
-    SetCellProps { cell: NodeId, patch: CellPropsPatch },
+    SetCellProps {
+        /// 目标单元格节点。
+        cell: NodeId,
+        /// 已建模属性补丁；未涉及字段保持原值。
+        patch: CellPropsPatch,
+    },
     /// `EDIT-03 InsertRow`：在第 `at` 行前插入一行；`template` 缺省取 `at` 的前一行（`at == 0` 取第 0 行），
     /// `trPr` / `tblPrEx` / 各 `tcPr` 字节克隆，内容为一个空 `w:p`（克隆模板格首段的 `pPr`）。
-    InsertRow { table: NodeId, at: u32, template: Option<NodeId> },
+    InsertRow {
+        /// 目标表格节点。
+        table: NodeId,
+        /// 操作落点；坐标单位和边界见本变体说明。
+        at: u32,
+        /// 用于克隆格式的模板节点。
+        template: Option<NodeId>,
+    },
     /// `EDIT-03 DeleteRow`：删第 `at` 行；被删行的 `vMerge restart` 会把下一行的 continue 提升为 restart。
-    DeleteRow { table: NodeId, at: u32 },
+    DeleteRow {
+        /// 目标表格节点。
+        table: NodeId,
+        /// 操作落点；坐标单位和边界见本变体说明。
+        at: u32,
+    },
     /// `EDIT-03 InsertColumn`：在第 `at` 列前插入一列（`width` 是新列宽，twips）。
-    InsertColumn { table: NodeId, at: u32, width: i32 },
+    InsertColumn {
+        /// 目标表格节点。
+        table: NodeId,
+        /// 操作落点；坐标单位和边界见本变体说明。
+        at: u32,
+        /// 列宽，单位 twips。
+        width: i32,
+    },
     /// `EDIT-03 DeleteColumn`：删第 `at` 列。
-    DeleteColumn { table: NodeId, at: u32 },
+    DeleteColumn {
+        /// 目标表格节点。
+        table: NodeId,
+        /// 操作落点；坐标单位和边界见本变体说明。
+        at: u32,
+    },
     /// `EDIT-03 MergeCells`：合并网格坐标闭区间 `from..=to`（行, 列）。
-    MergeCells { table: NodeId, from: (u32, u32), to: (u32, u32) },
+    MergeCells {
+        /// 目标表格节点。
+        table: NodeId,
+        /// 来源或范围起点，语义见本变体说明。
+        from: (u32, u32),
+        /// 目的地或范围终点，语义见本变体说明。
+        to: (u32, u32),
+    },
     /// `EDIT-03 InsertBlock`：`New` 子树。
-    InsertBlock { at: BlockPos, block: NewBlock },
+    InsertBlock {
+        /// 操作落点；坐标单位和边界见本变体说明。
+        at: BlockPos,
+        /// 新块内容。
+        block: NewBlock,
+    },
     /// `EDIT-03 DeleteBlock`：`Deleted`。`part` 为 `None` 表示主 part（任务 5.5）。
-    DeleteBlock { part: Option<PartId>, node: NodeId },
+    DeleteBlock {
+        /// 目标 part；可选值缺席时表示主 part。
+        part: Option<PartId>,
+        /// 目标节点 ID。
+        node: NodeId,
+    },
     /// `EDIT-03 MoveBlock`：同 part 走 `move_within_part`；`from` 与 `to.part` 不同的时候
     /// 走 `XML-12` 规则 E′（子树按目标 part 的作用域重解析前缀，`spec/18` 7.6）。
     /// `from` 为 `None` 表示主 part。
-    MoveBlock { from: Option<PartId>, node: NodeId, to: BlockPos },
+    MoveBlock {
+        /// 来源或范围起点，语义见本变体说明。
+        from: Option<PartId>,
+        /// 目标节点 ID。
+        node: NodeId,
+        /// 目的地或范围终点，语义见本变体说明。
+        to: BlockPos,
+    },
     /// `EDIT-03 AddComment`（同段）：`comments.xml` 不存在则新建 part（`SAVE-05`），
     /// 正文里插范围标记与 `w:commentReference` run，`w:id` 按 `EDIT-06` 取最大值 + 1。
-    AddComment { from: InlinePos, to: InlinePos, comment: NewComment },
+    AddComment {
+        /// 来源或范围起点，语义见本变体说明。
+        from: InlinePos,
+        /// 目的地或范围终点，语义见本变体说明。
+        to: InlinePos,
+        /// 新批注的元数据与正文。
+        comment: NewComment,
+    },
     /// `EDIT-03 RemoveComment`：条目、范围标记与 reference run 一起删。
-    RemoveComment { id: String },
+    RemoveComment {
+        /// 目标对象在文档中的 ID。
+        id: String,
+    },
     /// `EDIT-03 SetCommentText`：改条目正文（保留第一个文字 run 的格式）与 `w15:done`。
-    SetCommentText { id: String, text: String, done: Option<bool> },
+    SetCommentText {
+        /// 目标对象在文档中的 ID。
+        id: String,
+        /// 新文本内容。
+        text: String,
+        /// 批注完成状态；缺席时保留。
+        done: Option<bool>,
+    },
     /// `EDIT-03 SplitParagraph`：`at` 之后的内容搬进新段落（`pPr` 字节克隆）。
     /// 透明字段会因此跨段 → `Err(EDIT_SPLIT_FIELD)`。
-    SplitParagraph { at: InlinePos },
+    SplitParagraph {
+        /// 操作落点；坐标单位和边界见本变体说明。
+        at: InlinePos,
+    },
     /// `EDIT-03 MergeWithNext`：下一段内容接到本段末尾，下一段删除（保留**前**段的 `pPr`）。
-    MergeWithNext { part: Option<PartId>, para: NodeId },
+    MergeWithNext {
+        /// 目标 part；可选值缺席时表示主 part。
+        part: Option<PartId>,
+        /// 目标段落节点 ID。
+        para: NodeId,
+    },
     /// `EDIT-03 AddBookmark`（同段）：`w:id` 按 `EDIT-06` 取最大值 + 1；名字全文档唯一。
-    AddBookmark { name: String, from: InlinePos, to: InlinePos },
+    AddBookmark {
+        /// 书签或命名对象的名称。
+        name: String,
+        /// 来源或范围起点，语义见本变体说明。
+        from: InlinePos,
+        /// 目的地或范围终点，语义见本变体说明。
+        to: InlinePos,
+    },
     /// `EDIT-03 RemoveBookmark`：按名字删（标记 `Deleted`，索引里作废）。
-    RemoveBookmark { name: String },
+    RemoveBookmark {
+        /// 书签或命名对象的名称。
+        name: String,
+    },
     /// `FLD-12 InsertField`：生成 begin / instrText / separate / 结果 / end 五组 run。
-    InsertField { at: InlinePos, field: NewField },
+    InsertField {
+        /// 操作落点；坐标单位和边界见本变体说明。
+        at: InlinePos,
+        /// 目标字段 ID。
+        field: NewField,
+    },
     /// `FLD-07 Link`：改链接目标。HYPERLINK 字段只重写 `instrText`（开关原样保留）；
     /// `w:hyperlink` 元素改 `r:id`（外部 URL 按 `EDIT-06` 分配关系）或 `w:anchor`。
-    SetLinkTarget { link: LinkRef, target: LinkDest },
+    SetLinkTarget {
+        /// 目标超链接引用。
+        link: LinkRef,
+        /// 链接或操作目标。
+        target: LinkDest,
+    },
     /// `FLD-10`：FORMCHECKBOX 的 `w:checked` 取反。
-    ToggleCheckbox { field: FieldId },
+    ToggleCheckbox {
+        /// 目标字段 ID。
+        field: FieldId,
+    },
     /// `FLD-10`：FORMTEXT 的结果文字。
-    SetFormText { field: FieldId, text: String },
+    SetFormText {
+        /// 目标字段 ID。
+        field: FieldId,
+        /// 新文本内容。
+        text: String,
+    },
     /// `FLD-07`：字段结果 run 的格式。
-    SetFieldResultProps { field: FieldId, patch: RunPropsPatch },
+    SetFieldResultProps {
+        /// 目标字段 ID。
+        field: FieldId,
+        /// 已建模属性补丁；未涉及字段保持原值。
+        patch: RunPropsPatch,
+    },
     /// `FLD-09`：用给定的块替换块字段的 `separate..end`（生成器在 M7；`w:fldLock` 拒绝）。
-    UpdateBlockField { field: FieldId, blocks: Vec<NewBlock> },
+    UpdateBlockField {
+        /// 目标字段 ID。
+        field: FieldId,
+        /// 按文档顺序排列的新块内容。
+        blocks: Vec<NewBlock>,
+    },
 
     // ---- 图表与 part（`EDIT-03`，任务 6.6）------------------------------------------------------
     /// `EDIT-03 SetChartData`：改图表 part 里的缓存文本（标题 / 系列名 / 值 / 类别），结构与引用不动
     /// （`spec/08`「`chart.ts` 补丁语义」）；chartex part → `Err(EDIT_UNSUPPORTED)`。
-    SetChartData { part: PartId, patch: ChartPatch },
+    SetChartData {
+        /// 目标 part；可选值缺席时表示主 part。
+        part: PartId,
+        /// 已建模属性补丁；未涉及字段保持原值。
+        patch: ChartPatch,
+    },
     /// 整个 XML part 换成给定内容（TS `partXml`）。只接受已存在的 XML part（不存在 → `EDIT_TARGET_MISSING`）。
-    ReplacePartXml { part: PartId, xml: String },
+    ReplacePartXml {
+        /// 目标 part；可选值缺席时表示主 part。
+        part: PartId,
+        /// 原始 XML 字符串逃生口。
+        xml: String,
+    },
     /// 整个 part 换成给定字节（TS `partBinary`）。只接受已存在的 part，主 part 除外。
-    ReplacePartBytes { part: PartId, bytes: Vec<u8> },
+    ReplacePartBytes {
+        /// 目标 part；可选值缺席时表示主 part。
+        part: PartId,
+        /// 替换或插入的原始二进制字节。
+        bytes: Vec<u8>,
+    },
     /// `EDIT-04 ReplaceImageMedia`（TS `xml.replaceImage`，任务 6.7）：`drawing` 子树里第一个 `a:blip` 改指新媒体
     /// （字节按内容去重落成媒体 part），删裁剪窗、清填充窗、删 `svgBlip` 扩展。
-    ReplaceImageMedia { drawing: NodeId, bytes: Vec<u8>, mime: String },
+    ReplaceImageMedia {
+        /// 目标绘图节点。
+        drawing: NodeId,
+        /// 替换或插入的原始二进制字节。
+        bytes: Vec<u8>,
+        /// 媒体内容类型。
+        mime: String,
+    },
 
     // ---- 墨迹（`SAVE-07 inks`，任务 6.8）--------------------------------------------------------
     /// 删掉主 part 里全部 `aidocs-ink` 墨迹 run（`Document.inks`）；它们的媒体与关系随保存时的资源回收消失。
     RemoveInks,
     /// 在段落 `para` 的全部内容之后追加一条墨迹 run（TS `anchoredInkRunXml`；`docPr/@id` 按 `EDIT-06`，
     /// 媒体每条一个 part）。`para` 不是 `w:p`（表格 / sdt 外壳）→ 跳过 + 诊断，不分配媒体与关系。
-    InsertInk { para: NodeId, ink: NewInk },
+    InsertInk {
+        /// 目标段落节点 ID。
+        para: NodeId,
+        /// 新墨迹数据。
+        ink: NewInk,
+    },
 
     // ---- 节与页眉页脚（`EDIT-03`，任务 5.5）--------------------------------------------------
     /// `EDIT-03 SetSectionProps`：给定 `w:sectPr` 按 `PROP-06` 合并（未建模的子元素原字节不动，
     /// 新元素按 CT_SectPr 顺序插入）。**新建分节符**（给段落加一个 `sectPr`）不在 M5。
-    SetSectionProps { sect: NodeId, patch: SectionPropsPatch },
+    SetSectionProps {
+        /// 目标分节属性节点。
+        sect: NodeId,
+        /// 已建模属性补丁；未涉及字段保持原值。
+        patch: SectionPropsPatch,
+    },
     /// `EDIT-03 SetHeaderFooter`：这一节这个变体的页眉页脚内容整体替换。
     ///
     /// 该节**自己声明**了这个变体（`RES-10` 的 `Declared`）→ 改写它引用的 part；没声明（含从上一节
     /// 继承）→ 按 `SAVE-05` 新建 `word/header{N}.xml` 并把引用插进这一节的 `sectPr`，这一节因此
     /// 独立、前面的节不受影响（Word 与 TS 的 `sectionHf` 语义）。
-    SetHeaderFooter { sect: NodeId, kind: HfKind, variant: HfVariant, content: Vec<NewBlock> },
+    SetHeaderFooter {
+        /// 目标分节属性节点。
+        sect: NodeId,
+        /// 操作对象的种类。
+        kind: HfKind,
+        /// 页眉页脚槽位：默认、首页或偶数页。
+        variant: HfVariant,
+        /// 新内容，形状见载荷类型。
+        content: Vec<NewBlock>,
+    },
     /// 给一个没有该变体引用的节挂上**已有** part 的引用（TS 的 `hfAllSections`）。
-    LinkHeaderFooter { sect: NodeId, kind: HfKind, variant: HfVariant, part: PartId },
+    LinkHeaderFooter {
+        /// 目标分节属性节点。
+        sect: NodeId,
+        /// 操作对象的种类。
+        kind: HfKind,
+        /// 页眉页脚槽位：默认、首页或偶数页。
+        variant: HfVariant,
+        /// 目标 part；可选值缺席时表示主 part。
+        part: PartId,
+    },
     /// `SAVE-07 watermark`：这一节 default 页眉里的文字水印。`None` 删掉（连同页眉里所有
     /// 含 `v:textpath` 的段落）；页眉不存在时先建。Strict 包拒绝（VML 不在 Strict 里）。
-    SetWatermark { sect: NodeId, text: Option<String> },
+    SetWatermark {
+        /// 目标分节属性节点。
+        sect: NodeId,
+        /// 新文本内容。
+        text: Option<String>,
+    },
     /// `SAVE-07 pageColor`：`w:background/@w:color`（`w:document` 的第一个子元素）。`None` 删掉。
-    SetPageColor { color: Option<String> },
+    SetPageColor {
+        /// 颜色值或清除请求。
+        color: Option<String>,
+    },
     /// `EDIT-03 SetDocumentSettings`：`word/settings.xml` 按 `PROP-06` 合并（part 不存在就建）。
-    SetDocumentSettings { patch: SettingsPatch },
+    SetDocumentSettings {
+        /// 已建模属性补丁；未涉及字段保持原值。
+        patch: SettingsPatch,
+    },
     /// `EDIT-03 InsertAtom`：往坐标流里插一个原子（`spec/18` 7.5）。
-    InsertAtom { at: InlinePos, atom: NewAtom },
+    InsertAtom {
+        /// 操作落点；坐标单位和边界见本变体说明。
+        at: InlinePos,
+        /// 新原子内容。
+        atom: NewAtom,
+    },
     /// `EDIT-03 SetNoteContent`：整条脚注 / 尾注的正文段落换掉（自引用标记 run 保留）。
-    SetNoteContent { endnote: bool, id: String, content: Vec<Vec<NewRun>> },
+    SetNoteContent {
+        /// 为真时操作尾注，否则为脚注。
+        endnote: bool,
+        /// 目标对象在文档中的 ID。
+        id: String,
+        /// 新内容，形状见载荷类型。
+        content: Vec<Vec<NewRun>>,
+    },
     /// `EDIT-03 RemoveNote`：删条目 + 正文里的引用 run。
-    RemoveNote { endnote: bool, id: String },
+    RemoveNote {
+        /// 为真时操作尾注，否则为脚注。
+        endnote: bool,
+        /// 目标对象在文档中的 ID。
+        id: String,
+    },
     /// `EDIT-03 SetSdtContent`：内联内容控件里的内容整体换掉。
-    SetSdtContent { sdt: NodeId, inlines: Vec<NewInline> },
+    SetSdtContent {
+        /// 目标内容控件节点。
+        sdt: NodeId,
+        /// 替换后的行内内容序列。
+        inlines: Vec<NewInline>,
+    },
     /// `EDIT-03 RemoveSdtShell`：Word 的「删除内容控件」——内容留下，`w:sdt` 消失。
-    RemoveSdtShell { sdt: NodeId },
+    RemoveSdtShell {
+        /// 目标内容控件节点。
+        sdt: NodeId,
+    },
     /// `EDIT-03 SetMathTokens`（TS `patchMathTokens`）：按序替换 `m:oMath` 里每个 `m:t` 的文字；
     /// 个数不等 → `EDIT_MATH_TOKEN_COUNT`。
-    SetMathTokens { math: NodeId, tokens: Vec<String> },
+    SetMathTokens {
+        /// 目标公式节点。
+        math: NodeId,
+        /// 按公式中 m:t 顺序给出的替换文本。
+        tokens: Vec<String>,
+    },
     /// `EDIT-03 SetDrawingGeometry`（`spec/18` 7.7）：尺寸 / 位置 / 旋转 / 翻转 / 裁剪。
     /// 只改属性，`a:graphic` 子树原字节。
-    SetDrawingGeometry { drawing: NodeId, geom: DrawingGeometry },
+    SetDrawingGeometry {
+        /// 目标绘图节点。
+        drawing: NodeId,
+        /// 绘图几何属性补丁。
+        geom: DrawingGeometry,
+    },
     /// `EDIT-03 SetDrawingZOrder`：`relativeHeight = 251658240 + z`（只对锚定图片有意义）。
-    SetDrawingZOrder { drawing: NodeId, z: i64 },
+    SetDrawingZOrder {
+        /// 目标绘图节点。
+        drawing: NodeId,
+        /// 绘图层叠顺序。
+        z: i64,
+    },
     /// `EDIT-03 SetDrawingWrap`（`spec/18` 7.7）：绕排方式。`wrap: None` = 随文（`wp:inline`），
     /// `Some(_)` = 锚定（`wp:anchor`）。壳换了也只重建壳：`wp:extent` / `effectExtent` /
     /// `docPr` / `cNvGraphicFramePr` / `a:graphic` 原字节搬过去（`SAVE-08`）。
     SetDrawingWrap {
+        /// 目标绘图节点。
         drawing: NodeId,
+        /// 文字环绕方式。
         wrap: Option<media_ops::ImageWrap>,
         /// 不给时：本来就锚定的保留原 `positionH` / `positionV`，随文转锚定的按绕排方向取缺省。
+        /// 位置属性变更。
         pos: Option<AnchorPos>,
         /// 不给时：本来就锚定的保留原 `relativeHeight`，随文转锚定的取基数。
+        /// 绘图层叠顺序变更。
         z_order: Option<i64>,
     },
     /// `EDIT-03 SetShapeStyle`：`wps:spPr` 的填充与描边。`None` = 不动，`Some(None)` = 无。
-    SetShapeStyle { shape: NodeId, fill: Option<Option<String>>, outline: Option<Option<String>> },
+    SetShapeStyle {
+        /// 目标形状节点。
+        shape: NodeId,
+        /// 填充颜色变更。
+        fill: Option<Option<String>>,
+        /// 轮廓属性变更。
+        outline: Option<Option<String>>,
+    },
     /// `EDIT-03 RegenerateBlockField`（`spec/18` 7.8）：按生成器重算一个块字段的结果区
     /// （`TOC` / `INDEX`）。走 `UpdateBlockField` 那条机制，`w:fldLock` 一样拒绝。
-    RegenerateBlockField { field: crate::span::FieldId, options: BlockFieldOptions },
+    RegenerateBlockField {
+        /// 目标字段 ID。
+        field: crate::span::FieldId,
+        /// 生成器选项。
+        options: BlockFieldOptions,
+    },
     /// `EDIT-03 SetTextboxContent`（`spec/18` 7.7）：一个文本框里的块整体换掉。`textbox` 可以是
     /// `w:txbxContent` 自己，也可以是包着它的 `wps:wsp` / `wps:txbx` / `v:shape` / `v:textbox`。
     /// 落在 `mc:Choice` 里时 `mc:Fallback` 的 VML 孪生跟着同步。
-    SetTextboxContent { textbox: NodeId, blocks: Vec<NewBlock> },
+    SetTextboxContent {
+        /// 目标文本框节点。
+        textbox: NodeId,
+        /// 按文档顺序排列的新块内容。
+        blocks: Vec<NewBlock>,
+    },
     /// `EDIT-03 InsertSectionBreak`（`spec/18` 7.6）：在 `after` 这一段之后断节。
     /// 该段的 `pPr` 里新建一个 `w:sectPr`（原节属性的克隆，含页眉页脚引用），
     /// 原来的 `sectPr` 从此描述**后**一节，它的 `w:type` 换成 `kind`。
-    InsertSectionBreak { after: NodeId, kind: crate::semantic::props::SectType },
+    InsertSectionBreak {
+        /// 在此段落之后插入分节符。
+        after: NodeId,
+        /// 操作对象的种类。
+        kind: crate::semantic::props::SectType,
+    },
     /// `EDIT-03 DeleteSectionBreak`：删掉一个**段落级** `w:sectPr`，这些块并入后一节
     /// （Word 语义：合并后由后一节的页面设置接管）。body 级的 `sectPr` 不能删。
-    DeleteSectionBreak { sect: NodeId },
+    DeleteSectionBreak {
+        /// 目标分节属性节点。
+        sect: NodeId,
+    },
     /// `EDIT-03 AcceptRevision`：接受一条修订（`Document.revisions` 里的 id）。
-    AcceptRevision { rev: crate::model::RevisionId },
+    AcceptRevision {
+        /// 目标修订 ID。
+        rev: crate::model::RevisionId,
+    },
     /// `EDIT-03 RejectRevision`：拒绝一条修订。
-    RejectRevision { rev: crate::model::RevisionId },
+    RejectRevision {
+        /// 目标修订 ID。
+        rev: crate::model::RevisionId,
+    },
     /// `EDIT-03 AcceptAll`：接受全部修订；`author` 给定时只接受那个作者的
     /// （编辑器按作者接受，`docs/03` §8.2 之外的扩展，登记在 `docs/04` §8）。
-    AcceptAll { author: Option<String> },
+    AcceptAll {
+        /// 修订作者过滤条件。
+        author: Option<String>,
+    },
     /// `EDIT-03 RejectAll`：拒绝全部修订；`author` 同上。
-    RejectAll { author: Option<String> },
+    RejectAll {
+        /// 修订作者过滤条件。
+        author: Option<String>,
+    },
+    /// `BIND-03 v3`：参考文献权威列表，未变条目保留原字节。
+    SetSources {
+        /// 参考文献来源的权威列表。
+        sources: Vec<crate::save::options::decl::SourceSave>,
+    },
+    /// `BIND-03 v3`：按 numId 追加，已存在即 no-op。
+    AddNumberingDefinition {
+        /// 调用方指定 numId 的编号定义。
+        definition: crate::save::options::decl::NumberingDefSave,
+    },
+    /// `BIND-03 v3`：按 numId 追加重启定义，已存在即 no-op。
+    RestartNumbering {
+        /// 调用方指定 numId 的编号重启声明。
+        restart: crate::save::options::decl::RestartNumSave,
+    },
+    /// `BIND-03 v3`：替换主题字体槽。
+    SetThemeFonts {
+        /// 主题字体槽位。
+        fonts: crate::save::options::decl::ThemeFontsSave,
+    },
+    /// `BIND-03 v3`：替换主题配色槽。
+    SetThemeColors {
+        /// 主题配色槽位的权威列表。
+        colors: crate::save::options::decl::ThemeColorsSave,
+    },
+    /// `BIND-03 v3`：按 styleId upsert，相同请求不改状态。
+    UpsertStyle {
+        /// 以 styleId 为键的样式声明。
+        style: crate::save::options::decl::StyleUpsertSave,
+    },
 }
 
 /// `SetLinkTarget` 要改哪个链接。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum LinkRef {
     /// HYPERLINK 字段。
     Field(FieldId),
@@ -375,7 +751,8 @@ pub enum LinkRef {
 }
 
 /// 链接目标。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum LinkDest {
     /// 外部 URL。`w:hyperlink` 会先按 `EDIT-06` 分配一条外部关系。
     Url(String),

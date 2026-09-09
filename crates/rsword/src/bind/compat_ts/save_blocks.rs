@@ -36,7 +36,7 @@ use crate::edit::{
 use crate::error::{Error, Result};
 use crate::model::{HfKind, HfVariant};
 use crate::package::{PartFlavor, RelType};
-use crate::save::SaveOptions;
+use crate::save::options::CompatSaveOptions as SaveOptions;
 use crate::save::options::{
     NumberingDefSave, NumberingLevelSave, PgNumTypeOption, ProtectionOption, RestartNumSave,
     SectionHfSave, SectionSaveSettings, SourceSave, StyleUpsertSave, ThemeColorsSave,
@@ -454,6 +454,13 @@ pub fn apply_save_blocks(
     options: &Value,
 ) -> Result<SaveBlocksOutcome> {
     let (mut save_options, lists, hf_json) = save_options_of(options)?;
+    // BIND-04 v3：沿用文档标志是 TS 宿主策略，原生内核不再隐式清洗。
+    if save_options.remove_personal_info.is_none() && session.remove_personal_info_flag() {
+        save_options.remove_personal_info = Some(true);
+    }
+    if save_options.remove_date_and_time.is_none() && session.remove_date_and_time_flag() {
+        save_options.remove_date_and_time = Some(true);
+    }
     let final_blocks =
         final_blocks.as_array().ok_or_else(|| unsupported("finalBlocks 不是数组"))?;
     // 7.7：投影层判过这份文档的 z 序是野值（`imageZOrderNormalized`），块表带着归一后的名次

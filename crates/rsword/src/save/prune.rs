@@ -75,6 +75,7 @@ pub fn referenced_rids(dom: &Dom) -> HashSet<String> {
     out
 }
 
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl EditSession {
     /// 回收本次会话让引用数归零的资源。返回删掉的 part 数。
     pub(crate) fn prune_orphans(&mut self) -> Result<usize> {

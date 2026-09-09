@@ -1,0 +1,24 @@
+[package]
+name = "rsword-cli"
+version = "0.0.1"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+[[bin]]
+name = "rsword"
+path = "src/main.rs"
+# 二进制名与核心库相同；命令文档在 docs/18，避免 rustdoc 输出路径碰撞。
+doc = false
+[dependencies]
+rsword-agent-query = { path = "../../tools/agent-query" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+[features]
+compat-ts = ["rsword-agent-query/compat-ts"]
+[dev-dependencies]
+rsword = { path = "../rsword" }
+zip.workspace = true
+jsonschema = "0.55.0"
+[lints]
+workspace = true

@@ -7,7 +7,8 @@ use crate::xml::entities::escaped_text;
 use super::{FIELD_END, TS_INDEX_TAB_POS, field_begin, leader_ppr, no_proof_run};
 
 /// 排序方式。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum Collation {
     /// 按 Unicode 码位（缺省）。TS 用 `localeCompare('zh-CN')`（ICU 的拼音序），我们不带 ICU，
     /// 中文的次序会不一样——登记在 `docs/04` §8。
@@ -16,7 +17,8 @@ pub enum Collation {
     Given(Vec<String>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct IndexOptions {
     /// `\c "2"`：分几栏。
     pub columns: u32,

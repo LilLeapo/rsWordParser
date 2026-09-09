@@ -3,8 +3,8 @@
 //! 每项选项都翻译成普通 DOM 变更，没有旁路。两条路：
 //!
 //! - **元数据与清洗**（`saved_at` / `remove_personal_info` / `remove_date_and_time`）走
-//!   [`plan_all`]，直接产出各 part 的 [`MutationPlan`]。它们不是"编辑"，没有对应的 `EditOp`。
-//! - **文档内容**（节 / 页眉页脚 / 水印 / 页面底色 / 保护 / 奇偶页眉）走 [`edit_ops`]，翻成
+//!   `plan_all`，直接产出各 part 的 [`MutationPlan`]。它们不是"编辑"，没有对应的 `EditOp`。
+//! - **文档内容**（节 / 页眉页脚 / 水印 / 页面底色 / 保护 / 奇偶页眉）走 `edit_ops`，翻成
 //!   5.5 的编辑操作再由 `EditSession::apply_all` 执行。同一条路意味着同一套校验、同一套脏标记、
 //!   同一套 `SAVE-05` 新建 part（`spec/16` 任务 5.6 的"没有旁路"）。
 //!
@@ -35,9 +35,46 @@ use crate::package::{Package, PartFlavor, PartId, RelType};
 use crate::semantic::props::{PropsPatch, SectType, SettingsPatch};
 use crate::xml::{Dirty, Dom, LocalName, NodeEdit, NodeId, NodeKind, NsId, QName, Target};
 
-/// `SAVE-07`：与 TS `SaveOptions` 对齐的保存选项（M1 子集）。
-#[derive(Debug, Clone, Default, PartialEq)]
+/// `BIND-04` 原生保存选项：只有包级五项，内容修改必须通过 EditOp。
+#[derive(Debug, Clone, Default, PartialEq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(default, rename_all = "camelCase", deny_unknown_fields)]
 pub struct SaveOptions {
+    /// 修改时间；单独设置不强制保存。
+    pub saved_at: Option<String>,
+    /// 缺省 false；文档标志只作为事实读取，不自动清洗。
+    pub remove_personal_info: bool,
+    /// 缺省 false；仅显式 true 才清洗。
+    pub remove_date_and_time: bool,
+    /// None 等价于 true，仅回收本次会话造成的孤儿。
+    pub prune_orphans: Option<bool>,
+    /// 缺省 false。
+    pub normalize_z_order: bool,
+}
+
+impl From<&SaveOptions> for CompatSaveOptions {
+    fn from(value: &SaveOptions) -> Self {
+        let SaveOptions {
+            saved_at,
+            remove_personal_info,
+            remove_date_and_time,
+            prune_orphans,
+            normalize_z_order,
+        } = value;
+        Self {
+            saved_at: saved_at.clone(),
+            remove_personal_info: remove_personal_info.then_some(true),
+            remove_date_and_time: remove_date_and_time.then_some(true),
+            prune_orphans: *prune_orphans,
+            normalize_z_order: *normalize_z_order,
+            ..Default::default()
+        }
+    }
+}
+
+/// `SAVE-07`：与 TS `CompatSaveOptions` 对齐的保存选项（M1 子集）。
+#[derive(Debug, Clone, Default, PartialEq)]
+#[doc(hidden)]
+pub struct CompatSaveOptions {
     /// `docProps/core.xml` 的 `dcterms:modified`（ISO 8601，毫秒被去掉）。
     ///
     /// 只有保存真的进入序列化路径时才落盘：单独设置它**不会**让一份未编辑的文档产生输出
@@ -47,7 +84,7 @@ pub struct SaveOptions {
     /// `None` 沿用文档已有的标志。
     pub remove_personal_info: Option<bool>,
     /// `word/settings.xml` 的 `w:removeDateAndTime`：`Some` 写入该值并按该值决定是否删除批注 / 修订上的
-    /// `w:date`；`None` 沿用文档已有的标志。TS `SaveOptions` 没有这一项（`docs/04` §8）。
+    /// `w:date`；`None` 沿用文档已有的标志。TS `CompatSaveOptions` 没有这一项（`docs/04` §8）。
     pub remove_date_and_time: Option<bool>,
 
     // ---- 5.6：落在**最后一节**（body 级 `w:sectPr`）的四项 ----
@@ -112,9 +149,9 @@ pub struct SaveOptions {
     pub prune_orphans: Option<bool>,
 }
 
-impl SaveOptions {
+impl CompatSaveOptions {
     pub fn is_empty(&self) -> bool {
-        *self == SaveOptions::default()
+        *self == CompatSaveOptions::default()
     }
 
     /// 是否要求保存必须进入序列化路径（即使没有脏节点）。
@@ -154,7 +191,7 @@ impl SaveOptions {
 /// 就是新建分节符，见 `docs/04` §8）。
 pub(crate) fn edit_ops(
     s: &crate::edit::EditSession,
-    opts: &SaveOptions,
+    opts: &CompatSaveOptions,
 ) -> (Vec<EditOp>, Vec<(crate::model::HfKind, crate::model::HfVariant)>) {
     let doc = s.document();
     let mut ops = Vec::new();
@@ -228,7 +265,7 @@ fn z_order_ops(s: &crate::edit::EditSession) -> Vec<EditOp> {
 /// `SAVE-07` 第二轮：`hfAllSections` 要等第一轮把 part 建出来才知道挂哪个。
 pub(crate) fn link_ops(
     s: &crate::edit::EditSession,
-    opts: &SaveOptions,
+    opts: &CompatSaveOptions,
     created: &[(crate::model::HfKind, crate::model::HfVariant)],
 ) -> Vec<EditOp> {
     hf::link_ops(s, opts, created)
@@ -237,7 +274,7 @@ pub(crate) fn link_ops(
 /// 节的四项合成一个补丁（它们碰的字段互不相交）。
 fn section_patch(
     current: &crate::semantic::props::SectionProps,
-    opts: &SaveOptions,
+    opts: &CompatSaveOptions,
 ) -> crate::semantic::props::SectionPropsPatch {
     let mut patch = match &opts.section {
         Some(s) => section::settings_patch(current, s),
@@ -257,7 +294,7 @@ fn section_patch(
 
 /// `settings.xml` 的三项合成一个补丁。页面底色写值时顺带打开 `w:displayBackgroundShape`
 /// （Word 只在这个开关打开时才画 `w:background`；删底色时不去关它，同 TS）。
-fn settings_patch(opts: &SaveOptions) -> SettingsPatch {
+fn settings_patch(opts: &CompatSaveOptions) -> SettingsPatch {
     let background = matches!(&opts.page_color, Some(Some(_))).then_some(true);
     let mut patch = settings::flags_patch(opts.even_and_odd_headers, background);
     if let Some(p) = &opts.protection {
@@ -449,7 +486,7 @@ fn scrubbable(uri: &str) -> bool {
 /// `SAVE-01` 第 4 步：把选项翻译成各 part 的计划（只读产出）+ 计划外的诊断。
 pub(crate) fn plan_all(
     pkg: &mut Package,
-    opts: &SaveOptions,
+    opts: &CompatSaveOptions,
     scrub_authors: bool,
     scrub_dates: bool,
 ) -> Result<(Vec<MutationPlan>, Vec<Diagnostic>)> {

@@ -22,7 +22,7 @@ use crate::model::{Document, HfKind, HfVariant, SectionOwner};
 use crate::package::PartId;
 use crate::xml::{Dirty, Dom, LocalName, NodeId, QName};
 
-use super::SaveOptions;
+use super::CompatSaveOptions as SaveOptions;
 
 /// 六个槽（kind × variant）一张表：一次展开 [`HfSlots`] 的字段、迭代与 TS 键名的对应。
 ///
@@ -31,7 +31,7 @@ use super::SaveOptions;
 /// ```ignore
 /// let mut slots = HfSlots::default();
 /// *slots.by_ts_key("headerFirst").unwrap() = Some(blocks);
-/// for (kind, variant, blocks) in slots.iter() { … }
+/// for (kind, variant, blocks) in slots.iter() { /* 处理每个槽位 */ }
 /// ```
 macro_rules! hf_slots {
     ($( $field:ident : $kind:ident / $variant:ident = $key:literal ),+ $(,)?) => {

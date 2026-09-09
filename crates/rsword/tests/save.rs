@@ -4,8 +4,11 @@ mod common;
 
 use std::io::{Cursor, Read};
 
+#[cfg(feature = "compat-ts")]
 use rsword::bind::compat_ts;
+#[cfg(feature = "compat-ts")]
 use rsword::edit::{EditContext, EditOp, EditSession, InlinePos};
+#[cfg(feature = "compat-ts")]
 use rsword::model::{Inline, SegmentKind};
 use rsword::package::Package;
 use rsword::xml::{Dirty, LocalName, NodeKind, QName};
@@ -25,17 +28,31 @@ fn entries(bytes: &[u8]) -> Vec<(String, u32, u64, Vec<u8>)> {
 #[test]
 fn save_01_no_edit_returns_original_bytes_for_all_corpus() {
     let mut n = 0;
-    for kind in ["synthetic", "hostile", "real"] {
-        for path in common::docx_paths(kind) {
-            let bytes = std::fs::read(&path).unwrap();
-            let Ok(mut pkg) = Package::open(&bytes) else { continue };
-            assert!(!pkg.is_dirty());
-            let saved = pkg.save().unwrap();
-            assert_eq!(saved, bytes, "{}", path.display());
-            n += 1;
-        }
+    let mut refused = std::collections::BTreeSet::new();
+    let root = common::repo_root().join("corpus");
+    let paths: Vec<_> =
+        ["synthetic", "hostile", "real"].into_iter().flat_map(common::docx_paths).collect();
+    assert_eq!(paths.len(), 1103);
+    for path in paths {
+        let name = path.strip_prefix(&root).unwrap().to_str().unwrap();
+        let bytes = std::fs::read(&path).unwrap();
+        let mut pkg = match Package::open(&bytes) {
+            Ok(pkg) => {
+                assert!(!common::UNOPENABLE.contains(&name), "{name}: 必须拒绝却打开成功");
+                pkg
+            }
+            Err(error) => {
+                assert!(common::UNOPENABLE.contains(&name), "{name}: 意外拒绝 {error}");
+                refused.insert(name.to_owned());
+                continue;
+            }
+        };
+        assert!(!pkg.is_dirty());
+        assert_eq!(pkg.save().unwrap(), bytes, "{}", path.display());
+        n += 1;
     }
-    assert!(n > 570, "{n}");
+    assert_eq!(n, 1099);
+    assert_eq!(refused, common::UNOPENABLE.into_iter().map(str::to_owned).collect());
 }
 
 /// 找到主 part 里第一个非空 `w:t` 文本节点。
@@ -144,6 +161,7 @@ fn test_04_single_node_edit_roundtrips_on_every_synthetic_doc() {
 }
 
 #[test]
+#[cfg(feature = "compat-ts")]
 fn test_04_corpus_edit_fidelity() {
     const INSERTED: &str = "Ж";
 

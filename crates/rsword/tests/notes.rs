@@ -2,7 +2,9 @@
 
 mod common;
 
-use rsword::model::{Document, Inline, NoteKind};
+#[cfg(feature = "compat-ts")]
+use rsword::model::Inline;
+use rsword::model::{Document, NoteKind};
 use rsword::package::Package;
 
 const W: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
@@ -20,6 +22,7 @@ fn corpus_doc(name: &str) -> Document {
     doc_of(&bytes)
 }
 
+#[cfg(feature = "compat-ts")]
 fn json_of(name: &str) -> serde_json::Value {
     let bytes = std::fs::read(common::corpus_dir("synthetic").join(name)).unwrap();
     let mut pkg = Package::open(&bytes).unwrap();
@@ -119,6 +122,7 @@ fn mod_10_notes_skip_structural_entries_and_trim_first_line() {
 /// `COMPAT-07`：起止都在本段的批注挂到 run 上；只有一端在本段的只出块级 `commentStarts/Ends`；
 /// 只有 `commentReference` 的批注挂最近的有字 run（先往前找，再往后找）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_07_comment_ids_follow_the_ts_rules() {
     // 同段范围：范围内的 run 拿到 id，范围外的两个 run 没有
     let doc = corpus_doc("comments__001.docx");
@@ -158,6 +162,7 @@ fn compat_07_comment_ids_follow_the_ts_rules() {
 
 /// 正文里的脚注 / 尾注引用是原子 run，`text` 是按 part 顺序的显示编号。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_07_note_reference_runs_carry_the_display_number() {
     let json = json_of("notes__001.docx");
     let runs = json["blocks"][0]["runs"].as_array().unwrap();
@@ -219,6 +224,7 @@ fn part_text(bytes: &[u8], name: &str) -> Option<String> {
     Some(s)
 }
 
+#[cfg(feature = "compat-ts")]
 fn entries(bytes: &[u8]) -> Vec<(String, u32, Vec<u8>)> {
     let mut z = zip::ZipArchive::new(std::io::Cursor::new(bytes.to_vec())).unwrap();
     (0..z.len())
@@ -234,6 +240,7 @@ fn entries(bytes: &[u8]) -> Vec<(String, u32, Vec<u8>)> {
 /// `SAVE-05` 验收行：首次加批注 → 新建 `comments.xml` + 关系 + 内容类型，
 /// 其他条目的原压缩数据一个字节不变。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_05_first_comment_creates_the_part_and_leaves_others_untouched() {
     let bytes = common::docx_with_body(r#"<w:p><w:r><w:t>hello world</w:t></w:r></w:p>"#);
     let before = entries(&bytes);
@@ -411,6 +418,7 @@ fn edit_05_failed_add_comment_rolls_back_the_new_part() {
 /// `footnotes` 权威列表：改已有条目时保住自引用标记 run 与结构条目，列表里的新条目建出来，
 /// 列表外的条目删掉。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_04_footnote_list_rewrites_entries_and_keeps_separators() {
     let footnotes = format!(
         r#"<?xml version="1.0" encoding="UTF-8"?><w:footnotes xmlns:w="{W}">
@@ -450,6 +458,7 @@ fn compat_04_footnote_list_rewrites_entries_and_keeps_separators() {
 
 /// `comments` 权威列表：列表外的批注连正文标记一起删，列表里的条目按内容改 / 建。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_04_comment_list_is_authoritative() {
     let comments = format!(
         r#"<?xml version="1.0" encoding="UTF-8"?><w:comments xmlns:w="{W}">

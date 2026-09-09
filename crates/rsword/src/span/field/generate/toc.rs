@@ -23,7 +23,8 @@ pub struct TocEntry {
 }
 
 /// 生成选项。缺省是 **Word 的形态**；`ts_shape` 切到 TS 的。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TocOptions {
     /// `\o "a-b"` 的级别范围（含两端）。
     pub levels: (u8, u8),
@@ -41,6 +42,7 @@ pub struct TocOptions {
     pub tab_pos: Option<i64>,
     /// TS 形态：制表位 9350、页码写纯数字、不发书签与超链接、指令固定
     /// ` TOC \o "1-{最大级别}" \h \z \u `。
+    #[cfg(feature = "compat-ts")]
     pub ts_shape: bool,
     /// 首段发 begin + 指令 + separate、末段发 end。**重算既有字段时置 false**：
     /// 结构 run 是原来那几个（`UpdateBlockField` 保留它们），再发一份就重了。
@@ -57,6 +59,7 @@ impl Default for TocOptions {
             no_page_numbers: false,
             passthrough: Vec::new(),
             tab_pos: None,
+            #[cfg(feature = "compat-ts")]
             ts_shape: false,
             emit_field_structure: true,
         }
@@ -64,6 +67,17 @@ impl Default for TocOptions {
 }
 
 impl TocOptions {
+    /// 是否使用测试专用的 TS 形态；缺省构建固定为 false。
+    pub(crate) fn ts_shape(&self) -> bool {
+        #[cfg(feature = "compat-ts")]
+        {
+            self.ts_shape
+        }
+        #[cfg(not(feature = "compat-ts"))]
+        {
+            false
+        }
+    }
     /// 从既有 `TOC` 字段的指令里读出开关（`RegenerateBlockField` 用）。
     pub fn from_instruction(instr: &crate::span::field::Instruction) -> TocOptions {
         let mut o = TocOptions { hyperlinks: instr.has_switch('h'), ..Default::default() };
@@ -96,7 +110,7 @@ impl TocOptions {
 
     /// 这次要发的指令文本（两端各一个空格，与 Word / TS 同）。
     pub fn instruction(&self, entries: &[TocEntry]) -> String {
-        if self.ts_shape {
+        if self.ts_shape() {
             let max = entries.iter().map(|e| e.level).max().unwrap_or(1).clamp(1, 9);
             return format!(" TOC \\o \"1-{max}\" \\h \\z \\u ");
         }
@@ -130,7 +144,7 @@ pub fn generate(entries: &[TocEntry], opts: &TocOptions) -> Vec<String> {
     }
     let instr = opts.instruction(entries);
     let tab_pos =
-        if opts.ts_shape { TS_TOC_TAB_POS } else { opts.tab_pos.unwrap_or(TS_TOC_TAB_POS) };
+        if opts.ts_shape() { TS_TOC_TAB_POS } else { opts.tab_pos.unwrap_or(TS_TOC_TAB_POS) };
     entries
         .iter()
         .enumerate()
@@ -157,7 +171,7 @@ fn entry_body(e: &TocEntry, opts: &TocOptions) -> String {
     let tab = no_proof_run("<w:tab/>");
     let page = match (opts.no_page_numbers, e.page_no) {
         (true, _) | (_, None) => String::new(),
-        (false, Some(n)) if opts.ts_shape => no_proof_run(&format!("<w:t>{n}</w:t>")),
+        (false, Some(n)) if opts.ts_shape() => no_proof_run(&format!("<w:t>{n}</w:t>")),
         // Word 写的是 `PAGEREF <书签> \h` 字段，静态数字是它的缓存结果
         (false, Some(n)) => match &e.bookmark {
             Some(b) => format!(
@@ -170,7 +184,7 @@ fn entry_body(e: &TocEntry, opts: &TocOptions) -> String {
         },
     };
     let body = format!("{text}{tab}{page}");
-    match (&e.bookmark, opts.ts_shape || !opts.hyperlinks) {
+    match (&e.bookmark, opts.ts_shape() || !opts.hyperlinks) {
         (Some(b), false) => format!(
             r#"<w:hyperlink w:anchor="{}">{body}</w:hyperlink>"#,
             crate::xml::entities::escaped_attr(b),

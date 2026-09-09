@@ -35,7 +35,7 @@ pub struct VmlDisplay {
     pub shapes: Vec<VmlShape>,
     /// `w:object` 的嵌入对象信息。
     pub ole: Option<OleInfo>,
-    /// 框套得比 [`MAX_BOX_NESTING`] 还深，摊平表在那一层截断（`MOD_TOO_DEEP`）。
+    /// 框套得比 `MAX_BOX_NESTING` 还深，摊平表在那一层截断（`MOD_TOO_DEEP`）。
     pub too_deep: bool,
 }
 

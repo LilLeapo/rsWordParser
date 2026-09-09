@@ -55,17 +55,19 @@ pub struct FlowId(pub u32);
 
 /// 流根元素（`SPAN-01`）。
 pub fn is_flow_root(name: QName) -> bool {
-    name.ns == NsId::W
-        && matches!(
-            name.local,
-            LocalName::Body
-                | LocalName::TxbxContent
-                | LocalName::Hdr
-                | LocalName::Ftr
-                | LocalName::Footnote
-                | LocalName::Endnote
-                | LocalName::Comment
-        )
+    name == QName { ns: NsId::W14, local: LocalName::Txbx }
+        || name.ns == NsId::W
+            && matches!(
+                name.local,
+                LocalName::Body
+                    | LocalName::TxbxContent
+                    | LocalName::Hdr
+                    | LocalName::Ftr
+                    | LocalName::Footnote
+                    | LocalName::Endnote
+                    | LocalName::Comment
+                    | LocalName::DocPartBody
+            )
 }
 
 /// 范围标记元素（`SPAN-01`/`SPAN-03`）：不进入内容序列，不产生 Block / Inline。
@@ -127,7 +129,9 @@ impl FlowMap {
         // (节点, 当前流)
         let mut stack: Vec<(NodeId, Option<FlowId>)> = vec![(dom.root(), None)];
         while let Some((node, mut flow)) = stack.pop() {
-            if dom.name(node).is_some_and(is_flow_root) {
+            if dom.name(node).is_some_and(|q| {
+                q.ns == NsId::W && q.local != LocalName::DocPartBody && is_flow_root(q)
+            }) {
                 let id = FlowId(u32::try_from(roots.len()).expect("flow count fits u32"));
                 roots.push(node);
                 flow = Some(id);
@@ -135,6 +139,20 @@ impl FlowMap {
             by_node[node.0 as usize] = flow;
             for &c in dom.children(node).iter().rev() {
                 stack.push((c, flow));
+            }
+        }
+        // 增量根排在全部旧流之后；构建基块各自独立，不把 glossary 整体合成一个流。
+        let mut stack = vec![(dom.root(), None)];
+        while let Some((node, mut flow)) = stack.pop() {
+            if by_node[node.0 as usize].is_none() && dom.name(node).is_some_and(is_flow_root) {
+                let id = FlowId(u32::try_from(roots.len()).expect("flow count fits u32"));
+                roots.push(node);
+                flow = Some(id);
+            }
+            let assigned = by_node[node.0 as usize].or(flow);
+            by_node[node.0 as usize] = assigned;
+            for &child in dom.children(node).iter().rev() {
+                stack.push((child, assigned));
             }
         }
         FlowMap { by_node, roots }

@@ -9,39 +9,123 @@ env:
   RUSTFLAGS: -D warnings
 
 jobs:
-  rust:
-    runs-on: ubuntu-latest
+  cli:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test -p rsword-cli
+      - run: cargo test -p rsword-mcp
+      - run: cargo build -p rsword-cli -p rsword-mcp
+      - run: node tools/ci/check-agent-transports.mjs target/debug/rsword target/debug/rsword-mcp
+  rust:
+    strategy:
+      matrix:
+        features: ["", "compat-ts"]
+    env:
+      RSWORD_FEATURES: ${{ matrix.features }}
+    runs-on: ubuntu-latest
+    steps:
+      # ubuntu-latest 的 / 只有约 14 GB 空余，本仓库 debug + release 两套 target
+      # （加 wasm 依赖）会把它撑爆：症状是 release 链接期 `ld terminated with
+      # signal 7 [Bus error]` 与 `rustc-LLVM ERROR: No space left on device`，
+      # 看着像 LLVM 崩溃，其实是磁盘满。先腾掉用不到的预装 SDK。
+      - name: Free runner disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+            /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/powershell
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
+          df -h /
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Review model snapshot changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE_SHA" ] || [[ "$BASE_SHA" =~ ^0+$ ]]; then
+            BASE_SHA=$(git hash-object -t tree /dev/null)
+          fi
+          tools/ci/model-snapshot-diff.sh "$BASE_SHA" HEAD 20
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
+      - name: BIND-11 default downstream boundary
+        if: matrix.features == ''
+        run: tools/ci/check-native-default.sh
       - run: cargo fmt --all --check
-      - run: cargo clippy --workspace --all-targets
-      - run: cargo test --workspace
+      - run: cargo clippy --features "$RSWORD_FEATURES" --workspace --all-targets
+      - name: BIND-11 stable API documentation
+        run: cargo check --features "$RSWORD_FEATURES" -p rsword --lib
+        env:
+          RUSTFLAGS: --cfg rsword_api_docs -D warnings
+      - run: cargo doc --features "$RSWORD_FEATURES" --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+      # BIND-11：实际执行示例，写入临时目录，绝不改语料。
+      - run: |
+          cargo run --features "$RSWORD_FEATURES" -p rsword --example read -- corpus/synthetic/layout-fidelity__001.docx
+          cargo run --features "$RSWORD_FEATURES" -p rsword --example edit -- corpus/synthetic/layout-fidelity__001.docx "$RUNNER_TEMP/rsword-example-edited.docx"
+          cargo run --features "$RSWORD_FEATURES" -p rsword --example read -- "$RUNNER_TEMP/rsword-example-edited.docx"
+          cargo run --features "$RSWORD_FEATURES" -p rsword --example agent -- corpus/synthetic/layout-fidelity__001.docx
+      - run: cargo test --features "$RSWORD_FEATURES" --workspace
+      - run: cargo test --features "$RSWORD_FEATURES" --workspace --release
       # TEST-03 / TEST-10 M1 门：synthetic 文本段落用例与 TS 的差分为 0（KNOWN_DIFFS 除外）
-      - run: cargo run -p diff-parse -- --scope text
+      - if: matrix.features == 'compat-ts'
+        run: cargo run --features "$RSWORD_FEATURES" -p diff-parse -- --scope text
       # TEST-10 M2 门：再放开字段 / 范围标记 / 批注 / 注释的用例（文本域的超集）
-      - run: cargo run -p diff-parse -- --scope fields
+      - if: matrix.features == 'compat-ts'
+        run: cargo run --features "$RSWORD_FEATURES" -p diff-parse -- --scope fields
       # TEST-10 M3 门：再放开表格的用例（字段域的超集；单元格里的绘图归 M4）
-      - run: cargo run -p diff-parse -- --scope tables
+      - if: matrix.features == 'compat-ts'
+        run: cargo run --features "$RSWORD_FEATURES" -p diff-parse -- --scope tables
       # TEST-10 M4 门：全部用例里绘图域（image* / textboxes[] / rule* / oleProgId）的差分为 0
-      - run: cargo run -p diff-parse -- --scope drawing
+      - if: matrix.features == 'compat-ts'
+        run: cargo run --features "$RSWORD_FEATURES" -p diff-parse -- --scope drawing
       # TEST-10 M5 门：全部用例里页眉页脚域（hfParts / header* / footer* / watermarkText）的差分为 0
-      - run: cargo run -p diff-parse -- --scope hf
+      - if: matrix.features == 'compat-ts'
+        run: cargo run --features "$RSWORD_FEATURES" -p diff-parse -- --scope hf
       # TEST-10 M6 门：全部用例里嵌入对象域（chartDisplay / diagramDisplay / formulaDisplay / inks / 嵌入块上的字段）的差分为 0。
       # M6 门（嵌入对象域，6.8 起归零；6.2–6.7 期间曾用 --max-unknown 做棘轮：214 → 170 → 160 → 43）
-      - run: cargo run -p diff-parse -- --scope embedded
+      - if: matrix.features == 'compat-ts'
+        run: cargo run --features "$RSWORD_FEATURES" -p diff-parse -- --scope embedded
       # TEST-10 第八道门（M6 6.9）：全部语料、全部路径的差分除 KNOWN_DIFFS.md 外为 0
-      - run: cargo run -p diff-parse -- --scope all
+      - if: matrix.features == 'compat-ts'
+        run: cargo run --features "$RSWORD_FEATURES" -p diff-parse -- --scope all
       # 真实 Word 语料（docs/07，2026-09-07 收到 124 份）：TS 参考输出的差分除 KNOWN_DIFFS.md 外为 0
-      - run: cargo run -p diff-parse -- --corpus corpus/real
-      # M7 7.10：ParsedDoc 走 JS 绑定那条路，两个语料上都必须与原生一模一样
-      - run: cargo run -p diff-parse -- --scope all --via js
-      - run: cargo run -p diff-parse -- --corpus corpus/real --via js
-      # JS 绑定的 wasm 产物构建得出来（`wasm-bindgen` 的后处理在发布流程里做，不在这道门）
-      - run: cargo build -p rsword-js --profile wasm-release --target wasm32-unknown-unknown
+      - if: matrix.features == 'compat-ts'
+        run: cargo run --features "$RSWORD_FEATURES" -p diff-parse -- --corpus corpus/real
+      # M8′ 8.0②（COMPAT-02/08 的绑定等价门）：真实 wasm 产物与原生逐字节相同。
+      # wasm-bindgen-cli 必须与 Cargo.lock 的 wasm-bindgen 同版本（见 TOOLS.md）
+      - run: cargo install wasm-bindgen-cli --version 0.2.128 --locked
+      - run: tools/build-js.sh --features "$RSWORD_FEATURES"
+      # BIND-01/05/06/09：原生会话的真实 wasm 边界。
+      - run: node tools/js-parity/native_parity.mjs --pkg crates/rsword-js/pkg ${{ matrix.features == 'compat-ts' && '--compat' || '' }}
+      # 全语料 + 真实语料经绑定 parse：先与原生输出比字节，再走差分（仍为 0 未知差异）。
+      # 原生的绑定等价（不起 node）由 `tests/js_binding.rs` 在 cargo test --features "$RSWORD_FEATURES" 里覆盖。
+      - if: matrix.features == 'compat-ts'
+        run: cargo run --features "$RSWORD_FEATURES" -p diff-parse -- --via-js --scope all
+      - if: matrix.features == 'compat-ts'
+        run: cargo run --features "$RSWORD_FEATURES" -p diff-parse -- --via-js --corpus corpus/real
+      # 208 份保存用例与「无字体 + 四种 UI 语言」的 blank 经绑定逐字节相同。
+      # RSWORD_JS_PARITY_REQUIRED=1：门控测试在变量缺失时断言失败，门不许静默通过
+      - if: matrix.features == 'compat-ts'
+        run: node tools/js-parity/save_parity.mjs --pkg crates/rsword-js/pkg --corpus corpus/synthetic --out /tmp/save-js
+      - if: matrix.features == 'compat-ts'
+        run: RSWORD_JS_SAVE_DIR=/tmp/save-js RSWORD_JS_PARITY_REQUIRED=1 cargo test --features "$RSWORD_FEATURES" -p rsword --test save_blocks js_binding_save_bytes_parity
+      - if: matrix.features == 'compat-ts'
+        run: node tools/js-parity/blank_parity.mjs --pkg crates/rsword-js/pkg --out /tmp/blank-js --fonts "宋体,Yu Mincho,Malgun Gothic,PMingLiU"
+      - if: matrix.features == 'compat-ts'
+        run: RSWORD_JS_BLANK_DIR=/tmp/blank-js RSWORD_JS_PARITY_REQUIRED=1 cargo test --features "$RSWORD_FEATURES" -p rsword --test js_binding
+      # 回归（评审复盘）：--out 指向不存在的嵌套目录，runner 必须自己建出来并正常完成
+      - if: matrix.features == 'compat-ts'
+        run: node tools/js-parity/blank_parity.mjs --pkg crates/rsword-js/pkg --out /tmp/blank-fresh/nested --fonts "SimSun"
   # fuzz 在 .github/workflows/fuzz.yml（手动 / 每周）、TEST-07 的 1,000 条随机序列在
-  # random.yml（每天），都不挂在每次 push 上；`cargo test --workspace` 里已经跑了缺省的 100 条。
+  # random.yml（每天），都不挂在每次 push 上；`cargo test --features "$RSWORD_FEATURES" --workspace` 里已经跑了缺省的 100 条。

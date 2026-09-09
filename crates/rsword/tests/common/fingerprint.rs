@@ -20,6 +20,7 @@
 use rsword::edit::EditSession;
 use rsword::package::PartId;
 use rsword::xml::{CanonOptions, Dirty, Dom, LocalName, NodeId, NsId, QName, canonical};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelFingerprint {
@@ -57,7 +58,11 @@ pub fn diff_str(a: &str, b: &str) -> Option<(String, String)> {
     if a == b {
         return None;
     }
-    let common = a.bytes().zip(b.bytes()).take_while(|(x, y)| x == y).count();
+    let mut common = a.bytes().zip(b.bytes()).take_while(|(x, y)| x == y).count();
+    // 不同的中文字符可能共享 UTF-8 前缀；错误报告自身不能切在字符中间 panic。
+    while !a.is_char_boundary(common) {
+        common -= 1;
+    }
     let start = a[..common].char_indices().rev().nth(60).map_or(0, |(i, _)| i);
     let cut = |s: &str| {
         let from = s.char_indices().map(|(i, _)| i).find(|&i| i >= start).unwrap_or(s.len());
@@ -107,9 +112,21 @@ fn render(s: &EditSession, view: View, main_only: bool) -> String {
     for part in list {
         let Some(dom) = s.package().part(part).dom() else { continue };
         out.push_str("PART\n");
-        let mut w = Walker { dom, view, out: &mut out, para: Para::default() };
+        let mut w = Walker {
+            dom,
+            view,
+            out: &mut out,
+            para: Para::default(),
+            pending: Vec::new(),
+            marks: LogicalMarks::new(s, part, dom),
+            outer_marks: Vec::new(),
+        };
         w.walk(dom.root());
         w.flush_para();
+        w.outer_marks.sort();
+        for (boundary, kind, id) in &w.outer_marks {
+            w.out.push_str(&format!("OUTER-M|{boundary}:{kind}/{id}\n"));
+        }
     }
     out
 }
@@ -136,6 +153,85 @@ struct Walker<'a> {
     view: View,
     out: &'a mut String,
     para: Para,
+    pending: Vec<Visit>,
+    marks: LogicalMarks,
+    // 段外标记属于规范块流的边界，不得撑出一个本视图已删除的空段。
+    outer_marks: Vec<(usize, String, String)>,
+}
+
+// DOM + Span 才是事实；物理标记可延迟到保存时移动。这里独立把内容边界放进
+// 遍历事件，不调用保存/物化，也不把已编辑锚点重新从旧物理标记解析出来。
+#[derive(Default)]
+struct LogicalMarks {
+    before: HashMap<NodeId, Vec<(NodeId, String, String)>>,
+    tail: HashMap<NodeId, Vec<(NodeId, String, String)>>,
+    physical: HashSet<NodeId>,
+}
+
+impl LogicalMarks {
+    fn new(s: &EditSession, part: PartId, dom: &Dom) -> Self {
+        use rsword::span::RangeClass::*;
+        let mut out = Self::default();
+        // 懒索引尚未建立时独立解析；不能因会话是否访问过 spans() 而改用物理顺序。
+        let parsed;
+        let index = match s.spans_built(part) {
+            Some(index) => index,
+            None => {
+                parsed = rsword::span::SpanIndex::build(dom);
+                &parsed
+            }
+        };
+        for span in index.live().filter(|sp| !sp.implicit) {
+            // SPAN-09：输入中半开的 Clean 孤儿不物化，保留其物理字节；
+            // 它没有完整范围含义，不能按会被保存流程忽略的单端锚点重定位。
+            if span.start.is_none() || span.end.is_none() {
+                continue;
+            }
+            let names = match span.class() {
+                Bookmark => ("BookmarkStart", "BookmarkEnd"),
+                Comment => ("CommentRangeStart", "CommentRangeEnd"),
+                Permission => ("PermStart", "PermEnd"),
+                MoveFrom => ("MoveFromRangeStart", "MoveFromRangeEnd"),
+                MoveTo => ("MoveToRangeStart", "MoveToRangeEnd"),
+                CustomXmlIns => ("CustomXmlInsRangeStart", "CustomXmlInsRangeEnd"),
+                CustomXmlDel => ("CustomXmlDelRangeStart", "CustomXmlDelRangeEnd"),
+                CustomXmlMoveFrom => ("CustomXmlMoveFromRangeStart", "CustomXmlMoveFromRangeEnd"),
+                CustomXmlMoveTo => ("CustomXmlMoveToRangeStart", "CustomXmlMoveToRangeEnd"),
+            };
+            for (anchor, kind, start) in [(span.start, names.0, true), (span.end, names.1, false)] {
+                let Some(a) = anchor else { continue };
+                if let Some(marker) = a.marker {
+                    out.physical.insert(marker);
+                }
+                let id = if start {
+                    span.kind.bookmark_name().unwrap_or(span.pair_id())
+                } else {
+                    span.pair_id()
+                };
+                let items = rsword::span::content_children(dom, a.container);
+                assert!(a.index as usize <= items.len(), "指纹遇到越界 Span 锚点");
+                // sectPr 不占内容下标；末端锚点仍在收尾节属性之前（SPAN-08）。
+                let trailing = dom
+                    .semantic_children(a.container)
+                    .skip_while(|n| items.last().is_some_and(|last| n != last))
+                    .find(|&n| dom.is(n, wq(LocalName::SectPr)));
+                let slots = match items.get(a.index as usize).copied().or(trailing) {
+                    Some(node) => out.before.entry(node).or_default(),
+                    None => out.tail.entry(a.container).or_default(),
+                };
+                slots.push((a.container, kind.into(), id.into()));
+            }
+        }
+        out
+    }
+}
+
+// 显式的离开事件保留原递归遍历的后序动作，深包装层数不占调用栈。
+enum Visit {
+    Enter(NodeId),
+    Tail(NodeId),
+    CloseContainer(&'static str),
+    CloseParagraph { ppr: Option<NodeId>, mark_gone: bool },
 }
 
 fn wq(local: LocalName) -> QName {
@@ -263,7 +359,9 @@ impl Walker<'_> {
         if !self.para.open {
             return;
         }
-        let p = std::mem::take(&mut self.para);
+        let mut p = std::mem::take(&mut self.para);
+        // 同一逻辑边界的标记顺序不是范围含义；保存可能重排等位标记。
+        p.marks.sort_by(|a, b| (a.2, &a.0, &a.1).cmp(&(b.2, &b.0, &b.1)));
         // 标记已删 + 内容全空 → 这一段在本视图里不存在
         if p.mark_gone
             && p.text.is_empty()
@@ -293,7 +391,35 @@ impl Walker<'_> {
         self.out.push('\n');
     }
 
-    fn walk(&mut self, node: NodeId) {
+    fn walk(&mut self, root: NodeId) {
+        self.pending.push(Visit::Enter(root));
+        while let Some(visit) = self.pending.pop() {
+            match visit {
+                Visit::Enter(node) => {
+                    if let Some(marks) = self.marks.before.get(&node).cloned() {
+                        for (owner, k, id) in marks {
+                            self.record_mark(owner, k, id);
+                        }
+                    }
+                    self.enter(node);
+                }
+                Visit::Tail(node) => {
+                    if let Some(marks) = self.marks.tail.get(&node).cloned() {
+                        for (owner, k, id) in marks {
+                            self.record_mark(owner, k, id);
+                        }
+                    }
+                }
+                Visit::CloseContainer(end) => {
+                    self.flush_para();
+                    self.out.push_str(end);
+                }
+                Visit::CloseParagraph { ppr, mark_gone } => self.finish_paragraph(ppr, mark_gone),
+            }
+        }
+    }
+
+    fn enter(&mut self, node: NodeId) {
         if self.dom.node(node).dirty == Dirty::Deleted {
             return;
         }
@@ -327,9 +453,8 @@ impl Walker<'_> {
                     // 不追踪时立刻就没了，两者没法在同一个视图里比。可见的几何在
                     // `w:tc` 的 `w:tcW` 与单元格结构里，那两样都在指纹里。
                     self.out.push_str(&format!("TBL{{{props}\n"));
+                    self.pending.push(Visit::CloseContainer("}TBL\n"));
                     self.descend(node);
-                    self.flush_para();
-                    self.out.push_str("}TBL\n");
                     return;
                 }
                 LocalName::Tr => {
@@ -355,9 +480,8 @@ impl Walker<'_> {
                     // 有 6 个，`accepted` / `rejected` 一个都没有，含没带 `*Change` 的那 3 个），
                     // 而本引擎不动未编辑的字节（不变式 1）。比它等于比 Word 的归一化行为。
                     self.out.push_str(&format!("TR{{{props}\n"));
+                    self.pending.push(Visit::CloseContainer("}TR\n"));
                     self.descend(node);
-                    self.flush_para();
-                    self.out.push_str("}TR\n");
                     return;
                 }
                 LocalName::Tc => {
@@ -381,9 +505,8 @@ impl Walker<'_> {
                         &[LocalName::CellIns, LocalName::CellDel, LocalName::CellMerge],
                     );
                     self.out.push_str(&format!("TC{{{props}\n"));
+                    self.pending.push(Visit::CloseContainer("}TC\n"));
                     self.descend(node);
-                    self.flush_para();
-                    self.out.push_str("}TC\n");
                     return;
                 }
                 LocalName::SectPr => {
@@ -430,9 +553,8 @@ impl Walker<'_> {
     }
 
     fn descend(&mut self, node: NodeId) {
-        for c in self.dom.children(node).to_vec() {
-            self.walk(c);
-        }
+        self.pending.push(Visit::Tail(node));
+        self.pending.extend(self.dom.children(node).iter().rev().copied().map(Visit::Enter));
     }
 
     fn paragraph(&mut self, p: NodeId) {
@@ -460,9 +582,12 @@ impl Walker<'_> {
             self.para.open = true;
             self.para.ppr = props;
         }
-        for c in dom.children(p).to_vec() {
-            self.walk(c);
-        }
+        self.pending.push(Visit::CloseParagraph { ppr, mark_gone });
+        self.descend(p);
+    }
+
+    fn finish_paragraph(&mut self, ppr: Option<NodeId>, mark_gone: bool) {
+        let dom = self.dom;
         // 段落级 `sectPr` 在 `walk` 里已经作为 `SECT` 输出（它是 `pPr` 的子节点，
         // 而 `pPr` 整体被跳过——这里补一条）
         if let Some(x) = ppr
@@ -505,19 +630,21 @@ impl Walker<'_> {
             match q.local {
                 LocalName::RPr => {}
                 LocalName::T => {
-                    let t = dom.text(c).unwrap_or_default().into_owned();
+                    let t = live_children(dom, c).filter_map(|n| dom.text(n)).collect::<String>();
                     self.push_text(&t);
                 }
                 LocalName::DelText => {
                     if self.view == View::Reject {
-                        let t = dom.text(c).unwrap_or_default().into_owned();
+                        let t =
+                            live_children(dom, c).filter_map(|n| dom.text(n)).collect::<String>();
                         self.push_text(&t);
                     }
                 }
                 LocalName::InstrText | LocalName::DelInstrText => {
                     let keep = q.local == LocalName::InstrText || self.view == View::Reject;
                     if keep {
-                        let t = dom.text(c).unwrap_or_default().into_owned();
+                        let t =
+                            live_children(dom, c).filter_map(|n| dom.text(n)).collect::<String>();
                         self.para.instr.push(t);
                     }
                 }
@@ -548,6 +675,9 @@ impl Walker<'_> {
     }
 
     fn marker(&mut self, n: NodeId, q: QName) {
+        if self.marks.physical.contains(&n) {
+            return;
+        }
         let dom = self.dom;
         let kind = format!("{:?}", q.local);
         let id = dom
@@ -555,7 +685,18 @@ impl Walker<'_> {
             .or_else(|| dom.attr_value(n, wq(LocalName::Id)))
             .map(|v| v.into_owned())
             .unwrap_or_default();
-        let at = self.text_len();
-        self.para.marks.push((kind, id, at));
+        self.record_mark(dom.parent(n).unwrap_or(dom.root()), kind, id);
+    }
+
+    fn record_mark(&mut self, owner: NodeId, kind: String, id: String) {
+        if self.dom.is(owner, wq(LocalName::P))
+            || self.dom.ancestors(owner).any(|n| self.dom.is(n, wq(LocalName::P)))
+        {
+            self.para.marks.push((kind, id, self.text_len()));
+        } else {
+            self.flush_para();
+            // 位置是本指纹规范结构前缀的长度，不使用不稳定的 arena id。
+            self.outer_marks.push((self.out.len(), kind, id));
+        }
     }
 }

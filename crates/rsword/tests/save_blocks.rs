@@ -1,3 +1,4 @@
+#![cfg(feature = "compat-ts")]
 //! `SaveBlock[]` 兼容映射（任务 1.13，`EDIT-04` / `COMPAT-08`）：用 TS 测试导出的
 //! `corpus/synthetic/*.save.<k>.json`（`blocks` + `options`）驱动 `apply_save_blocks`，保存后主 part 与
 //! 其中的 `documentXml`（TS `saveDocx` 的输出）按 `xml::canon` 规范化后相等——等价于任何 XPath 子集
@@ -102,12 +103,7 @@ const INTENTIONAL: &[(&str, &str)] = &[
 #[test]
 fn compat_08_save_blocks_match_ts_save_docx_output() {
     let dir = common::corpus_dir("synthetic");
-    let mut files: Vec<_> = std::fs::read_dir(&dir)
-        .unwrap()
-        .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|p| p.file_name().is_some_and(|n| n.to_string_lossy().contains(".save.")))
-        .collect();
-    files.sort();
+    let files = common::save_cases();
     let opts = CanonOptions { ignore_attr: &ignore_attr };
     let mut passed = Vec::new();
     let mut skipped: BTreeMap<String, Vec<String>> = BTreeMap::new();
@@ -133,7 +129,7 @@ fn compat_08_save_blocks_match_ts_save_docx_output() {
             Err(e) => panic!("{file}: {e}"),
         };
         let saved = session
-            .save_with(&outcome.save_options)
+            .save_with_compat(&outcome.save_options)
             .unwrap_or_else(|e| panic!("{file}: save: {e}"));
         if case["outputIdenticalToSource"] == Value::Bool(true) {
             // TS 自己记录的"输出与源文件逐字节相同"：我们也必须走不变式 1 的短路
@@ -306,7 +302,7 @@ fn compare_changed_parts(
         let Ok(outcome) = apply_save_blocks(&mut session, &case["blocks"], &case["options"]) else {
             continue;
         };
-        let Ok(saved) = session.save_with(&outcome.save_options) else { continue };
+        let Ok(saved) = session.save_with_compat(&outcome.save_options) else { continue };
         let Ok(mut pkg) = Package::open(&saved) else { continue };
         for (name, content) in parts {
             if name == "word/document.xml" {
@@ -386,4 +382,44 @@ fn rel_multiset(dom: &Dom) -> BTreeMap<(String, String, String), usize> {
         }
     }
     out
+}
+
+/// `--via js`（M8′ 8.0②，`COMPAT-08` 的绑定等价门）：同一批保存用例经 wasm 绑定 `save`
+/// 的输出与原生逐字节相同；原生被拒（`EditUnsupported`）的用例绑定也以同一个 `code` 拒绝。
+/// 产物由 `tools/js-parity/save_parity.mjs` 先落 `$RSWORD_JS_SAVE_DIR`；缺省 `cargo test`
+/// 跳过并打印（`common::via_js_dir!`；`RSWORD_JS_PARITY_REQUIRED=1` 时缺变量直接失败）。
+#[test]
+fn js_binding_save_bytes_parity() {
+    let js = common::via_js_dir!("RSWORD_JS_SAVE_DIR");
+    let dir = common::corpus_dir("synthetic");
+    let mut checked = 0usize;
+    for path in common::save_cases() {
+        let file = path.file_name().unwrap().to_string_lossy().to_string();
+        let case: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        let stem = file.split(".save.").next().unwrap().to_string();
+        let Ok(bytes) = std::fs::read(dir.join(format!("{stem}.docx"))) else { continue };
+        let mut session = EditSession::open(&bytes).unwrap();
+        match apply_save_blocks(&mut session, &case["blocks"], &case["options"]) {
+            Ok(outcome) => {
+                let saved = session.save_with_compat(&outcome.save_options).unwrap();
+                let js_name = format!("{file}.docx");
+                assert_eq!(
+                    common::binding_bytes(&js, &js_name),
+                    saved,
+                    "{file}: 绑定 save 与原生不等"
+                );
+            }
+            Err(Error::Edit { code: DiagCode::EditUnsupported, .. }) => {
+                let js_name = format!("{file}.docx");
+                assert_eq!(
+                    common::binding_error_code(&js, &js_name),
+                    DiagCode::EditUnsupported.as_str(),
+                    "{file}: 绑定应同样以 EDIT_UNSUPPORTED 拒绝"
+                );
+            }
+            Err(e) => panic!("{file}: {e}"),
+        }
+        checked += 1;
+    }
+    println!("js_binding_save_bytes_parity: {checked} 份用例逐字节相同");
 }

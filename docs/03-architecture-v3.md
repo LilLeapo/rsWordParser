@@ -1,10 +1,12 @@
 # docx 引擎 Rust 重写：核心架构 v3（冻结稿）
 
 > 取代 `rust-parser-design-v2.md`。前置规格：`rust-parser-dev-guide.md`（现有 TS 实现）。
-> 范围：方案 A。Rust 整体替换 `parseDocx` 与 `saveDocx`，产出编辑器消费的模型（含显示模型），不做布局与渲染。
+> 范围：**独立的 docx 读写内核**。`.docx` 字节 → `Document` 模型 → `EditOp` → 新 `.docx` 字节；不做布局与渲染。
+> 交付：**Rust crate 优先**，wasm / CLI 是它的绑定。第一个使用者是「文件级工具 + Agent」（`spec/20` M9′），不是任何编辑器。
 > 状态：分层、六个核心类型、不变式为**冻结项**；EMF/WMF 转换、媒体句柄切换时点、`resolve` 的 Word 实测校准为**开放项**。
 > 修订：v3.1（2026-09-03）吸收第二轮评审：命名空间作用域与子树移动、词法前缀保留、Anchor 坐标系与文档序比较、UTF-16 偏移协议、物理 run 与段、DOM + Span 为规范状态、不变式 2 措辞、校验来源区分。此后不再改大结构，进入 M0/M1。
 > 修订：v3.2（2026-09-03）第三轮评审的五处实现级修正：补 `NsId::Xmlns`；跨 part 移动改为 `rehome`（relationship 是 part 作用域，不能保持 `Clean`）；Span 增加 `FlowId`；内联坐标流规定原子为 `U+FFFC`（1 个 UTF-16 单位）；`MutationPlan` 必须 validate → 原子 commit。架构评审到此结束。
+> 修订：**v3.3（2026-09-08）项目负责人改定范围**。原范围「方案 A：Rust 整体替换 genoffice `parseDocx` / `saveDocx`」**撤销**。genoffice 从「使用者」退为「测试基准」——只读地跑它的 TS 引擎生成 `corpus/**/*.expected.json`，不再切换它的引擎、不再迁移它的编辑器、不再删它的代码。受影响：§1.1、§1.2、§3.5、§8.1、§9、§11、§12（M8 / M9 重划为 M8′ / M9′）、§14。**分层、六个核心类型、三条不变式一字未动**，故为 v3.3 而非 v4。理由与取舍见 `spec/19` 开头。
 > 基线：工作树 `f105f36`，2026-09-03。
 
 ---
@@ -25,14 +27,15 @@
 
 ### 1.1 输入输出
 
-- 解析：`.docx` 字节 → `Document`；第一阶段经 `compat_ts` 适配器输出与今天 TS `ParsedDoc` 字段兼容的 JSON。
-- 修改：`EditOp` 序列（第一阶段兼容今天的 `SaveBlock[]`）→ 新 `.docx` 字节。
+- 解析：`.docx` 字节 → `Document`；对外经 `bind/native/` 输出模型 JSON（`spec/21-bind.md`）。
+- 修改：`EditOp` 序列 → 新 `.docx` 字节。
+- `compat_ts` 适配器（TS `ParsedDoc` 兼容 JSON、`SaveBlock[]` 映射）自 v3.3 起**只作差分测试用**，不在对外接口内，见 §14。
 
 ### 1.2 不做
 
 - 分页、行布局、字体度量、渲染、像素级碰撞与避让。
 - `.doc`、RTF、ODT。L1 与 L3 之间留事件流缝，将来可接。
-- 解析器内的排版决策。现有 TS 中的碰撞位移、画布分栏、WordArt 字号压缩、连线抓取带、`wrapTopAndBottom` band、页宽 4680 twips 猜测、样式填充烘进单元格，全部移到渲染器或由 `resolve` 提供带来源的数据。
+- 解析器内的排版决策。现有 TS 中的碰撞位移、画布分栏、WordArt 字号压缩、连线抓取带、`wrapTopAndBottom` band、页宽 4680 twips 猜测、样式填充烘进单元格，一律不做：能变成**带来源的事实**的由 `resolve` 给（栏宽、条件格式、有效字号），其余留给调用方的渲染层。v3.3 之后本项目没有自己的渲染器，这些启发式不搬家、直接不存在。
 
 ### 1.3 不变式
 
@@ -143,7 +146,7 @@ impl Dom {
 
 ### 3.5 MediaStore
 
-`MediaId → {part, mime, bytes}`；EMF/WMF/EMZ/WMZ、TIFF 的转换是可插拔服务，默认惰性。模型只引用 `MediaId`。`compat_ts` 阶段内联 dataURL；之后改句柄 + 二进制表。EMF/WMF 转换 Rust 侧暂不实现，输出 `MediaKind::Metafile` 由 TS 侧继续转换。
+`MediaId → {part, mime, bytes}`；EMF/WMF/EMZ/WMZ、TIFF 的转换是可插拔服务，默认惰性。模型只引用 `MediaId`。**对外只给句柄 + 按需取字节，不内联 dataURL**（内联只保留在 `compat_ts` 的测试投影里）。EMF/WMF 转换 Rust 侧暂不实现，输出 `MediaKind::Metafile`，转换由调用方接管。
 
 ---
 
@@ -561,7 +564,7 @@ pub struct InlinePos { para: NodeId, offset: Utf16Offset }   // 段落内容序�
 pub enum BlockPos { Start(NodeId /* container */), After(NodeId /* block */), End(NodeId) }
 ```
 
-- **偏移单位对外统一为 UTF-16 code unit**，与 JS 编辑器一致（`"A😀B".length === 4`）。Rust 内部字符串为 UTF-8，`Segment.utf16_len` 缓存每段长度，边界处 O(段数) 转换。M9 若前端协议改变再考虑标量或字素单位；在此之前不引入第二种单位。
+- **偏移单位对外统一为 UTF-16 code unit**，与 JS 编辑器一致（`"A😀B".length === 4`）。Rust 内部字符串为 UTF-8，`Segment.utf16_len` 缓存每段长度，边界处 O(段数) 转换。v3.3 拍定：**不改**——对外协议长期是 UTF-16 code unit，不引入第二种单位。
 - **规范内联坐标流**：段落的坐标流由内容序列拼成，规则固定为：run 文本 → 其实际 UTF-16 长度；`Inline::Field` 与任何 `Inline::Atom` → 一个 `U+FFFC`（OBJECT REPLACEMENT CHARACTER），长度 1；范围标记 → 长度 0。字段的显示结果（`3`、`Figure 7`）**不参与坐标**，因此 PAGE 从 `3` 变成 `10` 不会移动后面的偏移。编辑器与 `compat_ts` 用同一坐标流。
 
 ### 8.2 EditOp
@@ -645,7 +648,7 @@ pub struct MutationResult { dirty_nodes: SmallVec<[NodeId; 4]>, affected_contain
 
 `refresh` 只重建 `affected_containers` 覆盖的段落/块投影。修订生成属于计划的一部分（`track_changes` 开启时）：`InsertText` 产生 `w:ins` 包裹的新 run；`DeleteRange` 把被删 run 改为 `w:del` 包裹并把 `w:t` 换成 `w:delText`；属性修改产生 `rPrChange`/`pPrChange` 并携带旧值快照；段落合并产生段落标记删除。关闭时直接修改。
 
-第一阶段兼容 `SaveBlock[]`：`original` → 节点保持 `Clean`；`generated` → `ReplaceInlines` + `SetParaProps`；`xml` → 解析片段为 `New` 子树插入。
+`SaveBlock[]` 兼容映射（测试专用，见 §14）：`original` → 节点保持 `Clean`；`generated` → `ReplaceInlines` + `SetParaProps`；`xml` → 解析片段为 `New` 子树插入。
 
 ---
 
@@ -707,7 +710,7 @@ serialize(node):
 
 ## 11. 测试
 
-1. **差分**：TS 脚本把 87 个测试文件的合成 docx 落盘为 `.docx` + 期望 JSON；Rust `compat_ts` 输出与之 diff。
+1. **差分**：TS 脚本把 87 个测试文件的合成 docx 落盘为 `.docx` + 期望 JSON；Rust `compat_ts` 输出与之 diff。v3.3 起这是**唯一**用到 genoffice 的地方，而且是只读的（跑它、不改它）。
 2. **字节保真**：每个语料无编辑往返字节相同；编辑单节点后其他干净节点原文子串全部出现。
 3. **保存 XPath 断言**：对生成的 `document.xml` 断言 schema 顺序、字段结构、rels 一致性。
 4. **真实语料**：落盘语料目录，每个文档一个最小断言与一次往返。
@@ -731,8 +734,13 @@ serialize(node):
 | M5 | 页眉页脚复用正文管线、脚注尾注、参考文献、fontTable、节、保护、`CompatFacts`；`resolve/` 首版含 toggle 校准 fixture | hf/notes/sections 场景；toggle fixture 通过 |
 | M6 | 图表、SmartArt、lockedCanvas、OLE、`MediaStore` | chart/smartart/ole 场景 |
 | M7 | L4 + 保存：`EditOp` 全集、Span 变换、修订生成（`track_changes`）、保存前校验、部件写回、`SaveBlock[]` 兼容；与 `saveDocx` 差分 | 现有 roundtrip/text-patch/table-edit/textbox-edit/ai-track-revisions 场景通过；随机编辑序列测试通过 |
-| M8 | 编辑器切换到 Rust 引擎（`compat_ts`） | e2e 通过 |
-| M9 | 新模型 JSON、原生 `EditOp` 接口、媒体句柄、渲染器接管排版启发式；删除 `compat_ts` | 编辑器迁移完成 |
+| ~~M8~~ | ~~编辑器切换到 Rust 引擎（`compat_ts`）~~ | **v3.3 撤销**：genoffice 不再是使用者 |
+| ~~M9~~ | ~~新模型 JSON、原生 `EditOp` 接口、媒体句柄、渲染器接管排版启发式；删除 `compat_ts`~~ | **v3.3 重划**：rsword 半边前移为 M8′，genoffice 半边（启发式搬家、编辑器迁移、删 TS 引擎）取消 |
+| [ ] M8′ 实现完成，门 2 / 门 4 阻挡已解除 | 原生协议 `spec/21-bind.md`：会话与句柄、模型 JSON 投影、`EditOp` JSON、媒体句柄、`resolve` 查询；Rust crate 公共 API 定型；`*.model.json` 自快照回归网；`compat_ts` 降为测试专用 feature | 全语料 `document()` 过 JSON Schema 且 serde 往返幂等；公共 API 冻结并有文档；自快照进 CI；默认构建不含 `compat_ts`；**`spec/18` 7.4 措辞已于 2026-09-09 由项目负责人裁定（还原列宽序列，不是克隆快照子元素树），门 2 / 门 4 的规范阻挡解除；判定证据见 `docs/04` §17** |
+| [ ] M9′ 实现完成，验收未齐 | Agent 接口层：文本投影与稳定锚点、大纲与定位查询、按需取块、变更摘要、token 预算；文件级工具（CLI / MCP server）交付 | Agent 不看 XML 就能读懂并正确改一份真实文档；工具端到端跑通；**22 项任务未全部验收（W7 尚不支持执行），桌面 Word 与真实 Agent 门 5 待验证，门 2 措辞待订正，不宣告六门全绿** |
+
+M8′ 实施项已完成（8.7）；门 2 / 门 4 仍因 `spec/18` 7.4 的待裁定措辞暂不判，
+因此保留未勾选状态。§8.2 清单是否升版另待负责人批准。
 
 ---
 
@@ -754,9 +762,9 @@ serialize(node):
 
 - **schema 顺序表完整性**：从 XSD 生成并用 LO 输出交叉校验；条件顺序需人工审阅。
 - **Strict 生成成本**：属性表编解码与 `NamespaceContext` 从 M0/M1 就要按 flavor 工作；Strict 禁用 VML，水印等 VML 生成在 Strict 包中需要 DrawingML 替代或拒绝并诊断。
-- **`compat_ts` 成本**：复现今天的半解析字体字段、控制字符、dataURL 是纯负担，限定一个模块并设删除期限（M9）。
+- **`compat_ts` 的处置**（v3.3 改判）：v3.3 之前判为「纯负担、M9 删除」——那是因为它当时是要长期维护的**对外契约**。genoffice 退为测试基准之后改判：它是 1,065 份文档差分的对接点，是目前最强的正确性证据，**保留但降为 `#[cfg(feature = "compat-ts")]` 的测试专用件**，默认构建不含、不进公共 API、不承诺稳定。真正要还的债换成「先把 `*.model.json` 自快照网建起来」（`spec/19` M8′）。
 - **toggle 与 resolve 校准**：规范文字有歧义，必须以 Word 实测 fixture 为准，M5 前建好 fixture 集。
 - **跨段字段编辑边界**：`Block` 结果段落只读，与今天一致；放开需逐字段评估生成器能力。
 - **DOM 内存**：arena 节点约 48–64 字节，100 MB `document.xml` 约 200 万节点，可接受；文本用区间不复制。
 - **EMF/WMF**：Rust 侧暂不转换；长期方案（移植到 `tiny-skia`、FFI 复用 JS 转换器）待定。
-- **基线之后 TS 的变化**：`ooxml-normalize.ts`（装载时归一化为 Transitional）与本方案的 Strict 策略相反，M8 切换时 Strict 文档的行为会改变，需在发布说明中写明；`font-table.ts` 已纳入 6.7。
+- **基线之后 TS 的变化**：`ooxml-normalize.ts`（装载时归一化为 Transitional）与本方案的 Strict 策略相反——v3.3 之后不存在「切换引擎的发布说明」这回事，这条差异登记在 `KNOWN_DIFFS.md` 与 `docs/04` §8 即可；`font-table.ts` 已纳入 6.7。

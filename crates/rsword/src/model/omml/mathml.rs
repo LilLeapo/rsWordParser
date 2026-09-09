@@ -1,6 +1,6 @@
 //! OMML → MathML Core（TS `ommlToMathML`，`math.ts` 55–376 的逐字移植）。
 //!
-//! 迭代求值：[`Item`] 是一个待求值的项（元素 / 槽位 / 行 …），任务栈里 `Eval(item)` 展开出子项与一个
+//! 迭代求值：`Item` 是一个待求值的项（元素 / 槽位 / 行 …），任务栈里 `Eval(item)` 展开出子项与一个
 //! `Finish(item, arity)`；`Finish` 从结果栈取回 `arity` 个子结果拼成自己的字串。一个 3,000 层的公式
 //! 只是一个长一点的栈。
 

@@ -10,7 +10,7 @@ use crate::xml::interner::Interner;
 use crate::xml::names::{LocalName, NsId, QName};
 
 /// 跨 DOM 的名字映射：已知名原样，`Other` / `Unbound` 按字符串在目标 interner 里重新登记。
-fn map_qname(src: &Dom, q: QName, target: &mut Interner) -> QName {
+pub(crate) fn map_qname(src: &Dom, q: QName, target: &mut Interner) -> QName {
     let si = src.interner();
     let ns = match q.ns {
         NsId::Other(id) => NsId::Other(target.intern(si.resolve(id))),

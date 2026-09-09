@@ -22,7 +22,19 @@ use crate::xml::{Dirty, Dom, LocalName, NodeId, NsId, QName};
 ///
 /// [`crate::model::Document::rebuild`] 从 0 起按文档序编号；[`crate::edit::EditSession`] 随后把仍然
 /// 存在的承载节点换回它上次拿到的 id（arena 里 `NodeId` 稳定），新节点才拿新号。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    ::serde::Serialize,
+    ::serde::Deserialize,
+)]
+#[serde(transparent)]
 pub struct RevisionId(pub u32);
 
 named_enum! {

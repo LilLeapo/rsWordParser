@@ -1,6 +1,6 @@
 //! `EDIT-03` 操作实现（M1 子集）。每个操作是一个或多个 plan/commit 阶段；事务边界在
 //! [`EditSession::apply`]（失败整体回滚）。这里的函数只读 DOM 与投影、产出 [`MutationPlan`]，
-//! 写入全部经 [`EditSession::commit_plan`]。
+//! 写入全部经 `EditSession::commit_plan`。
 
 use crate::diag::{DiagCode, Diagnostic};
 use crate::error::{Error, Result};
@@ -62,6 +62,48 @@ pub(crate) fn run(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<
 
 fn dispatch(s: &mut EditSession, op: EditOp, ctx: &EditContext) -> Result<MutationResult> {
     match op {
+        EditOp::SetSources { sources } => declarations(
+            s,
+            crate::save::options::CompatSaveOptions {
+                sources: Some(sources),
+                ..Default::default()
+            },
+        ),
+        EditOp::AddNumberingDefinition { definition } => declarations(
+            s,
+            crate::save::options::CompatSaveOptions {
+                numbering_new_defs: vec![definition],
+                ..Default::default()
+            },
+        ),
+        EditOp::RestartNumbering { restart } => declarations(
+            s,
+            crate::save::options::CompatSaveOptions {
+                numbering_restart_nums: vec![restart],
+                ..Default::default()
+            },
+        ),
+        EditOp::SetThemeFonts { fonts } => declarations(
+            s,
+            crate::save::options::CompatSaveOptions {
+                theme_fonts: Some(fonts),
+                ..Default::default()
+            },
+        ),
+        EditOp::SetThemeColors { colors } => declarations(
+            s,
+            crate::save::options::CompatSaveOptions {
+                theme_colors: Some(colors),
+                ..Default::default()
+            },
+        ),
+        EditOp::UpsertStyle { style } => declarations(
+            s,
+            crate::save::options::CompatSaveOptions {
+                style_upserts: vec![style],
+                ..Default::default()
+            },
+        ),
         EditOp::InsertText { at, text, props } => insert_text(s, at, &text, props, ctx),
         EditOp::DeleteRange { from, to } => delete_range(s, from, to, ctx),
         EditOp::SetRunProps { from, to, patch } => set_run_props(s, from, to, &patch, ctx),
@@ -190,6 +232,12 @@ fn not_tracked_name(op: &EditOp) -> Option<&'static str> {
         EditOp::SetShapeStyle { .. } => "SetShapeStyle",
         EditOp::InsertSectionBreak { .. } => "InsertSectionBreak",
         EditOp::DeleteSectionBreak { .. } => "DeleteSectionBreak",
+        EditOp::SetSources { .. } => "SetSources",
+        EditOp::AddNumberingDefinition { .. } => "AddNumberingDefinition",
+        EditOp::RestartNumbering { .. } => "RestartNumbering",
+        EditOp::SetThemeFonts { .. } => "SetThemeFonts",
+        EditOp::SetThemeColors { .. } => "SetThemeColors",
+        EditOp::UpsertStyle { .. } => "UpsertStyle",
         EditOp::SetChartData { .. } => "SetChartData",
         EditOp::ReplacePartXml { .. } => "ReplacePartXml",
         EditOp::ReplacePartBytes { .. } => "ReplacePartBytes",
@@ -216,7 +264,10 @@ fn set_document_settings(
         patch,
         s.flavor_in(Some(part)),
     );
-    s.commit_plan(plan)
+    let result = s.commit_plan(plan)?;
+    // 声明属性的 SetAttr 没有 affected_blocks；不能依赖块刷新更新 settings。
+    s.rebuild()?;
+    Ok(result)
 }
 
 /// 只支持主 part 的操作（书签 / 批注 / 字段：它们的索引与 id 都只对主 part 建过）。位置带别的
@@ -286,7 +337,13 @@ fn op_targets(s: &EditSession, op: &EditOp) -> Vec<(Option<PartId>, NodeId)> {
         | EditOp::SetCommentText { .. }
         | EditOp::RemoveBookmark { .. } => Vec::new(),
         // 图表 part 与整 part 替换：目标是别的 part，不在正文树上（任务 6.6）
-        EditOp::SetChartData { .. }
+        EditOp::SetSources { .. }
+        | EditOp::AddNumberingDefinition { .. }
+        | EditOp::RestartNumbering { .. }
+        | EditOp::SetThemeFonts { .. }
+        | EditOp::SetThemeColors { .. }
+        | EditOp::UpsertStyle { .. }
+        | EditOp::SetChartData { .. }
         | EditOp::ReplacePartXml { .. }
         | EditOp::ReplacePartBytes { .. } => Vec::new(),
         EditOp::ReplaceImageMedia { drawing, .. } => vec![(None, *drawing)],
@@ -434,14 +491,35 @@ fn clone_attrs(dom: &Dom, from: NodeId, to: &mut NewElement) {
     }
 }
 
-/// 段文本设为 `text`：有唯一文本子节点 → `SetText`（`w:t` 由序列化补 preserve）；否则替换整个元素。
+/// 段文本设为 `text`：提交时即保留边界空白，不能等到保存才补 preserve。
 pub(crate) fn set_segment_text(dom: &Dom, seg_node: NodeId, text: &str, plan: &mut MutationPlan) {
+    let preserve = dom.name(seg_node).is_some_and(|name| {
+        name.ns == NsId::W
+            && matches!(
+                name.local,
+                LocalName::T | LocalName::DelText | LocalName::InstrText | LocalName::DelInstrText
+            )
+    });
     match sole_text_child(dom, seg_node) {
-        Some(tn) => plan.node_edits.push(NodeEdit::SetText { node: tn, text: text.to_string() }),
+        Some(tn) => {
+            plan.node_edits.push(NodeEdit::SetText { node: tn, text: text.to_string() });
+            // 否则连续编辑间的模型重建会裁掉新增的首尾空白，令后续 UTF-16 坐标漂移。
+            if preserve {
+                plan.node_edits.push(NodeEdit::SetAttr {
+                    node: Target::Node(seg_node),
+                    name: QName::new(NsId::Xml, LocalName::Space),
+                    value: "preserve".into(),
+                });
+            }
+        }
         None => {
             let name = dom.name(seg_node).expect("segment is an element");
             let mut e = NewElement::new(name);
             clone_attrs(dom, seg_node, &mut e);
+            if preserve {
+                e.attrs.retain(|(name, _)| *name != QName::new(NsId::Xml, LocalName::Space));
+                e.push_attr(QName::new(NsId::Xml, LocalName::Space), "preserve");
+            }
             plan.node_edits.push(NodeEdit::Replace { old: seg_node, node: e.with_text(text) });
         }
     }
@@ -790,6 +868,7 @@ fn insert_text(
     ctx: &EditContext,
 ) -> Result<MutationResult> {
     let part = s.part_or_main(at.part);
+    s.spans_of(part)?;
     let mut diags = Vec::new();
     let text = sanitize_text(text, part, &mut diags);
     if text.is_empty() {
@@ -815,6 +894,8 @@ fn insert_text(
     }
     // 路径 1：紧邻 / 落在 Text 段 → 直接写该 w:t 的文本节点。
     // 追踪时只有落在**本作者自己的** `w:ins` 里才能这么做（Word：自己插的可以接着改）
+    // 范围端点处必须插独立内容项，让 SPAN-06 按 affinity 移动锚点；
+    // 直接扩写原 run 会吞掉这个边界，使追踪与不追踪的批注覆盖范围不同。
     let own_ins = |seg: NodeId| {
         tracker
             .as_ref()
@@ -824,6 +905,18 @@ fn insert_text(
         && !has_control_chars(&text)
         && let Some((seg_node, seg_text, byte)) = direct_text_target(tb, &loc)
         && own_ins(seg_node)
+        && !s.spans_built(part).is_some_and(|index| {
+            index.live().any(|span| {
+                [span.start, span.end].into_iter().flatten().any(|a| {
+                    crate::span::content::item_containing(dom0, a.container, seg_node).is_some_and(
+                        |i| {
+                            (byte == 0 && a.index == i)
+                                || (byte == seg_text.len() && a.index == i + 1)
+                        },
+                    )
+                })
+            })
+        })
     {
         let new_text = format!("{}{}{}", &seg_text[..byte], text, &seg_text[byte..]);
         let mut plan = MutationPlan::new(part);
@@ -2314,9 +2407,10 @@ fn content_boundary(s: &EditSession, para: NodeId, at: InlinePos) -> Result<u32>
     match locate(tb, at.offset)? {
         Loc::Boundary { index } => {
             let len = crate::span::content_len(dom, para);
-            match tb.inlines.get(index).and_then(Inline::node) {
+            match tb.inlines.get(index) {
                 // 段落层的内容项：inline 可能在 `w:hyperlink` / `w:ins` 里，取它在段落下的那一层
-                Some(n) => {
+                Some(inline) => {
+                    let n = boundary_node(s, at.part, tb, inline, Side::Right)?;
                     Ok(crate::span::boundary_before(dom, para, top_child(dom, para, n))
                         .unwrap_or(len))
                 }
@@ -2442,6 +2536,10 @@ fn add_comment(
     let loc_from = locate(tb, from.offset)?;
     split_at(s, from, loc_from, &mut result)?;
 
+    // 端点可能位于受保护的 inline 内；必须在创建 part/关系之前拒绝。
+    let a = content_boundary(s, from.para, from)?;
+    let b = content_boundary(s, to.para, to)?;
+
     // 批注部件与条目（`SAVE-05` + `EDIT-06`）
     let comments_part = s.ensure_comments_part()?;
     // `w:id` 要在**范围索引**里也没人用过：条目删了、范围还留在索引里等物化时，只看
@@ -2488,8 +2586,6 @@ fn add_comment(
     result.absorb(s.commit_plan(cplan)?);
 
     // 正文：范围标记 + reference run
-    let a = content_boundary(s, from.para, from)?;
-    let b = content_boundary(s, to.para, to)?;
     let dom = s.dom();
     let start_before = content_site(dom, from.para, a);
     let end_before = content_site(dom, to.para, b);
@@ -2726,6 +2822,7 @@ fn set_comment_text(
 ///
 /// 条目在就改（正文重写、属性按需改），不在就新建；**不动正文里的范围标记**——标记的位置由
 /// 块的 `commentStarts` / `commentEnds` / `commentIds` 决定。
+#[cfg(feature = "compat-ts")]
 pub(crate) fn upsert_comment_entry(
     s: &mut EditSession,
     id: &str,
@@ -3795,4 +3892,27 @@ pub(super) fn update_block_field(
         });
     }
     s.commit_plan(plan)
+}
+
+// BIND-03 v3：复用声明 part 计划，事务仍由 apply/apply_all 统一持有。
+fn declarations(
+    s: &mut EditSession,
+    opts: crate::save::options::CompatSaveOptions,
+) -> Result<MutationResult> {
+    crate::save::options::decl::ensure_parts(s, &opts)?;
+    let (plans, diagnostics) =
+        crate::save::options::plan_all(s.package_mut(), &opts, false, false)?;
+    for plan in &plans {
+        plan.validate(s.package().part(plan.part).dom().ok_or_else(|| {
+            Error::edit(DiagCode::EditTargetOpaque, "declaration part has no DOM")
+        })?)?;
+    }
+    let mut result = MutationResult::default();
+    for plan in plans {
+        result.absorb(s.commit_plan(plan)?);
+    }
+    result.diagnostics.extend(diagnostics.iter().cloned());
+    s.record(diagnostics);
+    s.rebuild()?;
+    Ok(result)
 }

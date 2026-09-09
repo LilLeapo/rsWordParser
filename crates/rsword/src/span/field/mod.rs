@@ -19,5 +19,17 @@ pub use index::{FieldForm, FieldIndex, FieldSpan};
 pub use instr::{FieldPolicy, InstrToken, Instruction, Keyword, NESTED_PLACEHOLDER};
 
 /// 字段的会话内稳定 id。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    ::serde::Serialize,
+    ::serde::Deserialize,
+)]
+#[serde(transparent)]
 pub struct FieldId(pub u32);

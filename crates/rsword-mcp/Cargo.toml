@@ -1,0 +1,19 @@
+[package]
+name = "rsword-mcp"
+version = "0.0.1"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+[dependencies]
+rsword-agent-query = { path = "../../tools/agent-query" }
+serde_json = "1"
+jsonschema = { version = "0.55.0", default-features = false }
+[features]
+compat-ts = ["rsword-agent-query/compat-ts"]
+[dev-dependencies]
+stats_alloc = "0.1.10"
+rsword = { path = "../rsword" }
+zip.workspace = true
+[lints]
+workspace = true

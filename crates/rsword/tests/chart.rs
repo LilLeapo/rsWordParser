@@ -9,6 +9,7 @@ mod common;
 
 use std::collections::BTreeMap;
 
+#[cfg(feature = "compat-ts")]
 use rsword::bind::compat_ts::{
     EmbeddedKind, block_of_path, diff_json, embedded_kind, known_diffs, parsed_doc, split_known,
 };
@@ -17,7 +18,9 @@ use rsword::model::units::EMU_PER_PX;
 use rsword::model::{Block, ChartColor, ChartDisplay, Display, Document, ProtectedKind};
 use rsword::package::Package;
 use rsword::resolve::drawingml::{Rgb, hex};
-use serde_json::{Value, json};
+use serde_json::Value;
+#[cfg(feature = "compat-ts")]
+use serde_json::json;
 
 #[derive(Default)]
 struct Stats {
@@ -429,6 +432,7 @@ fn test_09_hostile_chart_parts_degrade_locally() {
 /// `COMPAT-03`：语料里每个图表文档的 `parsed_doc` 与 TS golden 在图表域（图表块上的一切字段 +
 /// `extras.chartParts`）无未知差异——`--scope embedded` 在图表这一块的门。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_03_chart_projection_matches_ts_across_the_corpus() {
     let known = known_diffs();
     let (mut docs, mut displays, mut parts) = (0, 0, 0);
@@ -476,6 +480,7 @@ fn compat_03_chart_projection_matches_ts_across_the_corpus() {
     assert!(unknown.is_empty(), "{} 处图表域差异", unknown.len());
 }
 
+#[cfg(feature = "compat-ts")]
 fn parsed(docx: &[u8]) -> Value {
     let mut pkg = Package::open(docx).expect("open");
     parsed_doc(&mut pkg).expect("parsed_doc")
@@ -484,6 +489,7 @@ fn parsed(docx: &[u8]) -> Value {
 /// 一份图表块的 `parsed_doc`：`chartDisplay` 的字段换名、`wp:extent` → px、`previewText` = 标题、
 /// `extras.chartParts` 是 part 的**原文**（连 XML 声明与空白都一样，不重新序列化）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_03_chart_block_fields_and_raw_chart_part() {
     let title = r#"<c:title><c:tx><c:rich><a:p><a:r><a:t>销售</a:t></a:r><a:r><a:t>统计</a:t></a:r></a:p></c:rich></c:tx></c:title>"#;
     let part = format!(
@@ -521,6 +527,7 @@ fn compat_03_chart_block_fields_and_raw_chart_part() {
 /// 解析不出 display 的图表块（关系悬空 / part 没有带缓存的系列）：只剩 `label: "Chart"`——没有 `chartDisplay`，
 /// 也**没有** `previewText`（TS 用 `...(x ? {} : {})` 展开，`undefined` 与 `""` 不等价）；`extras.chartParts` 不收它。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_03_chart_without_display_has_neither_preview_text_nor_part_entry() {
     let dangling = common::docx_with_parts(
         &chart_paragraph(true),
@@ -544,12 +551,17 @@ fn compat_03_chart_without_display_has_neither_preview_text_nor_part_entry() {
     }
 }
 
+#[cfg(feature = "compat-ts")]
 const CX: &str = "http://schemas.microsoft.com/office/drawing/2014/chartex";
+#[cfg(feature = "compat-ts")]
 const MC: &str = "http://schemas.openxmlformats.org/markup-compatibility/2006";
+#[cfg(feature = "compat-ts")]
 const PIC: &str = "http://schemas.openxmlformats.org/drawingml/2006/picture";
+#[cfg(feature = "compat-ts")]
 const CHARTEX_PART: &str = r#"<cx:chartSpace xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex"><cx:chartData><cx:data id="0"><cx:strDim type="cat"><cx:lvl ptCount="2"><cx:pt idx="0">A</cx:pt><cx:pt idx="1">B</cx:pt></cx:lvl></cx:strDim><cx:numDim type="val"><cx:lvl ptCount="2"><cx:pt idx="0">100</cx:pt><cx:pt idx="1">-40</cx:pt></cx:lvl></cx:numDim></cx:data></cx:chartData><cx:chart><cx:plotArea><cx:plotAreaRegion><cx:series layoutId="sunburst"><cx:tx><cx:txData><cx:v>Extended</cx:v></cx:txData></cx:tx><cx:dataId val="0"/></cx:series></cx:plotAreaRegion></cx:plotArea></cx:chart></cx:chartSpace>"#;
 
 /// chartex 绘图的 `w:r`（放在 `mc:Choice` 里或裸放）。
+#[cfg(feature = "compat-ts")]
 fn chartex_run() -> String {
     format!(
         r#"<w:r><w:drawing xmlns:wp="{WP}" xmlns:a="{A}" xmlns:r="{R}"><wp:inline><wp:extent cx="2857500" cy="1905000"/><wp:docPr id="1" name="Graphic 1"/><a:graphic><a:graphicData uri="{CX}"><cx:chart xmlns:cx="{CX}" r:id="rIdCx"/></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>"#
@@ -557,12 +569,14 @@ fn chartex_run() -> String {
 }
 
 /// 回退图的 `w:r`：1 英寸的图片，extent 故意与 Choice 不同。
+#[cfg(feature = "compat-ts")]
 fn fallback_picture_run() -> String {
     format!(
         r#"<w:r><w:drawing xmlns:wp="{WP}" xmlns:a="{A}" xmlns:r="{R}" xmlns:pic="{PIC}"><wp:inline><wp:extent cx="914400" cy="914400"/><wp:docPr id="2" name="Picture 2"/><a:graphic><a:graphicData uri="{PIC}"><pic:pic><pic:blipFill><a:blip r:embed="rIdImg"/></pic:blipFill></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>"#
     )
 }
 
+#[cfg(feature = "compat-ts")]
 fn chartex_docx(paragraph: &str) -> Vec<u8> {
     let rels = format!(
         r#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdCx" Type="http://schemas.microsoft.com/office/2014/relationships/chartEx" Target="charts/chartEx1.xml"/><Relationship Id="rIdImg" Type="{R}/image" Target="media/image1.png"/></Relationships>"#
@@ -581,6 +595,7 @@ fn chartex_docx(paragraph: &str) -> Vec<u8> {
 /// 对这种 Fallback 放行），尺寸取 Choice 的 `wp:extent`；块上没有 `previewText` / `chartDisplay` / `brokenImage`。
 /// 没有回退图的 chartex 仍是 `Chart` 块：`chartDisplay` 走降级读法，`extras.chartParts` 不收 chartex part。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn compat_03_chartex_fallback_picture_becomes_an_image_block() {
     let with_fallback = format!(
         r#"<w:p><mc:AlternateContent xmlns:mc="{MC}" xmlns:cx="{CX}"><mc:Choice Requires="cx">{}</mc:Choice><mc:Fallback>{}</mc:Fallback></mc:AlternateContent></w:p>"#,

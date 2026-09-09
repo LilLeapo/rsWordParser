@@ -51,7 +51,8 @@ impl ImageWrap {
 }
 
 /// 图片所在段落的 `w:spacing`（TS `paraSpacing`）。
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ParaSpacing {
     pub before_twips: Option<i64>,
     pub after_twips: Option<i64>,
@@ -61,7 +62,8 @@ pub struct ParaSpacing {
 }
 
 /// 一张新图片（TS `NewImage`）。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NewImage {
     pub bytes: Vec<u8>,
     /// `image/png` / `image/jpeg` / `image/gif` …
@@ -82,7 +84,8 @@ pub struct NewImage {
     pub para_spacing: Option<ParaSpacing>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PosOffset {
     pub x: i64,
     pub y: i64,
@@ -110,10 +113,12 @@ pub fn extension_for(mime: &str) -> String {
     }
 }
 
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl EditSession {
     /// 把图片字节落成主 part 的媒体 part + `image` 关系，返回 `rId`。**相同字节只建一个 part**（同一会话内按
     /// `(mime, 哈希)` 去重，TS 同）；part 名 `word/media/image{N}.{ext}`（第一个空闲 N），`[Content_Types]` 缺该
     /// 扩展名的 `Default` 就补。
+    #[doc(hidden)]
     pub fn add_media(&mut self, bytes: Vec<u8>, mime: &str) -> Result<String> {
         self.add_media_with(bytes, mime, true)
     }

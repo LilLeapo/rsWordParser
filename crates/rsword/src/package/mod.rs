@@ -25,7 +25,19 @@ use crate::error::{Error, NotOoxml, Result};
 use crate::xml::{Dom, NsId, XmlError, sniff_root};
 
 /// part 在会话内的稳定编号（zip 中非目录条目的顺序）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    ::serde::Serialize,
+    ::serde::Deserialize,
+)]
+#[serde(transparent)]
 pub struct PartId(pub u32);
 
 impl PartId {
@@ -77,14 +89,10 @@ enum PartDom {
     Bytes(Vec<u8>),
 }
 
-/// 一个 part 的写前镜像（`EDIT-05`）：整体替换（`ReplacePartXml` / `ReplacePartBytes`）之前由
-/// [`Package::snapshot_part`] 记下，回滚时 [`Package::restore_part`] 放回。字段对外不可见——它就是 `Part` 的
-/// 那几个会被替换改动的字段。
+/// 旧事务镜像的保留类型（观察期）；完整会话回滚已不再构造它。
+#[derive(Clone)]
 pub struct PartImage {
-    dom: PartDom,
-    is_xml: bool,
-    replaced: bool,
-    flavor: Option<PartFlavor>,
+    _private: (),
 }
 
 impl Clone for PartDom {
@@ -102,7 +110,7 @@ impl Clone for PartDom {
 /// 新建 part 的 `zip_index`：原 zip 里没有对应条目（`SAVE-05` / `SAVE-06`：新 part 追加在末尾）。
 pub const NO_ZIP_ENTRY: u32 = u32::MAX;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Part {
     pub id: PartId,
     pub uri: PartUri,
@@ -170,7 +178,7 @@ impl Part {
 }
 
 /// 打开的 docx 包：part 表、关系图、flavor、内容类型。
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Package {
     zip: ZipPackage,
     parts: Vec<Part>,
@@ -519,12 +527,6 @@ impl Package {
         part.replaced = true;
     }
 
-    /// 整体替换之前的写前镜像（`EDIT-05`）。
-    pub(crate) fn snapshot_part(&self, id: PartId) -> PartImage {
-        let p = &self.parts[id.idx()];
-        PartImage { dom: p.dom.clone(), is_xml: p.is_xml, replaced: p.replaced, flavor: p.flavor }
-    }
-
     /// 资源回收（`SAVE-07` `prune_orphans`）：删掉一个 part。zip 条目不再写出，`find` 找不到它；
     /// `Part` 记录本身留在表里（`PartId` 不重排）。
     pub(crate) fn remove_part(&mut self, id: PartId) {
@@ -534,14 +536,6 @@ impl Package {
         if self.by_uri.get(&uri) == Some(&id) {
             self.by_uri.remove(&uri);
         }
-    }
-
-    pub(crate) fn restore_part(&mut self, id: PartId, image: PartImage) {
-        let p = &mut self.parts[id.idx()];
-        p.dom = image.dom;
-        p.is_xml = image.is_xml;
-        p.replaced = image.replaced;
-        p.flavor = image.flavor;
     }
 
     pub fn find(&self, uri: &PartUri) -> Option<PartId> {

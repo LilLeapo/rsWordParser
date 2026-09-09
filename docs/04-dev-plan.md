@@ -287,6 +287,26 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 
 ## 8. 实现偏差记录（相对 `docs/03` / `spec` 的措辞，语义等价或补充）
 
+### 8.0 待裁定、待订正与待追认总表（9.8 收尾）
+
+9.9 补充：评审者已提供 W1/W5/W6 的真实 **CLI** 会话结果，原话记入 docs/12 §11；不是本轮真实 MCP stdio 会话，
+因此下表 MCP 形态和缺省 result shape 的待办不自动关闭，22 项分母不变。
+
+此表集中记录当前待办；下方逐轮记录保留沿革，不以实施勾选代替裁定或真实验收。
+
+| 待办 | 谁待办 | 当前执行边界 | 阻挡范围 |
+| --- | --- | --- | --- |
+| ~~spec/18 7.4 的 tblGridChange reject 快照措辞~~ **2026-09-09 已裁定，出表** | — | 规范已改为「还原列宽序列，不还原已删列的 gridCol」；实现不变 | 门 2 / 门 4 阻挡解除，见 §17 的 8.8 |
+| docs/03 §8.2 与新增操作清单脱节 | 项目负责人批准升版 | 冻结段落不改；实际操作表与编译器测试为证 | 架构清单同步未完成，不等于引擎缺少这些操作 |
+| spec/20 的 C（Office.js）形态断言 | 项目负责人订正；评审者提交补证要求 | A 文件级工具执行；B/C 缺宿主/API 版本与实际输入输出证据 | 不阻挡 A 实施；不能宣称已实证排除 B/C |
+| spec/20 门 2 的每字符 InlinePos 全称措辞 | 项目负责人订正；评审者已批准 spec/22 两类锚点 | 源文字与呈现锚点可区分、往返且不伪造编辑位置 | 按旧字面不能判门 2；已有 AGENT-02 自动化证据不替代上层订正 |
+| corpus 内并列 *.model.json 的位置 | 项目负责人追认 | 按建议执行，快照与 TS 期望并存、各自修改纪律不变 | 不阻挡快照回归；位置决定未获最终追认 |
+| MCP 原生 Rust 形态 | 项目负责人追认 | 按建议执行、待追认；工具声明与传输层分离 | 不阻挡连接及真实会话试验；不宣称形态已最终裁定 |
+| MCP 缺省 result shape | 评审者在真实 Agent 门 5 实测两形态后确认 | 缺省 text、structured 可选，共同分页、实际计费 | 缺省最终确认及门 5 实证待办；传输冒烟不能代替真实 Agent |
+
+R10“warnings 只有机器码”是派工口误，不是 spec/20 原文；现有 message 与用户说明/能力影响/未知码回退的区别见 docs/12。
+22 项任务、Word 证据与 W7 执行缺口另见 docs/12；它们不会因上述待办表归档而自动通过。
+
 **验收政策（2026-09-04 定）**：TS `docx-engine` 是参考实现，不是验收权威。目标是**功能等价或更强**；
 与 TS 逐字节 / 逐字段一致只是发现回归的手段。凡是有意做得不同的地方都要有出处：解析侧记在
 `crates/rsword/src/bind/compat_ts/KNOWN_DIFFS.md` 的 ```known-diffs 块，保存侧记在
@@ -295,6 +315,38 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 
 | 处 | 规范写法 | 实现 | 原因 |
 | --- | --- | --- | --- |
+| `AGENT-04`，Linux CI pattern 错误被超时遮蔽 | 非法 regex 应报 BAD_PATTERN；搜索仍须可终止 | submit 在开始计时前调用与 worker 相同的 pattern 编译函数预检，不读文档；Regex 不跨进程传递，worker 仍自行构建并执行，原 deadline 不变 | `\w{100000}` 编译撞 size_limit 的时间在慢机器超过 250 ms，父进程先杀掉 worker；新增 1 ms 断言在修复前实跑得到 TIMEOUT，修复后必须 BAD_PATTERN，不接受二选一错误 |
+| `AGENT-04/10`，9.9 真实 CLI 可用性反馈 | truncated/nextCursor 已在，但读者把当前页数量误当总数 | find 增加 pageHits / hasMore，并在预算选前缀前计费；共用 schema，工具首句明确本页不是总数 | 评审者实际先误判漏命中、续读后 main 3 / all 15 相符；不把可用性问题改写为搜索漏匹配。docs/17 补源锚点到 paragraph ObjectRef 与全部 action 完整请求，寻址契约本轮不改 |
+| `AGENT-06/10`，9.7 共同分页 | 评审先要求同预算两形态分页一致，又保留各自最长前缀，要求自相矛盾 | 经评审批准，按 text / structured 两形态成本较大值选前缀；minBytes 保证两者均可容纳，usage 报实际形态成本 | spec/22 v1.4 留痕；单一游标跨形态续读，CLI/MCP 比较显式排除传输 usage 差异。缺省 text 待门 5 实测确认 |
+| `AGENT-06/10`，9.7 一致性维度 | 派工把形态、接口与传输的一致性混用；相同预算的 CLI 文件游标与 MCP 短句柄成本不同 | 经评审批准：两 MCP 形态同页；同传输各读接口共用格式；跨传输只比较同区间与续读终态的业务结果，游标双向错投具名拒绝 | large-report 在 limit=8000/maxBytes=16000 时实测 MCP 874、CLI 870 UTF-16（不是 4 字节）；不得把此结构差异通过调预算掩盖 |
+| `AGENT-10`，9.7 MCP 形态 | spec/20 待决 1 建议原生 Rust | 按建议执行、待追认；复用工具表与 Agent 会话，不引入 node 运行时 | 日后若调整传输层，工具表仍共用；真实 Agent 门 5 由评审者实测，不提前填写通过率 |
+| `AGENT-10`，9.6 文件适配 | 文件命令复用 Agent 会话、预算及游标，写失败保留原文件 | 默认输出旁生成 OUTPUT.report.json；预览跨进程校验完整指纹并重新编译；显式 native 调试仍成批事务及审计 | summary 读不可变报告；stdout 写入失败也恢复旧输出。diff 按完整投影单位序号比较，不宣称最小 diff；check 明示无桌面 Word 证据。详见 docs/18 |
+| `AGENT-09`，9.6 评审补强 | 附件校验和执行序列总 hash 原先返回同一错误，删附件校验也能过测试 | 附件级错误带 stage/operation/sha256Prefix；实际删除 SHA 条件触发独立 details 断言 | 保留两道校验及具名错误，不放宽执行 hash；错误候选/消息也按完整信封预算收缩 |
+| `AGENT-07/09`，9.5 评审订正 | 原稿同时要求合法正向 EditOpJson 与媒体不内联，但 ReplaceImageMedia.bytes 必填 | v1.3 区分执行线型与可还原审计；操作序号/字段路径/SHA-256/长度/MIME 绑定外置附件 | 还原后的规范序列与执行序列逐字节相等；缺失或不匹配具名失败，禁止跳过。原生协议不变 |
+| `TEST-07` / M7 双视图指纹，9.5 发现 | DOM + Span 的语义等价 | 文本元素改读活文本子节点；完整范围按逻辑 Span 边界投影，不调用保存/物化自证；半开孤儿按 SPAN-09 保留物理标记 | 旧 Dom::text(元素) 总是 None，FIRST/OTHER 的 T/F 相同，文字错误不可见；只读物理标记又漏掉延迟物化的位置。文字差异、待物化批注与半开书签分别有独立断言，未删除范围信息 |
+| `EDIT-02` / `SPAN-06`，9.5 发现 | 连续编辑坐标稳定，范围按 affinity 变换 | 修改 w 文本时立即保留边界空白；插入命中范围端点时走独立内容项路径 | 旧路径等保存才补 preserve，中间重建裁空白；直接扩写 run 又绕过内容边界变换，追踪与不追踪的批注起点不同。修复不改变既定 affinity |
+| 样式声明与流投影，9.5 发现 | 声明可重解析，编辑后的模型可寻址 | style_element 写 w:type 而非 w:Type；refresh_blocks 同时重建 FlowMap | 样式创建重试与追踪插入的 Agent 测试暴露；不改 FlowId 编号策略或原生协议 |
+| `SPAN-06` 修订解包，9.5 指纹补强后发现 | Move 出包裹的内容保留，包裹删除 | 存活父节点接收的移动子树不再随旧祖先判死；包裹内部边界用 ContainerMerge 平移 | cjk-layout__002 的随机序列在接受修订后把新书签端点折成反序并生成重复标记；保留每 20 步保存/重开和签名匹配最小化，缩成 22 步复现。短测试另验块级/行内包裹、标记身份、精确边界与保存后仅一对；不修改 spec/18 的待决 grid 语义 |
+| `SPAN-02` 新建空范围，9.5 扩展随机门发现 | 空范围两端统一 Right | SpanIndex::push_span 在登记时统一空范围 affinity，不能等后续变换才做 | layout-fidelity__001 / 7912911188902404317 缩成 23 步；AddComment 原先登记 Right/Left，后续插入使端点反序。短用例先在 Left != Right 断言报红，修复后检查整体随插入移动、保存重开仍只有一对，不改既定语义 |
+| M7 指纹的段外 Span，9.5 扩展随机门发现 | 块序列与 Span 索引分别参与等价比较 | 段外标记另记规范块流结构边界，名称/种类/位置不省略；末端在 sectPr 前 | m6-chart__042 的最小反例显示旧 Walker 把段外标记挂进待删除空段，制造虚假块差异。这是测试投影问题；常驻反例要求 reject 无额外段、书签保留、改名会改变指纹、物理与逻辑边界一致 |
+| `SPAN-06/10` 字段边界批注，9.5 扩展随机门发现 | 字段原子边界映射到真实内容边界 | content_boundary 复用 boundary_node，字段首节点不再误作段尾 | m6-image__020 / 16588334391582655360 缩成 10 步；短用例创建批注即检查端点顺序，随后插入及重开保持两条批注。原先 Inline::Field.node() 为 None 导致端点反序，不改变字段原子语义 |
+| `AGENT-04/07` 零长编辑边界，9.5 开发期修复 | 授权末端取 left，两端一致且不越界 | 读侧与编译器共用 hit_anchors | 本轮编译器起初使用全投影默认选择，可把首段末端匹配落到次段源文字。破坏末端条件后测试实际得到成功回执并报红；恢复后必须具名拒绝且状态不变，段首插入仍成功。不是旧读侧缺陷 |
+| `AGENT-04`，9.4 回归发现 | worker 就绪后提交请求，超时终止并回收 | 分离 ready 握手与 pending 请求 inode，写完 pending 再 rename；保留期限与 kill/wait | fc5ada8 的 ready 复用方式存在迟到写入覆盖请求的竞态；常驻延迟写描述符用例可稳定复现，恢复旧实现会红。原 compat 异常退出缺 stderr，不据此断言它唯一由该竞态引起 |
+| `AGENT-06`，9.4 派工措辞澄清 | 派工原文要求 BIND-10 与 Agent 游标对齐，易被读成改动 BIND-10 | 经评审批准：原生无参整份及 totalBlocks/truncated 契约不变、原生无游标；有界与唯一游标格式仅在 Agent 层，复用原生 blockRange/fields/depth 选择 | spec/21 与 spec/22 本来一致，歧义来自派工措辞；未修改 spec/21。跨 Agent 接口误用与原生响应不变有常驻测试 |
+| `AGENT-04`，9.3 评审订正 | 零长命中两端一律 right | spec/22 v1.2：默认 right，所选流或授权范围末端 left，两端一致、归属不越界 | 与 AGENT-02 流末规则对齐，末端右侧没有界内字符；中间/流末/授权范围末端分别测试并反查锚点 |
+| `AGENT-01/02`，9.2 评审订正 | 单元格被称作独立“子流” | spec/22 v1.1 改为 ObjectRef 选择的子范围；原生 FlowId 不拆，按对象身份及覆盖区间去重 | 与 SPAN-01 对齐，避免将既有跨单元格范围变成非法跨流。测试锁住父表展开与显式选择逐字符一致 |
+| `SPAN-01`，9.2 评审增补 | 流根漏掉外部文本框与构建基块 | 追加 `w14:txbx` / 每个 `w:docPartBody` 的流身份；旧编号保留、新编号追加；无流内容容器报 `SPAN_NO_FLOW` | 纯增量，不改变既有范围含义；常驻全语料无流段落数精确为 0。glossary 不自动投影正文，每基块计 glossary 并报告身份/段落数/原因 |
+| `RES-09` / `AGENT-01`，9.2 | 列表使用实际编号，不能猜 | 新增 resolve::numbering 的只读 list_markers；无法可靠格式化时返回 None，投影给占位符和诊断 | 当前数字格式支持与明确降级范围登记 docs/14，不将尚未支持的自定义/地区格式猜成十进制 |
+| `TEST-10` M8′ media 基准 | 最大三份真实文档的媒体读取 | `corpus/real/misc/large-report.docx` 没有原有媒体，改测向该会话新增的 1 KiB 图片句柄；其他两份读取原有媒体 | 测量方法偏差：该一项不是源文档媒体读取，docs/05 单独标注，不能视作三份均有真实媒体 |
+| `spec/20` 门 2 措辞 | 每个投影字符都映射到 InlinePos 并往返 | **spec/20 待订正**：合成前缀/管道/占位符没有真实编辑位置，原字面不可满足。经本轮批准，spec/22 AGENT-02 按源文字/呈现两类可区分锚点起草；每字符必属一类且双向回到原位置，两类计数随投影返回 | 呈现锚点只读，AGENT-07 返回带 owner id 的 AGENT_NOT_EDITABLE，禁止平移。spec/20 不由本次改动，报负责人订正 |
+| `spec/20` 形态判断；R10 派工前提 | B 重载必丢撤销栈、C 整份替换受限被写成确定判断 | **spec/20 待订正**：B/C 缺宿主版本与具体操作的实测证据，docs/12 只保留初判及补证步骤；A 已定不变 | “warnings 只有机器码”不在 spec/20，是派工口误。现有 message 已确认，AGENT-01 补稳定说明/能力影响/未知 code 回退，不将口误登记成规范原文缺陷 |
+| `spec/20` 9.0 形态实测 | B 的重载撤销栈、C 的片段输出阻碍需实测记录 | 当前工作树缺宿主版本、操作步骤和结果记录，本轮没有 Windows/Office.js 宿主复现；docs/12 区分初判与证据，列补证步骤 | A 已经批准，不重开形态选择；B/C 实测证据仍待补，9.0 文档/测量随后已获复核通过，不将复核等同于宿主实测 |
+| `docs/03` §8.2，M8′ 收尾 | 冻结 EditOp 清单尚未收编后续操作 | **清单脱节待批**：原登记的 34 项及 8.3 新增六族已在 BIND-03 的 66 变体清单中；是否升 v3.4 由负责人裁定，本次不改 §8.2 | 只更新获授权的 §12 实施进度，不擅自升架构版本 |
+| `TEST-07`，8.6 包级诊断门洞 | `invariants_clean` 只查会话诊断 | 同时检查 `package.diagnostics()`；release 的 `SAVE-02` 违规记录在包上，旧检查会假绿。新增故意删 gridCol 的门自检，debug 必须 Err，release 必须由包级诊断被门捕获 | 未放宽诊断过滤，也不把已知输入损伤算作引擎违规；解释此前 release 随机门为何漏报 |
+| `EDIT-03` / `spec/18` 7.4，未追踪编辑 × 待决快照（未解决） | `restore()` 删除当前容器子元素并整体克隆历史快照，不与当前状态调和 | 未追踪编辑落在带未解决 `*Change` 的同一容器上，reject 仍可能悄悄回退它；涉及 `pPrChange` / `rPrChange` / `tcPrChange` / `trPrChange`，也包括无掉列的纯宽度 `tblGridChange` | 结果合法但语义错误：结构不变式不报错，保存两视图门只验证保存前后等价，缺少“保留后续未追踪改动”的独立语义 oracle；7.4 的 `revision_free()` 还跳过了相邻的已有修订目标。本次只修复破坏 `SAVE-02` 的列实例，其余留待协议层裁定交互语义，不记作已解决 |
+| `spec/18` 7.4（**2026-09-09 已裁定，偏差消除**） | 原写「TableGridChange Reject = tblGrid 换成快照克隆」 | 项目负责人裁定改为语义描述：还原快照所记的**列宽序列**，本轮修订已删除的列不还原其 `gridCol`；还原的是宽度，不是快照子元素树。`spec/18` 原文已按此改，实现无需变更 | 实现（同批掉格只摘标记、保留存活列当前宽度、纯宽度快照仍还原、非法几何具名 Err 并完整回滚）本来就是这个语义，此前只是规范措辞对不上，故门 2 / 门 4 暂不判。措辞落地后两门按现有证据判绿（见 §17）。**未解决的另一半仍在上一行**：未追踪编辑 × 待决快照的交互不因本裁定关闭 |
+| `TEST-10` / `spec/21` 待决 4，M8′ 8.6 | 自快照位置待定 | 按负责人未反对的建议，`corpus/**/*.model.json` 与 DOCX / TS 期望并列；**待追认**。普通测试只读，显式更新必须在提交中说明原因与影响面；CI 超过 20 份变动提示人工复核 | 自有输出可演进，不能混同禁止手改的 `*.expected.json` / `*.save.*.json`；任一快照漂移仍硬失败 |
+| `EDIT-05`，8.6 随机门发现 | 失败事务保持 DOM / Span / Model 不变，允许快照回滚 | 原生外层事务改为完整 `EditSession` 写前快照，失败直接恢复，嵌套复用；替代仅恢复被写 DOM 再 rebuild | 原部分快照遗漏新 part/关系、诊断历史与修订 ID 分配状态。新增定向回归；额外克隆成本实测见 docs/05，未放宽断言 |
 | `docs/03` §4.1 `Lex.name` | 原始限定名在 `Lex` | `Element::lex_name: Option<Range<u32>>`，与 `Attr::lex_name` 对称 | `None` 直接表达"改名 / New，需按作用域生成前缀"；`Lex` 只管位置 |
 | `docs/03` §4.4 `Mce` | 四个字段 | 多一个 `ignorable: bool` | 语义遍历需要按节点缓存"属于可忽略且未理解的命名空间"，否则每次重算作用域 |
 | `PKG-05` `Relationship` | `{id, kind, target, raw_type}` | 另有 `family: Option<PartFlavor>`、`node: NodeId` | flavor 判定要用关系类型的族别；写回要定位 `.rels` 节点 |
@@ -460,6 +512,18 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | `EDIT-03 AcceptRevision / RejectRevision` 的粒度 | 一条修订 | 一个**字段**、一张表的**列改动**整个一起解决 | 追踪删除时每个内容项各包一层 `w:del`（7.2 的锚点规则），一个字段的 begin / 指令 / separate / 结果 / end 就分在好几条修订里；单独接受其中一条会丢半个字段，另一半成孤儿（`FLD-13` 从此每次保存都失败）。表格同理：`tblGridChange` 与 `cellIns` / `cellDel` 是同一次列改动的两面，只解决一面网格与格数就对不上（`SAVE_TABLE_GRID`）。批量解决时网格快照排在最后还原——它整块换掉 `w:tblGrid`，掉格时删的 `w:gridCol` 会被它盖掉 |
 | `EDIT-03 InsertRow` 的模板行 | 克隆模板行的 `trPr` | 模板行**自己的**修订标记（`w:ins` / `w:del` / `trPrChange`）不跟着走 | 新行是这次插进来的，不是模板那次被删 / 被改的。照抄会让新行同时带 `w:ins` 与 `w:del`，`PROP-05` 的顺序自检当场拦下 |
 | `COMPAT-08` 保存差分的比较范围 | `documentXml` | 扩到 `changedParts` 里**每个被 TS 改写的 XML part**；`.rels` 比 `(类型, 目标, 模式)` 的多重集合而不是逐条（`rId` 是分配细节） | `spec/18` 门 4。10 种 part 的差异登记在 `tests/save_blocks.rs` 的 `PART_INTENTIONAL` 里，每条都写了原因：`[Content_Types].xml` 的排序、新媒体 part 的命名、我们保留 `comments.xml` 根上的 `mc:Ignorable`、水印**加进**原页眉而不是替换、注释 part 模板的繁简、`w15:paraId` 与我们多写的 `paraIdParent`、`styleUpsert` 我们写 `w:type`、`settings.xml` 我们只合并请求的字段、没给 `savedAt` 时我们不动 `dcterms:modified` |
+| `BIND-02` 的键名 = 字段名 camelCase | 无例外 | 枚举内标签键 `kind` 与载荷自己的 `kind` 字段撞名处改名：`textKind` / `protectedKind` / `atomKind` / `drawingKind` / `vmlKind` / `breakKind` / `formatKind`（表内 `~` 行带理由）；其余键严格 camelCase | 带载荷枚举平铺（`{"kind": …, …字段}`）会顶掉载荷自己的 `kind` 键——`flatten_variant_json` 遇撞名直接 panic，改名是显式登记的决定，不是静默行为 |
+| `BIND-02` 的 `QName` 投影 | — | `LocalName::Other` / `NsId::Other|Unbound`（interner 句柄）投 `"?"`；已知名投 `"w:p"` 形式 | interner 是 per-Dom 的，脱离所在 part 无法还原。触发处仅 `ProtectedKind::Unknown` / `SegmentKind::Other` / `AtomKind::Other` / `CompatFacts.flags` |
+| `BIND-02` 的依赖（`spec/19` 待决 1） | `serde` + 可选 `schemars` | 8.2 只加 **dev-dependency**：`jsonschema`（门 1 校验）与 `serde`（测试反序列化）；`serde_json` 仅在 **dev-dependencies** 开 `unbounded_depth`（深表输出语法检查；先检查 JSON 深度 ≤ 448）；**不引** `schemars`（schema 由 `model_json!` 同表生成，引它反而两套来源）；`serde` 运行期 derive 随 8.3（其规范在修订） | 核心 crate 运行期依赖不长（`spec/20` 风险 7）；schema 校验器必须现成 |
+| `Note` / `Comment` 的 `text` / `rich` / `paragraphs` | `MOD-01` 的 Note / Comment 全字段 | 三字段 skip 不投影（表内登记理由） | TS 形态半解析字段（`BIND-02` 禁止项），`model/notes.rs` 文件头注明随 `compat_ts` 在 M9 删除 |
+| `BIND-02` 的 JSON Schema | 全语料过校验 | 不用 `additionalProperties: false`；`required` = 表内恒写行 | flatten 变体是 `allOf` 拼的，`false` 会把拼进分支的 `kind` 键判掉；投影实例的键集由 `tests/native_bind.rs` 沿 schema 引用迭代检查，合并 `allOf` 声明键并选择匹配变体，动态映射继续检查值 |
+| `BIND-02` 的类型化往返验收 | JSON → `DocumentJson` → JSON 幂等 | 门 1 实际由「投影确定性 + 重建稳定性 + 键集严格性」三条替代；display 开 / 关均覆盖全部可打开语料 | 决策 2（模型 JSON 单向，只有 `EditOp` 能改文档）使类型化往返无意义；现有 `DocumentJson(pub Value)` 只是输出包装，`Value` 自往返无法验证投影层。**项目负责人已于 c19fbb3 批准并回写 BIND-02 v3**，8.3 不再修改规范 |
+
+| `BIND-03 v3` 结构化属性反向转换 | b 类正向往返与成文拒绝集 | `docs/10-native-edit-json.md` 列出 9 个拒绝载荷变体；另 57 个样例无损，合计 66；成文表、独立常量与实跑分类双向锁死 | 调试 / 审计出口不承担协议输入保真；读取后重新 emit 不能完全重建原 NewElement 时具名拒绝 |
+| `BIND-03 v3` `$patch` | Keep 缺席、Unset null、Set 值、Patch 为鉴别对象 | 生成器为 patch 生成 serde 与 schema；只跳过真正 Keep；Set/Patch 的 oneOf 与 required `$patch` 同时验证，空 Patch 保留 | 已随 c19fbb3 批准写入规范；KeyChecker 支持 additionalProperties false 的封闭对象，继续拒绝未声明属性 |
+| `BIND-03` NewElement 逃生口 | XML 字符串 / part bytes 的 base64 | 元素 XML 必须恰有一个元素，顶层文本、注释 / PI / CDATA 无法落入 NewElement 时明确拒绝；part 整体替换保持原接口能力 | NewElement 只有 Element/Text 两种子节点，不能静默吞掉不可承载内容；转换元数据只在成功 apply 后并入诊断与计数 |
+
+| `BIND-11` 公共面观察期与文档约束 | `doc(hidden)` 或 unstable feature；稳定面 missing_docs 为零 | 取 `doc(hidden)` + `rsword_api_docs` 审计构建。CI 带 `-D warnings`，成文清单 `docs/13-public-api.md` 与稳定定义、固有 impl、deny 注解位置双向锁死；新增无文档方法和摘掉注解均做破坏性验证 | 负责人 2026-09-09 决定缩小实际 semver 面推迟到观察期之后。**隐藏项仍可被下游调用，门 3 的“缺省小面”这半条未达成**；代价是维护 audit cfg、逐项注解及一条 CI 构建。serde 仍是共享运行期依赖，compat_ts 已在 8.7 完成实际编译门控，默认排除 |
 
 ## 9. 待决事项（需要项目负责人拍板）
 
@@ -474,6 +538,7 @@ crate 名 `rsword`；nightly 与 cargo-fuzz 已装）。已决的政策见 §8 �
 | 2 | ~~`m1.15-diff-tools` 何时并入 `main`~~ 已并入（2026-09-04） | M2 直接从 `main` 开分支 |
 | 3 | ~~M2 计划文档~~ 已写：`spec/13-m2-plan.md`（10 个任务 + 从 M1 带过来的债 + 5 条风险提示）；M4 计划见 `spec/15-m4-plan.md`（8 个任务，与 M2 并行） | 开工前复核第 1 条（语料基线）对 2.5 / 2.6 差分基准的影响 |
 | 4 | ~~`RES-04` toggle 与 `RES-10` 节继承的 fixture 观察值~~ **已完成**（2026-09-06，Word 网页版，见 `fixtures/resolve/README.md` 的实测记录）：八份 fixture 全部 `verified = true`，`RES-04` 的规则按实测改写（原来的"最具体胜出"在前六份里错了三份，补测的第七份又推翻了"九个 toggle 一视同仁"，于是规则改成按字段选），`spec/07` 的 `RES-04` 条目同步重写。M5 门第 4 条**通过**。<br>② `pageColor` 要不要同时写 `w:displayBackgroundShape`：**已决**——要写。复核 TS 的 `patch.ts` 时发现它其实也写（`if (options.pageColor && !xml.includes('<w:displayBackgroundShape'))`），当时那条备注记错了；5.6a 按写实现 | 当时列的两个角都已补测（见上）；剩下的未决部分转成第 5 条 |
+| 6 | **范围改定（2026-09-08）已拍板**：genoffice 只当测试基准；交付 Rust crate 优先；目标形态是 Word / WPS 的**外挂应用**（文件级工具 A 形态），对 docx 阅读与修改，后续接入 Agent，不做渲染。落地见 `docs/03` v3.3 与 §17；由此新生的待决在 `spec/19` / `spec/20` 各自的「待决」表里（共 12 条），其中要先拍的是 `spec/19` 待决 3（公共面的保守程度）与 `spec/20` 待决 1（MCP server 用原生 Rust 还是 node） | 已决部分照 §17 执行；未决部分不挡 8.0–8.1 |
 | 5 | **`RES-04` toggle 规则还有一块没定**：`strike` / `caps` / `smallCaps` / `dstrike` 不抵消这条只在 **Word 网页版**上测过，与 ECMA-376 §17.7.3 的字面冲突最大，值得在桌面版复核一次（十分钟，步骤写在 `docs/06-toggle-open-question.md` 第 4 节）。**不挡进度**：语料 + 真实文档共 24,177 个 run 里撞上歧义的是 0 个，生产代码也还没有人调 `Resolver::run` | 复核前不要再拿网页版读数改规则；`corpus/real` 里放进真实文档后，把歧义频率探针固化成常驻测量 |
 
 ---
@@ -510,12 +575,17 @@ M4/M6 约 20 份、M2 约 16 份、M7 2 份。绘图（M4）是读侧最大的�
 1,000 序列与 `fuzz_edit`；另建议把 JS 绑定（M8 的前提）收进来，形态待拍板。六条门、11 个任务、修订生成规则表与 13 条风险都在
 那份文件里；逐条进度开工后记 §16。基线数字写作时 M6 只到 6.2，开工前按并入后的 `main` 重测。
 
-**M8 / M9 计划**（2026-09-07 写成，`spec/19-m8-plan.md` / `spec/20-m9-plan.md`）：M8 = 编辑器切换到 Rust 引擎——`crates/rsword-js`
-扩展为 drop-in 的 `parseDocx / saveDocx / buildBlankDocx`（wasm 产物提交进 genoffice 并由其 CI 重建校验），genoffice 侧加引擎分派开关、
-双引擎跑 `apps/docs` 151 个测试与 22 个 e2e、metafile / TIFF 转换留在 TS 包装层、差异审计（`docs/10`）与发布说明；六条门、7 个任务、
-6 条待决。M9 = 原生协议 `spec/21-bind.md`（`BIND-*`）：会话句柄、`Document` 的 serde 投影、`EditOp` JSON、媒体句柄、`resolve` 批量查询，
-12 条排版启发式搬到渲染器（先录像素基线再搬），编辑器按路径迁移（`docs/11` 迁移清单），最后删 `compat_ts` 与 TS 引擎；六条门、9 个任务、
-10 条待决。两份计划的基线数字来自 2026-09-07 的两个仓库（M7 只到 7.1、M8 未开始），开工前重测；逐条进度开工后分别记 §17 / §18。
+**~~M8 / M9 计划~~（2026-09-07 写成）已于 2026-09-08 随范围改定作废**，两份文件整体重写，见下面的 §17。
+原 M8（编辑器切换到 Rust 引擎：drop-in `parseDocx / saveDocx / buildBlankDocx`、双引擎分派、151 个 vitest、22 个 e2e、
+像素基线、切换开关与发布说明）**撤销**；原 M9 的 genoffice 半边（12 条排版启发式搬进渲染器、编辑器按路径迁移、删 TS 引擎）
+**撤销**，rsword 半边（原生协议、模型 JSON、`EditOp` JSON、会话与媒体句柄、`fuzz_bind`）**前移为 M8′**。
+
+**M8′ / M9′ 计划**（2026-09-08 写成，`spec/19-m8-plan.md` / `spec/20-m9-plan.md`）：M8′ = 原生协议与独立交付——
+`spec/21-bind.md`（`BIND-*`）、模型 JSON 投影、`EditOp` JSON（60 个变体）、有状态会话 + 媒体句柄 + `resolve` 批量查询、
+**Rust crate 公共 API 定型**、`*.model.json` 自快照回归网、`compat_ts` 降为 `#[cfg(feature = "compat-ts")]` 的测试专用件
+（**不删**）；六条门、8 个任务、6 条待决。M9′ = Agent 接口层与文件级工具——`spec/22-agent.md`（`AGENT-*`）：
+文本投影与双向锚点、大纲与定位、预算与截断游标、文本锚定编辑与预览、变更摘要，交付 `rsword` CLI 与 `rsword-mcp`；
+六条门、9 个任务、6 条待决。逐条进度分别记 §17 / §18。
 
 **M1 遗留债的处置**：事务快照已改成覆盖事务碰过的每个 part（`edit/session.rs`，单元测试
 `edit_05_transaction_rolls_back_every_touched_part`）；投影刷新遇到不在正文顶层的段落改为整体重建，不再留过期投影。
@@ -1828,3 +1898,342 @@ M3（表格）的进度记在 §12，M4（绘图）在 §13。
   `unsafe` 都不写，放行的是 wasm-bindgen 宏展开的那些）。
   **646 测试**、九道门 + 两条 `--via js` 全为 0、clippy 零告警。
   **M7 到此收完。**
+
+---
+
+## 17. 范围改定与 M8′ 执行进度
+
+### 范围改定（2026-09-08，项目负责人）
+
+原范围（`docs/03` v3.2 首页）：「方案 A。Rust 整体替换 genoffice `parseDocx` 与 `saveDocx`，产出编辑器消费的模型」。
+改定后：**rsword 是独立的 docx 读写内核**；genoffice 从「使用者」退为「测试基准」——只读地跑它的 TS 引擎生成
+`corpus/**/*.expected.json`，不再切换它的引擎、不再迁移它的编辑器、不再删它的代码。交付 **Rust crate 优先**，
+wasm / CLI 是绑定。目标形态是 **Word / WPS 的外挂应用**（`spec/20`「形态取舍」的 A：文件级工具），
+对 docx 做阅读与修改，后续接入 Agent 读改内容，**不考虑渲染**。
+
+改定的连带处置：
+
+| 项 | 处置 |
+| --- | --- |
+| `docs/03` | 升 **v3.3**：首页范围与交付、§1.1 输入输出、§1.2 不做、§3.5 媒体、§8.1 偏移单位（拍定不改）、§9 `SaveBlock[]`、§11 差分、§12 里程碑表（M8 / M9 划掉，加 M8′ / M9′）、§14 两条。**分层、六个核心类型、三条不变式一字未动**，故为 v3.3 而非 v4 |
+| `spec/19` | 整体重写为 M8′（原生协议与独立交付） |
+| `spec/20` | 整体重写为 M9′（Agent 接口层与文件级工具） |
+| `spec/00` | §0.2 前缀表加 `BIND`（`21-bind.md`）与 `AGENT`（`22-agent.md`）；`19` / `20` 行改写；§0.6 改写 |
+| `spec/10` | 生命周期从「M9 删除」改为「M8′ 8.7 降级为测试专用 feature，**不删**」；条目全部继续有效，不标 `[已撤销]` |
+| `spec/11` | TEST-10 的 M8 / M9 行划掉，加 M8′ / M9′ 两行；TEST-02 加「唯一且只读地用到 genoffice」的说明 |
+| `CLAUDE.md` | 「这是什么」「权威顺序」「TS 不是权威」三处改写 |
+| `m8-editor` 分支 | 另一会话已做的 8.1a（wasm 绑定 + node 实测 harness）在 8.0② 摘进 `main`；8.0a（genoffice 审计工具、`docs/10`）丢弃 |
+| genoffice `rsword-engine` 分支 | 不再使用（零提交，可删） |
+
+**为什么 `compat_ts` 不删**（对 v3.2 §14「纯负担、删除期限 M9」的改判）：那个判断的前提是它要作为对外契约长期维护。
+genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差分的对接点，是目前最强的正确性证据，删了就没有外部裁判。
+改为 feature 门控：默认构建不含、不进公共 API、不承诺稳定。真正要还的债换成「先把 `*.model.json` 自快照网建起来」（8.6）。
+
+### 开工基线（2026-09-08，`main` = 32234ce，M7 全部并入）
+
+| 量 | 值 |
+| --- | --- |
+| 测试 | 646 通过 / 0 失败（debug 与 release 双跑），51 个集成测试文件 |
+| 语料 | 799 synthetic + 266 real + 38 hostile；1,065 份 `*.expected.json`；208 份 `*.save.<k>.json` |
+| 差分门 | 七个 scope + `corpus/real`：242 + 547 处已知差异，**0 处未知**；`save_blocks` 204/208 等价 + 189/289 部件比对 |
+| 引擎源码 | `crates/rsword/src` 57,457 行；`bind/compat_ts/` 17 文件 12,782 行；`KNOWN_DIFFS.md` 145 行 |
+| 公共面 | `lib.rs` 导出 11 个模块全 `pub`；758 个 `pub fn`；318 个 `pub struct/enum/trait/type`；**无 `missing_docs` 约束** |
+| `EditOp` | 60 个变体 |
+| 依赖 | `zip` / `memchr` / `thiserror` / `serde_json`；对 genoffice **零构建期与运行期依赖**（`.rs` 里 "genoffice" 出现 0 次） |
+
+### M8′ 门（`spec/19`「M8′ 门」六条）
+
+1. 协议一致性：全语料 `document()` 过 JSON Schema、投影确定性 + 重建稳定性 + 键集严格性、`MOD-01`–`MOD-11` 字段不丢（验收措辞已由项目负责人回写 v3，见 §8）。
+2. 操作全覆盖：60 个 `EditOp` 变体 JSON 往返；协议 `apply` 与原生 `apply` 保存结果逐字节相同。
+3. 公共 API：`cargo doc` 零警告、`missing_docs` 为零、默认 feature 不含 `compat_ts` 且能完成 `open → document → apply → save`、三个 example 在 CI 跑。
+4. 回归网换代：`*.model.json` 快照进 CI、`TEST-07` 走协议、`fuzz_bind` 10 分钟无崩溃。
+5. 既有门不退：`--features compat-ts` 下九道差分门仍 0 未知差异；四个 fuzz、hostile、双构建全绿。
+6. 体积与性能：`document()` JSON 较 `parsed_doc` 降 ≥ 50%、`apply` p95 < 5 ms、`save` < 50 ms/MB、`.wasm` gzip ≤ 3 MiB。
+
+### 逐条进度
+
+- [x] **8.0 范围收口与分支归并**
+  - [x] ① 文档改定（本提交）：`docs/03` v3.3、`spec/19` / `spec/20` 重写、`spec/00` / `spec/10` / `spec/11` / `CLAUDE.md` / `docs/04` / `docs/05` 同步
+  - [x] ② `m8-editor` 的 8.1a 摘进 `main`（绑定、`parse_diagnostics`、`BindBadArgument`、`tools/js-parity/`、`TOOLS.md`、CI wasm 步骤），丢弃 8.0a
+    （本提交）。落到 main 的 7.10 骨架上：`wasm_export!` 表收在 `rsword::bind::js` 之外层，
+    `blank` 改收 `BlankDocxOptions` JSON、`save`/`blank` 的参数错误统一 `BIND_BAD_ARGUMENT`；
+    `diff-parse` 的原生 `--via js` 由 node 版 `--via-js` 取代（原生等价由 `tests/js_binding.rs`
+    在 `cargo test` 里覆盖）；`tools/sync-js.sh` 只留本地构建一半并改名 `tools/build-js.sh`
+    （genoffice 只读，同步进它那半已撤销）；`save_blocks.rs` 取 7.9c 版本再嫁接
+    `js_binding_save_bytes_parity` 与 `common::save_cases()`。wasm 产物 2.25 MB / gzip 796 KB
+    （`opt-level = "z"`）。`m8-editor` 分支的删除见 `spec/19` 待决 6
+  - [x] ③ `tools/export-golden/README` 写明「genoffice 只读使用」与最后重导提交号（本提交；`f105f36` / `2026-09-08T03:14:56Z`）
+- [x] **8.1 协议规范 `spec/21-bind.md`**（`BIND-01`–`BIND-11`）—— **关口，v2 已通过**
+  v1（76f2542）评审通过、4 处意见落地（784b96a；js-parity 自建 `--out`、门控不许静默通过、
+  清单差异数订正为 34 项、8.0 父框勾上）。
+  **v2（本提交）：协议语义变更，BIND-03 的 v1 评审作废，重走评审。** 8.2/8.3 会话开工前核代码
+  发现（项目负责人独立复核属实）：BIND-03 v1 的前提「`EditOp` 结构简单、无 arena 引用，
+  可直接 derive serde」不成立——`NewElement`（`NewBlock::Paragraph.props` / `Xml` /
+  `Wrapped.wrapper`、`NewRun.props`、`NewInline::Field.props`、`NewInline::Xml`、`ReplaceParaProps.props`，
+  协议面共 7 处）经 `QName` 携带 `NsId::Other(Interned)` / `LocalName::Other(Interned)`，
+  而 `Interned` 是 per-Dom `Interner` 的句柄（`xml/interner.rs`），离开产生它的 Dom 不能渲染
+  也不能反序列化。错话源自 `spec/19`「实现约定」（已随 v2 订正，风险提示加第 10 条）。
+  v2 的 BIND-03：**线型与引擎型分离**——线型 `EditOpJson` derive serde，引擎 `EditOp` 禁止
+  derive；转换上下文化（`edit_op_from_json(&str, &mut Dom)` / `edit_op_to_json(&EditOp, &Dom)`，
+  形状以此为准、签名以实现时为准）；`NewElement` 三类去处分治：a 真逃生口（XML 字符串，
+  `BIND_XML_ESCAPE` 计数）、b 结构化属性（复用 `*Patch` serde 形态不计数；引擎侧三处
+  `Option<NewElement>` 改持 patch 是 **8.3 的工作量**，本提交不动 `edit/`）、
+  c `ReplaceParaProps` 留 XML 字符串并入 a（判定与理由在 BIND-03 v2，评审要定的点）。
+  BIND-01/02/04–11 未动，其 v1 评审结论仍然有效。
+  **v2 评审结论（2026-09-08）：通过**，穷举的 7 处与判定 c（`ReplaceParaProps` 留字符串——
+  整份容器替换能表达 `pPrChange` / `sectPr` / 段落标记 `rPr` / 未建模元素，merge 语义表达不了，
+  且结构化修改已由 `SetParaProps` 覆盖）均复核认可。评审时改掉两处（项目负责人直接落笔）：
+  ① `NewField.props` **写错了**——真实位置是 `NewInline::Field.props`（`edit/inline.rs:91`）；
+  `NewField`（`edit/mod.rs:390`，`InsertField` 的载荷）是另一个真实类型且**没有 `props`**，
+  照原文找会扑空，七处里那一处会从三类划分中漏出去。
+  ② **b 的落地方式改定为「只换线型、不动引擎型」**：原稿要 8.3 把三个 `Option<NewElement>`
+  改成持 patch，但 `compat_ts` 的 `generated_paragraph` 是把调用方 `rawPPr` 经 `parse_fragment`
+  **原样透传**进 `Paragraph.props`（`save_blocks.rs:900`–`:914`，rich `rPr` 同理 `:2034`），
+  引擎型改 patch 会丢掉生成属性表之外的内容，`COMPAT-08` 的 204/208 必然回归。改为在
+  `edit_op_from_json` 边界物化（patch → `ParaProps`/`RunProps` → `emit_para_props`/
+  `emit_run_props`，`build/props.rs` 生成、不需要 `Dom`、`compat_ts` 今天就在用），
+  两边互不干扰，8.3 工作量同时缩小；8.3 的 DoD 追加「`save_blocks` 仍为 204/208、0 跳过」。
+- [x] **8.2 模型 JSON 投影**（`bind/native/json.rs`、`schema.rs`、`model_json!`）
+  `bind/native/` 落地：`ToJson` + `model_json!`——一张「Rust 字段 → JSON 字段」表同表展开
+  `impl ToJson`（表头 `(cx)` 声明上下文参数名；行用解构绑定，`to_json` 开头**完整解构**，Rust 结构体
+  加字段即编译失败）、JSON Schema 片段（`$defs` 装配）、`json_fields_cover_*` 覆盖测试（camelCase 键规则、
+  schema 键集 / 必填集与表一致、`skip` 带理由且确实缺席）。30 张生成属性表与 `types.toml` 的枚举 /
+  属性结构体由 `build/props.rs` 从同一份 TOML 发射 `$OUT_DIR/props_json.rs`（不手写 269 个字段）；
+  `set_some!` / `set_if!` / `display_json!` 从 `compat_ts/json.rs` 搬入 `bind/native/json.rs`，
+  `compat_ts` 反向引用。带载荷枚举统一内标签 `{"kind": …}`；区间 / 元组一律二元数组；id 一律整数；
+  display 全家只在 `display: true`。门 1：精确断言 1,099 份成功投影、4 份点名 hostile 在 `Package::open` 阶段失败，过
+  `document_schema()`（`jsonschema` 校验，display 开 / 关两遍）+ 投影确定性 + 重建稳定性 + 键集严格性 + 深度护栏（448 层）+
+  `MOD-01`–`MOD-11` 独立 checklist（`tests/native_bind.rs`）；门 6 体积：251 份带图文档
+  `compat_ts::parsed_doc` 4,334,070B → native 1,408,718B（**-67.5%**）。本次评审修复后 debug / release 各 **765 passed、0 failed、14 ignored**（其中 12 个 ignored doctest，不计入通过数）；新增键集负向与深度扫描两项测试。全语料最深为 `deep-nested-table__001.docx` 的 392 层，护栏为 448 层；八道差异检查仍为 242 + 547 处已知差异、0 处未知差异。
+- [x] **8.3 `EditOp` / `EditContext` / `MutationResult` 的 JSON**（`edit_op_json!`、`SaveOptions` 收缩到五项）
+  已完成（2026-09-09，分支 `m8-native-json`）。开工核代码时报出三处规范问题，项目负责人 2026-09-09 一并裁定，`spec/21` 升 **v3**：
+  ① **BIND-04 的隐私清洗缺省改 `false`**（原「沿用文档标志」与同条「无编辑 `save({})` 逐字节相同」冲突，
+  且与同表上一行已裁的「`savedAt` 不触发保存（不变式 1 优先）」不一致）。实测
+  `write-protection__005.docx`（全语料唯一带该标志者，前缀 `s:`）无编辑 `save({})` 2446→2440 B、
+  作者「张三」被清掉——**HEAD 既有行为就违反不变式 1，非本轮引入**。`compat_ts` 那条路继续照 TS 显式传 `true`，
+  `COMPAT-08` 的 204/208 不动。
+  ② **BIND-03 的 b 类往返改为「正向往返 + 成文拒绝集」**，反向遇不可无损表示必须返具名错误、禁止静默丢弃；
+  依据是 BIND-01 的导出表里没有任何导出返回 `EditOp`——反向只服务往返测试与 M9′ 门 4 的可审计打印，
+  是调试 / 审计设施而非协议数据路径。验收口径：每变体落到「无损往返」或「按清单具名拒绝」之一、
+  两类分别报计数并双向锁死，**禁止**把样例收窄再声称全部通过。
+  ③ **5.7 六族公开为 `EditOp`**（清单 60 → **66**），形态复用 `save/options/decl.rs` 的现有声明类型，
+  编号按 `numId` 已存在即 no-op；样式按 `styleId` upsert，相同请求 no-op，三项各配「同会话发两次 = 发一次」测试，
+  `setSources` 另验未变条目原字节（不变式 2）。
+  ④ **`TableChange` 的 `$patch` 线型编码**定案（`Keep` 键缺席 / `Unset` 为 `null` / `Set(v)` 值本身 /
+  `Patch(p)` 为 `{"$patch": p}`，空 `Patch` 仍写不许用 `is_keep()` 省略；schema 必须声明 `$patch`，
+  否则 BIND-02 验收第 3 条的键集检查误伤）。
+  另外订正 `spec/19` 8.3 任务行残留的 v1 措辞（v2 时只改了「实现约定」一节，漏了任务表）。
+  **并发现一个从 M0 潜伏的门洞**：不变式 1 从未被全语料测过——`xml_roundtrip.rs` 只测每个 XML part 的
+  `parse → serialize`，包级「无编辑保存字节相同」只散落在几份手挑文档上。已把「全语料无编辑
+  `EditSession::save()` 字节相同」加进 `spec/19` 门 5，落在 8.6。
+实现与验收：`edit_op_json!` 完整解构引擎 / 线型，66 变体逐项分类 **57 无损 + 9 具名拒绝**；
+九项各有结构化正向往返，成文拒绝表、独立常量、实跑集合相等（详见 `10-native-edit-json.md`）。
+属性 serde/schema 由 `build/props.rs` 生成；Change 三态和 TableChange 四态逐臂验证，KeyChecker
+对 `$patch` 及额外键有正反例。`MutationResult` 五字段由 `model_json!` 投影。
+协议 apply 转换前克隆，失败不提交 DOM / interner / 诊断；逃生口随诊断返回累计次数，页眉 XML
+使用目标 DOM 驻留名。克隆成本预算随 8.4 实测。原生 SaveOptions 五项，隐私默认 false；
+旧 CompatSaveOptions 及 save_with_compat 保留测试专用调用点，compat 显式传文档清洗标志。
+**1065 份 synthetic + real** 实际插入结构化段落，协议 / 原生保存逐字节相等，空选项保存逐字节相同。
+六族按 apply 事务提交；三个键控操作与主题重复调用无新增计划，文献未变条目原子树字节仍在输出中。
+全套 debug / release 各 **862 passed、0 failed、14 ignored**（12 个 ignored doctest）；fmt、clippy 零告警。
+八道差分门 **242 + 547 已知、0 未知**；save_blocks **204/208 等价、0 跳过**（4 项既有有意差异），
+辅助 part 仍为 189/289 等价；门 6：251 份带图文档 4,334,070B → 1,408,718B，**−67.5%**。
+- [x] **8.4 会话、媒体句柄、`resolve` 查询与部件读取**（`bind_export!`、`resolve_query!`）
+  已完成（本提交）。接口核对时报出三处内部不一致，项目负责人 2026-09-09 裁定，`spec/21` 升 **v3.1**
+  （只对齐矛盾措辞，不改协议方向）：
+  ① **按 `nodeId` 寻址的导出一律补可选 `part`**（缺省主 part）。`NodeId` 是每个 `Dom` 各自的 arena
+  索引（`xml/dom.rs:18`），正文与页眉同号是常态；而写侧 `InlinePos` / `BlockPos` **早就带**
+  `part: Option<PartId>`（`edit/pos.rs:38`）——读侧 BIND-06 / BIND-09 收裸 `[nodeId]` 是与写侧不一致，
+  补齐即可，**不重编现有节点 id**。越界 → `BIND_ID_UNKNOWN`。
+  ② **`close` 保持幂等**，BIND-01 的「任何导出 → `BIND_NO_SESSION`」carve out `close`。原文两句本就
+  矛盾（第 39 行「不存在的 id 忽略」vs 第 47 行「任何导出」），而且**我在派 8.4 时按第 47 行说成
+  「每个导出都要有该单测」，把矛盾放大了**。理由：`close` 是清理路径、常在错误处理里调用，逼调用方
+  先判存在会让清理代码变脆；且「关一个不存在的会话」与「关成功」无可观察差异。
+  ③ **`diagnostics` 返回 `{ diagnostics, xmlEscapeCount }`**（原导出表写 `[Diagnostic]`，与 BIND-03
+  要求同时带会话级逃生口计数不能并存）。8.3 已按此实现（`edit_diagnostics_json`），且计数从**已成功
+  提交**的诊断算出、失败请求不增加，与 BIND-01 的原子性一致。
+
+  8.4 实现记录：`SessionTable` 内持 `BTreeMap<SessionId, EditSession>` 与按 part 登记的稳定媒体表；
+  进程级单调分配会话句柄，成功 open 才入表。`bind_export!` 合并旧 `wasm_export!`，同时展开原生方法、
+  缺失会话测试与 wasm 外壳；wasm 导出 `SessionTable` 类，旧兼容五函数保持原语义。
+  `resolve_query!` 同表展开五个批量查询、投影组合与全语料对照；独立模型遍历 + DOM 祖先查找建立 oracle，
+  run / para / cell 的属性另外从 JSON 解码回引擎型并逐字段比较，来源含 Toggle 的层级。
+  表格 / 节的有效字段、六个页眉页脚槽和来源均校验；同号节点用 part 区分，坏节点在批次中保留错误位置。
+  `save` 只在克隆上执行；真实序列化故障与失败的 XML 逃生请求均有状态不变断言。
+  修复绑定会话路径在 `setHeaderFooter` 预备 part 时的 arena 越界索引，超大 `sect` 返回 `EDIT_TARGET_MISSING`。
+  8.5 更正归因：代码在 8.3 的 `69def07`（`bind/native/edit/mod.rs::apply_edit_json`）引入，8.4 的
+  `7a72140` 修复；不是原生 `EditSession::apply` 的缺陷，撤回“原生引擎既有 panic”的归因。
+  媒体句柄不因前部删除重排，同字节同 MIME 与包内既有媒体去重；只读出口覆盖原 ZIP 字节与子树规范化。
+  `document` 同时实现 BIND-10 的 blockRange / fields / depth：跨块索引保持全量、超深为 Protected(TooDeep)。
+  同一份 schema 内的 `DocumentResponse` 承载裁剪和元数据；模型 `Document` 定义与 8.2 严格 checklist 保持原样。
+  全语料定向验证：1099 成功 / 4 点名拒绝；3779 run、3693 段落、526 单元格、1128 节、263 表格查询，
+  9060 part 原字节、344 媒体、12165 子树只读校验。真实 wasm 的 13 个缺失会话出口与生命周期验证已接 CI。
+最大真实文档 326406 B，31 次 clone 中位数 0.424 ms / p95 0.608 ms / 最大 0.681 ms；
+  1000-ID resolveRuns p95 11.768 ms，均低于 50 ms。完整数字与复现命令见 `docs/05`。
+  最终 workspace debug / release 各 **897 passed、0 failed、13 ignored**（11 个 ignored doctest；
+  合并导出宏时移除旧 wasm_export 的一个 ignored 文档示例，没有删除执行中的测试），fmt 干净、clippy 零告警。
+  八道差分门 **242 + 547 已知 / 0 未知**；save_blocks **204/208 等价 / 0 跳过**；
+  既有 BIND-02 模型投影体积门 **251 份，4,334,070B → 1,408,718B（−67.5%）**。
+  66 变体仍为 **57 无损往返 + 9 具名拒绝**。8.5–8.7 保持待办，本任务提交后停下复核。
+
+- [x] **8.5 Rust crate 公共 API 观察版**（稳定承诺、文档审计、feature 名称、三个 example、README）
+
+  根部重导出六个核心类型与 EditSession / EditContext / MutationResult / Error / DiagCode；
+  原生模块全部导出纳入稳定承诺，其余旧公共路径 `doc(hidden)` 留一版观察期。
+  **稳定面文档由 audit cfg 硬检查；缩小 semver 面推迟到观察期之后（负责人 2026-09-09 决定），
+  门 3 的“缺省小面”这半条未达成。** 下游仍可调用其他隐藏项；compat_ts 已于 8.7 默认排除。
+  default 为 native；native / wasm / serde / compat-ts 的名称和依赖关系已声明，serde 仍为共享运行期依赖，
+  删除重复 dev serde。稳定结构体 / 枚举 non_exhaustive，四个固定值对象明确豁免；DiagCode 发布表只追加。
+  `docs/13-public-api.md` 成文列出 **27 个类型、46 处定义/固有 impl 注解位置**；源码 token 扫描包含宏模板，
+  与注解及成文清单双向锁死，并校验祖先在 audit 下取消隐藏。trait impl 沿用 trait 文档，不属于固有 impl 清单。
+  破坏性验证：给 EditContext 加无文档方法，audit cargo check 退出 101（missing documentation）；
+  去掉其固有 impl 的 deny 注解，清单测试退出 101（定义/impl 与注解漂移）。恢复后两道检查均通过。
+  `cargo fmt --all`、clippy 零告警；cargo doc 与 audit（均带 `-D warnings`）通过；
+  workspace debug / release 各 **901 passed、0 failed、13 ignored**。
+  八道差分门 **242 + 547 已知 / 0 未知**；save_blocks **204/208 等价、0 跳过**；
+  模型投影体积门 **251 份、4,334,070B → 1,408,718B（−67.5%）**；**57 无损 + 9 具名拒绝 = 66**。
+  三个 example 已实际运行并进 CI，README 的三段 Rust 与对应 example 一致；默认公开 API 的
+  open → document → apply → save 经协议与根部核心 API 保存字节相同。
+  本轮最大真实文档克隆 **p95 0.555 ms**（31 次），继续保留克隆实现；完整计时见 docs/05。
+  8.4 的越界索引历史归因已更正为“8.3 绑定层引入、8.4 修复”，不再归因原生引擎。
+
+- [x] **8.6 回归网换代（实现与复核完成，规范裁定待批）**（`*.model.json` 自快照、`TEST-07` 走协议、`fuzz_bind`）
+  实现与验证记录见 docs/05；修订网格的规范措辞仍待负责人裁定，**门 2 / 门 4 不判**。
+  全语料无编辑保存门正式命名为 `test_10_full_corpus_model_snapshots_and_no_edit_save_identity`：
+  原 8.3 已顺带覆盖 1065 份 synthetic + real，本次迁移原断言并扩至 hostile，未重复建一道门。
+  精确 1103 份输入、1099 成功、4 份点名拒绝双向锁死；新增 1099 份 display=false 自快照，
+  位置待追认；快照增量超过 20 份在 CI 警示，单份内容或文件集合漂移仍硬失败。
+  TEST-07 记录/复放协议 JSON，保留每 20 步保存、最小化与失败签名匹配；原生与协议逐步比较，
+  失败状态逐字节不变，两视图 fingerprint 不变。深包装 Walker 改迭代，1099 份旧/新两视图字节相等。
+  完整 EditSession 检查点补齐事务回滚的新 part、关系、投影告警和 revision id；
+  SetDocumentSettings 成功后刷新投影，AddComment 在创建 part 前验证边界。
+  workspace debug / release 均 **911 passed、0 failed、13 ignored**；fmt、clippy、audit、rustdoc 全过。
+  TEST-07 双构建 **1000 条 × 100 步：61043 生效、10012 拒绝、3065 保存往返**，计数一致。
+  八道差分门 **242 + 547 已知 / 0 未知**，save_blocks **204/208 等价、0 跳过**，
+  体积门 **251 份、−67.5%**，分类 **57 无损 + 9 具名拒绝 = 66**。
+  破坏性验证：快照多键、禁用网格调和、移除几何兜底、移除包级诊断链接，均触发对应门失败；
+  恢复后定向验证通过。性能与 fuzz 实测详见 docs/05。
+
+- [x] **8.7 `compat_ts` 降级、性能、体积与收尾（实现完成）**
+  `bind/compat_ts` 与旧无状态 JS 入口由 compat-ts 门控，文件和 KNOWN_DIFFS 全部保留；
+  diff-parse 的 feature 显式转发，bin required-features 防止 workspace 默认依赖统一悄悄开启兼容层。
+  混合测试只门控兼容相关函数及辅助项，原生用例继续默认运行；TS fieldgen fixtures 的使用也已门控。
+  TocOptions.ts_shape 在默认构建中不存在。隔离下游实际读改存后，分别验证兼容模块导入 E0432、
+  TS 字段构造 E0560；CI 两套 feature 均跑 debug/release、clippy、audit、doc 与三个 example。
+  **门 3 的默认排除 compat 与生命周期要求已兑现**；其余 doc(hidden) 公共项仍在观察期，未物理私有化。
+  `benches/bind.rs` 自动取真实语料中最大的三份，31 次采样；原生耗时与兼容 JSON 体积对照见 docs/05。
+  旧 Package 无编辑门改为 1103 输入 / 1099 成功 / 4 点名拒绝，与会话门共享 UNOPENABLE，去掉阈值与静默跳过。
+  文档改名为 docs/10-native-edit-json.md、docs/13-public-api.md，保留 docs/11、docs/12 的 M9′ 位置；
+  include_str 与引用同步，docs/03 只更新获授权的 §12 实施状态，§8.2 清单脱节另登记待批。
+  本轮默认 debug/release 各 792 passed，compat 各 911 passed，均 0 failed / 13 ignored；fmt、两套 clippy/audit/doc 零告警。
+  八道差分 242 + 547 已知 / 0 未知，save_blocks 204/208 等价 / 0 跳过，体积门 251 份 −67.5%；
+  66 变体（57 无损 + 9 具名拒绝）、1099 份快照不退。默认 fuzz_bind 25,336 runs / 601 秒，无崩溃。
+  **门 2 / 门 4 的待裁定状态不变，不宣称 M8′ 全部门获批。**
+
+### 8.8 `spec/18` 7.4 措辞裁定与门 2 / 门 4 解除阻挡（2026-09-09）
+
+项目负责人裁定：`spec/18` 7.4 的「`TableGridChange` Reject = `tblGrid` 换成快照克隆」改为语义描述——
+**还原快照所记的列宽序列；本轮修订已删除的列（`Dirty::Deleted`）不还原其 `gridCol`；还原的是宽度，不是快照的子元素树。**
+原措辞逐字描述的是 `restore()` 的缺陷行为（整体克隆、不与当前状态调和），不是期望语义。
+`spec/18` 原文已按此改，`docs/03` §12 的 M8′ 行同步；**实现无需变更**——8.6 落地的对账式还原本来就是这个语义。
+
+因此门 2 / 门 4 此前「暂不判」的唯一原因（规范与实现措辞对不上）消除。评审者在 `b9ceb48` 上独立复跑的判定证据：
+
+- 默认 release 全量 **955 passed / 0 failed / 13 ignored**；`--features compat-ts` **1074 / 0 / 13**
+- 八道差分门全部重跑：合成 **242 处已知 / 0 未知**（text 156、fields 156、tables 181、drawing/hf/embedded/all 242），
+  真实语料 **547 已知 / 0 未知**，范围外 0、无 expected 0、打开失败 0
+- `cargo clippy --workspace --all-targets` **0 告警**
+
+**仍未关闭的是上一行那条**：未追踪编辑 × 待决快照的交互（`pPrChange` / `rPrChange` / `tcPrChange` / `trPrChange`
+与纯宽度 `tblGridChange`）不因本裁定解决，仍缺独立语义 oracle。
+本节只解除门 2 / 门 4 的规范阻挡，**不宣告 M8′ 全部门获批**，也不改动 M9′ 的 22 项分母。
+
+---
+
+## 18. M9′ 执行进度
+
+负责人允许在 M8′ 实施完成后先做文档与测量；9.0 从 m8-native-json 的 e132df4 起步，不等待门 2 / 门 4 措辞裁定，不切换或修改 main。任务与门见 `spec/20-m9-plan.md`。
+
+- [x] **9.0 场景、验收集与预算基线**（4d0bab3，`docs/12-agent-tasks.md`，已复核通过；不是 Agent 任务验收通过）
+  22 条（11 读 / 11 改）均锚定真实语料，含非空前置条件、语义 oracle、未涉及块/part 字节保真与桌面 Word 独立验收。
+  修正草案中无真实目标的甲方/张三、第二表第三列、不存在的引用样式；明确两处图片可共享一个媒体资源。
+  tools/agent-baseline.sh 真实调用 display=false document：128519 B / 124146 UTF-16 单位，字节代理 32130 token；
+  outline/text 未实现，未测。预算建议与长段截断矛盾留给 9.1，未改规范。A 已定；B/C 缺宿主实测记录，保留待补证。
+  R10 已有中文 message，待补的是稳定的人类说明及未知码回退契约，登记在 docs/12 §6。
+  本轮默认 debug/release 各 792 / 0 / 13，compat 各 911 / 0 / 13；fmt、两套 clippy/audit 零告警，八道差分 242 + 547 已知 / 0 未知。
+- [x] **9.1 规范 `spec/22-agent.md`**（`AGENT-01`–`AGENT-10`）—— **关口评审通过（2026-09-09）**
+  十条各带验收；两类锚点完整覆盖、呈现字符具名拒绝编辑；长单位预算错误、MCP 会话版本与 CLI 文件指纹续读、归一映射与正则资源上限均明确。
+  W1–W11 对应编译规则涵盖样式 patch/创建、共享媒体按出现位置替换、修订、表格和整章移动；预览与不可变审计报告不依赖有损反向转换。
+  spec/00 复用已有 AGENT 行，不重复添加；spec/20 的待订正措辞登记 §8。9.1 当轮未改 crates/、corpus/ 或冻结规范，未开始 9.2。
+  本轮核对 10 个唯一条目、10 个验收小节、唯一 AGENT 前缀行；默认 debug/release 各 792 / 0 / 13，compat 各 911 / 0 / 13，
+  fmt 干净、两套 clippy/audit 零告警，八道差分 242 + 547 已知 / 0 未知。以上是既有门回归，不是 Agent 功能验收通过。
+- [x] **9.2 文本投影与双向锚点**（AGENT-01/02，SPAN-01 增补已评审批准）
+  内部纯投影与两类 UTF-16 锚点、对象子范围去重、17 类 fixture / 诊断说明成文清单双向锁死，见 `docs/14-agent-text.md`。
+  全语料 1099 成功 + 4 点名拒绝；两次投影逐字节一致，全部字符可逆，源锚点符合 EDIT-02；四条破坏用例均返回预期具名错误。
+  外部文本框与独立 glossary 基块追加流身份，旧编号保留；所有可解析 XML part 的无流段落数精确为 0。
+  glossary 可寻址但不展开，报告身份/段落数/省略原因；1099 份模型快照原样，未改 corpus 文件。
+  实跑默认 debug/release 各 **827 / 0 / 13**、compat 各 **946 / 0 / 13**；fmt 干净，两套 clippy/audit/doc 零告警，
+  八道差分 **242 + 547 已知 / 0 未知**；save_blocks **204/208 等价、0 跳过**，251 份带图文档 JSON 体积 **−67.5%**。
+  后续预算/游标、编辑与工具接口未提前交付；M8′ 门 2 / 门 4 待裁定状态不变。
+- [x] **9.3 大纲、定位与上下文**（AGENT-03/04/05，AGENT-01 reason 补门）
+  `tools/agent-query` 共享大纲、带原文前置条件的字面/正则查询及授权上下文；复用核心锚点，不新增核心 regex 依赖。
+  全 266 份真实件大纲对模型，1099 份投影的两种搜索模式对独立文本扫描，4 份拒绝点名锁死。
+  最大真实件 26 标题：5052 UTF-16、完整信封 5415 B / 1354 代理 token，默认 4000 UTF-16 不变、2 页；预算与页数都有独立断言。
+  零长中间 right、流末/授权末端 left；实际破坏两侧分支分别触发断言，恢复源码后重跑。空流保留独立呈现位置，context 同样按 affinity 选择前后单位。
+  定位、上下文、只读字段/表格/图表/媒体详情及可终止 worker 的边界见 `docs/15-agent-query.md`。
+  默认 debug/release 各 **842 / 0 / 13**、compat 各 **961 / 0 / 13**；fmt 干净，两套 clippy/audit/doc 零告警，
+  八道差分 **242 + 547 已知 / 0 未知**，默认下游探针通过；save_blocks **204/208、0 跳过**，251 份体积 **−67.5%**。
+  **1099 份模型快照无改动**。9.4 的统一会话版本/读取游标、CLI/MCP 及端到端任务未提前判过；M8′ 待裁定门不变。
+- [x] **9.4 预算、截断与游标**（AGENT-06；顺带修复 AGENT-04 握手竞态）
+  五个 Agent 读接口及诊断/媒体清单共用双预算、信封、最长前缀选择与单一游标编码；原生 BIND-10 不增加游标。
+  文件续页核规范路径与完整 SHA-256，跨进程重开生成新会话锚点；成功写入统一推进版本，失败批次/保存不推进。
+  原生选择器复用、范围外索引哨兵、真实 TOC 引用闭包、分页拼接和计数、两类游标误用均有回归；边界见 `docs/16-agent-budget.md`。
+  实际把下一单位改成 end + 1，拼接断言因遗漏中间段落报红；恢复旧 ready 暂存方式也触发确定性竞态用例，恢复源码后跑全门。
+  最终默认 debug/release 各 **859 / 0 / 13**、compat 各 **978 / 0 / 13**；新增 17 条测试。fmt 干净，两套 clippy/audit/doc 零告警。
+  八道差分 **242 + 547 已知 / 0 未知**；save_blocks **204/208 等价、0 跳过**；251 份带图文档体积 **−67.5%**，1099 份模型快照未改。
+  CLI/MCP 与 9.5 的编译/报告业务未提前交付；M8′ 待裁定门不变。
+- [x] **9.5 文本锚定编辑、预览与变更摘要**（AGENT-07/08/09，本轮实现范围）
+  `tools/agent-query` 同表展开操作线型/schema/编译分派/审计测试；显式授权、归一原文核验、歧义和呈现端点拒绝。
+  克隆预览与提交共用执行；失败整批回滚，成功只回有界回执，完整不可变报告分页读取。
+  v1.3 已批准媒体外置订正：五要素绑定、还原执行序列逐字节相等，缺失与篡改具名拒绝。
+  W1–W11 仍以 **11** 项为分母，逐项证据/缺口见 `docs/12` §8；W7 TOC 尚不执行、批次符号引用及桌面 Word 未验，不能据此宣称完整任务集通过。
+  补强旧 ModelFingerprint 的活文本与逻辑 Span oracle；据此修复空白、affinity、字段边界、解包存活范围等缺口，详见 §8 与 `docs/17`。
+  **6** 次实际代码破坏分别触发附件/批量顺序/文字/逻辑范围/子树存活/授权末端断言，均恢复后重跑。
+  默认 debug/release 各 **901 / 0 / 13**、compat 各 **1020 / 0 / 13**；新增 **42** 条。fmt 干净，两套 clippy/audit/doc 零告警。
+  八道差分 **242 + 547 已知 / 0 未知**；扩展随机门两构建各 **1000 × 100 步**，**61055 生效 / 10009 拒绝 / 3064 保存往返**，每 20 步保存/最小化/签名匹配不变。
+  默认下游探针通过；save_blocks **204/208 等价、0 跳过**，251 份体积 **−67.5%**，1099 份模型快照无改动。
+  未改 corpus 或 spec/18、spec/20、spec/21、冻结架构文档；M8′ 待裁定门不判，CLI/MCP 留后续任务。
+- [x] **9.6 CLI（`crates/rsword-cli`，AGENT-10 的 CLI 半边）**
+  rsword 文件命令复用共享 agent_tool!、会话、读预算与游标，提供显式原生调试、预览重编译、媒体文件绑定与报告续读。
+  文件写入在同目录暂存后发布；失败恢复已发布文件，成功回执写出前不丢备份。
+  每命令真实进程/schema 用例、hostile 点名拒绝、跨进程游标、写盘及 stdout 失败回滚常驻。
+  本机 macOS E2E，Linux aarch64-musl 交叉构建成功；Linux 运行测试只配置 CI，尚未执行，不声称运行通过。
+  附件 SHA 条件实际删除后 details 断言报红，恢复后通过。命令与能力边界见 `docs/18-cli.md`；最终实跑数字见 `docs/05`。
+  默认 debug/release 各 **924 / 0 / 13**、compat 各 **1043 / 0 / 13**；新增 **23** 条。fmt 干净，两套 clippy/audit/doc 零告警。
+  八道差分 **242 + 547 已知 / 0 未知**；save_blocks **204/208、0 跳过**，体积 **−67.5%**，1099 快照无改动、无流段落 0。
+  核心 crate 运行期依赖、语料和模型快照不变；MCP/真实 Agent 与桌面 Word 任务不在本轮宣称通过。
+- [x] **9.7 MCP server（`crates/rsword-mcp`，实施范围；真实 Agent 门 5 待评审者验证）**
+  原生 Rust 按建议执行、待追认；复用 agent_tool! 的 16 个工具与 schema，持久会话、版本、报告和统一预算。
+  text/structured 单份载荷、共同成本分页及实际 usage；CLI/MCP 同区间与续读终态相等，两类游标互斥拒绝，
+  diff 也使用会话游标。三个一致性维度及 minBytes 经评审订正至 spec/22 v1.4。
+  32 会话上限、30 分钟缺省空闲回收、13 个缺会话用例、close 幂等、失败预算/写盘/stdout 原子性、实际堆回收常驻测试。
+  两次实际破坏（max 改 min、取消 close 释放）均报红，恢复后最终默认 debug/release 各 **952 / 0 / 13**、
+  compat 各 **1071 / 0 / 13**；新增 **28** 条。两套 clippy/audit/doc 零告警，八道差分 **242 + 547 / 0 未知**。
+  save_blocks **204/208、0 跳过**，体积 **−67.5%**，1099 快照无改动、无流段落 0，核心运行期依赖仍 5 个。
+  官方 SDK 两形态连接通过，不等于真实 Agent 三项 W 验收；缺省 text 待门 5 实测确认。连接见 docs/19，实测口径与数字见 docs/05。
+- [x] **9.8 门、性能与文档（实施收尾，不代表六门全部验收）**
+  最大三份 real 的共享读首屏基准在 tools/agent-query/benches/agent.rs：同会话预热后 31 样本，
+  text/outline/find 耗时与完整业务/MCP 两形态体积见 docs/05；最大件 text p95 652.603 ms 如实登记，未做优化。
+  默认 debug/release 各 **952 / 0 / 13**、compat 各 **1071 / 0 / 13**；fmt 干净，两套 clippy/audit/doc 零告警。
+  八道差分 **242 + 547 / 0 未知**，save_blocks **204/208、0 跳过**，体积 **−67.5%**，1099 快照无改动、无流段落 0。
+  README 三条 CLI 命令与本地 MCP 安装产物真实进程验证通过；核心运行期依赖仍 5 个。
+  docs/03 §12 去勾并行内限定，spec/11 M9′ 行同步；§8.0 集中列出待办人与阻挡范围。
+  docs/12 保持 22 项分母与 W7 缺口，原生预算复测、Agent 首屏实测分开；真实 Agent 门 5 留给评审者填写，未预填通过率。
+  未重跑 Linux 运行与定时 fuzz 长跑，不宣告六门全绿；未改 spec/18、spec/20、docs/03 §8.2，M8′ 待裁定门不判。
+- [x] **9.9 真实 CLI 会话反馈跟进（AGENT-04/07/10）**
+  评审者 W1/W5/W6 的结果与三条发现按原话记入 docs/12 §11；CLI 形态实测、真实 MCP 未跑，22 项分母不变。
+  find 的 pageHits/hasMore 在选分页前计费，schema 与工具首句共用；不把分页误读记成搜索漏匹配。
+  docs/17 补全部 action 完整请求与 find 锚点授权流程，常规测试直接执行文档，10 个动作成功、updateToc 具名拒绝。
+  新增三条进程测试；故意把 pageHits 加一时断言红，恢复后默认 debug/release 各 **955 / 0 / 13**、compat 各 **1074 / 0 / 13**。
+  fmt 干净，两套 clippy/audit/doc 零告警；八道差分 **242 + 547 / 0 未知**，save_blocks **204/208、0 跳过**，体积 **−67.5%**。
+  1099 快照未改、无流段落门精确 0；未改核心引擎与冻结规范，不扩大 scope 契约，不提前关闭 MCP 形态与结果形态待办。

@@ -9,7 +9,7 @@ use std::io::{Cursor, Read};
 
 use rsword::edit::{EditContext, EditOp, EditSession, InlinePos};
 use rsword::package::Package;
-use rsword::save::SaveOptions;
+use rsword::save::options::CompatSaveOptions as SaveOptions;
 use rsword::xml::xpath_strings;
 
 fn corpus(name: &str) -> Vec<u8> {
@@ -48,19 +48,19 @@ fn save_01_unchanged_document_returns_original_bytes() {
     assert_eq!(s.save().unwrap(), bytes, "空选项");
     let stamped =
         SaveOptions { saved_at: Some("2026-07-28T08:30:00Z".into()), ..Default::default() };
-    assert_eq!(s.save_with(&stamped).unwrap(), bytes, "saved_at 不强制保存");
+    assert_eq!(s.save_with_compat(&stamped).unwrap(), bytes, "saved_at 不强制保存");
     // remove_personal_info 是强制选项：进入流程，但这份语料没有 settings.xml 也没有作者信息。
     // 写 `false` 不需要 part（标志缺失就等于 false），所以没有任何 part 变脏，仍是原字节
     let forced = SaveOptions { remove_personal_info: Some(false), ..Default::default() };
     assert!(forced.forces_save());
-    assert!(s.save_with(&forced).unwrap() == bytes, "无可改动时仍是原字节");
+    assert!(s.save_with_compat(&forced).unwrap() == bytes, "无可改动时仍是原字节");
     assert!(s.diagnostics().is_empty(), "没什么可诊断的: {:?}", s.diagnostics());
     // 有 settings.xml 的文档：强制选项确实产生输出
     let other = corpus("revisions__013.docx");
     let mut s2 = EditSession::open(&other).unwrap();
     assert!(s2.save().unwrap() == other, "未编辑保存字节相同");
     let on = SaveOptions { remove_personal_info: Some(true), ..Default::default() };
-    assert!(s2.save_with(&on).unwrap() != other, "写入标志后输出不同");
+    assert!(s2.save_with_compat(&on).unwrap() != other, "写入标志后输出不同");
 }
 
 /// `SAVE-07` `saved_at`：只改 `docProps/core.xml` 的 `dcterms:modified`（毫秒去掉）与 `cp:revision`，
@@ -77,7 +77,7 @@ fn save_07_saved_at_stamps_core_props_only() {
     .unwrap();
     let opts =
         SaveOptions { saved_at: Some("2026-07-28T08:30:00.123Z".into()), ..Default::default() };
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     let core = part_text(&saved, "docProps/core.xml");
     assert_eq!(
         xpath_on(&core, "//dcterms:modified/text()"),
@@ -103,7 +103,7 @@ fn save_07_remove_personal_info_scrubs_the_whole_package() {
     let bytes = corpus("write-protection__004.docx");
     let mut s = EditSession::open(&bytes).unwrap();
     let opts = SaveOptions { remove_personal_info: Some(true), ..Default::default() };
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
 
     for part in [
         "word/document.xml",
@@ -164,14 +164,14 @@ fn save_07_document_flag_and_explicit_false() {
     let bytes = corpus("write-protection__005.docx");
     let mut s = EditSession::open(&bytes).unwrap();
     assert!(s.remove_personal_info_flag(), "语料的 settings.xml 带标志（前缀是 s:）");
-    let saved = s.save_with(&SaveOptions::default()).unwrap();
+    let saved = s.save_with_compat(&SaveOptions::default()).unwrap();
     let doc = part_text(&saved, "word/document.xml");
     assert_eq!(xpath_on(&doc, "//w:ins/@w:author"), ["Author"], "文档标志触发清洗");
     assert!(same_entry(&bytes, &saved, "word/settings.xml"), "没要求改标志就不动 settings");
 
     let mut s2 = EditSession::open(&bytes).unwrap();
     let off = SaveOptions { remove_personal_info: Some(false), ..Default::default() };
-    let saved2 = s2.save_with(&off).unwrap();
+    let saved2 = s2.save_with_compat(&off).unwrap();
     let settings = part_text(&saved2, "word/settings.xml");
     assert_eq!(xpath_on(&settings, "count(//w:removePersonalInformation)"), ["0"], "标志被删除");
     let doc2 = part_text(&saved2, "word/document.xml");
@@ -186,7 +186,7 @@ fn save_07_flag_written_into_existing_settings() {
     let mut s = EditSession::open(&bytes).unwrap();
     assert!(!s.remove_personal_info_flag());
     let on = SaveOptions { remove_personal_info: Some(true), ..Default::default() };
-    let saved = s.save_with(&on).unwrap();
+    let saved = s.save_with_compat(&on).unwrap();
     let settings = part_text(&saved, "word/settings.xml");
     assert_eq!(xpath_on(&settings, "count(//w:removePersonalInformation)"), ["1"]);
     assert_eq!(xpath_on(&settings, "count(//w:zoom)"), ["1"], "原有设置不动");
@@ -239,7 +239,7 @@ fn save_07_remove_date_and_time_drops_annotation_dates() {
     let mut s = EditSession::open(&bytes).unwrap();
     assert!(!s.remove_date_and_time_flag());
     let opts = SaveOptions { remove_date_and_time: Some(true), ..Default::default() };
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     let out = part_text(&saved, "word/document.xml");
     assert_eq!(xpath_on(&out, "count(//*[@w:date])"), ["0"], "批注日期全删");
     assert_eq!(xpath_on(&out, "//w:ins/@w:author"), ["张三"], "作者不动");
@@ -255,7 +255,7 @@ fn save_07_remove_date_and_time_drops_annotation_dates() {
     );
     let mut s2 = EditSession::open(&build_docx(&doc, Some(&flagged))).unwrap();
     assert!(s2.remove_date_and_time_flag());
-    let saved2 = s2.save_with(&SaveOptions::default()).unwrap();
+    let saved2 = s2.save_with_compat(&SaveOptions::default()).unwrap();
     let out2 = part_text(&saved2, "word/document.xml");
     assert_eq!(xpath_on(&out2, "count(//*[@w:date])"), ["0"]);
     assert_eq!(xpath_on(&out2, "//w:ins/@w:author"), ["张三"], "只删日期不改作者");
@@ -267,7 +267,7 @@ fn save_07_remove_date_and_time_drops_annotation_dates() {
         remove_date_and_time: Some(true),
         ..Default::default()
     };
-    let saved3 = s3.save_with(&both).unwrap();
+    let saved3 = s3.save_with_compat(&both).unwrap();
     let out3 = part_text(&saved3, "word/document.xml");
     assert_eq!(xpath_on(&out3, "count(//*[@w:date])"), ["0"]);
     assert_eq!(xpath_on(&out3, "count(//*[@w:author][@w:author!='Author'])"), ["0"]);
@@ -282,7 +282,7 @@ fn save_07_personal_info_alone_keeps_dates() {
     let bytes = corpus("write-protection__003.docx");
     let mut s = EditSession::open(&bytes).unwrap();
     let opts = SaveOptions { remove_personal_info: Some(true), ..Default::default() };
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     let out = part_text(&saved, "word/document.xml");
     assert_eq!(xpath_on(&out, "//w:ins/@w:date"), ["2026-01-01T00:00:00Z"]);
     assert_eq!(xpath_on(&out, "//w:ins/@w:author"), ["Author"]);
@@ -328,7 +328,7 @@ fn save_07_section_settings_rewrite_page_setup() {
         section: Some(SectionSaveSettings { landscape: true, ..a4() }),
         ..Default::default()
     };
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     let xml = part_text(&saved, "word/document.xml");
     assert_eq!(xpath_on(&xml, "//w:pgSz/@w:w"), ["11906"], "{xml}");
     assert_eq!(xpath_on(&xml, "//w:pgSz/@w:orient"), ["landscape"], "{xml}");
@@ -338,7 +338,7 @@ fn save_07_section_settings_rewrite_page_setup() {
     // 纵向不写 w:orient（同 TS）
     let mut s2 = EditSession::open(&bytes).unwrap();
     let portrait = SaveOptions { section: Some(a4()), ..Default::default() };
-    let xml2 = part_text(&s2.save_with(&portrait).unwrap(), "word/document.xml");
+    let xml2 = part_text(&s2.save_with_compat(&portrait).unwrap(), "word/document.xml");
     assert_eq!(xpath_on(&xml2, "count(//w:pgSz/@w:orient)"), ["0"], "{xml2}");
 }
 
@@ -356,7 +356,7 @@ fn save_07_section_settings_borders_and_columns() {
         }),
         ..Default::default()
     };
-    let xml = part_text(&s.save_with(&opts).unwrap(), "word/document.xml");
+    let xml = part_text(&s.save_with_compat(&opts).unwrap(), "word/document.xml");
     assert_eq!(xpath_on(&xml, "count(//w:pgBorders/*)"), ["4"], "{xml}");
     assert_eq!(xpath_on(&xml, "//w:pgBorders/@w:offsetFrom"), ["page"], "{xml}");
     assert_eq!(xpath_on(&xml, "//w:pgBorders/w:top/@w:sz"), ["4"], "{xml}");
@@ -373,15 +373,15 @@ fn save_07_section_settings_borders_and_columns() {
         }),
         ..Default::default()
     };
-    let x2 = part_text(&s2.save_with(&uneven).unwrap(), "word/document.xml");
+    let x2 = part_text(&s2.save_with_compat(&uneven).unwrap(), "word/document.xml");
     assert_eq!(xpath_on(&x2, "//w:cols/@w:equalWidth"), ["0"], "{x2}");
     assert_eq!(xpath_on(&x2, "//w:cols/w:col/@w:w"), ["4000", "5000"], "{x2}");
     assert_eq!(xpath_on(&x2, "count(//w:cols/w:col/@w:space)"), ["1"], "{x2}");
     // 关掉边框：元素删掉
-    let bordered = s.save_with(&opts).unwrap();
+    let bordered = s.save_with_compat(&opts).unwrap();
     let mut s3 = EditSession::open(&bordered).unwrap();
     let off = SaveOptions { section: Some(a4()), ..Default::default() };
-    let x3 = part_text(&s3.save_with(&off).unwrap(), "word/document.xml");
+    let x3 = part_text(&s3.save_with_compat(&off).unwrap(), "word/document.xml");
     assert_eq!(xpath_on(&x3, "count(//w:pgBorders)"), ["0"], "{x3}");
 }
 
@@ -399,7 +399,7 @@ fn save_07_section_start_type_page_numbers_and_title_page() {
         title_pg: Some(true),
         ..Default::default()
     };
-    let xml = part_text(&s.save_with(&opts).unwrap(), "word/document.xml");
+    let xml = part_text(&s.save_with_compat(&opts).unwrap(), "word/document.xml");
     assert_eq!(xpath_on(&xml, "//w:sectPr/w:type/@w:val"), ["continuous"], "{xml}");
     assert_eq!(xpath_on(&xml, "//w:pgNumType/@w:fmt"), ["upperRoman"], "{xml}");
     assert_eq!(xpath_on(&xml, "//w:pgNumType/@w:start"), ["5"], "{xml}");
@@ -411,14 +411,14 @@ fn save_07_section_start_type_page_numbers_and_title_page() {
     assert!(i_title < i_grid, "w:titlePg 要在 w:docGrid 之前\n{xml}");
 
     // `nextPage` 是缺省 → 删掉 `w:type`；两个字段都缺 → 删掉 `w:pgNumType`；`titlePg: false` → 删掉
-    let mut s2 = EditSession::open(&s.save_with(&opts).unwrap()).unwrap();
+    let mut s2 = EditSession::open(&s.save_with_compat(&opts).unwrap()).unwrap();
     let clear = SaveOptions {
         section_start_type: Some(SectType::NextPage),
         pg_num_type: Some(PgNumTypeOption::default()),
         title_pg: Some(false),
         ..Default::default()
     };
-    let x2 = part_text(&s2.save_with(&clear).unwrap(), "word/document.xml");
+    let x2 = part_text(&s2.save_with_compat(&clear).unwrap(), "word/document.xml");
     assert_eq!(xpath_on(&x2, "count(//w:sectPr/w:type)"), ["0"], "{x2}");
     assert_eq!(xpath_on(&x2, "count(//w:pgNumType)"), ["0"], "{x2}");
     assert_eq!(xpath_on(&x2, "count(//w:titlePg)"), ["0"], "{x2}");
@@ -430,7 +430,7 @@ fn save_07_section_options_need_an_existing_sect_pr() {
     let bytes = common::docx_with_body(r#"<w:p><w:r><w:t>只有一段</w:t></w:r></w:p>"#);
     let mut s = EditSession::open(&bytes).unwrap();
     let opts = SaveOptions { section: Some(a4()), title_pg: Some(true), ..Default::default() };
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     let xml = part_text(&saved, "word/document.xml");
     assert_eq!(xpath_on(&xml, "count(//w:sectPr)"), ["0"], "{xml}");
     assert_eq!(saved, bytes, "没有可改的东西 → 原字节");
@@ -442,7 +442,7 @@ fn save_07_page_color_also_opts_in_via_settings() {
     let bytes = sect_docx(r#"<w:sectPr/>"#);
     let mut s = EditSession::open(&bytes).unwrap();
     let opts = SaveOptions { page_color: Some(Some("FFF2CC".into())), ..Default::default() };
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     let xml = part_text(&saved, "word/document.xml");
     assert_eq!(xpath_on(&xml, "/w:document/w:background/@w:color"), ["FFF2CC"], "{xml}");
     let settings = part_text(&saved, "word/settings.xml");
@@ -450,7 +450,7 @@ fn save_07_page_color_also_opts_in_via_settings() {
     // 删底色：`w:background` 走了，开关留着（同 TS）
     let mut s2 = EditSession::open(&saved).unwrap();
     let clear = SaveOptions { page_color: Some(None), ..Default::default() };
-    let cleared = s2.save_with(&clear).unwrap();
+    let cleared = s2.save_with_compat(&clear).unwrap();
     let x2 = part_text(&cleared, "word/document.xml");
     assert_eq!(xpath_on(&x2, "count(//w:background)"), ["0"], "{x2}");
 }
@@ -479,7 +479,7 @@ fn save_07_protection_options() {
         })),
         ..Default::default()
     };
-    let settings = part_text(&s.save_with(&opts).unwrap(), "word/settings.xml");
+    let settings = part_text(&s.save_with_compat(&opts).unwrap(), "word/settings.xml");
     assert_eq!(xpath_on(&settings, "//w:documentProtection/@w:edit"), ["readOnly"], "{settings}");
     assert_eq!(xpath_on(&settings, "//w:documentProtection/@w:enforcement"), ["1"], "{settings}");
     assert_eq!(
@@ -500,10 +500,10 @@ fn save_07_protection_options() {
     assert_eq!(xpath_on(&settings, "//w:writeProtection/@w:hash"), ["aGFzaA=="], "{settings}");
 
     // 删除
-    let mut s2 = EditSession::open(&s.save_with(&opts).unwrap()).unwrap();
+    let mut s2 = EditSession::open(&s.save_with_compat(&opts).unwrap()).unwrap();
     let clear =
         SaveOptions { protection: Some(None), write_protection: Some(None), ..Default::default() };
-    let x2 = part_text(&s2.save_with(&clear).unwrap(), "word/settings.xml");
+    let x2 = part_text(&s2.save_with_compat(&clear).unwrap(), "word/settings.xml");
     assert_eq!(xpath_on(&x2, "count(//w:documentProtection)"), ["0"], "{x2}");
     assert_eq!(xpath_on(&x2, "count(//w:writeProtection)"), ["0"], "{x2}");
     // 既不 recommended 也没有口令 → 等于删除（同 TS）
@@ -512,23 +512,24 @@ fn save_07_protection_options() {
         write_protection: Some(Some(WriteProtectionOption::default())),
         ..Default::default()
     };
-    let x3 = part_text(&s3.save_with(&empty).unwrap(), "word/settings.xml");
+    let x3 = part_text(&s3.save_with_compat(&empty).unwrap(), "word/settings.xml");
     assert_eq!(xpath_on(&x3, "count(//w:writeProtection)"), ["0"], "{x3}");
 }
 
 /// `evenAndOddHeaders`：写入后重解析，投影里读得出来（重解析 oracle）。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_07_even_and_odd_headers_round_trips_through_the_projection() {
     let bytes = sect_docx(r#"<w:sectPr/>"#);
     let mut s = EditSession::open(&bytes).unwrap();
     let opts = SaveOptions { even_and_odd_headers: Some(true), ..Default::default() };
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     let mut pkg = Package::open(&saved).unwrap();
     let json = rsword::bind::compat_ts::parsed_doc(&mut pkg).unwrap();
     assert_eq!(json["evenAndOddHeaders"], true);
     let mut s2 = EditSession::open(&saved).unwrap();
     let off = SaveOptions { even_and_odd_headers: Some(false), ..Default::default() };
-    let cleared = s2.save_with(&off).unwrap();
+    let cleared = s2.save_with_compat(&off).unwrap();
     let mut pkg2 = Package::open(&cleared).unwrap();
     let json2 = rsword::bind::compat_ts::parsed_doc(&mut pkg2).unwrap();
     assert_eq!(json2["evenAndOddHeaders"], false);
@@ -565,13 +566,14 @@ fn save_07_hf_slots_cover_all_six_variants() {
 
 /// 没声明变体 → 按 `SAVE-05` 新建 part；引用是 `sectPr` 第一个子元素。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_07_header_option_creates_the_part() {
     let bytes = sect_docx(r#"<w:sectPr><w:pgSz w:w="1" w:h="2"/></w:sectPr>"#);
     let mut s = EditSession::open(&bytes).unwrap();
     let mut opts = SaveOptions::default();
     *opts.hf.by_ts_key("header").unwrap() = Some(vec![para("新页眉")]);
     *opts.hf.by_ts_key("footerFirst").unwrap() = Some(vec![para("首页页脚")]);
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     let hdr = part_text(&saved, "word/header1.xml");
     assert!(hdr.contains("新页眉"), "{hdr}");
     let ftr = part_text(&saved, "word/footer1.xml");
@@ -618,7 +620,7 @@ fn save_07_header_option_merges_surgically() {
     let mut s = EditSession::open(&bytes).unwrap();
     let mut opts = SaveOptions::default();
     *opts.hf.by_ts_key("header").unwrap() = Some(vec![para("新文字")]);
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     let out = part_text(&saved, "word/header1.xml");
     assert!(out.contains("新文字"), "{out}");
     assert!(!out.contains("旧文字一") && !out.contains("旧文字二"), "文本段落整体替换\n{out}");
@@ -650,7 +652,7 @@ fn save_07_section_hf_targets_one_section() {
         }],
         ..Default::default()
     };
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     let ftr = part_text(&saved, "word/footer1.xml");
     assert!(ftr.contains("第一节页脚"), "{ftr}");
     let xml = part_text(&saved, "word/document.xml");
@@ -678,7 +680,7 @@ fn save_07_hf_all_sections_propagates_only_new_parts() {
     let mut s = EditSession::open(&bytes).unwrap();
     let mut opts = SaveOptions { hf_all_sections: true, ..Default::default() };
     *opts.hf.by_ts_key("header").unwrap() = Some(vec![para("重复页眉")]);
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     let xml = part_text(&saved, "word/document.xml");
     assert_eq!(xpath_on(&xml, "count(//w:headerReference)"), ["2"], "两节各一条\n{xml}");
     let ids = xpath_on(&xml, "//w:headerReference/@r:id");
@@ -688,7 +690,7 @@ fn save_07_hf_all_sections_propagates_only_new_parts() {
     let mut s2 = EditSession::open(&bytes).unwrap();
     let mut only_last = SaveOptions::default();
     *only_last.hf.by_ts_key("header").unwrap() = Some(vec![para("只最后一节")]);
-    let x2 = part_text(&s2.save_with(&only_last).unwrap(), "word/document.xml");
+    let x2 = part_text(&s2.save_with_compat(&only_last).unwrap(), "word/document.xml");
     assert_eq!(xpath_on(&x2, "count(//w:headerReference)"), ["1"], "{x2}");
 }
 
@@ -699,7 +701,7 @@ fn save_07_watermark_option_alone_and_with_content() {
     let mut s = EditSession::open(&bytes).unwrap();
     let mut opts = SaveOptions { watermark: Some(Some("草稿".into())), ..Default::default() };
     *opts.hf.by_ts_key("header").unwrap() = Some(vec![para("页眉文字")]);
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     let hdr = part_text(&saved, "word/header1.xml");
     assert!(hdr.contains("<v:textpath") && hdr.contains("页眉文字"), "{hdr}");
     let (i_wm, i_text) = (hdr.find("<v:textpath").unwrap(), hdr.find("页眉文字").unwrap());
@@ -708,7 +710,7 @@ fn save_07_watermark_option_alone_and_with_content() {
     // 只给水印：页眉文字不动
     let mut s2 = EditSession::open(&saved).unwrap();
     let only = SaveOptions { watermark: Some(Some("机密".into())), ..Default::default() };
-    let x2 = part_text(&s2.save_with(&only).unwrap(), "word/header1.xml");
+    let x2 = part_text(&s2.save_with_compat(&only).unwrap(), "word/header1.xml");
     assert!(x2.contains(r#"string="机密""#), "{x2}");
     assert!(x2.contains("页眉文字"), "内容不动\n{x2}");
     assert_eq!(xpath_on(&x2, "count(//v:shape)"), ["1"], "只有一个水印形状\n{x2}");
@@ -716,7 +718,7 @@ fn save_07_watermark_option_alone_and_with_content() {
     // 删水印：只有水印段落走
     let mut s3 = EditSession::open(&saved).unwrap();
     let clear = SaveOptions { watermark: Some(None), ..Default::default() };
-    let x3 = part_text(&s3.save_with(&clear).unwrap(), "word/header1.xml");
+    let x3 = part_text(&s3.save_with_compat(&clear).unwrap(), "word/header1.xml");
     assert_eq!(xpath_on(&x3, "count(//v:textpath)"), ["0"], "{x3}");
     assert!(x3.contains("页眉文字"), "内容不动\n{x3}");
 }
@@ -725,12 +727,15 @@ fn save_07_watermark_option_alone_and_with_content() {
 // 5.7：声明 part 的保存选项（`SAVE-07` / `SAVE-05`，`spec/16` 任务 5.7）
 // ---------------------------------------------------------------------------
 
+use rsword::save::options::StyleUpsertSave;
+#[cfg(feature = "compat-ts")]
 use rsword::save::options::{
-    NumberingDefSave, NumberingLevelSave, RestartNumSave, SourceSave, StyleUpsertSave,
-    ThemeColorsSave, ThemeFontsSave,
+    NumberingDefSave, NumberingLevelSave, RestartNumSave, SourceSave, ThemeColorsSave,
+    ThemeFontsSave,
 };
 
 /// 每个 zip 条目的 `(CRC, 压缩后字节)`。
+#[cfg(feature = "compat-ts")]
 fn raw_entries(bytes: &[u8]) -> std::collections::BTreeMap<String, (u32, Vec<u8>)> {
     let mut z = zip::ZipArchive::new(Cursor::new(bytes.to_vec())).unwrap();
     let mut out = std::collections::BTreeMap::new();
@@ -746,6 +751,7 @@ fn raw_entries(bytes: &[u8]) -> std::collections::BTreeMap<String, (u32, Vec<u8>
 }
 
 /// 新建了某个 part 之后，其他条目的原压缩数据不变（`SAVE-05`）。
+#[cfg(feature = "compat-ts")]
 fn assert_only_added(before: &[u8], after: &[u8], added: &[&str], touched: &[&str]) {
     let (a, b) = (raw_entries(before), raw_entries(after));
     for (name, x) in &a {
@@ -763,6 +769,7 @@ fn assert_only_added(before: &[u8], after: &[u8], added: &[&str], touched: &[&st
 
 /// `themeFonts` / `themeColors`：只改 `@typeface` 与槽里的颜色；重解析后投影读得出来。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_07_theme_fonts_and_colors() {
     let bytes = corpus("watermark-theme-sources__008.docx");
     let mut s = EditSession::open(&bytes).unwrap();
@@ -778,7 +785,7 @@ fn save_07_theme_fonts_and_colors() {
         }),
         ..Default::default()
     };
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     let theme = part_text(&saved, "word/theme/theme1.xml");
     assert_eq!(xpath_on(&theme, "//a:majorFont/a:latin/@typeface"), ["Calibri Light"], "{theme}");
     assert_eq!(xpath_on(&theme, "//a:minorFont/a:latin/@typeface"), ["Calibri"], "{theme}");
@@ -799,6 +806,7 @@ fn save_07_theme_fonts_and_colors() {
 
 /// 没有 theme part 的文档：按 `SAVE-05` 从模板新建，其他条目原压缩数据不变。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_05_theme_part_created_from_template() {
     let bytes = common::docx_with_body(r#"<w:p><w:r><w:t>x</w:t></w:r></w:p><w:sectPr/>"#);
     let mut s = EditSession::open(&bytes).unwrap();
@@ -810,7 +818,7 @@ fn save_05_theme_part_created_from_template() {
         }),
         ..Default::default()
     };
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     assert_only_added(
         &bytes,
         &saved,
@@ -829,6 +837,7 @@ fn save_05_theme_part_created_from_template() {
 
 /// `numbering`：只追加；`abstractNum` 在 `w:num` 之前，既有条目不动。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_07_numbering_appends_definitions() {
     let numbering = concat!(
         r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>"#,
@@ -870,7 +879,7 @@ fn save_07_numbering_appends_definitions() {
         }],
         ..Default::default()
     };
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     let xml = part_text(&saved, "word/numbering.xml");
     // 既有条目原字节不动
     assert!(xml.contains(r#"<w:abstractNum w:abstractNumId="3">"#), "{xml}");
@@ -954,7 +963,7 @@ fn save_07_style_upserts_replace_or_append() {
         }],
         ..Default::default()
     };
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     let xml = part_text(&saved, "word/styles.xml");
     assert_eq!(
         xpath_on(&xml, r#"//w:style[@w:styleId="MyQuote"]/w:name/@w:val"#),
@@ -993,7 +1002,7 @@ fn save_07_style_upserts_replace_or_append() {
         }],
         ..Default::default()
     };
-    let x2 = part_text(&s2.save_with(&again).unwrap(), "word/styles.xml");
+    let x2 = part_text(&s2.save_with_compat(&again).unwrap(), "word/styles.xml");
     assert_eq!(xpath_on(&x2, r#"count(//w:style[@w:styleId="MyQuote"])"#), ["1"], "还是一条\n{x2}");
     assert_eq!(
         xpath_on(&x2, r#"//w:style[@w:styleId="MyQuote"]/w:name/@w:val"#),
@@ -1009,6 +1018,7 @@ fn save_07_style_upserts_replace_or_append() {
 
 /// `sources`：权威列表——未变的条目原字节不动（未建模的域因此保住）、变了的重建、列表外的删掉。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_07_sources_authoritative_list() {
     let bytes = corpus("watermark-theme-sources__008.docx");
     let mut s = EditSession::open(&bytes).unwrap();
@@ -1032,7 +1042,7 @@ fn save_07_sources_authoritative_list() {
         url: None,
     };
     let opts = SaveOptions { sources: Some(vec![keep.clone(), add]), ..Default::default() };
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     let xml = part_text(&saved, "customXml/item1.xml");
     // 未变的条目原字节不动：未建模的 `b:Volume` / `b:Pages` 还在
     assert!(xml.contains("<b:Volume>33</b:Volume>"), "未建模的域要保住\n{xml}");
@@ -1057,7 +1067,7 @@ fn save_07_sources_authoritative_list() {
     let mut s2 = EditSession::open(&saved).unwrap();
     let edited = SourceSave { year: "2023".into(), ..keep };
     let shrink = SaveOptions { sources: Some(vec![edited]), ..Default::default() };
-    let x2 = part_text(&s2.save_with(&shrink).unwrap(), "customXml/item1.xml");
+    let x2 = part_text(&s2.save_with_compat(&shrink).unwrap(), "customXml/item1.xml");
     assert_eq!(xpath_on(&x2, "count(//b:Source)"), ["1"], "{x2}");
     assert_eq!(xpath_on(&x2, "//b:Source/b:Year"), ["2023"], "{x2}");
     assert_eq!(
@@ -1065,13 +1075,14 @@ fn save_07_sources_authoritative_list() {
         ["0"],
         "改过的条目整条重建，未建模的域随之丢掉\n{x2}"
     );
-    let mut pkg2 = Package::open(&s2.save_with(&shrink).unwrap()).unwrap();
+    let mut pkg2 = Package::open(&s2.save_with_compat(&shrink).unwrap()).unwrap();
     let json2 = rsword::bind::compat_ts::parsed_doc(&mut pkg2).unwrap();
     assert_eq!(json2["sources"].as_array().unwrap().len(), 1);
 }
 
 /// 没有 customXml 的文档：按 `SAVE-05` 建 `item{N}.xml` + `itemProps{N}.xml` + 两条关系。
 #[test]
+#[cfg(feature = "compat-ts")]
 fn save_05_sources_part_created_with_item_props() {
     let bytes = common::docx_with_body(r#"<w:p><w:r><w:t>x</w:t></w:r></w:p><w:sectPr/>"#);
     let mut s = EditSession::open(&bytes).unwrap();
@@ -1087,7 +1098,7 @@ fn save_05_sources_part_created_with_item_props() {
         }]),
         ..Default::default()
     };
-    let saved = s.save_with(&opts).unwrap();
+    let saved = s.save_with_compat(&opts).unwrap();
     assert_only_added(
         &bytes,
         &saved,

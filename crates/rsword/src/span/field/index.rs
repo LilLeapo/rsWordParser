@@ -77,16 +77,24 @@ impl FieldForm {
 
 /// 一个字段（`docs/03` §5.4）。
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub struct FieldSpan {
+    /// 会话内字段 ID。
     pub id: FieldId,
+    /// 所属 part。
     pub part: PartId,
+    /// 所属内容流。
     pub flow: FlowId,
+    /// 原始字段边界和 XML 形态。
     pub form: FieldForm,
     /// 语义视图；保存真相是 `form` 里的节点（`FLD-05`）。
     pub instr: Instruction,
     /// 指令区或结果区内的子字段。
     pub nested: Vec<FieldId>,
+    /// 外层字段；顶层字段为 `None`。
     pub parent: Option<FieldId>,
+    /// 编辑边界策略。
     pub policy: FieldPolicy,
     /// `w:fldChar/@w:fldLock`：`UpdateBlockField` 拒绝（`FLD-07`）。
     pub lock: bool,
@@ -100,7 +108,9 @@ pub struct FieldSpan {
     pub cross_paragraph: bool,
 }
 
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl FieldSpan {
+    /// 解析后的指令关键字。
     pub fn keyword(&self) -> &Keyword {
         &self.instr.keyword
     }

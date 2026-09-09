@@ -42,6 +42,8 @@ pub const MAX_DEPTH: u32 = 100_000;
 ///
 /// 不变式：非 `Clean` 节点的祖先不为 `Clean`；`Clean` 节点的后代全为 `Clean`。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub enum Dirty {
     /// 自身与后代都未变：整节点拷 `lex.range`。
     #[default]
@@ -56,9 +58,11 @@ pub enum Dirty {
     Deleted,
 }
 
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl Dirty {
     /// 规则 C（`XML-12`）：某后代变为非 `Clean` 时，祖先若为 `Clean` 则变 `DescendantDirty`，
     /// 否则保持不变（传播在此停止）。返回 `true` 表示状态发生了改变、需要继续向上传播。
+    #[doc(hidden)]
     pub fn absorb_descendant_change(&mut self) -> bool {
         if *self == Self::Clean {
             *self = Self::DescendantDirty;

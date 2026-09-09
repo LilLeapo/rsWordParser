@@ -17,7 +17,7 @@ use crate::resolve::drawingml::hex;
 use crate::xml::Dom;
 
 use super::blocks::Ctx;
-use super::json::{display_json, set};
+use crate::bind::native::json::{display_json, set};
 
 /// 主 part 的一个图表关系：zip 路径、part 模型、原文。
 pub(super) struct ChartEntry<'a> {
