@@ -5,6 +5,73 @@
 
 ## 结论
 
+**M9′ 9.8 实施收尾完成，验收未齐**。22 项支持状态见 docs/12，集中待办见 docs/04 §8.0。
+W7 尚不支持执行，11 项改类仍缺桌面 Word 证据；真实 Agent 门 5 由评审者运行，本轮不填通过率。
+docs/03 §12 保持未勾选并在验收行内限定；M8′ 门 2 / 门 4 与 M9′ 门 2 的上层措辞待办均未自行裁定。
+
+本轮串行实跑默认 debug/release 各 **952 / 0 / 13**、compat 各 **1071 / 0 / 13**（通过/失败/ignored），
+未新增测试计数；fmt 干净，两套 clippy/audit/cargo doc **零告警**。
+八道差分 **242 + 547 已知 / 0 未知**；save_blocks **204/208 等价、4 份既有具名差异、0 跳过**，
+可选 JS 对照未配置，未宣称执行。体积门仍为 **251 份、4334070 B → 1408718 B（−67.5%）**。
+**1099** 份快照无改动（799 synthetic + 266 real + 34 hostile），常规全语料无流段落门通过（精确 0）。
+核心运行期依赖实查仍 **5** 个；未改核心运行逻辑、corpus 或 spec/18、spec/20、docs/03 §8.2。
+
+README 三条 cargo run 命令实际执行；MCP 经 cargo install 安装到本树 target/agent-tools，
+安装产物的 stdio 进程探针通过（CLI/MCP 两页续读终态相等，错传输游标双向拒绝）；debug/release 产物也分别通过。
+这不是实际 Agent 或 Word 会话。Linux 运行与定时 fuzz 长跑本轮未重跑，不把历史结果计为本轮新证据，
+不宣告 M9′ 六门全绿。最终日志在 target/m98-final；9.7 及更早小节保留当轮历史记录。
+
+## 9.8 Agent 读侧基准（2026-09-09）
+
+`tools/agent-query/benches/agent.rs` 按输入 ZIP 字节排序，从精确 266 份 real 中取最大三份。
+复用实际共享 Sessions::read，核心运行期依赖不增加。release，同一已打开会话预热一次后 31 个样本；
+median 取排序第 16 项，p95 取第 30 项。计时包含投影、分页与业务信封序列化，排除 open、响应销毁、
+MCP 包装计费的单独核查；find **包含每次新 worker 的启动/回收**，不含 CLI/MCP 服务进程冷启动。
+实测环境：Apple M5、macOS 26.5.2、rustc 1.98.0（88d9e12ae）；时延不是跨机器保证。
+find 为投影首个字母/数字的字面查询
+（large-report 为 `r`，另外两份为 `b`，scope=all），断言非空命中；不冒充所有正则的性能。
+text/outline 缺省 main；三者均为**缺省预算首屏**，不能据此声称完整读取也这么快。
+
+| 输入（corpus/real 下） | ZIP B |
+| --- | ---: |
+| misc/large-report.docx | 326406 |
+| ole/ole-ppt.docx | 47294 |
+| _round3/_resaved/ink-to-shape--newchart-resaved-by-word.docx | 47098 |
+
+下表 A/B/C 对应上述输入顺序；B 均为实际完整信封字节，不含 JSON-RPC framing。
+共享 JSON 与 MCP 两形态分开计量；同一会话首屏体积、字符数与截断标志重复断言相同。
+跨运行的会话标识不同可改变几个字节，不应误称投影不确定。
+
+| 输入 | 接口 | median / p95 ms | UTF-16 | 共享 JSON B | MCP text / structured B | truncated |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| A | text | 563.501 / 652.603 | 1140 | 19559 | 22914 / 19658 | true |
+| A | outline | 3.559 / 4.372 | 3870 | 4408 | 5195 / 4507 | true |
+| A | find | 9.579 / 13.640 | 3561 | 4874 | 5677 / 4973 | true |
+| B | text | 0.566 / 0.690 | 118 | 2913 | 3433 / 3012 | false |
+| B | outline | 0.046 / 0.048 | 173 | 589 | 726 / 688 | false |
+| B | find | 6.398 / 8.126 | 1736 | 2224 | 2612 / 2323 | false |
+| C | text | 0.777 / 0.960 | 290 | 4619 | 5418 / 4718 | false |
+| C | outline | 0.041 / 0.046 | 173 | 590 | 727 / 689 | false |
+| C | find | 4.607 / 6.882 | 1751 | 2562 | 3007 / 2661 | false |
+
+预算未修改：text 8000 UTF-16 / 24000 B、outline 4000 / 16000、find 4000 / 24000。
+A 的 text 首屏 p95 **652.603 ms**，是本次发现的明显读侧成本，未做优化，不能拿 outline/find 的数字代替它。
+首屏虽仅 1140 UTF-16，锚点等元数据及完整投影/分页工作仍有成本；本轮未完成性能剖析，不断言唯一瓶颈。
+outline 的 UTF-16 包含记录 JSON，不是标题净文字数；原 26 标题整份记录的 5052 UTF-16 历史口径见下。
+估算 token 为 `ceil(实际信封 B / 4)`，例如 A 的 MCP text 首屏为 5729，非模型 tokenizer 实测。
+
+复现（RSWORD_BENCH_WORKER 可指定工作进程绝对路径；默认使用本树 target/release）：
+
+```sh
+cargo build -p rsword-agent-query --release --bins
+cargo bench -p rsword-agent-query --bench agent
+```
+
+原始输出在本次运行的 target/m98-final/bench.log。首次基准把不同 open 的会话信封当作同一快照比较，
+体积断言失败；修正为同一会话预热后重复读取，保留确定性断言。此修正仅涉及基准，未修改产品逻辑。
+
+## 9.7 交付时记录
+
 **M9′ 9.7 MCP server 实施完成**：`crates/rsword-mcp` 提供原生 stdio 服务，复用同一张工具表、
 Agent 会话、预算/游标与编辑审计。原生 Rust 形态**按建议执行、待追认**；缺省 text、structured 可选，
 缺省仍待门 5 的客户端实测确认。连接配置与边界见 [19-mcp.md](19-mcp.md)。
@@ -528,7 +595,9 @@ let bytes = s.save_with(&outcome.save_options)?;
 
 解析侧的已登记差异（数字 / 符号字体 / 表格显示等）在 `crates/rsword/src/bind/compat_ts/KNOWN_DIFFS.md`。
 
-## 明确未实现
+## 旧阶段能力边界（历史记录）
+
+以下保留当时的范围描述，不作为 9.8 当前能力清单；当前 Agent 支持与缺口以 docs/12 §8–§11 为准。
 
 - **字段边界**：`DeleteRange` 覆盖**已识别**字段的结构 run 时整 run 保留、只删文本段——这是**正确**行为
   （透明字段的结果可编辑，字段本身不该跟着消失）；只有畸形 / 未闭合字段的 `fldChar` 才记

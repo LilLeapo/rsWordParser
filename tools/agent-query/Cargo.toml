@@ -17,6 +17,9 @@ compat-ts = ["rsword/compat-ts"]
 [[bin]]
 name = "rsword-query-worker"
 path = "src/worker.rs"
+[[bench]]
+name = "agent"
+harness = false
 [lints]
 workspace = true
 [dev-dependencies]

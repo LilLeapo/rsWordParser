@@ -60,7 +60,7 @@ R11 的大纲元数据不等于正文读取；范围边界应由标题锚点计�
 | W3 | `revisions2/rev-insert-delete.docx`：“只接受作者甲的修订，作者乙的保持待决。” | 输入作者甲 2、作者乙 1；输出作者甲为 0、作者乙仍为 1 且元数据/载荷保持；作者甲新增句保留、被删句消失。输出 accept-all 指纹等于输入 accept-all；输出 reject-remaining 指纹等于独立 oracle 对输入仅接受甲再拒绝乙的结果，复用 ModelFingerprint 双视图，不能只断言所有修订归零。只授权甲的两个所属段落。 |
 | W4 | `table/table-styled.docx`：“删除第一张表的第 3 列，保留其他内容。” | 输入第一表为 3×3，无待决表修订；输出 grid 为 2，每行逻辑宽度 2，内容等于输入删掉第三逻辑列。其他列顺序不变，表外块与 part 原字节不变。原提案第二张表第三列在最大文档不可用（第二表只有 2 列），不能让坏位置拒绝冒充编辑成功。 |
 | W5 | `text/text-basic.docx`：“给『Mixed English』加批注，作者 Agent，正文『请核对英文表述』。” | 唯一命中范围；新增批注精确 1，author/text 与范围映射相等，锚定字符不变。允许目标段落、comments part 及必需关系/ContentTypes；其余块字节不变，不扩大到整个段落的批注范围。 |
-| W6 | `text/text-basic.docx`：“给『这是正文 Mixed English and 中文。』应用 AgentQuote 引用样式；如无此样式，创建段落样式，左缩进 720 twips。保留段落的其他直接格式。” | 输入唯一段落 pPr.rpr.size=22；不存在 AgentQuote 时以结构化 UpsertStyle 创建，再用 SetParaProps 的 style patch。输出 styleId=AgentQuote、样式 indent.left=720，段落除 style 外的已建模属性逐字段不变，原有 pPr 未涉及子元素原字节不变。禁止 ReplaceParaProps/XML 逃生口；允许目标 pPr、styles 条目及必要声明关系。真实语料未发现 Quote/引用声明，不能引用不存在的 styleId 后自称成功。 |
+| W6 | `text/text-basic.docx`：“给『这是正文 Mixed English and 中文。』应用 AgentQuote 引用样式；如无此样式，创建段落样式，左缩进 720 twips。保留段落的其他直接格式。” | 输入唯一段落 pPr.rpr.size=22；不存在 AgentQuote 时以结构化 UpsertStyle 创建，再用 SetParaProps 的 style patch。输出 styleId=AgentQuote、样式 indent.start=720（原生键；对应左缩进），段落除 style 外的已建模属性逐字段不变，原有 pPr 未涉及子元素原字节不变。禁止 ReplaceParaProps/XML 逃生口；允许目标 pPr、styles 条目及必要声明关系。真实语料未发现 Quote/引用声明，不能引用不存在的 styleId 后自称成功。 |
 | W7 | `fields2/fields-toc-stale.docx`：“更新目录标题文字，保留标题原文；不要猜页码。” | TOC 非空且旧缓存与当前 heading 不同；输出条目文字序列等于当前 level 1–3 标题（Changed heading one / Changed heading two / Original heading three），TOC/PAGEREF 结构仍可解析。只授权 TOC 结果、生成器必要的标题书签；其他标题文字和原块未涉及部分不变。不以 Word 布局产生的页码为内核断言。 |
 | W8 | `text/text-basic.docx`：“为这一节新建默认页眉，文字『Agent 审阅稿』。” | 输入目标节无默认页眉引用；输出有 header part、有效关系和 ContentType，默认引用指向它，重解析文字相等。只授权 sectPr、关系、ContentTypes 与新 part；原正文各块不变。检验 SAVE-05 真建 part，不用已有 hf 样本掩盖创建路径。 |
 | W9 | `image/image-two-in-run.docx`：“只把正文第二张图换成提供的图片，第一张保持不变。” | 替换载荷取 `image/image-svg.docx` 的 `word/media/image1.png`（PNG 回退媒体），新载荷 SHA-256 为 `b04c1699effcdb9be2dc67b8d7c1347bd1558d9ff2f2328240205a5ae27a24b7`，原载荷为 `91a27c9ae84524f4b5e9114eddfa017b21d7b6ad77aeecdc9fdc2e3ef184d6cb`，预检不同；先 addMedia 得新句柄再 ReplaceImageMedia 定位第二个 drawing。输出两处绘图仍在原顺序与位置，第二处解析到新字节，第一处仍到原字节。只授权第二绘图的引用、新媒体、其关系/ContentTypes；原媒体 part CRC/压缩字节不变，不能原位覆盖共享 image1.png。 |
@@ -71,7 +71,7 @@ R11 的大纲元数据不等于正文读取；范围边界应由标题锚点计�
 W4 改为真实三列表；W6 明确缺失引用样式的结构化创建；W9 强化共享媒体的隔离验证。
 W3/W11 不含本轮待裁定的追踪列几何交互；这不代替 spec/18 的裁定，也不放宽 M8′ 的门。
 
-## 4. 预算实测与 9.1 建议
+## 4. 9.0 历史预算实测与 9.1 建议
 
 复现：在仓库运行 `tools/agent-baseline.sh`（Rust + Ruby，使用现有 Cargo.lock，临时构建位于 target，退出清理）。
 脚本调用真实 `SessionTable::document(display=false)`，没有把 model 快照当成本次运行结果。
@@ -107,7 +107,7 @@ Agent 工具描述及请求日志也耗 token，应在真实 Agent 验收时另�
 ## 5. A / B / C 复核与证据边界
 
 **确认 A：文件级 CLI + MCP**，负责人已定，rsword 现有全包 open/apply/save 路径可直接复用。
-8.7 的隔离下游生命周期和真实 wasm 会话检查是 A 的底层证据；它们不是尚未实现的 CLI/MCP 端到端验收。
+8.7 的隔离下游生命周期和真实 wasm 会话检查是 A 的底层证据；它们在 9.0 时不代表尚未实现的 CLI/MCP 端到端验收；9.6/9.7 的进程证据见 §9。
 
 | 形态 | 当前证据与阻碍 | 本次结论 |
 | --- | --- | --- |
@@ -117,7 +117,7 @@ Agent 工具描述及请求日志也耗 token，应在真实 Agent 验收时另�
 
 B/C 的宿主实测记录待提供，未运行、未捏造失败数据；这不重开已裁定的 A 选择。
 
-## 6. 留给 9.1 的明确输入
+## 6. 9.0 留给 9.1 的历史输入
 
 - R10 的 code → 人类描述映射归 AGENT-01：当前 warnings **已有 message**（本样本为“图表 part 里没有带缓存值的系列”），
   并非只有机器码；缺的是稳定的用户说明/能力影响与未知 code 回退契约。保留原 code 与定位，未知项回退原 message 并声明未知，不能静默丢警告。
@@ -126,7 +126,7 @@ B/C 的宿主实测记录待提供，未运行、未捏造失败数据；这不�
 - R11 要能审计读取范围和累计预算；limit 的单位、不可拆长块行为、游标与会话版本失效规则必须在 AGENT-06 裁定。
 - 任务结果、Word 打开证据、真实 Agent 的三条改类会话记录均留待后续阶段，本表不提前填通过率。
 
-## 7. 本轮验证记录
+## 7. 9.0 验证记录
 
 任务表精确 22 行，目标前置条件按真实 model 快照核查；预算脚本真实调用原生协议，重复运行结果相同，
 脚本 bash 语法检查通过。这里只核实任务可落在样本上，不计 Agent 任务通过数。
@@ -156,3 +156,66 @@ fmt 干净，两套 clippy/audit 零告警。八道 `diff-parse --features compa
 9.5 修正了共享 ModelFingerprint 的文字/指令取值：原 helper 把元素当文本节点，T/F 可全空而不报错。
 新增 FIRST/OTHER 不同文档必须不同指纹的常驻反例；旧的“两个空值相等”不再能充当文字保真证明。
 批次内符号引用尚缺；不可通过猜测新建 nodeId 绕过。具体接口、报告容量与审计外置见 [17-agent-edit.md](17-agent-edit.md)。
+
+## 9. 9.8 读侧支持状态与完整分母
+
+当前分母仍为 **R1–R11 + W1–W11，共 22 项**。§2/§3 是任务验收要求，§8 与本节是实现证据，
+两者不能互换。§4/§6/§7 保留 9.0 的历史测量与关口输入；当前预算见 §10。
+9.6/9.7 已补 CLI 与 MCP 的真实进程驱动，**没有**因此补齐 §8 中真实 Agent、桌面 Word 或独立任务 oracle 的缺口。
+W7 仍不支持执行，11 项 W 均仍缺本轮桌面 Word 无修复提示证据。
+
+| 任务 | 当前支持与证据 | 尚缺的任务级验收 |
+| --- | --- | --- |
+| R1 | model/text/outline 可有界读取；最大件标题序列与预算有自动化断言 | 真实 Agent 摘要的三个主题覆盖和实际上下文消耗；不以标题枚举证明摘要正确 |
+| R2 | outline 标题级别/文字/顺序对独立模型 oracle，全 real 跑；最大件 26 个标题 | 真实 Agent 返回的 level=1 序列与任务预期核对 |
+| R3 | model 的字段模型与只读 field detail 可用于核对 TOC | 具名样本的 Agent 条目计数任务 oracle，不能直接拿占位符个数当条目数 |
+| R4 | model comments[] 保留作者、日期、正文；text 有独立批注流 | 真实输出三字段与具名样本逐项核对（包括缺席状态） |
+| R5 | model revisions[] 可读取，编译器有按作者筛选的写侧证据 | 读任务按作者聚合计数的完整 Agent 回答 oracle |
+| R6 | model 可按 fields 取 hfParts/settings/sections；各流有身份 | 同时核对奇偶页、首页标志与实际引用关系的 Agent 回答 |
+| R7 | context/detail 的表格信息与真实模型逐字段比较 | 按任务表的精确表序号、表头语义核对真实回答 |
+| R8 | 按需 display 的 chart detail 对真实模型核对类型 | 指定图表的 Agent 可读类型回答，不能把所有图表占位符当同一种图 |
+| R9 | 媒体资源与 drawing 出现位置分开；detail 有真实样本对照 | 完整出现位置到所属节的任务级回答，资源个数不能代替图片出现次数 |
+| R10 | 版本化 DiagnosticView 表、原 code/message/定位、能力影响及未知码回退均有断言 | 真实 Agent 回答的 code 集合与可读说明核对；不宣称诊断能证明所有文档问题 |
+| R11 | blockRange 复用原生选择；续读有独立全文 oracle，单元格/授权范围有越界反例 | 真实会话读取日志只含 main[41,48) 与累计预算证明；禁止先全量读取再过滤 |
+
+以上仅声明接口与 Rust/进程测试覆盖，不报告 22 项通过率。自动化入口包括
+`crates/rsword/tests/agent_text.rs`、`tools/agent-query/tests/query.rs` / `paging.rs` / `edit.rs`，
+以及 `crates/rsword-cli/tests` / `crates/rsword-mcp/tests`。实际可执行命令见 README、docs/18、docs/19。
+
+## 10. 9.8 当前预算实测
+
+见 docs/05 的最大三份真实件基准表与复现命令。测的是共享 Agent 读接口的**缺省首屏**，
+不是整份文档的总耗时或总体积；完整 JSON 信封（锚点、诊断、游标、usage 等）全部计入。
+两种 MCP 形态的实际字节各列一栏，分页仍按两者较大成本。估算 token 统一为 `ceil(实际字节/4)`，
+这是预算代理值，不是假称实测某个模型的 tokenizer。
+原生无参 document(display=false) 继续是整份模型，不能拿它的体积冒充 Agent 首屏体积。
+
+最大件 `misc/large-report.docx` 的共享接口缺省首屏：
+
+| 接口 | limit / maxBytes | content UTF-16 | 共享 JSON B | MCP text / structured B | truncated |
+| --- | ---: | ---: | ---: | ---: | --- |
+| text | 8000 / 24000 | 1140 | 19559 | 22914 / 19658 | true |
+| outline | 4000 / 16000 | 3870 | 4408 | 5195 / 4507 | true |
+| find（字面 r，scope=all） | 4000 / 24000 | 3561 | 4874 | 5677 / 4973 | true |
+
+这里的共享 JSON 使用会话身份，不是 CLI 文件游标信封。跨传输只比较业务区间与续读终态；
+两 MCP 形态在同会话同预算下共用分页。outline 记录字符包括结构 JSON，不能当标题净文字。
+文本首屏的锚点等元数据占用了大量字节预算；未调高默认值，也不把截断页当完整文档。
+
+9.8 重跑 `tools/agent-baseline.sh`：输入 SHA-256、原生 JSON SHA-256 与 §4 相同，
+仍为 **128519 B / 124146 UTF-16 / 32130 代理 token、213 块、truncated=false**。
+脚本现明确标注只测原生模型，不再把未在此脚本测量的 Agent 接口误报成“未实现”。
+独立 outline 模型 oracle 复测为 **26 标题 / 5052 UTF-16 / 5415 B / 1354 代理 token，默认分页 2 页**；
+该整份记录信封使用测试快照标识，与上述真实会话首屏的信封不是同一口径。
+
+## 11. 真实 Agent 门 5 记录（由评审者填写）
+
+**尚未提供真实会话记录，不预填通过率。** 以下是待提供的证据字段，不是已执行的会话：
+
+- 客户端、模型、MCP result shape 与客户端实际消费情况；text/structured 缺省选择结论。
+- 会话日期、输入文件 SHA-256、所选三项 W 编号；完整 open → 读取 → preview/edit → summary → save/close 日志。
+- 实际预算与游标续读、版本、正向操作审计及附件绑定、BIND_XML_ESCAPE 计数。
+- 保存后 document() 语义断言、未涉及块字节证据、桌面 Word 版本与无修复提示证据。
+- 每项结果及未通过原因；未验证项仍留在 22 项总分母，不能记作跳过后通过。
+
+stdio JSON-RPC 与二进制可驱动性由进程测试验证；这些传输测试不填写本节的真实 Agent 结果。

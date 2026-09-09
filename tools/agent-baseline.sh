@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# M9' 9.0 / TEST-10：实测当前协议；outline/text 仅记录未实现，不伪造接口结果。
+# M9' 9.0/9.8 / TEST-10：仅实测原生模型；Agent 测量见 agent-query 的 agent bench。
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 mkdir -p "$root/target"
@@ -52,5 +52,6 @@ end.compact
 puts JSON.pretty_generate({input: input, zip_bytes: File.size(input), input_sha256: Digest::SHA256.file(input).hexdigest,
   document: metrics(raw).merge(sha256: Digest::SHA256.hexdigest(raw)), total_blocks: j.fetch('totalBlocks'),
   truncated: j.fetch('truncated'), heading_inventory: headings,
-  outline: 'not implemented; not measured', text: 'not implemented; not measured'})
+  outline: 'not measured by this native-only probe; see agent-query bench agent',
+  text: 'not measured by this native-only probe; see agent-query bench agent'})
 RUBY

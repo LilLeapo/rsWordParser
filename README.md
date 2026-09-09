@@ -192,11 +192,25 @@ cargo test --workspace --release
 逐任务进度和偏差见 [docs/04](docs/04-dev-plan.md)，冻结架构见 [docs/03](docs/03-architecture-v3.md)，
 原生协议见 [spec/21](spec/21-bind.md)。
 
-文件级 CLI（M9′ 9.6）：
+## 给 Agent 用
+
+从仓库根目录运行以下三个只读例子。先取大纲，再有界读文字；check 仅运行内核可检查项，不代替桌面 Word 验证：
+
+取大纲；若 truncated 为 true，用 nextCursor 续读：
 
 ```sh
 cargo run -p rsword-cli -- outline corpus/real/misc/large-report.docx --json
+```
+
+限量读取正文，锚点及其他响应元数据也计入字节预算：
+
+```sh
 cargo run -p rsword-cli -- text corpus/real/misc/large-report.docx --limit 4000 --maxBytes 16000 --json
+```
+
+查看诊断与当前输入可检查的不变式：
+
+```sh
 cargo run -p rsword-cli -- check corpus/real/misc/large-report.docx --json
 ```
 
@@ -207,3 +221,18 @@ MCP server（M9′ 9.7）：`cargo build -p rsword-mcp --release`，在客户端
 `target/release/rsword-mcp --result-shape text`。跨工具保持会话，先 open → outline，再按范围下钻，
 编辑提供 expectedVersion，最后 save/close。连接示例、单份载荷计费及能力边界见 [MCP 使用说明](docs/19-mcp.md)。
 原生 Rust 形态按建议执行、待追认；缺省 text 待真实 Agent 门 5 实测确认。
+
+### MCP 安装
+
+从源码本地安装（无需 node 运行时；产物留在本工作树）：
+
+```sh
+cargo install --locked --path crates/rsword-mcp --root ./target/agent-tools
+./target/agent-tools/bin/rsword-mcp --help
+```
+
+客户端 stdio 配置的 `command` 填上述二进制的绝对路径，`args` 为 `["--result-shape", "text"]`；
+完整配置见 [docs/19](docs/19-mcp.md)。文件路径相对于服务器，推荐传绝对路径；stdout 为 JSON-RPC，日志走 stderr。
+先 open/outline，再按返回的 blockRange 取 text/model；编辑需 expectedVersion，preview 不改原会话，save 才落盘。
+`--limit` 是 UTF-16，`--maxBytes` 是完整响应字节预算；遇 truncated 使用原接口的 nextCursor，不能混传 CLI 文件游标与 MCP 句柄。
+当前 W7（更新 TOC）尚不支持执行；22 项支持状态和真实 Agent 待验证项见 [docs/12](docs/12-agent-tasks.md)。
