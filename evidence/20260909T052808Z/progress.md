@@ -73,14 +73,18 @@
   - Rust reads the body revision marker `CASE-BID-REV-01` and preserves no-edit bytes. It does not expose in-table anchors through `text_blocks`; this is classified as model/table projection `NOT_IMPLEMENTED`, not package-open failure.
 - Verification after `CASE-BID-01`: `cargo fmt --all --check`, strict `cargo clippy --workspace --all-targets`, and `cargo test --workspace --locked` all passed.
 - Branch sync after the user merged `main`: merged `origin/main` (`11759c1`) into `docs/codex-test-handoff` as local commit `e35a79a`; no push was performed.
-- Sixth theme `CASE-COMBINED-01` is in progress.
+- Sixth theme `CASE-COMBINED-01` is complete through `C03`.
   - `C00`: identity-only Word-authored document. First Save As check was `b3083d0c5f16a1bd4b4007a87336d57d83d3255d29242bfabf63d4fb6af2775d`; the final archived package after the second save is SHA-256 `a7fbaafedb7818f775016a9f3c6bec0d233034f9bd9be23245fe297b799136cb`.
   - `C01`: 30-page skeleton with four H1/H2/H3/H4 layers; SHA-256 `e9a93eb960e5ca5c510e7755a4605aef9438aff2d803382ec442dd21bd410363`.
   - `C02`: five tables, numbered lists, in-cell list/image, repeated header, Unicode stress, NBSP, manual line break, Arabic/Hebrew, and bold/italic/underline direct formatting completed; SHA-256 `c0a0a88ec8013f1c15ecd3f2118efc0f947b0b308c1f9817e6e9014df24ac207`.
   - `C02` OOXML evidence is in `word-authored/CASE-COMBINED-01/checkpoints/xml-check-C02.txt`; the Word UI evidence includes screenshots for tables and Unicode.
   - The Rust driver reads body/H1/Unicode markers and preserves no-edit bytes. Table-interior projection remains `NOT_IMPLEMENTED`.
   - C00-C02 lessons and automation pitfalls are recorded in `word-authored/CASE-COMBINED-01/checkpoints/C00-C02-lessons.md`.
-  - Post-C02 `cargo fmt --all --check` passed; strict clippy failed after the `main` merge on `uninlined_format_args` in `crates/rsword/src/edit/session.rs`, `crates/rsword/src/edit/shape_gen.rs`, and `crates/rsword/src/model/tests.rs`.
+  - Post-C02 strict clippy failed after the `main` merge on `uninlined_format_args`; fixed in commit `611e10a` across `crates/rsword/src/edit/session.rs`, `crates/rsword/src/edit/shape_gen.rs`, `crates/rsword/src/model/tests.rs`, and `tools/agent-query/src/session.rs`.
+  - `C03`: Word-authored sections, automatic TOC, bookmark, external hyperlink, cross-reference, distinct headers/footers, and a section-3 `PAGE` field completed; final SHA-256 `2f41fb60a9b5f675b1aeef0034636e0acd6a707a9f5b24f1a6a49f564a5c3531`.
+  - C03 independent XML found 3 `sectPr` elements (default portrait, continuous portrait, landscape), 3 distinct default header targets, 3 distinct default footer targets, one `TOC \o "1-3" \h \z \u`, 15 `PAGEREF` fields, bookmark/`REF`, an external hyperlink relationship, and `PAGE` in the section-3 footer.
+  - C03 Rust driver checks all returned `contains_marker=true` and `no_edit_save_byte_identical=true` for eight C03 anchors; evidence is in `checkpoints/C03-driver.txt` and `checkpoints/xml-check-C03.txt`.
+  - Verification gates after the clippy fix: strict `cargo clippy --workspace --all-targets -- -D warnings` and `cargo test --workspace --locked` both passed before C03 Word UI work began.
 - Third theme `CASE-CONTRACT-01` is complete through `C05`.
   - `C01`: heading/body skeleton and anchors; SHA-256 `13aa728a2ee21d842163562c8a14de8630355986e7d78374160b92c8d319c519`.
   - `C02`: bookmark `CASE_PARTY_A`, external hyperlink relationship, and `REF CASE_PARTY_A \h`; final C02 SHA-256 `c9895267fc54b78912849c1b104b7b7a11b613110cbc51264c9875dbce841196`.

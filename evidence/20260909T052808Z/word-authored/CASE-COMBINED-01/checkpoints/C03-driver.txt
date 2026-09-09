@@ -1,0 +1,18 @@
+marker=CASE-COMBINED-C03-START
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C03.docx","marker":"CASE-COMBINED-C03-START","no_edit_save_byte_identical":true}
+marker=CASE-COMBINED-C03-HEADING-ONE
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C03.docx","marker":"CASE-COMBINED-C03-HEADING-ONE","no_edit_save_byte_identical":true}
+marker=CASE-COMBINED-C03-HEADING-TWO
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C03.docx","marker":"CASE-COMBINED-C03-HEADING-TWO","no_edit_save_byte_identical":true}
+marker=CASE-COMBINED-C03-BOOKMARK-TARGET
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C03.docx","marker":"CASE-COMBINED-C03-BOOKMARK-TARGET","no_edit_save_byte_identical":true}
+marker=CASE-COMBINED-C03-EXTERNAL-LINK
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C03.docx","marker":"CASE-COMBINED-C03-EXTERNAL-LINK","no_edit_save_byte_identical":true}
+marker=CASE-COMBINED-C03-CROSS-REFERENCE
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C03.docx","marker":"CASE-COMBINED-C03-CROSS-REFERENCE","no_edit_save_byte_identical":true}
+marker=CASE-COMBINED-C03-TOC
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C03.docx","marker":"CASE-COMBINED-C03-TOC","no_edit_save_byte_identical":true}
+marker=CASE-COMBINED-C03-SECTION3
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C03.docx","marker":"CASE-COMBINED-C03-SECTION3","no_edit_save_byte_identical":true}
+
+All C03 driver checks completed.
