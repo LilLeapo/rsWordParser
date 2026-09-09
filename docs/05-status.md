@@ -5,6 +5,15 @@
 
 ## 结论
 
+**Linux CI 的 pattern 错误优先级修复（AGENT-04）**：run 34343470617 暴露 regex 编译尚未碰到 size_limit 时，
+搜索 deadline 已先杀掉 worker，把非法 pattern 报成 TIMEOUT。新增 1 ms 回归在修复前实跑为
+`AGENT_QUERY_TIMEOUT`，期望 `AGENT_BAD_PATTERN`；修复后默认与 compat 的定向十条测试均通过。
+submit 在计时前做不读文档的 pattern 预检，与 worker 共用同一编译函数和资源限制。
+Regex 不跨进程传递：有效 pattern 在 worker 内仍再次构建，原执行 deadline 覆盖范围及进程回收机制不变；
+没有提高默认 250 ms 或任何测试 deadline，也没有接受两种错误码。本机结果不代替本提交后续 Linux CI 证据。
+本机提交前验证：默认 debug/release 各 956 通过、compat 各 1075 通过，均 0 失败 / 13 ignored；
+两套 clippy / audit / cargo doc 零告警，fmt 干净；八道差分仍为 242 + 547 已知 / 0 未知。
+
 **9.9：落实真实 CLI 会话的可用性反馈。** 评审者提供的 W1/W5/W6 结果与三条发现按原话记入 docs/12 §11。
 通过的是这三条 CLI 任务，其余仍未验证，22 项分母不变；本次不是由真实 Agent 驱动 MCP，
 不关闭 MCP result shape 的待办，不补写桌面 Word 或 MCP 会话证据。

@@ -315,6 +315,7 @@ R10“warnings 只有机器码”是派工口误，不是 spec/20 原文；现�
 
 | 处 | 规范写法 | 实现 | 原因 |
 | --- | --- | --- | --- |
+| `AGENT-04`，Linux CI pattern 错误被超时遮蔽 | 非法 regex 应报 BAD_PATTERN；搜索仍须可终止 | submit 在开始计时前调用与 worker 相同的 pattern 编译函数预检，不读文档；Regex 不跨进程传递，worker 仍自行构建并执行，原 deadline 不变 | `\w{100000}` 编译撞 size_limit 的时间在慢机器超过 250 ms，父进程先杀掉 worker；新增 1 ms 断言在修复前实跑得到 TIMEOUT，修复后必须 BAD_PATTERN，不接受二选一错误 |
 | `AGENT-04/10`，9.9 真实 CLI 可用性反馈 | truncated/nextCursor 已在，但读者把当前页数量误当总数 | find 增加 pageHits / hasMore，并在预算选前缀前计费；共用 schema，工具首句明确本页不是总数 | 评审者实际先误判漏命中、续读后 main 3 / all 15 相符；不把可用性问题改写为搜索漏匹配。docs/17 补源锚点到 paragraph ObjectRef 与全部 action 完整请求，寻址契约本轮不改 |
 | `AGENT-06/10`，9.7 共同分页 | 评审先要求同预算两形态分页一致，又保留各自最长前缀，要求自相矛盾 | 经评审批准，按 text / structured 两形态成本较大值选前缀；minBytes 保证两者均可容纳，usage 报实际形态成本 | spec/22 v1.4 留痕；单一游标跨形态续读，CLI/MCP 比较显式排除传输 usage 差异。缺省 text 待门 5 实测确认 |
 | `AGENT-06/10`，9.7 一致性维度 | 派工把形态、接口与传输的一致性混用；相同预算的 CLI 文件游标与 MCP 短句柄成本不同 | 经评审批准：两 MCP 形态同页；同传输各读接口共用格式；跨传输只比较同区间与续读终态的业务结果，游标双向错投具名拒绝 | large-report 在 limit=8000/maxBytes=16000 时实测 MCP 874、CLI 870 UTF-16（不是 4 字节）；不得把此结构差异通过调预算掩盖 |

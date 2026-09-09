@@ -251,6 +251,16 @@ fn agent_04_zero_length_and_pagination_keep_full_context() {
     assert!(all(r).is_empty(), "不得跨流匹配");
 }
 #[test]
+fn agent_04_bad_pattern_precedes_one_ms_search_deadline() {
+    let mut r = request("a", r"\w{100000}");
+    r.options.mode = Mode::Regex;
+    r.options.deadline_ms = 1;
+    assert_eq!(
+        search::Worker::start(worker(), &scratch()).unwrap().submit(&r).unwrap_err().code,
+        "AGENT_BAD_PATTERN"
+    );
+}
+#[test]
 fn agent_04_worker_limits_timeout_and_recovery() {
     let mut r = request("abc", "a");
     assert_eq!(

@@ -1,6 +1,6 @@
 //! AGENT-04：固定 Unicode 数据，单调源区间映射；仅在可终止 worker 内调用 run。
 use crate::{Result, error};
-use regex::RegexBuilder;
+use regex::{Regex, RegexBuilder};
 use serde::{Deserialize, Serialize};
 use std::{
     ops::Range,
@@ -170,21 +170,36 @@ fn byte(s: &str, n: u32) -> usize {
     }
     s.len()
 }
+/// 只依赖 pattern/options；预检与 worker 共用限制，避免两套合法性判断漂移。
+fn compile_pattern(pattern: &str, o: &Options) -> Result<Regex> {
+    if pattern.len() > 16384 || pattern.encode_utf16().count() > 4096 {
+        return Err(error("AGENT_QUERY_TOO_LARGE", "pattern 超限"));
+    }
+    if o.mode == Mode::Literal && pattern.is_empty() {
+        return Err(error("BIND_BAD_ARGUMENT", "literal pattern 不能为空"));
+    }
+    let pattern = if o.mode == Mode::Literal {
+        regex::escape(&normalize(pattern, o).text)
+    } else {
+        pattern.to_owned()
+    };
+    RegexBuilder::new(&pattern)
+        .case_insensitive(o.insensitive)
+        .size_limit(2 * 1024 * 1024)
+        .dfa_size_limit(2 * 1024 * 1024)
+        .build()
+        .map_err(|e| error("AGENT_BAD_PATTERN", e.to_string()))
+}
 /// worker-only：外层执行器负责杀死超时进程；不把有限输入误当作 deadline。
 pub fn run(request: &Request) -> Result<Batch> {
     let o = &request.options;
     if !(1..=1000).contains(&request.max_hits) {
         return Err(error("BIND_BAD_ARGUMENT", "maxHits 应在 1..=1000 内"));
     }
-    if request.pattern.len() > 16384 || request.pattern.encode_utf16().count() > 4096 {
-        return Err(error("AGENT_QUERY_TOO_LARGE", "pattern 超限"));
-    }
     if !(1..=2000).contains(&o.deadline_ms) {
         return Err(error("BIND_BAD_ARGUMENT", "deadlineMs 应在 1..=2000 内"));
     }
-    if o.mode == Mode::Literal && request.pattern.is_empty() {
-        return Err(error("BIND_BAD_ARGUMENT", "literal pattern 不能为空"));
-    }
+    let re = compile_pattern(&request.pattern, o)?;
     assert_eq!(unicode_normalization::UNICODE_VERSION, (17, 0, 0), "Unicode 数据版本漂移");
     let normalized: Vec<_> = request.flows.iter().map(|f| normalize(&f.text, o)).collect();
     if normalized.iter().map(|n| n.text.len()).sum::<usize>() > 1048576 {
@@ -193,17 +208,6 @@ pub fn run(request: &Request) -> Result<Batch> {
             "授权 scope 归一后超过 1048576 B；请显式缩小范围",
         ));
     }
-    let pattern = if o.mode == Mode::Literal {
-        regex::escape(&normalize(&request.pattern, o).text)
-    } else {
-        request.pattern.clone()
-    };
-    let re = RegexBuilder::new(&pattern)
-        .case_insensitive(o.insensitive)
-        .size_limit(2 * 1024 * 1024)
-        .dfa_size_limit(2 * 1024 * 1024)
-        .build()
-        .map_err(|e| error("AGENT_BAD_PATTERN", e.to_string()))?;
     let mut out = vec![];
     for (index, (flow, n)) in
         request.flows.iter().zip(normalized).enumerate().skip(request.position.flow)
@@ -261,7 +265,7 @@ pub fn run(request: &Request) -> Result<Batch> {
     Ok(Batch { hits: out, next: None })
 }
 static NEXT: AtomicU64 = AtomicU64::new(1);
-/// 预启动的单次工作单元。初始化不执行查询，查询 deadline 从 submit 开始。
+/// 预启动的单次工作单元。初始化不执行查询，deadline 从 submit 的 pattern 预检之后开始。
 /// 任何出口都通过 Drop 终止并 wait；调用方不能遗留后台计算。
 pub struct Worker {
     child: std::process::Child,
@@ -324,13 +328,16 @@ impl Worker {
     pub fn id(&self) -> u32 {
         self.child.id()
     }
-    /// 包含请求写入、归一化、编译、匹配、响应读取；返回前销毁工作单元。
+    /// 先独立预检 pattern；计时仍覆盖请求写入、worker 构建/归一/匹配及响应读取。
     pub fn submit(mut self, request: &Request) -> Result<Batch> {
-        let start = Instant::now();
         let ms = request.options.deadline_ms;
         if !(1..=2000).contains(&ms) {
             return Err(error("BIND_BAD_ARGUMENT", "deadlineMs 应在 1..=2000 内"));
         }
+        // 非法 pattern 不能因慢机器先耗尽搜索时间而误报 TIMEOUT。
+        // Regex 不跨进程传递；释放预检对象，worker 仍自行构建并执行查询。
+        drop(compile_pattern(&request.pattern, &request.options)?);
+        let start = Instant::now();
         let deadline = Duration::from_millis(ms);
         // ready 出现不代表子进程已写完；单独暂存请求，不能把仍打开的握手 inode 改名。
         std::fs::write(&self.pending, serde_json::to_vec(request).unwrap())
