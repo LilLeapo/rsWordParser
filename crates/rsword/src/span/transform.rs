@@ -93,6 +93,8 @@ struct ContentDelta {
     dead_roots: Vec<NodeId>,
     /// 直接被删除的节点（含标记这类非内容项）。
     dead: HashSet<NodeId>,
+    /// 搬到现存父节点的子树；解包时它们可能从待删除祖先中逃出。
+    moved: Vec<(NodeId, NodeId)>,
     /// 有插入 / 删除 / 移动：`FlowMap` 需要重建。
     structural: bool,
 }
@@ -115,14 +117,24 @@ impl ContentDelta {
         if self.dead.contains(&node) {
             return true;
         }
-        self.dead_roots.iter().any(|&r| dom.is_ancestor_or_self(r, node))
+        self.dead_roots.iter().any(|&r| self.under_dead_root(dom, r, node))
+    }
+
+    fn under_dead_root(&self, dom: &Dom, root: NodeId, node: NodeId) -> bool {
+        dom.is_ancestor_or_self(root, node)
+            && !self.moved.iter().any(|&(moved, parent)| {
+                moved != root
+                    && dom.is_ancestor_or_self(root, moved)
+                    && dom.is_ancestor_or_self(moved, node)
+                    && !self.dead_roots.iter().any(|&r| dom.is_ancestor_or_self(r, parent))
+            })
     }
 
     /// 包含该节点的最外层被删子树根。
     fn outermost_dead_root(&self, dom: &Dom, node: NodeId) -> Option<NodeId> {
         let mut best: Option<NodeId> = None;
         for &r in &self.dead_roots {
-            if !dom.is_ancestor_or_self(r, node) {
+            if !self.under_dead_root(dom, r, node) {
                 continue;
             }
             best = match best {
@@ -242,7 +254,7 @@ pub fn plan_update(
                 continue;
             }
         }
-        if fully_deleted(dom, &delta, span) && !keep_whole(span, policy) {
+        if fully_deleted(dom, &delta, span, policy) && !keep_whole(span, policy) {
             update
                 .actions
                 .push(SpanAction::Remove { span: span.id, nodes: dead_nodes(dom, &delta, span) });
@@ -306,10 +318,12 @@ fn dead_nodes(dom: &Dom, delta: &ContentDelta, span: &RangeSpan) -> Vec<NodeId> 
 }
 
 /// 两端都落进被删内容（或被删容器）。
-fn fully_deleted(dom: &Dom, delta: &ContentDelta, span: &RangeSpan) -> bool {
+fn fully_deleted(dom: &Dom, delta: &ContentDelta, span: &RangeSpan, policy: &SpanPolicy) -> bool {
     let (Some(s), Some(e)) = (&span.start, &span.end) else { return false };
-    let sd = delta.outermost_dead_root(dom, s.container).is_some();
-    let ed = delta.outermost_dead_root(dom, e.container).is_some();
+    let sd = delta.outermost_dead_root(dom, s.container).is_some()
+        && map_container_change(policy, s).is_none();
+    let ed = delta.outermost_dead_root(dom, e.container).is_some()
+        && map_container_change(policy, e).is_none();
     if sd && ed {
         return true;
     }
@@ -433,6 +447,9 @@ fn derive(dom: &Dom, edits: &[NodeEdit], policy: &SpanPolicy) -> ContentDelta {
             }
             NodeEdit::Move { node, parent, before } => {
                 d.structural = true;
+                if let Target::Node(p) = parent {
+                    d.moved.push((*node, *p));
+                }
                 // 从被拆 / 合的容器里搬出来的项、以及原地重包的项：别记成删除
                 // （前者的锚点由 `map_container_change` 整体重定位，后者根本没动位置）
                 if !container_of(dom, *node).is_some_and(|c| relocated.contains(&c))

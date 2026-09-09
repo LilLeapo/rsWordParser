@@ -1197,6 +1197,7 @@ dependencies = [
 name = "rsword-agent-query"
 version = "0.0.1"
 dependencies = [
+ "jsonschema",
  "regex",
  "rsword",
  "serde",

@@ -446,7 +446,7 @@ pub fn theme_plan(dom: &Dom, part: PartId, opts: &SaveOptions) -> MutationPlan {
 /// 一条 `w:style`（TS `buildStyleXml`；`rPr` / `pPr` 走属性表的 emit，顺序由 `PROP-05` 保证）。
 fn style_element(up: &StyleUpsertSave, flavor: PartFlavor) -> NewElement {
     let mut e = NewElement::new(w(LocalName::Style))
-        .with_attr(w(LocalName::UType), &up.kind)
+        .with_attr(w(LocalName::Type), &up.kind)
         .with_attr(w(LocalName::StyleId), &up.style_id)
         .with_attr(w(LocalName::CustomStyle), "1");
     e.push_child(NewElement::new(w(LocalName::Name)).with_attr(w(LocalName::Val), &up.name));

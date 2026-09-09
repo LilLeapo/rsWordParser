@@ -970,10 +970,24 @@ fn test_07_refused_edit_preserves_warning_projection() {
 fn test_07_refused_comment_does_not_create_parts() {
     let bytes = include_bytes!("../../../corpus/synthetic/decorated-paragraphs__001.docx");
     let mut s = EditSession::open(bytes).unwrap();
-    let op = edit_op_from_json(r#"{"op":"addComment","from":{"para":2,"offset":7},"to":{"para":2,"offset":17},"comment":{"author":"A","text":"rejected","done":false}}"#, &mut s.dom().clone()).unwrap();
+    // 原 [7,17) 是合法范围，只因拆文本后空白被裁掉而误拒绝；9.5 修复后另测它必须成功。
+    let op = edit_op_from_json(r#"{"op":"addComment","from":{"para":2,"offset":7},"to":{"para":2,"offset":4294967295},"comment":{"author":"A","text":"rejected","done":false}}"#, &mut s.dom().clone()).unwrap();
     let error = s.apply(op, &EditContext::default()).unwrap_err();
     eprintln!("refused comment: {error}");
     assert_eq!(s.save().unwrap(), bytes.as_slice(), "拒绝批注不得留下新 part 或关系");
+}
+
+#[test]
+fn test_07_valid_comment_preserves_boundary_whitespace() {
+    let bytes = include_bytes!("../../../corpus/synthetic/decorated-paragraphs__001.docx");
+    let mut s = EditSession::open(bytes).unwrap();
+    let before = s.document().paragraphs().map(|p| p.text()).collect::<Vec<_>>();
+    let op=edit_op_from_json(r#"{"op":"addComment","from":{"para":2,"offset":7},"to":{"para":2,"offset":17},"comment":{"author":"A","text":"valid","done":false}}"#,&mut s.dom().clone()).unwrap();
+    s.apply(op, &EditContext::default()).expect("合法批注不能因拆分后丢空白而被拒绝");
+    assert_eq!(s.document().paragraphs().map(|p| p.text()).collect::<Vec<_>>(), before);
+    let saved = s.save().unwrap();
+    let reopened = EditSession::open(&saved).unwrap();
+    assert_eq!(reopened.document().paragraphs().map(|p| p.text()).collect::<Vec<_>>(), before);
 }
 
 #[test]

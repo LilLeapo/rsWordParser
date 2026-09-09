@@ -490,6 +490,14 @@ fn plan_job(
 /// `SPAN-06` 的通用推导正好算得出（`Move` 插入 N、`Delete` 移除 1）。
 fn unwrap(plan: &mut MutationPlan, dom: &Dom, wrapper: NodeId) {
     let Some(parent) = dom.parent(wrapper) else { return };
+    if let Some(offset) = crate::span::boundary_before(dom, parent, wrapper) {
+        // 包裹本身也是内容容器；其内部边界须平移到父序列，不能按整棵删除折叠。
+        plan.span.merges.push(crate::span::ContainerMerge {
+            source: wrapper,
+            into: parent,
+            offset,
+        });
+    }
     plan.structure_changed = true;
     for c in live_children(dom, wrapper).collect::<Vec<_>>() {
         plan.node_edits.push(NodeEdit::Move {

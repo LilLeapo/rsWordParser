@@ -23,6 +23,36 @@ const A: &str = "M7 甲";
 const B: &str = "M7 乙";
 const DATE: &str = "2026-09-07T10:00:00Z";
 
+#[test]
+fn test_07_fingerprint_diff_preserves_multibyte_error_context() {
+    assert_eq!(diff_str("甲", "申"), Some(("甲".into(), "申".into())));
+    assert_eq!(diff_str("相同", "相同"), None);
+}
+
+#[test]
+fn test_07_outer_bookmark_cannot_create_a_rejected_paragraph() {
+    let body = r#"<w:p><w:pPr><w:rPr><w:ins w:id="8" w:author="A"/></w:rPr></w:pPr><w:ins w:id="9" w:author="A"><w:r><w:t>new</w:t></w:r></w:ins></w:p><w:bookmarkStart w:id="1" w:name="kept"/><w:bookmarkEnd w:id="1"/><w:sectPr><w:pgSz w:w="11906" w:h="16838"/></w:sectPr>"#;
+    let mut s = open(body);
+    let physical = fingerprint(&s);
+    assert!(!physical.reject.contains("P|"), "段落外标记不能凭空撑出段落");
+    assert!(physical.reject.contains("BookmarkStart/kept"));
+    assert!(physical.reject.contains("BookmarkEnd/1"));
+    let markers = r#"<w:bookmarkStart w:id="1" w:name="kept"/><w:bookmarkEnd w:id="1"/>"#;
+    let after_properties = format!("{}{markers}", body.replace(markers, ""));
+    assert_fingerprint_eq!(
+        physical,
+        fingerprint(&open(&after_properties)),
+        "属性不占内容下标，懒索引不能退回物理标记顺序"
+    );
+    s.spans().unwrap();
+    assert_fingerprint_eq!(physical, fingerprint(&s), "逻辑索引与物理标记等价");
+    assert_ne!(
+        physical,
+        fingerprint(&open(&body.replace("kept", "changed"))),
+        "段外书签仍被指纹检查"
+    );
+}
+
 fn tracked(author: &str) -> EditContext {
     EditContext::default().with_track_changes(Some(RevisionAuthor {
         author: author.to_string(),
@@ -519,8 +549,132 @@ fn first_long_para(s: &EditSession) -> Option<(NodeId, u32)> {
     })
 }
 
+/// SPAN-08：指纹读取逻辑锚点，不能把保存前的旧物理标记当成当前范围。
+#[test]
+fn span_08_fingerprint_uses_pending_anchor_positions() {
+    let bytes = include_bytes!(
+        "../../../corpus/real/_round2/_resaved/image-cropped--comment-resaved-by-word.docx"
+    );
+    let mut s = EditSession::open(bytes).unwrap();
+    let (p, _) = first_long_para(&s).unwrap();
+    s.apply(
+        EditOp::InsertText { at: InlinePos::new(p, 0), text: "头".into(), props: None },
+        &tracked(A),
+    )
+    .unwrap();
+    let fp = fingerprint(&s);
+    assert!(fp.accept.contains("CommentRangeStart/0@1;"), "逻辑起点必须跟随插入后的位置");
+    assert!(fp.reject.contains("CommentRangeStart/0@0;"), "拒绝视图不计追踪插入的文字");
+    let reopened = EditSession::open(&s.save().unwrap()).unwrap();
+    assert_fingerprint_eq!(fp, fingerprint(&reopened), "物化前后范围含义不变");
+}
+
+#[test]
+fn span_08_caption_pending_bookmark_roundtrip() {
+    let bytes = include_bytes!("../../../corpus/synthetic/bugfix-regressions__002.docx");
+    let mut s = EditSession::open(bytes).unwrap();
+    rsword::bind::native::apply_edit_json(&mut s,
+        r#"{"op":"insertBlock","at":{"part":null,"at":{"after":2}},"block":{"kind":"caption","value":{"label":"图","text":"说明"}}}"#,
+        &tracked("甲")).unwrap();
+    let fp = fingerprint(&s);
+    let main = s.document().main_part;
+    assert!(s.spans_of(main).unwrap().live().any(|sp| sp.start.is_none() && sp.end.is_some()));
+    let mut reopened = EditSession::open(&s.save().unwrap()).unwrap();
+    assert_fingerprint_eq!(fp, fingerprint(&reopened), "未建索引的题注书签保存往返");
+    reopened.spans_of(main).unwrap();
+    assert_fingerprint_eq!(fp, fingerprint(&reopened), "题注书签保存往返");
+}
+
+/// SPAN-06：解包保留搬出后代的身份，同时将包裹自身的边界平移到父容器。
+#[test]
+fn span_06_accept_wrapper_keeps_bookmark_identity() {
+    for content in [
+        r#"<w:bookmarkStart w:id="1" w:name="kept"/><w:r><w:t>abc</w:t></w:r><w:bookmarkEnd w:id="1"/>"#,
+        r#"<w:commentRangeStart w:id="1"/><w:r><w:t>abc</w:t></w:r><w:commentRangeEnd w:id="1"/>"#,
+    ] {
+        for body in [
+            format!(r#"<w:ins w:id="8" w:author="A"><w:p>{content}</w:p></w:ins>"#),
+            format!(r#"<w:p><w:ins w:id="8" w:author="A">{content}</w:ins></w:p>"#),
+        ] {
+            let mut s = open(&body);
+            s.spans().unwrap();
+            let before = fingerprint(&s).accept;
+            s.apply(EditOp::AcceptAll { author: None }, &EditContext::default()).unwrap();
+            let fp = fingerprint(&s);
+            assert_eq!(before, fp.accept, "接受只解包，不改范围覆盖的文字");
+            let span = s.spans().unwrap().live().next().unwrap();
+            assert!(span.start.unwrap().marker.is_some() && span.end.unwrap().marker.is_some());
+            assert_eq!(span.start.unwrap().container, span.end.unwrap().container);
+            assert_eq!((span.start.unwrap().index, span.end.unwrap().index), (0, 1));
+            let mut re = EditSession::open(&s.save().unwrap()).unwrap();
+            assert_eq!(re.spans().unwrap().live().count(), 1, "不能补出同号的第二对标记");
+            assert_fingerprint_eq!(fp, fingerprint(&re), "范围物化前后含义相同");
+        }
+    }
+}
+
 /// 一个可以在任意语料上跑的追踪操作。
 type CorpusOp = (&'static str, fn(&EditSession) -> Option<EditOp>);
+
+#[test]
+fn span_02_new_empty_comment_tracks_both_endpoints() {
+    let mut s = open("<w:p><w:r><w:t>abc</w:t></w:r></w:p>");
+    let p = para(&s, 0);
+    let op = serde_json::json!({"op":"addComment","from":{"para":p.0,"offset":0},"to":{"para":p.0,"offset":0},"comment":{"author":"A","text":"note","done":false}});
+    rsword::bind::native::apply_edit_json(&mut s, &op.to_string(), &EditContext::default())
+        .unwrap();
+    let span = s.spans().unwrap().live().next().unwrap();
+    assert_eq!(span.start.unwrap().affinity, rsword::span::Affinity::Right);
+    assert_eq!(span.end.unwrap().affinity, rsword::span::Affinity::Right);
+    s.apply(
+        EditOp::InsertText { at: InlinePos::new(p, 0), text: "X".into(), props: None },
+        &tracked(A),
+    )
+    .unwrap();
+    let fp = fingerprint(&s);
+    assert!(fp.accept.contains("CommentRangeEnd/1@1;CommentRangeStart/1@1;"));
+    let mut re = EditSession::open(&s.save().unwrap()).unwrap();
+    assert_eq!(re.spans().unwrap().live().count(), 1);
+    assert!(re.spans().unwrap().live().next().unwrap().is_collapsed());
+    assert_fingerprint_eq!(fp, fingerprint(&re), "空批注必须整体跟随插入，不能反序或多出标记");
+}
+
+#[test]
+fn span_06_comments_survive_insertion_near_atomic_field() {
+    let mut s = open("<w:p/>");
+    let p = para(&s, 0);
+    let op = serde_json::json!({"op":"insertBlock","at":{"at":{"after":p.0}},"block":{"kind":"caption","value":{"label":"图","text":"说明"}}});
+    rsword::bind::native::apply_edit_json(&mut s, &op.to_string(), &EditContext::default())
+        .unwrap();
+    let p = para(&s, 1);
+    for (a, b) in [(2, 5), (0, 0)] {
+        let op = serde_json::json!({"op":"addComment","from":{"para":p.0,"offset":a},"to":{"para":p.0,"offset":b},"comment":{"author":"A","text":"note","done":false}});
+        rsword::bind::native::apply_edit_json(&mut s, &op.to_string(), &EditContext::default())
+            .unwrap();
+        for span in s.spans().unwrap().live() {
+            assert_eq!(span.start.unwrap().container, span.end.unwrap().container);
+            assert!(
+                span.start.unwrap().index <= span.end.unwrap().index,
+                "创建批注就必须保持端点有序"
+            );
+        }
+    }
+    s.apply(
+        EditOp::InsertText { at: InlinePos::new(p, 6), text: "第 1 节".into(), props: None },
+        &EditContext::default(),
+    )
+    .unwrap();
+    for span in s.spans().unwrap().live() {
+        assert!(
+            span.start.unwrap().index <= span.end.unwrap().index,
+            "字段附近插入不能反转批注端点"
+        );
+    }
+    let fp = fingerprint(&s);
+    let mut re = EditSession::open(&s.save().unwrap()).unwrap();
+    assert_eq!(re.spans().unwrap().live().count(), 2);
+    assert_fingerprint_eq!(fp, fingerprint(&re), "字段旁插入不能使批注反序或重复物化");
+}
 
 /// 门 1：七个操作 × ≥ 20 份语料。
 #[test]

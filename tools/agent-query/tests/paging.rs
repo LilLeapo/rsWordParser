@@ -155,7 +155,7 @@ fn agent_06_version_changes_only_on_successful_writes() {
     assert_eq!(s.validate_anchor(&id, &anchor).unwrap_err().code, "AGENT_STALE_ANCHOR");
     assert_eq!(s.edit_native(&id, 0, &[], None).unwrap_err().code, "AGENT_VERSION_CONFLICT");
     let page = s.read(&id, &r, Some(b), None, None).unwrap();
-    s.add_media(&id, 1, b"test media", "image/png").unwrap();
+    s.add_media(&id, 1, &test_media(), "image/png").unwrap();
     assert_eq!(
         s.read(&id, &r, Some(b), page["nextCursor"].as_str(), None).unwrap_err().code,
         "AGENT_STALE_CURSOR"
@@ -502,11 +502,11 @@ fn agent_06_failed_batch_and_duplicate_media_version_boundary() {
     s.edit_native(&id, 0, &[op], None).unwrap();
     assert_ne!(s.save(&id, None).unwrap(), bytes);
     assert_eq!(s.snapshot(&id).unwrap()["version"], 1);
-    let first = s.add_media(&id, 1, b"media", "image/png").unwrap();
-    let second = s.add_media(&id, 2, b"media", "image/png").unwrap();
+    let first = s.add_media(&id, 1, &test_media(), "image/png").unwrap();
+    let second = s.add_media(&id, 2, &test_media(), "image/png").unwrap();
     assert_eq!(first["mediaId"], second["mediaId"]);
     assert_eq!(s.snapshot(&id).unwrap()["version"], 3);
-    assert!(s.add_media(&id, 3, b"media", "not/mime\n").is_err());
+    assert!(s.add_media(&id, 3, &test_media(), "not/mime\n").is_err());
     assert_eq!(s.snapshot(&id).unwrap()["version"], 3);
 }
 
@@ -803,4 +803,10 @@ fn agent_06_model_content_fields_cannot_bypass_explicit_scope() {
     assert!(!declaration.to_string().contains("标题"));
     let scoped = s.read(&id, &req(ReadTool::Document), None, None, None).unwrap();
     assert!(scoped.to_string().contains("标题"));
+}
+fn test_media() -> Vec<u8> {
+    common::part_bytes(
+        &std::fs::read(common::repo_root().join("corpus/real/image/image-svg.docx")).unwrap(),
+        "word/media/image1.png",
+    )
 }

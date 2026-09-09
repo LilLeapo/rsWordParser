@@ -566,6 +566,8 @@ impl Document {
         self.inks = crate::model::ink::collect_inks(dom, &self.main);
         self.warnings.extend(warnings);
         self.fields = fields;
+        // 内容编辑也会新建 run / 修订节点；块数不变不代表 arena 的流映射不变。
+        self.flows = FlowMap::build(dom);
         self.spans = spans;
         // 修订表是 DOM 的投影，和字段索引一样整体重建（辅助 part 走整体 `rebuild`，这里只有主 part 变了，
         // 但重扫全部 part 才能让 `EDIT-06` 的全局 `w:id` 最大值始终正确）

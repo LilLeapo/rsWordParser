@@ -21,3 +21,4 @@ path = "src/worker.rs"
 workspace = true
 [dev-dependencies]
 zip.workspace = true
+jsonschema = "0.55.0"

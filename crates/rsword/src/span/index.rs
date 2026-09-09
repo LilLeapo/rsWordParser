@@ -375,6 +375,8 @@ impl SpanIndex {
     pub(crate) fn push_span(&mut self, span: RangeSpan) -> SpanId {
         let id = SpanId(self.spans.len() as u32);
         self.spans.push(RangeSpan { id, ..span });
+        // SPAN-02 的空范围例外也适用于新建范围，不能等下一次变换后才统一。
+        self.normalize_collapsed();
         id
     }
 

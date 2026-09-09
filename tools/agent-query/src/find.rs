@@ -8,7 +8,7 @@ use crate::{
     search::{self, Options, Request},
 };
 use rsword::agent::{
-    anchors::{Affinity, Target},
+    anchors::{Affinity, Anchor, Target},
     text::Projection,
 };
 use serde_json::{Value, json};
@@ -114,11 +114,11 @@ impl Finder {
         Ok(value)
     }
 }
-fn record(p: &Projection, h: &search::Hit, authorized: &std::ops::Range<u32>) -> Result<Value> {
-    let original = p.text_range(h.range.clone())?;
-    if original != h.original {
-        return Err(error("AGENT_BAD_ANCHOR", "归一匹配回映的原文前置条件不一致"));
-    }
+pub(crate) fn hit_anchors(
+    p: &Projection,
+    h: &search::Hit,
+    authorized: &std::ops::Range<u32>,
+) -> Result<(Anchor, Anchor)> {
     let affinity = if h.range.is_empty() && h.range.end == authorized.end {
         Affinity::Left
     } else {
@@ -130,6 +130,14 @@ fn record(p: &Projection, h: &search::Hit, authorized: &std::ops::Range<u32>) ->
     } else {
         p.anchors.to_flow_anchor(h.range.end, Affinity::Left, h.part, h.flow)?
     };
+    Ok((start, end))
+}
+fn record(p: &Projection, h: &search::Hit, authorized: &std::ops::Range<u32>) -> Result<Value> {
+    let original = p.text_range(h.range.clone())?;
+    if original != h.original {
+        return Err(error("AGENT_BAD_ANCHOR", "归一匹配回映的原文前置条件不一致"));
+    }
+    let (start, end) = hit_anchors(p, h, authorized)?;
     let source_only = p
         .anchors
         .segments

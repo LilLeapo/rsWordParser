@@ -491,14 +491,35 @@ fn clone_attrs(dom: &Dom, from: NodeId, to: &mut NewElement) {
     }
 }
 
-/// 段文本设为 `text`：有唯一文本子节点 → `SetText`（`w:t` 由序列化补 preserve）；否则替换整个元素。
+/// 段文本设为 `text`：提交时即保留边界空白，不能等到保存才补 preserve。
 pub(crate) fn set_segment_text(dom: &Dom, seg_node: NodeId, text: &str, plan: &mut MutationPlan) {
+    let preserve = dom.name(seg_node).is_some_and(|name| {
+        name.ns == NsId::W
+            && matches!(
+                name.local,
+                LocalName::T | LocalName::DelText | LocalName::InstrText | LocalName::DelInstrText
+            )
+    });
     match sole_text_child(dom, seg_node) {
-        Some(tn) => plan.node_edits.push(NodeEdit::SetText { node: tn, text: text.to_string() }),
+        Some(tn) => {
+            plan.node_edits.push(NodeEdit::SetText { node: tn, text: text.to_string() });
+            // 否则连续编辑间的模型重建会裁掉新增的首尾空白，令后续 UTF-16 坐标漂移。
+            if preserve {
+                plan.node_edits.push(NodeEdit::SetAttr {
+                    node: Target::Node(seg_node),
+                    name: QName::new(NsId::Xml, LocalName::Space),
+                    value: "preserve".into(),
+                });
+            }
+        }
         None => {
             let name = dom.name(seg_node).expect("segment is an element");
             let mut e = NewElement::new(name);
             clone_attrs(dom, seg_node, &mut e);
+            if preserve {
+                e.attrs.retain(|(name, _)| *name != QName::new(NsId::Xml, LocalName::Space));
+                e.push_attr(QName::new(NsId::Xml, LocalName::Space), "preserve");
+            }
             plan.node_edits.push(NodeEdit::Replace { old: seg_node, node: e.with_text(text) });
         }
     }
@@ -847,6 +868,7 @@ fn insert_text(
     ctx: &EditContext,
 ) -> Result<MutationResult> {
     let part = s.part_or_main(at.part);
+    s.spans_of(part)?;
     let mut diags = Vec::new();
     let text = sanitize_text(text, part, &mut diags);
     if text.is_empty() {
@@ -872,6 +894,8 @@ fn insert_text(
     }
     // 路径 1：紧邻 / 落在 Text 段 → 直接写该 w:t 的文本节点。
     // 追踪时只有落在**本作者自己的** `w:ins` 里才能这么做（Word：自己插的可以接着改）
+    // 范围端点处必须插独立内容项，让 SPAN-06 按 affinity 移动锚点；
+    // 直接扩写原 run 会吞掉这个边界，使追踪与不追踪的批注覆盖范围不同。
     let own_ins = |seg: NodeId| {
         tracker
             .as_ref()
@@ -881,6 +905,18 @@ fn insert_text(
         && !has_control_chars(&text)
         && let Some((seg_node, seg_text, byte)) = direct_text_target(tb, &loc)
         && own_ins(seg_node)
+        && !s.spans_built(part).is_some_and(|index| {
+            index.live().any(|span| {
+                [span.start, span.end].into_iter().flatten().any(|a| {
+                    crate::span::content::item_containing(dom0, a.container, seg_node).is_some_and(
+                        |i| {
+                            (byte == 0 && a.index == i)
+                                || (byte == seg_text.len() && a.index == i + 1)
+                        },
+                    )
+                })
+            })
+        })
     {
         let new_text = format!("{}{}{}", &seg_text[..byte], text, &seg_text[byte..]);
         let mut plan = MutationPlan::new(part);
@@ -2371,9 +2407,10 @@ fn content_boundary(s: &EditSession, para: NodeId, at: InlinePos) -> Result<u32>
     match locate(tb, at.offset)? {
         Loc::Boundary { index } => {
             let len = crate::span::content_len(dom, para);
-            match tb.inlines.get(index).and_then(Inline::node) {
+            match tb.inlines.get(index) {
                 // 段落层的内容项：inline 可能在 `w:hyperlink` / `w:ins` 里，取它在段落下的那一层
-                Some(n) => {
+                Some(inline) => {
+                    let n = boundary_node(s, at.part, tb, inline, Side::Right)?;
                     Ok(crate::span::boundary_before(dom, para, top_child(dom, para, n))
                         .unwrap_or(len))
                 }

@@ -49,6 +49,7 @@ struct Session {
     native: SessionTable,
     native_id: String,
     version: u64,
+    reports: crate::report::Store,
 }
 #[derive(Default)]
 pub struct Sessions {
@@ -106,7 +107,10 @@ impl Sessions {
         let nonce =
             std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
         let id = format!("a{}-{nonce}-{native_id}", std::process::id());
-        self.sessions.insert(id.clone(), Session { native, native_id, version: 0 });
+        self.sessions.insert(
+            id.clone(),
+            Session { native, native_id, version: 0, reports: Default::default() },
+        );
         Ok(id)
     }
     pub fn close(&mut self, id: &str) {
@@ -149,6 +153,7 @@ impl Sessions {
     }
     pub fn add_media(&mut self, id: &str, version: u64, bytes: &[u8], mime: &str) -> Result<Value> {
         self.expected(id, version)?;
+        crate::media::verify(bytes, mime)?;
         let state = self.sessions.get_mut(id).unwrap();
         let media = state.native.add_media(&state.native_id, bytes, mime)?;
         state.version += 1;
@@ -166,6 +171,111 @@ impl Sessions {
             return Err(error("AGENT_STALE_ANCHOR", "锚点不属于当前会话版本"));
         }
         Ok(())
+    }
+    /// AGENT-07/09：所有报告容量及候选操作验证完毕才交换业务状态。
+    pub fn edit(
+        &mut self,
+        id: &str,
+        version: u64,
+        input: &str,
+        preview: Option<&str>,
+        worker: Option<&crate::edit::WorkerConfig>,
+    ) -> Result<Value> {
+        self.expected(id, version)?;
+        if let Some(preview) = preview {
+            let report = self
+                .get(id)?
+                .reports
+                .get(preview)
+                .map_err(|_| error("AGENT_PREVIEW_STALE", "预览不属于此会话"))?;
+            let request = serde_json::to_value(crate::edit::Request::parse(input)?).unwrap();
+            if !preview.starts_with("preview-")
+                || report.before_version != version
+                || report.request != request
+            {
+                return Err(error("AGENT_PREVIEW_STALE", "预览版本、操作或上下文不匹配"));
+            }
+        }
+        let state = self.get(id)?;
+        let candidate = crate::report::run(
+            &state.native,
+            &state.native_id,
+            self.snapshot(id)?,
+            input,
+            worker,
+            false,
+        )?;
+        if let Some(preview) = preview
+            && state.reports.get(preview)?.audit.execution_hash
+                != candidate.report.audit.execution_hash
+        {
+            return Err(error("AGENT_PREVIEW_STALE", "实际媒体或执行序列已变化"));
+        }
+        let receipt = json!({"beforeVersion":version,"afterVersion":version+1,"reportId":candidate.report.id,"counts":candidate.counts});
+        let state = self.sessions.get_mut(id).unwrap();
+        state.native = candidate.native;
+        state.version += 1;
+        state.reports.insert(candidate.report, false);
+        Ok(receipt)
+    }
+    /// AGENT-08：共用候选执行；首个完整差异放不下时不登记预览。
+    pub fn preview(
+        &mut self,
+        id: &str,
+        version: u64,
+        input: &str,
+        budget: Budget,
+        worker: Option<&crate::edit::WorkerConfig>,
+    ) -> Result<Value> {
+        budget.validate()?;
+        self.expected(id, version)?;
+        let state = self.get(id)?;
+        let candidate = crate::report::run(
+            &state.native,
+            &state.native_id,
+            self.snapshot(id)?,
+            input,
+            worker,
+            true,
+        )?;
+        let report = &candidate.report;
+        let value = paging::page(
+            &mut self.cursors,
+            &report.snapshot,
+            "summary",
+            &report.id,
+            &report.units(),
+            false,
+            json!({"reportId":report.id,"executionHash":report.audit.execution_hash}),
+            budget,
+            None,
+            usize::MAX,
+        )?;
+        self.sessions.get_mut(id).unwrap().reports.insert(candidate.report, true);
+        Ok(value)
+    }
+    /// 历史游标使用报告快照；后续 edit 不会使该快照变化。
+    pub fn summary(
+        &mut self,
+        id: &str,
+        report_id: &str,
+        budget: Budget,
+        cursor: Option<&str>,
+    ) -> Result<Value> {
+        budget.validate()?;
+        let report = self.get(id)?.reports.get(report_id)?.clone();
+        paging::page(
+            &mut self.cursors,
+            &report.snapshot,
+            "summary",
+            report_id,
+            &report.units(),
+            false,
+            json!({"reportId":report.id,"executionHash":report.audit.execution_hash}),
+            budget,
+            cursor,
+            usize::MAX,
+        )
     }
     /// 只返回内部规范锚点，不能借此取得可写会话。
     pub fn anchor(&self, id: &str, scope: Scope, offset: u32) -> Result<Anchor> {

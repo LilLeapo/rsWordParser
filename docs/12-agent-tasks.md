@@ -134,3 +134,25 @@ B/C 的宿主实测记录待提供，未运行、未捏造失败数据；这不�
 本轮 workspace 默认 debug/release 各 **792 通过 / 0 失败 / 13 ignored**，compat 各 **911 / 0 / 13**；
 fmt 干净，两套 clippy/audit 零告警。八道 `diff-parse --features compat-ts` 检查仍为 **242 + 547 已知 / 0 未知**。
 没有改引擎、语料或冻结规范；B/C 宿主实测缺证据，9.0 文档复核已通过，宿主补证仍未完成。
+
+## 8. 9.5 写侧支持状态（分母仍为 11）
+
+以下是编译器和 Rust 自动化证据，不是桌面 Word 或真实 Agent 端到端通过率。**11 项均缺本轮桌面 Word 无修复提示证据**，未缩分母。
+
+| 任务 | 已支持与自动化证据 | 尚缺 |
+| --- | --- | --- |
+| W1 | hf-variants：正文目标确实非空，替换后归零；带同词的 hf 原字节不变 | 真实 Agent 调用链及桌面 Word |
+| W2 | text-basic：精确 1 个二级标题，摘要紧随其后，全部原块字节保留 | 真实 Agent 调用链及桌面 Word |
+| W3 | rev-insert-delete：精确作者字符串为“作者甲/作者乙”，甲归零、乙保留；两视图与独立原生作者筛选 oracle 相等 | 复杂修订宿主/跨作者配对不猜，超出可表达授权时具名拒绝；桌面 Word |
+| W4 | table-styled：第三逻辑列删除，3 行与 2 列 grid；辅助 part 提前拒绝 | 更完整逐列内容/其他 part 保真任务 oracle及桌面 Word |
+| W5 | text-basic：新增批注正文；重解析后的范围截取恰为 Mixed English | 真实 Agent 调用链及桌面 Word |
+| W6 | text-basic：创建 paragraph 样式、正文仅 style patch；保留 rPr size=22；同声明不重复 upsert、冲突报错 | 全部未建模 pPr 子元素的独立局部字节 oracle及桌面 Word；原生属性键是 indent.start，不是 TS 的 left |
+| W7 | 操作名/schema/拒绝测试保留在同表清单 | **尚不支持执行**：原 PAGEREF 缓存页码与目标书签来源核对、完整更新摘要；AGENT_UNSUPPORTED_RANGE，不猜页码 |
+| W8 | text-basic：创建默认页眉；新增部件进入报告；后一步失败时原包/版本不变，重试与独立新会话结果相同 | 全部旧正文块字节 oracle及桌面 Word |
+| W9 | image-two-in-run：只改第二个出现位置，第一 drawing 原片段及原媒体 CRC/压缩字节保留；外置审计还原与篡改拒绝 | 更多媒体容器验证器；目前 MIME 检查是容器签名，不是完整图像解码；桌面 Word |
+| W10 | large-report main[41,48) 七块移动到首块前，七块原片段、顺序均保留；含分节/不连续/自内目的地拒绝 | 高层 chapter 选择语法仍需调用方用 outline 转成完整 ObjectRef 列表；桌面 Word |
+| W11 | text-basic：追踪改写首段，accept 含新文、reject 指纹等于修改前，作者 Agent 且修订非空 | 真实 Agent 调用链及桌面 Word |
+
+9.5 修正了共享 ModelFingerprint 的文字/指令取值：原 helper 把元素当文本节点，T/F 可全空而不报错。
+新增 FIRST/OTHER 不同文档必须不同指纹的常驻反例；旧的“两个空值相等”不再能充当文字保真证明。
+批次内符号引用尚缺；不可通过猜测新建 nodeId 绕过。具体接口、报告容量与审计外置见 [17-agent-edit.md](17-agent-edit.md)。
