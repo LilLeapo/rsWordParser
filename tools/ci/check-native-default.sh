@@ -50,7 +50,10 @@ for probe_case in forbidden-compat:E0432 forbidden-ts-shape:E0560; do
         echo "BIND-11 failed: default downstream accepts $feature" >&2
         exit 1
     fi
-    if ! rg -q "error\[$expected\]" "$probe/rejected.log"; then
+    # grep -F，不用 rg：GitHub 的 ubuntu-latest 没装 ripgrep。rg 缺失时
+    # `! rg -q` 恒为真，这道负向门就从「验证拒绝理由」退化成「永远报错」——
+    # 本地有 rg 所以一直看不见。用 POSIX 工具消掉这个依赖。
+    if ! grep -qF "error[$expected]" "$probe/rejected.log"; then
         cat "$probe/rejected.log" >&2
         exit 1
     fi
