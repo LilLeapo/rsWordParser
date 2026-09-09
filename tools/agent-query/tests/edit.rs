@@ -19,6 +19,7 @@ fn worker() -> WorkerConfig {
     WorkerConfig {
         program: env!("CARGO_BIN_EXE_rsword-query-worker").into(),
         scratch: common::repo_root().join("target/m95-worker"),
+        args: vec![],
     }
 }
 fn fixture() -> Vec<u8> {
@@ -90,7 +91,12 @@ fn agent_09_attachment_roundtrip_and_each_corruption_rejected() {
     assert_eq!(audit.restore(&BTreeMap::new()).unwrap_err().code, "AGENT_ATTACHMENT_MISSING");
     let mut wrong = media.clone();
     wrong.get_mut(&key).unwrap().bytes[1] = 9;
-    assert_eq!(audit.restore(&wrong).unwrap_err().code, "AGENT_ATTACHMENT_MISMATCH");
+    let error = audit.restore(&wrong).unwrap_err();
+    assert_eq!(error.code, "AGENT_ATTACHMENT_MISMATCH");
+    assert_eq!(
+        error.details,
+        json!({"stage":"attachment","operation":0,"sha256Prefix":&key[..12]})
+    );
     let mut wrong = media.clone();
     wrong.get_mut(&key).unwrap().mime = "image/jpeg".into();
     assert_eq!(audit.restore(&wrong).unwrap_err().code, "AGENT_ATTACHMENT_MISMATCH");

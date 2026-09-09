@@ -16,7 +16,8 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::atomic::{AtomicU64, Ordering};
 const LIMIT: usize = 16 * 1024 * 1024;
 static NEXT: AtomicU64 = AtomicU64::new(1);
-#[derive(Clone)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Report {
     pub id: String,
     pub snapshot: String,

@@ -282,6 +282,9 @@ impl Drop for Worker {
 impl Worker {
     /// 执行器初始化，独立 2 s 上限；此时没有传入用户 pattern 或文本。
     pub fn start(program: &Path, scratch: &Path) -> Result<Self> {
+        Self::start_with_args(program, scratch, &[])
+    }
+    pub fn start_with_args(program: &Path, scratch: &Path, args: &[String]) -> Result<Self> {
         let start = Instant::now();
         std::fs::create_dir_all(scratch)
             .map_err(|e| error("AGENT_WORKER_FAILED", e.to_string()))?;
@@ -292,6 +295,7 @@ impl Worker {
         let ready = scratch.join(format!("{name}.ready"));
         let pending = scratch.join(format!("{name}.pending"));
         let child = Command::new(program)
+            .args(args)
             .arg(&request)
             .arg(&response)
             .arg(&ready)
@@ -357,4 +361,22 @@ impl Worker {
         }
         result
     }
+}
+
+/// 可终止 worker 的同一入口，独立二进制与 CLI 内部模式共用。
+pub fn worker_entry(args: &[String]) -> i32 {
+    let result = (|| -> std::io::Result<()> {
+        if args.len() != 3 {
+            return Err(std::io::Error::other("worker 参数数目错误"));
+        }
+        let request = std::path::Path::new(&args[0]);
+        std::fs::write(&args[2], b"ready")?;
+        while !request.exists() {
+            std::thread::sleep(Duration::from_millis(1));
+        }
+        let value: Request = serde_json::from_slice(&std::fs::read(request)?)?;
+        let result = run(&value);
+        std::fs::write(&args[1], serde_json::to_vec(&result)?)
+    })();
+    if result.is_ok() { 0 } else { 1 }
 }

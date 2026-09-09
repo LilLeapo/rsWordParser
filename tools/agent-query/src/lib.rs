@@ -43,3 +43,5 @@ impl From<rsword::bind::native::ApiError> for QueryError {
         error(&e.code, e.message)
     }
 }
+
+pub mod tools;

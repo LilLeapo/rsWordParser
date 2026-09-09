@@ -1,4 +1,6 @@
 //! AGENT-06：唯一写入版本边界；原生会话表不可从 Agent 会话取得可写引用。
+#[path = "session_commands.rs"]
+mod commands;
 use crate::{
     QueryError, Result,
     budget::Budget,
@@ -751,15 +753,13 @@ fn document_units(mut value: Value, part: u32) -> Vec<Unit> {
     }
     units
 }
-fn validate_options(r: &ReadRequest) -> Result<()> {
-    let o =
-        r.options.as_object().ok_or_else(|| error("BIND_BAD_ARGUMENT", "options 必须为对象"))?;
-    let common: &[&str] = match r.tool {
+pub(crate) fn option_keys(tool: ReadTool) -> (&'static [&'static str], &'static [&'static str]) {
+    let common: &[&str] = match tool {
         ReadTool::Document => &["flow", "blockRange"],
         ReadTool::Diagnostics | ReadTool::Media => &[],
         _ => &["scope", "flow", "blockRange"],
     };
-    let extra: &[&str] = match r.tool {
+    let extra: &[&str] = match tool {
         ReadTool::Text => &[],
         ReadTool::Outline => &["minLevel", "maxLevel"],
         ReadTool::Find => &["pattern", "search", "maxHits"],
@@ -767,6 +767,12 @@ fn validate_options(r: &ReadRequest) -> Result<()> {
         ReadTool::Document => &["fields", "depth", "display"],
         ReadTool::Diagnostics | ReadTool::Media => &[],
     };
+    (common, extra)
+}
+fn validate_options(r: &ReadRequest) -> Result<()> {
+    let o =
+        r.options.as_object().ok_or_else(|| error("BIND_BAD_ARGUMENT", "options 必须为对象"))?;
+    let (common, extra) = option_keys(r.tool);
     if o.keys().any(|k| !common.contains(&k.as_str()) && !extra.contains(&k.as_str())) {
         return Err(error("BIND_BAD_ARGUMENT", "未知读取选项"));
     }

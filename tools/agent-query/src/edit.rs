@@ -30,6 +30,12 @@ pub struct Selector {
 pub struct WorkerConfig {
     pub program: PathBuf,
     pub scratch: PathBuf,
+    pub args: Vec<String>,
+}
+impl WorkerConfig {
+    pub fn start(&self) -> Result<search::Worker> {
+        search::Worker::start_with_args(&self.program, &self.scratch, &self.args)
+    }
 }
 macro_rules! actions {
     ($($variant:ident => $wire:literal, $helper:ident, $task:literal, $supported:literal { $($field:ident:$ty:ty),* };)*) => {
@@ -227,15 +233,13 @@ impl Compiler<'_> {
         let mut position = Default::default();
         let mut hits = vec![];
         loop {
-            let batch = search::Worker::start(&worker.program, &worker.scratch)?.submit(
-                &search::Request {
-                    pattern: s.find.clone().unwrap(),
-                    options: s.search.clone(),
-                    flows: flows.clone(),
-                    max_hits: 1000,
-                    position,
-                },
-            )?;
+            let batch = worker.start()?.submit(&search::Request {
+                pattern: s.find.clone().unwrap(),
+                options: s.search.clone(),
+                flows: flows.clone(),
+                max_hits: 1000,
+                position,
+            })?;
             hits.extend(batch.hits);
             let Some(next) = batch.next else { break };
             if hits.len() >= 100_000 {

@@ -191,3 +191,14 @@ cargo test --workspace --release
 仓库约束见 [CLAUDE.md](CLAUDE.md)，当前能力与实测数字见 [docs/05](docs/05-status.md)，
 逐任务进度和偏差见 [docs/04](docs/04-dev-plan.md)，冻结架构见 [docs/03](docs/03-architecture-v3.md)，
 原生协议见 [spec/21](spec/21-bind.md)。
+
+文件级 CLI（M9′ 9.6）：
+
+```sh
+cargo run -p rsword-cli -- outline corpus/real/misc/large-report.docx --json
+cargo run -p rsword-cli -- text corpus/real/misc/large-report.docx --limit 4000 --maxBytes 16000 --json
+cargo run -p rsword-cli -- check corpus/real/misc/large-report.docx --json
+```
+
+编辑用 `rsword ops INPUT --ops REQUEST.json --output NEW.docx`，默认保留原文件并写审计报告。
+预览、附件、游标与退出码见 [CLI 使用与边界](docs/18-cli.md)。MCP server 留给 9.7。

@@ -1208,6 +1208,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "rsword-cli"
+version = "0.0.1"
+dependencies = [
+ "jsonschema",
+ "rsword",
+ "rsword-agent-query",
+ "serde",
+ "serde_json",
+ "zip",
+]
+
+[[package]]
 name = "rsword-js"
 version = "0.0.1"
 dependencies = [

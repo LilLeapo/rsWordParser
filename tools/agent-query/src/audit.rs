@@ -74,7 +74,9 @@ impl Audit {
                 || hash(&source.bytes) != binding.sha256
                 || source.mime != binding.mime
             {
-                return Err(bad());
+                let mut e = bad();
+                e.details = json!({"stage":"attachment","operation":binding.operation,"sha256Prefix":binding.sha256.chars().take(12).collect::<String>()});
+                return Err(e);
             }
             op["bytes"] = json!(source.bytes);
         }
