@@ -749,6 +749,43 @@ impl Document {
         let f = self.fields_in(part)?.get(id)?;
         Some((f.form.head(), f.instr.keyword.as_str()))
     }
+    /// AGENT-05：字段缓存结果的只读文字；调用方无需自行遍历 DOM/Span。
+    pub fn field_result_text(
+        &self,
+        pkg: &crate::package::Package,
+        part: PartId,
+        id: crate::span::FieldId,
+    ) -> Option<String> {
+        let field = self.fields_in(part)?.get(id)?;
+        let dom = pkg.parts().get(part.0 as usize)?.dom()?;
+        let mut seen = std::collections::BTreeSet::new();
+        let mut out = String::new();
+        let mut paragraph = None;
+        for &root in field.form.result_nodes() {
+            for n in dom.descendants(root) {
+                if !seen.insert(n) {
+                    continue;
+                }
+                if dom.is(n, QName::w(LocalName::T)) || dom.is(n, QName::w(LocalName::DelText)) {
+                    let here = dom.ancestors(n).find(|&n| dom.is(n, QName::w(LocalName::P)));
+                    if paragraph.is_some() && here != paragraph {
+                        out.push('\n');
+                    }
+                    paragraph = here;
+                    for &c in dom.children(n) {
+                        if let Some(text) = dom.text(c) {
+                            out.push_str(&text);
+                        }
+                    }
+                } else if dom.is(n, QName::w(LocalName::Tab)) {
+                    out.push('\t');
+                } else if dom.is(n, QName::w(LocalName::Br)) || dom.is(n, QName::w(LocalName::Cr)) {
+                    out.push('\n');
+                }
+            }
+        }
+        Some(out)
+    }
 }
 
 /// AGENT-01：构建基块的可寻址身份与省略数量，正文模型不自动展开声明 part。

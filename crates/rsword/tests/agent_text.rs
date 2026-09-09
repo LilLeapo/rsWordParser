@@ -51,6 +51,19 @@ fn agent_02_missing_synthetic_mapping_must_fail() {
     assert_eq!(p.anchors.validate(&p.content, &doc).unwrap_err().code, "AGENT_BAD_ANCHOR");
 }
 #[test]
+fn agent_01_presentation_reason_must_be_a_declared_category() {
+    let (pkg, doc) = heading();
+    let original = project(&pkg, &doc, Scope::Main, "test:1").unwrap();
+    for reason in ["", "paragraph", "zzUnknown"] {
+        let mut p = original.clone();
+        let Target::Presentation { reason: actual, .. } = &mut p.anchors.segments[0].target else {
+            panic!("标题前缀必须是呈现字符");
+        };
+        *actual = reason.into();
+        assert_eq!(p.anchors.validate(&p.content, &doc).unwrap_err().code, "AGENT_BAD_ANCHOR");
+    }
+}
+#[test]
 fn agent_02_wrong_part_must_fail() {
     let (pkg, doc) = heading();
     let p = project(&pkg, &doc, Scope::Main, "test:1").unwrap();
@@ -148,6 +161,15 @@ fn agent_01_02_corpus_determinism_and_complete_anchors() {
             "{name}: 投影不确定"
         );
         p.anchors.validate(&p.content, &doc).unwrap_or_else(|e| panic!("{name}: {e}"));
+        for segment in &p.anchors.segments {
+            if let Target::Presentation { reason, .. } = &segment.target {
+                assert!(!reason.is_empty(), "{name}: 空呈现原因");
+                assert!(
+                    rsword::agent::text::CATEGORIES.iter().any(|c| c.name() == reason),
+                    "{name}: 未声明呈现原因 {reason}"
+                );
+            }
+        }
         assert_eq!(p.anchor_counts, p.anchors.counts);
         for r in doc.revisions.entries() {
             let flow = doc.flow_of_in(r.part, r.meta.node).expect("修订有原生流");

@@ -1,6 +1,7 @@
 # SPEC 22 · Agent 接口层与文件级工具
 
 > 9.1 关口评审通过（2026-09-09）；实现按任务逐项验收。
+> v1.2 订正（2026-09-09，9.3 评审批准）：AGENT-04 零长命中在所选流或授权范围末端取 left，与 AGENT-02 的流末规则一致；末端右侧没有界内字符，不能让锚点归属越界。两端必须一致，中间仍默认 right。
 > v1.1 订正（2026-09-09）：原“单元格子流”措辞与 SPAN-01 冲突。单元格是所在流的子范围，
 > 以 ObjectRef 选择、按对象身份去重；不新增单元格 FlowId，否则既有跨单元格范围会被误判为非法跨流。
 > 同日评审增补：SPAN-01 为外部文本框与各 docPartBody 追加流身份；glossary 基块可寻址但不自动展开为当前文档文本，按 glossary 类报告身份、段落数与省略原因。
@@ -142,7 +143,7 @@ R1/R2/R11：最大真实件 26 个一级标题与独立模型序列相等，第�
 
 `find(scope=main, pattern, mode="literal", case="sensitive", width="exact", whitespace="exact", maxHits=20, budget, cursor)`。
 搜索 AGENT-01 的规范投影，包含呈现字符；结果 `{match,textRange,anchors,editable,context}`，
-不能悄悄略掉只读命中。非空命中的起点取 right、终点取 left affinity，零长命中两端使用同一 right affinity。
+不能悄悄略掉只读命中。非空命中的起点取 right、终点取 left affinity。零长命中默认 right；在所选流或授权范围末端取 left；两端必须一致；归属不得越界。
 结果按流顺序、起点、终点排序，采用非重叠最左匹配。
 
 literal 模式先按选项同时归一 pattern 与待搜文字，再把 pattern 当字面；regex 模式 pattern 是作用于归一后文本的正则语法，
@@ -171,6 +172,7 @@ deadlineMs 缺省 250、允许 1–2000，包含归一、编译和匹配。超�
 覆盖全/半角及半角浊音组合、连续空白、emoji、零长、跨段/跨流、合成占位符、多个重复命中及归一后端点不可编辑。
 匹配分页拼接等于不限页的有界 oracle；同段超过 maxHits、跨段正则与 ^/词边界的续读分别有断言。
 超长 pattern、自动机膨胀及故意超时任务具名拒绝；超时后 worker 不残留，会话逐字节不变。
+零长命中的中间位置两端 right、流末及授权范围末端两端 left 分别断言；两者都须经 toTextOffset 往返回到界内同一位置，防止把默认值整体改成 left 也能过门。
 
 ## AGENT-05 上下文与按需下钻
 

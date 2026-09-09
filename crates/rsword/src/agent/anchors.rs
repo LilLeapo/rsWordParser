@@ -92,6 +92,7 @@ pub struct AnchorMap {
     #[serde(skip)]
     pub(crate) boundaries: Vec<(u32, usize)>,
     pub(crate) empty: Target,
+    pub(crate) empty_flows: Vec<Segment>,
     #[serde(skip)]
     pub(crate) flow_ends: std::collections::BTreeSet<u32>,
 }
@@ -103,7 +104,8 @@ impl AnchorMap {
             segments: vec![],
             counts: AnchorCounts::default(),
             boundaries: vec![(0, 0)],
-            empty: Target::Presentation { owner, reason: "empty".into() },
+            empty: Target::Presentation { owner, reason: "structure".into() },
+            empty_flows: vec![],
             flow_ends: Default::default(),
         }
     }
@@ -191,6 +193,19 @@ impl AnchorMap {
         })
     }
     pub fn to_text_offset(&self, anchor: &Anchor) -> Result<u32> {
+        if let Some(i) = anchor.segment_key.checked_sub(self.segments.len() as u32)
+            && let Some(s) = self.empty_flows.get(i as usize)
+            && anchor.target == s.target
+        {
+            if anchor.snapshot == self.snapshot
+                && anchor.projection_key == self.projection_key
+                && anchor.offset_in_segment == 0
+                && anchor.affinity == Affinity::Left
+            {
+                return Ok(s.range.start);
+            }
+            return Err(err("AGENT_BAD_ANCHOR", "空流锚点身份不匹配"));
+        }
         let start = if self.segments.is_empty() {
             0
         } else {
@@ -210,6 +225,29 @@ impl AnchorMap {
             return Err(err("AGENT_BAD_ANCHOR", "锚点身份、part、类型或冗余字段不匹配"));
         }
         Ok(offset)
+    }
+    /// 空流在全投影中可能与下一流共享偏移；必须按流身份选其唯一呈现位置。
+    pub fn to_flow_anchor(
+        &self,
+        offset: u32,
+        affinity: Affinity,
+        part: u32,
+        flow: u32,
+    ) -> Result<Anchor> {
+        if let Some((i, s)) = self.empty_flows.iter().enumerate().find(|(_, s)| {
+            s.range.start == offset && matches!(&s.target, Target::Presentation { owner, .. } if owner.part == part && owner.flow == flow)
+        }) {
+            return Ok(Anchor { snapshot:self.snapshot.clone(), projection_key:self.projection_key.clone(), segment_key:(self.segments.len()+i) as u32, offset_in_segment:0, affinity:Affinity::Left, target:s.target.clone() });
+        }
+        let a = self.to_anchor(offset, Some(affinity))?;
+        let identity = match &a.target {
+            Target::Source { part, flow, .. } => (*part, *flow),
+            Target::Presentation { owner, .. } => (owner.part, owner.flow),
+        };
+        if identity != (part, flow) {
+            return Err(err("AGENT_BAD_ANCHOR", "锚点超出所选流"));
+        }
+        Ok(a)
     }
     pub fn source_candidates(&self, mut pos: InlinePos) -> Result<Vec<u32>> {
         // 投影的空锚点始终记录主 part；缺席 part 与 BIND v3.1 一样指主 part。
@@ -250,6 +288,14 @@ impl AnchorMap {
         }
         let mut end = 0;
         let mut counts = AnchorCounts::default();
+        for s in &self.empty_flows {
+            if !s.range.is_empty()
+                || self.byte_offset(s.range.start).is_err()
+                || !matches!(&s.target, Target::Presentation { reason, .. } if super::text::CATEGORIES.iter().any(|c| c.name() == reason))
+            {
+                return Err(err("AGENT_BAD_ANCHOR", "空流呈现锚点非法"));
+            }
+        }
         for s in &self.segments {
             if s.range.start != end || s.range.end <= end {
                 return Err(err("AGENT_BAD_ANCHOR", "分段有洞或重叠"));
@@ -302,7 +348,10 @@ impl AnchorMap {
                     counts.source_utf16 += s.range.end - s.range.start;
                     counts.source_scalars += scalars;
                 }
-                Target::Presentation { .. } => {
+                Target::Presentation { reason, .. } => {
+                    if !super::text::CATEGORIES.iter().any(|c| c.name() == reason) {
+                        return Err(err("AGENT_BAD_ANCHOR", "呈现原因缺失或不在分类表中"));
+                    }
                     counts.presentation_utf16 += s.range.end - s.range.start;
                     counts.presentation_scalars += scalars;
                 }

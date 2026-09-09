@@ -82,6 +82,15 @@ pub struct Projection {
     pub objects: BTreeMap<String, ObjectRange>,
     pub omitted: Value,
     pub diagnostics: Vec<Value>,
+    /// 内部导航索引；不随 text 响应泄漏全篇载荷。
+    #[serde(skip)]
+    pub flows: Vec<FlowRange>,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FlowRange {
+    pub object: ObjectRef,
+    pub range: Range<u32>,
+    pub blocks: Vec<ObjectRef>,
 }
 impl Projection {
     /// 使用对象索引选择同一绝对区间；重叠选择合并，不复制父表内已经展开的单元格。
@@ -203,10 +212,13 @@ impl<'a> Builder<'a> {
         })
     }
     fn mark(&mut self, owner: &ObjectRef, value: &str) {
+        self.mark_as(owner, value, Category::Structure);
+    }
+    fn mark_as(&mut self, owner: &ObjectRef, value: &str, category: Category) {
         self.out.anchors.push(
             &mut self.out.content,
             value,
-            Target::Presentation { owner: owner.clone(), reason: owner.kind.clone() },
+            Target::Presentation { owner: owner.clone(), reason: category.name().into() },
         );
     }
     fn count(&mut self, owner: &ObjectRef, c: Category) {
@@ -214,7 +226,7 @@ impl<'a> Builder<'a> {
     }
     fn placeholder(&mut self, owner: &ObjectRef, tag: &str, c: Category) {
         let start = self.out.anchors.len();
-        self.mark(owner, &format!("[{tag} #{}]", owner.key()));
+        self.mark_as(owner, &format!("[{tag} #{}]", owner.key()), c);
         self.count(owner, c);
         self.record(owner.clone(), start, json!({}));
     }
@@ -722,6 +734,36 @@ impl<'a> Builder<'a> {
             self.out.objects.get_mut(&object.key()).expect("修订对象存在").metadata = json!({"id":revision.id.0,"wId":revision.meta.id,"author":revision.meta.author,"date":revision.meta.date,"kind":revision.kind.as_str()});
         }
         self.out.anchors.flow_ends.insert(self.out.anchors.len());
+        let blocks = f
+            .blocks
+            .iter()
+            .map(|block| {
+                self.object(
+                    f.part,
+                    block.node(),
+                    match block {
+                        Block::Text(_) => "paragraph",
+                        Block::Table(_) => "table",
+                        Block::Image(_) => "image",
+                        Block::Protected(_) => "protected",
+                    },
+                )
+            })
+            .collect::<Result<Vec<_>>>()?;
+        if start == self.out.anchors.len() {
+            self.out.anchors.empty_flows.push(super::anchors::Segment {
+                range: start..start,
+                target: Target::Presentation {
+                    owner: owner.clone(),
+                    reason: Category::Structure.name().into(),
+                },
+            });
+        }
+        self.out.flows.push(FlowRange {
+            object: owner.clone(),
+            range: start..self.out.anchors.len(),
+            blocks,
+        });
         self.record(owner, start, f.metadata);
         Ok(())
     }
@@ -754,6 +796,7 @@ pub fn project(pkg: &Package, doc: &Document, scope: Scope, snapshot: &str) -> R
             objects: BTreeMap::new(),
             omitted: Value::Null,
             diagnostics: doc.warnings.iter().map(|d| diagnostic_view(&d.to_json(&cx))).collect(),
+            flows: Vec::new(),
         },
         counts: BTreeMap::new(),
         seen: BTreeSet::new(),

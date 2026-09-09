@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/rsword", "crates/rsword-js", "tools/diff-parse", "tools/gen-fixtures", "tools/xpath-assert"]
+members = ["crates/rsword", "crates/rsword-js", "tools/diff-parse", "tools/gen-fixtures", "tools/xpath-assert", "tools/agent-query"]
 exclude = ["fuzz"]
 
 [workspace.package]
@@ -37,4 +37,3 @@ opt-level = "z"
 lto = true
 codegen-units = 1
 panic = "abort"
-

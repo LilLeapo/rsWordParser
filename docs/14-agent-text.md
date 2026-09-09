@@ -1,5 +1,9 @@
 # Agent 文本投影与锚点（9.2）
 
+9.3 补充：呈现锚点 `reason` 使用 CATEGORIES 的类别名，必须非空且属于该表；
+全语料分类检查与清空/未知值破坏用例同时守门。空流有独立呈现位置，避免与相邻流共享偏移时借错归属。
+导航与工具侧执行边界见 [15-agent-query.md](15-agent-query.md)。
+
 依据 spec/22 AGENT-01/02。`agent::text::project` 是纯读取的内部索引构件，尚不是 CLI/MCP 的有界读接口；分页、游标、会话版本推进由后续任务接入。调用方传入 snapshot，投影配置进入 projectionKey；同一文档与配置的对象键、分段键确定。
 
 单元格用 ObjectRef 选择规范投影中的绝对子范围，保留原生 FlowId；父表与单元格的联合选择按区间去重。辅助 part 始终带 part，不用正文 arena 的同号节点代替。glossary 构建基块不自动作为当前文档正文输出；每个基块计 glossary，并返回其可寻址身份、段落数与省略原因。
