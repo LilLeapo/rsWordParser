@@ -73,7 +73,7 @@
   - Rust reads the body revision marker `CASE-BID-REV-01` and preserves no-edit bytes. It does not expose in-table anchors through `text_blocks`; this is classified as model/table projection `NOT_IMPLEMENTED`, not package-open failure.
 - Verification after `CASE-BID-01`: `cargo fmt --all --check`, strict `cargo clippy --workspace --all-targets`, and `cargo test --workspace --locked` all passed.
 - Branch sync after the user merged `main`: merged `origin/main` (`11759c1`) into `docs/codex-test-handoff` as local commit `e35a79a`; no push was performed.
-- Sixth theme `CASE-COMBINED-01` is complete through `C04`.
+- Sixth theme `CASE-COMBINED-01` is complete through `C05`.
   - `C00`: identity-only Word-authored document. First Save As check was `b3083d0c5f16a1bd4b4007a87336d57d83d3255d29242bfabf63d4fb6af2775d`; the final archived package after the second save is SHA-256 `a7fbaafedb7818f775016a9f3c6bec0d233034f9bd9be23245fe297b799136cb`.
   - `C01`: 30-page skeleton with four H1/H2/H3/H4 layers; SHA-256 `e9a93eb960e5ca5c510e7755a4605aef9438aff2d803382ec442dd21bd410363`.
   - `C02`: five tables, numbered lists, in-cell list/image, repeated header, Unicode stress, NBSP, manual line break, Arabic/Hebrew, and bold/italic/underline direct formatting completed; SHA-256 `c0a0a88ec8013f1c15ecd3f2118efc0f947b0b308c1f9817e6e9014df24ac207`.
@@ -89,6 +89,12 @@
   - C04 independent XML found 10 `w:ins`, 2 `w:del`/2 `w:delText`, 2 comment ranges with persisted bodies in `word/comments.xml`, 32 tabs, 2 breaks, 3 sections, 5 tables, 1 drawing, TOC/`PAGEREF`, and retained C03 bookmark/hyperlink/reference/header/footer structures.
   - C04 Rust driver checks all returned `contains_marker=true` and `no_edit_save_byte_identical=true` for eight C04 anchors; evidence is in `checkpoints/C04-driver.txt`, `checkpoints/xml-check-C04.txt`, `checkpoints/C04.md`, and `checkpoints/C04-comments-final.png`.
   - C04 actual-outcome note: the planned clear-direct-formatting actions did not remove formatting; the final OOXML retains direct properties with `w:rPrChange`, recorded as an observed Word outcome discrepancy.
+  - `C05`: closed/reopened C04, updated the entire TOC with Track Changes enabled, saved twice, used Save As, and reopened the final package. C04 was restored to `cb93aacb84eec61df540309fca629000758704b3bbc15039c3be86aadce84987` after the temporary TOC-updated working copy `d99159ce749bc7001c5050b1c3d31f9fe39d891a1e98a3ca2784735fbcb8db96` was generated.
+  - C05 final SHA-256 is `459a4016749e178503cfd9d7a6e976ec90c9c9cb98802cd3775669eace406a84` (59,924 bytes). Close/reopen showed 34 pages and retained the updated TOC, comments, revisions, bookmark/hyperlink/reference fields, and section headers/footers.
+  - C05 independent XML checked 29/29 XML/relationship parts with 0 failures: 42 `w:ins`, 32 `w:del`/`w:delText`, comments `20,27`, 3 sections including 1 landscape, 5 tables, 1 drawing, 16 `PAGEREF` fields, and retained C03 bookmark/hyperlink/REF/TOC/header/footer structures.
+  - The TOC cache now contains `CASE-COMBINED-C04-TOC-ENTRY` and its tab/break markers; `PAGEREF` increased from 15 to 16. Word's tracked TOC rewrite reduced direct `w:hyperlink` elements from 16 to 1; this is recorded as the actual Word field-update outcome.
+  - C05 Rust driver passed 16/16 C03/C04 marker checks with `contains_marker=true` and `no_edit_save_byte_identical=true`; evidence is in `checkpoints/C05-driver.txt`, `checkpoints/xml-check-C05.txt`, `checkpoints/C05.md`, `checkpoints/C05-final.png`, and `read-report.md`.
+  - `CASE-COMBINED-01` now has a complete C00-C05 Word-authored chain. Remaining work is the broader cross-cutting test program in `docs/11-codex-test-handoff.md`, not additional C05 actions.
 - Third theme `CASE-CONTRACT-01` is complete through `C05`.
   - `C01`: heading/body skeleton and anchors; SHA-256 `13aa728a2ee21d842163562c8a14de8630355986e7d78374160b92c8d319c519`.
   - `C02`: bookmark `CASE_PARTY_A`, external hyperlink relationship, and `REF CASE_PARTY_A \h`; final C02 SHA-256 `c9895267fc54b78912849c1b104b7b7a11b613110cbc51264c9875dbce841196`.

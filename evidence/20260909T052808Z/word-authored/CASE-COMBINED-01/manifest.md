@@ -43,3 +43,26 @@ required.
   `NOT_IMPLEMENTED`, not converted into a pass.
 - Word page count and Find results are UI observations; XML remains the
   persistent-structure oracle.
+
+
+## Completion
+
+CASE-COMBINED-01 is complete through C05.
+
+- C00-C04 packages and verification remain archived at their recorded hashes.
+- C04 remains `cb93aacb84eec61df540309fca629000758704b3bbc15039c3be86aadce84987`.
+- C05 final package is 59,924 bytes with SHA-256
+  `459a4016749e178503cfd9d7a6e976ec90c9c9cb98802cd3775669eace406a84`.
+- C05 closed/reopened Word verification showed 34 pages and retained the
+  updated TOC, comments, revisions, bookmark/hyperlink/reference fields, and
+  section headers/footers.
+- Independent package audit: 29 XML/relationship parts passed, ZIP passed, and
+  all assertions in `checkpoints/xml-check-C05.txt` passed.
+- Rust driver: 16/16 C03/C04 marker checks returned
+  `contains_marker=true` and `no_edit_save_byte_identical=true`; see
+  `checkpoints/C05-driver.txt`.
+- Word's tracked TOC update changed revision and field counts; this is recorded
+  as the actual Word outcome rather than treated as byte-stable field behavior.
+- Evidence: `checkpoints/C05.md`, `checkpoints/C05-final.png`,
+  `checkpoints/xml-check-C05.txt`, `checkpoints/C05-driver.txt`, and
+  `read-report.md`.
