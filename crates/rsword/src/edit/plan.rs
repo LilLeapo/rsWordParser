@@ -201,3 +201,251 @@ impl MutationPlan {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diag::ValidationOrigin;
+    use crate::xml::plan::{NewElement, NodeEdit, Target};
+    use crate::xml::{Dom, LocalName, QName};
+
+    fn dom(xml: &str) -> Dom {
+        Dom::parse(PartId(0), xml.as_bytes()).unwrap()
+    }
+
+    fn diag(message: &str) -> Diagnostic {
+        Diagnostic::invariant_violation(PartId(0), None, DiagCode::EditPlanInvalid, message)
+    }
+
+    fn assert_invalid(plan: &MutationPlan, dom: &Dom) {
+        let err = plan.validate(dom).unwrap_err();
+        assert!(matches!(err, Error::Edit { code: DiagCode::EditPlanInvalid, .. }));
+    }
+
+    fn plan(part: PartId, node_edits: Vec<NodeEdit>) -> MutationPlan {
+        let mut plan = MutationPlan::new(part);
+        plan.node_edits = node_edits;
+        plan
+    }
+
+    #[test]
+    fn edit_05_result_absorb_and_plan_helpers_cover_all_fields() {
+        let a = NodeId(1);
+        let b = NodeId(2);
+        let mut first = MutationResult {
+            created: vec![Some(a)],
+            affected_blocks: vec![a],
+            structure_changed: false,
+            diagnostics: vec![diag("first")],
+            offset_delta: vec![(a, Utf16Offset(1), 1)],
+        };
+        let later = MutationResult {
+            created: vec![Some(b)],
+            affected_blocks: vec![a, b],
+            structure_changed: true,
+            diagnostics: vec![diag("later")],
+            offset_delta: vec![(b, Utf16Offset(2), -1)],
+        };
+        first.absorb(later);
+        assert_eq!(first.created, vec![Some(b)]);
+        assert_eq!(first.affected_blocks, vec![a, b]);
+        assert!(first.structure_changed);
+        assert_eq!(first.diagnostics, vec![diag("first"), diag("later")]);
+        assert_eq!(first.offset_delta, vec![(a, Utf16Offset(1), 1), (b, Utf16Offset(2), -1)]);
+
+        let mut plan = MutationPlan::new(PartId(0));
+        assert!(plan.is_empty());
+        plan.touch(a);
+        plan.touch(a);
+        assert_eq!(plan.affected_blocks, vec![a]);
+        plan.node_edits.push(NodeEdit::Delete(a));
+        assert!(!plan.is_empty());
+    }
+
+    #[test]
+    fn edit_05_validate_rejects_out_of_range_deleted_and_non_element_targets() {
+        let dom = dom("<root><a/><b>text</b></root>");
+        let root = dom.root();
+        let a = dom.children(root)[0];
+        let b = dom.children(root)[1];
+        let text = dom.children(b)[0];
+
+        let out_of_range = plan(
+            PartId(0),
+            vec![NodeEdit::SetAttr {
+                node: Target::Node(NodeId(dom.node_count() as u32)),
+                name: QName::w(LocalName::T),
+                value: "x".into(),
+            }],
+        );
+        assert_invalid(&out_of_range, &dom);
+
+        let mut deleted_dom = dom.clone();
+        deleted_dom.delete(a);
+        let deleted = plan(
+            PartId(0),
+            vec![NodeEdit::SetAttr {
+                node: Target::Node(a),
+                name: QName::w(LocalName::T),
+                value: "x".into(),
+            }],
+        );
+        assert_invalid(&deleted, &deleted_dom);
+
+        let text_target = plan(
+            PartId(0),
+            vec![NodeEdit::SetAttr {
+                node: Target::Node(text),
+                name: QName::w(LocalName::T),
+                value: "x".into(),
+            }],
+        );
+        assert_invalid(&text_target, &dom);
+    }
+
+    #[test]
+    fn edit_05_validate_rejects_bad_new_target_and_before() {
+        let dom = dom("<root><a/><b/></root>");
+        let root = dom.root();
+        let a = dom.children(root)[0];
+        let b = dom.children(root)[1];
+        let new_element = || NewElement::new(QName::w(LocalName::P));
+
+        let self_reference = plan(
+            PartId(0),
+            vec![NodeEdit::Insert { parent: Target::New(0), before: None, node: new_element() }],
+        );
+        assert_invalid(&self_reference, &dom);
+
+        let foreign_before = plan(
+            PartId(0),
+            vec![NodeEdit::Insert {
+                parent: Target::Node(a),
+                before: Some(b),
+                node: new_element(),
+            }],
+        );
+        assert_invalid(&foreign_before, &dom);
+
+        let new_parent_with_before = plan(
+            PartId(0),
+            vec![
+                NodeEdit::Insert { parent: Target::Node(root), before: None, node: new_element() },
+                NodeEdit::Insert { parent: Target::New(0), before: Some(a), node: new_element() },
+            ],
+        );
+        assert_invalid(&new_parent_with_before, &dom);
+    }
+
+    #[test]
+    fn edit_05_validate_rejects_invalid_replace_sources_and_text_targets() {
+        let dom = dom("<root><a/><b/><c/></root>");
+        let root = dom.root();
+        let a = dom.children(root)[0];
+        let b = dom.children(root)[1];
+        let c = dom.children(root)[2];
+
+        let root_replace = plan(
+            PartId(0),
+            vec![NodeEdit::Replace { old: root, node: NewElement::new(QName::w(LocalName::P)) }],
+        );
+        assert_invalid(&root_replace, &dom);
+
+        let mut deleted_old_dom = dom.clone();
+        deleted_old_dom.delete(a);
+        let deleted_replace_old = plan(
+            PartId(0),
+            vec![NodeEdit::Replace { old: a, node: NewElement::new(QName::w(LocalName::P)) }],
+        );
+        assert_invalid(&deleted_replace_old, &deleted_old_dom);
+
+        let mut deleted_source_dom = dom.clone();
+        deleted_source_dom.delete(c);
+        let deleted_replace_source =
+            plan(PartId(0), vec![NodeEdit::ReplaceClone { old: a, source: c }]);
+        assert_invalid(&deleted_replace_source, &deleted_source_dom);
+
+        let non_text_set_text =
+            plan(PartId(0), vec![NodeEdit::SetText { node: a, text: "x".into() }]);
+        assert_invalid(&non_text_set_text, &dom);
+
+        let _ = b;
+    }
+
+    #[test]
+    fn edit_05_validate_rejects_detached_move_even_with_new_parent() {
+        let dom = dom("<root><a/></root>");
+        let root = dom.root();
+        let a = dom.children(root)[0];
+        let plan = plan(
+            PartId(0),
+            vec![
+                NodeEdit::Insert {
+                    parent: Target::Node(root),
+                    before: None,
+                    node: NewElement::new(QName::w(LocalName::P)),
+                },
+                NodeEdit::Move { node: root, parent: Target::New(0), before: None },
+            ],
+        );
+        assert_invalid(&plan, &dom);
+        let _ = a;
+    }
+
+    #[test]
+    fn edit_05_validate_rejects_invalid_clone_and_move_nodes() {
+        let dom = dom("<root><a/></root>");
+        let root = dom.root();
+        let missing = NodeId(dom.node_count() as u32);
+        let invalid_clone = plan(
+            PartId(0),
+            vec![NodeEdit::InsertClone {
+                parent: Target::Node(root),
+                before: None,
+                source: missing,
+            }],
+        );
+        assert_invalid(&invalid_clone, &dom);
+
+        let invalid_move = plan(
+            PartId(0),
+            vec![NodeEdit::Move { node: missing, parent: Target::Node(root), before: None }],
+        );
+        assert_invalid(&invalid_move, &dom);
+    }
+
+    #[test]
+    fn edit_05_validate_accepts_valid_plan_and_commit_preserves_result() {
+        let mut dom = dom("<root><a/></root>");
+        let root = dom.root();
+        let mut plan = plan(
+            PartId(0),
+            vec![NodeEdit::Insert {
+                parent: Target::Node(root),
+                before: None,
+                node: NewElement::new(QName::w(LocalName::P)),
+            }],
+        );
+        plan.touch(root);
+        plan.structure_changed = true;
+        plan.diagnostics.push(diag("commit"));
+        plan.offset_delta.push((root, Utf16Offset(0), 1));
+        plan.validate(&dom).unwrap();
+        let result = plan.commit(&mut dom);
+        assert_eq!(result.affected_blocks, vec![root]);
+        assert!(result.structure_changed);
+        assert_eq!(result.diagnostics, vec![diag("commit")]);
+        assert_eq!(result.offset_delta, vec![(root, Utf16Offset(0), 1)]);
+        assert_eq!(result.created.len(), 1);
+        assert!(result.created[0].is_some());
+    }
+
+    #[test]
+    fn edit_05_diagnostic_origin_is_preserved_in_plan() {
+        let d = diag("origin");
+        assert_eq!(d.origin, ValidationOrigin::EngineInvariantViolation);
+        let mut plan = MutationPlan::new(PartId(0));
+        plan.diagnostics.push(d.clone());
+        assert_eq!(plan.diagnostics, vec![d]);
+    }
+}
