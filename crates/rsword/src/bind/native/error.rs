@@ -24,7 +24,10 @@ impl From<Error> for ApiError {
     fn from(e: Error) -> Self {
         let code = match &e {
             Error::NotOoxml(_) => "NOT_OOXML",
-            Error::Limit { code, .. } | Error::Edit { code, .. } => code.as_str(),
+            Error::Limit { code, .. } | Error::Edit { code, .. } | Error::EditPlan { code, .. } => {
+                code.as_str()
+            }
+            Error::EditUnsupported { .. } => crate::diag::DiagCode::EditUnsupported.as_str(),
             Error::Zip(_) => "ZIP",
             Error::Malformed { .. } => "XML_MALFORMED",
             Error::Invariant(d) => d.code.as_str(),
@@ -40,3 +43,28 @@ impl std::fmt::Display for ApiError {
 }
 
 impl std::error::Error for ApiError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::diag::DiagCode;
+
+    #[test]
+    fn legacy_edit_errors_preserve_protocol_codes_and_messages() {
+        for (error, code) in [
+            (
+                Error::EditPlan {
+                    code: DiagCode::EditBadPosition,
+                    message: "invalid cursor".into(),
+                },
+                DiagCode::EditBadPosition,
+            ),
+            (Error::EditUnsupported { operation: "legacy operation" }, DiagCode::EditUnsupported),
+        ] {
+            let message = error.to_string();
+            let api = ApiError::from(error);
+            assert_eq!(api.code, code.as_str());
+            assert_eq!(api.message, message);
+        }
+    }
+}

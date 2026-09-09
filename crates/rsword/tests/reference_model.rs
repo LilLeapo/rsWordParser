@@ -574,7 +574,7 @@ fn edit_03_para_props_and_replace_inlines_match_reference_model() {
 fn exhaustive_candidates(model: &DocModel, step: usize) -> Vec<ModelOp> {
     let len0 = model.paras[0].utf16_len();
     let first_units = model.paras[0].cells.first().map_or(0, |c| c.ch.len_utf16() as u32);
-    let bold = if step % 2 == 0 { Change::Set(true) } else { Change::Unset };
+    let bold = if step.is_multiple_of(2) { Change::Set(true) } else { Change::Unset };
     vec![
         ModelOp::Insert {
             para: 0,
@@ -598,7 +598,11 @@ fn exhaustive_candidates(model: &DocModel, step: usize) -> Vec<ModelOp> {
         },
         ModelOp::SetParaJc {
             para: 0,
-            jc: if step % 2 == 0 { Change::Set(Val::Value(Jc::Center)) } else { Change::Unset },
+            jc: if step.is_multiple_of(2) {
+                Change::Set(Val::Value(Jc::Center))
+            } else {
+                Change::Unset
+            },
         },
         ModelOp::Replace { para: 1, text: format!("r{step}") },
     ]

@@ -185,9 +185,9 @@ fn mod_06_on_off_equivalent_spellings_and_explicit_false_are_distinct_from_absen
 
 #[test]
 fn edit_03_equivalent_run_splits_have_identical_edit_semantics() {
-    let one = docx_transitional(concat!(
-        r#"<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">ab</w:t></w:r></w:p>"#
-    ));
+    let one = docx_transitional(
+        r#"<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">ab</w:t></w:r></w:p>"#,
+    );
     let split = docx_transitional(concat!(
         r#"<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>a</w:t></w:r>"#,
         r#"<w:r><w:rPr><w:b/></w:rPr><w:t>b</w:t></w:r></w:p>"#
