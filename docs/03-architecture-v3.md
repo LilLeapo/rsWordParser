@@ -736,7 +736,7 @@ serialize(node):
 | M7 | L4 + 保存：`EditOp` 全集、Span 变换、修订生成（`track_changes`）、保存前校验、部件写回、`SaveBlock[]` 兼容；与 `saveDocx` 差分 | 现有 roundtrip/text-patch/table-edit/textbox-edit/ai-track-revisions 场景通过；随机编辑序列测试通过 |
 | ~~M8~~ | ~~编辑器切换到 Rust 引擎（`compat_ts`）~~ | **v3.3 撤销**：genoffice 不再是使用者 |
 | ~~M9~~ | ~~新模型 JSON、原生 `EditOp` 接口、媒体句柄、渲染器接管排版启发式；删除 `compat_ts`~~ | **v3.3 重划**：rsword 半边前移为 M8′，genoffice 半边（启发式搬家、编辑器迁移、删 TS 引擎）取消 |
-| [ ] M8′ 实现完成，验收待裁定 | 原生协议 `spec/21-bind.md`：会话与句柄、模型 JSON 投影、`EditOp` JSON、媒体句柄、`resolve` 查询；Rust crate 公共 API 定型；`*.model.json` 自快照回归网；`compat_ts` 降为测试专用 feature | 全语料 `document()` 过 JSON Schema 且 serde 往返幂等；公共 API 冻结并有文档；自快照进 CI；默认构建不含 `compat_ts`；**门 2 / 门 4 待 `spec/18` 7.4 裁定，暂不判** |
+| [ ] M8′ 实现完成，门 2 / 门 4 阻挡已解除 | 原生协议 `spec/21-bind.md`：会话与句柄、模型 JSON 投影、`EditOp` JSON、媒体句柄、`resolve` 查询；Rust crate 公共 API 定型；`*.model.json` 自快照回归网；`compat_ts` 降为测试专用 feature | 全语料 `document()` 过 JSON Schema 且 serde 往返幂等；公共 API 冻结并有文档；自快照进 CI；默认构建不含 `compat_ts`；**`spec/18` 7.4 措辞已于 2026-09-09 由项目负责人裁定（还原列宽序列，不是克隆快照子元素树），门 2 / 门 4 的规范阻挡解除；判定证据见 `docs/04` §17** |
 | [ ] M9′ 实现完成，验收未齐 | Agent 接口层：文本投影与稳定锚点、大纲与定位查询、按需取块、变更摘要、token 预算；文件级工具（CLI / MCP server）交付 | Agent 不看 XML 就能读懂并正确改一份真实文档；工具端到端跑通；**22 项任务未全部验收（W7 尚不支持执行），桌面 Word 与真实 Agent 门 5 待验证，门 2 措辞待订正，不宣告六门全绿** |
 
 M8′ 实施项已完成（8.7）；门 2 / 门 4 仍因 `spec/18` 7.4 的待裁定措辞暂不判，
