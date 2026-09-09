@@ -1,0 +1,334 @@
+{
+  "schemaVersion": 1,
+  "createdDate": "2026-09-07",
+  "sourceManifest": "C:/word/round2-work-20260907/real-word-round2-inputs/_roundtrip/edited/manifest.json",
+  "status": "planned; not a Word observation",
+  "selectedCount": 36,
+  "operationCount": 12,
+  "selected": [
+    {
+      "base": "chart/chart-column.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4ee5\u300crsword\u270e \u300d\u5f00\u5934\uff0c\u5176\u4f59\u4e00\u5207\u4e0d\u53d8",
+      "file": "chart-column--insert.docx",
+      "op": "insert",
+      "status": "generated",
+      "domain": "chart",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "smartart/smartart-list.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4ee5\u300crsword\u270e \u300d\u5f00\u5934\uff0c\u5176\u4f59\u4e00\u5207\u4e0d\u53d8",
+      "file": "smartart-list--insert.docx",
+      "op": "insert",
+      "status": "generated",
+      "domain": "smartart",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "math/math-fraction.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4ee5\u300crsword\u270e \u300d\u5f00\u5934\uff0c\u5176\u4f59\u4e00\u5207\u4e0d\u53d8",
+      "file": "math-fraction--insert.docx",
+      "op": "insert",
+      "status": "generated",
+      "domain": "math",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "canvas/canvas-floating.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5757 144 \u00d7 72 pt \u7684\u7eaf\u8272\u5c0f\u56fe\uff0c\u56db\u5468\u578b\u73af\u7ed5\u9760\u53f3",
+      "file": "canvas-floating--newimage.docx",
+      "op": "newimage",
+      "status": "generated",
+      "domain": "canvas",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "ole/ole-icon-3.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5757 144 \u00d7 72 pt \u7684\u7eaf\u8272\u5c0f\u56fe\uff0c\u56db\u5468\u578b\u73af\u7ed5\u9760\u53f3",
+      "file": "ole-icon-3--newimage.docx",
+      "op": "newimage",
+      "status": "generated",
+      "domain": "ole",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "hf/hf-variants.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5757 144 \u00d7 72 pt \u7684\u7eaf\u8272\u5c0f\u56fe\uff0c\u56db\u5468\u578b\u73af\u7ed5\u9760\u53f3",
+      "file": "hf-variants--newimage.docx",
+      "op": "newimage",
+      "status": "generated",
+      "domain": "hf",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "ink/ink-pen.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5f20\u7c07\u72b6\u67f1\u5f62\u56fe\u300crsword \u65b0\u56fe\u8868\u300d\uff08\u7532 3 / \u4e59 1 / \u4e19 2\uff09\uff1b\u53f3\u952e\u300c\u7f16\u8f91\u6570\u636e\u300d\u80fd\u6253\u5f00\u5185\u5d4c\u5de5\u4f5c\u7c3f",
+      "file": "ink-pen--newchart.docx",
+      "op": "newchart",
+      "status": "generated",
+      "domain": "ink",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "image/image-wrap-square.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5f20\u7c07\u72b6\u67f1\u5f62\u56fe\u300crsword \u65b0\u56fe\u8868\u300d\uff08\u7532 3 / \u4e59 1 / \u4e19 2\uff09\uff1b\u53f3\u952e\u300c\u7f16\u8f91\u6570\u636e\u300d\u80fd\u6253\u5f00\u5185\u5d4c\u5de5\u4f5c\u7c3f",
+      "file": "image-wrap-square--newchart.docx",
+      "op": "newchart",
+      "status": "generated",
+      "domain": "image",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "table/table-styled.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d\u4e4b\u540e\u591a\u4e86\u4e00\u5f20\u7c07\u72b6\u67f1\u5f62\u56fe\u300crsword \u65b0\u56fe\u8868\u300d\uff08\u7532 3 / \u4e59 1 / \u4e19 2\uff09\uff1b\u53f3\u952e\u300c\u7f16\u8f91\u6570\u636e\u300d\u80fd\u6253\u5f00\u5185\u5d4c\u5de5\u4f5c\u7c3f",
+      "file": "table-styled--newchart.docx",
+      "op": "newchart",
+      "status": "generated",
+      "domain": "table",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "math/math-matrix.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "file": "math-matrix--ink.docx",
+      "op": "ink",
+      "status": "generated",
+      "domain": "math",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "smartart/smartart-floating.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "file": "smartart-floating--ink.docx",
+      "op": "ink",
+      "status": "generated",
+      "domain": "smartart",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "ole/ole-excel-embedded.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "file": "ole-excel-embedded--ink.docx",
+      "op": "ink",
+      "status": "generated",
+      "domain": "ole",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "chart/chart-floating.docx",
+      "expect": "\u6b63\u6587\u7b2c\u4e8c\u4e2a\u5757\uff08\u591a\u534a\u662f\u7279\u5f81\u672c\u8eab\uff09\u6574\u5757\u6d88\u5931\uff0c\u524d\u540e\u6587\u7167\u65e7\uff1b\u6587\u4ef6\u91cc\u5b83\u72ec\u5360\u7684\u5a92\u4f53 / \u56fe\u8868 part \u4e00\u8d77\u6d88\u5931",
+      "file": "chart-floating--deleteblock.docx",
+      "op": "deleteblock",
+      "status": "generated",
+      "domain": "chart",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "canvas/canvas-picture.docx",
+      "expect": "\u6b63\u6587\u7b2c\u4e8c\u4e2a\u5757\uff08\u591a\u534a\u662f\u7279\u5f81\u672c\u8eab\uff09\u6574\u5757\u6d88\u5931\uff0c\u524d\u540e\u6587\u7167\u65e7\uff1b\u6587\u4ef6\u91cc\u5b83\u72ec\u5360\u7684\u5a92\u4f53 / \u56fe\u8868 part \u4e00\u8d77\u6d88\u5931",
+      "file": "canvas-picture--deleteblock.docx",
+      "op": "deleteblock",
+      "status": "generated",
+      "domain": "canvas",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "math/math-in-table.docx",
+      "expect": "\u6b63\u6587\u7b2c\u4e8c\u4e2a\u5757\uff08\u591a\u534a\u662f\u7279\u5f81\u672c\u8eab\uff09\u6574\u5757\u6d88\u5931\uff0c\u524d\u540e\u6587\u7167\u65e7\uff1b\u6587\u4ef6\u91cc\u5b83\u72ec\u5360\u7684\u5a92\u4f53 / \u56fe\u8868 part \u4e00\u8d77\u6d88\u5931",
+      "file": "math-in-table--deleteblock.docx",
+      "op": "deleteblock",
+      "status": "generated",
+      "domain": "math",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "chart/chart-column.docx",
+      "expect": "\u56fe\u8868\u6807\u9898\u53d8\u6210\u300c\u6807\u9898\u5df2\u6539 rsword\u300d\uff0c\u7b2c\u4e00\u7cfb\u5217\u6539\u540d\u300c\u6539\u540d\u7cfb\u5217\u300d\u3001\u503c 11 / 21 / 31\uff08\u5185\u5d4c\u5de5\u4f5c\u7c3f**\u672a\u6539**\u2014\u2014\u8bf7\u8bb0\u5f55\u300c\u7f16\u8f91\u6570\u636e\u300d\u540e Word \u662f\u5426\u7528\u5de5\u4f5c\u7c3f\u65e7\u503c\u5237\u56de\u56fe\u8868\uff09",
+      "file": "chart-column--chartdata.docx",
+      "op": "chartdata",
+      "status": "generated",
+      "domain": "chart",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "chart/chart-scatter.docx",
+      "expect": "\u56fe\u8868\u6807\u9898\u53d8\u6210\u300c\u6807\u9898\u5df2\u6539 rsword\u300d\uff0c\u7b2c\u4e00\u7cfb\u5217\u6539\u540d\u300c\u6539\u540d\u7cfb\u5217\u300d\u3001\u503c 11 / 21 / 31\uff08\u5185\u5d4c\u5de5\u4f5c\u7c3f**\u672a\u6539**\u2014\u2014\u8bf7\u8bb0\u5f55\u300c\u7f16\u8f91\u6570\u636e\u300d\u540e Word \u662f\u5426\u7528\u5de5\u4f5c\u7c3f\u65e7\u503c\u5237\u56de\u56fe\u8868\uff09",
+      "file": "chart-scatter--chartdata.docx",
+      "op": "chartdata",
+      "status": "generated",
+      "domain": "chart",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "chart/chart-floating.docx",
+      "expect": "\u56fe\u8868\u6807\u9898\u53d8\u6210\u300c\u6807\u9898\u5df2\u6539 rsword\u300d\uff0c\u7b2c\u4e00\u7cfb\u5217\u6539\u540d\u300c\u6539\u540d\u7cfb\u5217\u300d\u3001\u503c 11 / 21 / 31\uff08\u5185\u5d4c\u5de5\u4f5c\u7c3f**\u672a\u6539**\u2014\u2014\u8bf7\u8bb0\u5f55\u300c\u7f16\u8f91\u6570\u636e\u300d\u540e Word \u662f\u5426\u7528\u5de5\u4f5c\u7c3f\u65e7\u503c\u5237\u56de\u56fe\u8868\uff09",
+      "file": "chart-floating--chartdata.docx",
+      "op": "chartdata",
+      "status": "generated",
+      "domain": "chart",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "image/image-cropped.docx",
+      "expect": "\u90a3\u5f20\u56fe\u7247\u4f4d\u7f6e\u3001\u5927\u5c0f\u3001\u73af\u7ed5\u4e0d\u53d8\uff0c\u5185\u5bb9\u53d8\u6210\u4e00\u5757\u7eaf\u8272\uff1b\u539f\u6765\u7684\u88c1\u526a\u88ab\u53d6\u6d88",
+      "file": "image-cropped--replaceimage.docx",
+      "op": "replaceimage",
+      "status": "generated",
+      "domain": "image",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "image/image-svg.docx",
+      "expect": "\u90a3\u5f20\u56fe\u7247\u4f4d\u7f6e\u3001\u5927\u5c0f\u3001\u73af\u7ed5\u4e0d\u53d8\uff0c\u5185\u5bb9\u53d8\u6210\u4e00\u5757\u7eaf\u8272\uff1b\u539f\u6765\u7684\u88c1\u526a\u88ab\u53d6\u6d88",
+      "file": "image-svg--replaceimage.docx",
+      "op": "replaceimage",
+      "status": "generated",
+      "domain": "image",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "chart/chart-pasted-picture.docx",
+      "expect": "\u90a3\u5f20\u56fe\u7247\u4f4d\u7f6e\u3001\u5927\u5c0f\u3001\u73af\u7ed5\u4e0d\u53d8\uff0c\u5185\u5bb9\u53d8\u6210\u4e00\u5757\u7eaf\u8272\uff1b\u539f\u6765\u7684\u88c1\u526a\u88ab\u53d6\u6d88",
+      "file": "chart-pasted-picture--replaceimage.docx",
+      "op": "replaceimage",
+      "status": "generated",
+      "domain": "chart",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "chart/chart-in-table.docx",
+      "expect": "\u7b2c\u4e00\u5f20\u8868\u683c\u5728\u7b2c 1 \u884c\u4e4b\u540e\u591a\u4e86\u4e00\u884c\u7a7a\u683c\u5b50\uff08\u683c\u5f0f\u7167\u7b2c 1 \u884c\uff09",
+      "file": "chart-in-table--insertrow.docx",
+      "op": "insertrow",
+      "status": "generated",
+      "domain": "chart",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "math/math-in-table.docx",
+      "expect": "\u7b2c\u4e00\u5f20\u8868\u683c\u5728\u7b2c 1 \u884c\u4e4b\u540e\u591a\u4e86\u4e00\u884c\u7a7a\u683c\u5b50\uff08\u683c\u5f0f\u7167\u7b2c 1 \u884c\uff09",
+      "file": "math-in-table--insertrow.docx",
+      "op": "insertrow",
+      "status": "generated",
+      "domain": "math",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "ole/ole-in-table.docx",
+      "expect": "\u7b2c\u4e00\u5f20\u8868\u683c\u5728\u7b2c 1 \u884c\u4e4b\u540e\u591a\u4e86\u4e00\u884c\u7a7a\u683c\u5b50\uff08\u683c\u5f0f\u7167\u7b2c 1 \u884c\uff09",
+      "file": "ole-in-table--insertrow.docx",
+      "op": "insertrow",
+      "status": "generated",
+      "domain": "ole",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "smartart/smartart-in-table.docx",
+      "expect": "\u7b2c\u4e00\u5f20\u8868\u683c\u9996\u884c\u7684\u524d\u4e24\u683c\u5408\u5e76\u6210\u4e00\u683c\uff08\u6587\u5b57\u8fde\u5728\u4e00\u8d77\uff09",
+      "file": "smartart-in-table--mergecells.docx",
+      "op": "mergecells",
+      "status": "generated",
+      "domain": "smartart",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "table/table-styled.docx",
+      "expect": "\u7b2c\u4e00\u5f20\u8868\u683c\u9996\u884c\u7684\u524d\u4e24\u683c\u5408\u5e76\u6210\u4e00\u683c\uff08\u6587\u5b57\u8fde\u5728\u4e00\u8d77\uff09",
+      "file": "table-styled--mergecells.docx",
+      "op": "mergecells",
+      "status": "generated",
+      "domain": "table",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "ole/ole-in-table.docx",
+      "expect": "\u7b2c\u4e00\u5f20\u8868\u683c\u9996\u884c\u7684\u524d\u4e24\u683c\u5408\u5e76\u6210\u4e00\u683c\uff08\u6587\u5b57\u8fde\u5728\u4e00\u8d77\uff09",
+      "file": "ole-in-table--mergecells.docx",
+      "op": "mergecells",
+      "status": "generated",
+      "domain": "ole",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "hf/hf-variants.docx",
+      "expect": "\u6700\u540e\u4e00\u8282\u7684\u9ed8\u8ba4\u9875\u7709\u53ea\u5269\u4e00\u884c\u300crsword \u9875\u7709\u300d\uff08\u539f\u6709\u9875\u7709\u5185\u5bb9\u88ab\u66ff\u6362\uff1b\u9996\u9875 / \u5076\u6570\u9875\u9875\u7709\u82e5\u6709\u5219\u4e0d\u52a8\uff09",
+      "file": "hf-variants--header.docx",
+      "op": "header",
+      "status": "generated",
+      "domain": "hf",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "sections/sections-three.docx",
+      "expect": "\u6700\u540e\u4e00\u8282\u7684\u9ed8\u8ba4\u9875\u7709\u53ea\u5269\u4e00\u884c\u300crsword \u9875\u7709\u300d\uff08\u539f\u6709\u9875\u7709\u5185\u5bb9\u88ab\u66ff\u6362\uff1b\u9996\u9875 / \u5076\u6570\u9875\u9875\u7709\u82e5\u6709\u5219\u4e0d\u52a8\uff09",
+      "file": "sections-three--header.docx",
+      "op": "header",
+      "status": "generated",
+      "domain": "sections",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "strict/strict-basic-2.docx",
+      "expect": "\u6700\u540e\u4e00\u8282\u7684\u9ed8\u8ba4\u9875\u7709\u53ea\u5269\u4e00\u884c\u300crsword \u9875\u7709\u300d\uff08\u539f\u6709\u9875\u7709\u5185\u5bb9\u88ab\u66ff\u6362\uff1b\u9996\u9875 / \u5076\u6570\u9875\u9875\u7709\u82e5\u6709\u5219\u4e0d\u52a8\uff09",
+      "file": "strict-basic-2--header.docx",
+      "op": "header",
+      "status": "generated",
+      "domain": "strict",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "revisions/revisions-comments.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6709\u5b57\u7684\u6bb5\u843d\u5f00\u5934\u51e0\u4e2a\u5b57\u4e0a\u6709\u4e00\u6761\u4f5c\u8005 rsword \u7684\u6279\u6ce8\u300crsword \u6279\u6ce8\u300d",
+      "file": "revisions-comments--comment.docx",
+      "op": "comment",
+      "status": "generated",
+      "domain": "revisions",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "smartart/smartart-in-table.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6709\u5b57\u7684\u6bb5\u843d\u5f00\u5934\u51e0\u4e2a\u5b57\u4e0a\u6709\u4e00\u6761\u4f5c\u8005 rsword \u7684\u6279\u6ce8\u300crsword \u6279\u6ce8\u300d",
+      "file": "smartart-in-table--comment.docx",
+      "op": "comment",
+      "status": "generated",
+      "domain": "smartart",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "image/image-cropped.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u6709\u5b57\u7684\u6bb5\u843d\u5f00\u5934\u51e0\u4e2a\u5b57\u4e0a\u6709\u4e00\u6761\u4f5c\u8005 rsword \u7684\u6279\u6ce8\u300crsword \u6279\u6ce8\u300d",
+      "file": "image-cropped--comment.docx",
+      "op": "comment",
+      "status": "generated",
+      "domain": "image",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "text/text-custom-styles.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u591f\u957f\u7684\u6bb5\u843d\u5728\u7b2c 2 \u4e2a\u5b57\u7b26\u540e\u88ab\u62c6\u6210\u4e24\u6bb5\uff08\u7b2c\u4e8c\u6bb5\u7ee7\u627f\u540c\u6837\u7684\u6bb5\u843d\u683c\u5f0f\uff09",
+      "file": "text-custom-styles--split.docx",
+      "op": "split",
+      "status": "generated",
+      "domain": "text",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "shapes/textbox-shapes-3.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u591f\u957f\u7684\u6bb5\u843d\u5728\u7b2c 2 \u4e2a\u5b57\u7b26\u540e\u88ab\u62c6\u6210\u4e24\u6bb5\uff08\u7b2c\u4e8c\u6bb5\u7ee7\u627f\u540c\u6837\u7684\u6bb5\u843d\u683c\u5f0f\uff09",
+      "file": "textbox-shapes-3--split.docx",
+      "op": "split",
+      "status": "generated",
+      "domain": "shapes",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    },
+    {
+      "base": "fields/fields-toc.docx",
+      "expect": "\u7b2c\u4e00\u4e2a\u591f\u957f\u7684\u6bb5\u843d\u5728\u7b2c 2 \u4e2a\u5b57\u7b26\u540e\u88ab\u62c6\u6210\u4e24\u6bb5\uff08\u7b2c\u4e8c\u6bb5\u7ee7\u627f\u540c\u6837\u7684\u6bb5\u843d\u683c\u5f0f\uff09",
+      "file": "fields-toc--split.docx",
+      "op": "split",
+      "status": "generated",
+      "domain": "fields",
+      "selectionReason": "Three per operation, diversified baseline document domains and object placements; additional batch failures must be appended."
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+﻿{
+    "file":  "image-wrap-square--newchart.docx",
+    "compat":  15,
+    "paragraphs":  5,
+    "text":  "before 前文\r/\r\rafter 后文\r\r",
+    "inlineShapes":  1,
+    "shapes":  1,
+    "charts":  [
+                   {
+                       "title":  "rsword 新图表",
+                       "type":  51,
+                       "series":  [
+                                      {
+                                          "categories":  [
+                                                             "甲",
+                                                             "乙",
+                                                             "丙"
+                                                         ],
+                                          "values":  [
+                                                         3,
+                                                         1,
+                                                         2
+                                                     ],
+                                          "name":  "系列 A"
+                                      }
+                                  ]
+                   }
+               ],
+    "shapeDetails":  [
+                         {
+                             "width":  144,
+                             "wrap":  0,
+                             "name":  "Picture 1",
+                             "type":  13,
+                             "height":  72,
+                             "top":  0,
+                             "left":  180,
+                             "relativeHorizontal":  0
+                         }
+                     ],
+    "comments":  [
+
+                 ],
+    "headers":  [
+                    {
+                        "even":  "\r",
+                        "primary":  "\r",
+                        "first":  "\r",
+                        "index":  1
+                    }
+                ],
+    "tables":  [
+
+               ]
+}

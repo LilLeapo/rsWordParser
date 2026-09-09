@@ -19,7 +19,7 @@ session.save(opts) -> Result<Vec<u8>>
 
 - `InlinePos { para: NodeId, offset: Utf16Offset }`：`para` 是 `w:p` 节点（任何内容流），`offset` 是该段坐标流（`MOD-06`）中的 UTF-16 code unit 偏移，`0 ≤ offset ≤ len`。
 - 定位算法 `locate(pos) -> Loc`：顺序累加 inlines 的 utf16 长度；落在 `Text/DelText` 段内部 → `Loc::InText{run, segment, byte_offset}`（**禁止**落在代理对中间：偏移指向低代理位时向前调整并返回 `Err(EDIT_SPLIT_SURROGATE)`）；落在两个 inline 之间 → `Loc::Boundary{index}`；原子（长度 1 的 `U+FFFC`）只能在其前或后，`offset` 指向其内部不可能（长度 1）。
-- `BlockPos = Start(container) | After(block_node) | End(container)`。
+- `BlockPos = Start(container) | After(block_node) | End(container)`。`container` 可为 `w:body`、`w:tc`、`w:sdtContent`、`w:txbxContent`、注释 / 批注条目——任何 `SPAN-01` 列出的块容器；`End(body)` 落在尾部 `sectPr` 之前，`End(tc)` 之后仍须以 `w:p` 结尾（`EDIT-03` 表格通则）。
 - 位置在 `apply` 前解析；`MutationResult` 之后旧位置失效，调用方按 `MutationResult.offset_delta` 或重新查询。
 - 实现错误码：`para` 不是会话中的可编辑文本段落、offset 越界或指向非文本原子内部 → `Err(EDIT_INVALID_POSITION)`；偏移落在代理对中间 → `Err(EDIT_SPLIT_SURROGATE)`。
 
@@ -70,12 +70,17 @@ session.save(opts) -> Result<Vec<u8>>
 
 **MoveBlock { node, to }**：同 part → `move_within_part`（`XML-12` E）；跨 part → `rehome_subtree`（E′）后源 `Deleted`。修订：Word 用 `moveFrom/moveTo`；第一阶段 `track_changes` 下拒绝 `MoveBlock`（`Err(EDIT_UNSUPPORTED_TRACKED_MOVE)`），用 Delete + Insert 代替。
 
-**表格**
-- `SetCellProps/SetTableProps`：`PROP-06`。修订：`tcPrChange/tblPrChange`。
-- `InsertRow { table, at, template }`：`template` 行的 `trPr` 与各 `tcPr` 字节克隆，单元格内容为一个空 `w:p`（克隆模板单元格首段的 `pPr`）；`vMerge continue` 单元格在新行中改为无 `vMerge`（TS 规则）。修订：`trPr/w:ins`。
-- `DeleteRow`：`Deleted`；修订 `trPr/w:del`。
-- `InsertColumn/DeleteColumn`：更新 `tblGrid`（`gridCol` 增删）、每行对应位置增删 `tc`，`gridSpan` 跨越处按规则调整；书签 `colFirst/colLast` 同步。
-- `MergeCells`：设置 `gridSpan`/`vMerge`，被并入单元格内容移入主单元格。
+**表格**（M3；`track_changes` 下的修订生成 → M7，见 `spec/14`）
+
+通则：几何以**声明网格**为准——列数 = `tblGrid/gridCol` 数，行宽 = `gridBefore + Σ gridSpan + gridAfter`；任一行行宽 ≠ 列数的表格上，列操作与 `MergeCells` 返回 `Err(EDIT_TABLE_GRID_INCONSISTENT)`（**不**修 grid，由调用方决定）。行 / 格穿透 `w:sdt` 与修订包裹定位（`MOD-07`）。单元格最后一个块**必须**是 `w:p`：任何操作让单元格没有段落或以 `w:tbl` 结尾时，补一个 `New` 空 `w:p`。`gridSpan / vMerge / tcW / gridBefore / gridAfter` 的写入走 `plan_apply_cell_props / plan_apply_row_props`；`tblGrid` 不是属性容器，用 `NodeEdit` 直接增删 `gridCol`。
+
+- `SetTableProps { table, patch }` / `SetRowProps { row, patch }` / `SetCellProps { cell, patch }`：`PROP-06`。新容器位置：`tblPr` 为 `w:tbl` 第一个子元素；`trPr` 在 `w:tblPrEx` 之后、第一个 `w:tc` 之前；`tcPr` 为 `w:tc` 第一个子元素。修订：`tblPrChange / trPrChange / tcPrChange`（M7）。
+- `InsertRow { table, at, template }`：`template`（缺省为 `at` 的前一行；`at == 0` 时为第 0 行）的 `trPr`、`tblPrEx` 与各 `tcPr` 字节克隆（`XML-12` F），每格内容为一个空 `w:p`（克隆模板格首段的 `pPr`，含段落标记 `rPr`）；模板格 `vMerge` 为 continue → 新行该格去掉 `vMerge`；模板格 `vMerge restart` 且新行插在它与其 continue 之间 → 新行该格为 continue。修订：`trPr/w:ins`（M7）。
+- `DeleteRow { table, at }`：`w:tr` `Deleted`；被删行某格为 `vMerge restart` 且下一行同列为 continue → 下一行该格改为 `restart`（合并区收缩，不能留下无头的 continue）；Anchor 按容器删除规则（`SPAN-07`）。修订：`trPr/w:del`（M7）。
+- `InsertColumn { table, at, width }`：`tblGrid` 在 `at` 处插入 `gridCol`（`width` 缺省取左邻列宽，`at == 0` 取右邻）；每行：`at` 落在两格之间 → 插入 `New` `w:tc`（`tcPr` 克隆左邻格并把 `tcW` 设为 `width`、去掉 `gridSpan / vMerge`，内容一个空 `w:p` 克隆左邻格首段 `pPr`）；落在某格 `gridSpan` 中间 → 该格 `gridSpan + 1`（`tcW` 加 `width`）；落在 `gridBefore / gridAfter` 区间内 → 对应值 + 1。书签 / 权限范围的 `colFirst / colLast`（`SPAN-03`）≥ `at` 的 + 1。
+- `DeleteColumn { table, at }`：`gridCol` `Deleted`；每行：恰好覆盖该列的格 `Deleted`（Anchor 按容器删除规则）；跨列格 `gridSpan − 1`（减到 1 去掉元素；`tcW` 减去该列宽）；`gridBefore / gridAfter` 覆盖处 − 1；`colFirst / colLast` > `at` 的 − 1，恰等于 `at` 的范围收缩，`colFirst == colLast == at` → 范围整体删除。某行只剩这一格 → 拒绝：`Err(EDIT_TABLE_GEOMETRY)`（应改用 `DeleteBlock` 删表）。
+- `MergeCells { table, from: (r, c), to: (r, c) }`：网格坐标闭区间，须为矩形且不与既有合并区（`gridSpan` / `vMerge`）部分交叠，否则 `Err(EDIT_TABLE_GEOMETRY)`。横向：每行区间内第一格 `gridSpan = 区间宽`，其余格的内容（末尾空段除外）按文档序 `move_within_part` 到第一格末尾后整格 `Deleted`；纵向：首行的格 `vMerge restart`，其余行的格 `vMerge`（continue）**保留元素**，内容搬到首行格后留一个空 `w:p`（Word 的 OOXML 形态）。范围标记随内容移动（`SPAN-06` 合并规则）。修订：`cellMerge`（M7）。
+- `InsertBlock { at, block: NewBlock::Table { rows, cols, widths, style, header } }`：生成 `tblPr`（`tblStyle` 可选、`tblW type=auto`、`tblLook w:val="04A0"` 及等价属性）、等分或给定的 `tblGrid`、每格一个空 `w:p`；`header` 为 true 时首行 `trPr/tblHeader`。整棵 `New`；落在单元格内时遵守"格尾是 `w:p`"通则。
 
 **字段**：`SetFieldResultProps`（对 `result` run 走 SetRunProps 逻辑）、`ToggleCheckbox`/`SetFormText`（`FLD-10`）、`SetLinkTarget`（重写 instrText 的 `Owned` 文本，或 `w:hyperlink` 的 `r:id` 目标关系/`w:anchor`）、`UpdateBlockField`（`FLD-09`）。
 
@@ -108,7 +113,10 @@ session.save(opts) -> Result<Vec<u8>>
 - `SetSectionProps`：`PROP-06` 于 `sectPr`；修订 `sectPrChange`。
 - `SetHeaderFooter { sect, kind, variant, content }`：part 不存在 → 新建 part（`word/headerN.xml`，关系、内容类型、`sectPr` 的 `headerReference`）；存在 → 其内容替换（`ReplaceBlocks`）。跨 part 的内容用 `rehome`。
 
-**其他 part**：`SetNoteContent`、`SetSdtContent`（`ContentLocked` → `Err(EDIT_SDT_LOCKED)`；有 `data_binding` → `Err(EDIT_SDT_BOUND)`，第一阶段）、`SetChartData`（`chart.ts` 补丁语义）、`SetDocumentSettings`。
+**其他 part**：`SetNoteContent`、`SetSdtContent`（`ContentLocked` → `Err(EDIT_SDT_LOCKED)`；有 `data_binding` → `Err(EDIT_SDT_BOUND)`，第一阶段）、`SetChartData`、`SetDocumentSettings`、`ReplacePartXml` / `ReplacePartBytes`。
+
+- `SetChartData { part, patch: ChartPatch { title, categories, series } }`（`chart.ts` 补丁语义，M6 6.6）：**只改缓存文本**——标题取 `c:title` 里第一个 `a:t`（其余 `a:t` 清空），没有 `a:t` 则 `c:strCache/c:v`，两者都没有（自动标题）→ 在 `c:tx/c:rich/a:p` 的 `a:endParaRPr` 之前注入 `a:r/a:t`，`c:tx` 是无缓存 `strRef` → 整个换成 rich body，没有 `c:tx` → rich body 插为 `c:title` 第一个子元素；系列名 → `c:ser/c:tx` 下第一个 `c:v`；值 → `c:val` 缓存点按 `idx` 改，**缺的点不补**；类别 → 每个系列的 `c:cat` 都改。数据引用 `c:f`、样式、布局一个字节不动；chartex part → `Err(EDIT_UNSUPPORTED)`。验收：`tests/chart_ops.rs`。
+- `ReplacePartXml { part, xml }` / `ReplacePartBytes { part, bytes }`（TS `partXml` / `partBinary`）：整 part 替换，只接受已存在的 part（不存在 → `Err(EDIT_TARGET_MISSING)`），新 XML 经解析成为该 part 的新 DOM，主 part 不能按二进制换；事务回滚覆盖它们。
 
 ## EDIT-04 SaveBlock 兼容映射（第一阶段）
 
@@ -155,7 +163,12 @@ document.refresh(&result)
 | EDIT-03 InsertText | 在干净 run 中间插字 → 只有该 `w:t` SelfDirty；`w:p` 开标签字节不变；追踪时出现 `w:ins` |
 | EDIT-03 DeleteRange | 删除覆盖书签起点 → 起点移到删除点；删除覆盖整个 REF 字段 → begin..end 全部消失 |
 | EDIT-03 Merge | 追踪时合并 → 段落仍分开，`pPr/rPr/w:del` 出现；Accept 后真正合并 |
-| EDIT-03 InsertRow | 新行的 `tcPr` 与模板行字节相同 |
+| EDIT-03 InsertRow | 新行的 `tcPr` 与模板行字节相同；模板格 `vMerge continue` 在新行中消失 |
+| EDIT-03 DeleteRow | 删掉 `vMerge restart` 行 → 下一行同列出现 `w:vMerge w:val="restart"` |
+| EDIT-03 InsertColumn | 落在 `gridSpan=2` 格中间 → 该格 `gridSpan=3`、该行 `w:tc` 数不变、`tblGrid` 多一列；覆盖该列的书签 `colLast` +1 |
+| EDIT-03 DeleteColumn | 删掉跨列格覆盖的一列 → `gridSpan` 减 1，减到 1 时元素消失；其他行该列的 `w:tc` 消失 |
+| EDIT-03 MergeCells | 2×2 合并 → 左上格 `gridSpan=2` + `vMerge restart`，第二行左格 `gridSpan=2` + `w:vMerge`，右列两格消失，四格文字按文档序出现在左上格，被并入格内的书签仍成对 |
+| EDIT-03 表格通则 | 行 gridSpan 总和 ≠ 列数的表格做 `InsertColumn` → `Err(EDIT_TABLE_GRID_INCONSISTENT)` 且 DOM / Span / Model 与操作前一致；`DeleteBlock` 删掉格内唯一段落 → 格内出现 `New` 空 `w:p` |
 | EDIT-03 Accept/Reject | 每种修订各一用例，结果 XPath 断言 |
 | EDIT-05 | 构造在第 3 步失败的批操作 → DOM/Span/Model 与操作前完全一致（`rebuild` 相等） |
 | EDIT-06 | 连续两次 AddComment 得到不同 `w:id`，`comments.xml` 有两条 |

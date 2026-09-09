@@ -11,3 +11,7 @@ Cargo.lock.bak
 # cargo-fuzz
 /fuzz/target
 /fuzz/artifacts
+/corpus/real/_roundtrip/edited/
+
+# wasm 绑定产物（M8' 8.0②）：由 tools/build-js.sh 生成，不进 git
+/crates/rsword-js/pkg/

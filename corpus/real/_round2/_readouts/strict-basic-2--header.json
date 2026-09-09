@@ -1,0 +1,14 @@
+﻿{
+    "file":  "strict-basic-2--header.docx",
+    "compat":  15,
+    "paragraphs":  12,
+    "text":  "before 前文\r一级标题\r二级标题\r这是正文 Mixed English and 中文。\r项目符号条目\r编号一级\r编号二级\r编号三级\r粗体 斜体 下划线 删除线 上标 彩色文字\r\rafter 后文\r\r",
+    "inlineShapes":  0,
+    "shapes":  0,
+    "charts":  [
+
+               ],
+    "shapeDetails":  [
+
+                     ]
+}

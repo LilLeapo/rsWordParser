@@ -21,6 +21,21 @@ struct Ns {
 }
 
 fn main() {
+    println!("cargo:rustc-check-cfg=cfg(rsword_api_docs)");
+    println!("cargo:rerun-if-env-changed=RSWORD_COMMIT");
+    let git = env::var("RSWORD_COMMIT")
+        .ok()
+        .or_else(|| {
+            std::process::Command::new("git")
+                .args(["rev-parse", "--short=12", "HEAD"])
+                .output()
+                .ok()
+                .filter(|o| o.status.success())
+                .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_owned())
+        })
+        .unwrap_or_else(|| "unknown".into());
+    println!("cargo:rustc-env=RSWORD_GIT_SHA={git}");
+
     let manifest = env::var("CARGO_MANIFEST_DIR").unwrap();
     let ns_path = Path::new(&manifest).join("schema/namespaces.tsv");
     let ln_path = Path::new(&manifest).join("schema/local_names.txt");
@@ -48,6 +63,10 @@ fn main() {
     let local_map: BTreeMap<String, String> = locals.iter().cloned().collect();
     let props_src = props::generate(&props_dir, &prefixes, &local_map);
     fs::write(Path::new(&out_dir).join("props.rs"), props_src).unwrap();
+
+    // `BIND-02`：同一份 TOML 元数据再发射 JSON 投影（`bind::native::json` include）。
+    let props_json = props::generate_json(&props_dir, &prefixes, &local_map);
+    fs::write(Path::new(&out_dir).join("props_json.rs"), props_json).unwrap();
 }
 
 fn parse_namespaces(text: &str) -> Vec<Ns> {

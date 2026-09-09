@@ -1,0 +1,104 @@
+{
+    "started":  "2026-09-07T15:16:21.4560813+08:00",
+    "completed":  "2026-09-07T15:16:21.9911337+08:00",
+    "workerPid":  2692,
+    "boundWorkingDocument":  "C:\\word\\real-word-round3-20260907\\comments2\\comment-nesting.docx",
+    "method":  "Each original environment setting assigned independently and read back from the validated Word application.",
+    "originalSettings":  {
+                             "UserName":  "Administrator",
+                             "UserInitials":  "A",
+                             "UseLocalUserInfo":  false,
+                             "DisplayAlerts":  0,
+                             "SaveNormalPrompt":  false,
+                             "UpdateLinksAtOpen":  false,
+                             "UpdateFieldsAtPrint":  false,
+                             "UpdateLinksAtPrint":  false
+                         },
+    "actualSettings":  {
+                           "UserName":  "Administrator",
+                           "UserInitials":  "A",
+                           "UseLocalUserInfo":  false,
+                           "DisplayAlerts":  0,
+                           "SaveNormalPrompt":  false,
+                           "UpdateLinksAtOpen":  false,
+                           "UpdateFieldsAtPrint":  false,
+                           "UpdateLinksAtPrint":  false
+                       },
+    "checks":  [
+                   {
+                       "name":  "UserName",
+                       "expected":  "Administrator",
+                       "actual":  "Administrator",
+                       "setError":  null,
+                       "readError":  null,
+                       "matches":  true
+                   },
+                   {
+                       "name":  "UserInitials",
+                       "expected":  "A",
+                       "actual":  "A",
+                       "setError":  null,
+                       "readError":  null,
+                       "matches":  true
+                   },
+                   {
+                       "name":  "UseLocalUserInfo",
+                       "expected":  false,
+                       "actual":  false,
+                       "setError":  null,
+                       "readError":  null,
+                       "matches":  true
+                   },
+                   {
+                       "name":  "DisplayAlerts",
+                       "expected":  0,
+                       "actual":  0,
+                       "setError":  null,
+                       "readError":  null,
+                       "matches":  true
+                   },
+                   {
+                       "name":  "SaveNormalPrompt",
+                       "expected":  false,
+                       "actual":  false,
+                       "setError":  null,
+                       "readError":  null,
+                       "matches":  true
+                   },
+                   {
+                       "name":  "UpdateLinksAtOpen",
+                       "expected":  false,
+                       "actual":  false,
+                       "setError":  null,
+                       "readError":  null,
+                       "matches":  true
+                   },
+                   {
+                       "name":  "UpdateFieldsAtPrint",
+                       "expected":  false,
+                       "actual":  false,
+                       "setError":  null,
+                       "readError":  null,
+                       "matches":  true
+                   },
+                   {
+                       "name":  "UpdateLinksAtPrint",
+                       "expected":  false,
+                       "actual":  false,
+                       "setError":  null,
+                       "readError":  null,
+                       "matches":  true
+                   }
+               ],
+    "pendingSetting":  null,
+    "environmentSha256Before":  "B28940B340B861210A934C77E265F78FB4FE93865CBD89E4E4ED3D3429C02C05",
+    "environmentSha256After":  "B28940B340B861210A934C77E265F78FB4FE93865CBD89E4E4ED3D3429C02C05",
+    "environmentUnchanged":  true,
+    "allSettingsRestored":  true,
+    "remainingDocuments":  0,
+    "cleanupErrors":  [
+
+                      ],
+    "quitRequested":  true,
+    "wordQuit":  true
+}

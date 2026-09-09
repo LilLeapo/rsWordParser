@@ -1,0 +1,146 @@
+{
+  "Script": "create-charts.ps1",
+  "StartedUtc": "2026-09-06T17:03:09.0912070Z",
+  "UpdatedUtc": "2026-09-06T17:03:15.2311958Z",
+  "CompletedUtc": "2026-09-06T17:03:15.2305047Z",
+  "OutputRoot": "C:\\code\\rsWordParser\\real-word-corpus-20260906",
+  "WordVersion": "16.0",
+  "WordBuild": "16.0.14334",
+  "WordProductCode": "{90160000-000F-0000-1000-0000000FF1CE}",
+  "WordProcessId": 33448,
+  "WindowsVersion": "Microsoft Windows NT 10.0.22631.0",
+  "PowerShellVersion": "7.6.5",
+  "SaveFormat": 12,
+  "Method": "Word COM; Documents.Add; InlineShapes.AddChart2; ChartData.Workbook; SaveAs2 once",
+  "ObservationStatus": "COM property readback only. Visual observation and copied-package self-check still required.",
+  "Entries": [
+    {
+      "RequestedFile": "chart/chart-dates.docx",
+      "File": "chart/chart-dates.docx",
+      "Requested": {
+        "NoTitle": null,
+        "LegendTop": null,
+        "Dates": true,
+        "RedPoint": null,
+        "InTable": null,
+        "Name": "chart-dates",
+        "Style": null,
+        "HoleSize": null,
+        "Gray": null,
+        "Color": null,
+        "Type": 4,
+        "Bubble": null,
+        "Floating": null,
+        "NoLegend": null,
+        "Kind": "line with date categories",
+        "ChartEx": null,
+        "Palette": null,
+        "SingleSeries": null,
+        "XY": null,
+        "Combo": null
+      },
+      "RequestedTitle": "销售统计",
+      "Worksheet": {
+        "Categories": [
+          "1/1/2024",
+          "2/1/2024",
+          "3/1/2024"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Status": "saved-package-check-passed-needs-visual-check",
+      "Stage": "finished",
+      "StartedUtc": "2026-09-06T17:03:11.5240078Z",
+      "FinishedUtc": "2026-09-06T17:03:14.9996276Z",
+      "Actual": {
+        "ChartType": 4,
+        "ChartStyle": 227,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              45292.0,
+              45323.0,
+              45352.0
+            ],
+            "ChartType": 4,
+            "AxisGroup": 1,
+            "FillRgb": 0
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              45292.0,
+              45323.0,
+              45352.0
+            ],
+            "ChartType": 4,
+            "AxisGroup": 1,
+            "FillRgb": 0
+          }
+        ],
+        "DateCategoryType": 3,
+        "DateNumberFormat": "m/d/yyyy",
+        "Layout": {
+          "HeightPt": 240.0,
+          "InTable": false,
+          "WidthPt": 420.0,
+          "Floating": false
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SavedOnce": true,
+      "Bytes": 25629,
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "PreviewFile": "_previews/chart/chart-dates.pdf",
+      "PreviewStatus": "Word-exported PDF; not visually verified"
+    }
+  ],
+  "FatalError": null
+}

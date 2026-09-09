@@ -1,0 +1,19 @@
+# RES-04 toggle 校准（任务 5.8）。观察值来自真实 Word，见 fixtures/resolve/README.md 的实测记录。
+#
+# 对照组：直接格式一票定音，两条候选规则与 Word 三者一致。
+
+doc = "toggle/direct-off"
+
+[[run]]
+# 直接 w:b w:val="0" 压住段落样式的 b → 不加粗
+text = "direct b=0 over style b"
+bold = false
+source = "Direct"
+verified = true
+
+[[run]]
+# 只有段落样式 PBold(b=true) → 加粗
+text = "style b, no direct"
+bold = true
+source = "ParaStyle:PBold"
+verified = true

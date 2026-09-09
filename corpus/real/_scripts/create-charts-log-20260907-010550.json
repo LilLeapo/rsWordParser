@@ -1,0 +1,89 @@
+{
+  "Script": "create-charts.ps1",
+  "StartedUtc": "2026-09-06T17:05:50.3349352Z",
+  "UpdatedUtc": "2026-09-06T17:05:55.6678470Z",
+  "CompletedUtc": "2026-09-06T17:05:55.6670562Z",
+  "OutputRoot": "C:\\code\\rsWordParser\\real-word-corpus-20260906",
+  "WordVersion": "16.0",
+  "WordBuild": "16.0.14334",
+  "WordProductCode": "{90160000-000F-0000-1000-0000000FF1CE}",
+  "WordProcessId": 34616,
+  "WindowsVersion": "Microsoft Windows NT 10.0.22631.0",
+  "PowerShellVersion": "7.6.5",
+  "SaveFormat": 12,
+  "Method": "Word COM; Documents.Add; InlineShapes.AddChart2; ChartData.Workbook; SaveAs2 once",
+  "ObservationStatus": "COM property readback only. Visual observation and copied-package self-check still required.",
+  "Entries": [
+    {
+      "RequestedFile": "chart/chartex-boxwhisker.docx",
+      "File": "chart/chartex-boxwhisker.docx",
+      "Requested": {
+        "Combo": null,
+        "XY": null,
+        "NoLegend": null,
+        "RedPoint": null,
+        "HoleSize": null,
+        "Dates": null,
+        "Style": null,
+        "Gray": null,
+        "Bubble": null,
+        "Color": null,
+        "LegendTop": null,
+        "SingleSeries": null,
+        "NoTitle": null,
+        "ChartEx": true,
+        "Name": "chartex-boxwhisker",
+        "Kind": "box and whisker",
+        "Palette": null,
+        "Floating": null,
+        "InTable": null,
+        "Type": 121
+      },
+      "RequestedTitle": "销售统计",
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Status": "failed",
+      "Stage": "modern chart fallback: create column then set ChartType",
+      "StartedUtc": "2026-09-06T17:05:52.8118486Z",
+      "FinishedUtc": "2026-09-06T17:05:55.3286657Z",
+      "Actual": null,
+      "Warnings": [
+        "Direct AddChart2 failed: 命令失败"
+      ],
+      "Error": {
+        "HResult": "0x80070057",
+        "Message": "参数错误。 (0x80070057 (E_INVALIDARG))",
+        "ScriptStackTrace": "at <ScriptBlock>, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 387",
+        "Detail": "参数错误。 (0x80070057 (E_INVALIDARG))"
+      },
+      "SavedOnce": false,
+      "Bytes": null,
+      "PackageCheck": null,
+      "PreviewFile": null,
+      "PreviewStatus": "not-exported"
+    }
+  ],
+  "FatalError": null
+}

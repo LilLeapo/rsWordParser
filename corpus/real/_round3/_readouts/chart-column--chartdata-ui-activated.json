@@ -1,0 +1,101 @@
+{
+    "file":  "chart-column--chartdata.docx",
+    "base":  "chart/chart-column.docx",
+    "op":  "chartdata",
+    "expect":  "图表标题变成「标题已改 rsword」，第一系列改名「改名系列」、值 11 / 21 / 31（内嵌工作簿**未改**——请记录「编辑数据」后 Word 是否用工作簿旧值刷回图表）",
+    "timestamp":  "2026-09-07T14:40:24.9570969+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\chart-column--chartdata.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  4,
+                    "tables":  0,
+                    "comments":  0,
+                    "inline_shapes":  1,
+                    "shapes":  0,
+                    "first_table_rows":  null,
+                    "first_table_cells":  null,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+                   {
+                       "collection":  "InlineShapes",
+                       "index":  1,
+                       "shape_type":  12,
+                       "has_chart":  -1,
+                       "detection":  "has_chart",
+                       "detection_error":  null,
+                       "before":  {
+                                      "title":  "标题已改 rsword",
+                                      "series_name":  "改名系列",
+                                      "first_series_values":  [
+                                                                  11,
+                                                                  21,
+                                                                  31
+                                                              ],
+                                      "errors":  [
+
+                                                 ]
+                                  },
+                       "activation":  "ok",
+                       "activation_error":  null,
+                       "workbook_name":  "Microsoft Word 中的图表",
+                       "workbook_first_sheet":  "ChartData",
+                       "workbook_used_range_values":  [
+                                                          [
+                                                              "Category",
+                                                              "Series 1",
+                                                              "Series 2"
+                                                          ],
+                                                          [
+                                                              "Category 1",
+                                                              10,
+                                                              15
+                                                          ],
+                                                          [
+                                                              "Category 2",
+                                                              20,
+                                                              25
+                                                          ],
+                                                          [
+                                                              "Category 3",
+                                                              30,
+                                                              35
+                                                          ]
+                                                      ],
+                       "workbook_read_error":  null,
+                       "workbook_close_error":  null,
+                       "after":  {
+                                     "title":  "标题已改 rsword",
+                                     "series_name":  "Series 1",
+                                     "first_series_values":  [
+                                                                 10,
+                                                                 20,
+                                                                 30
+                                                             ],
+                                     "errors":  [
+
+                                                ]
+                                 },
+                       "values_changed_after_activate":  true
+                   }
+               ],
+    "shape_geometry":  [
+
+                       ],
+    "text":  "before 前文\r/\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+
+               ],
+    "errors":  [
+
+               ]
+}

@@ -1,0 +1,27 @@
+﻿{
+    "source":  "ink-highlighter--ink.docx",
+    "recoveredName":  "文档1",
+    "compat":  15,
+    "text":  "before 前文\r这是一段用于观察原生墨迹的文字。\rafter 后文\r\r",
+    "paragraphs":  4,
+    "inlineShapes":  0,
+    "shapes":  2,
+    "charts":  [
+
+               ],
+    "shapeDetails":  [
+                         {
+                             "width":  120,
+                             "name":  "aidocs-ink 1",
+                             "height":  30,
+                             "type":  13
+                         },
+                         {
+                             "width":  157.4,
+                             "name":  "Ink 2",
+                             "height":  0,
+                             "type":  23
+                         }
+                     ],
+    "method":  "Word UI open, accepted unreadable-content recovery, Word SaveAs2 and PDF export"
+}

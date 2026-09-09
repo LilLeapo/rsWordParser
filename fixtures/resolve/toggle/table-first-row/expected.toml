@@ -1,0 +1,19 @@
+# RES-04 toggle 校准（任务 5.8）。观察值来自真实 Word，见 fixtures/resolve/README.md 的实测记录。
+#
+# 表格样式的条件格式（firstRow）是一个独立层级，和段落样式层一起参与奇偶。
+
+doc = "toggle/table-first-row"
+
+[[run]]
+# 表格样式 firstRow(b=true) + 段落样式 PBold(b=true)：两层 → 不加粗
+text = "table firstRow b + para b"
+bold = false
+source = "Toggle:TableStyle+ParaStyle:PBold"
+verified = true
+
+[[run]]
+# 非首行：只有段落样式 PBold(b=true) → 加粗
+text = "table body + para b"
+bold = true
+source = "ParaStyle:PBold"
+verified = true

@@ -1,0 +1,66 @@
+{
+  "file": "shapes/textbox-shapes-3.docx",
+  "creationLog": "_scripts/p1-results-20260907-020637.json",
+  "copiedZip": "_checks/p1-layout/textbox-shapes-3-offline-review-20260907-020752-398.zip",
+  "pdf": "_previews/shapes/textbox-shapes-3.pdf",
+  "visualEvidence": "_previews/rendered/shapes-textbox-shapes-3-p1.png",
+  "officeInvokedDuringReview": false,
+  "sha256Before": "6F3CA640233436B6D5F4B12A50B76AB5E68F95EBD924DC8F05CDBF82F9AB4876",
+  "sha256After": "6F3CA640233436B6D5F4B12A50B76AB5E68F95EBD924DC8F05CDBF82F9AB4876",
+  "originalUnchanged": true,
+  "pages": 1,
+  "featureParagraphIndex": 2,
+  "featureParagraphSpaceAfterTwips": 6000,
+  "featureParagraphStartFromWordLog": 10,
+  "anchors": [
+    {
+      "object": "textbox",
+      "anchorParagraphIndex": 2,
+      "anchorStartFromWordLog": 10,
+      "horizontalRelativeFrom": "margin",
+      "horizontalPositionEmu": 381000,
+      "verticalRelativeFrom": "paragraph",
+      "verticalPositionEmu": 317500,
+      "textParagraphs": ["文本框第一段", "文本框第二段"]
+    },
+    {
+      "object": "rounded-rectangle",
+      "anchorParagraphIndex": 2,
+      "anchorStartFromWordLog": 10,
+      "horizontalRelativeFrom": "margin",
+      "horizontalPositionEmu": 3429000,
+      "verticalRelativeFrom": "paragraph",
+      "verticalPositionEmu": 317500,
+      "geometry": "roundRect",
+      "text": "圆角矩形"
+    },
+    {
+      "object": "group",
+      "anchorParagraphIndex": 2,
+      "anchorStartFromWordLog": 10,
+      "horizontalRelativeFrom": "margin",
+      "horizontalPositionEmu": 381000,
+      "verticalRelativeFrom": "paragraph",
+      "verticalPositionEmu": 1587500,
+      "groupChildCount": 2,
+      "childGeometry": ["rect", "ellipse"]
+    },
+    {
+      "object": "wordart",
+      "anchorParagraphIndex": 2,
+      "anchorStartFromWordLog": 10,
+      "horizontalRelativeFrom": "margin",
+      "horizontalPositionEmu": 381000,
+      "verticalRelativeFrom": "paragraph",
+      "verticalPositionEmu": 2794000,
+      "text": "艺术字",
+      "representation": "wps:wsp with w14:textOutline and w14:textFill; textPlain warp",
+      "outlineColor": "000000",
+      "fillColor": "FFFFFF",
+      "visibleLines": ["艺术", "字"]
+    }
+  ],
+  "anchorCheck": "passed; all four floating objects are anchored to the feature paragraph",
+  "visualCheck": "passed marker placement; before is above all objects and after is below all visible objects, with no overlap",
+  "visualDifference": "WordArt is now displayed on two lines after Word's native cut/paste conversion; all three characters and outline styling remain visible"
+}

@@ -1,0 +1,134 @@
+{
+  "helper": "toggle-read.ps1/v1",
+  "sessionId": "round2-20260907-live",
+  "measuredAt": "2026-09-07T10:40:36.1412739+08:00",
+  "file": "toggle-based-on-two-levels.docx",
+  "fullName": "C:\\word\\round2-work-20260907\\real-word-round2-inputs\\fixtures\\toggle-based-on-two-levels.docx",
+  "wordVersion": "16.0",
+  "wordBuild": "16.0.14334",
+  "compatibilityMode": 12,
+  "visible": true,
+  "documentSavedFlag": true,
+  "originalView": {
+    "ShowHiddenText": false,
+    "ShowAll": false
+  },
+  "rows": [
+    {
+      "file": "toggle-based-on-two-levels.docx",
+      "sentence": "basedOn b + derived b",
+      "property": "Bold",
+      "compatibilityMode": 12,
+      "readMethod": "Selection.Font property at a collapsed caret inside the sentence, twice",
+      "declaredStyles": "paragraph Derived b; basedOn Base b",
+      "priorWeb": true,
+      "desktopWord": true,
+      "samples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "same-as-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-based-on-two-levels-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面第一句加粗。"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 0,
+      "rangeEnd": 21,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:40:34.6298332+08:00",
+      "uiObservation": "页面第一句加粗。"
+    },
+    {
+      "file": "toggle-based-on-two-levels.docx",
+      "sentence": "base b only",
+      "property": "Bold",
+      "compatibilityMode": 12,
+      "readMethod": "Selection.Font property at a collapsed caret inside the sentence, twice",
+      "declaredStyles": "paragraph Base b",
+      "priorWeb": true,
+      "desktopWord": true,
+      "samples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 24,
+          "selectionEnd": 24,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 24,
+          "selectionEnd": 24,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "same-as-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-based-on-two-levels-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面第二句加粗，截图中加粗按钮按下。"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 22,
+      "rangeEnd": 33,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:40:35.3951158+08:00",
+      "uiObservation": "页面第二句加粗，截图中加粗按钮按下。"
+    }
+  ],
+  "note": "Final report annotations add actual UI evidence to recorded measurements. No document was opened, saved or changed during report preparation. Font-dialog evidence applies only to specifically linked cases.",
+  "uiReview": {
+    "reviewedAt": "2026-09-07T10:47:29.7611241+08:00",
+    "method": "Main operator's actual Word page/ribbon observations and selected Font-dialog inspections, supported by reviewed screenshot files. Two object-model readings are retained per case; not two manual Font-dialog checks for each case.",
+    "compatibilityEvidence": "Actual Word Document.CompatibilityMode=12 in this file's recorded readout."
+  }
+}

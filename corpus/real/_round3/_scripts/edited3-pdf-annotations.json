@@ -1,0 +1,291 @@
+{
+  "chart-pasted-picture--replaceimage.docx": {"pdfSha256":"C868159E2D5D1665D4385EFCF158E5FE1D70527638A9BA915BA9620B1C8A19E7","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page. Large solid green rectangle replaces the pasted-chart image; its existing large frame extends close to the right page edge but stays on-page. Before above and after below remain clear."},
+  "chart-in-table--insertrow.docx": {"pdfSha256":"760404E0562B6D84458700775AEC1E69D771DF38D14EE6B7146D88C804587B94","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page. Two-column table has original chart/Cell 2 first row, a blank inserted middle row, and Cell 3/Cell 4 last row. Embedded sales chart and labels remain within the first cell. Before/after visible."},
+  "math-in-table--insertrow.docx": {"pdfSha256":"936900E276989AA3115F10D37685CA367F1CABB342BFAFA77FFE041BD4F18380","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page. Table shows fraction-plus-superscript formula in top left and Chinese top-right label, blank inserted middle row, and bottom-left/bottom-right labels. Formula and borders are clear; before/after retained."},
+  "ole-in-table--insertrow.docx": {"pdfSha256":"1AAC92BC1A997A3141D0F3FAD8F770C69E984904ED2E53075DC78CA5B951D5D8","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page. Embedded worksheet grid with 12/34 remains in top-left table cell; top-right label retained. Blank inserted middle row and labeled bottom row visible. Before/after clear."},
+  "smartart-in-table--mergecells.docx": {"pdfSha256":"448ACD6005DE9C0AA4A6F14EAFEF0FE858CFF0D88D3C8C7F3514FC18DE5EA84F","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page. First table row spans full table width: three blue SmartArt process blocks remain and former top-right text appears below them within the merged row. Bottom row still has two cells and labels. Before/after visible."},
+  "math-in-table--deleteblock.docx": {"pdfSha256":"C91B64B7F8D4EFE6CE1C2B6ED9679F6890D959EFE6F0CB03394E88163F1A7E9B","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page. Before and after remain on separate lines; the math-containing table is absent. No unexpected residual object visible."},
+  "chart-column--chartdata.docx": {"pdfSha256":"92BA728BCD4886AFA46C920B80BC431AFEBA181A291E40B3993A1E6BCF53E890","pageNumbers":[1],"method":"Independent rendered PDF visual review after workbook activation and Word resave.","observed":"One page. Requested changed title remains. Blue Series 1 columns show 10/20/30, orange Series 2 15/25/35; original series names appear in legend after activation. Before/after clear."},
+  "chart-no-legend--chartdata.docx": {"pdfSha256":"E26A32D8E26ABAFFB06EC80D2C2E36872C957A02D8AEA0AEA29420B3CC4DF9F9","pageNumbers":[1],"method":"Independent rendered PDF visual review after workbook activation and Word resave.","observed":"One page. Requested changed title remains; no legend. Blue columns show 10/20/30 and orange columns 15/25/35 after activation. Before/after visible."},
+  "chart-floating--chartdata.docx": {"pdfSha256":"3757EA3ACC2BA02EB6BF6DF69F4759CBDFC9249440079718BB2716D52001DFDA","pageNumbers":[1],"method":"Independent rendered PDF visual review after workbook activation and Word resave.","observed":"One page. Floating chart remains to the right of before/after lines. Changed title retained. Blue Series 1 columns show 10/20/30, orange Series 2 15/25/35; legend original names. No text overlap."},
+  "image-cropped--replaceimage.docx": {"pdfSha256":"27F516181A8B92F225C7DF2E691ED54222E6235A59C7C122A252F581B21A8F7F","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page. Solid bright green rectangular replacement image appears between before and after in the existing compact frame. All visible and unobstructed. A solid fill alone cannot visually prove original crop metadata retention."},
+  "image-svg--replaceimage.docx": {"pdfSha256":"B8CA67AE12E6A63744A0CFB9F98240AFE2CF04A647FB4E1D40E166B6AEDC5633","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page. Solid bright green replacement image is visible between before and after. Original SVG appearance is replaced; text remains clear."},
+  "chart-column--insert.docx": {"pdfSha256":"66F23A70228FF2C3263C623124534AFEBA1FEF78514978D9E98C292752AE5A4F","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page. rsword prefix and pen symbol precede before. Original sales column chart, two series, categories and after remain visible and unobstructed."},
+  "smartart-list--insert.docx": {"pdfSha256":"5ED9B61078F497E3820CBDA97BEF28828878A951DE9B547602A9B760A8E52F88","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page. rsword prefix precedes before. Five large blue SmartArt blocks labeled first through fifth item remain arranged in two rows, all text visible; after below."},
+  "math-fraction--insert.docx": {"pdfSha256":"95647C03542BD34D8CD243F866511FE334037A4B742525E3C8F23C00F7E53E2F","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page. rsword prefix precedes before. Fraction (a+b)/2 plus x squared renders centrally with proper numerator, denominator and superscript. After visible; no overlap."},
+  "canvas-floating--newimage.docx": {"pdfSha256":"54E635CFD5F4772B8C3121155AB896CDB589080C175B5A41E2D0B8B0B3033AE6","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page. Existing blue rectangle, orange ellipse and blue lines/arrows remain. New green image at upper right is visible only as a narrow horizontal strip; most of its lower area is occluded by the existing canvas. Before/after visible. This agrees with the separately recorded canvas occlusion."},
+  "ole-icon-3--newimage.docx": {"pdfSha256":"3ABA86F5B71A25662D4421281F69AE6F914CD169FD12F21FC6F9404C0D85A0CE","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page. Excel icon with Chinese sample-worksheet caption remains at left; green picture fully visible at upper right. Before/after visible without overlap."},
+  "hf-variants--newimage.docx": {"pdfSha256":"440BFC3E7AEDEC1EAD974B1AB7169FE0BC0C130D92E857445A906BF7A2602E42","pageNumbers":[1,2,3],"method":"Independent visual review of all three rendered PDF pages.","observed":"Page 1 has first-page header/footer and page number 1, before/body and green image at right. Page 2 has even-page header/footer and number 2 with body text. Page 3 has odd-page header/footer and number 3, after and large diagonal gray CORPUS watermark. All page text and image remain visible."},
+  "fields-toc--newchart.docx": {"pdfSha256":"459A69DD87F4222810D8C1CB9E8324880FA533E000887859B89E195CD9BE7833","pageNumbers":[1],"method":"Independent rendered PDF visual review after chart activation.","observed":"One page. New rsword chart shows 3/1/2. TOC has three entries and page 1 references; three headings, cross-reference, date 9/7/2026, footnote and endnote are visible below. Before/after retained, no content overlap or bookmark-error text."},
+  "image-wrap-square--newchart.docx": {"pdfSha256":"E148E4239F6ACFBC3D04D916692D6780D9D5772229BD2EA0482BBDE07F9773F5","pageNumbers":[1],"method":"Independent rendered PDF visual review after chart activation.","observed":"One page. New rsword chart shows 3/1/2. Original teal/yellow image remains just below the chart at right; their edges meet without content covering. Before/after clear."},
+  "table-styled--newchart.docx": {"pdfSha256":"244ACB598CB64EB768E5F77AAD3D042AA1AC48EBE4AE3E9B6F324BCFEE3095D4","pageNumbers":[1],"method":"Independent rendered PDF visual review after chart activation.","observed":"One page. New rsword chart shows 3/1/2 above original styled table. Blue header, alternating second row, merged first-row labels and nested table N11/N12/N21/N22 remain visible. Before/after unobstructed."},
+  "math-matrix--ink.docx": {"pdfSha256":"EA34DAF6DD244D26878141567C58C3FA5EC14B54733045E35EB26E4FE51DEE21","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page. Green overlay crosses before at upper left without reflow. Centered 2x2 bracketed a/b/c/d matrix remains clear, after below."},
+  "smartart-floating--ink.docx": {"pdfSha256":"DD557D863448118D43509DEA23BCF2846CCECD061B60DCAE17210AB2BF1440EA","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page. Green overlay crosses before. Three blue process blocks and connecting arrows remain visible; separate teal/yellow image at upper right is clear. After below; overlay does not cover SmartArt."},
+  "ole-excel-embedded--ink.docx": {"pdfSha256":"9D29794C2A2DC353818627189CC171019EA7EFEC98FF46712FFF154252B60DED","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page. Green overlay crosses before and top edge of the embedded worksheet. Worksheet grid and values 12/34 remain visible through the overlap. After below; no evidence of a missing worksheet."},
+  "chart-floating--deleteblock.docx": {"pdfSha256":"6F68C289D4441FA5DCBB0E51AD0037B288B71AD7AFA8B4BFD770318D11E1A2E0","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page containing before and after on consecutive lines; no chart appears. Remaining text is clear."},
+  "canvas-picture--deleteblock.docx": {"pdfSha256":"A1FB20D10A1292141674014D51DE4B34749DFAE93A5D67F528D5179FDA18DFC0","pageNumbers":[1],"method":"Independent rendered PDF visual review.","observed":"One page with before and after and no canvas or picture. Remaining text is clear."},
+  "ink-pen--newimage.docx": {
+    "pdfSha256": "DBE64E3A42482D7136AC7CC67AD4B14709B9468385666828B7AFF3F8594A3277",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF.",
+    "observed": "One portrait page. New bright green picture is fully visible at the upper right. Original black pen underline and a small black stroke crossing body text remain visible. Before/body/after are retained."
+  },
+  "ink-pen--newchart.docx": {
+    "pdfSha256": "96828FF208EF9EEF718AC4EA789B4541DC4482A616398E98D225BA352C65100E",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF after native chart-data activation.",
+    "observed": "One portrait page. New chart title reads rsword with Chinese new-chart suffix. Categories are the three Chinese labels and blue columns show heights 3, 1, 2. Original ink/body follows the chart; before/after remain visible."
+  },
+  "ink-pen--ink.docx": {
+    "pdfSha256": "BB0B270762A0DE656FF7EBFA2CF005DBC9F64B2B805F053FBAD0A3959F5C1FFA",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF.",
+    "observed": "One portrait page. Green overlay overlaps the before and body text region without text reflow; covered text is still visible. Original black underline and crossing pen stroke remain, and after is unobstructed lower down."
+  },
+  "ink-highlighter--newimage.docx": {
+    "pdfSha256": "B741006378475443E762B0F9EDCEB762350810C09A5F7E300D1FAACF269A1907",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF.",
+    "observed": "One portrait page. Yellow highlighter covers the original body sentence, which remains legible. Bright green new picture appears fully at upper right, separate from text. Before/after visible."
+  },
+  "ink-highlighter--newchart.docx": {
+    "pdfSha256": "1C357611F4348FC60255B4FBD1EC7BB1BB37A8F042AE3C0BD8C68A2293265EA0",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF after native chart-data activation.",
+    "observed": "One portrait page. New rsword chart shows three blue columns of heights 3, 1, 2 and Chinese categories. Yellow-highlighted original body sentence sits directly below the chart. Before/after visible."
+  },
+  "ink-highlighter--ink.docx": {
+    "pdfSha256": "B1B6C0A15B68812660CBF0C69410F7B77D353E0937D7AE6BD4F4DE7FDDDCB708",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF.",
+    "observed": "One portrait page. New green overlay overlaps before and upper body region; original yellow highlight remains beneath the body sentence. Text remains visible through the layered colors; after remains lower down and unobstructed."
+  },
+  "ink-to-shape--newimage.docx": {
+    "pdfSha256": "65898459B975E3748B5D2BEE16479A4D4AA8842E43EB44ABEC59D523EA8B0A07",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF.",
+    "observed": "One portrait page. Original closed eight-sided black outline appears below body text. New bright green picture is fully visible at upper right. Before/body/after remain readable. This PDF does not establish a native shape conversion; it shows the source outline."
+  },
+  "ink-to-shape--newchart.docx": {
+    "pdfSha256": "C55AC2B9071CA39A6A07A90A49E40277163D9C475840520CCE51B30EF0C70B9A",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF after native chart-data activation.",
+    "observed": "One portrait page. New rsword chart has blue columns 3, 1, 2. Original body text and closed eight-sided black outline appear below the chart. Before/after visible, no chart/outline overlap."
+  },
+  "ink-to-shape--ink.docx": {
+    "pdfSha256": "9D51E967A5A5EE3DF447A356C8C178C21DAEF49FB6741F0F1D5C45CCDF6C7F0F",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF.",
+    "observed": "One portrait page. Green overlay crosses the before/body region while text remains visible. Original eight-sided black outline remains fully visible below; after unobstructed."
+  },
+  "chart-no-title--chartdata.docx": {
+    "pdfSha256": "7F262F8C2930D8476ABE411ED7D89F0BDF328B21843850A1A388328ECD6FB9E5",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF AFTER workbook activation and Word resave; not an initial-input-value observation.",
+    "observed": "One portrait page. Chart title visibly reads the requested Chinese changed-title text plus rsword. Blue Series 1 columns align with 10, 20, 30; orange Series 2 aligns with 15, 25, 35. The series legend has rolled back to Series 1. Before/after visible."
+  },
+  "chart-scatter--chartdata.docx": {
+    "pdfSha256": "B061A4106C50982BC88552321F37510E8993FAC5F152710D08FB46FA7AF6A773",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF AFTER workbook activation and Word resave; not an initial-input-value observation.",
+    "observed": "One portrait page. Changed title retained. Blue Series 1 scatter points appear at x=1/2/3, y=10/20/30; orange points y=15/25/35. Legend Series 1/Series 2. Before/after visible."
+  },
+  "chart-scatter-lines--chartdata.docx": {
+    "pdfSha256": "7EA3C98EFDC90CED5F539918D4916B9A7C8A9B4D9CF1EFEA7CDCCEE7504CB49D",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF AFTER workbook activation and Word resave; not an initial-input-value observation.",
+    "observed": "One portrait page. Changed title retained. Connected blue Series 1 points at y=10/20/30, orange Series 2 at y=15/25/35, for x=1/2/3. Legend shows original series names. Before/after visible."
+  },
+  "chartex-waterfall--newchart.docx": {
+    "pdfSha256": "E77F4CEE3B017C92F10041E4AFCEAECBBBC3D117A825DD24032B481B0774BEF9",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF after native chart-data activation; original ChartEx is visually assessed without claiming classic COM series support.",
+    "observed": "One portrait page. New rsword chart at top has blue columns 3, 1, 2. Original waterfall remains below with Chinese sales-statistics title and three blue ascending floating columns from 0-10, 10-30 and 30-60, labeled 1/2/3. Both complete chart frames and before/after are visible without overlap. Original ChartEx text is rasterized in the PDF and is therefore not present in ordinary PDF text extraction."
+  },
+  "chartex-treemap--newchart.docx": {
+    "pdfSha256": "C131EE6A9388FF17DB063F53C19F58DEFA4FB9DA85AB404FEEC4A02F9E031AE1",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF after native chart-data activation; original ChartEx is visually assessed without claiming classic COM series support.",
+    "observed": "One portrait page. New rsword chart at top has blue columns 3, 1, 2. Original treemap remains below with Chinese sales-statistics title, blue Group A split into Item 2 above Item 1 at left, and orange Group B / Item 3 at right. Both chart frames and before/after visible without overlap. Original ChartEx text is rasterized in the PDF and is therefore not present in ordinary PDF text extraction."
+  },
+  "ink-highlighter--ink-resaved-by-word--ink.docx": {
+    "pdfSha256": "00AA84701F5D6AC421CBA531A94F000E56BC3D07B416F6DB55E822D2683C35F4",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF, supplemented separately by authoritative overlay replacement audit.",
+    "observed": "One portrait page. One green overlay spans before and part of native-ink body sentence. Original yellow highlight remains beneath the body sentence. Both texts remain readable through the colors; after is unobstructed lower on page."
+  },
+  "ink-pen--ink-resaved-by-word--ink.docx": {
+    "pdfSha256": "826215817A114E6C709CEC2021982C2D1D591E06AC7A9DB63ED24048703B06BD",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF, supplemented separately by authoritative overlay replacement audit.",
+    "observed": "One portrait page. One green overlay crosses before/body region. Original black horizontal underline stroke and short diagonal stroke remain visible near the body sentence. Body remains readable; after is unobstructed lower on page."
+  },
+  "ink-to-shape--ink-resaved-by-word--ink.docx": {
+    "pdfSha256": "58038193126E7FAE0E13A0DC87E66AEC62E7ACAE567D5597FB5623A8F87C2FA8",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF, supplemented separately by authoritative overlay replacement audit.",
+    "observed": "One portrait page. One green overlay crosses readable before/body region. Original closed eight-sided black outline remains below the body. After unobstructed; the PDF does not independently establish a native shape conversion."
+  },
+  "math-matrix--ink-resaved-by-word--ink.docx": {
+    "pdfSha256": "C328BEA5DC1C19FC25BEE05D351923B2ABC3FFB3D55AF371602025EFB431B0C3",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF, supplemented separately by authoritative overlay replacement audit.",
+    "observed": "One portrait page. One green overlay crosses before at upper left. Centered two-by-two matrix with a/b above c/d and brackets remains fully visible. After readable and unobstructed below."
+  },
+  "ole-excel-embedded--ink-resaved-by-word--ink.docx": {
+    "pdfSha256": "E0847E01F05F709A3257B94347C5B29E7163591C8C306C4BBF5A77AB1154AAB0",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF, supplemented separately by authoritative overlay replacement audit.",
+    "observed": "One portrait page. One green overlay crosses before and top row of embedded worksheet. Worksheet grid remains intact; values 12 and 34 are visible through the overlay. After readable below the worksheet."
+  },
+  "smartart-floating--ink-resaved-by-word--ink.docx": {
+    "pdfSha256": "DA36713C0843E460AF63FF5F4EFF38A254493CE7B5D19F7D070B622FDDF03D58",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF, supplemented separately by authoritative overlay replacement audit.",
+    "observed": "One portrait page. One green overlay crosses readable before at upper left. Original teal/yellow image remains upper right; three blue SmartArt nodes with Chinese labels and connecting arrows remain fully visible below. After unobstructed."
+  },
+  "fields-seq-captions--replaceimage.docx": {
+    "pdfSha256": "DE8520A68FD64C0B06463BCAD1D97F1CB23D75ABF54F44BF25F158E48D47B8F6",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF.",
+    "observed": "One portrait page. First image is replaced by bright green rectangle. Second and third images retain teal/yellow halves. Captions remain numbered 1, 2, 3, and cross-reference still reads figure 2. Before and after visible."
+  },
+  "rev-table--insertrow.docx": {
+    "pdfSha256": "3A5ADEF2B91859A5787A475FFC512AAD66DF6695963C4132C92DEACF869F4D75",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF in its exported revision display state.",
+    "observed": "One portrait page. Red-bordered table has original R1 C1/R1 C2 stacked in top merged row, one visibly empty added row below, then separate Inserted row left/right cells. Before and after readable."
+  },
+  "rev-table--mergecells.docx": {
+    "pdfSha256": "CB95AB7D54873F4BA0BF254462E09E8089751293FDBBC3A6C1C0CDC57E21C05A",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF in its exported revision display state.",
+    "observed": "One portrait page. Red-bordered table retains stacked original R1 C1/R1 C2 in top merged row. Lower row now also spans full width with Inserted row left/right on separate lines. Before and after readable."
+  },
+  "sections-breaks-zoo--header.docx": {
+    "pdfSha256": "0D487C20DBAB155029C6A4DFB4C3A7A2A41BBFCF357551D948E5CFD9F33239D4",
+    "pageNumbers": [1, 2, 3, 4, 5],
+    "method": "Independent visual inspection of all five rendered Word-exported PDF pages.",
+    "observed": "Five portrait pages. Page 1 has header rule, before and Section one. Page 2 has header rule plus Sections 2 and 3. Page 3 is completely blank. Page 4 has header rule and Section 4. Page 5 has rsword header, Section 5 and after. Blank page is explicitly retained as an observed result of the section-break sample."
+  },
+  "rev-comment-threads--comment.docx": {
+    "pdfSha256": "F3AFE5547DF0593D921E31217C86D9188229A7F48A8F9F666513FA651C2AEF58",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF; comments are not displayed in this PDF export.",
+    "observed": "One portrait page. First threaded anchor, second whole-paragraph anchor and third target-word anchor sentences remain, with before and after. No comment balloons appear in this export, so thread/comment state is assessed from package/UI evidence."
+  },
+  "fields-page-in-footer--split.docx": {
+    "pdfSha256": "ED65B9BC03FA908949ABF58C5A14A5D31ED9EA45B00113E999365486400BA6AD",
+    "pageNumbers": [1, 2, 3],
+    "method": "Independent visual inspection of all three rendered Word-exported PDF pages.",
+    "observed": "Three portrait pages. Page 1 splits before into be and fore on consecutive lines, then Page one body. Page 2 shows Page two body. Page 3 shows Page three body and after. Bottom footers correctly display current pages 1, 2, 3 with total 3 on every page."
+  },
+  "05-ink-insert-resaved-by-word--ink.docx": {
+    "pdfSha256": "6617795C02E8A8A7B9CC8E501D36947806A21DC248F878006DDA496EE14D24B6",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF, supplemented separately by source/output overlay replacement audit.",
+    "observed": "One portrait page. One green overlay crosses before while its text remains visible. Custom bold heading, body and after remain unobstructed. This visible single overlay agrees with authoritative replacement of two prior overlays by one new overlay, as established independently in package audit."
+  },
+  "strict-basic-2--header.docx": {
+    "pdfSha256": "5BE3DDDFDF4381EF8663E673C554B23CF2218DEE84985F7F4D954992300B2424",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF.",
+    "observed": "One portrait page. rsword header is visible above before. Two heading levels, mixed-language body, bullet, three numbering levels, bold/italic/underline/strikethrough/superscript and red text remain visible. After remains below the body. No overlap."
+  },
+  "revisions-comments--comment.docx": {
+    "pdfSha256": "4477B153DC756E98CAA2A6FB5C704A8EABD00572346D09012C647A9855F6F6C9",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF; comments are not displayed in this PDF export.",
+    "observed": "One portrait page. Original and inserted Chinese sentences, bold formatting-change text, both comment-anchor sentences, before and after are readable. No visible comment balloons in this PDF; comment presence must be assessed from package/UI evidence."
+  },
+  "smartart-in-table--comment.docx": {
+    "pdfSha256": "5C387E38E236D81C735985FFD870C439302B347B81C3463D6B2FD8942A5AC86D",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF; comments are not displayed in this PDF export.",
+    "observed": "One portrait page. Four-cell table retains three blue SmartArt nodes with connecting arrows in top-left cell, top-right/bottom labels and intact borders. Before and after readable. Comment balloons are absent from the PDF, so it does not independently establish the added comment."
+  },
+  "image-cropped--comment.docx": {
+    "pdfSha256": "CE88C8BB4AAD9CA7BBC26376C6EB015C52889B31C98BD8FAC940CE34C6500895",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF; comments are not displayed in this PDF export.",
+    "observed": "One portrait page. Cropped horizontal image retains narrow teal left region and wide yellow right region between before and after. No image/text overlap. Comment balloons are absent from this PDF; added comment is covered by package/UI evidence."
+  },
+  "text-custom-styles--split.docx": {
+    "pdfSha256": "E80FA03D60B51F66A06E9368AFC9E75C4A19CEF4CAFA94E2BAC1654C397ADE31",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF.",
+    "observed": "One portrait page. Before marker is split into be and fore plus Chinese text on consecutive lines. Bold custom heading and its body remain, followed by after. No overlap."
+  },
+  "textbox-shapes-3--split.docx": {
+    "pdfSha256": "64F4BCE8C5322F40B628235E169E9D462226396796DB48D0978C3EC121A5B0B8",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF.",
+    "observed": "One portrait page. Before splits into be and fore on separate lines. Two-paragraph bordered textbox, blue rounded rectangle with text, blue rectangle and ellipse all remain. Outlined WordArt is visible across two lines above after. No object/text overlap."
+  },
+  "fields-toc--split.docx": {
+    "pdfSha256": "678CE79C10D3EBC7A6B91F48C166C771B16DBAF805F6365A1399D9A9E00B896C",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF.",
+    "observed": "One portrait page. Before is split at be/fore. TOC has three indented entries with dot leaders and page 1; all three heading levels remain below. Cross-reference, note anchors and 9/7/2026 are visible, with endnote below body and footnote at page bottom. After retained."
+  },
+  "rev-insert-delete--insert.docx": {
+    "pdfSha256": "5908EB5E5F515C09AAB436A2ADF0F9E99D2E3503E20B7561274C480ECD435FA4",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF in its exported revision display state.",
+    "observed": "One portrait page. Added rsword with pencil symbol precedes before. Author A and Author B insertion-point sentences and their inserted sentences remain visible on separate paragraphs; after retained. Deleted text and revision balloons are not shown by this export."
+  },
+  "image-z-order--newimage.docx": {
+    "pdfSha256": "658EAD66A3CD184B775B4850CA077972318D9B516ADCB8FF547CFBB58FCF6642",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF.",
+    "observed": "One portrait page. Three staggered teal/yellow original images remain overlapped centrally. New bright green image is fully visible at upper right, separate from original image stack. Before, anchor sentence and after readable."
+  },
+  "fields-citations--newchart.docx": {
+    "pdfSha256": "DD25FA8B52462C6366F1941B566916488A7C4AF89D2C848487EC44E0C841397A",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF after native chart-data activation.",
+    "observed": "One portrait page. New rsword chart displays three blue columns 3, 1, 2. Book and journal in-text citations remain below, followed by both full bibliographic entries. Before and after readable; no chart/text overlap."
+  },
+  "textbox-linked--ink.docx": {
+    "pdfSha256": "CFFD2126CBF0B17C6B1C1067AAC42787C1A1A22248433085DC24C3E94DA9FA32",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF.",
+    "observed": "One portrait page. Green overlay crosses before and linked-textboxes anchor sentence while both remain readable. Two side-by-side bordered textboxes retain lines 01-05 at left and 06-10 at right. After remains unobstructed below."
+  },
+  "rev-move--deleteblock.docx": {
+    "pdfSha256": "01D35F5556574144E1C7E09409EED31C81F8B918F49EF3192E9BD331D5B8BF06",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF in its exported revision display state.",
+    "observed": "One portrait page. Before, stationary paragraphs one and two, moved entire original paragraph at end of body and after are readable in that order. Revision balloons are not shown by this export."
+  },
+  "table-styled--mergecells.docx": {
+    "pdfSha256": "CEEFA685AEB965581CC9A4BA82614AEC92D8E961CD62B274FAB1B4A15A9A8990",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF.",
+    "observed": "One portrait page. Blue first row retains stacked R1 C1/R1 C2 in its earlier merged cell. Second row now merges its first two cells with R2 C1/R2 C2 stacked; R2 C3 remains separate. Third-row nested N11/N12/N21/N22 table remains. Before and after visible."
+  },
+  "ole-in-table--mergecells.docx": {
+    "pdfSha256": "76B82672B47B67BD01C04A7EE2943CD0DB2333AB16C8E42A1224F7F28D3206FA",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF.",
+    "observed": "One portrait page. First table row spans full width; embedded worksheet values 12 and 34 remain, with former top-right Chinese label below the worksheet in the merged cell. Bottom row remains two labeled cells. Before and after visible."
+  },
+  "hf-variants--header.docx": {
+    "pdfSha256": "5C799BF08F49859855F2668E02520E0C751869F81D2A8D7CA7E45E7E7D0C33BC",
+    "pageNumbers": [1, 2, 3],
+    "method": "Independent visual inspection of all three rendered Word-exported PDF pages.",
+    "observed": "Page 1 retains first-page header/footer, number 1 and before/body. Page 2 retains even-page header/footer, number 2 and body. Page 3 header is rsword followed by Chinese header text; body and after retained, odd-page footer and number 3 retained. Original diagonal CORPUS watermark is absent, consistent with replacing the default header. No text overlap."
+  },
+  "sections-three--header.docx": {
+    "pdfSha256": "BF396843FB1F141F0915312EF2A00B96D0295451C8D1A6B13AFDB3FCF0897F5F",
+    "pageNumbers": [1, 2, 3],
+    "method": "Independent visual inspection of all three rendered Word-exported PDF pages.",
+    "observed": "Portrait page 1 retains first-section header and rule, before and first-section body. Landscape page 2 retains independent second-section header and rule plus second-section body. Portrait page 3 shows rsword header, third-section body and after. All three sections remain readable and separate."
+  },
+  "chart-bubble--chartdata.docx": {
+    "pdfSha256": "E5D2B931B8F10458508D7D8D15F1A7544B05732414F450C72648D65D7FD37D24",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of rendered Word-exported PDF AFTER workbook activation and Word resave; not an initial-input-value observation.",
+    "observed": "One portrait page. Changed title retained. Blue Series 1 bubble centers align at y=10/20/30, orange Series 2 at y=15/25/35. Bubble sizes grow across x=1/2/3; overlaps preserve transparency. Legend original names. Before/after visible."
+  }
+}

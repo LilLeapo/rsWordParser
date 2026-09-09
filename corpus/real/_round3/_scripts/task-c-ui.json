@@ -1,0 +1,134 @@
+﻿[
+    {
+        "file":  "sections-inherit-default-compat15.docx",
+        "sentence":  "",
+        "observation":  "Page 2 header displays first-section header text, section 2 header label and same-as-previous label visible.",
+        "evidence":  [
+                         {
+                             "kind":  "page",
+                             "path":  "screenshots/c-sections-inherit-default-compat15-0.jpg"
+                         }
+                     ]
+    },
+    {
+        "file":  "toggle-based-on-two-levels-compat15.docx",
+        "sentence":  "",
+        "observation":  "Both lines are bold; Bold ribbon button is pressed at second line. Translation suggestion shown away from content, not activated.",
+        "evidence":  [
+                         {
+                             "kind":  "page",
+                             "path":  "screenshots/c-toggle-based-on-two-levels-compat15-0.jpg"
+                         }
+                     ]
+    },
+    {
+        "file":  "toggle-direct-off-compat15.docx",
+        "sentence":  "",
+        "observation":  "First line normal weight, second line bold and Bold button pressed. Translation suggestion away from content, not activated.",
+        "evidence":  [
+                         {
+                             "kind":  "page",
+                             "path":  "screenshots/c-toggle-direct-off-compat15-0.jpg"
+                         }
+                     ]
+    },
+    {
+        "file":  "toggle-docdefaults-and-para-compat15.docx",
+        "sentence":  "",
+        "observation":  "Both lines are bold, with Bold ribbon button pressed. Translation suggestion does not cover text.",
+        "evidence":  [
+                         {
+                             "kind":  "page",
+                             "path":  "screenshots/c-toggle-docdefaults-and-para-compat15-0.jpg"
+                         }
+                     ]
+    },
+    {
+        "file":  "toggle-docdefaults-and-para-off-compat15.docx",
+        "sentence":  "",
+        "observation":  "First line normal weight; second line bold and Bold ribbon button pressed.",
+        "evidence":  [
+                         {
+                             "kind":  "page",
+                             "path":  "screenshots/c-toggle-docdefaults-and-para-off-compat15-0.jpg"
+                         }
+                     ]
+    },
+    {
+        "file":  "toggle-para-and-char-compat15.docx",
+        "sentence":  "",
+        "observation":  "Paragraph plus character bold line is normal weight; paragraph-only line is bold, with Bold button pressed.",
+        "evidence":  [
+                         {
+                             "kind":  "page",
+                             "path":  "screenshots/c-toggle-para-and-char-compat15-0.jpg"
+                         }
+                     ]
+    },
+    {
+        "file":  "toggle-other-toggles-compat15.docx",
+        "sentence":  "",
+        "observation":  "i twice upright and i once italic; strike twice without line and strike once struck; caps twice lowercase and CAPS ONCE uppercase; smallcaps twice normal lowercase and SMALLCAPS ONCE small capitals; both dstrike phrases double-struck; vanish twice visible and vanish once absent with hidden display disabled.",
+        "evidence":  [
+                         {
+                             "kind":  "page",
+                             "path":  "screenshots/c-toggle-other-toggles-compat15-0.jpg"
+                         }
+                     ]
+    },
+    {
+        "file":  "toggle-other-toggles-compat15.docx",
+        "sentence":  "strike twice",
+        "observation":  "Native Font dialog: single strike checkbox unchecked, double strike unchecked; preview has no strike line.",
+        "evidence":  [
+                         {
+                             "kind":  "font-dialog",
+                             "path":  "screenshots/c-strike-twice-font-0.jpg"
+                         }
+                     ]
+    },
+    {
+        "file":  "toggle-other-toggles-compat15.docx",
+        "sentence":  "dstrike twice",
+        "observation":  "Native Font dialog: double-strike checkbox checked; single strike unchecked; preview double-struck.",
+        "evidence":  [
+                         {
+                             "kind":  "font-dialog",
+                             "path":  "screenshots/c-dstrike-twice-font-0.jpg"
+                         }
+                     ]
+    },
+    {
+        "file":  "toggle-other-toggles-compat15.docx",
+        "sentence":  "vanish once",
+        "observation":  "Native Font dialog: Hidden checked for entire sentence range126..137; text absent from page with hidden display disabled.",
+        "evidence":  [
+                         {
+                             "kind":  "font-dialog",
+                             "path":  "screenshots/c-vanish-once-font-0.jpg"
+                         }
+                     ]
+    },
+    {
+        "file":  "toggle-table-first-row-compat15.docx",
+        "sentence":  "",
+        "observation":  "First table row text normal weight; second table row bold, with Bold ribbon button pressed.",
+        "evidence":  [
+                         {
+                             "kind":  "page",
+                             "path":  "screenshots/c-toggle-table-first-row-compat15-0.jpg"
+                         }
+                     ]
+    },
+    {
+        "file":  "toggle-other-toggles-converted.docx",
+        "sentence":  "",
+        "observation":  "Converted document page matches supplied mode15: italic only once; single strike only once; uppercase and smallcaps only once; both dstrike phrases double-struck; only vanish twice visible.",
+        "evidence":  [
+                         {
+                             "kind":  "page",
+                             "path":  "screenshots/c-toggle-other-toggles-converted-0.jpg"
+                         }
+                     ]
+    }
+]

@@ -2,27 +2,38 @@
 //! 完整构建投影。M1 只建正文流：段落 → inlines → run 坐标流；表格 / 图片块占位；
 //! `refresh` 在 M2 随编辑引擎加入。
 
+use std::collections::{BTreeMap, HashMap};
+
 use crate::diag::{DiagCode, Diagnostic};
 use crate::error::Result;
+use crate::model::aux::AuxFlows;
 use crate::model::block::{
-    Block, ImageBlock, ListRef, ProtectedBlock, ProtectedKind, Revision, SdtInfo, TableBlock,
-    TextBlock,
+    Block, ImageBlock, ListRef, ProtectedBlock, ProtectedKind, Revision, SdtInfo, TextBlock,
 };
+use crate::model::chart::ChartPart;
 use crate::model::classify::{
     BodyClass, ParaClass, classify_body_child, classify_paragraph, text_kind,
 };
 use crate::model::decl::{FontTable, Numbering, Settings, Styles};
+use crate::model::diagram::DiagramPart;
+use crate::model::drawing::{Display, drawing_display};
 use crate::model::facts::ParagraphFacts;
+use crate::model::hf::HfPart;
 use crate::model::inline::{
     AtomKind, BreakKind, Inline, InlineAtom, Link, LinkTarget, OBJECT_REPLACEMENT, RevisionCtx,
     RevisionMeta, Run, Segment, SegmentKind, utf16_len,
 };
+use crate::model::notes::{Comments, Notes};
+use crate::model::section::{HfKind, SectionInfo};
+use crate::model::table::{BlockStep, Blocks, block_at_mut_in};
 use crate::model::theme::Theme;
+use crate::model::vml::vml_display;
 use crate::package::{Package, PartId, RelTarget, RelType, Rels};
 use crate::semantic::props::{
     ParaProps, RunProps, read_para_props, read_run_props, read_run_props_change,
 };
-use crate::span::{FlowMap, is_range_marker};
+use crate::span::field::{FieldForm, FieldId, FieldIndex};
+use crate::span::{FlowMap, RangeClass, SpanId, SpanIndex, is_range_marker};
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
 /// 文档模型（`MOD-01`）：DOM + Span 的语义投影。
@@ -37,8 +48,43 @@ pub struct Document {
     pub theme: Option<Theme>,
     pub settings: Option<Settings>,
     pub font_table: Option<FontTable>,
+    /// 正文的节序列（`MOD-10`，任务 5.2）。至少一个（没有 `w:sectPr` 时是隐式节）。
+    pub sections: Vec<SectionInfo>,
+    /// 页眉页脚 part（`MOD-01`，任务 5.3）：主 part 关系里 type 以 `/header` / `/footer` 结尾的**全部**
+    /// part，含没被任何 `sectPr` 引用的孤儿（TS `parseAllHfParts` 也输出它们）。
+    pub hf_parts: BTreeMap<PartId, HfPart>,
+    /// 关系 id → 页眉页脚 part。`sectPr` 的引用与 `SectionInfo.hf_ref` 都是 `rId`，查 part 走这里。
+    pub hf_by_rel: BTreeMap<String, PartId>,
+    /// 正文引用的其他 part 的内容流索引（目前只有外部文本框 part，`wps:txbx/@r:txbx`）。
+    /// 那些 part 的块挂在 `ShapeDisplay.content` 上、`content_part` 指回这里的键。
+    pub aux_flows: BTreeMap<PartId, AuxFlows>,
+    /// 主 part 关系里的图表 part（`chart` / `chartEx` 型，M6 6.1），含没被任何绘图引用的。
+    /// 绘图侧的引用是 `DrawingDisplay.chart`（`rel_id`），经 [`Document::chart_by_rel`] 到这里。
+    pub chart_parts: BTreeMap<PartId, ChartPart>,
+    pub chart_by_rel: BTreeMap<String, PartId>,
+    /// 主 part 里的墨迹批注（`aidocs-ink` 浮动图片 run，任务 6.8），文档序；对分类与坐标流不可见。
+    pub inks: Vec<crate::model::ink::InkInfo>,
+    /// 主 part 引用的 SmartArt（按**数据 part** 的 `PartId`，任务 6.3）。绘图侧的引用是
+    /// `DrawingDisplay.diagram`（`@r:dm`），经 [`Document::diagram_by_rel`] 到这里。
+    pub diagram_parts: BTreeMap<PartId, DiagramPart>,
+    pub diagram_by_rel: BTreeMap<String, PartId>,
     /// 主 part 的内容流映射（`SPAN-01`）。
     pub flows: FlowMap,
+    /// 主 part 的字段索引（`FLD-02`）。与投影同寿命：`rebuild` / `refresh_blocks` 都重建它。
+    pub fields: FieldIndex,
+    /// 主 part 的范围索引（`SPAN-04`）。**这是投影侧的副本**：编辑期的规范状态在
+    /// `EditSession.spans` 里，由 `SPAN-06` 变换维护；这一份只用来读（`Run.comments` 等）。
+    pub spans: SpanIndex,
+    /// 参考文献源（`customXml` 里的 `b:Sources`，任务 5.7）与它所在的 part。
+    pub sources: Vec<crate::model::Source>,
+    pub sources_part: Option<PartId>,
+    /// 全包的修订表（`MOD-09`，任务 7.1）：`Block.revisions` / `Run.rev` 是压平过的投影，
+    /// 这一份直接扫 DOM，每一层承载元素一条，接受 / 拒绝与 `EDIT-06` 的 `w:id` 分配都读它。
+    pub revisions: crate::model::revision::RevisionIndex,
+    /// 批注（`comments.xml` + `commentsExtended.xml` + `commentsIds.xml`）。
+    pub comments: Comments,
+    pub footnotes: Notes,
+    pub endnotes: Notes,
     pub warnings: Vec<Diagnostic>,
 }
 
@@ -50,46 +96,380 @@ impl Document {
         let aux = |pkg: &Package, kind: RelType, name: &str| {
             pkg.related(main, kind).next().or_else(|| pkg.find_name(name))
         };
+        // 文献源 part 按根元素找（customXml 的关系类型对每个 item 都一样）；要在下面借出
+        // 各 part 的 DOM 之前做完，它自己要 `&mut pkg`
+        let sources_part = crate::model::sources::find_part(pkg);
         let styles_id = aux(pkg, RelType::Styles, "word/styles.xml");
+        let comments_id = aux(pkg, RelType::Comments, "word/comments.xml");
+        let comments_ex_id = aux(pkg, RelType::CommentsExtended, "word/commentsExtended.xml");
+        let comments_ids_id = aux(pkg, RelType::CommentsIds, "word/commentsIds.xml");
+        let footnotes_id = aux(pkg, RelType::Footnotes, "word/footnotes.xml");
+        let endnotes_id = aux(pkg, RelType::Endnotes, "word/endnotes.xml");
         let numbering_id = aux(pkg, RelType::Numbering, "word/numbering.xml");
         let settings_id = aux(pkg, RelType::Settings, "word/settings.xml");
         let theme_id = aux(pkg, RelType::Theme, "word/theme/theme1.xml");
         let font_id = aux(pkg, RelType::FontTable, "word/fontTable.xml");
         // 先确保都已解析，再同时借出
         pkg.dom(main)?;
-        for id in [styles_id, numbering_id, settings_id, theme_id, font_id].into_iter().flatten() {
+        for id in [
+            styles_id,
+            numbering_id,
+            settings_id,
+            theme_id,
+            font_id,
+            comments_id,
+            comments_ex_id,
+            comments_ids_id,
+            footnotes_id,
+            endnotes_id,
+        ]
+        .into_iter()
+        .flatten()
+        {
             let _ = pkg.dom(id);
         }
+        // 页眉页脚 part：先把 (rId, PartId, kind) 抄出来（关系表的借用要在 `pkg.dom` 之前结束），
+        // 再逐个解析。type 以 `/header` / `/footer` 结尾的关系**全都**要，包括没被任何 `sectPr`
+        // 引用的孤儿 part（TS `parseAllHfParts` 同样输出它们）
+        let hf_rels: Vec<(String, PartId, HfKind)> =
+            [(RelType::Header, HfKind::Header), (RelType::Footer, HfKind::Footer)]
+                .into_iter()
+                .flat_map(|(rel, kind)| {
+                    pkg.part(main).rels.of_kind(rel).filter_map(move |r| {
+                        let RelTarget::Internal(u) = &r.target else { return None };
+                        Some((r.id.clone(), u.clone(), kind))
+                    })
+                })
+                .filter_map(|(id, uri, kind)| pkg.find(&uri).map(|p| (id, p, kind)))
+                .collect();
+        for (_, id, _) in &hf_rels {
+            let _ = pkg.dom(*id);
+        }
+
+        // 外部文本框 part（`wps:txbx/@r:txbx` → `word/txbx*.xml`，任务 5.4d）：同页眉页脚，
+        // 关系表的借用要在 `pkg.dom` 之前结束
+        let txbx_rels: Vec<(String, PartId)> = pkg
+            .part(main)
+            .rels
+            .of_kind(RelType::Txbx)
+            .filter_map(|r| match &r.target {
+                RelTarget::Internal(u) => Some((r.id.clone(), u.clone())),
+                RelTarget::External(_) => None,
+            })
+            .collect::<Vec<_>>()
+            .into_iter()
+            .filter_map(|(id, uri)| pkg.find(&uri).map(|p| (id, p)))
+            .collect();
+        for (_, id) in &txbx_rels {
+            let _ = pkg.dom(*id);
+        }
+        // 图表 part（`c:chart r:id` / `cx:chart r:id`，任务 6.1）：同样先抄关系再解析。
+        // 关系指向的 part 不在包里 → 记 `PKG_REL_MISSING`（悬空的 `r:id` 在块建好之后另查）
+        let mut chart_rels: Vec<(String, PartId)> = Vec::new();
+        let mut chart_rels_missing: Vec<String> = Vec::new();
+        for kind in [RelType::Chart, RelType::ChartEx] {
+            for r in pkg.part(main).rels.of_kind(kind) {
+                let RelTarget::Internal(u) = &r.target else { continue };
+                match pkg.find(u) {
+                    Some(p) => chart_rels.push((r.id.clone(), p)),
+                    None => chart_rels_missing.push(format!("{}（{}）", r.id, u.as_str())),
+                }
+            }
+        }
+        for (_, id) in &chart_rels {
+            let _ = pkg.dom(*id);
+        }
+        // SmartArt（`dgm:relIds/@r:dm`，任务 6.3）：数据 part 走关系；绘图 part 优先走数据 part 自己的
+        // `diagramDrawing` 关系（ECMA-376 没有它，是 Word 2007 的扩展，真实文档都写），没有再按 TS 的
+        // 路径约定 `data{N}.xml → drawing{N}.xml`。两个 part 都在这里解析。
+        let mut diagram_rels: Vec<(String, PartId, Option<PartId>)> = Vec::new();
+        let mut diagram_rels_missing: Vec<String> = Vec::new();
+        for r in pkg.part(main).rels.of_kind(RelType::DiagramData) {
+            let RelTarget::Internal(u) = &r.target else { continue };
+            match pkg.find(u) {
+                Some(data) => {
+                    let by_rel =
+                        pkg.part(data).rels.of_kind(RelType::DiagramDrawing).find_map(|d| match &d
+                            .target
+                        {
+                            RelTarget::Internal(u) => pkg.find(u),
+                            RelTarget::External(_) => None,
+                        });
+                    let drawing = by_rel.or_else(|| {
+                        let name = u.as_str();
+                        let (dir, file) = name.rsplit_once('/').unwrap_or(("", name));
+                        let n = file.strip_prefix("data")?.strip_suffix(".xml")?;
+                        if !n.chars().all(|c| c.is_ascii_digit()) {
+                            return None;
+                        }
+                        let sep = if dir.is_empty() { "" } else { "/" };
+                        pkg.find_name(&format!("{dir}{sep}drawing{n}.xml"))
+                    });
+                    diagram_rels.push((r.id.clone(), data, drawing));
+                }
+                None => diagram_rels_missing.push(format!("{}（{}）", r.id, u.as_str())),
+            }
+        }
+        for (_, data, drawing) in &diagram_rels {
+            let _ = pkg.dom(*data);
+            if let Some(d) = drawing {
+                let _ = pkg.dom(*d);
+            }
+        }
+
         let mut warnings = Vec::new();
         let dom_of = |id: Option<PartId>| id.and_then(|id| pkg.part(id).dom());
         let styles = dom_of(styles_id).and_then(|d| Styles::from_dom(d, &mut warnings));
         let numbering = dom_of(numbering_id).and_then(|d| Numbering::from_dom(d, &mut warnings));
         let settings = dom_of(settings_id).and_then(|d| Settings::from_dom(d, &mut warnings));
         let theme = dom_of(theme_id).and_then(Theme::from_dom);
+        for rid in chart_rels_missing {
+            warnings.push(Diagnostic::pre_existing(
+                main,
+                None,
+                DiagCode::PkgRelMissing,
+                format!("图表关系 {rid} 指向的 part 不在包里"),
+            ));
+        }
+        for rid in diagram_rels_missing {
+            warnings.push(Diagnostic::pre_existing(
+                main,
+                None,
+                DiagCode::PkgRelMissing,
+                format!("SmartArt 数据关系 {rid} 指向的 part 不在包里"),
+            ));
+        }
+        let mut diagram_parts = BTreeMap::new();
+        let mut diagram_by_rel = BTreeMap::new();
+        for (rel_id, data, drawing) in diagram_rels {
+            diagram_by_rel.insert(rel_id, data);
+            if diagram_parts.contains_key(&data) {
+                continue;
+            }
+            let dp = DiagramPart::build(
+                data,
+                pkg.part(data).dom(),
+                drawing.map(|d| (d, pkg.part(d).dom())),
+                &mut warnings,
+            );
+            diagram_parts.insert(data, dp);
+        }
+        // 图表颜色按文档的配色方案解（没有 theme part 时按内建 Office 调色板，`RES-05`）
+        let scheme = theme
+            .as_ref()
+            .and_then(|t| t.colors.clone())
+            .unwrap_or_else(crate::model::theme::ColorScheme::office_default);
+        let mut chart_parts = BTreeMap::new();
+        let mut chart_by_rel = BTreeMap::new();
+        for (rel_id, id) in chart_rels {
+            chart_by_rel.insert(rel_id, id);
+            if chart_parts.contains_key(&id) {
+                continue;
+            }
+            let cp = ChartPart::build(id, pkg.part(id).dom(), &scheme, &mut warnings);
+            chart_parts.insert(id, cp);
+        }
+        let sources = dom_of(sources_part).map(crate::model::sources::read).unwrap_or_default();
         let font_table = dom_of(font_id).and_then(|d| FontTable::from_dom(d, &mut warnings));
+        let with_dom = |id: Option<PartId>| id.and_then(|i| pkg.part(i).dom().map(|d| (i, d)));
+        // 条目内容复用正文管线（任务 5.3）：要那个 part 自己的 rels（条目里的图片 / 链接按 part 解析）
+        let rels_of = |id: Option<PartId>| id.map(|i| &pkg.part(i).rels);
+        let comments = Comments::from_doms(
+            with_dom(comments_id),
+            with_dom(comments_ex_id),
+            with_dom(comments_ids_id),
+            rels_of(comments_id),
+            styles.as_ref(),
+            &mut warnings,
+        );
+        let footnotes = Notes::from_dom(
+            with_dom(footnotes_id),
+            LocalName::Footnote,
+            LocalName::FootnoteRef,
+            rels_of(footnotes_id),
+            styles.as_ref(),
+            &mut warnings,
+        );
+        let endnotes = Notes::from_dom(
+            with_dom(endnotes_id),
+            LocalName::Endnote,
+            LocalName::EndnoteRef,
+            rels_of(endnotes_id),
+            styles.as_ref(),
+            &mut warnings,
+        );
 
         let dom = pkg.part(main).dom().expect("main part parsed above");
         let rels = &pkg.part(main).rels;
         let flows = FlowMap::build(dom);
-        let mut b = Builder { dom, styles: styles.as_ref(), rels, warnings, depth: 0 };
+        let mut fields = FieldIndex::build(dom);
+        warnings.extend(fields.take_diagnostics());
+        let mut spans = SpanIndex::build(dom);
+        warnings
+            .extend(spans.diagnostics().iter().filter(|d| d.code == DiagCode::SpanNoFlow).cloned());
+        // `SPAN-10`：端点落在原子字段内部时移到原子边界（7.5）
+        spans.snap_to_field_atoms(dom, &fields);
+        let ext_txbx: crate::model::aux::ExtTxbxMap<'_> = txbx_rels
+            .iter()
+            .filter_map(|(rid, id)| {
+                let d = pkg.part(*id).dom()?;
+                let idx = AuxFlows::build(*id, d, &mut warnings);
+                Some((
+                    rid.clone(),
+                    crate::model::aux::ExtTxbxPart {
+                        part: *id,
+                        dom: d,
+                        rels: &pkg.part(*id).rels,
+                        idx,
+                    },
+                ))
+            })
+            .collect();
+        let mut b = Builder::new(dom, styles.as_ref(), rels, &fields, &spans, warnings)
+            .with_ext_txbx(&ext_txbx);
         let body = b.find_body();
         let mut blocks = Vec::new();
         if let Some(body) = body {
             b.build_container(body, None, &[], &mut blocks);
         }
-        let warnings = b.warnings;
-        Ok(Document {
+        let mut warnings = b.warnings;
+        let aux_flows: BTreeMap<PartId, AuxFlows> =
+            ext_txbx.into_values().map(|e| (e.part, e.idx)).collect();
+        let sections = crate::model::section::build_sections(dom, &blocks, &mut warnings);
+        // 页眉页脚 part：同一个构建器，各自的 DOM 与 rels（`SPAN-01` 独立内容流）
+        let mut hf_parts = BTreeMap::new();
+        let mut hf_by_rel = BTreeMap::new();
+        for (rel_id, id, kind) in hf_rels {
+            hf_by_rel.insert(rel_id, id);
+            if hf_parts.contains_key(&id) {
+                continue; // 多个 rId 指向同一个 part（Word 的"同前"）
+            }
+            let Some(hf_dom) = pkg.part(id).dom() else { continue };
+            if let Some(hf) =
+                HfPart::build(id, hf_dom, kind, styles.as_ref(), &pkg.part(id).rels, &mut warnings)
+            {
+                hf_parts.insert(id, hf);
+            }
+        }
+        // 悬空的 `w:headerReference` / `w:footerReference`：`.rels` 里没有那个 `r:id`。
+        // 那个槽读成"没声明"（`RES-10` 会继续往上一节继承），但要留一条诊断——
+        // 编辑器据此能告诉用户"这一节的页眉丢了"，而不是默默显示上一节的
+        for info in &sections {
+            for (kind, variant, rid) in info.declared_refs() {
+                if !hf_by_rel.contains_key(rid) {
+                    let range =
+                        info.node.and_then(|n| dom.node(n).lex.as_ref().map(|l| l.range.clone()));
+                    warnings.push(Diagnostic::pre_existing(
+                        main,
+                        range,
+                        DiagCode::PkgRelMissing,
+                        format!("{kind}/{variant} 引用的关系 {rid} 不存在"),
+                    ));
+                }
+            }
+        }
+        // 绘图里 `c:chart r:id` 悬空（关系表里没有那个 id）：TS 解析不出图表、块仍是 `Chart` 芯片；
+        // 留一条诊断让编辑器能说"这张图表的数据丢了"
+        for b in Blocks::over(&blocks) {
+            let Block::Protected(pb) = b else { continue };
+            let Some(d) = pb.display.as_ref().and_then(Display::as_drawing) else { continue };
+            if let Some(chart) = d.chart.as_ref()
+                && chart.rel_id.as_ref().is_none_or(|rid| !chart_by_rel.contains_key(rid))
+            {
+                warnings.push(Diagnostic::pre_existing(
+                    main,
+                    dom.node(chart.node).lex.as_ref().map(|l| l.range.clone()),
+                    DiagCode::PkgRelMissing,
+                    match &chart.rel_id {
+                        Some(rid) => format!("图表引用的关系 {rid} 不存在"),
+                        None => "图表引用没有 r:id".to_string(),
+                    },
+                ));
+            }
+            // SmartArt 的 `@r:dm` 悬空同理（`smartart-ole__006`）：块仍是 `SmartArt` 芯片，没有文字与形状
+            if let Some(dg) = d.diagram.as_ref()
+                && dg.rel_id.as_ref().is_none_or(|rid| !diagram_by_rel.contains_key(rid))
+            {
+                warnings.push(Diagnostic::pre_existing(
+                    main,
+                    dom.node(dg.node).lex.as_ref().map(|l| l.range.clone()),
+                    DiagCode::PkgRelMissing,
+                    match &dg.rel_id {
+                        Some(rid) => format!("SmartArt 引用的关系 {rid} 不存在"),
+                        None => "SmartArt 引用没有 r:dm".to_string(),
+                    },
+                ));
+            }
+        }
+        let inks = crate::model::ink::collect_inks(dom, &blocks);
+        let mut doc = Document {
             main_part: main,
             body,
             main: blocks,
+            inks,
+            sections,
+            hf_parts,
+            hf_by_rel,
+            aux_flows,
+            chart_parts,
+            chart_by_rel,
+            diagram_parts,
+            diagram_by_rel,
             styles,
             numbering,
             theme,
             settings,
             font_table,
             flows,
+            fields,
+            spans,
+            sources,
+            sources_part,
+            comments,
+            footnotes,
+            endnotes,
+            revisions: crate::model::revision::RevisionIndex::default(),
             warnings,
-        })
+        };
+        doc.rebuild_revisions(pkg);
+        Ok(doc)
+    }
+
+    /// 重扫全包的修订表（`MOD-09`）。part 顺序 = 主 part → 页眉页脚 → 脚注 → 尾注 → 批注 →
+    /// 外部文本框，各自内部前序，合起来就是文档序。
+    pub(crate) fn rebuild_revisions(&mut self, pkg: &Package) {
+        use crate::model::revision::{RevPart, RevisionIndex};
+        let mut parts: Vec<RevPart<'_>> = Vec::new();
+        if let Some(d) = pkg.part(self.main_part).dom() {
+            parts.push(RevPart { part: self.main_part, dom: d, fields: Some(&self.fields) });
+        }
+        for hf in self.hf_parts.values() {
+            if let Some(d) = pkg.part(hf.part).dom() {
+                parts.push(RevPart { part: hf.part, dom: d, fields: Some(&hf.idx.fields) });
+            }
+        }
+        for notes in [&self.footnotes, &self.endnotes] {
+            if let (Some(id), Some(idx)) = (notes.part, notes.idx.as_ref())
+                && let Some(d) = pkg.part(id).dom()
+            {
+                parts.push(RevPart { part: id, dom: d, fields: Some(&idx.fields) });
+            }
+        }
+        if let (Some(id), Some(idx)) = (self.comments.part, self.comments.idx.as_ref())
+            && let Some(d) = pkg.part(id).dom()
+        {
+            parts.push(RevPart { part: id, dom: d, fields: Some(&idx.fields) });
+        }
+        for (id, aux) in &self.aux_flows {
+            if let Some(d) = pkg.part(*id).dom() {
+                parts.push(RevPart { part: *id, dom: d, fields: Some(&aux.fields) });
+            }
+        }
+        let mut warnings = Vec::new();
+        let index = RevisionIndex::build(&parts, &mut warnings);
+        drop(parts);
+        self.revisions = index;
+        self.warnings.extend(warnings);
     }
 
     /// 只建正文（测试与工具用）：`dom` 是主 part。
@@ -98,7 +478,9 @@ impl Document {
         styles: Option<&Styles>,
         rels: &Rels,
     ) -> (Vec<Block>, Vec<Diagnostic>) {
-        let mut b = Builder { dom, styles, rels, warnings: Vec::new(), depth: 0 };
+        let fields = FieldIndex::build(dom);
+        let spans = SpanIndex::build(dom);
+        let mut b = Builder::new(dom, styles, rels, &fields, &spans, Vec::new());
         let mut blocks = Vec::new();
         if let Some(body) = b.find_body() {
             b.build_container(body, None, &[], &mut blocks);
@@ -109,23 +491,210 @@ impl Document {
     pub fn text_blocks(&self) -> impl Iterator<Item = &TextBlock> {
         self.main.iter().filter_map(Block::as_text)
     }
+
+    /// 容器级刷新（`MOD-13` 的 `refresh`，任务 3.6 / 3.7）：按 [`Document::block_path`] 就地重建给定
+    /// 的块——`w:p` 走段落构建、`w:tbl` 走表格构建，**正文顶层与任意深度的单元格内一视同仁**，
+    /// 保留它的 sdt / 修订上下文。返回在投影里找不到的节点（调用方据此退回整体重建）。
+    ///
+    /// 字段与范围索引是整个 part 的投影，跟着一起重建（只重建主 part；容器级的增量在 M7 随
+    /// `TEST-07` 的随机序列一起评估）。
+    pub fn refresh_blocks(&mut self, pkg: &mut Package, blocks: &[NodeId]) -> Result<Vec<NodeId>> {
+        let main = self.main_part;
+        pkg.dom(main)?;
+        let dom = pkg.part(main).dom().expect("main part parsed above");
+        let rels = &pkg.part(main).rels;
+        let fields = FieldIndex::build(dom);
+        let mut spans = SpanIndex::build(dom);
+        spans.snap_to_field_atoms(dom, &fields);
+        // `SpanId` 是按文档序编的号（`SPAN-04`）。中间多出或少掉一个范围，它后面的全部改号——
+        // 而增量刷新只重建被碰过的块，没刷的块里 `Run.comments` 还存着旧号，那号现在指着**别的**
+        // 范围。识别到改号就整体重建（`TEST-07` 在「先加批注、后加书签」上抓到的）
+        if span_identities(&self.spans) != span_identities(&spans)
+            || field_identities(&self.fields) != field_identities(&fields)
+        {
+            return Ok(blocks.to_vec());
+        }
+        let mut missing = Vec::new();
+        // 先把路径与上下文取齐，再借出块表——构建器借着 `self.styles`
+        let mut work: Vec<RefreshItem> = Vec::new();
+        for &p in blocks {
+            match self.block_path(p).and_then(|path| {
+                let blk = self.block_at(&path)?;
+                Some((path, blk.sdt().cloned(), wrapper_revisions(blk)))
+            }) {
+                Some((path, sdt, revs)) => work.push((p, path, sdt, revs)),
+                None => missing.push(p),
+            }
+        }
+        let mut b = Builder::new(dom, self.styles.as_ref(), rels, &fields, &spans, Vec::new());
+        let mut main = std::mem::take(&mut self.main);
+        for (p, path, sdt, revs) in work {
+            // body 级 `w:sectPr` 也是一个块（`MOD-01` 的 R01），但它没有段落 / 表格的内容流，
+            // 交给 `build_paragraph` 会得出一个假段落，节投影随后就崩（`MOD-10` 的 owner 断言）。
+            // 整体重建时 `depth` 是一路 `build_container` 累出来的（正文 1、每进一层单元格 /
+            // 文本框 +1），`MOD-07` 的 `TooDeep` 就看它。增量刷新直接从这一块开始，得把那个
+            // 层数补回来，不然深层的嵌套表在这里会被完整建出来、与重建不一致
+            b.depth = 1 + dom
+                .ancestors(p)
+                .filter(|&a| {
+                    dom.is(a, QName::w(LocalName::Tc))
+                        || dom.is(a, QName::w(LocalName::TxbxContent))
+                })
+                .count() as u32;
+            let rebuilt = if dom.is(p, QName::w(LocalName::Tbl)) {
+                b.build_table(p, sdt.as_ref(), &revs)
+            } else if dom.is(p, QName::w(LocalName::SectPr)) {
+                section_props_block(p, sdt.as_ref(), &revs)
+            } else {
+                b.build_paragraph(p, sdt.as_ref(), &revs)
+            };
+            // 内容在别的 part 里的文本框：增量建不出来（外部 part 的索引只在整体重建时装好）
+            if crate::model::table::has_external_textbox(&rebuilt) {
+                missing.push(p);
+            }
+            match block_at_mut_in(&mut main, &path) {
+                Some(slot) => *slot = rebuilt,
+                None => missing.push(p),
+            }
+        }
+        self.main = main;
+        let mut warnings = b.warnings;
+        // 节是块序的投影：刷新一个段落可能加上或去掉它的 `pPr/sectPr`，所以一起重算
+        // （块数不变，`block_range` 的下标还有效；块增删走 `structure_changed` 的整体重建）
+        self.sections = crate::model::section::build_sections(dom, &self.main, &mut warnings);
+        // 墨迹表同理是块的投影：刷新的段落可能多了或少了墨迹 run
+        self.inks = crate::model::ink::collect_inks(dom, &self.main);
+        self.warnings.extend(warnings);
+        self.fields = fields;
+        // 内容编辑也会新建 run / 修订节点；块数不变不代表 arena 的流映射不变。
+        self.flows = FlowMap::build(dom);
+        self.spans = spans;
+        // 修订表是 DOM 的投影，和字段索引一样整体重建（辅助 part 走整体 `rebuild`，这里只有主 part 变了，
+        // 但重扫全部 part 才能让 `EDIT-06` 的全局 `w:id` 最大值始终正确）
+        self.rebuild_revisions(pkg);
+        Ok(missing)
+    }
+
+    /// 管辖某个节点的节下标（`RES-10` 的 `section_of`）。
+    // （`wrapper_revisions` 见文件末尾）
+    pub fn section_of(&self, dom: &Dom, node: NodeId) -> Option<usize> {
+        crate::model::section::section_of(dom, &self.sections, node)
+    }
+
+    /// 任意深度的文本段落（含单元格内），按节点找。
+    pub fn text_block(&self, para: NodeId) -> Option<&TextBlock> {
+        self.blocks().find(|b| b.node() == para).and_then(Block::as_text)
+    }
 }
 
-struct Builder<'a> {
-    dom: &'a Dom,
+/// body 级 `w:sectPr` 的块（`MOD-01` R01）：没有内容流，只占一个块位，让节投影能定位它。
+fn section_props_block(node: NodeId, sdt: Option<&SdtInfo>, revs: &[Revision]) -> Block {
+    Block::Protected(ProtectedBlock {
+        node,
+        kind: ProtectedKind::SectionProps,
+        preview: String::new(),
+        display: None,
+        siblings: Vec::new(),
+        sdt: sdt.cloned(),
+        revisions: revs.to_vec(),
+    })
+}
+
+/// 正文构建器；表格部分在 `model/table.rs`（同一个类型的另一组方法）。
+pub(super) struct Builder<'a> {
+    pub(super) dom: &'a Dom,
     styles: Option<&'a Styles>,
     rels: &'a Rels,
-    warnings: Vec<Diagnostic>,
-    depth: u32,
+    fields: &'a FieldIndex,
+    spans: &'a SpanIndex,
+    /// `FLD-08`：被 `Block` 策略字段覆盖的段落 → 字段 id。
+    block_fields: HashMap<NodeId, FieldId>,
+    /// 字段起点所在的段落 → 字段 id（`MOD-04` 的 `facts.fields`）。
+    fields_by_para: HashMap<NodeId, Vec<FieldId>>,
+    /// 外部文本框 part（`wps:txbx/@r:txbx`）：空表表示这份文档没有（多数情况）。
+    ext_txbx: &'a crate::model::aux::ExtTxbxMap<'a>,
+    pub(super) warnings: Vec<Diagnostic>,
+    /// 当前嵌套的容器层数（body / sdtContent / 修订包裹 / 单元格都算一层，段落内的内联容器也算）；
+    /// 块容器超过 [`MAX_CONTAINER_DEPTH`] 层的子树降级为 `TooDeep`（`MOD-07`）。
+    pub(super) depth: u32,
+    /// 当前嵌在第几层框里（`w:txbxContent`）。
+    ///
+    /// 框里的段落走的是"容器 → 段落 → 内联 → 框内容 → 容器"这条**递归**，每一层都在栈上压一组
+    /// 属性结构体（`ParaProps` / `RunProps` 几 KB）。块容器的 64 层预算换算成框大约 33 层，
+    /// 那已经够把测试线程的 2 MiB 栈用光（同 M3 在嵌套表格上踩过的那一条）。框套框在真实文档里
+    /// 最多两层，所以给框单独一个小预算，超过就整段降级为 `TooDeep`。
+    box_depth: u32,
+    /// `w:txbxContent` → 它的块（每个 part 一份，随 `Builder` 同寿命）。
+    ///
+    /// `vml_display` 会把整棵 `w:pict` 里的形状**摊平**成一张表，别人框里的形状也在表里
+    /// （compat 要按 TS 的形态把它们当只读的兄弟框输出）。于是同一段 `w:txbxContent` 会被
+    /// 摊平表里的每个外层形状各建一次——套娃 n 层就是 2^n 次。记忆化让每段内容只建一次。
+    box_content: HashMap<NodeId, Vec<Block>>,
+    /// 当前段落开始时的 `depth`：内联容器的深度上限相对它计，块的嵌套不占内联的额度
+    /// （第 64 层表格里的段落照样要能建 inlines）。
+    inline_base: u32,
+    /// 本段（或它里面嵌着的段落）的内联容器嵌套超过了上限：整段降级为 `TooDeep`（TS 解析失败时整段
+    /// passthrough；我们不能一边丢掉深处的文字一边让段落可编辑，任务 6.9）。
+    inline_too_deep: bool,
 }
 
-const MAX_CONTAINER_DEPTH: u32 = 64;
+impl<'a> Builder<'a> {
+    pub(super) fn new(
+        dom: &'a Dom,
+        styles: Option<&'a Styles>,
+        rels: &'a Rels,
+        fields: &'a FieldIndex,
+        spans: &'a SpanIndex,
+        warnings: Vec<Diagnostic>,
+    ) -> Self {
+        let mut fields_by_para: HashMap<NodeId, Vec<FieldId>> = HashMap::new();
+        for f in fields.fields() {
+            let head = f.form.head();
+            if let Some(p) = std::iter::once(head)
+                .chain(dom.ancestors(head))
+                .find(|&n| dom.is(n, QName::w(LocalName::P)))
+            {
+                fields_by_para.entry(p).or_default().push(f.id);
+            }
+        }
+        Builder {
+            dom,
+            styles,
+            rels,
+            ext_txbx: crate::model::aux::empty_ext_txbx(),
+            fields,
+            spans,
+            block_fields: fields.block_result_paragraphs(dom),
+            fields_by_para,
+            warnings,
+            depth: 0,
+            box_depth: 0,
+            box_content: HashMap::new(),
+            inline_base: 0,
+            inline_too_deep: false,
+        }
+    }
+}
+
+pub(super) const MAX_CONTAINER_DEPTH: u32 = 64;
+
+/// 一次刷新里要重建的一段：节点、它在块表里的路径、以及要保留的 sdt / 修订上下文。
+type RefreshItem = (NodeId, Vec<BlockStep>, Option<SdtInfo>, Vec<Revision>);
 
 fn w(local: LocalName) -> QName {
     QName::w(local)
 }
 
 impl<'a> Builder<'a> {
+    /// 挂上外部文本框 part 表（`Document::rebuild` 用；别的入口没有别的 part 可给）。
+    pub(super) fn with_ext_txbx(
+        mut self,
+        map: &'a crate::model::aux::ExtTxbxMap<'a>,
+    ) -> Builder<'a> {
+        self.ext_txbx = map;
+        self
+    }
+
     fn find_body(&mut self) -> Option<NodeId> {
         let dom = self.dom;
         let root = dom.root();
@@ -140,7 +709,7 @@ impl<'a> Builder<'a> {
         body
     }
 
-    fn warn(&mut self, node: NodeId, code: DiagCode, message: impl Into<String>) {
+    pub(super) fn warn(&mut self, node: NodeId, code: DiagCode, message: impl Into<String>) {
         let range = self.dom.node(node).lex.as_ref().map(|l| l.range.clone());
         self.warnings.push(Diagnostic::pre_existing(self.dom.part(), range, code, message));
     }
@@ -149,7 +718,7 @@ impl<'a> Builder<'a> {
         self.dom.attr_value(node, QName::new(ns, local)).map(|s| s.into_owned())
     }
 
-    fn meta(&self, node: NodeId) -> RevisionMeta {
+    pub(super) fn meta(&self, node: NodeId) -> RevisionMeta {
         RevisionMeta {
             node,
             id: self.attr(node, NsId::W, LocalName::Id),
@@ -160,8 +729,8 @@ impl<'a> Builder<'a> {
 
     // ---- 块 ------------------------------------------------------------------------------------
 
-    /// body / sdtContent / 修订包裹 / customXml 的子节点 → 块（R01–R07）。
-    fn build_container(
+    /// body / sdtContent / 修订包裹 / customXml / 单元格的子节点 → 块（R01–R07）。
+    pub(super) fn build_container(
         &mut self,
         container: NodeId,
         sdt: Option<&SdtInfo>,
@@ -175,6 +744,8 @@ impl<'a> Builder<'a> {
                 node: container,
                 kind: ProtectedKind::TooDeep,
                 preview: String::new(),
+                display: None,
+                siblings: Vec::new(),
                 sdt: sdt.cloned(),
                 revisions: revs.to_vec(),
             }));
@@ -186,22 +757,18 @@ impl<'a> Builder<'a> {
             if dom.name(node).is_none() {
                 continue; // 空白文本
             }
+            if dom.is(node, w(LocalName::TcPr)) {
+                continue; // 单元格属性：`Cell.props` 已读（`MOD-07`）
+            }
             let (_rule, class) = classify_body_child(dom, node);
             match class {
-                BodyClass::SectionProps => out.push(Block::Protected(ProtectedBlock {
-                    node,
-                    kind: ProtectedKind::SectionProps,
-                    preview: String::new(),
-                    sdt: sdt.cloned(),
-                    revisions: revs.to_vec(),
-                })),
-                BodyClass::Table => out.push(Block::Table(TableBlock {
-                    node,
-                    sdt: sdt.cloned(),
-                    revisions: revs.to_vec(),
-                })),
+                BodyClass::SectionProps => out.push(section_props_block(node, sdt, revs)),
+                BodyClass::Table => {
+                    let block = self.build_table(node, sdt, revs);
+                    out.push(block);
+                }
                 BodyClass::Sdt => {
-                    let info = SdtInfo { node };
+                    let info = SdtInfo::read(dom, node);
                     let content =
                         dom.semantic_children(node).find(|&n| dom.is(n, w(LocalName::SdtContent)));
                     let before = out.len();
@@ -213,6 +780,8 @@ impl<'a> Builder<'a> {
                             node,
                             kind: ProtectedKind::Invisible,
                             preview: String::new(),
+                            display: None,
+                            siblings: Vec::new(),
                             sdt: Some(info),
                             revisions: revs.to_vec(),
                         }));
@@ -223,6 +792,8 @@ impl<'a> Builder<'a> {
                     node,
                     kind: ProtectedKind::BodyBreak { page },
                     preview: String::new(),
+                    display: None,
+                    siblings: Vec::new(),
                     sdt: sdt.cloned(),
                     revisions: revs.to_vec(),
                 })),
@@ -252,6 +823,8 @@ impl<'a> Builder<'a> {
                         node,
                         kind: ProtectedKind::Unknown(name),
                         preview: self.preview(node),
+                        display: None,
+                        siblings: Vec::new(),
                         sdt: sdt.cloned(),
                         revisions: revs.to_vec(),
                     }));
@@ -265,11 +838,25 @@ impl<'a> Builder<'a> {
         self.depth -= 1;
     }
 
-    fn build_paragraph(&mut self, p: NodeId, sdt: Option<&SdtInfo>, revs: &[Revision]) -> Block {
+    pub(super) fn build_paragraph(
+        &mut self,
+        p: NodeId,
+        sdt: Option<&SdtInfo>,
+        revs: &[Revision],
+    ) -> Block {
         let dom = self.dom;
+        // 内联深度上限相对本段起点计；退出时还原——文本框里的段落会在外层段落的 `build_inlines`
+        // 中途嵌套进来（M4 的 `txbxContent` 走同一套段落管线），不还原的话外层会拿到更深的基线
+        let outer_inline_base = self.inline_base;
+        self.inline_base = self.depth;
+        // 外层段落（文本框宿主）的标志先收起来：里面这段太深，外层随后也会被判太深（它包着这一段）
+        let outer_too_deep = std::mem::replace(&mut self.inline_too_deep, false);
         let ppr = dom.semantic_children(p).find(|&n| dom.is(n, w(LocalName::PPr)));
         let props: ParaProps = read_para_props(dom, ppr, &mut self.warnings);
-        let facts = ParagraphFacts::compute(dom, p, &props, self.styles, sdt.cloned());
+        let mut facts = ParagraphFacts::compute(dom, p, &props, self.styles, sdt.cloned());
+        // `MOD-04`：字段事实来自 `FieldIndex`（`FLD-08` 的块字段覆盖段落 → R09）
+        facts.fields = self.fields_by_para.get(&p).cloned().unwrap_or_default();
+        facts.inside_field_result = self.block_fields.get(&p).copied();
         let (_rule, class) = classify_paragraph(&facts);
         let mut revisions = revs.to_vec();
         // 段落标记修订与 pPrChange（MOD-09）
@@ -299,37 +886,181 @@ impl<'a> Builder<'a> {
                 }
             }
         }
-        match class {
+        let block = match class {
             ParaClass::Protected(kind) => Block::Protected(ProtectedBlock {
                 node: p,
-                kind,
+                kind: kind.clone(),
                 preview: self.preview(p),
+                // 公式段落的载荷是公式本身（6.5）；其余保护块是段落里第一个图形
+                display: match kind {
+                    ProtectedKind::Equation => Some(Display::Formula(Box::new(
+                        crate::model::math::formula_display(dom, p, facts.visible_text),
+                    ))),
+                    _ => graphic_display(dom, &facts),
+                },
+                siblings: graphic_siblings(dom, &facts),
                 sdt: sdt.cloned(),
                 revisions,
             }),
-            ParaClass::Image => Block::Image(ImageBlock { node: p, sdt: sdt.cloned(), revisions }),
+            // R15 保证该段恰有一个绘图或一个 VML 图片。
+            ParaClass::Image => Block::Image(ImageBlock {
+                node: p,
+                display: graphic_display(dom, &facts),
+                sdt: sdt.cloned(),
+                revisions,
+            }),
             ParaClass::Text => {
                 let mut inlines = Vec::new();
                 self.build_inlines(p, None, None, &mut inlines);
-                Block::Text(Box::new(TextBlock {
-                    node: p,
-                    kind: text_kind(&facts),
-                    style_id: props.style.clone(),
-                    props,
-                    inlines,
-                    sdt: sdt.cloned(),
-                    revisions,
-                    facts,
-                }))
+                self.attach_comments(p, &mut inlines);
+                if self.inline_too_deep {
+                    // 深处的内容没有进内联模型：整段只读，字节原样（`MOD-07`；TS 同样整段 passthrough）
+                    Block::Protected(ProtectedBlock {
+                        node: p,
+                        kind: ProtectedKind::TooDeep,
+                        preview: self.preview(p),
+                        display: None,
+                        siblings: Vec::new(),
+                        sdt: sdt.cloned(),
+                        revisions,
+                    })
+                } else {
+                    Block::Text(Box::new(TextBlock {
+                        node: p,
+                        kind: text_kind(&facts),
+                        style_id: props.style.clone(),
+                        props,
+                        inlines,
+                        sdt: sdt.cloned(),
+                        revisions,
+                        facts,
+                    }))
+                }
+            }
+        };
+        self.inline_base = outer_inline_base;
+        self.inline_too_deep |= outer_too_deep;
+        block
+    }
+
+    /// `COMPAT-07` 的模型侧：给 run 挂批注 id。
+    ///
+    /// 规则同 TS：**起终点都在本段**的批注范围覆盖到的 run 挂它的 id（只有一端在本段的范围
+    /// 由块级 `commentStarts` / `commentEnds` 表达，不挂到 run 上）；文件里只有
+    /// `w:commentReference` 的批注（`implicit`，LibreOffice 风格）挂到最近的有字 run
+    /// ——先往前找，没有再往后找。
+    fn attach_comments(&self, para: NodeId, inlines: &mut [Inline]) {
+        let dom = self.dom;
+        let id_of = |n: NodeId| {
+            dom.attr_value(n, w(LocalName::Id)).map(|v| v.into_owned()).unwrap_or_default()
+        };
+        // 段内的 start / end id：两端都在本段才算覆盖
+        let mut starts: Vec<String> = Vec::new();
+        let mut ends: Vec<String> = Vec::new();
+        let mut has_ref = false;
+        let mut stack = vec![para];
+        while let Some(n) = stack.pop() {
+            let Some(name) = dom.name(n) else { continue };
+            if name == w(LocalName::TxbxContent) {
+                continue; // 独立内容流
+            }
+            if name == w(LocalName::CommentRangeStart) {
+                starts.push(id_of(n));
+            } else if name == w(LocalName::CommentRangeEnd) {
+                ends.push(id_of(n));
+            } else if name == w(LocalName::CommentReference) {
+                has_ref = true;
+            }
+            for &c in dom.children(n).iter().rev() {
+                stack.push(c);
+            }
+        }
+        let both: Vec<&String> = starts.iter().filter(|s| ends.contains(s)).collect();
+        if both.is_empty() && !has_ref {
+            return;
+        }
+        // 文档序一遍：跟踪打开的范围，同时记下承载 reference 的 run
+        let mut open: Vec<String> = Vec::new();
+        let mut cover: HashMap<NodeId, Vec<SpanId>> = HashMap::new();
+        let mut refs: Vec<(String, NodeId)> = Vec::new();
+        let mut stack = vec![para];
+        while let Some(n) = stack.pop() {
+            let Some(name) = dom.name(n) else { continue };
+            if name == w(LocalName::TxbxContent) {
+                continue;
+            }
+            if name == w(LocalName::CommentRangeStart) {
+                let id = id_of(n);
+                if both.iter().any(|b| **b == id) {
+                    open.push(id);
+                }
+            } else if name == w(LocalName::CommentRangeEnd) {
+                let id = id_of(n);
+                open.retain(|x| *x != id);
+            } else if name == w(LocalName::R) {
+                if !open.is_empty() {
+                    let ids: Vec<SpanId> =
+                        open.iter().filter_map(|id| self.comment_span(id)).collect();
+                    if !ids.is_empty() {
+                        cover.insert(n, ids);
+                    }
+                }
+                if let Some(c) =
+                    dom.semantic_children(n).find(|&c| dom.is(c, w(LocalName::CommentReference)))
+                {
+                    refs.push((id_of(c), n));
+                }
+            }
+            for &c in dom.children(n).iter().rev() {
+                stack.push(c);
+            }
+        }
+        for (id, run) in refs {
+            // 只有 reference 的批注（文件里没有范围标记）才挂最近的 run
+            let Some(span) = self.comment_span(&id) else { continue };
+            if !self.spans.get(span).is_some_and(|s| s.implicit) {
+                continue;
+            }
+            let Some(i) = inlines.iter().position(|x| x.node() == Some(run)) else { continue };
+            let has_text = |x: &Inline| matches!(x, Inline::Run(r) if !r.text.is_empty());
+            let target = inlines[..i]
+                .iter()
+                .rposition(has_text)
+                .or_else(|| inlines[i + 1..].iter().position(has_text).map(|k| k + i + 1));
+            if let Some(t) = target
+                && let Inline::Run(r) = &mut inlines[t]
+                && !r.comments.contains(&span)
+            {
+                r.comments.push(span);
+            }
+        }
+        for inline in inlines.iter_mut() {
+            if let Inline::Run(r) = inline
+                && let Some(ids) = cover.get(&r.node)
+            {
+                for id in ids {
+                    if !r.comments.contains(id) {
+                        r.comments.push(*id);
+                    }
+                }
             }
         }
     }
 
-    /// 可见文本预览：`w:t` 文本拼接，截到 80 个字符。
+    /// 批注 `w:id` → 范围索引里的 `SpanId`。
+    fn comment_span(&self, id: &str) -> Option<SpanId> {
+        self.spans.find(RangeClass::Comment, id).map(|s| s.id)
+    }
+
+    /// 可见文本预览：`w:t` 文本拼接，截到 80 个字符。已删除的子树不算——那些字节还在 DOM 里
+    /// （`XML-12` 的 `Deleted` 是标记不是移除），但它们不再是可见文本。
     fn preview(&self, node: NodeId) -> String {
         let dom = self.dom;
         let mut s = String::new();
         for n in dom.descendants(node) {
+            if dom.node(n).dirty == crate::xml::Dirty::Deleted {
+                continue;
+            }
             if dom.is(n, w(LocalName::T)) {
                 for c in dom.semantic_children(n) {
                     if let Some(t) = dom.text(c) {
@@ -347,8 +1078,9 @@ impl<'a> Builder<'a> {
 
     // ---- 内联 ----------------------------------------------------------------------------------
 
-    /// 段落（或透明容器）的子节点 → inlines（`MOD-06`）。内联容器嵌套超过 [`MAX_CONTAINER_DEPTH`]
-    /// 时不再下钻，整个子树作为一个 `Atom(Other)` 占位并记 `MOD_TOO_DEEP`（病态输入局部降级）。
+    /// 段落（或透明容器）的子节点 → inlines（`MOD-06`）。内联容器在段落内嵌套超过
+    /// [`MAX_CONTAINER_DEPTH`] 层时不再下钻，整个子树作为一个 `Atom(Other)` 占位并记 `MOD_TOO_DEEP`
+    /// （病态输入局部降级）；深度相对段落起点计，所以表格嵌套不吃这个额度。
     fn build_inlines(
         &mut self,
         container: NodeId,
@@ -357,8 +1089,9 @@ impl<'a> Builder<'a> {
         out: &mut Vec<Inline>,
     ) {
         let dom = self.dom;
-        if self.depth > MAX_CONTAINER_DEPTH {
+        if self.depth.saturating_sub(self.inline_base) > MAX_CONTAINER_DEPTH {
             self.warn(container, DiagCode::ModTooDeep, "内联容器嵌套过深");
+            self.inline_too_deep = true;
             let name = dom.name(container).expect("container is an element");
             out.push(Inline::Atom(InlineAtom {
                 node: container,
@@ -369,7 +1102,23 @@ impl<'a> Builder<'a> {
         }
         self.depth += 1;
         let children: Vec<NodeId> = dom.semantic_children(container).collect();
-        for node in children {
+        self.build_inline_nodes(&children, link, rev, out);
+        self.depth -= 1;
+    }
+
+    /// 一段兄弟节点 → inlines。字段的结果区也走这里（它是同一个容器里的一段子节点）。
+    fn build_inline_nodes(
+        &mut self,
+        nodes: &[NodeId],
+        link: Option<&Link>,
+        rev: Option<&RevisionCtx>,
+        out: &mut Vec<Inline>,
+    ) {
+        let dom = self.dom;
+        let mut i = 0usize;
+        while i < nodes.len() {
+            let node = nodes[i];
+            i += 1;
             let Some(name) = dom.name(node) else { continue };
             if is_range_marker(name) {
                 continue;
@@ -385,6 +1134,11 @@ impl<'a> Builder<'a> {
                     | LocalName::SmartTagPr,
                 ) => {}
                 (NsId::W, LocalName::R) => {
+                    // `FLD-07` 原子形态：begin run 起，整段字段折成一个 `Inline::Field`
+                    if let Some(next) = self.atomic_field_at(node, &nodes[i..], link, rev, out) {
+                        i += next;
+                        continue;
+                    }
                     let run = self.build_run(node, link, rev);
                     out.push(Inline::Run(run));
                 }
@@ -430,13 +1184,22 @@ impl<'a> Builder<'a> {
                     }
                     self.build_inlines(node, link, Some(&ctx), out);
                 }
+                (NsId::W, LocalName::FldSimple) => {
+                    match self.fields.field_of(node).filter(|f| f.is_atomic()).map(|f| f.id) {
+                        Some(id) => {
+                            let mut result = Vec::new();
+                            self.build_inlines(node, link, rev, &mut result);
+                            out.push(Inline::Field { id, result });
+                        }
+                        None => self.build_inlines(node, link, rev, out),
+                    }
+                }
                 (
                     NsId::W,
                     LocalName::SmartTag
                     | LocalName::Sdt
                     | LocalName::SdtContent
                     | LocalName::CustomXml
-                    | LocalName::FldSimple
                     | LocalName::Dir
                     | LocalName::Bdo,
                 ) => self.build_inlines(node, link, rev, out),
@@ -463,7 +1226,39 @@ impl<'a> Builder<'a> {
                 })),
             }
         }
-        self.depth -= 1;
+    }
+
+    /// `node` 是某个原子形态字段的 begin run 且该字段在这一段兄弟节点里闭合时，把整个字段折成
+    /// 一个 [`Inline::Field`]，返回要跳过的节点数（含 end run）。
+    ///
+    /// 结果区是 separate 与 end 之间的节点；没有 separate（XE 一类无结果字段）时结果为空。
+    /// 字段没在这一段兄弟节点里闭合（跨段 / 跨容器）时返回 `None`，各 run 照常出现——
+    /// 那种字段的策略是 `Block`，段落已经被 R09 保护，不该到这里。
+    fn atomic_field_at(
+        &mut self,
+        node: NodeId,
+        rest: &[NodeId],
+        link: Option<&Link>,
+        rev: Option<&RevisionCtx>,
+        out: &mut Vec<Inline>,
+    ) -> Option<usize> {
+        let f = self.fields.field_of(node).filter(|f| f.form.head() == node && f.is_atomic())?;
+        let (id, tail, separate) = match &f.form {
+            FieldForm::Complex { end, separate, .. } => (f.id, *end, *separate),
+            FieldForm::Simple { .. } => return None,
+        };
+        let tail_at = rest.iter().position(|&c| c == tail)?;
+        let result_from = match separate {
+            Some(sep) => rest.iter().position(|&c| c == sep).map_or(tail_at, |k| k + 1),
+            None => tail_at,
+        };
+        let mut result = Vec::new();
+        if result_from < tail_at {
+            let nodes: Vec<NodeId> = rest[result_from..tail_at].to_vec();
+            self.build_inline_nodes(&nodes, link, rev, &mut result);
+        }
+        out.push(Inline::Field { id, result });
+        Some(tail_at + 1)
     }
 
     /// 一个 `w:r` → `Run`：段与坐标流文本。
@@ -484,7 +1279,29 @@ impl<'a> Builder<'a> {
             let kind = self.segment(c, name, &mut text);
             let end = text.len() as u32;
             let len = utf16_len(&text[start as usize..end as usize]);
-            segments.push(Segment { node: c, kind, text: start..end, utf16_len: len });
+            // `MOD-11` 显示模型：绘图段带 `DrawingDisplay`，`w:pict` / `w:object` 段带 `VmlDisplay`。
+            let display = match kind {
+                SegmentKind::Drawing { .. } => {
+                    let mut d = drawing_display(dom, c);
+                    self.fill_shape_content(&mut d.shapes);
+                    Some(Display::Drawing(Box::new(d)))
+                }
+                SegmentKind::Pict | SegmentKind::Object => {
+                    let mut v = vml_display(dom, c);
+                    if v.too_deep {
+                        self.warn(c, DiagCode::ModTooDeep, "VML 框套得过深，摊平表已截断");
+                    }
+                    // 只给**最外层**的框建内容：别人框里的形状在那个框自己的投影里已经建过一遍
+                    // （摊平表见 `vml_display`）。给它们各建一份会让内容树的规模随嵌套层数指数增长
+                    // ——`corpus/hostile/hf-deep-txbx.docx` 就是这么把投影卡死的
+                    self.fill_box_content(
+                        v.shapes.iter_mut().filter(|s| !s.nested).map(|s| (s.txbx, &mut s.content)),
+                    );
+                    Some(Display::Vml(Box::new(v)))
+                }
+                _ => None,
+            };
+            segments.push(Segment { node: c, kind, text: start..end, utf16_len: len, display });
         }
         let mut ctx = rev.cloned().unwrap_or_default();
         if let Some(rpr) = rpr_node
@@ -493,16 +1310,86 @@ impl<'a> Builder<'a> {
             ctx.props_change = Some((self.meta(change), Box::new(old)));
         }
         let utf16 = utf16_len(&text);
+        // `FLD-07` 透明形态（`Link` 策略）：结构 run 与结果 run 都带 `field`，结果 run 另有
+        // `Link::Field`（目标来自指令，由 `compat_ts` / 渲染器解析）。外层 `w:hyperlink` 优先。
+        let transparent = self.fields.field_of(r).filter(|f| f.is_transparent());
+        let link = match (link, transparent) {
+            (None, Some(f)) if f.form.result_nodes().contains(&r) => Some(Link::Field(f.id)),
+            (l, _) => l.cloned(),
+        };
         Run {
             node: r,
             segments,
             text,
             utf16_len: utf16,
             props,
-            link: link.cloned(),
-            field: None,
+            link,
+            field: transparent.map(|f| f.id),
             rev: (!ctx.is_empty()).then_some(ctx),
             comments: Vec::new(),
+        }
+    }
+
+    /// 文本框内容流（`w:txbxContent`）复用段落管线建块（`MOD-11` 的 `content`）。
+    ///
+    /// 框里是**独立内容流**：它的段落有自己的 run、自己的图，和宿主段落的坐标流无关。
+    fn fill_box_content<'b>(
+        &mut self,
+        boxes: impl Iterator<Item = (Option<NodeId>, &'b mut Vec<Block>)>,
+    ) {
+        for (txbx, content) in boxes {
+            let Some(txbx) = txbx else { continue };
+            *content = self.box_blocks(txbx);
+        }
+    }
+
+    /// 一段 `w:txbxContent` 的块，记忆化（见 [`Builder::box_content`]）。
+    fn box_blocks(&mut self, txbx: NodeId) -> Vec<Block> {
+        if let Some(hit) = self.box_content.get(&txbx) {
+            return hit.clone();
+        }
+        if self.box_depth >= crate::model::vml::MAX_BOX_NESTING {
+            self.warn(txbx, DiagCode::ModTooDeep, "框套得过深");
+            return vec![Block::Protected(ProtectedBlock {
+                node: txbx,
+                kind: ProtectedKind::TooDeep,
+                preview: String::new(),
+                display: None,
+                siblings: Vec::new(),
+                sdt: None,
+                revisions: Vec::new(),
+            })];
+        }
+        let mut blocks = Vec::new();
+        self.box_depth += 1;
+        self.build_container(txbx, None, &[], &mut blocks);
+        self.box_depth -= 1;
+        self.box_content.insert(txbx, blocks.clone());
+        blocks
+    }
+
+    /// DrawingML 形状的内容流：本 part 的 `w:txbxContent`，或**外部文本框 part**
+    /// （`wps:txbx/@r:txbx` → `word/txbx1.xml`，任务 5.4d）。
+    ///
+    /// 外部 part 的块用**那个 part 的** DOM / rels / 索引建（`NodeId` 因此属于它，投影靠
+    /// `content_part` 换 DOM）。这种框是只读的：内容不在本 part 里，重写本 part 的段落列表
+    /// 救不了它（TS 同样把它排除在保存序号之外并标 `readOnly`）。
+    fn fill_shape_content(&mut self, shapes: &mut [crate::model::drawing::ShapeDisplay]) {
+        for s in shapes {
+            if let Some(txbx) = s.txbx {
+                s.content = self.box_blocks(txbx);
+                continue;
+            }
+            let Some(rid) = s.txbx_rel.as_deref() else { continue };
+            let Some(ext) = self.ext_txbx.get(rid) else { continue };
+            s.content = ext.idx.blocks_of(
+                ext.dom,
+                ext.rels,
+                self.styles,
+                ext.dom.root(),
+                &mut self.warnings,
+            );
+            s.content_part = Some(ext.part);
         }
     }
 
@@ -569,6 +1456,10 @@ impl<'a> Builder<'a> {
                 SegmentKind::Sym { font, code }
             }
             LocalName::Drawing => {
+                // 墨迹对坐标流不可见：长度 0 的段（TS 在 detect 前把整个 run 剥掉，任务 6.8）
+                if crate::model::ink::is_ink_drawing(dom, node) {
+                    return SegmentKind::Ink;
+                }
                 text.push(OBJECT_REPLACEMENT);
                 let anchored = dom
                     .semantic_children(node)
@@ -585,12 +1476,10 @@ impl<'a> Builder<'a> {
             }
             LocalName::Ruby => {
                 text.push(OBJECT_REPLACEMENT);
-                let rt = dom
-                    .semantic_children(node)
-                    .find(|&c| dom.is(c, w(LocalName::Rt)))
-                    .map(|rt| self.preview(rt))
-                    .unwrap_or_default();
-                SegmentKind::Ruby { rt }
+                SegmentKind::Ruby {
+                    rt: crate::model::math::ruby_part_text(dom, node, LocalName::Rt),
+                    base: crate::model::math::ruby_part_text(dom, node, LocalName::RubyBase),
+                }
             }
             LocalName::FootnoteReference => {
                 text.push(OBJECT_REPLACEMENT);
@@ -625,6 +1514,35 @@ impl<'a> Builder<'a> {
 }
 
 /// `xml:space` 的有效值（XML 规范：沿祖先继承，最近的声明生效）；没有声明 → Word 行为，trim。
+/// 段落唯一那个图形的显示模型（`MOD-11`）。同时有多种时按 drawing → pict → object 取第一个：
+/// 只有 R15 / R17 / R18 这些「段里就一个图形」的分类会用到它。
+fn graphic_display(dom: &Dom, facts: &ParagraphFacts) -> Option<Display> {
+    if let Some(d) = facts.drawings.first() {
+        let Some(fallback) = d.fallback_picture else {
+            return Some(Display::Drawing(Box::new(drawing_display(dom, d.node))));
+        };
+        // chartex 的回退图（R12 → Image）：图取 `mc:Fallback`，尺寸取 `mc:Choice`——Word 排版占的是
+        // 图表的位置，回退图只是替身（真实 Word 文件里两者的 extent 相同；TS 同样读第一个 `wp:extent`）。
+        let mut display = drawing_display(dom, fallback);
+        if let Some(ext) = drawing_display(dom, d.node).extent {
+            display.extent = Some(ext);
+        }
+        return Some(Display::Drawing(Box::new(display)));
+    }
+    let vml = facts.picts.first().map(|p| p.node).or_else(|| facts.objects.first().copied())?;
+    Some(Display::Vml(Box::new(vml_display(dom, vml))))
+}
+
+/// 段落里第一个之外的顶层绘图（`ProtectedBlock::siblings`）：SmartArt / 画布旁边的照片与形状。
+fn graphic_siblings(dom: &Dom, facts: &ParagraphFacts) -> Vec<Display> {
+    facts
+        .drawings
+        .iter()
+        .skip(1)
+        .map(|d| Display::Drawing(Box::new(drawing_display(dom, d.node))))
+        .collect()
+}
+
 fn xml_space_preserved(dom: &Dom, node: NodeId) -> bool {
     let space = QName::new(NsId::Xml, LocalName::Space);
     let mut cur = Some(node);
@@ -650,4 +1568,36 @@ impl ListRef {
     pub fn new(num_id: i32, ilvl: i32) -> Self {
         Self { num_id, ilvl, from_style: false }
     }
+}
+
+/// 块**外面**那层修订（`w:ins` / `w:del` / `moveFrom` / `moveTo` 包着整块）。
+///
+/// 增量刷新（`MOD-13`）只把这些带回给 `build_*`：段落标记、`pPrChange`、`tblPrChange`、
+/// `tblGridChange` 都由构建器自己从 DOM 再读一遍，带回去就成了两份——`TEST-07` 的随机序列
+/// 在「同一个表格连改两次属性」上抓到过。
+fn wrapper_revisions(blk: &Block) -> Vec<Revision> {
+    blk.revisions()
+        .iter()
+        .filter(|r| {
+            matches!(
+                r,
+                Revision::Insert(_)
+                    | Revision::Delete(_)
+                    | Revision::MoveFrom(_)
+                    | Revision::MoveTo(_)
+            )
+        })
+        .cloned()
+        .collect()
+}
+
+/// 范围索引的编号身份：`(SpanId, 类别, 配对 id)` 的序列。两次构建这个序列相同，就说明
+/// 已有范围的 `SpanId` 一个都没变，未刷新的块里存着的号还指着同一个范围。
+fn span_identities(idx: &SpanIndex) -> Vec<(u32, crate::span::RangeClass, String)> {
+    idx.live().map(|s| (s.id.0, s.class(), s.pair_id().to_string())).collect()
+}
+
+/// 同理的 `FieldId`（`FLD-02` 也是按文档序编号）：`(FieldId, begin 节点)` 的序列。
+fn field_identities(idx: &FieldIndex) -> Vec<(u32, NodeId)> {
+    idx.fields().iter().map(|f| (f.id.0, f.form.head())).collect()
 }

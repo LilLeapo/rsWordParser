@@ -122,6 +122,20 @@ pub fn escape_text(s: &str, out: &mut Vec<u8>) {
     }
 }
 
+/// 文本节点转义，直接给 `String`（拼 XML 片段的生成器用；同 TS `escapeXmlText`）。
+pub fn escaped_text(s: &str) -> String {
+    let mut out = Vec::with_capacity(s.len());
+    escape_text(s, &mut out);
+    String::from_utf8(out).expect("escape_text 只产出合法 UTF-8")
+}
+
+/// 双引号属性值转义，直接给 `String`（拼 XML 片段的生成器用）。
+pub fn escaped_attr(s: &str) -> String {
+    let mut out = Vec::with_capacity(s.len());
+    escape_attr(s, b'"', &mut out);
+    String::from_utf8(out).expect("escape_attr 只产出合法 UTF-8")
+}
+
 /// 属性值转义：`& < >` 加上所用引号。
 pub fn escape_attr(s: &str, quote: u8, out: &mut Vec<u8>) {
     for c in s.chars() {

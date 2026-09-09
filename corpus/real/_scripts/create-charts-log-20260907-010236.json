@@ -1,0 +1,148 @@
+{
+  "Script": "create-charts.ps1",
+  "StartedUtc": "2026-09-06T17:02:36.4598528Z",
+  "UpdatedUtc": "2026-09-06T17:02:42.4571717Z",
+  "CompletedUtc": "2026-09-06T17:02:42.4564750Z",
+  "OutputRoot": "C:\\code\\rsWordParser\\real-word-corpus-20260906",
+  "WordVersion": "16.0",
+  "WordBuild": "16.0.14334",
+  "WordProductCode": "{90160000-000F-0000-1000-0000000FF1CE}",
+  "WordProcessId": 35276,
+  "WindowsVersion": "Microsoft Windows NT 10.0.22631.0",
+  "PowerShellVersion": "7.6.5",
+  "SaveFormat": 12,
+  "Method": "Word COM; Documents.Add; InlineShapes.AddChart2; ChartData.Workbook; SaveAs2 once",
+  "ObservationStatus": "COM property readback only. Visual observation and copied-package self-check still required.",
+  "Entries": [
+    {
+      "RequestedFile": "chart/chart-scatter.docx",
+      "File": "chart/chart-scatter.docx",
+      "Requested": {
+        "LegendTop": null,
+        "InTable": null,
+        "NoTitle": null,
+        "Type": -4169,
+        "Name": "chart-scatter",
+        "Kind": "scatter with markers only",
+        "Gray": null,
+        "Floating": null,
+        "XY": true,
+        "ChartEx": null,
+        "Combo": null,
+        "Bubble": null,
+        "HoleSize": null,
+        "Dates": null,
+        "Color": null,
+        "SingleSeries": null,
+        "Style": null,
+        "RedPoint": null,
+        "Palette": null,
+        "NoLegend": null
+      },
+      "RequestedTitle": "销售统计",
+      "Worksheet": {
+        "Categories": [
+          1,
+          2,
+          3
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Status": "saved-package-check-passed-needs-visual-check",
+      "Stage": "finished",
+      "StartedUtc": "2026-09-06T17:02:38.7818025Z",
+      "FinishedUtc": "2026-09-06T17:02:42.2209958Z",
+      "Actual": {
+        "ChartType": -4169,
+        "ChartStyle": 240,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              1.0,
+              2.0,
+              3.0
+            ],
+            "ChartType": -4169,
+            "AxisGroup": 1,
+            "FillRgb": 0,
+            "MarkerStyle": 8,
+            "Smooth": false
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              1.0,
+              2.0,
+              3.0
+            ],
+            "ChartType": -4169,
+            "AxisGroup": 1,
+            "FillRgb": 0,
+            "MarkerStyle": 8,
+            "Smooth": false
+          }
+        ],
+        "Layout": {
+          "InTable": false,
+          "HeightPt": 240.0,
+          "WidthPt": 420.0,
+          "Floating": false
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SavedOnce": true,
+      "Bytes": 25519,
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "PreviewFile": "_previews/chart/chart-scatter.pdf",
+      "PreviewStatus": "Word-exported PDF; not visually verified"
+    }
+  ],
+  "FatalError": null
+}

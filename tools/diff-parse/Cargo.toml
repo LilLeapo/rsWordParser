@@ -1,0 +1,24 @@
+[package]
+name = "diff-parse"
+version = "0.0.1"
+description = "TEST-03：对 corpus/synthetic 运行 compat_ts 并与 TS 期望 JSON 差分"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[features]
+compat-ts = ["rsword/compat-ts"]
+
+[[bin]]
+name = "diff-parse"
+path = "src/main.rs"
+required-features = ["compat-ts"]
+
+[dependencies]
+rsword = { path = "../../crates/rsword" }
+serde_json = "1"
+
+[lints]
+workspace = true

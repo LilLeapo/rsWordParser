@@ -1,0 +1,2634 @@
+{
+  "schemaVersion": 1,
+  "auditDate": "2026-09-07T10:30:56.1232585+08:00",
+  "method": "Read-only .NET ZipArchive decompression, XmlDocument parsing of all top-level XML and relationship parts, SHA256 of decompressed parts, namespace-aware document relationship references, URI-based internal relationship target resolution. Word was not opened or controlled. No DOCX package bytes were modified.",
+  "scope": {
+    "openFailures": 9,
+    "comparisonBaselines": 3,
+    "mergecellsCases": 2
+  },
+  "findings": [
+    {
+      "kind": "duplicate-drawing-identifiers",
+      "files": [
+        "ink-highlighter--newimage.docx",
+        "ink-highlighter--newchart.docx",
+        "ink-highlighter--ink.docx",
+        "ink-pen--newimage.docx",
+        "ink-pen--newchart.docx",
+        "ink-pen--ink.docx",
+        "ink-to-shape--newimage.docx",
+        "ink-to-shape--newchart.docx",
+        "ink-to-shape--ink.docx"
+      ],
+      "part": "word/document.xml",
+      "xpath": "//*[local-name()='docPr' and namespace-uri()='http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing'][@id='1']",
+      "fact": "In all nine failures the inserted drawing uses wp:docPr id=1, already used by native ink object name '\u58a8\u8ff9 1' inside mc:Choice Requires=wpi. Each baseline has unique docPr identifiers; new drawing insertion introduces the repeated id. The existing ink branch and added drawing can both be active, so these are not mutually exclusive fallback alternatives.",
+      "causalStatus": "Concrete identifier collision found in all failures. No isolated edit-and-reopen experiment was performed, so this audit does not prove that the collision is the sole cause of Word refusing to open."
+    },
+    {
+      "kind": "no-xml-or-relationship-breakage-found",
+      "fact": "All XML/rels examined in the nine failure packages parse; internal relationship targets and referenced r:id/r:embed/r:link values resolve; no duplicate relationship Id or Default extension was found. No original package part is missing and all original word/ink/ink*.xml parts retain identical SHA256. This is not a full OOXML schema validation."
+    },
+    {
+      "kind": "merge-already-present",
+      "files": [
+        "large-report--mergecells.docx",
+        "table-styled--mergecells.docx"
+      ],
+      "fact": "Both baselines already have a 3-column first table whose first row contains two physical w:tc cells, with gridSpan values 2 and 1. First cell contains R1 C1 and R1 C2; second cell contains R1 C3. Edited word/document.xml is byte-identical to baseline in both cases; outer table physical cells remain 8.",
+      "interpretation": "The first two logical grid columns are already merged before the requested operation. A blanket expected cell-count delta of -1 cannot represent an idempotent merge of those grid columns. UI follow-up should describe the pre-existing merge and lack of a further change; intent to merge the two remaining physical cells would require a different result."
+    }
+  ],
+  "failures": [
+    {
+      "file": "ink-highlighter--newimage.docx",
+      "base": "ink/ink-highlighter.docx",
+      "op": "newimage",
+      "batchError": "\u6587\u4ef6\u53ef\u80fd\u5df2\u7ecf\u635f\u574f\u3002",
+      "baselineOpen": "ok",
+      "originalSha256": "09D7CC7BDD8C73584E703FCA6561177D541FC0A5D0C8C9ADAE774E2B0D4F4D9F",
+      "editedSha256": "4B868474A0D41018C59D85E2293F62B4D8A980E73038652231D6C2A154B9D794",
+      "baselineDocPr": [
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "editedDocPr": [
+        {
+          "id": "1",
+          "name": "Picture 1",
+          "insideAlternateChoice": false,
+          "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/picture"
+        },
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "duplicateDocPrIds": [
+        {
+          "id": "1",
+          "objects": [
+            {
+              "id": "1",
+              "name": "Picture 1",
+              "insideAlternateChoice": false,
+              "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/picture"
+            },
+            {
+              "id": "1",
+              "name": "\u58a8\u8ff9 1",
+              "insideAlternateChoice": true,
+              "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+            }
+          ]
+        }
+      ],
+      "xmlPartCount": 12,
+      "xmlParseErrors": [],
+      "relationshipErrors": [],
+      "duplicateRelationshipIds": [],
+      "duplicateDefaultExtensions": [],
+      "missingOriginalParts": [],
+      "changedOriginalParts": [
+        "word/_rels/document.xml.rels",
+        "word/document.xml"
+      ],
+      "newParts": [
+        "word/media/image2.png"
+      ],
+      "nativeInkParts": [
+        {
+          "part": "word/ink/ink1.xml",
+          "unchanged": true
+        }
+      ],
+      "relationships": [
+        {
+          "part": "_rels/.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+          "target": "docProps/app.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/app.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+          "target": "docProps/core.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/core.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "target": "word/document.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/document.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+          "target": "webSettings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/webSettings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId7",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+          "target": "theme/theme1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/theme/theme1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+          "target": "settings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/settings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "target": "styles.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/styles.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId6",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+          "target": "fontTable.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/fontTable.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId5",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image1.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image1.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId4",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId8",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image2.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image2.png",
+          "targetPresent": true
+        }
+      ]
+    },
+    {
+      "file": "ink-highlighter--newchart.docx",
+      "base": "ink/ink-highlighter.docx",
+      "op": "newchart",
+      "batchError": "\u6587\u4ef6\u53ef\u80fd\u5df2\u7ecf\u635f\u574f\u3002",
+      "baselineOpen": "ok",
+      "originalSha256": "09D7CC7BDD8C73584E703FCA6561177D541FC0A5D0C8C9ADAE774E2B0D4F4D9F",
+      "editedSha256": "59601BA18E4C926A96F8B8218B3C87EF2949EE2CDDE4AB8016C6F46694FBEEA2",
+      "baselineDocPr": [
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "editedDocPr": [
+        {
+          "id": "1",
+          "name": "Chart 1",
+          "insideAlternateChoice": false,
+          "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/chart"
+        },
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "duplicateDocPrIds": [
+        {
+          "id": "1",
+          "objects": [
+            {
+              "id": "1",
+              "name": "Chart 1",
+              "insideAlternateChoice": false,
+              "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/chart"
+            },
+            {
+              "id": "1",
+              "name": "\u58a8\u8ff9 1",
+              "insideAlternateChoice": true,
+              "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+            }
+          ]
+        }
+      ],
+      "xmlPartCount": 14,
+      "xmlParseErrors": [],
+      "relationshipErrors": [],
+      "duplicateRelationshipIds": [],
+      "duplicateDefaultExtensions": [],
+      "missingOriginalParts": [],
+      "changedOriginalParts": [
+        "[Content_Types].xml",
+        "word/_rels/document.xml.rels",
+        "word/document.xml"
+      ],
+      "newParts": [
+        "word/charts/chart1.xml",
+        "word/charts/_rels/chart1.xml.rels",
+        "word/charts/embeddings/workbook1.xlsx"
+      ],
+      "nativeInkParts": [
+        {
+          "part": "word/ink/ink1.xml",
+          "unchanged": true
+        }
+      ],
+      "relationships": [
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+          "target": "webSettings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/webSettings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId7",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+          "target": "theme/theme1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/theme/theme1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+          "target": "settings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/settings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "target": "styles.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/styles.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId6",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+          "target": "fontTable.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/fontTable.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId5",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image1.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image1.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId4",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId8",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+          "target": "charts/chart1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/charts/chart1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+          "target": "docProps/app.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/app.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+          "target": "docProps/core.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/core.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "target": "word/document.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/document.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/charts/_rels/chart1.xml.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+          "target": "embeddings/workbook1.xlsx",
+          "targetMode": "",
+          "resolvedTarget": "word/charts/embeddings/workbook1.xlsx",
+          "targetPresent": true
+        }
+      ]
+    },
+    {
+      "file": "ink-highlighter--ink.docx",
+      "base": "ink/ink-highlighter.docx",
+      "op": "ink",
+      "batchError": "\u6587\u4ef6\u53ef\u80fd\u5df2\u7ecf\u635f\u574f\u3002",
+      "baselineOpen": "ok",
+      "originalSha256": "09D7CC7BDD8C73584E703FCA6561177D541FC0A5D0C8C9ADAE774E2B0D4F4D9F",
+      "editedSha256": "1EDA493F5760B8CF4B986713E748C05F6D84E6A242B1D93BCAF3FF3F3634D55C",
+      "baselineDocPr": [
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "editedDocPr": [
+        {
+          "id": "1",
+          "name": "aidocs-ink 1",
+          "insideAlternateChoice": false,
+          "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/picture"
+        },
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "duplicateDocPrIds": [
+        {
+          "id": "1",
+          "objects": [
+            {
+              "id": "1",
+              "name": "aidocs-ink 1",
+              "insideAlternateChoice": false,
+              "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/picture"
+            },
+            {
+              "id": "1",
+              "name": "\u58a8\u8ff9 1",
+              "insideAlternateChoice": true,
+              "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+            }
+          ]
+        }
+      ],
+      "xmlPartCount": 12,
+      "xmlParseErrors": [],
+      "relationshipErrors": [],
+      "duplicateRelationshipIds": [],
+      "duplicateDefaultExtensions": [],
+      "missingOriginalParts": [],
+      "changedOriginalParts": [
+        "word/_rels/document.xml.rels",
+        "word/document.xml"
+      ],
+      "newParts": [
+        "word/media/image2.png"
+      ],
+      "nativeInkParts": [
+        {
+          "part": "word/ink/ink1.xml",
+          "unchanged": true
+        }
+      ],
+      "relationships": [
+        {
+          "part": "_rels/.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+          "target": "docProps/app.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/app.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+          "target": "docProps/core.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/core.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "target": "word/document.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/document.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+          "target": "webSettings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/webSettings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId7",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+          "target": "theme/theme1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/theme/theme1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+          "target": "settings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/settings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "target": "styles.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/styles.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId6",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+          "target": "fontTable.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/fontTable.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId5",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image1.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image1.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId4",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId8",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image2.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image2.png",
+          "targetPresent": true
+        }
+      ]
+    },
+    {
+      "file": "ink-pen--newimage.docx",
+      "base": "ink/ink-pen.docx",
+      "op": "newimage",
+      "batchError": "\u6587\u4ef6\u53ef\u80fd\u5df2\u7ecf\u635f\u574f\u3002",
+      "baselineOpen": "ok",
+      "originalSha256": "3E8FDF8D374793D3BE389E7DDE68AD7D4220FBFC837260B91A2F671956BEF56C",
+      "editedSha256": "42EBC3B5E8E6B913471E75124F3261B10BCD8C06FC6C586E0F5AE612D61F435E",
+      "baselineDocPr": [
+        {
+          "id": "2",
+          "name": "\u58a8\u8ff9 2",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "editedDocPr": [
+        {
+          "id": "1",
+          "name": "Picture 1",
+          "insideAlternateChoice": false,
+          "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/picture"
+        },
+        {
+          "id": "2",
+          "name": "\u58a8\u8ff9 2",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "duplicateDocPrIds": [
+        {
+          "id": "1",
+          "objects": [
+            {
+              "id": "1",
+              "name": "Picture 1",
+              "insideAlternateChoice": false,
+              "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/picture"
+            },
+            {
+              "id": "1",
+              "name": "\u58a8\u8ff9 1",
+              "insideAlternateChoice": true,
+              "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+            }
+          ]
+        }
+      ],
+      "xmlPartCount": 13,
+      "xmlParseErrors": [],
+      "relationshipErrors": [],
+      "duplicateRelationshipIds": [],
+      "duplicateDefaultExtensions": [],
+      "missingOriginalParts": [],
+      "changedOriginalParts": [
+        "word/_rels/document.xml.rels",
+        "word/document.xml"
+      ],
+      "newParts": [
+        "word/media/image3.png"
+      ],
+      "nativeInkParts": [
+        {
+          "part": "word/ink/ink2.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink1.xml",
+          "unchanged": true
+        }
+      ],
+      "relationships": [
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId8",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+          "target": "fontTable.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/fontTable.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+          "target": "webSettings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/webSettings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId7",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image2.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image2.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+          "target": "settings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/settings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "target": "styles.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/styles.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId6",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink2.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink2.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId5",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image1.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image1.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId4",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId9",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+          "target": "theme/theme1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/theme/theme1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId10",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image3.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image3.png",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+          "target": "docProps/app.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/app.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+          "target": "docProps/core.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/core.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "target": "word/document.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/document.xml",
+          "targetPresent": true
+        }
+      ]
+    },
+    {
+      "file": "ink-pen--newchart.docx",
+      "base": "ink/ink-pen.docx",
+      "op": "newchart",
+      "batchError": "\u6587\u4ef6\u53ef\u80fd\u5df2\u7ecf\u635f\u574f\u3002",
+      "baselineOpen": "ok",
+      "originalSha256": "3E8FDF8D374793D3BE389E7DDE68AD7D4220FBFC837260B91A2F671956BEF56C",
+      "editedSha256": "8CFCEBFA3F9D2FCB3823033CB140F9C45682DA7ACB3A9A89553FC72AE3EDD428",
+      "baselineDocPr": [
+        {
+          "id": "2",
+          "name": "\u58a8\u8ff9 2",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "editedDocPr": [
+        {
+          "id": "1",
+          "name": "Chart 1",
+          "insideAlternateChoice": false,
+          "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/chart"
+        },
+        {
+          "id": "2",
+          "name": "\u58a8\u8ff9 2",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "duplicateDocPrIds": [
+        {
+          "id": "1",
+          "objects": [
+            {
+              "id": "1",
+              "name": "Chart 1",
+              "insideAlternateChoice": false,
+              "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/chart"
+            },
+            {
+              "id": "1",
+              "name": "\u58a8\u8ff9 1",
+              "insideAlternateChoice": true,
+              "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+            }
+          ]
+        }
+      ],
+      "xmlPartCount": 15,
+      "xmlParseErrors": [],
+      "relationshipErrors": [],
+      "duplicateRelationshipIds": [],
+      "duplicateDefaultExtensions": [],
+      "missingOriginalParts": [],
+      "changedOriginalParts": [
+        "[Content_Types].xml",
+        "word/_rels/document.xml.rels",
+        "word/document.xml"
+      ],
+      "newParts": [
+        "word/charts/chart1.xml",
+        "word/charts/_rels/chart1.xml.rels",
+        "word/charts/embeddings/workbook1.xlsx"
+      ],
+      "nativeInkParts": [
+        {
+          "part": "word/ink/ink2.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink1.xml",
+          "unchanged": true
+        }
+      ],
+      "relationships": [
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId8",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+          "target": "fontTable.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/fontTable.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+          "target": "webSettings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/webSettings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId7",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image2.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image2.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+          "target": "settings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/settings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "target": "styles.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/styles.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId6",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink2.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink2.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId5",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image1.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image1.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId4",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId9",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+          "target": "theme/theme1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/theme/theme1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId10",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+          "target": "charts/chart1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/charts/chart1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+          "target": "docProps/app.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/app.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+          "target": "docProps/core.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/core.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "target": "word/document.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/document.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/charts/_rels/chart1.xml.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+          "target": "embeddings/workbook1.xlsx",
+          "targetMode": "",
+          "resolvedTarget": "word/charts/embeddings/workbook1.xlsx",
+          "targetPresent": true
+        }
+      ]
+    },
+    {
+      "file": "ink-pen--ink.docx",
+      "base": "ink/ink-pen.docx",
+      "op": "ink",
+      "batchError": "\u6587\u4ef6\u53ef\u80fd\u5df2\u7ecf\u635f\u574f\u3002",
+      "baselineOpen": "ok",
+      "originalSha256": "3E8FDF8D374793D3BE389E7DDE68AD7D4220FBFC837260B91A2F671956BEF56C",
+      "editedSha256": "91D432E2A9E81D4675A6D92E7AE6190BA6C7F0694644501B08471C26CAD7B206",
+      "baselineDocPr": [
+        {
+          "id": "2",
+          "name": "\u58a8\u8ff9 2",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "editedDocPr": [
+        {
+          "id": "1",
+          "name": "aidocs-ink 1",
+          "insideAlternateChoice": false,
+          "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/picture"
+        },
+        {
+          "id": "2",
+          "name": "\u58a8\u8ff9 2",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "duplicateDocPrIds": [
+        {
+          "id": "1",
+          "objects": [
+            {
+              "id": "1",
+              "name": "aidocs-ink 1",
+              "insideAlternateChoice": false,
+              "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/picture"
+            },
+            {
+              "id": "1",
+              "name": "\u58a8\u8ff9 1",
+              "insideAlternateChoice": true,
+              "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+            }
+          ]
+        }
+      ],
+      "xmlPartCount": 13,
+      "xmlParseErrors": [],
+      "relationshipErrors": [],
+      "duplicateRelationshipIds": [],
+      "duplicateDefaultExtensions": [],
+      "missingOriginalParts": [],
+      "changedOriginalParts": [
+        "word/_rels/document.xml.rels",
+        "word/document.xml"
+      ],
+      "newParts": [
+        "word/media/image3.png"
+      ],
+      "nativeInkParts": [
+        {
+          "part": "word/ink/ink2.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink1.xml",
+          "unchanged": true
+        }
+      ],
+      "relationships": [
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId8",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+          "target": "fontTable.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/fontTable.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+          "target": "webSettings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/webSettings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId7",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image2.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image2.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+          "target": "settings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/settings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "target": "styles.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/styles.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId6",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink2.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink2.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId5",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image1.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image1.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId4",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId9",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+          "target": "theme/theme1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/theme/theme1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId10",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image3.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image3.png",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+          "target": "docProps/app.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/app.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+          "target": "docProps/core.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/core.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "target": "word/document.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/document.xml",
+          "targetPresent": true
+        }
+      ]
+    },
+    {
+      "file": "ink-to-shape--newimage.docx",
+      "base": "ink/ink-to-shape.docx",
+      "op": "newimage",
+      "batchError": "\u6587\u4ef6\u53ef\u80fd\u5df2\u7ecf\u635f\u574f\u3002",
+      "baselineOpen": "ok",
+      "originalSha256": "96D79924D7F7158E478E65A96158E116809EF8D57B4BEFF1AB7D320E8C996B41",
+      "editedSha256": "26AF9F894C79F8E5957A8324ED81C718A6F2796623247F4424367765323FF4BB",
+      "baselineDocPr": [
+        {
+          "id": "8",
+          "name": "\u58a8\u8ff9 8",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "7",
+          "name": "\u58a8\u8ff9 7",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "6",
+          "name": "\u58a8\u8ff9 6",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "5",
+          "name": "\u58a8\u8ff9 5",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "4",
+          "name": "\u58a8\u8ff9 4",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "3",
+          "name": "\u58a8\u8ff9 3",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "2",
+          "name": "\u58a8\u8ff9 2",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "editedDocPr": [
+        {
+          "id": "1",
+          "name": "Picture 1",
+          "insideAlternateChoice": false,
+          "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/picture"
+        },
+        {
+          "id": "8",
+          "name": "\u58a8\u8ff9 8",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "7",
+          "name": "\u58a8\u8ff9 7",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "6",
+          "name": "\u58a8\u8ff9 6",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "5",
+          "name": "\u58a8\u8ff9 5",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "4",
+          "name": "\u58a8\u8ff9 4",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "3",
+          "name": "\u58a8\u8ff9 3",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "2",
+          "name": "\u58a8\u8ff9 2",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "duplicateDocPrIds": [
+        {
+          "id": "1",
+          "objects": [
+            {
+              "id": "1",
+              "name": "Picture 1",
+              "insideAlternateChoice": false,
+              "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/picture"
+            },
+            {
+              "id": "1",
+              "name": "\u58a8\u8ff9 1",
+              "insideAlternateChoice": true,
+              "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+            }
+          ]
+        }
+      ],
+      "xmlPartCount": 19,
+      "xmlParseErrors": [],
+      "relationshipErrors": [],
+      "duplicateRelationshipIds": [],
+      "duplicateDefaultExtensions": [],
+      "missingOriginalParts": [],
+      "changedOriginalParts": [
+        "word/_rels/document.xml.rels",
+        "word/document.xml"
+      ],
+      "newParts": [
+        "word/media/image8.png"
+      ],
+      "nativeInkParts": [
+        {
+          "part": "word/ink/ink3.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink2.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink5.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink4.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink6.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink8.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink1.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink7.xml",
+          "unchanged": true
+        }
+      ],
+      "relationships": [
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId8",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink3.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink3.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId13",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image5.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image5.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId18",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image7.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image7.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+          "target": "webSettings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/webSettings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId7",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image2.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image2.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId12",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink5.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink5.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId17",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink8.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink8.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+          "target": "settings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/settings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId16",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink7.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink7.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId20",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+          "target": "theme/theme1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/theme/theme1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "target": "styles.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/styles.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId6",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink2.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink2.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId11",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image4.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image4.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId5",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image1.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image1.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId15",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image6.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image6.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId10",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink4.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink4.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId19",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+          "target": "fontTable.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/fontTable.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId4",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId9",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image3.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image3.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId14",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink6.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink6.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId21",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image8.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image8.png",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+          "target": "docProps/app.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/app.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+          "target": "docProps/core.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/core.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "target": "word/document.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/document.xml",
+          "targetPresent": true
+        }
+      ]
+    },
+    {
+      "file": "ink-to-shape--newchart.docx",
+      "base": "ink/ink-to-shape.docx",
+      "op": "newchart",
+      "batchError": "\u6587\u4ef6\u53ef\u80fd\u5df2\u7ecf\u635f\u574f\u3002",
+      "baselineOpen": "ok",
+      "originalSha256": "96D79924D7F7158E478E65A96158E116809EF8D57B4BEFF1AB7D320E8C996B41",
+      "editedSha256": "61BFA7B2FBCF6BA6700B9FFCC41B162F5FE9F169F86929FEC67568898AA57B8C",
+      "baselineDocPr": [
+        {
+          "id": "8",
+          "name": "\u58a8\u8ff9 8",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "7",
+          "name": "\u58a8\u8ff9 7",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "6",
+          "name": "\u58a8\u8ff9 6",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "5",
+          "name": "\u58a8\u8ff9 5",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "4",
+          "name": "\u58a8\u8ff9 4",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "3",
+          "name": "\u58a8\u8ff9 3",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "2",
+          "name": "\u58a8\u8ff9 2",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "editedDocPr": [
+        {
+          "id": "1",
+          "name": "Chart 1",
+          "insideAlternateChoice": false,
+          "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/chart"
+        },
+        {
+          "id": "8",
+          "name": "\u58a8\u8ff9 8",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "7",
+          "name": "\u58a8\u8ff9 7",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "6",
+          "name": "\u58a8\u8ff9 6",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "5",
+          "name": "\u58a8\u8ff9 5",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "4",
+          "name": "\u58a8\u8ff9 4",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "3",
+          "name": "\u58a8\u8ff9 3",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "2",
+          "name": "\u58a8\u8ff9 2",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "duplicateDocPrIds": [
+        {
+          "id": "1",
+          "objects": [
+            {
+              "id": "1",
+              "name": "Chart 1",
+              "insideAlternateChoice": false,
+              "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/chart"
+            },
+            {
+              "id": "1",
+              "name": "\u58a8\u8ff9 1",
+              "insideAlternateChoice": true,
+              "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+            }
+          ]
+        }
+      ],
+      "xmlPartCount": 21,
+      "xmlParseErrors": [],
+      "relationshipErrors": [],
+      "duplicateRelationshipIds": [],
+      "duplicateDefaultExtensions": [],
+      "missingOriginalParts": [],
+      "changedOriginalParts": [
+        "[Content_Types].xml",
+        "word/_rels/document.xml.rels",
+        "word/document.xml"
+      ],
+      "newParts": [
+        "word/charts/_rels/chart1.xml.rels",
+        "word/charts/chart1.xml",
+        "word/charts/embeddings/workbook1.xlsx"
+      ],
+      "nativeInkParts": [
+        {
+          "part": "word/ink/ink3.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink2.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink5.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink4.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink6.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink8.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink1.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink7.xml",
+          "unchanged": true
+        }
+      ],
+      "relationships": [
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId8",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink3.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink3.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId13",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image5.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image5.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId18",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image7.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image7.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+          "target": "webSettings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/webSettings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId7",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image2.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image2.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId12",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink5.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink5.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId17",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink8.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink8.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+          "target": "settings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/settings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId16",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink7.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink7.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId20",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+          "target": "theme/theme1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/theme/theme1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "target": "styles.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/styles.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId6",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink2.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink2.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId11",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image4.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image4.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId5",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image1.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image1.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId15",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image6.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image6.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId10",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink4.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink4.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId19",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+          "target": "fontTable.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/fontTable.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId4",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId9",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image3.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image3.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId14",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink6.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink6.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId21",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+          "target": "charts/chart1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/charts/chart1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/charts/_rels/chart1.xml.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+          "target": "embeddings/workbook1.xlsx",
+          "targetMode": "",
+          "resolvedTarget": "word/charts/embeddings/workbook1.xlsx",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+          "target": "docProps/app.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/app.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+          "target": "docProps/core.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/core.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "target": "word/document.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/document.xml",
+          "targetPresent": true
+        }
+      ]
+    },
+    {
+      "file": "ink-to-shape--ink.docx",
+      "base": "ink/ink-to-shape.docx",
+      "op": "ink",
+      "batchError": "\u6587\u4ef6\u53ef\u80fd\u5df2\u7ecf\u635f\u574f\u3002",
+      "baselineOpen": "ok",
+      "originalSha256": "96D79924D7F7158E478E65A96158E116809EF8D57B4BEFF1AB7D320E8C996B41",
+      "editedSha256": "30F1682C4856A4A42B09D24B4CABF95843FD8288EF1525E97597BA84FDFA9A5E",
+      "baselineDocPr": [
+        {
+          "id": "8",
+          "name": "\u58a8\u8ff9 8",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "7",
+          "name": "\u58a8\u8ff9 7",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "6",
+          "name": "\u58a8\u8ff9 6",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "5",
+          "name": "\u58a8\u8ff9 5",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "4",
+          "name": "\u58a8\u8ff9 4",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "3",
+          "name": "\u58a8\u8ff9 3",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "2",
+          "name": "\u58a8\u8ff9 2",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "editedDocPr": [
+        {
+          "id": "1",
+          "name": "aidocs-ink 1",
+          "insideAlternateChoice": false,
+          "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/picture"
+        },
+        {
+          "id": "8",
+          "name": "\u58a8\u8ff9 8",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "7",
+          "name": "\u58a8\u8ff9 7",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "6",
+          "name": "\u58a8\u8ff9 6",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "5",
+          "name": "\u58a8\u8ff9 5",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "4",
+          "name": "\u58a8\u8ff9 4",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "3",
+          "name": "\u58a8\u8ff9 3",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "2",
+          "name": "\u58a8\u8ff9 2",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        },
+        {
+          "id": "1",
+          "name": "\u58a8\u8ff9 1",
+          "insideAlternateChoice": true,
+          "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+        }
+      ],
+      "duplicateDocPrIds": [
+        {
+          "id": "1",
+          "objects": [
+            {
+              "id": "1",
+              "name": "aidocs-ink 1",
+              "insideAlternateChoice": false,
+              "graphicUri": "http://schemas.openxmlformats.org/drawingml/2006/picture"
+            },
+            {
+              "id": "1",
+              "name": "\u58a8\u8ff9 1",
+              "insideAlternateChoice": true,
+              "graphicUri": "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+            }
+          ]
+        }
+      ],
+      "xmlPartCount": 19,
+      "xmlParseErrors": [],
+      "relationshipErrors": [],
+      "duplicateRelationshipIds": [],
+      "duplicateDefaultExtensions": [],
+      "missingOriginalParts": [],
+      "changedOriginalParts": [
+        "word/_rels/document.xml.rels",
+        "word/document.xml"
+      ],
+      "newParts": [
+        "word/media/image8.png"
+      ],
+      "nativeInkParts": [
+        {
+          "part": "word/ink/ink3.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink2.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink5.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink4.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink6.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink8.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink1.xml",
+          "unchanged": true
+        },
+        {
+          "part": "word/ink/ink7.xml",
+          "unchanged": true
+        }
+      ],
+      "relationships": [
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId8",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink3.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink3.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId13",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image5.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image5.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId18",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image7.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image7.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+          "target": "webSettings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/webSettings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId7",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image2.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image2.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId12",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink5.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink5.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId17",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink8.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink8.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+          "target": "settings.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/settings.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId16",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink7.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink7.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId20",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+          "target": "theme/theme1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/theme/theme1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "target": "styles.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/styles.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId6",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink2.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink2.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId11",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image4.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image4.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId5",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image1.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image1.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId15",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image6.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image6.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId10",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink4.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink4.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId19",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+          "target": "fontTable.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/fontTable.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId4",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink1.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink1.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId9",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image3.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image3.png",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId14",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml",
+          "target": "ink/ink6.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/ink/ink6.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "id": "rId21",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "target": "media/image8.png",
+          "targetMode": "",
+          "resolvedTarget": "word/media/image8.png",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId3",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+          "target": "docProps/app.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/app.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId2",
+          "type": "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+          "target": "docProps/core.xml",
+          "targetMode": "",
+          "resolvedTarget": "docProps/core.xml",
+          "targetPresent": true
+        },
+        {
+          "part": "_rels/.rels",
+          "id": "rId1",
+          "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "target": "word/document.xml",
+          "targetMode": "",
+          "resolvedTarget": "word/document.xml",
+          "targetPresent": true
+        }
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "file": "large-report--mergecells.docx",
+      "base": "misc/large-report.docx",
+      "documentXmlByteIdentical": true,
+      "firstTableOuterXmlIdentical": true,
+      "baseline": {
+        "file": "C:\\word\\round2-work-20260907\\baseline\\real-word-corpus-20260906\\misc\\large-report.docx",
+        "documentXmlSha256": "B63F28FE8F672EB877564AD598EE7B4B7E6EF88686B4AD3573636E364A133A5C",
+        "gridColumns": 3,
+        "rows": [
+          {
+            "cellCount": 2,
+            "cells": [
+              {
+                "gridSpan": 2,
+                "text": "R1 C1|R1 C2"
+              },
+              {
+                "gridSpan": 1,
+                "text": "R1 C3"
+              }
+            ]
+          },
+          {
+            "cellCount": 3,
+            "cells": [
+              {
+                "gridSpan": 1,
+                "text": "R2 C1"
+              },
+              {
+                "gridSpan": 1,
+                "text": "R2 C2"
+              },
+              {
+                "gridSpan": 1,
+                "text": "R2 C3"
+              }
+            ]
+          },
+          {
+            "cellCount": 3,
+            "cells": [
+              {
+                "gridSpan": 1,
+                "text": "R3 C1"
+              },
+              {
+                "gridSpan": 1,
+                "text": "R3 C2"
+              },
+              {
+                "gridSpan": 1,
+                "text": "N11|N12|N21|N22|R3 C3"
+              }
+            ]
+          }
+        ]
+      },
+      "edited": {
+        "file": "C:\\word\\round2-work-20260907\\real-word-round2-inputs\\_roundtrip\\edited\\large-report--mergecells.docx",
+        "documentXmlSha256": "B63F28FE8F672EB877564AD598EE7B4B7E6EF88686B4AD3573636E364A133A5C",
+        "gridColumns": 3,
+        "rows": [
+          {
+            "cellCount": 2,
+            "cells": [
+              {
+                "gridSpan": 2,
+                "text": "R1 C1|R1 C2"
+              },
+              {
+                "gridSpan": 1,
+                "text": "R1 C3"
+              }
+            ]
+          },
+          {
+            "cellCount": 3,
+            "cells": [
+              {
+                "gridSpan": 1,
+                "text": "R2 C1"
+              },
+              {
+                "gridSpan": 1,
+                "text": "R2 C2"
+              },
+              {
+                "gridSpan": 1,
+                "text": "R2 C3"
+              }
+            ]
+          },
+          {
+            "cellCount": 3,
+            "cells": [
+              {
+                "gridSpan": 1,
+                "text": "R3 C1"
+              },
+              {
+                "gridSpan": 1,
+                "text": "R3 C2"
+              },
+              {
+                "gridSpan": 1,
+                "text": "N11|N12|N21|N22|R3 C3"
+              }
+            ]
+          }
+        ]
+      },
+      "batchBaselineCells": 8,
+      "batchEditedCells": 8
+    },
+    {
+      "file": "table-styled--mergecells.docx",
+      "base": "table/table-styled.docx",
+      "documentXmlByteIdentical": true,
+      "firstTableOuterXmlIdentical": true,
+      "baseline": {
+        "file": "C:\\word\\round2-work-20260907\\baseline\\real-word-corpus-20260906\\table\\table-styled.docx",
+        "documentXmlSha256": "72D023FC0EE68A30A5C417CBCE344EC265635BF8CE90B1249778A76886E85585",
+        "gridColumns": 3,
+        "rows": [
+          {
+            "cellCount": 2,
+            "cells": [
+              {
+                "gridSpan": 2,
+                "text": "R1 C1|R1 C2"
+              },
+              {
+                "gridSpan": 1,
+                "text": "R1 C3"
+              }
+            ]
+          },
+          {
+            "cellCount": 3,
+            "cells": [
+              {
+                "gridSpan": 1,
+                "text": "R2 C1"
+              },
+              {
+                "gridSpan": 1,
+                "text": "R2 C2"
+              },
+              {
+                "gridSpan": 1,
+                "text": "R2 C3"
+              }
+            ]
+          },
+          {
+            "cellCount": 3,
+            "cells": [
+              {
+                "gridSpan": 1,
+                "text": "R3 C1"
+              },
+              {
+                "gridSpan": 1,
+                "text": "R3 C2"
+              },
+              {
+                "gridSpan": 1,
+                "text": "N11|N12|N21|N22|R3 C3"
+              }
+            ]
+          }
+        ]
+      },
+      "edited": {
+        "file": "C:\\word\\round2-work-20260907\\real-word-round2-inputs\\_roundtrip\\edited\\table-styled--mergecells.docx",
+        "documentXmlSha256": "72D023FC0EE68A30A5C417CBCE344EC265635BF8CE90B1249778A76886E85585",
+        "gridColumns": 3,
+        "rows": [
+          {
+            "cellCount": 2,
+            "cells": [
+              {
+                "gridSpan": 2,
+                "text": "R1 C1|R1 C2"
+              },
+              {
+                "gridSpan": 1,
+                "text": "R1 C3"
+              }
+            ]
+          },
+          {
+            "cellCount": 3,
+            "cells": [
+              {
+                "gridSpan": 1,
+                "text": "R2 C1"
+              },
+              {
+                "gridSpan": 1,
+                "text": "R2 C2"
+              },
+              {
+                "gridSpan": 1,
+                "text": "R2 C3"
+              }
+            ]
+          },
+          {
+            "cellCount": 3,
+            "cells": [
+              {
+                "gridSpan": 1,
+                "text": "R3 C1"
+              },
+              {
+                "gridSpan": 1,
+                "text": "R3 C2"
+              },
+              {
+                "gridSpan": 1,
+                "text": "N11|N12|N21|N22|R3 C3"
+              }
+            ]
+          }
+        ]
+      },
+      "batchBaselineCells": 8,
+      "batchEditedCells": 8
+    }
+  ]
+}

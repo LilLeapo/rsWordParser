@@ -1,0 +1,28 @@
+﻿{
+    "action":  "Save",
+    "case":  "ink/ink-pen",
+    "file":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\ink\\ink-pen.docx",
+    "version":  "16.0",
+    "build":  "16.0.14334",
+    "text":  "before 前文\r这是一段用于观察原生墨迹的文字。\rafter 后文\r\r",
+    "objects":  [
+                    {
+                        "placement":  "floating",
+                        "width":  64.85,
+                        "alt":  "",
+                        "wrap":  3,
+                        "type":  23,
+                        "height":  0
+                    },
+                    {
+                        "placement":  "floating",
+                        "width":  13.7,
+                        "alt":  "",
+                        "wrap":  3,
+                        "type":  23,
+                        "height":  9.4
+                    }
+                ],
+    "mathCount":  0,
+    "pdf":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\ink\\ink-pen.pdf"
+}

@@ -1,0 +1,13 @@
+﻿{
+    "action":  "Save",
+    "case":  "math/math-display-two",
+    "file":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\math\\math-display-two-2.docx",
+    "version":  "16.0",
+    "build":  "16.0.14334",
+    "text":  "before 前文\r1+1=2\u000b2+2=4\rafter 后文\r\r",
+    "objects":  [
+
+                ],
+    "mathCount":  2,
+    "pdf":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\math\\math-display-two-2.pdf"
+}

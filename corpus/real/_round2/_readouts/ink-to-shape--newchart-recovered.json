@@ -1,0 +1,85 @@
+﻿{
+    "source":  "ink-to-shape--newchart.docx",
+    "recoveredName":  "文档1",
+    "compat":  15,
+    "text":  "before 前文\r/\r这是一段用于观察原生墨迹的文字。\rafter 后文\r\r",
+    "paragraphs":  5,
+    "inlineShapes":  1,
+    "shapes":  8,
+    "charts":  [
+                   {
+                       "before":  {
+                                      "title":  "rsword 新图表",
+                                      "type":  51,
+                                      "series":  [
+                                                     {
+                                                         "categories":  [
+                                                                            "甲",
+                                                                            "乙",
+                                                                            "丙"
+                                                                        ],
+                                                         "values":  [
+                                                                        3,
+                                                                        1,
+                                                                        2
+                                                                    ],
+                                                         "name":  "系列 A"
+                                                     }
+                                                 ]
+                                  },
+                       "activation":  "not_attempted_in_this_pass",
+                       "index":  1
+                   }
+               ],
+    "shapeDetails":  [
+                         {
+                             "width":  28.25,
+                             "name":  "Ink 9",
+                             "height":  11.3,
+                             "type":  23
+                         },
+                         {
+                             "width":  12.1,
+                             "name":  "Ink 2",
+                             "height":  28.8,
+                             "type":  23
+                         },
+                         {
+                             "width":  12.1,
+                             "name":  "Ink 3",
+                             "height":  28.8,
+                             "type":  23
+                         },
+                         {
+                             "width":  28.25,
+                             "name":  "Ink 4",
+                             "height":  11.3,
+                             "type":  23
+                         },
+                         {
+                             "width":  28.25,
+                             "name":  "Ink 5",
+                             "height":  11.3,
+                             "type":  23
+                         },
+                         {
+                             "width":  12.1,
+                             "name":  "Ink 6",
+                             "height":  28.8,
+                             "type":  23
+                         },
+                         {
+                             "width":  12.1,
+                             "name":  "Ink 7",
+                             "height":  28.8,
+                             "type":  23
+                         },
+                         {
+                             "width":  28.25,
+                             "name":  "Ink 8",
+                             "height":  11.3,
+                             "type":  23
+                         }
+                     ],
+    "method":  "Word UI open, accepted unreadable-content recovery, Word SaveAs2 and PDF export"
+}

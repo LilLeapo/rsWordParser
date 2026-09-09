@@ -1,0 +1,32 @@
+﻿{
+    "file":  "smartart-in-table--mergecells.docx",
+    "compat":  15,
+    "paragraphs":  10,
+    "text":  "before 前文\r/\r右上\r\u0007\r\u0007左下\r\u0007右下\r\u0007\r\u0007\rafter 后文\r\r",
+    "inlineShapes":  1,
+    "shapes":  0,
+    "charts":  [
+
+               ],
+    "shapeDetails":  [
+
+                     ],
+    "comments":  [
+
+                 ],
+    "headers":  [
+                    {
+                        "even":  "\r",
+                        "primary":  "\r",
+                        "first":  "\r",
+                        "index":  1
+                    }
+                ],
+    "tables":  [
+                   {
+                       "rows":  2,
+                       "text":  "/\r右上\r\u0007\r\u0007左下\r\u0007右下\r\u0007\r\u0007",
+                       "cells":  3
+                   }
+               ]
+}

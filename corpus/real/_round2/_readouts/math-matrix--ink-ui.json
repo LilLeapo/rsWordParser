@@ -1,0 +1,37 @@
+﻿{
+    "file":  "math-matrix--ink.docx",
+    "compat":  15,
+    "paragraphs":  4,
+    "text":  "before 前文\r\r\r𝑎\r𝑏\r𝑐\r𝑑\r\r\rafter 后文\r\r",
+    "inlineShapes":  0,
+    "shapes":  1,
+    "charts":  [
+
+               ],
+    "shapeDetails":  [
+                         {
+                             "width":  120,
+                             "wrap":  3,
+                             "name":  "aidocs-ink 1",
+                             "type":  13,
+                             "height":  30,
+                             "top":  -3.75,
+                             "left":  15,
+                             "relativeHorizontal":  2
+                         }
+                     ],
+    "comments":  [
+
+                 ],
+    "headers":  [
+                    {
+                        "even":  "\r",
+                        "primary":  "\r",
+                        "first":  "\r",
+                        "index":  1
+                    }
+                ],
+    "tables":  [
+
+               ]
+}

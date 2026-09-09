@@ -1,0 +1,82 @@
+﻿{
+    "case":  "run-edits",
+    "stage":  "tracked",
+    "path":  "C:\\word\\real-word-round3-20260907\\revfix\\run-edits\\tracked.docx",
+    "sha256":  "5508D824291428D2D537B6873E725EF5BF55C5E9DA3EE2E1BE3BA3C0EC565281",
+    "sourcePath":  "C:\\word\\real-word-round3-20260907\\revfix\\run-edits\\base.docx",
+    "sourceSha256":  "A8E8AC3777FED4EA84F76E76CC70D6272503AE9FBC609D0C637FD903D0CFD6F4",
+    "operations":  [
+                       "Opened unchanged base.docx independently.",
+                       "Inserted requested sentence after first sentence.",
+                       "Deleted second original sentence.",
+                       "Set three characters of third sentence bold and red."
+                   ],
+    "readout":  {
+                    "text":  "before 前文\r第一句原文。新增的一句。第二句原文。第三句原文。\rafter 后文\r\r",
+                    "paragraphs":  [
+                                       {
+                                           "text":  "before 前文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "第一句原文。新增的一句。第二句原文。第三句原文。\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "after 后文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       }
+                                   ],
+                    "revisions":  [
+                                      {
+                                          "type":  1,
+                                          "author":  "作者甲",
+                                          "text":  "新增的一句。"
+                                      },
+                                      {
+                                          "type":  2,
+                                          "author":  "作者甲",
+                                          "text":  "第二句原文。"
+                                      },
+                                      {
+                                          "type":  3,
+                                          "author":  "作者甲",
+                                          "text":  "第三句"
+                                      }
+                                  ],
+                    "revisionCount":  3,
+                    "sections":  [
+                                     {
+                                         "index":  1,
+                                         "start":  0,
+                                         "end":  45,
+                                         "orientation":  0,
+                                         "sectionStart":  2
+                                     }
+                                 ],
+                    "shapes":  [
+
+                               ],
+                    "pages":  1,
+                    "compatibility":  15,
+                    "trackMoves":  true,
+                    "trackFormatting":  true,
+                    "trackRevisions":  true
+                },
+    "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\revfix\\run-edits\\tracked.pdf",
+    "date":  "2026-09-07T13:46:58.1930403+08:00",
+    "method":  "Native Windows Word COM; DOCX saved once at this path; PDF export and current-document UI inspection afterward without save back.",
+    "uiPending":  true
+}

@@ -33,6 +33,7 @@
 | `Enum<E>` | 匹配枚举成员；不匹配 → `Raw(text)` + 诊断，**不**丢失 | 枚举字面 |
 | `Str` | 原文 | 原文（转义） |
 | `Int`/`UInt` | 十进制 | 十进制 |
+| `MeasureOrPercent` (`ST_MeasurementOrPercent`，`CT_TblWidth/@w:w`) | 无单位十进制 → `Number`；带单位 → 换算 twips 的 `Number`；`NN%` 字面 → `Percent`（1/100 百分点）；单位由同元素 `w:type` 决定 | `Number` 写整数，`Percent` 写 `NN%` |
 | `Raw` | 整个元素按 DOM 保留 | 原字节 |
 
 Strict 下 `ST_OnOff` 只接受 `true/false/1/0`；解析时两族都接受，生成按 `PartFlavor`。
@@ -60,6 +61,10 @@ Strict 下 `ST_OnOff` 只接受 `true/false/1/0`；解析时两族都接受，�
 **CT_TblPr**：`tblStyle, tblpPr, tblOverlap, bidiVisual, tblStyleRowBandSize, tblStyleColBandSize, tblW, jc, tblCellSpacing, tblInd, tblBorders, shd, tblLayout, tblCellMar, tblLook, tblCaption, tblDescription, tblPrChange`
 
 **CT_TrPr**（choice 组；按 Word 顺序）：`cnfStyle, divId, gridBefore, gridAfter, wBefore, wAfter, cantSplit, trHeight, tblHeader, tblCellSpacing, jc, hidden, ins, del, trPrChange`
+
+**CT_TblPrEx**（`w:tr` 的第一个子元素，行级表格属性例外；复用 `TableProps` 表读取，缺的字段为 `None`）：`tblW, jc, tblCellSpacing, tblInd, tblBorders, shd, tblLayout, tblCellMar, tblLook, tblPrExChange`
+
+**`w:tr` / `w:tc` / `w:tbl` 子元素顺序**（不是属性容器，但新建容器时要按它插入）：`w:tbl`: `tblPr, tblGrid, tr*`；`w:tr`: `tblPrEx?, trPr?, tc*`；`w:tc`: `tcPr?, (p | tbl | sdt | …)+`，末尾必须是 `w:p`。
 
 **CT_SectPr**：`headerReference/footerReference`（0–6 个，顺序任意），然后 `footnotePr, endnotePr, type, pgSz, pgMar, paperSrc, pgBorders, lnNumType, pgNumType, cols, formProt, vAlign, noEndnote, titlePg, textDirection, bidi, rtlGutter, docGrid, printerSettings, sectPrChange`
 
@@ -102,9 +107,9 @@ pub fn order_index_xxx(name: &QName) -> Option<u16>
 
 - `RunProps`：`rStyle, rFonts(全部 9 个属性), b, bCs, i, iCs, caps, smallCaps, strike, dstrike, vanish, color(val/themeColor/themeTint/themeShade), spacing, w, kern, position, sz, szCs, highlight, u(val/color/themeColor), shd(val/color/fill/themeFill), vertAlign, rtl, cs, em, lang(val/eastAsia/bidi), specVanish`；`w14:textFill` 读为显示用颜色近似（`RES-05`）但写回保持 `Raw`。
 - `ParaProps`：`pStyle, keepNext, keepLines, pageBreakBefore, framePr(全部属性), widowControl, numPr(ilvl/numId), pBdr(六边), shd, tabs, autoSpaceDE, autoSpaceDN, bidi, snapToGrid, spacing(全部属性), ind(全部属性), contextualSpacing, jc, outlineLvl, rPr(段落标记，嵌套 RunProps)`。
-- `CellProps`：`tcW, gridSpan, hMerge, vMerge, tcBorders, shd, noWrap, tcMar, textDirection, vAlign, hideMark, cellIns, cellDel, cellMerge`。
-- `TableProps`：`tblStyle, tblpPr, tblOverlap, bidiVisual, tblW, jc, tblCellSpacing, tblInd, tblBorders, shd, tblLayout, tblCellMar, tblLook, tblCaption, tblDescription`。
-- `RowProps`：`cnfStyle, gridBefore, gridAfter, wBefore, wAfter, cantSplit, trHeight, tblHeader, tblCellSpacing, jc, hidden, ins, del`。
+- `CellProps`（`cell.toml`，任务 3.1）：`cnfStyle, tcW, gridSpan, hMerge, vMerge（元素存在无 val = continue）, tcBorders（8 边，start/end 的 Transitional 拼写 left/right）, shd, noWrap, tcMar, textDirection, tcFitText, vAlign, hideMark, headers（Raw）, cellIns, cellDel, cellMerge`；`tblLayout` 一类属性在 `w:type` 而非 `w:val` 的元素建成 struct。
+- `TableProps`（`table.toml`）：`tblStyle, tblpPr（全部属性）, tblOverlap, bidiVisual, tblStyleRowBandSize, tblStyleColBandSize, tblW, jc, tblCellSpacing, tblInd, tblBorders（6 边）, shd, tblLayout, tblCellMar, tblLook（val + 6 个开关）, tblCaption, tblDescription`；同一张表读 `w:tblPrEx`。表格样式（`styles.toml`）的 `tblPr / trPr / tcPr` 用这三张表，不再是 `Raw`。
+- `RowProps`（`row.toml`）：`cnfStyle, gridBefore, gridAfter, wBefore, wAfter, cantSplit, trHeight, tblHeader, tblCellSpacing, jc, hidden, ins, del`（`ins/del` 与单元格修订标记都不进 `*PrChange` 快照）。
 - `SectionProps`：`headerReference*, footerReference*, footnotePr, endnotePr, type, pgSz, pgMar, pgBorders, lnNumType, pgNumType, cols(含 col 子元素), formProt, vAlign, titlePg, textDirection, bidi, rtlGutter, docGrid`。
 
 ## PROP-09 值保真

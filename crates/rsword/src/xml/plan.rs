@@ -4,8 +4,25 @@
 //! 每一步只调用 `xml::edit` 的原语，因此脏规则（`XML-12`）自动成立。
 //! 同一计划里后面的编辑可以用 [`Target::New`] 指向前面编辑创建的节点。
 
-use crate::xml::dom::{Dom, NodeId};
-use crate::xml::names::QName;
+use crate::xml::Dirty;
+use crate::xml::dom::{Dom, NodeId, NodeKind};
+use crate::xml::interner::Interner;
+use crate::xml::names::{LocalName, NsId, QName};
+
+/// 跨 DOM 的名字映射：已知名原样，`Other` / `Unbound` 按字符串在目标 interner 里重新登记。
+pub(crate) fn map_qname(src: &Dom, q: QName, target: &mut Interner) -> QName {
+    let si = src.interner();
+    let ns = match q.ns {
+        NsId::Other(id) => NsId::Other(target.intern(si.resolve(id))),
+        NsId::Unbound(id) => NsId::Unbound(target.intern(si.resolve(id))),
+        other => other,
+    };
+    let local = match q.local {
+        LocalName::Other(id) => LocalName::Other(target.intern(si.resolve(id))),
+        other => other,
+    };
+    QName::new(ns, local)
+}
 
 /// 待创建的元素：与 DOM 无关的描述（codec 的输出），[`NewElement::materialize`] 落成 `New` 子树。
 /// 命名空间声明由序列化按作用域补（`XML-14`）。
@@ -58,6 +75,38 @@ impl NewElement {
             NewNode::Element(e) => Some(e),
             NewNode::Text(_) => None,
         })
+    }
+
+    /// 把另一棵 DOM（例如 [`crate::xml::fragment::parse_fragment`] 的临时树）里的子树转成与目标
+    /// DOM 无关的描述：`Other` 命名空间 / 局部名按字符串重新 intern 到 `target`；`Deleted` 节点、
+    /// 注释 / PI 跳过；文本按解码后的内容保留（不 trim）。非元素节点返回 `None`。
+    pub fn from_dom(src: &Dom, node: NodeId, target: &mut Interner) -> Option<NewElement> {
+        let e = src.element(node)?;
+        if src.node(node).dirty == Dirty::Deleted {
+            return None;
+        }
+        let mut out = NewElement::new(map_qname(src, e.name, target));
+        for a in &e.attrs {
+            out.push_attr(map_qname(src, a.name, target), src.attr_str(a).into_owned());
+        }
+        for &c in &e.children {
+            match &src.node(c).kind {
+                NodeKind::Element(_) => {
+                    if let Some(child) = NewElement::from_dom(src, c, target) {
+                        out.push_child(child);
+                    }
+                }
+                NodeKind::Text(_) => {
+                    if src.node(c).dirty != Dirty::Deleted
+                        && let Some(t) = src.text(c)
+                    {
+                        out.children.push(NewNode::Text(t.into_owned()));
+                    }
+                }
+                NodeKind::Opaque => {}
+            }
+        }
+        Some(out)
     }
 
     /// 在 `dom` 里创建游离的 `New` 子树，返回根节点。
@@ -123,6 +172,23 @@ pub enum NodeEdit {
         node: Target,
         name: QName,
     },
+    /// 替换文本节点内容（`Owned`；节点 `SelfDirty`，父 `w:t` 由序列化补 `xml:space`）。
+    SetText {
+        node: NodeId,
+        text: String,
+    },
+    /// 给现有元素改名（节点变 `SelfDirty`，子树与属性不动）。修订生成用它把
+    /// `w:t → w:delText`、`w:instrText → w:delInstrText`（`spec/18` 7.2）。
+    Rename {
+        node: NodeId,
+        name: QName,
+    },
+    /// 同 part 移动现有子树到 `parent` 的 `before` 之前（`XML-12` 规则 E）。
+    Move {
+        node: NodeId,
+        parent: Target,
+        before: Option<NodeId>,
+    },
 }
 
 impl NodeEdit {
@@ -130,7 +196,12 @@ impl NodeEdit {
     pub fn creates(&self) -> bool {
         !matches!(
             self,
-            NodeEdit::Delete(_) | NodeEdit::SetAttr { .. } | NodeEdit::RemoveAttr { .. }
+            NodeEdit::Delete(_)
+                | NodeEdit::SetAttr { .. }
+                | NodeEdit::RemoveAttr { .. }
+                | NodeEdit::SetText { .. }
+                | NodeEdit::Rename { .. }
+                | NodeEdit::Move { .. }
         )
     }
 }
@@ -195,6 +266,26 @@ impl Dom {
                 NodeEdit::RemoveAttr { node, name } => {
                     let n = resolve(*node, &created);
                     self.remove_attr(n, *name);
+                    None
+                }
+                NodeEdit::SetText { node, text } => {
+                    self.set_text(*node, text.clone());
+                    None
+                }
+                NodeEdit::Rename { node, name } => {
+                    self.rename_element(*node, *name);
+                    None
+                }
+                NodeEdit::Move { node, parent, before } => {
+                    let p = resolve(*parent, &created);
+                    // 先算目标下标：`node` 若已在 `p` 里且位于 `before` 之前，摘下后下标会前移
+                    let mut idx = self.insert_index(p, *before);
+                    if self.parent(*node) == Some(p)
+                        && self.child_index(p, *node).is_some_and(|i| i < idx)
+                    {
+                        idx -= 1;
+                    }
+                    self.move_within_part(*node, p, idx);
                     None
                 }
             };

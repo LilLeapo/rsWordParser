@@ -1,0 +1,2584 @@
+{
+  "GeneratedAt": "2026-09-07T00:52:48.0721754+08:00",
+  "Method": "Read-only ZIP/XML, SHA256, and System.Drawing image decoder; no Word automation and no source DOCX writes. This is targeted structure inspection, not full OOXML schema validation.",
+  "Documents": [
+    {
+      "Path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_roundtrip\\01-chart-insert-bar.docx",
+      "Sha256": "866C6867E6FC4DBB875683BADDA1ABC98FAE5C3CC2E2A2AA241D615B5DBBB604",
+      "Parts": [
+        "[Content_Types].xml",
+        "_rels/",
+        "_rels/.rels",
+        "word/",
+        "word/_rels/",
+        "word/_rels/document.xml.rels",
+        "word/styles.xml",
+        "word/document.xml",
+        "word/charts/chart1.xml",
+        "word/charts/embeddings/workbook1.xlsx",
+        "word/charts/_rels/chart1.xml.rels"
+      ],
+      "Issues": [],
+      "DuplicateContentTypeDefaults": [],
+      "Text": "第一段第二段",
+      "Relationships": [
+        {
+          "Part": "_rels/.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "Target": "word/document.xml",
+          "ResolvedTarget": "word/document.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "Target": "styles.xml",
+          "ResolvedTarget": "word/styles.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId2",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+          "Target": "charts/chart1.xml",
+          "ResolvedTarget": "word/charts/chart1.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/charts/_rels/chart1.xml.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+          "Target": "embeddings/workbook1.xlsx",
+          "ResolvedTarget": "word/charts/embeddings/workbook1.xlsx",
+          "External": false,
+          "Exists": true
+        }
+      ],
+      "Charts": [
+        {
+          "Part": "word/charts/chart1.xml",
+          "Types": [
+            "barChart"
+          ],
+          "Title": "季度销售",
+          "Series": [
+            {
+              "Name": "华东",
+              "Categories": [
+                {
+                  "Index": "0",
+                  "Value": "Q1"
+                },
+                {
+                  "Index": "1",
+                  "Value": "Q2"
+                },
+                {
+                  "Index": "2",
+                  "Value": "Q3"
+                }
+              ],
+              "Values": [
+                {
+                  "Index": "0",
+                  "Value": "120"
+                },
+                {
+                  "Index": "1",
+                  "Value": "88.5"
+                },
+                {
+                  "Index": "2",
+                  "Value": "96"
+                }
+              ],
+              "Formulas": [
+                "Sheet1!$B$1",
+                "Sheet1!$A$2:$A$4",
+                "Sheet1!$B$2:$B$4"
+              ]
+            },
+            {
+              "Name": "华南",
+              "Categories": [
+                {
+                  "Index": "0",
+                  "Value": "Q1"
+                },
+                {
+                  "Index": "1",
+                  "Value": "Q2"
+                },
+                {
+                  "Index": "2",
+                  "Value": "Q3"
+                }
+              ],
+              "Values": [
+                {
+                  "Index": "0",
+                  "Value": "70"
+                },
+                {
+                  "Index": "2",
+                  "Value": "110"
+                }
+              ],
+              "Formulas": [
+                "Sheet1!$C$1",
+                "Sheet1!$A$2:$A$4",
+                "Sheet1!$C$2:$C$4"
+              ]
+            }
+          ],
+          "AxisReferences": [
+            "111111111",
+            "222222222"
+          ],
+          "AxisDefinitions": [
+            "111111111",
+            "222222222"
+          ],
+          "ExternalDataRelationshipIds": [
+            "rId1"
+          ]
+        }
+      ],
+      "Workbooks": [
+        {
+          "Part": "word/charts/embeddings/workbook1.xlsx",
+          "Sheets": [
+            {
+              "Part": "xl/worksheets/sheet1.xml",
+              "Cells": [
+                {
+                  "Address": "A1",
+                  "Type": "s",
+                  "Value": "",
+                  "RawValue": "0"
+                },
+                {
+                  "Address": "B1",
+                  "Type": "s",
+                  "Value": "华东",
+                  "RawValue": "1"
+                },
+                {
+                  "Address": "C1",
+                  "Type": "s",
+                  "Value": "华南",
+                  "RawValue": "2"
+                },
+                {
+                  "Address": "A2",
+                  "Type": "s",
+                  "Value": "Q1",
+                  "RawValue": "3"
+                },
+                {
+                  "Address": "B2",
+                  "Type": "",
+                  "Value": "120",
+                  "RawValue": "120"
+                },
+                {
+                  "Address": "C2",
+                  "Type": "",
+                  "Value": "70",
+                  "RawValue": "70"
+                },
+                {
+                  "Address": "A3",
+                  "Type": "s",
+                  "Value": "Q2",
+                  "RawValue": "4"
+                },
+                {
+                  "Address": "B3",
+                  "Type": "",
+                  "Value": "88.5",
+                  "RawValue": "88.5"
+                },
+                {
+                  "Address": "A4",
+                  "Type": "s",
+                  "Value": "Q3",
+                  "RawValue": "5"
+                },
+                {
+                  "Address": "B4",
+                  "Type": "",
+                  "Value": "96",
+                  "RawValue": "96"
+                },
+                {
+                  "Address": "C4",
+                  "Type": "",
+                  "Value": "110",
+                  "RawValue": "110"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "Media": [],
+      "Drawings": [
+        {
+          "Kind": "inline",
+          "Name": "Chart 1",
+          "SizePx": [
+            576.0,
+            336.0
+          ],
+          "HorizontalOffsetPx": null,
+          "VerticalOffsetPx": null,
+          "HorizontalAlign": "",
+          "BehindDocument": "",
+          "Wrap": [],
+          "MediaRelationshipIds": [],
+          "ChartRelationshipIds": [
+            "rId2"
+          ]
+        }
+      ],
+      "SourceSha256": "866C6867E6FC4DBB875683BADDA1ABC98FAE5C3CC2E2A2AA241D615B5DBBB604",
+      "SourceCopyMatches": true,
+      "Resaved": {
+        "Path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_roundtrip\\01-chart-insert-bar-resaved-by-word.docx",
+        "Sha256": "AA2094A974A07928AB0A687EFE9418486380C43F6FF542735369AD103F35C2D4",
+        "Parts": [
+          "[Content_Types].xml",
+          "_rels/.rels",
+          "word/document.xml",
+          "word/_rels/document.xml.rels",
+          "word/footnotes.xml",
+          "word/endnotes.xml",
+          "word/charts/chart1.xml",
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx",
+          "word/theme/theme1.xml",
+          "word/charts/_rels/chart1.xml.rels",
+          "word/settings.xml",
+          "word/styles.xml",
+          "word/webSettings.xml",
+          "word/fontTable.xml",
+          "docProps/core.xml",
+          "docProps/app.xml"
+        ],
+        "Issues": [],
+        "DuplicateContentTypeDefaults": [],
+        "Text": "第一段第二段",
+        "Relationships": [
+          {
+            "Part": "_rels/.rels",
+            "Id": "rId3",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+            "Target": "docProps/app.xml",
+            "ResolvedTarget": "docProps/app.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "_rels/.rels",
+            "Id": "rId2",
+            "Type": "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+            "Target": "docProps/core.xml",
+            "ResolvedTarget": "docProps/core.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "_rels/.rels",
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+            "Target": "word/document.xml",
+            "ResolvedTarget": "word/document.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId8",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+            "Target": "theme/theme1.xml",
+            "ResolvedTarget": "word/theme/theme1.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId3",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+            "Target": "webSettings.xml",
+            "ResolvedTarget": "word/webSettings.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId7",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+            "Target": "fontTable.xml",
+            "ResolvedTarget": "word/fontTable.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId2",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+            "Target": "settings.xml",
+            "ResolvedTarget": "word/settings.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+            "Target": "styles.xml",
+            "ResolvedTarget": "word/styles.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId6",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+            "Target": "charts/chart1.xml",
+            "ResolvedTarget": "word/charts/chart1.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId5",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/endnotes",
+            "Target": "endnotes.xml",
+            "ResolvedTarget": "word/endnotes.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId4",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes",
+            "Target": "footnotes.xml",
+            "ResolvedTarget": "word/footnotes.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/charts/_rels/chart1.xml.rels",
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+            "Target": "../embeddings/Microsoft_Excel_Worksheet.xlsx",
+            "ResolvedTarget": "word/embeddings/Microsoft_Excel_Worksheet.xlsx",
+            "External": false,
+            "Exists": true
+          }
+        ],
+        "Charts": [
+          {
+            "Part": "word/charts/chart1.xml",
+            "Types": [
+              "barChart"
+            ],
+            "Title": "季度销售",
+            "Series": [
+              {
+                "Name": "华东",
+                "Categories": [
+                  {
+                    "Index": "0",
+                    "Value": "Q1"
+                  },
+                  {
+                    "Index": "1",
+                    "Value": "Q2"
+                  },
+                  {
+                    "Index": "2",
+                    "Value": "Q3"
+                  }
+                ],
+                "Values": [
+                  {
+                    "Index": "0",
+                    "Value": "120"
+                  },
+                  {
+                    "Index": "1",
+                    "Value": "88.5"
+                  },
+                  {
+                    "Index": "2",
+                    "Value": "96"
+                  }
+                ],
+                "Formulas": [
+                  "Sheet1!$B$1",
+                  "Sheet1!$A$2:$A$4",
+                  "Sheet1!$B$2:$B$4"
+                ]
+              },
+              {
+                "Name": "华南",
+                "Categories": [
+                  {
+                    "Index": "0",
+                    "Value": "Q1"
+                  },
+                  {
+                    "Index": "1",
+                    "Value": "Q2"
+                  },
+                  {
+                    "Index": "2",
+                    "Value": "Q3"
+                  }
+                ],
+                "Values": [
+                  {
+                    "Index": "0",
+                    "Value": "70"
+                  },
+                  {
+                    "Index": "2",
+                    "Value": "110"
+                  }
+                ],
+                "Formulas": [
+                  "Sheet1!$C$1",
+                  "Sheet1!$A$2:$A$4",
+                  "Sheet1!$C$2:$C$4"
+                ]
+              }
+            ],
+            "AxisReferences": [
+              "111111111",
+              "222222222"
+            ],
+            "AxisDefinitions": [
+              "111111111",
+              "222222222"
+            ],
+            "ExternalDataRelationshipIds": [
+              "rId1"
+            ]
+          }
+        ],
+        "Workbooks": [
+          {
+            "Part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx",
+            "Sheets": [
+              {
+                "Part": "xl/worksheets/sheet1.xml",
+                "Cells": [
+                  {
+                    "Address": "A1",
+                    "Type": "s",
+                    "Value": "",
+                    "RawValue": "0"
+                  },
+                  {
+                    "Address": "B1",
+                    "Type": "s",
+                    "Value": "华东",
+                    "RawValue": "1"
+                  },
+                  {
+                    "Address": "C1",
+                    "Type": "s",
+                    "Value": "华南",
+                    "RawValue": "2"
+                  },
+                  {
+                    "Address": "A2",
+                    "Type": "s",
+                    "Value": "Q1",
+                    "RawValue": "3"
+                  },
+                  {
+                    "Address": "B2",
+                    "Type": "",
+                    "Value": "120",
+                    "RawValue": "120"
+                  },
+                  {
+                    "Address": "C2",
+                    "Type": "",
+                    "Value": "70",
+                    "RawValue": "70"
+                  },
+                  {
+                    "Address": "A3",
+                    "Type": "s",
+                    "Value": "Q2",
+                    "RawValue": "4"
+                  },
+                  {
+                    "Address": "B3",
+                    "Type": "",
+                    "Value": "88.5",
+                    "RawValue": "88.5"
+                  },
+                  {
+                    "Address": "A4",
+                    "Type": "s",
+                    "Value": "Q3",
+                    "RawValue": "5"
+                  },
+                  {
+                    "Address": "B4",
+                    "Type": "",
+                    "Value": "96",
+                    "RawValue": "96"
+                  },
+                  {
+                    "Address": "C4",
+                    "Type": "",
+                    "Value": "110",
+                    "RawValue": "110"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "Media": [],
+        "Drawings": [
+          {
+            "Kind": "inline",
+            "Name": "Chart 1",
+            "SizePx": [
+              576.0,
+              336.0
+            ],
+            "HorizontalOffsetPx": null,
+            "VerticalOffsetPx": null,
+            "HorizontalAlign": "",
+            "BehindDocument": "",
+            "Wrap": [],
+            "MediaRelationshipIds": [],
+            "ChartRelationshipIds": [
+              "rId6"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_roundtrip\\01-text-source.docx",
+      "Sha256": "6ADDECB4BBDC503278F2C49AAF21FA8AF909A27C1BC60747FCD2A7DE951FEE8E",
+      "Parts": [
+        "[Content_Types].xml",
+        "_rels/",
+        "_rels/.rels",
+        "word/",
+        "word/_rels/",
+        "word/_rels/document.xml.rels",
+        "word/styles.xml",
+        "word/document.xml"
+      ],
+      "Issues": [],
+      "DuplicateContentTypeDefaults": [],
+      "Text": "第一段第二段",
+      "Relationships": [
+        {
+          "Part": "_rels/.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "Target": "word/document.xml",
+          "ResolvedTarget": "word/document.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "Target": "styles.xml",
+          "ResolvedTarget": "word/styles.xml",
+          "External": false,
+          "Exists": true
+        }
+      ],
+      "Charts": [],
+      "Workbooks": [],
+      "Media": [],
+      "Drawings": [],
+      "SourceSha256": "6ADDECB4BBDC503278F2C49AAF21FA8AF909A27C1BC60747FCD2A7DE951FEE8E",
+      "SourceCopyMatches": true,
+      "Resaved": {
+        "Path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_roundtrip\\01-text-source-resaved-by-word.docx",
+        "Sha256": "6FD81CBC58BD276F7505CDBE0BCAC813EB11877408ACFAE7658D5ADA19053C6D",
+        "Parts": [
+          "[Content_Types].xml",
+          "_rels/.rels",
+          "word/document.xml",
+          "word/_rels/document.xml.rels",
+          "word/footnotes.xml",
+          "word/endnotes.xml",
+          "word/theme/theme1.xml",
+          "word/settings.xml",
+          "word/styles.xml",
+          "word/webSettings.xml",
+          "word/fontTable.xml",
+          "docProps/core.xml",
+          "docProps/app.xml"
+        ],
+        "Issues": [],
+        "DuplicateContentTypeDefaults": [],
+        "Text": "第一段第二段",
+        "Relationships": [
+          {
+            "Part": "_rels/.rels",
+            "Id": "rId3",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+            "Target": "docProps/app.xml",
+            "ResolvedTarget": "docProps/app.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "_rels/.rels",
+            "Id": "rId2",
+            "Type": "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+            "Target": "docProps/core.xml",
+            "ResolvedTarget": "docProps/core.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "_rels/.rels",
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+            "Target": "word/document.xml",
+            "ResolvedTarget": "word/document.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId3",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+            "Target": "webSettings.xml",
+            "ResolvedTarget": "word/webSettings.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId7",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+            "Target": "theme/theme1.xml",
+            "ResolvedTarget": "word/theme/theme1.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId2",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+            "Target": "settings.xml",
+            "ResolvedTarget": "word/settings.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+            "Target": "styles.xml",
+            "ResolvedTarget": "word/styles.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId6",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+            "Target": "fontTable.xml",
+            "ResolvedTarget": "word/fontTable.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId5",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/endnotes",
+            "Target": "endnotes.xml",
+            "ResolvedTarget": "word/endnotes.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId4",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes",
+            "Target": "footnotes.xml",
+            "ResolvedTarget": "word/footnotes.xml",
+            "External": false,
+            "Exists": true
+          }
+        ],
+        "Charts": [],
+        "Workbooks": [],
+        "Media": [],
+        "Drawings": []
+      }
+    },
+    {
+      "Path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_roundtrip\\02-chart-setdata.docx",
+      "Sha256": "39DCCAE249E0046F52D6F582529ADE44C5714A73F3C1D5E550ABB7C76E02DAC3",
+      "Parts": [
+        "[Content_Types].xml",
+        "_rels/",
+        "_rels/.rels",
+        "word/",
+        "word/_rels/",
+        "word/_rels/document.xml.rels",
+        "word/styles.xml",
+        "word/charts/",
+        "word/charts/chart1.xml",
+        "word/document.xml"
+      ],
+      "Issues": [
+        "Undefined chart axis in word/charts/chart1.xml: 111",
+        "Undefined chart axis in word/charts/chart1.xml: 222"
+      ],
+      "DuplicateContentTypeDefaults": [],
+      "Text": "",
+      "Relationships": [
+        {
+          "Part": "_rels/.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "Target": "word/document.xml",
+          "ResolvedTarget": "word/document.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "Target": "styles.xml",
+          "ResolvedTarget": "word/styles.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId30",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+          "Target": "charts/chart1.xml",
+          "ResolvedTarget": "word/charts/chart1.xml",
+          "External": false,
+          "Exists": true
+        }
+      ],
+      "Charts": [
+        {
+          "Part": "word/charts/chart1.xml",
+          "Types": [
+            "barChart"
+          ],
+          "Title": "已改标题 Edited",
+          "Series": [
+            {
+              "Name": "改名系列",
+              "Categories": [
+                {
+                  "Index": "0",
+                  "Value": "一月"
+                },
+                {
+                  "Index": "1",
+                  "Value": "二月"
+                },
+                {
+                  "Index": "2",
+                  "Value": "三月"
+                }
+              ],
+              "Values": [
+                {
+                  "Index": "0",
+                  "Value": "9"
+                },
+                {
+                  "Index": "1",
+                  "Value": "8"
+                },
+                {
+                  "Index": "2",
+                  "Value": "7"
+                }
+              ],
+              "Formulas": [
+                "Sheet1!$B$1",
+                "Sheet1!$A$2:$A$4",
+                "Sheet1!$B$2:$B$4"
+              ]
+            },
+            {
+              "Name": "华南",
+              "Categories": [
+                {
+                  "Index": "0",
+                  "Value": "一月"
+                },
+                {
+                  "Index": "1",
+                  "Value": "二月"
+                },
+                {
+                  "Index": "2",
+                  "Value": "三月"
+                }
+              ],
+              "Values": [
+                {
+                  "Index": "0",
+                  "Value": "70"
+                },
+                {
+                  "Index": "2",
+                  "Value": "110"
+                }
+              ],
+              "Formulas": [
+                "Sheet1!$C$1",
+                "Sheet1!$A$2:$A$4",
+                "Sheet1!$C$2:$C$4"
+              ]
+            }
+          ],
+          "AxisReferences": [
+            "111",
+            "222"
+          ],
+          "AxisDefinitions": [],
+          "ExternalDataRelationshipIds": []
+        }
+      ],
+      "Workbooks": [],
+      "Media": [],
+      "Drawings": [
+        {
+          "Kind": "inline",
+          "Name": "图表 1",
+          "SizePx": [
+            576.0,
+            336.0
+          ],
+          "HorizontalOffsetPx": null,
+          "VerticalOffsetPx": null,
+          "HorizontalAlign": "",
+          "BehindDocument": "",
+          "Wrap": [],
+          "MediaRelationshipIds": [],
+          "ChartRelationshipIds": [
+            "rId30"
+          ]
+        }
+      ],
+      "SourceSha256": "39DCCAE249E0046F52D6F582529ADE44C5714A73F3C1D5E550ABB7C76E02DAC3",
+      "SourceCopyMatches": true,
+      "Resaved": null
+    },
+    {
+      "Path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_roundtrip\\02-chart-source.docx",
+      "Sha256": "BDD4FDC1EA8FF7E5BC14EDF415244B44A452A9BD1B279F0558EE659D6BAE7C5C",
+      "Parts": [
+        "[Content_Types].xml",
+        "_rels/",
+        "_rels/.rels",
+        "word/",
+        "word/_rels/",
+        "word/_rels/document.xml.rels",
+        "word/styles.xml",
+        "word/charts/",
+        "word/charts/chart1.xml",
+        "word/document.xml"
+      ],
+      "Issues": [
+        "Undefined chart axis in word/charts/chart1.xml: 111",
+        "Undefined chart axis in word/charts/chart1.xml: 222"
+      ],
+      "DuplicateContentTypeDefaults": [],
+      "Text": "",
+      "Relationships": [
+        {
+          "Part": "_rels/.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "Target": "word/document.xml",
+          "ResolvedTarget": "word/document.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "Target": "styles.xml",
+          "ResolvedTarget": "word/styles.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId30",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+          "Target": "charts/chart1.xml",
+          "ResolvedTarget": "word/charts/chart1.xml",
+          "External": false,
+          "Exists": true
+        }
+      ],
+      "Charts": [
+        {
+          "Part": "word/charts/chart1.xml",
+          "Types": [
+            "barChart"
+          ],
+          "Title": "销售统计",
+          "Series": [
+            {
+              "Name": "华东",
+              "Categories": [
+                {
+                  "Index": "0",
+                  "Value": "一月"
+                },
+                {
+                  "Index": "1",
+                  "Value": "二月"
+                },
+                {
+                  "Index": "2",
+                  "Value": "三月"
+                }
+              ],
+              "Values": [
+                {
+                  "Index": "0",
+                  "Value": "120"
+                },
+                {
+                  "Index": "1",
+                  "Value": "88.5"
+                },
+                {
+                  "Index": "2",
+                  "Value": "96"
+                }
+              ],
+              "Formulas": [
+                "Sheet1!$B$1",
+                "Sheet1!$A$2:$A$4",
+                "Sheet1!$B$2:$B$4"
+              ]
+            },
+            {
+              "Name": "华南",
+              "Categories": [
+                {
+                  "Index": "0",
+                  "Value": "一月"
+                },
+                {
+                  "Index": "1",
+                  "Value": "二月"
+                },
+                {
+                  "Index": "2",
+                  "Value": "三月"
+                }
+              ],
+              "Values": [
+                {
+                  "Index": "0",
+                  "Value": "70"
+                },
+                {
+                  "Index": "2",
+                  "Value": "110"
+                }
+              ],
+              "Formulas": [
+                "Sheet1!$C$1",
+                "Sheet1!$A$2:$A$4",
+                "Sheet1!$C$2:$C$4"
+              ]
+            }
+          ],
+          "AxisReferences": [
+            "111",
+            "222"
+          ],
+          "AxisDefinitions": [],
+          "ExternalDataRelationshipIds": []
+        }
+      ],
+      "Workbooks": [],
+      "Media": [],
+      "Drawings": [
+        {
+          "Kind": "inline",
+          "Name": "图表 1",
+          "SizePx": [
+            576.0,
+            336.0
+          ],
+          "HorizontalOffsetPx": null,
+          "VerticalOffsetPx": null,
+          "HorizontalAlign": "",
+          "BehindDocument": "",
+          "Wrap": [],
+          "MediaRelationshipIds": [],
+          "ChartRelationshipIds": [
+            "rId30"
+          ]
+        }
+      ],
+      "SourceSha256": "BDD4FDC1EA8FF7E5BC14EDF415244B44A452A9BD1B279F0558EE659D6BAE7C5C",
+      "SourceCopyMatches": true,
+      "Resaved": null
+    },
+    {
+      "Path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_roundtrip\\03-image-insert-inline-and-square.docx",
+      "Sha256": "0F88A714D4313918D5DDA4EDE43C6F83A62F62735D61EFA589721AA337B22459",
+      "Parts": [
+        "[Content_Types].xml",
+        "_rels/",
+        "_rels/.rels",
+        "word/",
+        "word/_rels/",
+        "word/_rels/document.xml.rels",
+        "word/styles.xml",
+        "word/document.xml",
+        "word/media/image1.png"
+      ],
+      "Issues": [],
+      "DuplicateContentTypeDefaults": [],
+      "Text": "第一段第二段",
+      "Relationships": [
+        {
+          "Part": "_rels/.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "Target": "word/document.xml",
+          "ResolvedTarget": "word/document.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "Target": "styles.xml",
+          "ResolvedTarget": "word/styles.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId2",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "Target": "media/image1.png",
+          "ResolvedTarget": "word/media/image1.png",
+          "External": false,
+          "Exists": true
+        }
+      ],
+      "Charts": [],
+      "Workbooks": [],
+      "Media": [
+        {
+          "Part": "word/media/image1.png",
+          "Bytes": 70,
+          "Sha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+          "Width": 1,
+          "Height": 1,
+          "FirstPixel": "Color [A=127, R=0, G=255, B=0]",
+          "DecodeSuccess": true
+        }
+      ],
+      "Drawings": [
+        {
+          "Kind": "anchor",
+          "Name": "Picture 2",
+          "SizePx": [
+            192.0,
+            96.0
+          ],
+          "HorizontalOffsetPx": null,
+          "VerticalOffsetPx": 0.0,
+          "HorizontalAlign": "right",
+          "BehindDocument": "0",
+          "Wrap": [
+            "wrapSquare"
+          ],
+          "MediaRelationshipIds": [
+            "rId2"
+          ],
+          "ChartRelationshipIds": []
+        },
+        {
+          "Kind": "inline",
+          "Name": "Picture 1",
+          "SizePx": [
+            192.0,
+            96.0
+          ],
+          "HorizontalOffsetPx": null,
+          "VerticalOffsetPx": null,
+          "HorizontalAlign": "",
+          "BehindDocument": "",
+          "Wrap": [],
+          "MediaRelationshipIds": [
+            "rId2"
+          ],
+          "ChartRelationshipIds": []
+        }
+      ],
+      "SourceSha256": "0F88A714D4313918D5DDA4EDE43C6F83A62F62735D61EFA589721AA337B22459",
+      "SourceCopyMatches": true,
+      "Resaved": {
+        "Path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_roundtrip\\03-image-insert-inline-and-square-resaved-by-word.docx",
+        "Sha256": "49E1BCB8284BCF8A71229A5F79368AB28A2B8A73E3A3EB2F823C9F28EBE0B6FC",
+        "Parts": [
+          "[Content_Types].xml",
+          "_rels/.rels",
+          "word/document.xml",
+          "word/_rels/document.xml.rels",
+          "word/footnotes.xml",
+          "word/endnotes.xml",
+          "word/media/image1.png",
+          "word/theme/theme1.xml",
+          "word/settings.xml",
+          "word/styles.xml",
+          "word/webSettings.xml",
+          "word/fontTable.xml",
+          "docProps/core.xml",
+          "docProps/app.xml"
+        ],
+        "Issues": [],
+        "DuplicateContentTypeDefaults": [],
+        "Text": "第一段第二段",
+        "Relationships": [
+          {
+            "Part": "_rels/.rels",
+            "Id": "rId3",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+            "Target": "docProps/app.xml",
+            "ResolvedTarget": "docProps/app.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "_rels/.rels",
+            "Id": "rId2",
+            "Type": "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+            "Target": "docProps/core.xml",
+            "ResolvedTarget": "docProps/core.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "_rels/.rels",
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+            "Target": "word/document.xml",
+            "ResolvedTarget": "word/document.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId8",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+            "Target": "theme/theme1.xml",
+            "ResolvedTarget": "word/theme/theme1.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId3",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+            "Target": "webSettings.xml",
+            "ResolvedTarget": "word/webSettings.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId7",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+            "Target": "fontTable.xml",
+            "ResolvedTarget": "word/fontTable.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId2",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+            "Target": "settings.xml",
+            "ResolvedTarget": "word/settings.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+            "Target": "styles.xml",
+            "ResolvedTarget": "word/styles.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId6",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+            "Target": "media/image1.png",
+            "ResolvedTarget": "word/media/image1.png",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId5",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/endnotes",
+            "Target": "endnotes.xml",
+            "ResolvedTarget": "word/endnotes.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId4",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes",
+            "Target": "footnotes.xml",
+            "ResolvedTarget": "word/footnotes.xml",
+            "External": false,
+            "Exists": true
+          }
+        ],
+        "Charts": [],
+        "Workbooks": [],
+        "Media": [
+          {
+            "Part": "word/media/image1.png",
+            "Bytes": 70,
+            "Sha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "Width": 1,
+            "Height": 1,
+            "FirstPixel": "Color [A=127, R=0, G=255, B=0]",
+            "DecodeSuccess": true
+          }
+        ],
+        "Drawings": [
+          {
+            "Kind": "anchor",
+            "Name": "Picture 2",
+            "SizePx": [
+              192.0,
+              96.0
+            ],
+            "HorizontalOffsetPx": null,
+            "VerticalOffsetPx": 0.0,
+            "HorizontalAlign": "right",
+            "BehindDocument": "0",
+            "Wrap": [
+              "wrapSquare"
+            ],
+            "MediaRelationshipIds": [
+              "rId6"
+            ],
+            "ChartRelationshipIds": []
+          },
+          {
+            "Kind": "inline",
+            "Name": "Picture 1",
+            "SizePx": [
+              192.0,
+              96.0
+            ],
+            "HorizontalOffsetPx": null,
+            "VerticalOffsetPx": null,
+            "HorizontalAlign": "",
+            "BehindDocument": "",
+            "Wrap": [],
+            "MediaRelationshipIds": [
+              "rId6"
+            ],
+            "ChartRelationshipIds": []
+          }
+        ]
+      }
+    },
+    {
+      "Path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_roundtrip\\04-image-replace.docx",
+      "Sha256": "0D44776B59EAC4DB489D86F424A7842103F06BD9603CB49838F86D19A2072B4F",
+      "Parts": [
+        "[Content_Types].xml",
+        "_rels/",
+        "_rels/.rels",
+        "word/",
+        "word/_rels/",
+        "word/_rels/document.xml.rels",
+        "word/styles.xml",
+        "word/media/",
+        "word/document.xml",
+        "word/media/image2.png"
+      ],
+      "Issues": [
+        "Picture missing required child pic:nvPicPr",
+        "Picture missing required child pic:spPr"
+      ],
+      "DuplicateContentTypeDefaults": [],
+      "Text": "",
+      "Relationships": [
+        {
+          "Part": "_rels/.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "Target": "word/document.xml",
+          "ResolvedTarget": "word/document.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "Target": "styles.xml",
+          "ResolvedTarget": "word/styles.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId11",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "Target": "media/image2.png",
+          "ResolvedTarget": "word/media/image2.png",
+          "External": false,
+          "Exists": true
+        }
+      ],
+      "Charts": [],
+      "Workbooks": [],
+      "Media": [
+        {
+          "Part": "word/media/image2.png",
+          "Bytes": 70,
+          "Sha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+          "Width": 1,
+          "Height": 1,
+          "FirstPixel": "Color [A=127, R=0, G=255, B=0]",
+          "DecodeSuccess": true
+        }
+      ],
+      "Drawings": [
+        {
+          "Kind": "anchor",
+          "Name": "图片 1",
+          "SizePx": [
+            96.0,
+            96.0
+          ],
+          "HorizontalOffsetPx": null,
+          "VerticalOffsetPx": 0.0,
+          "HorizontalAlign": "right",
+          "BehindDocument": "0",
+          "Wrap": [
+            "wrapSquare"
+          ],
+          "MediaRelationshipIds": [
+            "rId11"
+          ],
+          "ChartRelationshipIds": []
+        }
+      ],
+      "SourceSha256": "0D44776B59EAC4DB489D86F424A7842103F06BD9603CB49838F86D19A2072B4F",
+      "SourceCopyMatches": true,
+      "Resaved": null
+    },
+    {
+      "Path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_roundtrip\\04-image-source.docx",
+      "Sha256": "44E5C6358A66A00F90E0B8D85D50630AEFEDF259B920EC362D0171B1E761341A",
+      "Parts": [
+        "[Content_Types].xml",
+        "_rels/",
+        "_rels/.rels",
+        "word/",
+        "word/_rels/",
+        "word/_rels/document.xml.rels",
+        "word/styles.xml",
+        "word/media/",
+        "word/media/image1.png",
+        "word/document.xml"
+      ],
+      "Issues": [
+        "Picture missing required child pic:nvPicPr",
+        "Picture missing required child pic:spPr"
+      ],
+      "DuplicateContentTypeDefaults": [],
+      "Text": "",
+      "Relationships": [
+        {
+          "Part": "_rels/.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "Target": "word/document.xml",
+          "ResolvedTarget": "word/document.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "Target": "styles.xml",
+          "ResolvedTarget": "word/styles.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId10",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "Target": "media/image1.png",
+          "ResolvedTarget": "word/media/image1.png",
+          "External": false,
+          "Exists": true
+        }
+      ],
+      "Charts": [],
+      "Workbooks": [],
+      "Media": [
+        {
+          "Part": "word/media/image1.png",
+          "Bytes": 70,
+          "Sha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+          "Width": 1,
+          "Height": 1,
+          "FirstPixel": "Color [A=127, R=0, G=255, B=0]",
+          "DecodeSuccess": true
+        }
+      ],
+      "Drawings": [
+        {
+          "Kind": "anchor",
+          "Name": "图片 1",
+          "SizePx": [
+            96.0,
+            96.0
+          ],
+          "HorizontalOffsetPx": null,
+          "VerticalOffsetPx": 0.0,
+          "HorizontalAlign": "right",
+          "BehindDocument": "0",
+          "Wrap": [
+            "wrapSquare"
+          ],
+          "MediaRelationshipIds": [
+            "rId10"
+          ],
+          "ChartRelationshipIds": []
+        }
+      ],
+      "SourceSha256": "44E5C6358A66A00F90E0B8D85D50630AEFEDF259B920EC362D0171B1E761341A",
+      "SourceCopyMatches": true,
+      "Resaved": null
+    },
+    {
+      "Path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_roundtrip\\05-ink-insert.docx",
+      "Sha256": "F7ED67418AB09A403243CA5F235676C79342959B18F800FF147EBFAC6BA9BD51",
+      "Parts": [
+        "[Content_Types].xml",
+        "_rels/",
+        "_rels/.rels",
+        "word/",
+        "word/_rels/",
+        "word/_rels/document.xml.rels",
+        "word/styles.xml",
+        "word/document.xml",
+        "word/media/image1.png",
+        "word/media/image2.png"
+      ],
+      "Issues": [
+        "Duplicate content-type Default extension: png"
+      ],
+      "DuplicateContentTypeDefaults": [
+        {
+          "Extension": "png",
+          "Count": 2
+        }
+      ],
+      "Text": "第一段第二段",
+      "Relationships": [
+        {
+          "Part": "_rels/.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "Target": "word/document.xml",
+          "ResolvedTarget": "word/document.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "Target": "styles.xml",
+          "ResolvedTarget": "word/styles.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId2",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "Target": "media/image1.png",
+          "ResolvedTarget": "word/media/image1.png",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId3",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+          "Target": "media/image2.png",
+          "ResolvedTarget": "word/media/image2.png",
+          "External": false,
+          "Exists": true
+        }
+      ],
+      "Charts": [],
+      "Workbooks": [],
+      "Media": [
+        {
+          "Part": "word/media/image1.png",
+          "Bytes": 70,
+          "Sha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+          "Width": 1,
+          "Height": 1,
+          "FirstPixel": "Color [A=127, R=0, G=255, B=0]",
+          "DecodeSuccess": true
+        },
+        {
+          "Part": "word/media/image2.png",
+          "Bytes": 70,
+          "Sha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+          "Width": 1,
+          "Height": 1,
+          "FirstPixel": "Color [A=127, R=0, G=255, B=0]",
+          "DecodeSuccess": true
+        }
+      ],
+      "Drawings": [
+        {
+          "Kind": "anchor",
+          "Name": "aidocs-ink 1",
+          "SizePx": [
+            200.0,
+            80.0
+          ],
+          "HorizontalOffsetPx": 40.0,
+          "VerticalOffsetPx": -10.0,
+          "HorizontalAlign": "",
+          "BehindDocument": "0",
+          "Wrap": [
+            "wrapNone"
+          ],
+          "MediaRelationshipIds": [
+            "rId2"
+          ],
+          "ChartRelationshipIds": []
+        },
+        {
+          "Kind": "anchor",
+          "Name": "aidocs-ink 2",
+          "SizePx": [
+            200.0,
+            80.0
+          ],
+          "HorizontalOffsetPx": 300.0,
+          "VerticalOffsetPx": 20.0,
+          "HorizontalAlign": "",
+          "BehindDocument": "0",
+          "Wrap": [
+            "wrapNone"
+          ],
+          "MediaRelationshipIds": [
+            "rId3"
+          ],
+          "ChartRelationshipIds": []
+        }
+      ],
+      "SourceSha256": "F7ED67418AB09A403243CA5F235676C79342959B18F800FF147EBFAC6BA9BD51",
+      "SourceCopyMatches": true,
+      "Resaved": {
+        "Path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_roundtrip\\05-ink-insert-resaved-by-word.docx",
+        "Sha256": "F66871AD0275B1595AA17D3A8F9F772A822A8575ACF570E045F14894A0915B38",
+        "Parts": [
+          "[Content_Types].xml",
+          "_rels/.rels",
+          "word/document.xml",
+          "word/_rels/document.xml.rels",
+          "word/footnotes.xml",
+          "word/endnotes.xml",
+          "word/media/image1.png",
+          "word/theme/theme1.xml",
+          "word/settings.xml",
+          "word/styles.xml",
+          "word/webSettings.xml",
+          "word/fontTable.xml",
+          "docProps/core.xml",
+          "docProps/app.xml"
+        ],
+        "Issues": [],
+        "DuplicateContentTypeDefaults": [],
+        "Text": "第一段第二段",
+        "Relationships": [
+          {
+            "Part": "_rels/.rels",
+            "Id": "rId3",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+            "Target": "docProps/app.xml",
+            "ResolvedTarget": "docProps/app.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "_rels/.rels",
+            "Id": "rId2",
+            "Type": "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+            "Target": "docProps/core.xml",
+            "ResolvedTarget": "docProps/core.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "_rels/.rels",
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+            "Target": "word/document.xml",
+            "ResolvedTarget": "word/document.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId8",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+            "Target": "theme/theme1.xml",
+            "ResolvedTarget": "word/theme/theme1.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId3",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+            "Target": "webSettings.xml",
+            "ResolvedTarget": "word/webSettings.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId7",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+            "Target": "fontTable.xml",
+            "ResolvedTarget": "word/fontTable.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId2",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+            "Target": "settings.xml",
+            "ResolvedTarget": "word/settings.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+            "Target": "styles.xml",
+            "ResolvedTarget": "word/styles.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId6",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+            "Target": "media/image1.png",
+            "ResolvedTarget": "word/media/image1.png",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId5",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/endnotes",
+            "Target": "endnotes.xml",
+            "ResolvedTarget": "word/endnotes.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId4",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes",
+            "Target": "footnotes.xml",
+            "ResolvedTarget": "word/footnotes.xml",
+            "External": false,
+            "Exists": true
+          }
+        ],
+        "Charts": [],
+        "Workbooks": [],
+        "Media": [
+          {
+            "Part": "word/media/image1.png",
+            "Bytes": 70,
+            "Sha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "Width": 1,
+            "Height": 1,
+            "FirstPixel": "Color [A=127, R=0, G=255, B=0]",
+            "DecodeSuccess": true
+          }
+        ],
+        "Drawings": [
+          {
+            "Kind": "anchor",
+            "Name": "aidocs-ink 1",
+            "SizePx": [
+              200.0,
+              80.0
+            ],
+            "HorizontalOffsetPx": 40.0,
+            "VerticalOffsetPx": -10.0,
+            "HorizontalAlign": "",
+            "BehindDocument": "0",
+            "Wrap": [
+              "wrapNone"
+            ],
+            "MediaRelationshipIds": [
+              "rId6"
+            ],
+            "ChartRelationshipIds": []
+          },
+          {
+            "Kind": "anchor",
+            "Name": "aidocs-ink 2",
+            "SizePx": [
+              200.0,
+              80.0
+            ],
+            "HorizontalOffsetPx": 300.0,
+            "VerticalOffsetPx": 20.0,
+            "HorizontalAlign": "",
+            "BehindDocument": "0",
+            "Wrap": [
+              "wrapNone"
+            ],
+            "MediaRelationshipIds": [
+              "rId6"
+            ],
+            "ChartRelationshipIds": []
+          }
+        ]
+      }
+    },
+    {
+      "Path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_roundtrip\\06-chart-insert-line-pie.docx",
+      "Sha256": "E36B3442CD49DB36F084BF4A85B74347941089CBA3B8E0955194F5E628F784D2",
+      "Parts": [
+        "[Content_Types].xml",
+        "_rels/",
+        "_rels/.rels",
+        "word/",
+        "word/_rels/",
+        "word/_rels/document.xml.rels",
+        "word/styles.xml",
+        "word/document.xml",
+        "word/charts/chart1.xml",
+        "word/charts/embeddings/workbook1.xlsx",
+        "word/charts/_rels/chart1.xml.rels",
+        "word/charts/chart2.xml",
+        "word/charts/embeddings/workbook2.xlsx",
+        "word/charts/_rels/chart2.xml.rels"
+      ],
+      "Issues": [
+        "Duplicate content-type Default extension: xlsx"
+      ],
+      "DuplicateContentTypeDefaults": [
+        {
+          "Extension": "xlsx",
+          "Count": 2
+        }
+      ],
+      "Text": "第一段第二段",
+      "Relationships": [
+        {
+          "Part": "_rels/.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+          "Target": "word/document.xml",
+          "ResolvedTarget": "word/document.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+          "Target": "styles.xml",
+          "ResolvedTarget": "word/styles.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId2",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+          "Target": "charts/chart1.xml",
+          "ResolvedTarget": "word/charts/chart1.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/_rels/document.xml.rels",
+          "Id": "rId3",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+          "Target": "charts/chart2.xml",
+          "ResolvedTarget": "word/charts/chart2.xml",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/charts/_rels/chart1.xml.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+          "Target": "embeddings/workbook1.xlsx",
+          "ResolvedTarget": "word/charts/embeddings/workbook1.xlsx",
+          "External": false,
+          "Exists": true
+        },
+        {
+          "Part": "word/charts/_rels/chart2.xml.rels",
+          "Id": "rId1",
+          "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+          "Target": "embeddings/workbook2.xlsx",
+          "ResolvedTarget": "word/charts/embeddings/workbook2.xlsx",
+          "External": false,
+          "Exists": true
+        }
+      ],
+      "Charts": [
+        {
+          "Part": "word/charts/chart1.xml",
+          "Types": [
+            "lineChart"
+          ],
+          "Title": "趋势",
+          "Series": [
+            {
+              "Name": "系列1",
+              "Categories": [
+                {
+                  "Index": "0",
+                  "Value": "一月"
+                },
+                {
+                  "Index": "1",
+                  "Value": "二月"
+                },
+                {
+                  "Index": "2",
+                  "Value": "三月"
+                }
+              ],
+              "Values": [
+                {
+                  "Index": "0",
+                  "Value": "3"
+                },
+                {
+                  "Index": "1",
+                  "Value": "5"
+                },
+                {
+                  "Index": "2",
+                  "Value": "2"
+                }
+              ],
+              "Formulas": [
+                "Sheet1!$B$1",
+                "Sheet1!$A$2:$A$4",
+                "Sheet1!$B$2:$B$4"
+              ]
+            }
+          ],
+          "AxisReferences": [
+            "111111111",
+            "222222222"
+          ],
+          "AxisDefinitions": [
+            "111111111",
+            "222222222"
+          ],
+          "ExternalDataRelationshipIds": [
+            "rId1"
+          ]
+        },
+        {
+          "Part": "word/charts/chart2.xml",
+          "Types": [
+            "pieChart"
+          ],
+          "Title": "占比",
+          "Series": [
+            {
+              "Name": "系列2",
+              "Categories": [
+                {
+                  "Index": "0",
+                  "Value": "一月"
+                },
+                {
+                  "Index": "1",
+                  "Value": "二月"
+                },
+                {
+                  "Index": "2",
+                  "Value": "三月"
+                }
+              ],
+              "Values": [
+                {
+                  "Index": "0",
+                  "Value": "3"
+                },
+                {
+                  "Index": "1",
+                  "Value": "5"
+                },
+                {
+                  "Index": "2",
+                  "Value": "2"
+                }
+              ],
+              "Formulas": [
+                "Sheet1!$B$1",
+                "Sheet1!$A$2:$A$4",
+                "Sheet1!$B$2:$B$4"
+              ]
+            }
+          ],
+          "AxisReferences": [],
+          "AxisDefinitions": [],
+          "ExternalDataRelationshipIds": [
+            "rId1"
+          ]
+        }
+      ],
+      "Workbooks": [
+        {
+          "Part": "word/charts/embeddings/workbook1.xlsx",
+          "Sheets": [
+            {
+              "Part": "xl/worksheets/sheet1.xml",
+              "Cells": [
+                {
+                  "Address": "A1",
+                  "Type": "s",
+                  "Value": "",
+                  "RawValue": "0"
+                },
+                {
+                  "Address": "B1",
+                  "Type": "s",
+                  "Value": "系列1",
+                  "RawValue": "1"
+                },
+                {
+                  "Address": "A2",
+                  "Type": "s",
+                  "Value": "一月",
+                  "RawValue": "2"
+                },
+                {
+                  "Address": "B2",
+                  "Type": "",
+                  "Value": "3",
+                  "RawValue": "3"
+                },
+                {
+                  "Address": "A3",
+                  "Type": "s",
+                  "Value": "二月",
+                  "RawValue": "3"
+                },
+                {
+                  "Address": "B3",
+                  "Type": "",
+                  "Value": "5",
+                  "RawValue": "5"
+                },
+                {
+                  "Address": "A4",
+                  "Type": "s",
+                  "Value": "三月",
+                  "RawValue": "4"
+                },
+                {
+                  "Address": "B4",
+                  "Type": "",
+                  "Value": "2",
+                  "RawValue": "2"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Part": "word/charts/embeddings/workbook2.xlsx",
+          "Sheets": [
+            {
+              "Part": "xl/worksheets/sheet1.xml",
+              "Cells": [
+                {
+                  "Address": "A1",
+                  "Type": "s",
+                  "Value": "",
+                  "RawValue": "0"
+                },
+                {
+                  "Address": "B1",
+                  "Type": "s",
+                  "Value": "系列2",
+                  "RawValue": "1"
+                },
+                {
+                  "Address": "A2",
+                  "Type": "s",
+                  "Value": "一月",
+                  "RawValue": "2"
+                },
+                {
+                  "Address": "B2",
+                  "Type": "",
+                  "Value": "3",
+                  "RawValue": "3"
+                },
+                {
+                  "Address": "A3",
+                  "Type": "s",
+                  "Value": "二月",
+                  "RawValue": "3"
+                },
+                {
+                  "Address": "B3",
+                  "Type": "",
+                  "Value": "5",
+                  "RawValue": "5"
+                },
+                {
+                  "Address": "A4",
+                  "Type": "s",
+                  "Value": "三月",
+                  "RawValue": "4"
+                },
+                {
+                  "Address": "B4",
+                  "Type": "",
+                  "Value": "2",
+                  "RawValue": "2"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "Media": [],
+      "Drawings": [
+        {
+          "Kind": "inline",
+          "Name": "Chart 2",
+          "SizePx": [
+            480.0,
+            288.0
+          ],
+          "HorizontalOffsetPx": null,
+          "VerticalOffsetPx": null,
+          "HorizontalAlign": "",
+          "BehindDocument": "",
+          "Wrap": [],
+          "MediaRelationshipIds": [],
+          "ChartRelationshipIds": [
+            "rId3"
+          ]
+        },
+        {
+          "Kind": "inline",
+          "Name": "Chart 1",
+          "SizePx": [
+            480.0,
+            288.0
+          ],
+          "HorizontalOffsetPx": null,
+          "VerticalOffsetPx": null,
+          "HorizontalAlign": "",
+          "BehindDocument": "",
+          "Wrap": [],
+          "MediaRelationshipIds": [],
+          "ChartRelationshipIds": [
+            "rId2"
+          ]
+        }
+      ],
+      "SourceSha256": "E36B3442CD49DB36F084BF4A85B74347941089CBA3B8E0955194F5E628F784D2",
+      "SourceCopyMatches": true,
+      "Resaved": {
+        "Path": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_roundtrip\\06-chart-insert-line-pie-resaved-by-word.docx",
+        "Sha256": "B9173FB7DAFA59D55DFD50C5C1319F098527266630C08FD057E7D568AB7015D4",
+        "Parts": [
+          "[Content_Types].xml",
+          "_rels/.rels",
+          "word/document.xml",
+          "word/_rels/document.xml.rels",
+          "word/footnotes.xml",
+          "word/endnotes.xml",
+          "word/charts/chart1.xml",
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx",
+          "word/charts/chart2.xml",
+          "word/embeddings/Microsoft_Excel_Worksheet1.xlsx",
+          "word/theme/theme1.xml",
+          "word/charts/_rels/chart1.xml.rels",
+          "word/charts/_rels/chart2.xml.rels",
+          "word/settings.xml",
+          "word/styles.xml",
+          "word/webSettings.xml",
+          "word/fontTable.xml",
+          "docProps/core.xml",
+          "docProps/app.xml"
+        ],
+        "Issues": [],
+        "DuplicateContentTypeDefaults": [],
+        "Text": "第一段第二段",
+        "Relationships": [
+          {
+            "Part": "_rels/.rels",
+            "Id": "rId3",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+            "Target": "docProps/app.xml",
+            "ResolvedTarget": "docProps/app.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "_rels/.rels",
+            "Id": "rId2",
+            "Type": "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+            "Target": "docProps/core.xml",
+            "ResolvedTarget": "docProps/core.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "_rels/.rels",
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+            "Target": "word/document.xml",
+            "ResolvedTarget": "word/document.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId8",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable",
+            "Target": "fontTable.xml",
+            "ResolvedTarget": "word/fontTable.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId3",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings",
+            "Target": "webSettings.xml",
+            "ResolvedTarget": "word/webSettings.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId7",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+            "Target": "charts/chart2.xml",
+            "ResolvedTarget": "word/charts/chart2.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId2",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
+            "Target": "settings.xml",
+            "ResolvedTarget": "word/settings.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+            "Target": "styles.xml",
+            "ResolvedTarget": "word/styles.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId6",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+            "Target": "charts/chart1.xml",
+            "ResolvedTarget": "word/charts/chart1.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId5",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/endnotes",
+            "Target": "endnotes.xml",
+            "ResolvedTarget": "word/endnotes.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId4",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes",
+            "Target": "footnotes.xml",
+            "ResolvedTarget": "word/footnotes.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/_rels/document.xml.rels",
+            "Id": "rId9",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme",
+            "Target": "theme/theme1.xml",
+            "ResolvedTarget": "word/theme/theme1.xml",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/charts/_rels/chart1.xml.rels",
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+            "Target": "../embeddings/Microsoft_Excel_Worksheet.xlsx",
+            "ResolvedTarget": "word/embeddings/Microsoft_Excel_Worksheet.xlsx",
+            "External": false,
+            "Exists": true
+          },
+          {
+            "Part": "word/charts/_rels/chart2.xml.rels",
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+            "Target": "../embeddings/Microsoft_Excel_Worksheet1.xlsx",
+            "ResolvedTarget": "word/embeddings/Microsoft_Excel_Worksheet1.xlsx",
+            "External": false,
+            "Exists": true
+          }
+        ],
+        "Charts": [
+          {
+            "Part": "word/charts/chart1.xml",
+            "Types": [
+              "pieChart"
+            ],
+            "Title": "占比",
+            "Series": [
+              {
+                "Name": "系列2",
+                "Categories": [
+                  {
+                    "Index": "0",
+                    "Value": "一月"
+                  },
+                  {
+                    "Index": "1",
+                    "Value": "二月"
+                  },
+                  {
+                    "Index": "2",
+                    "Value": "三月"
+                  }
+                ],
+                "Values": [
+                  {
+                    "Index": "0",
+                    "Value": "3"
+                  },
+                  {
+                    "Index": "1",
+                    "Value": "5"
+                  },
+                  {
+                    "Index": "2",
+                    "Value": "2"
+                  }
+                ],
+                "Formulas": [
+                  "Sheet1!$B$1",
+                  "Sheet1!$A$2:$A$4",
+                  "Sheet1!$B$2:$B$4"
+                ]
+              }
+            ],
+            "AxisReferences": [],
+            "AxisDefinitions": [],
+            "ExternalDataRelationshipIds": [
+              "rId1"
+            ]
+          },
+          {
+            "Part": "word/charts/chart2.xml",
+            "Types": [
+              "lineChart"
+            ],
+            "Title": "趋势",
+            "Series": [
+              {
+                "Name": "系列1",
+                "Categories": [
+                  {
+                    "Index": "0",
+                    "Value": "一月"
+                  },
+                  {
+                    "Index": "1",
+                    "Value": "二月"
+                  },
+                  {
+                    "Index": "2",
+                    "Value": "三月"
+                  }
+                ],
+                "Values": [
+                  {
+                    "Index": "0",
+                    "Value": "3"
+                  },
+                  {
+                    "Index": "1",
+                    "Value": "5"
+                  },
+                  {
+                    "Index": "2",
+                    "Value": "2"
+                  }
+                ],
+                "Formulas": [
+                  "Sheet1!$B$1",
+                  "Sheet1!$A$2:$A$4",
+                  "Sheet1!$B$2:$B$4"
+                ]
+              }
+            ],
+            "AxisReferences": [
+              "111111111",
+              "222222222"
+            ],
+            "AxisDefinitions": [
+              "111111111",
+              "222222222"
+            ],
+            "ExternalDataRelationshipIds": [
+              "rId1"
+            ]
+          }
+        ],
+        "Workbooks": [
+          {
+            "Part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx",
+            "Sheets": [
+              {
+                "Part": "xl/worksheets/sheet1.xml",
+                "Cells": [
+                  {
+                    "Address": "A1",
+                    "Type": "s",
+                    "Value": "",
+                    "RawValue": "0"
+                  },
+                  {
+                    "Address": "B1",
+                    "Type": "s",
+                    "Value": "系列2",
+                    "RawValue": "1"
+                  },
+                  {
+                    "Address": "A2",
+                    "Type": "s",
+                    "Value": "一月",
+                    "RawValue": "2"
+                  },
+                  {
+                    "Address": "B2",
+                    "Type": "",
+                    "Value": "3",
+                    "RawValue": "3"
+                  },
+                  {
+                    "Address": "A3",
+                    "Type": "s",
+                    "Value": "二月",
+                    "RawValue": "3"
+                  },
+                  {
+                    "Address": "B3",
+                    "Type": "",
+                    "Value": "5",
+                    "RawValue": "5"
+                  },
+                  {
+                    "Address": "A4",
+                    "Type": "s",
+                    "Value": "三月",
+                    "RawValue": "4"
+                  },
+                  {
+                    "Address": "B4",
+                    "Type": "",
+                    "Value": "2",
+                    "RawValue": "2"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "Part": "word/embeddings/Microsoft_Excel_Worksheet1.xlsx",
+            "Sheets": [
+              {
+                "Part": "xl/worksheets/sheet1.xml",
+                "Cells": [
+                  {
+                    "Address": "A1",
+                    "Type": "s",
+                    "Value": "",
+                    "RawValue": "0"
+                  },
+                  {
+                    "Address": "B1",
+                    "Type": "s",
+                    "Value": "系列1",
+                    "RawValue": "1"
+                  },
+                  {
+                    "Address": "A2",
+                    "Type": "s",
+                    "Value": "一月",
+                    "RawValue": "2"
+                  },
+                  {
+                    "Address": "B2",
+                    "Type": "",
+                    "Value": "3",
+                    "RawValue": "3"
+                  },
+                  {
+                    "Address": "A3",
+                    "Type": "s",
+                    "Value": "二月",
+                    "RawValue": "3"
+                  },
+                  {
+                    "Address": "B3",
+                    "Type": "",
+                    "Value": "5",
+                    "RawValue": "5"
+                  },
+                  {
+                    "Address": "A4",
+                    "Type": "s",
+                    "Value": "三月",
+                    "RawValue": "4"
+                  },
+                  {
+                    "Address": "B4",
+                    "Type": "",
+                    "Value": "2",
+                    "RawValue": "2"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "Media": [],
+        "Drawings": [
+          {
+            "Kind": "inline",
+            "Name": "Chart 2",
+            "SizePx": [
+              480.0,
+              288.0
+            ],
+            "HorizontalOffsetPx": null,
+            "VerticalOffsetPx": null,
+            "HorizontalAlign": "",
+            "BehindDocument": "",
+            "Wrap": [],
+            "MediaRelationshipIds": [],
+            "ChartRelationshipIds": [
+              "rId6"
+            ]
+          },
+          {
+            "Kind": "inline",
+            "Name": "Chart 1",
+            "SizePx": [
+              480.0,
+              288.0
+            ],
+            "HorizontalOffsetPx": null,
+            "VerticalOffsetPx": null,
+            "HorizontalAlign": "",
+            "BehindDocument": "",
+            "Wrap": [],
+            "MediaRelationshipIds": [],
+            "ChartRelationshipIds": [
+              "rId7"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

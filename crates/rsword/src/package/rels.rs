@@ -10,6 +10,7 @@ use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 const T_FAMILY: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
 const S_FAMILY: &str = "http://purl.oclc.org/ooxml/officeDocument/relationships/";
 const PKG_FAMILY: &str = "http://schemas.openxmlformats.org/package/2006/relationships/";
+const MS_2006: &str = "http://schemas.microsoft.com/office/2006/relationships/";
 const MS_2007: &str = "http://schemas.microsoft.com/office/2007/relationships/";
 const MS_2011: &str = "http://schemas.microsoft.com/office/2011/relationships/";
 const MS_2014: &str = "http://schemas.microsoft.com/office/2014/relationships/";
@@ -47,6 +48,8 @@ pub enum RelType {
     DiagramQuickStyle,
     DiagramColors,
     DiagramDrawing,
+    /// 外部文本框 part（`wps:txbx/@r:txbx` → `word/txbx1.xml`），微软扩展。
+    Txbx,
     CustomXml,
     CustomXmlProps,
     OleObject,
@@ -99,6 +102,7 @@ const SINGLE: &[(RelType, &str, &str)] = &[
     (RelType::CommentsExtensible, MS_2018_08, "commentsExtensible"),
     (RelType::DiagramDrawing, MS_2007, "diagramDrawing"),
     (RelType::ChartEx, MS_2014, "chartEx"),
+    (RelType::Txbx, MS_2006, "txbx"),
 ];
 
 impl RelType {
@@ -185,6 +189,35 @@ impl Rels {
 
     pub fn of_kind(&self, kind: RelType) -> impl Iterator<Item = &Relationship> {
         self.list.iter().filter(move |r| r.kind == kind)
+    }
+
+    /// `EDIT-06`：下一个可用的 `rId`（`rId{max+1}`，跳过已用的）。
+    pub fn next_id(&self) -> String {
+        let max = self
+            .list
+            .iter()
+            .filter_map(|r| r.id.strip_prefix("rId").and_then(|n| n.parse::<u32>().ok()))
+            .max()
+            .unwrap_or(0);
+        let mut n = max + 1;
+        while self.by_id.contains_key(&format!("rId{n}")) {
+            n += 1;
+        }
+        format!("rId{n}")
+    }
+
+    /// 追加一条关系（`.rels` DOM 已经写过之后同步内存视图）。
+    pub(crate) fn push(&mut self, rel: Relationship) {
+        self.by_id.insert(rel.id.clone(), self.list.len());
+        self.list.push(rel);
+    }
+
+    /// 删掉一条关系（`.rels` DOM 里的节点已经 `Deleted` 之后同步内存视图）。
+    pub(crate) fn remove(&mut self, id: &str) -> Option<Relationship> {
+        let i = self.by_id.remove(id)?;
+        let rel = self.list.remove(i);
+        self.by_id = self.list.iter().enumerate().map(|(i, r)| (r.id.clone(), i)).collect();
+        Some(rel)
     }
 
     /// 内部目标（`Internal`）的 part 路径。

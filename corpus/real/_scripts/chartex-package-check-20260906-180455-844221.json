@@ -1,0 +1,593 @@
+{
+  "method": "Copy originals, inspect copied ZIP/XML/XLSX read-only; no Office automation",
+  "createdUtc": "2026-09-06T18:04:55.848048+00:00",
+  "counts": {
+    "passed": 0,
+    "failed": 1,
+    "error": 0,
+    "missing": 0
+  },
+  "results": [
+    {
+      "case": "chartex-sunburst",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chartex-sunburst.docx",
+      "status": "failed",
+      "checks": [
+        {
+          "name": "copied bytes equal original",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "one chartEx part",
+          "passed": true,
+          "evidence": [
+            "word/charts/chartEx1.xml"
+          ]
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "cx chartSpace root",
+          "passed": true,
+          "evidence": "{http://schemas.microsoft.com/office/drawing/2014/chartex}chartSpace"
+        },
+        {
+          "name": "requested modern chart layout",
+          "passed": true,
+          "evidence": [
+            "sunburst"
+          ]
+        },
+        {
+          "name": "series reference existing cached datasets",
+          "passed": true,
+          "evidence": [
+            "0"
+          ]
+        },
+        {
+          "name": "nonempty cached chart data",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ]
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ]
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ]
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "size",
+            "declared": "16",
+            "indices": []
+          }
+        },
+        {
+          "name": "chart cache reflects written numeric data",
+          "passed": false,
+          "evidence": {
+            "cached": [],
+            "matchedExpectedSeries": []
+          }
+        },
+        {
+          "name": "chart cache reflects written category labels",
+          "passed": false,
+          "evidence": [
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!",
+            "#REF!"
+          ]
+        },
+        {
+          "name": "externalData exists",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "externalData resolves to embedded xlsx",
+          "passed": true,
+          "evidence": {
+            "id": "rId1",
+            "relationship": {
+              "Id": "rId1",
+              "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+              "Target": "../embeddings/Microsoft_Excel_Worksheet.xlsx"
+            },
+            "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        },
+        {
+          "name": "embedded workbook A1:C4 matches UI-helper dataset",
+          "passed": true,
+          "evidence": {}
+        },
+        {
+          "name": "no old populated workbook rows beyond row 4",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "name": "document cx chart reference resolves",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "chart reference belongs to AlternateContent",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "matching fallback contains an image relationship",
+          "passed": true,
+          "evidence": [
+            "rId5"
+          ]
+        },
+        {
+          "name": "fallback relationship resolves to real embedded PNG",
+          "passed": true,
+          "evidence": {
+            "id": "rId5",
+            "target": "word/media/image1.png"
+          }
+        },
+        {
+          "name": "title is the requested sales title",
+          "passed": true,
+          "evidence": "销售统计"
+        },
+        {
+          "name": "original bytes remain unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "actual": {
+        "chartPart": "word/charts/chartEx1.xml",
+        "layoutIds": [
+          "sunburst"
+        ],
+        "series": [
+          {
+            "attributes": {
+              "layoutId": "sunburst",
+              "uniqueId": "{8D90C027-CD04-4E2F-8D7A-907B35ED5A4C}"
+            },
+            "dataIds": [
+              "0"
+            ],
+            "layoutPropertiesXml": null
+          }
+        ],
+        "cache": [
+          {
+            "id": "0",
+            "dimensions": [
+              {
+                "kind": "strDim",
+                "type": "cat",
+                "formula": "Sheet1!$A$2:$C$17",
+                "levels": [
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 1,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 2,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 3,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 4,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 5,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 6,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 7,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 8,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 9,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 10,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 11,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 12,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 13,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 14,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 15,
+                        "value": "#REF!"
+                      }
+                    ]
+                  },
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 1,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 2,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 3,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 4,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 5,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 6,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 7,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 8,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 9,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 10,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 11,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 12,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 13,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 14,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 15,
+                        "value": "#REF!"
+                      }
+                    ]
+                  },
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 1,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 2,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 3,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 4,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 5,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 6,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 7,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 8,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 9,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 10,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 11,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 12,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 13,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 14,
+                        "value": "#REF!"
+                      },
+                      {
+                        "index": 15,
+                        "value": "#REF!"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "numDim",
+                "type": "size",
+                "formula": "Sheet1!$D$2:$D$17",
+                "levels": [
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": []
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "embeddedWorkbooks": [
+          {
+            "sheets": [
+              {
+                "name": "ChartData",
+                "part": "xl/worksheets/sheet1.xml",
+                "cells": {
+                  "A1": "Category",
+                  "B1": "Subcategory",
+                  "C1": "Value",
+                  "A2": "Group A",
+                  "B2": "Item 1",
+                  "C2": 10,
+                  "A3": "Group A",
+                  "B3": "Item 2",
+                  "C3": 20,
+                  "A4": "Group B",
+                  "B4": "Item 3",
+                  "C4": 30
+                },
+                "formulas": {}
+              }
+            ],
+            "bytes": 9870,
+            "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        ],
+        "fallbackImages": [
+          {
+            "relationshipId": "rId5",
+            "part": "word/media/image1.png",
+            "png": true,
+            "pixelSize": [
+              555,
+              324
+            ],
+            "bytes": 1543
+          }
+        ],
+        "title": "销售统计",
+        "legend": null,
+        "floating": false,
+        "chartRelationships": {
+          "rId3": {
+            "Id": "rId3",
+            "Type": "http://schemas.microsoft.com/office/2011/relationships/chartColorStyle",
+            "Target": "colors1.xml"
+          },
+          "rId2": {
+            "Id": "rId2",
+            "Type": "http://schemas.microsoft.com/office/2011/relationships/chartStyle",
+            "Target": "style1.xml"
+          },
+          "rId1": {
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+            "Target": "../embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        }
+      },
+      "observationStatus": "Package evidence only; actual Word UI observation must be supplied separately.",
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\chartex\\20260906-180455-844221\\chartex-sunburst.docx",
+      "sha256": "803cd325aa0c8229af141c9e805f2fe3f3cf886ff2dba9b45ef6dddb19e7a110",
+      "warnings": []
+    }
+  ]
+}

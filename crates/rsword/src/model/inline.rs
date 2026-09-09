@@ -6,6 +6,7 @@
 
 use std::ops::Range;
 
+use crate::model::drawing::Display;
 use crate::semantic::props::RunProps;
 use crate::span::{FieldId, SpanId};
 use crate::xml::{NodeId, QName};
@@ -89,6 +90,8 @@ pub struct Segment {
     /// 在 `Run.text` 中的字节区间（长度 0 的段也有位置）。
     pub text: Range<u32>,
     pub utf16_len: u32,
+    /// 显示模型（`MOD-11`）：绘图 / VML / OLE 段才有。
+    pub display: Option<Display>,
 }
 
 /// `w:br/@w:type`。
@@ -134,9 +137,14 @@ pub enum SegmentKind {
     },
     Pict,
     Object,
+    /// `w:ruby`：注音文字与被注的正文（各取直接 `w:r/w:t`，TS `rubyPartText`）。坐标流里是 1 个原子。
     Ruby {
         rt: String,
+        base: String,
     },
+    /// `aidocs-ink` 墨迹批注的浮动图片（任务 6.8）：对坐标流不可见（长度 0）、对分类不可见；
+    /// 几何与载荷见 [`crate::model::InkInfo`]（`Document.inks`）。
+    Ink,
     FootnoteRef {
         id: Option<String>,
     },
@@ -185,7 +193,7 @@ pub struct InlineAtom {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AtomKind {
-    /// `m:oMath` / `m:oMathPara`（占位，`FormulaDisplay` 在 M3）。
+    /// `m:oMath`（R19 文字夹公式的段落里的一个公式原子；整段公式是 R11 的保护块）。
     Math,
     /// run 外的 `w:br`。
     BareBreak {
@@ -211,14 +219,8 @@ pub enum LinkTarget {
     Unresolved,
 }
 
-/// 一条修订的元数据（`w:id` / `w:author` / `w:date`）。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RevisionMeta {
-    pub node: NodeId,
-    pub id: Option<String>,
-    pub author: Option<String>,
-    pub date: Option<String>,
-}
+/// 一条修订的元数据（`w:id` / `w:author` / `w:date`）。定义在 L2（范围标记用同一组属性）。
+pub use crate::span::RevisionMeta;
 
 /// run 的修订上下文（`MOD-06`）：`w:moveFrom` 同时计入 `del`，`w:moveTo` 同时计入 `ins`（TS 语义），
 /// `move_*` 保留精确信息。

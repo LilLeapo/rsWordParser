@@ -1,0 +1,83 @@
+﻿{
+    "file":  "chart-scatter--chartdata.docx",
+    "index":  1,
+    "before":  {
+                   "title":  "标题已改 rsword",
+                   "type":  -4169,
+                   "series":  [
+                                  {
+                                      "categories":  [
+                                                         1,
+                                                         2,
+                                                         3
+                                                     ],
+                                      "values":  [
+                                                     10,
+                                                     20,
+                                                     30
+                                                 ],
+                                      "name":  "改名系列"
+                                  },
+                                  {
+                                      "categories":  [
+                                                         1,
+                                                         2,
+                                                         3
+                                                     ],
+                                      "values":  [
+                                                     15,
+                                                     25,
+                                                     35
+                                                 ],
+                                      "name":  "Series 2"
+                                  }
+                              ]
+               },
+    "activation":  "ok",
+    "cells":  [
+                  "Category",
+                  "Series 1",
+                  "Series 2",
+                  1,
+                  10,
+                  15,
+                  2,
+                  20,
+                  25,
+                  3,
+                  30,
+                  35
+              ],
+    "after":  {
+                  "title":  "标题已改 rsword",
+                  "type":  -4169,
+                  "series":  [
+                                 {
+                                     "categories":  [
+                                                        1,
+                                                        2,
+                                                        3
+                                                    ],
+                                     "values":  [
+                                                    10,
+                                                    20,
+                                                    30
+                                                ],
+                                     "name":  "Series 1"
+                                 },
+                                 {
+                                     "categories":  [
+                                                        1,
+                                                        2,
+                                                        3
+                                                    ],
+                                     "values":  [
+                                                    15,
+                                                    25,
+                                                    35
+                                                ],
+                                     "name":  "Series 2"
+                                 }
+                             ]
+              }
+}

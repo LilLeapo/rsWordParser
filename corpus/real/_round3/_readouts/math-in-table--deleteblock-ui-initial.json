@@ -1,0 +1,41 @@
+{
+    "file":  "math-in-table--deleteblock.docx",
+    "base":  "math/math-in-table.docx",
+    "op":  "deleteblock",
+    "expect":  "正文第二个块（多半是特征本身）整块消失，前后文照旧；文件里它独占的媒体 / 图表 part 一起消失",
+    "timestamp":  "2026-09-07T14:36:52.7174170+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\math-in-table--deleteblock.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  4,
+                    "tables":  0,
+                    "comments":  0,
+                    "inline_shapes":  0,
+                    "shapes":  0,
+                    "first_table_rows":  null,
+                    "first_table_cells":  null,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+
+                       ],
+    "text":  "before 前文\r\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+
+               ],
+    "errors":  [
+
+               ]
+}

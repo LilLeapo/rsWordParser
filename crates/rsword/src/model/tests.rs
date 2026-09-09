@@ -119,7 +119,7 @@ fn mod_06_symbols_atoms_and_run_props() {
         Inline::Atom(InlineAtom { kind: AtomKind::BareBreak { kind: BreakKind::Page }, .. })
     ));
     let Inline::Run(ruby) = &tb.inlines[3] else { panic!() };
-    assert!(matches!(&ruby.segments[0].kind, SegmentKind::Ruby { rt } if rt == "rt"));
+    assert!(matches!(&ruby.segments[0].kind, SegmentKind::Ruby { rt, .. } if rt == "rt"));
     let Inline::Run(fn_ref) = &tb.inlines[4] else { panic!() };
     assert!(
         matches!(&fn_ref.segments[0].kind, SegmentKind::FootnoteRef { id: Some(id) } if id == "1")

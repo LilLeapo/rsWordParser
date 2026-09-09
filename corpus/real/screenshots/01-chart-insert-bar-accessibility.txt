@@ -1,0 +1,256 @@
+Window: "01-chart-insert-bar.docx - 只读 - 兼容性模式 - Word", App: WINWORD.EXE.
+	0 窗口 01-chart-insert-bar.docx - 只读 - 兼容性模式 - Word Secondary Actions: Raise
+		1 窗格 MsoDockTop
+			2 工具栏 Description: Ribbon 工具栏
+				3 窗格 Ribbon
+					4 窗格
+						5 窗格
+							6 窗格 Ribbon
+								7 工具栏 快速访问工具栏
+									8 切换关闭  自动保存 Description: 已禁用自动保存，因为此文件为只读文件。
+									9 按钮 保存 Description: 保存 (Ctrl+S)
+									10 SplitButton (disabled) 无法撤消 Description: 无法撤消 (Ctrl+Z)
+										11 按钮 (disabled) 无法撤消 Description: 无法撤消 (Ctrl+Z)
+										12 菜单项 (disabled) 更多选项 Description: 无法撤消 (Ctrl+Z)
+									13 按钮 (disabled) 无法重复 Description: 无法重复 (Ctrl+Y)
+									14 菜单项 触摸/鼠标模式
+									15 菜单项 自定义工具栏
+								16 标题栏 ‪01-chart-insert-bar.docx - 只读 - 兼容性模式‬ Description: 01-chart-insert-bar.docx - 只读 - 兼容性模式
+									17 菜单项 ‪01-chart-insert-bar.docx - 只读 - 兼容性模式‬ Description: 01-chart-insert-bar.docx - 只读 - 兼容性模式
+								18 菜单项 键入搜索内容，并使用向上和向下键导航 Description: Microsoft 搜索(Alt+Q) 只需开始在这里输入内容，即可轻松利用功能并获得帮助。 ID: TellMeControlAnchor
+									19 编辑框 Microsoft 搜索 Description: 只需开始在这里输入内容，即可轻松利用功能并获得帮助。 ID: TellMeTextBoxAutomationId
+								20 菜单项 燚坡 李 Description: 燚坡 李 (liyipo2232372591@hotmail.com) 已登录。请打开并查看有关登录用户的更多详细信息。 ID: MeControlWidget
+								21 菜单项 功能区显示选项 Description: 显示或隐藏功能区以最大化空间。
+								22 按钮 最小化 Description: 移开窗口
+								23 按钮 最大化 Description: 窗口全屏显示
+								24 按钮 关闭 Description: 关闭窗口
+								25 按钮 “文件”选项卡 ID: FileTabButton
+								26 窗格 功能区选项卡
+									27 选项卡项目 (selectable) 开始
+									28 选项卡项目 (selectable) 插入
+									29 选项卡项目 (selectable) 绘图
+									30 选项卡项目 (selectable) 设计
+									31 选项卡项目 (selectable) 布局
+									32 选项卡项目 (selectable) 引用
+									33 选项卡项目 (selectable) 邮件
+									34 选项卡项目 (selectable) 审阅
+									35 选项卡项目 (selectable) 视图
+									36 选项卡项目 (selectable) Zotero
+									37 选项卡项目 (selectable) 帮助
+									38 选项卡项目 (selectable) Acrobat
+									39 按钮 共享 Description: 共享 共享此文档，并查看与你共享此文档的人员。
+										40 图像 Description: 共享此文档，并查看与你共享此文档的人员。
+										41 文本 共享 Description: 共享此文档，并查看与你共享此文档的人员。
+								42 窗格 下层功能区
+									43 组 开始
+										44 组 剪贴板
+											45 SplitButton 粘贴 Description: 粘贴 (Ctrl+V) 选择粘贴选项，例如保持格式或仅粘贴文本。
+												46 按钮 粘贴 Description: 粘贴 (Ctrl+V) 将剪贴板上的内容添加到文档。
+												47 菜单项 更多选项 Description: 粘贴 (Ctrl+V) 选择粘贴选项，例如保持格式或仅粘贴文本。
+											48 按钮 (disabled) 剪切 Description: 剪切 (Ctrl+X) 删除所选内容并将其放到剪贴板上，以便您可以粘贴到其他地方。
+											49 按钮 (disabled) 复制 Description: 复制 (Ctrl+C) 将所选内容复制到剪贴板，以便您可以将其粘贴到其他地方。
+											50 按钮 格式刷 Description: 格式刷 (Ctrl+Shift+C, Ctrl+Shift+V) 喜欢特定所选内容的外观? 您可以向文档中的其他内容应用该外观。 要开始，请执行下列操作: 1. 选择具有您喜欢的格式的内容 2. 单击格式刷 3. 选择要自动应用格式的其他内容 仅供参考: 要在多个位置应用格式，请双击格式刷。
+											51 按钮 Office 剪贴板... Description: 剪贴板 查看已复制到剪贴板的所有项目。
+										52 组 字体
+											53 组合框 字体 Description: 选取文字的新字体。
+												54 编辑框 字体 Description: 选取文字的新字体。
+												55 按钮 打开 Description: 选取文字的新字体。
+											56 组合框 字号 Description: 更改文字大小。
+												57 编辑框 字号 Description: 更改文字大小。
+												58 按钮 打开 Description: 更改文字大小。
+											59 按钮 增大字体 Description: 增大字号 (Ctrl+Shift+>) 增大文字。
+											60 按钮 缩小字体 Description: 减小字号 (Ctrl+Shift+<) 缩小文字。
+											61 菜单项 更改大小写 Description: 将选定文本更改为大写、小写或其他常见的大写方式。
+											62 按钮 清除格式 Description: 清除所有格式 清除所选内容的所有格式，只留下普通、无格式的文本。
+											63 按钮 拼音指南... Description: 拼音指南... 在所选文字上方添加拼音文字以标明其发音。 拼音文字是显示在文字上方的微小文字，标明文字的语音拼写。拼音指南可让您自行输入拼音文字，以获得您想要的确切发音。
+											64 按钮 字符边框 Description: 字符边框 在一组字符或句子周围应用边框。
+											65 按钮 加粗 Description: 加粗 (Ctrl+B) 将文本加粗。
+											66 按钮 倾斜 Description: 倾斜 (Ctrl+I) 将文字变为斜体。
+											67 SplitButton 下划线 Description: 下划线 (Ctrl+U) 为文字添加下划线。
+												68 按钮 下划线 Description: 下划线 (Ctrl+U) 为文字添加下划线。
+												69 菜单项 更多选项 Description: 下划线 (Ctrl+U) 为文字添加下划线。
+											70 按钮 删除线 Description: 删除线 在文本中间画一条线。
+											71 按钮 下标 Description: 下标 (Ctrl+=) 在文本行下方键入非常小的字母。
+											72 按钮 上标 Description: 上标 (Ctrl+Shift++) 在文本行上方键入非常小的字母。
+											73 菜单项 (disabled) 文本效果和版式 Description: 通过应用文本效果(如阴影或发光)来为文本增添一些效果。 你还可以更改版式设置以启用连字或选择样式集。
+											74 SplitButton 文本突出显示颜色 Description: 文本突出显示颜色 用亮色突出显示来让您的文本更加醒目。
+												75 按钮 文本突出显示颜色 黄色 Description: 文本突出显示颜色 用亮色突出显示来让您的文本更加醒目。
+												76 菜单项 更多选项 Description: 文本突出显示颜色 用亮色突出显示来让您的文本更加醒目。
+											77 SplitButton 字体颜色 Description: 字体颜色 更改文字颜色。
+												78 按钮 字体颜色 RGB(255, 0, 0) Description: 字体颜色 更改文字颜色。
+												79 菜单项 更多选项 Description: 字体颜色 更改文字颜色。
+											80 按钮 字符底纹 Description: 字符底纹 为所选文本添加底纹背景。
+											81 按钮 带圈字符... Description: 带圈字符... 在字符周围放置圆圈或边框加以强调。
+											82 按钮 字体... Description: 字体... (Ctrl+D) 使用高级字体和字符选项自定义您的文本，使之具备您所需的确切外观。 您可以向您的文本添加各种各样的样式和颜色以及视觉效果(如删除线、上标和全部大写字母)。
+										83 组 段落
+											84 SplitButton 项目符号 Description: 项目符号 创建项目符号列表。 单击箭头更改项目符号外观。
+												85 按钮 项目符号 Description: 项目符号 创建项目符号列表。 单击箭头更改项目符号外观。
+												86 菜单项 更多选项 Description: 项目符号 创建项目符号列表。 单击箭头更改项目符号外观。
+											87 SplitButton 编号 Description: 编号 创建编号列表。 单击箭头获得更多编号格式。
+												88 按钮 编号 Description: 编号 创建编号列表。 单击箭头获得更多编号格式。
+												89 菜单项 更多选项 Description: 编号 创建编号列表。 单击箭头获得更多编号格式。
+											90 菜单项 多级列表 Description: 创建多级列表以组织项目或创建大纲。 您也可以更改列表中各个级别的外观或者为文档中的标题添加编号。
+											91 按钮 减少缩进量 Description: 减少缩进量 靠近边距移动段落。
+											92 按钮 增加缩进量 Description: 增加缩进量 增加段落的缩进级别。
+											93 菜单项 中文版式 Description: 自定义中文或混合文字的版式。
+											94 按钮 排序... Description: 排序... 按字母顺序或数字顺序排列当前所选内容。 如果您尝试在表中组织数据，这尤为有用。
+											95 按钮 显示/隐藏编辑标记 Description: 显示/隐藏编辑标记 (Ctrl+*) 显示段落标记和其他隐藏的格式符号。 这对于高级版式任务特别有用。
+											96 按钮 左对齐 Description: 左对齐 (Ctrl+L) 将文本靠左对齐。
+											97 按钮 居中 Description: 居中 (Ctrl+E) 将文本居中对齐。
+											98 按钮 右对齐 Description: 右对齐 (Ctrl+R) 将文本靠右对齐。
+											99 按钮 两端对齐 Description: 两端对齐 (Ctrl+J) 在边距之间均匀分布文本。 排列整齐的文本使您的文档整洁干净，看起来更加优雅。
+											100 按钮 分散对齐 Description: 分散对齐 (Ctrl+Shift+J) 在左右边距之间均匀分布文本，使你的文档看起来整洁、干净。 在字符和单词之间添加空格。如果最后一行短，将在字符之间添加额外空格，以使其与段落宽度匹配。
+											101 菜单项 行和段落间距 Description: 选择文本行之间或段落之间显示的间距。 要为整个文档应用相同间距，请使用“设计”选项卡上的“段落间距”选项。
+											102 SplitButton 底纹 Description: 底纹 更改所选文本、段落或表格单元格的背景颜色。 这在您希望信息在当前页面得以突出显示时特别有用。
+												103 按钮 底纹 RGB(0, 0, 0) Description: 底纹 更改所选文本、段落或表格单元格的背景颜色。 这在您希望信息在当前页面得以突出显示时特别有用。
+												104 菜单项 更多选项 Description: 底纹 更改所选文本、段落或表格单元格的背景颜色。 这在您希望信息在当前页面得以突出显示时特别有用。
+											105 SplitButton 边框 Description: 边框 为所选内容添加或删除边框。 要更改边框的外观，请查看“表格工具”下方“设计”选项卡上的选项，或者使用“边框和底纹”对话框。
+												106 按钮 边框 Description: 边框 为所选内容添加或删除边框。 要更改边框的外观，请查看“表格工具”下方“设计”选项卡上的选项，或者使用“边框和底纹”对话框。
+												107 菜单项 更多选项 Description: 边框 为所选内容添加或删除边框。 要更改边框的外观，请查看“表格工具”下方“设计”选项卡上的选项，或者使用“边框和底纹”对话框。
+											108 按钮 段落... Description: 段落设置 微调当前段落的布局，包括间距、缩进等等。
+										109 组 样式
+											110 组 样式 Description: 样式为您的文档提供一致、精美的外观。 它们也允许您使用导航窗格和添加目录。 如果您不喜欢这些样式的外观，请查看“设计”选项卡以获得更多选项。
+												111 菜单项 Description: 样式为您的文档提供一致、精美的外观。 它们也允许您使用导航窗格和添加目录。 如果您不喜欢这些样式的外观，请查看“设计”选项卡以获得更多选项。
+													112 窗格 样式 Description: 样式为您的文档提供一致、精美的外观。 它们也允许您使用导航窗格和添加目录。 如果您不喜欢这些样式的外观，请查看“设计”选项卡以获得更多选项。
+														113 数据网格 样式 Description: 样式为您的文档提供一致、精美的外观。 它们也允许您使用导航窗格和添加目录。 如果您不喜欢这些样式的外观，请查看“设计”选项卡以获得更多选项。
+															114 列表项 (selectable) ↵ 正文 Description: 正文
+															115 列表项 (selectable) ↵ 无间隔 Description: 无间隔
+															116 列表项 (selectable) ↵ 标题 1 Description: 标题 1
+															117 列表项 (selectable) ↵ 标题 2 Description: 标题 2
+															118 列表项 (selectable) 标题 Description: 标题
+															119 列表项 (selectable) 副标题 Description: 副标题
+															120 列表项 (selectable) 不明显强调 Description: 不明显强调
+															121 列表项 (selectable) 强调 Description: 强调
+															122 列表项 (selectable) 明显强调 Description: 明显强调
+															123 列表项 (selectable) 要点 Description: 要点
+															124 列表项 (selectable) 引用 Description: 引用
+															125 列表项 (selectable) 明显引用 Description: 明显引用
+															126 列表项 (selectable) 不明显参考 Description: 不明显参考
+															127 列表项 (selectable) 明显参考 Description: 明显参考
+															128 列表项 (selectable) 书籍标题 Description: 书籍标题
+													129 按钮 (disabled) 上移行 Description: 将库向上滚动一行
+														130 图像 (disabled) Description: 样式为您的文档提供一致、精美的外观。 它们也允许您使用导航窗格和添加目录。 如果您不喜欢这些样式的外观，请查看“设计”选项卡以获得更多选项。
+													131 按钮 下移行 Description: 将库向下滚动一行
+														132 图像 Description: 样式为您的文档提供一致、精美的外观。 它们也允许您使用导航窗格和添加目录。 如果您不喜欢这些样式的外观，请查看“设计”选项卡以获得更多选项。
+													133 按钮 样式 Description: 其他 样式为您的文档提供一致、精美的外观。 它们也允许您使用导航窗格和添加目录。 如果您不喜欢这些样式的外观，请查看“设计”选项卡以获得更多选项。
+														134 图像 Description: 样式为您的文档提供一致、精美的外观。 它们也允许您使用导航窗格和添加目录。 如果您不喜欢这些样式的外观，请查看“设计”选项卡以获得更多选项。
+											135 按钮 样式... Description: 样式... (Alt+Ctrl+Shift+S) 预览、管理和自定义 Word 中的文本样式。 利用窗口查看和编辑每个样式的格式化详细信息、创建新样式并在文档中快速预览样式。 也可以更新样式，使之与所选文本匹配。
+										136 组 编辑
+											137 SplitButton 查找 Description: 查找 (Ctrl+F) 单击以查看用于在您的文档中查找文本的选项。 您可以使用高级搜索选项查找和替换文本、跳转到某个特定位置或者选择缩小搜索范围的方式。
+												138 按钮 查找 Description: 查找 (Ctrl+F) 在文档中查找文本或其他内容。
+												139 菜单项 更多选项 Description: 查找 (Ctrl+F) 单击以查看用于在您的文档中查找文本的选项。 您可以使用高级搜索选项查找和替换文本、跳转到某个特定位置或者选择缩小搜索范围的方式。
+											140 按钮 替换... Description: 替换... (Ctrl+H) 搜索您想要更改的文本，将其替换为其他内容。
+											141 菜单项 选择 Description: 选择文档中的文本或对象。 这对选择带有特定格式的文本或衬于文字下方的对象尤为有帮助。
+										142 组 Adobe Acrobat
+											143 按钮 创建并共享 Adobe PDF Description: 共享 PDF 以供查看或添加注释
+											144 按钮 请求签名 Description: 创建 Adobe PDF 并发送以供签名
+								145 按钮 折叠功能区 Description: 折叠功能区(Ctrl+F1) 需要更多空间吗? 请折叠功能区，以便仅显示选项卡名称。
+		146 窗格 MsoDockBottom
+			147 工具栏 Description: 状态栏 工具栏
+				148 窗格 状态栏
+					149 窗格
+						150 窗格
+							151 状态栏 状态栏
+								216 按钮 页码 第 1 页，共 1 页 Description: 文档当前的页码。单击或点击可打开导航窗格。
+								217 文本 字数统计 6 个字 Description: 文档的字数。单击或点击可打开“字数统计”对话框。
+								218 按钮 拼写和语法检查 无错误 Description: 无校对错误
+								219 按钮 语言 中文(中国) Description: 语言(国家/地区)
+								153 按钮 专注 Description: 专注模式
+								154 选项卡项目 (selectable) 选取模式 Description: 选取模式
+								155 选项卡项目 (selectable) 打印布局 Description: 打印布局
+								156 选项卡项目 (selectable) Web 版式 Description: Web 版式
+								157 按钮 缩小 Description: 缩小
+								158 滑块 缩放 Description: 缩放
+									159 按钮 缩小 Description: 将水平位置向左移动数列
+									160 Thumb 控件 位置 Description: 缩放滑块
+									161 按钮 放大 Description: 将水平位置向右移动数列
+								162 按钮 放大 Description: 放大
+								163 按钮 缩放 100% Description: 缩放级别。单击可打开“缩放”对话框。
+								164 Thumb 控件 调整框大小 Description: 可用于调整窗口的宽度和高度
+		165 窗格
+			166 窗格 01-chart-insert-bar.docx - 只读 - 兼容性模式
+				167 文档 01-chart-insert-bar.docx - 只读 - 兼容性模式
+					168 页面 页面 1 ID: UIA_AutomationId_Word_Page_1
+						169 编辑 页眉 - 第 1 节 -
+						170 编辑 页面 1 内容 ID: Body
+							171 图表元素 (selectable) 图表区
+								172 图表元素 (selectable) 图表标题
+								173 图表元素 (selectable) 绘图区
+									174 图表元素 (selectable) 垂直 (值) 轴
+										175 图表元素 轴标签 值: 0
+										176 图表元素 轴标签 值: 20
+										177 图表元素 轴标签 值: 40
+										178 图表元素 轴标签 值: 60
+										179 图表元素 轴标签 值: 80
+										180 图表元素 轴标签 值: 100
+										181 图表元素 轴标签 值: 120
+										182 图表元素 轴标签 值: 140
+									183 图表元素 (selectable) 水平 (类别) 轴
+										184 图表元素 轴标签 类别: Q1
+										185 图表元素 轴标签 类别: Q2
+										186 图表元素 轴标签 类别: Q3
+									187 图表元素 (selectable) 系列 "华东"
+										188 图表元素 (selectable) 系列 "华东" 点 "Q1" 值: 120
+										189 图表元素 (selectable) 系列 "华东" 点 "Q2" 值: 88.5
+										190 图表元素 (selectable) 系列 "华东" 点 "Q3" 值: 96
+									191 图表元素 (selectable) 系列 "华南"
+										192 图表元素 (selectable) 系列 "华南" 点 "Q1" 值: 70
+										193 图表元素 (selectable) 系列 "华南" 点 "Q2" 值:
+										194 图表元素 (selectable) 系列 "华南" 点 "Q3" 值: 110
+						195 编辑 页脚 - 第 1 节 -
+				196 窗格 垂直
+					197 窗格
+						198 滚动条 Description: 用于更改垂直方向查看区域
+				204 标题栏
+					205 菜单栏 系统 ID: MenuBar
+						206 菜单项目 系统
+					207 按钮 最小化
+					208 按钮 最大化
+					209 按钮 关闭
+		210 标题栏
+			211 菜单栏 系统 ID: MenuBar
+				212 菜单项目 系统
+			213 按钮 最小化
+			214 按钮 最大化
+			215 按钮 关闭
+		220 菜单 上下文菜单
+			221 菜单 上下文菜单
+				222 窗格
+					223 组
+						224 菜单项 剪切 Description: 剪切 (Ctrl+X) 删除所选内容并将其放到剪贴板上，以便您可以粘贴到其他地方。
+						225 菜单项 复制 Description: 复制 (Ctrl+C) 将所选内容复制到剪贴板，以便您可以将其粘贴到其他地方。
+						226 数据网格 粘贴选项
+							227 组 粘贴选项:
+								228 列表项 (selectable) 只保留文本 Description: 只保留文本 (T)
+					229 组
+						230 菜单项 重设以匹配样式 Description: 重设以匹配样式 清除所选图表元素的自定义格式，将其还原为应用于该图表的整体外观样式。 这可以确保所选图表元素与文档的整体主题相匹配。
+					231 组
+						232 菜单项 字体... Description: 字体... 使用高级字体和字符选项自定义您的文本，使之具备您所需的确切外观。 您可以向您的文本添加各种各样的样式和颜色以及视觉效果(如删除线、上标和全部大写字母)。
+					233 组
+						234 菜单项 更改图表类型... Description: 更改图表类型 更改为其他类型的图表。
+						235 菜单项 另存为模板... Description: 另存为模板... 将此图表的格式和布局另存为可应用于将来图表的模板。
+						236 SplitButton 编辑数据
+							237 菜单项 编辑数据 Description: 编辑数据
+							238 按钮 编辑数据
+						239 菜单项 (disabled) 三维旋转... Description: 三维旋转... 更改图表的三维视点。
+					240 组
+						241 SplitButton (disabled) 置于顶层 Description: 单击此处可将所选对象上移一层，或可将其移至所有对象前面。
+							242 菜单项 (disabled) 置于顶层 Description: 置于顶层 将所选对象置于其他所有对象的前面。
+							243 按钮 置于顶层 Description: 单击此处可将所选对象上移一层，或可将其移至所有对象前面。
+						244 SplitButton (disabled) 置于底层 Description: 单击此处可将所选对象下移一层，或可将其移到所有对象后面。
+							245 菜单项 (disabled) 置于底层 Description: 置于底层 将所选对象置于所有其他对象的后面。
+							246 按钮 置于底层 Description: 单击此处可将所选对象下移一层，或可将其移到所有对象后面。
+					247 组
+						248 菜单项 另存为图片... Description: 另存为图片...
+					249 组
+						250 菜单项 插入题注... Description: 插入题注 为您的图片或对象贴标签。 添加题注后，您可以通过插入交叉引用在文档的任意位置引用对象。
+						251 菜单项 环绕文字 Description: 选择文字环绕所选对象的方式。 例如，您可以选择让文字继续环绕对象或跨过对象。
+					252 组
+						253 菜单项 编辑替换文字... Description: 自动图像描述 显示自动图像描述任务，为屏幕阅读器创建对象的文字描述。
+						254 菜单项 设置图表区域格式... Description: 设置图表区域格式...
+
+Selected text: ```
+￼
+```
+
+Note: Pay special attention to the content selected by the user. If the user asks a question or refers to the content they are looking at on-screen, they might be referring to the selected content (but they might be referring to something else that's visible, too).

@@ -85,7 +85,7 @@ NamespaceContext {
 
 - 这是快路径与生成时的偏好来源；**任何与位置相关的判断必须用** `Dom::namespace_scope(node)`（`XML-11`）。
 - 规范前缀表（无既有绑定时分配）：`w r a wp wps wpg wpc wpi pic c cx dgm dsp lc m mc v o w10 w14 w15 w16 wp14 xml`。
-- 已理解命名空间集合（MCE 选择用，`XML-09`）：`wps wpg wp14 w14 w15 cx` 对应 URI，可配置。
+- 已理解命名空间集合（MCE 选择用，`XML-09`）：`wps wpg wp14 w14 w15 cx c14` 对应 URI，可配置。`c14`（Word 2010 图表扩展）在 M6 6.1 加入：图表 part 的 `c:style` 一律包在 `mc:AlternateContent` 里，Word 2010+ 与 TS 读的都是 `Choice Requires="c14"` 那份。
 
 ## PKG-10 MediaStore
 

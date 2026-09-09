@@ -1,0 +1,98 @@
+﻿{
+    "case":  "z-order",
+    "stage":  "after",
+    "path":  "C:\\word\\real-word-round3-20260907\\revfix\\z-order\\after.docx",
+    "sha256":  "9ED61C108276F54251CBEA6BCF266FEAB15B9D6836BD0C3C0BA5445256163C73",
+    "sourcePath":  "C:\\word\\real-word-round3-20260907\\revfix\\z-order\\before.docx",
+    "sourceSha256":  "35CC155683088006BFBEBD022BD692E7FFDB59E2A52401CDC11689DBE3FE8981",
+    "operations":  [
+                       "Opened unchanged before.docx independently.",
+                       "Brought lowest floating picture to front: Round3 Picture 1"
+                   ],
+    "readout":  {
+                    "text":  "before 前文\rPicture anchor.\rafter 后文\r\r",
+                    "paragraphs":  [
+                                       {
+                                           "text":  "before 前文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "Picture anchor.\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "after 后文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       }
+                                   ],
+                    "revisions":  [
+
+                                  ],
+                    "revisionCount":  0,
+                    "sections":  [
+                                     {
+                                         "index":  1,
+                                         "start":  0,
+                                         "end":  39,
+                                         "orientation":  0,
+                                         "sectionStart":  2
+                                     }
+                                 ],
+                    "shapes":  [
+                                   {
+                                       "name":  "Round3 Picture 2",
+                                       "left":  38.15,
+                                       "top":  50.05,
+                                       "width":  120,
+                                       "height":  60,
+                                       "relativeHorizontal":  0,
+                                       "relativeVertical":  2,
+                                       "zOrder":  1,
+                                       "wrap":  0
+                                   },
+                                   {
+                                       "name":  "Round3 Picture 3",
+                                       "left":  76.15,
+                                       "top":  75.35,
+                                       "width":  120,
+                                       "height":  60,
+                                       "relativeHorizontal":  0,
+                                       "relativeVertical":  2,
+                                       "zOrder":  2,
+                                       "wrap":  0
+                                   },
+                                   {
+                                       "name":  "Round3 Picture 1",
+                                       "left":  0.15,
+                                       "top":  25.3,
+                                       "width":  120,
+                                       "height":  60,
+                                       "relativeHorizontal":  0,
+                                       "relativeVertical":  2,
+                                       "zOrder":  3,
+                                       "wrap":  0
+                                   }
+                               ],
+                    "pages":  1,
+                    "compatibility":  15,
+                    "trackMoves":  true,
+                    "trackFormatting":  true,
+                    "trackRevisions":  false
+                },
+    "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\revfix\\z-order\\after.pdf",
+    "date":  "2026-09-07T13:56:21.9826537+08:00",
+    "method":  "Native Windows Word COM; DOCX saved once at this path; PDF export and current-document UI inspection afterward without save back.",
+    "uiPending":  true
+}

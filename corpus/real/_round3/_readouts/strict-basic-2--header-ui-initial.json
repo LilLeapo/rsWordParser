@@ -1,0 +1,46 @@
+{
+    "file":  "strict-basic-2--header.docx",
+    "base":  "strict/strict-basic-2.docx",
+    "op":  "header",
+    "expect":  "最后一节的默认页眉只剩一行「rsword 页眉」（原有页眉内容被替换；首页 / 偶数页页眉若有则不动）",
+    "timestamp":  "2026-09-07T14:43:13.5218609+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\strict-basic-2--header.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  12,
+                    "tables":  0,
+                    "comments":  0,
+                    "inline_shapes":  0,
+                    "shapes":  0,
+                    "first_table_rows":  null,
+                    "first_table_cells":  null,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+
+                       ],
+    "text":  "before 前文\r一级标题\r二级标题\r这是正文 Mixed English and 中文。\r项目符号条目\r编号一级\r编号二级\r编号三级\r粗体 斜体 下划线 删除线 上标 彩色文字\r\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+                    {
+                        "section":  1,
+                        "primary":  "rsword 页眉\r",
+                        "first":  "\r",
+                        "even":  "\r"
+                    }
+                ],
+    "tables":  [
+
+               ],
+    "errors":  [
+
+               ]
+}

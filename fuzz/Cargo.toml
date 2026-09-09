@@ -8,7 +8,7 @@ edition = "2024"
 cargo-fuzz = true
 
 [dependencies]
-libfuzzer-sys = "0.4"
+libfuzzer-sys = { version = "0.4", features = ["arbitrary-derive"] }
 
 [dependencies.rsword]
 path = "../crates/rsword"
@@ -29,6 +29,34 @@ bench = false
 [[bin]]
 name = "fuzz_zip"
 path = "fuzz_targets/fuzz_zip.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_instr"
+path = "fuzz_targets/fuzz_instr.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_embedded"
+path = "fuzz_targets/fuzz_embedded.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_edit"
+path = "fuzz_targets/fuzz_edit.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_bind"
+path = "fuzz_targets/fuzz_bind.rs"
 test = false
 doc = false
 bench = false

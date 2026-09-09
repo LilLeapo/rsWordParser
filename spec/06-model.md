@@ -28,9 +28,10 @@ Document {
 Block = Text(TextBlock) | Table(TableBlock) | Image(ImageBlock) | Protected(ProtectedBlock)
 TextBlock { node, kind: Paragraph | Heading{level: u8} | ListItem{list: ListRef}, style_id, props: ParaProps, inlines: Vec<Inline>, sdt: Option<SdtInfo>, revisions: Vec<Revision>, facts: ParagraphFacts }
 ProtectedBlock { node, kind: ProtectedKind, preview: String, display: Option<Display>, sdt: Option<SdtInfo>, revisions }
-ProtectedKind = FieldBlockResult(FieldId) | Equation(FormulaDisplay) | Chart(ChartDisplay) | SmartArt(DiagramDisplay)
-              | Ole(OleDisplay) | Rule(RuleDisplay) | Invisible | SectionBreak | SectionProps | BodyBreak{page: bool}
-              | Unknown(QName) | TooDeep | Unparseable
+ProtectedKind = FieldBlockResult(FieldId) | Equation | Chart | SmartArt | Ole | Rule | Invisible | SectionBreak
+              | SectionProps | BodyBreak{page: bool} | Unknown(QName) | TooDeep | Unparseable
+// 显示载荷不在变体里，挂在 ProtectedBlock.display（M4 起）：绘图 / VML 的 Display；图表经 DrawingDisplay.chart
+// （ChartRef { rel_id, chartex }）→ Document.chart_by_rel → Document.chart_parts[part].display（6.1）
 ```
 
 相对 `docs/03` 6.3 的补充：`BodyBreak`（body 顶层 `w:br`）、`Unknown`（非 `w:p/w:tbl/w:sdt/w:sectPr` 的 body 子节点）、`TooDeep`（`MOD-07`）。`TextBox` 不再是保护种类：文本框是 `Inline::Run` 内的 `Drawing` 段（`MOD-06`），段落可编辑。
@@ -57,7 +58,7 @@ ProtectedKind = FieldBlockResult(FieldId) | Equation(FormulaDisplay) | Chart(Cha
 | `math` | `oMath` 数量、是否有 `oMathPara` |
 | `revision` | 含 `w:ins/w:del/w:moveFrom/w:moveTo`、`delInstrText`、段落标记 ins/del、`pPrChange` |
 | `style_id`, `style_vanish` | `pStyle`；样式链 `vanish == true` 且段落无 `w:vanish w:val=0` 且不含绘图/书签/批注/sectPr/numPr |
-| `toc_style_level` | styleId 匹配 `^TOC ?([1-9])$` |
+| `toc_style_level` | styleId 匹配 `^TOC ?([1-9])$`；`TableofFigures` / `TableofAuthorities`（忽略空白与大小写）算 1 级——Word 的图表目录 / 引文目录也是目录行 |
 | `numbering_ref`, `outline_level` | 见 MOD-03 |
 | `sdt` | 最近的 `w:sdt` 祖先信息（`MOD-08`） |
 
@@ -129,10 +130,16 @@ Link = Hyperlink { node: NodeId /* w:hyperlink */, target: Internal{anchor} | Ex
 ## MOD-07 表格
 
 ```
-TableBlock { node, props: TableProps, grid: Vec<i32 /* twips */>, rows: Vec<Row>, style_id, revisions }
-Row { node, props: RowProps, cells: Vec<Cell>, revisions }
-Cell { node, props: CellProps, blocks: Vec<Block>, revisions }
+TableBlock { node, props: TableProps, grid: Vec<GridCol { node, w: Option<Val<i32>> /* 声明值，允许 0 与缺失 */ }>, rows: Vec<Row>, style_id, sdt, revisions }
+Row { node, props: RowProps, tbl_pr_ex: Option<TableProps> /* w:tblPrEx，行级表格属性例外 */, cells: Vec<Cell>, sdt, revisions }
+Cell { node, props: CellProps, blocks: Vec<Block>, sdt, revisions }
 ```
+
+- `Cell.blocks` 由与正文同一构建器产生（段落 / 嵌套表 / sdt / 修订包裹递归分类）。单元格最后一个块**必须**是
+  `w:p`（Word 约束）；编辑操作负责维持它（`EDIT-03` 表格通则）。
+- `Document::paragraphs()` 迭代全部段落（含单元格内任意深度、sdt 内）；`Document::block_path(node)` 给出从顶层块到
+  该节点的路径，供 `MOD-13` 的容器级刷新与 `EDIT-02` 的定位使用。`text_blocks()` 仍只给顶层文本块。
+- 构建**迭代**实现：语料有 2000 层嵌套、hostile 有 5000 层。
 
 - 行与单元格通过 `semantic_children` 加"穿透 `w:sdt`"取得（研究报告模板把 tr/tc 包在 sdt 里）；被包裹的 tr/tc 附 `SdtInfo`。
 - `w:hMerge` 不在模型层折叠（保持声明值）；`resolve` 提供折叠后的网格视图。
@@ -160,7 +167,8 @@ SdtInfo { node, alias, tag, id, control: RichText|PlainText|Picture|ComboBox|Dro
 | `ParaMarkInsert`/`ParaMarkDelete`（`pPr/rPr/ins|del`） | `TextBlock.revisions` |
 | `RunPropsChange` | `Run.rev`（`old: RunProps` 由 `PROP-06` 读 `rPrChange/rPr`） |
 | `ParaPropsChange` | `TextBlock.revisions`（`old: ParaProps + old_style + old_list`） |
-| `SectPropsChange`/`TablePropsChange`/`TableGridChange`/`RowPropsChange`/`CellPropsChange` | 对应对象的 `revisions`，`old: NodeId` |
+| `TableGridChange` | `TableBlock.revisions`，`old: NodeId`（快照里的 `w:tblGrid` 节点；网格没有属性表） |
+| `SectPropsChange`/`TablePropsChange`/`RowPropsChange`/`CellPropsChange` | `SectionInfo` / `TableBlock` / `Row` / `Cell` 的 `revisions`，`old` 是类型化快照（`Box<SectionProps>` / `Box<TableProps>` 等，由属性表的 `read_*_change` 读出）。四个同形，M7 的 Accept / Reject 共用一条 `plan_apply_*`；快照元素本身仍能从 `meta.node` 一步走到 |
 | `NumberingChange` | `TextBlock.revisions` |
 | `CellInsert`/`CellDelete`/`CellMerge` | `Cell.revisions`；`Row.revisions` 承接 `trPr/ins|del` |
 | `FieldInstrDelete` | 字段所在 `Run.rev` 与 `FieldSpan` |
@@ -177,7 +185,11 @@ SdtInfo { node, alias, tag, id, control: RichText|PlainText|Picture|ComboBox|Dro
 - **Notes**：条目带 `w:type`（separator 等）为结构条目，`kind` 非 `Normal`。
 - **Sources**：`b:Sources` 的 `b:Source` 建模字段与 TS 一致，其余 `Raw`。
 - **FontTable**：`name, altName, panose1, family, pitch, charset, sig, embed*`。
-- **Sections**：`SectionInfo { node /* sectPr */, props: SectionProps, owner: Body|Paragraph(NodeId), block_range }`；继承在 `RES-10`。
+- **Sections**：`SectionInfo { node: Option<NodeId> /* sectPr */, props: Box<SectionProps>, owner: Body|Paragraph(NodeId)|Implicit, block_range: Range<usize> /* Document.main 的下标 */, revisions }`；
+  `start_type` / `title_pg` / `hf_ref(kind, variant)` 由 `props` 派生，**继承在 `RES-10`**（模型只存声明值）。
+  每个 `w:sectPr` **结束**它所在的节（分节段落自己算本节最后一块），所以「管辖某位置的节」= 第一个结束位置在它之后的 `sectPr`（`section_of`）。
+  一个 `w:sectPr` 都没有 → 一个隐式节（`node: None`、`owner: Implicit`、全缺省，同 TS `DEFAULT_SECTION`）；最后一个 `sectPr` 之后还有块（畸形文档）→ 并进最后一节。
+  节的判定**不下钻**表格与文本框：别的内容流里的 `sectPr` 不结束正文的节。
 
 ## MOD-11 显示模型（只含文档事实）
 
@@ -187,7 +199,8 @@ SdtInfo { node, alias, tag, id, control: RichText|PlainText|Picture|ComboBox|Dro
 - `AnchorGeom { rel_h, rel_v, align_h, align_v, offset_h_emu, offset_v_emu, pct_h, pct_v, wrap: None|Square{wrap_text}|Tight{..}|Through{..}|TopAndBottom, behind_doc, allow_overlap, relative_height_raw, layout_in_cell, dist_t/b/l/r, hidden }`
 - `ShapeDisplay { prst, xfrm{off, ext, rot, flips}, fill: Solid(rgb)|Gradient(stops)|Pattern{fg,bg}|Blip(media)|None, line: Option<{color, w_emu, dash, head, tail}>, body_pr{insets, anchor, autofit, wrap, vert}, style_refs{fill_ref, ln_ref, effect_ref, font_ref}, content: Option<Vec<Block>> /* txbxContent，独立内容流 */, group: Option<GroupCtm> }`
 - `VmlDisplay { kind: Shape|Rect|RoundRect|Oval|Line|Group|Image|TextPath|Hr, style: Map<String,String> /* 原始 style 键值 */, fill, stroke, imagedata: Option<MediaId>, textpath: Option<String>, content: Option<Vec<Block>> }`
-- `ChartDisplay`、`DiagramDisplay`、`OleDisplay`、`RuleDisplay`、`FormulaDisplay { omml_node, tokens, mathml, latex }` 字段与 TS 对齐，但几何用 EMU 原值，颜色经 `RES-05` 解析为 sRGB 并保留原始定义。
+- `ChartDisplay { root, kind: Bar|Line|Pie|Area|Scatter|Bubble|Other, plot, horizontal, grouping: Option<Stacked|PercentStacked>, markers, hole_pct, legend_pos: Option<b|l|r|t|tr>, title, title_node, categories: Vec<String>, series: Vec<ChartSeries { node, name, values: Vec<Option<f64>>, color: Option<ChartColor { def: DrawingColor, rgb }>, point_colors, x_values, sizes, line }>, style_val, palette: Option<[Rgb; 6]>, chartex }`（6.1）：图表 part 是有自己 DOM 的 part，`Document.chart_parts: Map<PartId, ChartPart { part, root, chartex, display: Option<ChartDisplay> }>` 收下主 part 关系里的全部 `chart` / `chartEx` part，`Document.chart_by_rel` 把绘图里的 `c:chart r:id` 接过去；只读 Word 写在数据引用旁的缓存（`c:strCache` / `c:numCache` / `strLit` / `numLit`），内嵌工作簿不打开；没有带缓存值的系列 → `display: None` + `CHART_NO_SERIES`；关系悬空 / part 缺失 → `PKG_REL_MISSING`。调色板是 `c:style` 列与主题 accent 的纯函数（`chart::palette`）。chartex（`cx:chartSpace`）按降级读进同一结构，`chartex: true`。
+- `DiagramDisplay`、`OleDisplay`、`RuleDisplay`、`FormulaDisplay { omml_node, tokens, mathml, latex }` 字段与 TS 对齐，但几何用 EMU 原值，颜色经 `RES-05` 解析为 sRGB 并保留原始定义。
 
 **禁止**在这些结构中出现由排版决定的字段（碰撞位移后的偏移、band 高度、猜测的 floatSide 等）。
 
@@ -208,7 +221,7 @@ SdtInfo { node, alias, tag, id, control: RichText|PlainText|Picture|ComboBox|Dro
 | MOD-03 | `outlineLvl=9` 且样式为 Heading1 → Paragraph；样式 `numId 0` 取消继承编号 |
 | MOD-05 | `docs/01` 第 6.2 节决策树中的每个分支各一个用例，标 △ 的用例断言新行为（含 REF 的段落为 Text；含锚定文本框的段落为 Text 且 Drawing 段带 ShapeDisplay） |
 | MOD-06 | `"Hello" + <w:tab/> + "World"` 坐标流为 `Hello\tWorld`；含图片 run 的段落坐标流含 1 个 U+FFFC；PAGE 字段结果 `12` 只占 1 单位；无 preserve 的 `<w:t> x </w:t>` 文本为 `x` |
-| MOD-07 | sdt 包裹的 tr/tc 解析出行列；65 层嵌套第 65 层为 TooDeep |
+| MOD-07 | sdt 包裹的 tr/tc 解析出行列；65 层嵌套第 65 层为 TooDeep；hostile `xml-deep-table` 无编辑保存字节相同；`w:tblPrEx` 读入 `Row.tbl_pr_ex`；全语料每张表行数、每行物理 `w:tc` 数与 TS 对得上（折叠 `hMerge` 与 `gridGap` 占位换算后） |
 | MOD-08 | 带 `w:dataBinding` 与 `w:lock w:val="sdtContentLocked"` 的 sdt 字段正确 |
 | MOD-09 | 每种修订至少一个语料用例，附着位置正确 |
 | MOD-13 | 随机编辑后 `refresh == rebuild` |

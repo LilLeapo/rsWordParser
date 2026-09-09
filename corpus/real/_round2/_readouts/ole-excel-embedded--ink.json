@@ -1,0 +1,23 @@
+﻿{
+    "file":  "ole-excel-embedded--ink.docx",
+    "compat":  15,
+    "paragraphs":  4,
+    "text":  "before 前文\r\u0001\rafter 后文\r\r",
+    "inlineShapes":  1,
+    "shapes":  1,
+    "charts":  [
+
+               ],
+    "shapeDetails":  [
+                         {
+                             "width":  120,
+                             "wrap":  3,
+                             "name":  "aidocs-ink 1",
+                             "type":  13,
+                             "height":  30,
+                             "top":  -3.75,
+                             "left":  15,
+                             "relativeHorizontal":  2
+                         }
+                     ]
+}

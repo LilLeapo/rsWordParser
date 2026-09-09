@@ -22,8 +22,10 @@ pub use crate::xml::plan::{NewElement, NewNode, NodeEdit, Target};
 
 pub mod codec;
 mod read;
+pub(crate) mod serde;
+mod table;
 
-pub use codec::{Codec, HexColorOrAuto};
+pub use codec::{Codec, HexColorOrAuto, Measure};
 pub use read::{Ctx, emit_val, read_attr, read_val, spell};
 use read::{plan_multi, plan_raw, plan_single};
 

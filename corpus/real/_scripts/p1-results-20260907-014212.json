@@ -1,0 +1,13 @@
+{
+  "case": "sdt/content-controls",
+  "status": "saved-needs-visual-and-package-check",
+  "version": "16.0",
+  "build": "16.0.14334",
+  "visualChecked": false,
+  "started": "2026-09-07T01:42:14.6642820+08:00",
+  "pages": 1,
+  "text": "before 前文\r富文本：已锁定富文本\r下拉列表：选项二\r日期：2026-09-07\r复选框：☒\r\rafter 后文\r\r",
+  "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\sdt\\content-controls-2.docx",
+  "pdf": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\sdt\\content-controls-2.pdf",
+  "finished": "2026-09-07T01:42:15.9415625+08:00"
+}

@@ -1,0 +1,1106 @@
+﻿[
+    {
+        "file":  "ink-pen--newimage.docx",
+        "recovery":  "none",
+        "observation":  "Opened normally with no recovery prompt. Green floating picture is visible at the right; original pen underline and body remain visible, before and after retained. Exact108x54pt confirmed by separate COM geometry.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ink-pen--newimage-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-pen--newimage.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ink-pen--newimage-resaved-by-word.docx",
+        "resaved_sha256":  "5B18828E61ACC12DE3062393BE1D3332B23592DBD706F5483B972F73D3D78F63",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ink-pen--newimage-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:03:17.6842190+08:00"
+    },
+    {
+        "file":  "ink-pen--newchart.docx",
+        "recovery":  "none",
+        "observation":  "Normal open, no recovery prompt. New rsword column chart displays categories and heights3/1/2; original pen underline and body text remain below the chart.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ink-pen--newchart-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-pen--newchart.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ink-pen--newchart-resaved-by-word.docx",
+        "resaved_sha256":  "69CE7FDFDF20F358A634FBBCFE3D179A5389CF959F421F96852B2020CF4910ED",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ink-pen--newchart-ui-initial.json",
+        "activationReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ink-pen--newchart-ui-activated.json",
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:03:58.0432701+08:00"
+    },
+    {
+        "file":  "ink-pen--ink.docx",
+        "recovery":  "none",
+        "observation":  "Normal open with no recovery prompt. Green floating layer overlaps the first text area without reflow; original black pen stroke and remaining body/after are visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ink-pen--ink-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-pen--ink.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ink-pen--ink-resaved-by-word.docx",
+        "resaved_sha256":  "5F05B8A3592723FB01A50E781C7D959B3C6B0BD51615C0E50EFBD3E779D97600",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ink-pen--ink-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:04:26.4696746+08:00"
+    },
+    {
+        "file":  "ink-highlighter--newimage.docx",
+        "recovery":  "none",
+        "observation":  "Normal open, no recovery prompt. Yellow original highlighter remains on the body sentence; green new picture is fully visible at right, with before/after clear.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ink-highlighter--newimage-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-highlighter--newimage.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ink-highlighter--newimage-resaved-by-word.docx",
+        "resaved_sha256":  "A94D9596CCA31C68446870869A63E928EC7E2476285F5C9A8A02496F59ECC9B1",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ink-highlighter--newimage-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:04:43.5999762+08:00"
+    },
+    {
+        "file":  "ink-highlighter--newchart.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Column chart title rsword new chart and category heights3/1/2 are visible; yellow native highlighter remains under chart with clear body and after.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ink-highlighter--newchart-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-highlighter--newchart.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ink-highlighter--newchart-resaved-by-word.docx",
+        "resaved_sha256":  "ECF30484976C46C00CD3D9ED59942B734E1525A880FB60A3C64B29E7E657939B",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ink-highlighter--newchart-ui-initial.json",
+        "activationReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ink-highlighter--newchart-ui-activated.json",
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:05:02.8383153+08:00"
+    },
+    {
+        "file":  "ink-highlighter--ink.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Original yellow highlighter and new green floating layer both visible across initial text area; body layout and after remain.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ink-highlighter--ink-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-highlighter--ink.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ink-highlighter--ink-resaved-by-word.docx",
+        "resaved_sha256":  "F168F4FD0E0D8663F4458D648190A11834615D904FE38ECE4A39866CDD5EAD34",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ink-highlighter--ink-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:05:21.1831169+08:00"
+    },
+    {
+        "file":  "ink-to-shape--newimage.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Original black polygon remains below body; green new picture appears fully at right. before/after and body intact.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ink-to-shape--newimage-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-to-shape--newimage.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ink-to-shape--newimage-resaved-by-word.docx",
+        "resaved_sha256":  "9C67BD12AC12CDA3F6D760C3B9863A1467A291D538E4ED28E367D01B30720F04",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ink-to-shape--newimage-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:05:39.2710633+08:00"
+    },
+    {
+        "file":  "ink-to-shape--newchart.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. New column chart3/1/2 displays above original body and black polygon; original content and after remain visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ink-to-shape--newchart-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-to-shape--newchart.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ink-to-shape--newchart-resaved-by-word.docx",
+        "resaved_sha256":  "30F73C45CA836D79B795DAB1C7D333D1C8B806357560C9AB7ABA55586E2C85C1",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ink-to-shape--newchart-ui-initial.json",
+        "activationReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ink-to-shape--newchart-ui-activated.json",
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:05:59.2220189+08:00"
+    },
+    {
+        "file":  "ink-to-shape--ink.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Green floating overlay appears at first text area; original black polygon, body, and after remain visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ink-to-shape--ink-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-to-shape--ink.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ink-to-shape--ink-resaved-by-word.docx",
+        "resaved_sha256":  "29604D69B759D3A6B37EFFAEE8A2C674DF4D59538EB8E3804ECC9A5F8F60CFCF",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ink-to-shape--ink-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:06:21.0589402+08:00"
+    },
+    {
+        "file":  "chart-no-title--chartdata.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Requested Chinese title and renamed first-series legend visible; blue bars 11/21/31 before workbook activation. Separate COM readings record rollback to 10/20/30.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-chart-no-title--chartdata-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-no-title--chartdata.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\chart-no-title--chartdata-resaved-by-word.docx",
+        "resaved_sha256":  "F7BE81F9919F5379A3976700CEDDC2393F2CA55A9981F040CBAEC67C7D91C765",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-no-title--chartdata-ui-initial.json",
+        "activationReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-no-title--chartdata-ui-activated.json",
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:09:10.8560526+08:00"
+    },
+    {
+        "file":  "chart-scatter--chartdata.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Blue first-series points at x=1/2/3 and y=11/21/31; requested title and renamed legend visible. Workbook activation separately records rollback.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-chart-scatter--chartdata-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-scatter--chartdata.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\chart-scatter--chartdata-resaved-by-word.docx",
+        "resaved_sha256":  "409C7CDC2C947CA01E1E82F2C5470CB57794A88C19BE12BF4095B8B8D086EF31",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-scatter--chartdata-ui-initial.json",
+        "activationReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-scatter--chartdata-ui-activated.json",
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:09:37.7330779+08:00"
+    },
+    {
+        "file":  "chart-scatter-lines--chartdata.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Blue connected points at 11/21/31, orange at 15/25/35, with requested title and renamed first-series legend. Workbook activation separately records rollback.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-chart-scatter-lines--chartdata-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-scatter-lines--chartdata.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\chart-scatter-lines--chartdata-resaved-by-word.docx",
+        "resaved_sha256":  "DFA0A268C2A973BCF9322C9C5D6E75CDC03C352B585AD9BCA0475E64CD91AE1F",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-scatter-lines--chartdata-ui-initial.json",
+        "activationReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-scatter-lines--chartdata-ui-activated.json",
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:10:02.7419344+08:00"
+    },
+    {
+        "file":  "chart-bubble--chartdata.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Blue bubble centers are 11/21/31; requested title and renamed legend visible. Separate activation readout records rollback.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-chart-bubble--chartdata-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-bubble--chartdata.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\chart-bubble--chartdata-resaved-by-word.docx",
+        "resaved_sha256":  "E27458032B18E29CBE491E6B321CDC1C77FE1156E9769646999BE3A93CCD4905",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-bubble--chartdata-ui-initial.json",
+        "activationReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-bubble--chartdata-ui-activated.json",
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:10:30.5037859+08:00"
+    },
+    {
+        "file":  "chart-column--insert.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. rsword prefix and pen marker visible before before text; original clustered columns 10/20/30 and 15/25/35, title and after text visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-chart-column--insert-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-column--insert.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\chart-column--insert-resaved-by-word.docx",
+        "resaved_sha256":  "8C1DE036126E562664F06D93CB4955833EB1AE996FC5821D44EEE93A5DFF8EFE",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-column--insert-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:32:23.8257224+08:00"
+    },
+    {
+        "file":  "smartart-list--insert.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. rsword prefix visible before first paragraph; five blue SmartArt items arranged three above two; before and after remain visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-smartart-list--insert-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\smartart-list--insert.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\smartart-list--insert-resaved-by-word.docx",
+        "resaved_sha256":  "703B7A8BEB7827FE756F202084BED605C2A9D6BACE83F6AAB2F70F8D4264A9B5",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\smartart-list--insert-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:32:46.3693605+08:00"
+    },
+    {
+        "file":  "math-fraction--insert.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. rsword prefix visible in before paragraph; centered fraction (a+b)/2 plus x squared and after text render clearly.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-math-fraction--insert-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\math-fraction--insert.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\math-fraction--insert-resaved-by-word.docx",
+        "resaved_sha256":  "C1440B2D9E72BEFCFB1E05E5D03DB43389299DC40709EED3363874AA01E9DD2F",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\math-fraction--insert-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:33:02.6170531+08:00"
+    },
+    {
+        "file":  "canvas-floating--newimage.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. New green image appears at right as a visible top strip; existing higher-z floating canvas covers its lower portion. COM records108x54pt square wrap, z1 versus canvas z2. Canvas rectangle, oval, line and arrow remain visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-canvas-floating--newimage-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\canvas-floating--newimage.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\canvas-floating--newimage-resaved-by-word.docx",
+        "resaved_sha256":  "EC2FB05A09E663C223837CDE0B67469A64A5754DDED390B4120D5E74F3F32A95",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\canvas-floating--newimage-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:33:44.9084272+08:00"
+    },
+    {
+        "file":  "ole-icon-3--newimage.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Full green rectangle at right below before paragraph; original Excel icon and caption, plus after paragraph remain visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ole-icon-3--newimage-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ole-icon-3--newimage.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ole-icon-3--newimage-resaved-by-word.docx",
+        "resaved_sha256":  "FA88D7A3856A3739C74DA216B6FD3E8EA980DFFEC48B8163CB0E85FD4BA313A6",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ole-icon-3--newimage-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:34:01.4184966+08:00"
+    },
+    {
+        "file":  "hf-variants--newimage.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Green rectangle at right of first page below before paragraph. First-page and even-page headers are visible on adjacent pages with their original text.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-hf-variants--newimage-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\hf-variants--newimage.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\hf-variants--newimage-resaved-by-word.docx",
+        "resaved_sha256":  "E2310C7F03C0150CEA4586FFCE046A9986FCF2DE36ED6C11BAB12A772338E95D",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\hf-variants--newimage-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:34:28.4088419+08:00"
+    },
+    {
+        "file":  "fields-toc--newchart.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. New rsword chart shows three blue columns3/1/2 above the TOC. TOC entries, three heading levels, reference fields and after paragraph remain visible; workbook activation recorded separately.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-fields-toc--newchart-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\fields-toc--newchart.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\fields-toc--newchart-resaved-by-word.docx",
+        "resaved_sha256":  "61EF1BB5C14558D11B6E436CA684D39FA8327601651EF04E39B40C6655B7ADED",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\fields-toc--newchart-ui-initial.json",
+        "activationReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\fields-toc--newchart-ui-activated.json",
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:34:47.1971108+08:00"
+    },
+    {
+        "file":  "image-wrap-square--newchart.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. New chart with title and columns3/1/2; original teal/yellow floating image remains beneath chart at right, and after text remains at left. Workbook activation recorded separately.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-image-wrap-square--newchart-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\image-wrap-square--newchart.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\image-wrap-square--newchart-resaved-by-word.docx",
+        "resaved_sha256":  "AD55D42DE7132389DEE88D825FD9B4F9EA05F2F650739A6FD6530D01EF932650",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\image-wrap-square--newchart-ui-initial.json",
+        "activationReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\image-wrap-square--newchart-ui-activated.json",
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:35:05.5739942+08:00"
+    },
+    {
+        "file":  "table-styled--newchart.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. New chart title and3/1/2columns visible above blue styled table, merged header and nested lower-right table. after text visible; native workbook activation recorded separately.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-table-styled--newchart-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\table-styled--newchart.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\table-styled--newchart-resaved-by-word.docx",
+        "resaved_sha256":  "EAD6F5171266E3D56445BC6474C5332CF9BACA27386FB71C7D307AFBE0324CE8",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\table-styled--newchart-ui-initial.json",
+        "activationReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\table-styled--newchart-ui-activated.json",
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:35:22.0267174+08:00"
+    },
+    {
+        "file":  "math-matrix--ink.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Green overlay covers first-paragraph area without displacing text; centered2x2matrix and after paragraph remain visible. Geometry is recorded separately.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-math-matrix--ink-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\math-matrix--ink.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\math-matrix--ink-resaved-by-word.docx",
+        "resaved_sha256":  "157B89F8CB1776F30AF4F1DFB107A05D8A29AE21AB87923182B9EC7EF1835EB2",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\math-matrix--ink-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:35:37.8378820+08:00"
+    },
+    {
+        "file":  "smartart-floating--ink.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Green overlay across first-paragraph area; three-step blue SmartArt and separate teal/yellow picture remain visible; after paragraph stays below.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-smartart-floating--ink-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\smartart-floating--ink.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\smartart-floating--ink-resaved-by-word.docx",
+        "resaved_sha256":  "7F35450AC2B57749F48A737E953175AD5E884C461428FF129296B8EB09FBAF8F",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\smartart-floating--ink-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:35:56.5891705+08:00"
+    },
+    {
+        "file":  "ole-excel-embedded--ink.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Green overlay over first-paragraph area and top of embedded worksheet; worksheet grid with12and34 remains visible, after paragraph below, no text reflow around overlay.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ole-excel-embedded--ink-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ole-excel-embedded--ink.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ole-excel-embedded--ink-resaved-by-word.docx",
+        "resaved_sha256":  "37ED66017E5B6B16C8AB9B7CA4B5575A42A4DE6EB786E0874D9E14D5254BD3F9",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ole-excel-embedded--ink-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:36:15.9233436+08:00"
+    },
+    {
+        "file":  "chart-floating--deleteblock.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Floating chart is absent; before and after paragraphs are adjacent, no chart visible on page.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-chart-floating--deleteblock-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-floating--deleteblock.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\chart-floating--deleteblock-resaved-by-word.docx",
+        "resaved_sha256":  "D53841A3D85A91D295399643FA20940BDD3841E167BCD870AE94F0120A70DE2D",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-floating--deleteblock-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:36:33.7349152+08:00"
+    },
+    {
+        "file":  "canvas-picture--deleteblock.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Drawing canvas and its picture are absent; only before and after paragraphs remain on the page.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-canvas-picture--deleteblock-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\canvas-picture--deleteblock.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\canvas-picture--deleteblock-resaved-by-word.docx",
+        "resaved_sha256":  "D089701C8A0968C74AD25834F5C51E1E069FE188179E1DEBDF3BFAF663947FC1",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\canvas-picture--deleteblock-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:36:52.4062686+08:00"
+    },
+    {
+        "file":  "math-in-table--deleteblock.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Table and equation are absent; before and after paragraphs remain with an intervening blank paragraph.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-math-in-table--deleteblock-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\math-in-table--deleteblock.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\math-in-table--deleteblock-resaved-by-word.docx",
+        "resaved_sha256":  "334D939A38C39DDF61E408973F48696120828DF14CEC5BB8B104D9D9C73968E4",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\math-in-table--deleteblock-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:40:08.0066710+08:00"
+    },
+    {
+        "file":  "chart-column--chartdata.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Initial column chart shows changed title and renamed first series; blue bars are approximately 11, 21, 31 with before/after paragraphs retained. Native workbook activation readout follows separately.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-chart-column--chartdata-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-column--chartdata.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\chart-column--chartdata-resaved-by-word.docx",
+        "resaved_sha256":  "5E0BFEFA7EE3B3863DB7B9979AB8857BC514CECD29407980C74694AB904A33B4",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-column--chartdata-ui-initial.json",
+        "activationReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-column--chartdata-ui-activated.json",
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:40:26.2796942+08:00"
+    },
+    {
+        "file":  "chart-no-legend--chartdata.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Initial column chart has changed title, no legend, blue bars approximately 11, 21, 31. Surrounding text remains visible. Workbook activation is recorded separately.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-chart-no-legend--chartdata-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-no-legend--chartdata.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\chart-no-legend--chartdata-resaved-by-word.docx",
+        "resaved_sha256":  "1448DFA50AAA7A98EC7B31E5E28572BAB193AB6401993A618D6E1BEDECA068A0",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-no-legend--chartdata-ui-initial.json",
+        "activationReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-no-legend--chartdata-ui-activated.json",
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:40:38.8782201+08:00"
+    },
+    {
+        "file":  "chart-floating--chartdata.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Floating column chart remains on the right with before/after text at left, changed title and first-series legend visible, blue bars approximately 11, 21, 31.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-chart-floating--chartdata-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-floating--chartdata.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\chart-floating--chartdata-resaved-by-word.docx",
+        "resaved_sha256":  "A5629A00D450A908A0FEBFE7D151F839BE709CCD8DBE94C116DE2FCED776DBCF",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-floating--chartdata-ui-initial.json",
+        "activationReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-floating--chartdata-ui-activated.json",
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:40:57.6219409+08:00"
+    },
+    {
+        "file":  "image-cropped--replaceimage.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. A solid green rectangular replacement image appears between before and after paragraphs. Native geometry/crop readout supplies the size and crop comparison.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-image-cropped--replaceimage-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\image-cropped--replaceimage.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\image-cropped--replaceimage-resaved-by-word.docx",
+        "resaved_sha256":  "8E6B9DA1A6373C78D58D57A93E8792CC0E8176B95523ABBB84B274EBA078AE88",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\image-cropped--replaceimage-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:41:09.6630241+08:00"
+    },
+    {
+        "file":  "image-svg--replaceimage.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. The SVG source image now renders as one solid green rectangle; before/after paragraphs remain. Native readout records geometry and zero crop.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-image-svg--replaceimage-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\image-svg--replaceimage.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\image-svg--replaceimage-resaved-by-word.docx",
+        "resaved_sha256":  "6BDF5D449EA5B9D00C6FBB94D669220DB897AC530F5ABCD96DE5429C2E52DB2E",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\image-svg--replaceimage-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:41:19.0928295+08:00"
+    },
+    {
+        "file":  "chart-pasted-picture--replaceimage.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Former pasted chart picture is now a large solid green rectangle, with before and after text retained. Native geometry comparison records inherited position and size.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-chart-pasted-picture--replaceimage-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-pasted-picture--replaceimage.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\chart-pasted-picture--replaceimage-resaved-by-word.docx",
+        "resaved_sha256":  "EDF050F92A3AD0B376CB7E249FF40306FFAD8A302C35574D36CBBF5CB67C75BF",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-pasted-picture--replaceimage-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:41:32.4906464+08:00"
+    },
+    {
+        "file":  "chart-in-table--insertrow.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Selected two-column table visibly has a blank middle row after the chart/Cell 2 row and before Cell 3/Cell 4. Chart and surrounding paragraphs remain.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-chart-in-table--insertrow-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-in-table--insertrow.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\chart-in-table--insertrow-resaved-by-word.docx",
+        "resaved_sha256":  "5C91767C0F5A3833E9744A684E87AADAAEB8FBB2ABC42650176347C86F35EFD2",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chart-in-table--insertrow-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:41:45.5553144+08:00"
+    },
+    {
+        "file":  "math-in-table--insertrow.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Two-column table shows a blank middle row; fraction plus squared x remains in upper-left, right-upper and both lower labels remain. Before/after paragraphs are visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-math-in-table--insertrow-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\math-in-table--insertrow.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\math-in-table--insertrow-resaved-by-word.docx",
+        "resaved_sha256":  "AEEB2E5870A0A0952949728DD30DB5744A98E66D81B876103387F8D8D87C195A",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\math-in-table--insertrow-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:41:58.2987161+08:00"
+    },
+    {
+        "file":  "ole-in-table--insertrow.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Table has a blank middle row under the OLE spreadsheet/upper-right row; embedded spreadsheet preview with 12 and 34 remains, as do lower labels and surrounding text.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ole-in-table--insertrow-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ole-in-table--insertrow.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ole-in-table--insertrow-resaved-by-word.docx",
+        "resaved_sha256":  "5D925E54A8677C2E8FD247A5945BAA9F41153922536BC84A3D001DA070F64E62",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ole-in-table--insertrow-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:42:09.7257929+08:00"
+    },
+    {
+        "file":  "smartart-in-table--mergecells.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. First table row spans both columns, containing the three-step SmartArt followed by the former upper-right text. Bottom row still has separate left/right cells; surrounding text remains.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-smartart-in-table--mergecells-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\smartart-in-table--mergecells.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\smartart-in-table--mergecells-resaved-by-word.docx",
+        "resaved_sha256":  "1D0802E115F2BD2C6B1DE84DEE5727FB6F2062000C5F1A756833AED08248E28F",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\smartart-in-table--mergecells-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:42:21.3295623+08:00"
+    },
+    {
+        "file":  "table-styled--mergecells.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Second row visibly combines R2 C1 and R2 C2 in the same wide cell; R2 C3 stays separate. Existing merged header, third row and nested table remain.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-table-styled--mergecells-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\table-styled--mergecells.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\table-styled--mergecells-resaved-by-word.docx",
+        "resaved_sha256":  "87C448AC4B82E371D32A325D4996CA604E94F8955C6D3CCB1CAF4DF4D96F57F3",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\table-styled--mergecells-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:42:34.4218932+08:00"
+    },
+    {
+        "file":  "ole-in-table--mergecells.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. First row has one full-width cell, with spreadsheet preview and former upper-right text underneath. Bottom row remains two cells; before/after text preserved.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ole-in-table--mergecells-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ole-in-table--mergecells.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ole-in-table--mergecells-resaved-by-word.docx",
+        "resaved_sha256":  "07A9EAC7FB8ADE6FBE660CBC78CF90B709C8ED22D447D1C40A54371497C20C40",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ole-in-table--mergecells-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:42:45.6059986+08:00"
+    },
+    {
+        "file":  "hf-variants--header.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Default odd-page header pane visibly contains only rsword header marker in Chinese. Body still contains first-page, odd/even-page and third-page text plus before/after. Other header variants are covered by native readout and PDF.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-hf-variants--header-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\hf-variants--header.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\hf-variants--header-resaved-by-word.docx",
+        "resaved_sha256":  "4D80FE3FA3F6849910BADF74FF4D8EB87939BC493076C2A79067E43F4830C8B5",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\hf-variants--header-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:42:57.7860262+08:00"
+    },
+    {
+        "file":  "sections-three--header.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Header pane explicitly identifies section 3 and contains only rsword header marker in Chinese. Body shows all three section paragraphs and two next-page section breaks, with before/after preserved.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-sections-three--header-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\sections-three--header.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\sections-three--header-resaved-by-word.docx",
+        "resaved_sha256":  "CC189E29488D1D5FC659ADA9F943DF52C90850F202D35E0942665F8A74549946",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\sections-three--header-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:43:13.1675630+08:00"
+    },
+    {
+        "file":  "strict-basic-2--header.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Header pane contains only rsword header marker in Chinese. Strict-source headings, mixed-language text, lists and formatted text remain visibly rendered with before/after.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-strict-basic-2--header-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\strict-basic-2--header.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\strict-basic-2--header-resaved-by-word.docx",
+        "resaved_sha256":  "C5927FC62FE2B55D29284C1110F41FDFF7512B982E240A225D4B9495FAEBC8E2",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\strict-basic-2--header-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:43:28.3053292+08:00"
+    },
+    {
+        "file":  "revisions-comments--comment.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. New purple rsword comment with rsword Chinese comment text anchors the first characters of before. Existing insertion/deletion/format revision markup and prior comment thread/reply remain visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-revisions-comments--comment-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\revisions-comments--comment.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\revisions-comments--comment-resaved-by-word.docx",
+        "resaved_sha256":  "6D9A80F381F61744CBA46BE3B32AFA7A9C4C1158F3C36BA139FEE03CE50B38D1",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\revisions-comments--comment-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:43:40.0747380+08:00"
+    },
+    {
+        "file":  "smartart-in-table--comment.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Rsword comment balloon with expected Chinese text connects to the start of before. Original two-by-two table, three-step SmartArt and surrounding paragraphs remain visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-smartart-in-table--comment-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\smartart-in-table--comment.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\smartart-in-table--comment-resaved-by-word.docx",
+        "resaved_sha256":  "B913B32CE77D3E2FD25514F65E4A370FE0C54EF52C48453B03059DB409E1EDA6",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\smartart-in-table--comment-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:43:51.9654392+08:00"
+    },
+    {
+        "file":  "image-cropped--comment.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Rsword comment with expected Chinese text anchors first characters of before. Cropped yellow/teal image and after paragraph remain visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-image-cropped--comment-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\image-cropped--comment.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\image-cropped--comment-resaved-by-word.docx",
+        "resaved_sha256":  "A7A312891A71DF39103BCA3F410470E92EEEAF704FAFDDEFB9976E03B93C8C54",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\image-cropped--comment-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:44:08.1690339+08:00"
+    },
+    {
+        "file":  "text-custom-styles--split.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. First text paragraph is split into be and fore Chinese before text on separate paragraphs. Custom heading, following body and after remain visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-text-custom-styles--split-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\text-custom-styles--split.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\text-custom-styles--split-resaved-by-word.docx",
+        "resaved_sha256":  "F7118680562BA04569C3469515454B609E3793496DB69245E588826888375DA8",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\text-custom-styles--split-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:44:23.4329492+08:00"
+    },
+    {
+        "file":  "textbox-shapes-3--split.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Before splits into be and fore on distinct paragraphs. Textbox, rounded rectangle, rectangle, ellipse and WordArt remain visibly rendered, with after below.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-textbox-shapes-3--split-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\textbox-shapes-3--split.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\textbox-shapes-3--split-resaved-by-word.docx",
+        "resaved_sha256":  "A9E590070DFB653DA039827125678726FE73B32A597F36E1E0E42B0CF4FB3A86",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\textbox-shapes-3--split-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:44:36.1877631+08:00"
+    },
+    {
+        "file":  "fields-toc--split.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. First paragraph splits into be and fore on distinct paragraphs. Three-entry TOC, heading hierarchy, cross-reference, note references and after remain visible without bookmark-error text.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-fields-toc--split-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\fields-toc--split.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\fields-toc--split-resaved-by-word.docx",
+        "resaved_sha256":  "505AD1F968CB9BB7EB6ECAE75E594232653805DB312655A93F2EC0530C7E48EF",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\fields-toc--split-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:44:48.0146245+08:00"
+    },
+    {
+        "file":  "rev-insert-delete--insert.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. First paragraph starts with rsword and pen marker before before text. Author A red insertion/deletion and Author B blue insertion remain visibly marked. An English-translation suggestion appears above the ribbon; it is not a recovery prompt and was not accepted.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-rev-insert-delete--insert-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\rev-insert-delete--insert.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\rev-insert-delete--insert-resaved-by-word.docx",
+        "resaved_sha256":  "39BDC54B5E38B9F6C3C09C2A7A46614B8F1EB088835345645EEE28208DEEE8F7",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\rev-insert-delete--insert-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:45:00.8026005+08:00"
+    },
+    {
+        "file":  "image-z-order--newimage.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. New green rectangle appears at upper right; original three offset teal/yellow floating pictures remain overlapped at center-left. Before, floating-anchor text and after remain. Unused translation suggestion is visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-image-z-order--newimage-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\image-z-order--newimage.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\image-z-order--newimage-resaved-by-word.docx",
+        "resaved_sha256":  "CD6E9C482E0C9869194133B76074B37F09C852E5B2D6CCDAA9866E4419EAAA41",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\image-z-order--newimage-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:45:19.0836722+08:00"
+    },
+    {
+        "file":  "fields-citations--newchart.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. New rsword Chinese-title column chart displays categories and bars 3, 1, 2. Book/journal citations, bibliography and before/after remain readable. Unused translation suggestion is visible; workbook activation is recorded separately.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-fields-citations--newchart-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\fields-citations--newchart.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\fields-citations--newchart-resaved-by-word.docx",
+        "resaved_sha256":  "1BC4894B4073F5E244D39BA00D5B9D942FA4C7D8EE376E44A33BB40909F40814",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\fields-citations--newchart-ui-initial.json",
+        "activationReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\fields-citations--newchart-ui-activated.json",
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:45:32.1146617+08:00"
+    },
+    {
+        "file":  "textbox-linked--ink.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Green foreground overlay crosses before and linked-textbox anchor text without pushing it aside. Both linked textboxes retain lines 01-05 and 06-10 respectively; after remains. Unused translation suggestion is visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-textbox-linked--ink-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\textbox-linked--ink.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\textbox-linked--ink-resaved-by-word.docx",
+        "resaved_sha256":  "EF3400B18328444FCF09836BAE54204CCE11E3FD6F08CC28CCF358CC41C7759A",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\textbox-linked--ink-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:45:47.6361616+08:00"
+    },
+    {
+        "file":  "rev-move--deleteblock.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. At top, before is followed by stationary paragraphs one and two, then the red-underlined destination moving paragraph and after. The original second-block source paragraph is absent from the top. Unused translation suggestion is visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-rev-move--deleteblock-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\rev-move--deleteblock.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\rev-move--deleteblock-resaved-by-word.docx",
+        "resaved_sha256":  "2C52AA25E1A4EEA2C5C31E95076148AF28F333D59B03EF32BD9AC3EC13679503",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\rev-move--deleteblock-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:46:03.4003670+08:00"
+    },
+    {
+        "file":  "fields-seq-captions--replaceimage.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. First captioned picture is solid green; second and third remain teal/yellow. Figure captions 1/2/3, cross-reference to figure 2 and before/after remain readable. Unused translation suggestion is visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-fields-seq-captions--replaceimage-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\fields-seq-captions--replaceimage.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\fields-seq-captions--replaceimage-resaved-by-word.docx",
+        "resaved_sha256":  "6D962CAAA4263571A522010C3271998029A9756805923F5D28FDE77624F70A8E",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\fields-seq-captions--replaceimage-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:46:18.1760478+08:00"
+    },
+    {
+        "file":  "rev-table--insertrow.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. A blank full-width row follows the originally merged first row, matching that row structure. Existing tracked inserted row, deleted original row and table-format revision balloon remain visible, plus before/after.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-rev-table--insertrow-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\rev-table--insertrow.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\rev-table--insertrow-resaved-by-word.docx",
+        "resaved_sha256":  "9D6307AE37598E3930508DB5D9CB70DD9E0877DC1A2DF58D13AF432E9D71ACF1",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\rev-table--insertrow-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:46:32.0883124+08:00"
+    },
+    {
+        "file":  "rev-table--mergecells.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Second row is one wide cell containing tracked Inserted row left and Inserted row right on separate lines. First merged row and final two-cell deleted row remain; table-format revision balloon and before/after visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-rev-table--mergecells-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\rev-table--mergecells.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\rev-table--mergecells-resaved-by-word.docx",
+        "resaved_sha256":  "BC256FBD3190787B13B31DF4EE20939747E07EC14C19F1DBFEE99ECDF68C2EB5",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\rev-table--mergecells-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:46:47.8532998+08:00"
+    },
+    {
+        "file":  "sections-breaks-zoo--header.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Header pane identifies section 5 and contains only rsword Chinese header marker. Five section labels and next-page/continuous/even-page/odd-page section breaks remain visible in body, with before/after.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-sections-breaks-zoo--header-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\sections-breaks-zoo--header.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\sections-breaks-zoo--header-resaved-by-word.docx",
+        "resaved_sha256":  "C464A010C561B5CD76A7C601ED1F78FC01D28AA50C41A1D1DA5942232D99C2BD",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\sections-breaks-zoo--header-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:47:04.8347424+08:00"
+    },
+    {
+        "file":  "rev-comment-threads--comment.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. New rsword comment anchors the start of before; original resolved root with two faded replies and two active comments remain visible with their anchors. After paragraph remains. Unused translation suggestion is visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-rev-comment-threads--comment-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\rev-comment-threads--comment.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\rev-comment-threads--comment-resaved-by-word.docx",
+        "resaved_sha256":  "9F1631B7DEF2696857C2EEFAA934B6E4E9B06DF63F8CE3A6224EB82597B8BE6F",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\rev-comment-threads--comment-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:47:18.3554357+08:00"
+    },
+    {
+        "file":  "fields-page-in-footer--split.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. Two-page view shows be and fore on distinct paragraphs before Page one body; Page two body is visible on the next page. Footer fields and remaining page are covered by native readout and PDF. Unused translation suggestion is visible.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-fields-page-in-footer--split-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\fields-page-in-footer--split.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\fields-page-in-footer--split-resaved-by-word.docx",
+        "resaved_sha256":  "F3314CA4E69C6126BCF74DA05ECF94DCCEC4874A531C768E7D9DE8E181C101A1",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\fields-page-in-footer--split-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:47:37.6129734+08:00"
+    },
+    {
+        "file":  "05-ink-insert-resaved-by-word--ink.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. One green foreground overlay crosses before; custom heading, body and after remain. Read-only package/source audit explains replacement of the two prior aidocs-ink overlays by one requested overlay.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-05-ink-insert-resaved-by-word--ink-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\05-ink-insert-resaved-by-word--ink.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\05-ink-insert-resaved-by-word--ink-resaved-by-word.docx",
+        "resaved_sha256":  "921A79FD1B0C0EE0FB1117EB9536847AF091BA0A832B111BD655EC9E2C8687D1",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\05-ink-insert-resaved-by-word--ink-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:47:57.9801202+08:00"
+    },
+    {
+        "file":  "ink-highlighter--ink-resaved-by-word--ink.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. One green overlay crosses before; original yellow native highlighter remains across the following Chinese sentence, with after below. Separate package/source audit confirms replacement of one prior aidocs-ink overlay.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ink-highlighter--ink-resaved-by-word--ink-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-highlighter--ink-resaved-by-word--ink.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ink-highlighter--ink-resaved-by-word--ink-resaved-by-word.docx",
+        "resaved_sha256":  "45425B4850E475C9AEA8B0029EEDFE5EAC8F6D4C8295C66A156310A5D0BABC4F",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ink-highlighter--ink-resaved-by-word--ink-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:48:15.4178326+08:00"
+    },
+    {
+        "file":  "ink-pen--ink-resaved-by-word--ink.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. One green foreground overlay crosses the top text while the original black native pen strokes remain at and below the Chinese sentence; after remains. Package/source audit confirms replacement of the old overlay.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ink-pen--ink-resaved-by-word--ink-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-pen--ink-resaved-by-word--ink.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ink-pen--ink-resaved-by-word--ink-resaved-by-word.docx",
+        "resaved_sha256":  "E3A0374C38EB228A9931C5BB03D675C58ACDAB796195B7A19B2F2E90A0EDBF31",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ink-pen--ink-resaved-by-word--ink-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:48:31.5688426+08:00"
+    },
+    {
+        "file":  "ink-to-shape--ink-resaved-by-word--ink.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. One green overlay crosses the top text; original black outlined octagonal ink-to-shape result remains visible below. Before/after and Chinese sentence remain. Package/source audit confirms overlay replacement.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ink-to-shape--ink-resaved-by-word--ink-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-to-shape--ink-resaved-by-word--ink.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ink-to-shape--ink-resaved-by-word--ink-resaved-by-word.docx",
+        "resaved_sha256":  "7D87AB3EDB65025A65E3F3AB5E171BFEDB4E8BAA1FF55E93C05A67D22DF8301F",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ink-to-shape--ink-resaved-by-word--ink-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:48:46.7232162+08:00"
+    },
+    {
+        "file":  "math-matrix--ink-resaved-by-word--ink.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. One green foreground overlay crosses before; centered two-by-two a/b/c/d matrix and after remain. Package/source audit confirms one-for-one aidocs-ink overlay replacement.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-math-matrix--ink-resaved-by-word--ink-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\math-matrix--ink-resaved-by-word--ink.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\math-matrix--ink-resaved-by-word--ink-resaved-by-word.docx",
+        "resaved_sha256":  "5F439A277C3CC785DEB077EAB5EBFB2632141CA033E47FB094056D3D9411943B",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\math-matrix--ink-resaved-by-word--ink-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:49:01.6143883+08:00"
+    },
+    {
+        "file":  "ole-excel-embedded--ink-resaved-by-word--ink.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. One green overlay crosses before and the top of the embedded spreadsheet preview; spreadsheet grid with values 12 and 34 remains, followed by after. Package/source audit confirms overlay replacement.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-ole-excel-embedded--ink-resaved-by-word--ink-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ole-excel-embedded--ink-resaved-by-word--ink.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\ole-excel-embedded--ink-resaved-by-word--ink-resaved-by-word.docx",
+        "resaved_sha256":  "46C1D861BF3BCBB3A5E2EA9A6D9AFF554E49AD6967469E63F320C1A890292F0D",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\ole-excel-embedded--ink-resaved-by-word--ink-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:49:25.1015100+08:00"
+    },
+    {
+        "file":  "smartart-floating--ink-resaved-by-word--ink.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. One green overlay crosses before; original teal/yellow floating picture and three-step SmartArt remain visible, followed by after. Package/source audit confirms replacement of one prior overlay.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-smartart-floating--ink-resaved-by-word--ink-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\smartart-floating--ink-resaved-by-word--ink.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\smartart-floating--ink-resaved-by-word--ink-resaved-by-word.docx",
+        "resaved_sha256":  "E8FF456E6D3FB8EDA39E44D2F30509D3F60E74A81EA35F6C54C57EF0AFBF5821",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\smartart-floating--ink-resaved-by-word--ink-ui-initial.json",
+        "activationReadout":  null,
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:49:40.1853499+08:00"
+    },
+    {
+        "file":  "chartex-waterfall--newchart.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. New rsword column chart visibly shows 3/1/2 above the original waterfall chart, which renders three increasing steps and a sales title. Before/after remain. Original ChartEx series getters are unsupported; UI success does not fill that missing COM readout.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-chartex-waterfall--newchart-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chartex-waterfall--newchart.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\chartex-waterfall--newchart-resaved-by-word.docx",
+        "resaved_sha256":  "7748E7A8EAC75BB4D1F783EA9418EFFB0D223EBC2B4130B938393F836AD76444",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chartex-waterfall--newchart-ui-initial.json",
+        "activationReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chartex-waterfall--newchart-ui-activated.json",
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:49:59.3732153+08:00"
+    },
+    {
+        "file":  "chartex-treemap--newchart.docx",
+        "recovery":  "none",
+        "observation":  "Normal open without recovery. New rsword column chart displays 3/1/2 above the original treemap, with blue Group A items 1/2 and orange Group B item 3. Before/after remain. UI success does not replace unsupported original ChartEx series getters.",
+        "consistent":  true,
+        "screenshot":  [
+                           "screenshots/b-chartex-treemap--newchart-0.jpg"
+                       ],
+        "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chartex-treemap--newchart.pdf",
+        "resaved":  "C:\\word\\real-word-round3-20260907\\_resaved\\chartex-treemap--newchart-resaved-by-word.docx",
+        "resaved_sha256":  "8CFB08B036E3C3218F5F2F770EDEDEC45B34D0BF59CB5E364BF9DB82131E4397",
+        "initialReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chartex-treemap--newchart-ui-initial.json",
+        "activationReadout":  "C:\\word\\real-word-round3-20260907\\_readouts\\chartex-treemap--newchart-ui-activated.json",
+        "method":  "Native Word visible read-only open with DisplayAlerts=-1, current window screenshot inspected; separate COM readout; Word SaveAs2 then PDF; closed without another save.",
+        "date":  "2026-09-07T14:50:19.4774549+08:00"
+    }
+]

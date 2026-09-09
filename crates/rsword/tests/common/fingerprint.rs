@@ -1,0 +1,702 @@
+//! `ModelFingerprint`（`spec/18` 分层决策 3）：M7 的「等价」定义。
+//!
+//! 门 1 的三条 oracle、门 3 的 Word 对照与 `TEST-07` 共用它。指纹**忽略**：`NodeId` /
+//! `RevisionId` / `w:rsid*` / `w14:paraId` / run 的切分位置（相邻同格式的 run 合并后再比，
+//! 所以拆 run 不算差异——Word 拒绝一处 `rPrChange` 之后并不会把 run 合回去，
+//! `fixtures/revisions/README.md`）。
+//!
+//! 每份文档算**两个视图**：
+//!
+//! | 视图 | 内容 | `*PrChange` | 段落标记 |
+//! | --- | --- | --- | --- |
+//! | `accept` | 含 `w:ins`、不含 `w:del` | 用当前值（去掉 `*Change`） | `w:del` 的标记 → 与下一段合并 |
+//! | `reject` | 含 `w:del`、不含 `w:ins` | 用 `*Change` 里的旧值快照 | `w:ins` 的标记 → 与下一段合并 |
+//!
+//! 没有修订的文档两个视图相同。有了这两个视图，**在 `AcceptAll` / `RejectAll` 落地之前**就能
+//! 验「追踪一遍 = 不追踪做一遍」（比 accept 视图）与「拒绝能回到原样」（比 reject 视图）。
+
+#![allow(dead_code)]
+
+use rsword::edit::EditSession;
+use rsword::package::PartId;
+use rsword::xml::{CanonOptions, Dirty, Dom, LocalName, NodeId, NsId, QName, canonical};
+use std::collections::{HashMap, HashSet};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModelFingerprint {
+    pub accept: String,
+    pub reject: String,
+}
+
+impl ModelFingerprint {
+    /// 两个视图的第一处差异（断言失败时打印）。
+    pub fn diff(&self, other: &Self) -> Option<(&'static str, String, String)> {
+        for (name, a, b) in
+            [("accept", &self.accept, &other.accept), ("reject", &self.reject, &other.reject)]
+        {
+            if let Some((x, y)) = diff_str(a, b) {
+                return Some((name, x, y));
+            }
+        }
+        None
+    }
+}
+
+/// 断言两份指纹相等，不等时打印第一处差异。
+#[macro_export]
+macro_rules! assert_fingerprint_eq {
+    ($a:expr, $b:expr, $($msg:tt)*) => {{
+        let (a, b) = (&$a, &$b);
+        if let Some((view, x, y)) = a.diff(b) {
+            panic!("{}\n  视图 {view}\n  左: {x}\n  右: {y}", format_args!($($msg)*));
+        }
+    }};
+}
+
+/// 两个字符串的第一处差异，各截一段上下文。
+pub fn diff_str(a: &str, b: &str) -> Option<(String, String)> {
+    if a == b {
+        return None;
+    }
+    let mut common = a.bytes().zip(b.bytes()).take_while(|(x, y)| x == y).count();
+    // 不同的中文字符可能共享 UTF-8 前缀；错误报告自身不能切在字符中间 panic。
+    while !a.is_char_boundary(common) {
+        common -= 1;
+    }
+    let start = a[..common].char_indices().rev().nth(60).map_or(0, |(i, _)| i);
+    let cut = |s: &str| {
+        let from = s.char_indices().map(|(i, _)| i).find(|&i| i >= start).unwrap_or(s.len());
+        let end = s[from..].char_indices().nth(160).map_or(s.len(), |(i, _)| from + i);
+        s[from..end].to_string()
+    };
+    Some((cut(a), cut(b)))
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum View {
+    Accept,
+    Reject,
+}
+
+pub fn fingerprint(s: &EditSession) -> ModelFingerprint {
+    ModelFingerprint {
+        accept: render(s, View::Accept, false),
+        reject: render(s, View::Reject, false),
+    }
+}
+
+/// 只算主 part。与真实 Word 的对照件比时用它：Word 另存时会顺手补上
+/// `footnotes.xml` / `endnotes.xml` 这些它总要写的 part（`fixtures/word-ops/delete-break` 的
+/// `after.docx` 就比 `before.docx` 多两个），那是它的保存行为、与被测的操作无关；
+/// 本引擎不新建没人要的 part。
+pub fn fingerprint_main(s: &EditSession) -> ModelFingerprint {
+    ModelFingerprint {
+        accept: render(s, View::Accept, true),
+        reject: render(s, View::Reject, true),
+    }
+}
+
+/// 参与指纹的 part，文档序（与 `Document.revisions` 的 part 顺序一致）。
+fn parts(s: &EditSession) -> Vec<PartId> {
+    let doc = s.document();
+    let mut v = vec![doc.main_part];
+    v.extend(doc.hf_parts.keys().copied());
+    v.extend([doc.footnotes.part, doc.endnotes.part, doc.comments.part].into_iter().flatten());
+    v.extend(doc.aux_flows.keys().copied());
+    v
+}
+
+fn render(s: &EditSession, view: View, main_only: bool) -> String {
+    let mut out = String::new();
+    let list = if main_only { vec![s.document().main_part] } else { parts(s) };
+    for part in list {
+        let Some(dom) = s.package().part(part).dom() else { continue };
+        out.push_str("PART\n");
+        let mut w = Walker {
+            dom,
+            view,
+            out: &mut out,
+            para: Para::default(),
+            pending: Vec::new(),
+            marks: LogicalMarks::new(s, part, dom),
+            outer_marks: Vec::new(),
+        };
+        w.walk(dom.root());
+        w.flush_para();
+        w.outer_marks.sort();
+        for (boundary, kind, id) in &w.outer_marks {
+            w.out.push_str(&format!("OUTER-M|{boundary}:{kind}/{id}\n"));
+        }
+    }
+    out
+}
+
+/// 累积中的段落（段落标记被本视图判为"已删"时不 flush，接着往下一段攒——那正是"接受合并"）。
+#[derive(Default)]
+struct Para {
+    open: bool,
+    ppr: String,
+    text: String,
+    /// `(UTF-16 长度, rPr 规范化)`，相邻相同的已合并。
+    runs: Vec<(u32, String)>,
+    /// `(种类, 名字 / id, 视图文本里的 UTF-16 偏移)`。
+    marks: Vec<(String, String, u32)>,
+    /// 字段指令（`w:instrText` / `w:delInstrText` 的文本，按视图过滤）。
+    instr: Vec<String>,
+    /// 上一段的段落标记在本视图里"已经没了"（该与后面合并）。攒到非段落块（表格 / 容器结束）
+    /// 才被迫 flush 时，如果内容也是空的，这一段整个消失——那正是"接受段落标记的删除"。
+    mark_gone: bool,
+}
+
+struct Walker<'a> {
+    dom: &'a Dom,
+    view: View,
+    out: &'a mut String,
+    para: Para,
+    pending: Vec<Visit>,
+    marks: LogicalMarks,
+    // 段外标记属于规范块流的边界，不得撑出一个本视图已删除的空段。
+    outer_marks: Vec<(usize, String, String)>,
+}
+
+// DOM + Span 才是事实；物理标记可延迟到保存时移动。这里独立把内容边界放进
+// 遍历事件，不调用保存/物化，也不把已编辑锚点重新从旧物理标记解析出来。
+#[derive(Default)]
+struct LogicalMarks {
+    before: HashMap<NodeId, Vec<(NodeId, String, String)>>,
+    tail: HashMap<NodeId, Vec<(NodeId, String, String)>>,
+    physical: HashSet<NodeId>,
+}
+
+impl LogicalMarks {
+    fn new(s: &EditSession, part: PartId, dom: &Dom) -> Self {
+        use rsword::span::RangeClass::*;
+        let mut out = Self::default();
+        // 懒索引尚未建立时独立解析；不能因会话是否访问过 spans() 而改用物理顺序。
+        let parsed;
+        let index = match s.spans_built(part) {
+            Some(index) => index,
+            None => {
+                parsed = rsword::span::SpanIndex::build(dom);
+                &parsed
+            }
+        };
+        for span in index.live().filter(|sp| !sp.implicit) {
+            // SPAN-09：输入中半开的 Clean 孤儿不物化，保留其物理字节；
+            // 它没有完整范围含义，不能按会被保存流程忽略的单端锚点重定位。
+            if span.start.is_none() || span.end.is_none() {
+                continue;
+            }
+            let names = match span.class() {
+                Bookmark => ("BookmarkStart", "BookmarkEnd"),
+                Comment => ("CommentRangeStart", "CommentRangeEnd"),
+                Permission => ("PermStart", "PermEnd"),
+                MoveFrom => ("MoveFromRangeStart", "MoveFromRangeEnd"),
+                MoveTo => ("MoveToRangeStart", "MoveToRangeEnd"),
+                CustomXmlIns => ("CustomXmlInsRangeStart", "CustomXmlInsRangeEnd"),
+                CustomXmlDel => ("CustomXmlDelRangeStart", "CustomXmlDelRangeEnd"),
+                CustomXmlMoveFrom => ("CustomXmlMoveFromRangeStart", "CustomXmlMoveFromRangeEnd"),
+                CustomXmlMoveTo => ("CustomXmlMoveToRangeStart", "CustomXmlMoveToRangeEnd"),
+            };
+            for (anchor, kind, start) in [(span.start, names.0, true), (span.end, names.1, false)] {
+                let Some(a) = anchor else { continue };
+                if let Some(marker) = a.marker {
+                    out.physical.insert(marker);
+                }
+                let id = if start {
+                    span.kind.bookmark_name().unwrap_or(span.pair_id())
+                } else {
+                    span.pair_id()
+                };
+                let items = rsword::span::content_children(dom, a.container);
+                assert!(a.index as usize <= items.len(), "指纹遇到越界 Span 锚点");
+                // sectPr 不占内容下标；末端锚点仍在收尾节属性之前（SPAN-08）。
+                let trailing = dom
+                    .semantic_children(a.container)
+                    .skip_while(|n| items.last().is_some_and(|last| n != last))
+                    .find(|&n| dom.is(n, wq(LocalName::SectPr)));
+                let slots = match items.get(a.index as usize).copied().or(trailing) {
+                    Some(node) => out.before.entry(node).or_default(),
+                    None => out.tail.entry(a.container).or_default(),
+                };
+                slots.push((a.container, kind.into(), id.into()));
+            }
+        }
+        out
+    }
+}
+
+// 显式的离开事件保留原递归遍历的后序动作，深包装层数不占调用栈。
+enum Visit {
+    Enter(NodeId),
+    Tail(NodeId),
+    CloseContainer(&'static str),
+    CloseParagraph { ppr: Option<NodeId>, mark_gone: bool },
+}
+
+fn wq(local: LocalName) -> QName {
+    QName::new(NsId::W, local)
+}
+
+/// `w:rsid*` / `w14:*` / `w15:*` 是版本噪音，不进指纹。
+fn ignore_attr(dom: &Dom, _node: NodeId, attr: QName) -> bool {
+    if matches!(attr.ns, NsId::W14 | NsId::W15) {
+        return true;
+    }
+    attr.ns == NsId::W
+        && matches!(
+            attr.local,
+            LocalName::RsidR
+                | LocalName::RsidRDefault
+                | LocalName::RsidP
+                | LocalName::RsidRPr
+                | LocalName::RsidDel
+                | LocalName::RsidTr
+                | LocalName::RsidSect
+        )
+        && {
+            let _ = dom;
+            true
+        }
+}
+
+fn canon(dom: &Dom, n: NodeId) -> String {
+    canonical(dom, n, &CanonOptions { ignore_attr: &ignore_attr })
+}
+
+fn live_children(dom: &Dom, n: NodeId) -> impl Iterator<Item = NodeId> + '_ {
+    dom.children(n).iter().copied().filter(|&c| dom.node(c).dirty != Dirty::Deleted)
+}
+
+fn child(dom: &Dom, n: NodeId, name: LocalName) -> Option<NodeId> {
+    live_children(dom, n).find(|&c| dom.is(c, wq(name)))
+}
+
+fn is_change(local: LocalName) -> bool {
+    matches!(
+        local,
+        LocalName::RPrChange
+            | LocalName::PPrChange
+            | LocalName::SectPrChange
+            | LocalName::TblPrChange
+            | LocalName::TblPrExChange
+            | LocalName::TblGridChange
+            | LocalName::TrPrChange
+            | LocalName::TcPrChange
+            | LocalName::NumberingChange
+    )
+}
+
+fn is_mark_element(local: LocalName) -> bool {
+    matches!(local, LocalName::Ins | LocalName::Del | LocalName::MoveFrom | LocalName::MoveTo)
+}
+
+/// 属性容器的规范化：跳过 `*Change`、跳过 `skip` 列出的、跳过段落标记的四个修订元素。
+fn props_canon(dom: &Dom, container: NodeId, skip: &[LocalName]) -> String {
+    let mut out = String::new();
+    for c in live_children(dom, container) {
+        let Some(q) = dom.name(c) else { continue };
+        if q.ns == NsId::W
+            && (is_change(q.local) || is_mark_element(q.local) || skip.contains(&q.local))
+        {
+            continue;
+        }
+        out.push_str(&canon(dom, c));
+    }
+    out
+}
+
+/// 视图里这个属性容器的有效内容：`reject` 且有 `*Change` → 用快照里的旧值。
+fn props_in_view(
+    dom: &Dom,
+    container: Option<NodeId>,
+    view: View,
+    change: LocalName,
+    inner: LocalName,
+    skip: &[LocalName],
+) -> String {
+    let Some(container) = container else { return String::new() };
+    if view == View::Reject
+        && let Some(ch) = child(dom, container, change)
+    {
+        return match child(dom, ch, inner) {
+            Some(old) => props_canon(dom, old, skip),
+            // 空的 `*Change`（hostile `rev-change-empty`）：旧值就是"全默认"
+            None => String::new(),
+        };
+    }
+    props_canon(dom, container, skip)
+}
+
+impl Walker<'_> {
+    /// 本视图是否要跳过整棵 `w:ins` / `w:del` 子树。
+    fn skips(&self, local: LocalName) -> bool {
+        match self.view {
+            View::Accept => matches!(local, LocalName::Del | LocalName::MoveFrom),
+            View::Reject => matches!(local, LocalName::Ins | LocalName::MoveTo),
+        }
+    }
+
+    fn push_text(&mut self, t: &str) {
+        self.para.text.push_str(t);
+    }
+
+    fn text_len(&self) -> u32 {
+        self.para.text.encode_utf16().count() as u32
+    }
+
+    fn push_run(&mut self, len: u32, rpr: String) {
+        if len == 0 {
+            return;
+        }
+        match self.para.runs.last_mut() {
+            Some((n, p)) if *p == rpr => *n += len,
+            _ => self.para.runs.push((len, rpr)),
+        }
+    }
+
+    fn flush_para(&mut self) {
+        if !self.para.open {
+            return;
+        }
+        let mut p = std::mem::take(&mut self.para);
+        // 同一逻辑边界的标记顺序不是范围含义；保存可能重排等位标记。
+        p.marks.sort_by(|a, b| (a.2, &a.0, &a.1).cmp(&(b.2, &b.0, &b.1)));
+        // 标记已删 + 内容全空 → 这一段在本视图里不存在
+        if p.mark_gone
+            && p.text.is_empty()
+            && p.runs.is_empty()
+            && p.marks.is_empty()
+            && p.instr.is_empty()
+        {
+            return;
+        }
+        self.out.push_str("P|");
+        self.out.push_str(&p.ppr);
+        self.out.push_str("|T=");
+        self.out.push_str(&p.text.replace('\n', "\\n"));
+        self.out.push_str("|R=");
+        for (n, r) in &p.runs {
+            self.out.push_str(&format!("{n}:{r};"));
+        }
+        self.out.push_str("|M=");
+        for (k, id, at) in &p.marks {
+            self.out.push_str(&format!("{k}/{id}@{at};"));
+        }
+        self.out.push_str("|F=");
+        for i in &p.instr {
+            self.out.push_str(i);
+            self.out.push(';');
+        }
+        self.out.push('\n');
+    }
+
+    fn walk(&mut self, root: NodeId) {
+        self.pending.push(Visit::Enter(root));
+        while let Some(visit) = self.pending.pop() {
+            match visit {
+                Visit::Enter(node) => {
+                    if let Some(marks) = self.marks.before.get(&node).cloned() {
+                        for (owner, k, id) in marks {
+                            self.record_mark(owner, k, id);
+                        }
+                    }
+                    self.enter(node);
+                }
+                Visit::Tail(node) => {
+                    if let Some(marks) = self.marks.tail.get(&node).cloned() {
+                        for (owner, k, id) in marks {
+                            self.record_mark(owner, k, id);
+                        }
+                    }
+                }
+                Visit::CloseContainer(end) => {
+                    self.flush_para();
+                    self.out.push_str(end);
+                }
+                Visit::CloseParagraph { ppr, mark_gone } => self.finish_paragraph(ppr, mark_gone),
+            }
+        }
+    }
+
+    fn enter(&mut self, node: NodeId) {
+        if self.dom.node(node).dirty == Dirty::Deleted {
+            return;
+        }
+        let Some(q) = self.dom.name(node) else { return };
+        if q.ns == NsId::W {
+            match q.local {
+                _ if is_mark_element(q.local) => {
+                    if self.skips(q.local) {
+                        return;
+                    }
+                    self.descend(node);
+                    return;
+                }
+                LocalName::P => return self.paragraph(node),
+                LocalName::Tbl => {
+                    // 每一行在本视图里都没了（整表被追踪删除 / 插入）→ 整张表不存在
+                    if self.table_gone(node) {
+                        return;
+                    }
+                    self.flush_para();
+                    let props = props_in_view(
+                        self.dom,
+                        child(self.dom, node, LocalName::TblPr),
+                        self.view,
+                        LocalName::TblPrChange,
+                        LocalName::TblPr,
+                        &[],
+                    );
+                    // `w:tblGrid` **不进指纹**：它是版面表，追踪与不追踪时的存活期不同——
+                    // 追踪删列时格与 `w:gridCol` 都留着（接受修订时才收缩，`spec/18` 7.4），
+                    // 不追踪时立刻就没了，两者没法在同一个视图里比。可见的几何在
+                    // `w:tc` 的 `w:tcW` 与单元格结构里，那两样都在指纹里。
+                    self.out.push_str(&format!("TBL{{{props}\n"));
+                    self.pending.push(Visit::CloseContainer("}TBL\n"));
+                    self.descend(node);
+                    return;
+                }
+                LocalName::Tr => {
+                    // 整行插入 / 删除（`trPr/w:ins|w:del`）
+                    if let Some(trpr) = child(self.dom, node, LocalName::TrPr) {
+                        for m in [LocalName::Ins, LocalName::Del] {
+                            if child(self.dom, trpr, m).is_some() && self.skips(m) {
+                                return;
+                            }
+                        }
+                    }
+                    self.flush_para();
+                    let props = props_in_view(
+                        self.dom,
+                        child(self.dom, node, LocalName::TrPr),
+                        self.view,
+                        LocalName::TrPrChange,
+                        LocalName::TrPr,
+                        &[LocalName::Ins, LocalName::Del],
+                    );
+                    // `w:tblPrEx`（行级的表属性覆盖）**不进指纹**：Word 另存时会把与表属性
+                    // 重复的那些整个丢掉（`fixtures/revisions/table-and-move` 的 `tracked.docx`
+                    // 有 6 个，`accepted` / `rejected` 一个都没有，含没带 `*Change` 的那 3 个），
+                    // 而本引擎不动未编辑的字节（不变式 1）。比它等于比 Word 的归一化行为。
+                    self.out.push_str(&format!("TR{{{props}\n"));
+                    self.pending.push(Visit::CloseContainer("}TR\n"));
+                    self.descend(node);
+                    return;
+                }
+                LocalName::Tc => {
+                    // 单元格插入 / 删除（`tcPr/w:cellIns|w:cellDel`）
+                    if let Some(tcpr) = child(self.dom, node, LocalName::TcPr) {
+                        let ins = child(self.dom, tcpr, LocalName::CellIns).is_some();
+                        let del = child(self.dom, tcpr, LocalName::CellDel).is_some();
+                        if (ins && self.view == View::Reject) || (del && self.view == View::Accept)
+                        {
+                            return;
+                        }
+                    }
+                    self.flush_para();
+                    let tcpr = child(self.dom, node, LocalName::TcPr);
+                    let props = props_in_view(
+                        self.dom,
+                        tcpr,
+                        self.view,
+                        LocalName::TcPrChange,
+                        LocalName::TcPr,
+                        &[LocalName::CellIns, LocalName::CellDel, LocalName::CellMerge],
+                    );
+                    self.out.push_str(&format!("TC{{{props}\n"));
+                    self.pending.push(Visit::CloseContainer("}TC\n"));
+                    self.descend(node);
+                    return;
+                }
+                LocalName::SectPr => {
+                    self.flush_para();
+                    let props = props_in_view(
+                        self.dom,
+                        Some(node),
+                        self.view,
+                        LocalName::SectPrChange,
+                        LocalName::SectPr,
+                        &[LocalName::HeaderReference, LocalName::FooterReference],
+                    );
+                    self.out.push_str(&format!("SECT|{props}\n"));
+                    return;
+                }
+                LocalName::R => return self.run(node),
+                // 属性容器不产生文本（内容已经在 TBL / TR / TC 那几行里按视图取过了）
+                LocalName::PPr
+                | LocalName::RPr
+                | LocalName::TblPr
+                | LocalName::TblPrEx
+                | LocalName::TblGrid
+                | LocalName::TrPr
+                | LocalName::TcPr => return,
+                _ if rsword::span::is_range_marker(q) => return self.marker(node, q),
+                _ => {}
+            }
+        }
+        self.descend(node);
+    }
+
+    /// 表格的每一行在本视图里都被跳过（`trPr/w:ins` 在 reject、`trPr/w:del` 在 accept）。
+    fn table_gone(&self, tbl: NodeId) -> bool {
+        let rows: Vec<NodeId> =
+            live_children(self.dom, tbl).filter(|&c| self.dom.is(c, wq(LocalName::Tr))).collect();
+        !rows.is_empty()
+            && rows.iter().all(|&r| {
+                child(self.dom, r, LocalName::TrPr).is_some_and(|trpr| {
+                    [LocalName::Ins, LocalName::Del]
+                        .into_iter()
+                        .any(|m| child(self.dom, trpr, m).is_some() && self.skips(m))
+                })
+            })
+    }
+
+    fn descend(&mut self, node: NodeId) {
+        self.pending.push(Visit::Tail(node));
+        self.pending.extend(self.dom.children(node).iter().rev().copied().map(Visit::Enter));
+    }
+
+    fn paragraph(&mut self, p: NodeId) {
+        let dom = self.dom;
+        let ppr = child(dom, p, LocalName::PPr);
+        // 段落标记的 `rPr` 里的 `w:ins` / `w:del`：本视图判定这个标记还在不在
+        let mark_rpr = ppr.and_then(|x| child(dom, x, LocalName::RPr));
+        let mark_gone = mark_rpr.is_some_and(|r| {
+            live_children(dom, r).any(|c| {
+                dom.name(c).is_some_and(|q| {
+                    q.ns == NsId::W && is_mark_element(q.local) && self.skips(q.local)
+                })
+            })
+        });
+        // 段落属性：`w:rPr`（段落标记的格式）不进指纹——合并 / 拆分时它归谁是 Word 的细节
+        let props = props_in_view(
+            dom,
+            ppr,
+            self.view,
+            LocalName::PPrChange,
+            LocalName::PPr,
+            &[LocalName::RPr, LocalName::SectPr],
+        );
+        if !self.para.open {
+            self.para.open = true;
+            self.para.ppr = props;
+        }
+        self.pending.push(Visit::CloseParagraph { ppr, mark_gone });
+        self.descend(p);
+    }
+
+    fn finish_paragraph(&mut self, ppr: Option<NodeId>, mark_gone: bool) {
+        let dom = self.dom;
+        // 段落级 `sectPr` 在 `walk` 里已经作为 `SECT` 输出（它是 `pPr` 的子节点，
+        // 而 `pPr` 整体被跳过——这里补一条）
+        if let Some(x) = ppr
+            && let Some(sect) = child(dom, x, LocalName::SectPr)
+        {
+            let s = props_in_view(
+                dom,
+                Some(sect),
+                self.view,
+                LocalName::SectPrChange,
+                LocalName::SectPr,
+                &[LocalName::HeaderReference, LocalName::FooterReference],
+            );
+            self.para.text.push('\u{2029}');
+            self.para.instr.push(format!("SECT:{s}"));
+        }
+        self.para.mark_gone = mark_gone;
+        if !mark_gone {
+            self.flush_para();
+        }
+    }
+}
+
+/// `w:r` 与范围标记等叶子的处理挂在 `walk` 的默认分支上。
+impl Walker<'_> {
+    fn run(&mut self, r: NodeId) {
+        let dom = self.dom;
+        let rpr = child(dom, r, LocalName::RPr);
+        let props = props_in_view(dom, rpr, self.view, LocalName::RPrChange, LocalName::RPr, &[]);
+        let before = self.text_len();
+        for c in live_children(dom, r).collect::<Vec<_>>() {
+            let Some(q) = dom.name(c) else { continue };
+            if q.ns == NsId::M {
+                self.push_text("\u{FFFC}");
+                continue;
+            }
+            if q.ns != NsId::W {
+                continue;
+            }
+            match q.local {
+                LocalName::RPr => {}
+                LocalName::T => {
+                    let t = live_children(dom, c).filter_map(|n| dom.text(n)).collect::<String>();
+                    self.push_text(&t);
+                }
+                LocalName::DelText => {
+                    if self.view == View::Reject {
+                        let t =
+                            live_children(dom, c).filter_map(|n| dom.text(n)).collect::<String>();
+                        self.push_text(&t);
+                    }
+                }
+                LocalName::InstrText | LocalName::DelInstrText => {
+                    let keep = q.local == LocalName::InstrText || self.view == View::Reject;
+                    if keep {
+                        let t =
+                            live_children(dom, c).filter_map(|n| dom.text(n)).collect::<String>();
+                        self.para.instr.push(t);
+                    }
+                }
+                LocalName::Tab => self.push_text("\t"),
+                LocalName::Br | LocalName::Cr => self.push_text("\n"),
+                LocalName::NoBreakHyphen => self.push_text("-"),
+                LocalName::SoftHyphen => self.push_text("\u{00AD}"),
+                LocalName::FldChar => {
+                    let ty = dom
+                        .attr_value(c, wq(LocalName::FldCharType))
+                        .map(|v| v.into_owned())
+                        .unwrap_or_default();
+                    self.para.instr.push(format!("fld:{ty}"));
+                }
+                LocalName::Sym
+                | LocalName::Drawing
+                | LocalName::Object
+                | LocalName::Pict
+                | LocalName::Ruby => self.push_text("\u{FFFC}"),
+                LocalName::FootnoteReference | LocalName::EndnoteReference => {
+                    self.push_text("\u{FFFC}")
+                }
+                _ => {}
+            }
+        }
+        let len = self.text_len() - before;
+        self.push_run(len, props);
+    }
+
+    fn marker(&mut self, n: NodeId, q: QName) {
+        if self.marks.physical.contains(&n) {
+            return;
+        }
+        let dom = self.dom;
+        let kind = format!("{:?}", q.local);
+        let id = dom
+            .attr_value(n, wq(LocalName::Name))
+            .or_else(|| dom.attr_value(n, wq(LocalName::Id)))
+            .map(|v| v.into_owned())
+            .unwrap_or_default();
+        self.record_mark(dom.parent(n).unwrap_or(dom.root()), kind, id);
+    }
+
+    fn record_mark(&mut self, owner: NodeId, kind: String, id: String) {
+        if self.dom.is(owner, wq(LocalName::P))
+            || self.dom.ancestors(owner).any(|n| self.dom.is(n, wq(LocalName::P)))
+        {
+            self.para.marks.push((kind, id, self.text_len()));
+        } else {
+            self.flush_para();
+            // 位置是本指纹规范结构前缀的长度，不使用不稳定的 arena id。
+            self.outer_marks.push((self.out.len(), kind, id));
+        }
+    }
+}

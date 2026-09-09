@@ -1,0 +1,65 @@
+﻿{
+    "case":  "run-edits",
+    "stage":  "base",
+    "path":  "C:\\word\\real-word-round3-20260907\\revfix\\run-edits\\base.docx",
+    "sha256":  "A8E8AC3777FED4EA84F76E76CC70D6272503AE9FBC609D0C637FD903D0CFD6F4",
+    "sourcePath":  null,
+    "sourceSha256":  null,
+    "operations":  [
+                       "Created required baseline with TrackRevisions=false; saved once."
+                   ],
+    "readout":  {
+                    "text":  "before 前文\r第一句原文。第二句原文。第三句原文。\rafter 后文\r\r",
+                    "paragraphs":  [
+                                       {
+                                           "text":  "before 前文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "第一句原文。第二句原文。第三句原文。\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "after 后文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       }
+                                   ],
+                    "revisions":  [
+
+                                  ],
+                    "revisionCount":  0,
+                    "sections":  [
+                                     {
+                                         "index":  1,
+                                         "start":  0,
+                                         "end":  39,
+                                         "orientation":  0,
+                                         "sectionStart":  2
+                                     }
+                                 ],
+                    "shapes":  [
+
+                               ],
+                    "pages":  1,
+                    "compatibility":  15,
+                    "trackMoves":  true,
+                    "trackFormatting":  true,
+                    "trackRevisions":  false
+                },
+    "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\revfix\\run-edits\\base.pdf",
+    "date":  "2026-09-07T13:46:19.2934403+08:00",
+    "method":  "Native Windows Word COM; DOCX saved once at this path; PDF export and current-document UI inspection afterward without save back.",
+    "uiPending":  true
+}

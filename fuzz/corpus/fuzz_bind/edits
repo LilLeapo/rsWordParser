@@ -1,0 +1,5 @@
+{"op":"insertText","at":{"para":3,"offset":0},"text":"seed"}
+{"op":"splitParagraph","at":{"para":3,"offset":1}}
+{"op":"setPageColor","color":"EEF3FF"}
+{"op":"acceptAll"}
+{"op":"setHeaderFooter","sect":4294967295,"kind":"header","variant":"default","blocks":[]}

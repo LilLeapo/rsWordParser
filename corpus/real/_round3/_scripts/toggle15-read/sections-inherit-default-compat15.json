@@ -1,0 +1,72 @@
+{
+    "helper":  "task-c-read.ps1/v1",
+    "variant":  "supplied-compat15",
+    "file":  "sections-inherit-default-compat15.docx",
+    "fullName":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\fixtures\\sections-inherit-default-compat15.docx",
+    "sourceSha256":  "3355FFD9D525666DE869905DFF010266E18FE916BA68D0CE00049CF81346A537",
+    "sourceSha256AfterRead":  "3355FFD9D525666DE869905DFF010266E18FE916BA68D0CE00049CF81346A537",
+    "referenceSha256":  "698B3CD0A007CA0BC04C36DB03B0A97B1D60046540748B60103C0FD6E0B4708F",
+    "wordVersion":  "16.0",
+    "wordBuild":  "16.0.14334",
+    "compatibilityMode":  15,
+    "documentSavedFlag":  true,
+    "originalView":  {
+                         "showHiddenText":  false,
+                         "showAll":  false
+                     },
+    "rows":  [
+                 {
+                     "file":  "sections-inherit-default-compat15.docx",
+                     "baseFile":  "sections-inherit-default.docx",
+                     "sentence":  "第二页页眉",
+                     "property":  "HeaderDefault",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  "第一节页眉",
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+                                     {
+                                         "read":  1,
+                                         "raw":  "第一节页眉\r",
+                                         "value":  "第一节页眉",
+                                         "selectionStart":  0,
+                                         "selectionEnd":  6,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     },
+                                     {
+                                         "read":  2,
+                                         "raw":  "第一节页眉\r",
+                                         "value":  "第一节页眉",
+                                         "selectionStart":  0,
+                                         "selectionEnd":  6,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     }
+                                 ],
+                     "desktopWord":  "第一节页眉",
+                     "consistent":  true,
+                     "comparisonWithRound2":  "same",
+                     "readMethod":  "Physical page2 navigation; selected default header text twice",
+                     "rangeStart":  0,
+                     "rangeEnd":  6,
+                     "actualText":  null,
+                     "matchedCase":  null,
+                     "header":  {
+                                    "section":  2,
+                                    "page":  2,
+                                    "linkToPrevious":  true,
+                                    "exists":  true
+                                },
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  null,
+                     "observedAt":  "2026-09-07T14:10:30.7893963+08:00"
+                 }
+             ],
+    "measuredAt":  "2026-09-07T14:10:31.5447749+08:00",
+    "note":  "Reads current document only; no open, save, conversion or close. GUI evidence remains unverified until actual screenshots are added. Selection remains at last measured point."
+}

@@ -1,0 +1,17 @@
+[
+  {
+    "variant": "mso-end",
+    "error": "System.Runtime.InteropServices.COMException (0x80004005): Unexpected HRESULT has been returned from a call to a COM component.\r\n   at System.Management.Automation.ComInterop.ComRuntimeHelpers.CheckThrowException(Int32 hresult, ExcepInfo& excepInfo, ComMethodDesc method, Object[] args, UInt32 argErr)\r\n   at CallSite.Target(Closure, CallSite, ComObject, String)\r\n   at System.Dynamic.UpdateDelegates.UpdateAndExecute2[T0,T1,TRet](CallSite site, T0 arg0, T1 arg1)\r\n   at System.Management.Automation.Interpreter.DynamicInstruction`3.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+    "position": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\probe-display-two.ps1:30 char:13\r\n+             $word.CommandBars.ExecuteMso('EquationInsertNew')\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+  },
+  {
+    "variant": "mso-inside-end",
+    "error": "System.Runtime.InteropServices.COMException (0x80004005): Unexpected HRESULT has been returned from a call to a COM component.\r\n   at System.Management.Automation.ComInterop.ComRuntimeHelpers.CheckThrowException(Int32 hresult, ExcepInfo& excepInfo, ComMethodDesc method, Object[] args, UInt32 argErr)\r\n   at CallSite.Target(Closure, CallSite, ComObject, String)\r\n   at System.Management.Automation.Interpreter.DynamicInstruction`3.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+    "position": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\probe-display-two.ps1:30 char:13\r\n+             $word.CommandBars.ExecuteMso('EquationInsertNew')\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+  },
+  {
+    "variant": "mso-whole",
+    "error": "System.Runtime.InteropServices.COMException (0x80004005): Unexpected HRESULT has been returned from a call to a COM component.\r\n   at System.Management.Automation.ComInterop.ComRuntimeHelpers.CheckThrowException(Int32 hresult, ExcepInfo& excepInfo, ComMethodDesc method, Object[] args, UInt32 argErr)\r\n   at CallSite.Target(Closure, CallSite, ComObject, String)\r\n   at System.Management.Automation.Interpreter.DynamicInstruction`3.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+    "position": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\probe-display-two.ps1:30 char:13\r\n+             $word.CommandBars.ExecuteMso('EquationInsertNew')\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+  }
+]

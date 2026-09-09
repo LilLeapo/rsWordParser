@@ -1,0 +1,113 @@
+{
+    "helper":  "task-c-read.ps1/v1",
+    "variant":  "supplied-compat15",
+    "file":  "toggle-based-on-two-levels-compat15.docx",
+    "fullName":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\fixtures\\toggle-based-on-two-levels-compat15.docx",
+    "sourceSha256":  "89212DF16919342C807F922BA617A8278B94ECE1EA3CC7940BD889DBA31D4ED5",
+    "sourceSha256AfterRead":  "89212DF16919342C807F922BA617A8278B94ECE1EA3CC7940BD889DBA31D4ED5",
+    "referenceSha256":  "698B3CD0A007CA0BC04C36DB03B0A97B1D60046540748B60103C0FD6E0B4708F",
+    "wordVersion":  "16.0",
+    "wordBuild":  "16.0.14334",
+    "compatibilityMode":  15,
+    "documentSavedFlag":  true,
+    "originalView":  {
+                         "showHiddenText":  false,
+                         "showAll":  false
+                     },
+    "rows":  [
+                 {
+                     "file":  "toggle-based-on-two-levels-compat15.docx",
+                     "baseFile":  "toggle-based-on-two-levels.docx",
+                     "sentence":  "basedOn b + derived b",
+                     "property":  "Bold",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  true,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+                                     {
+                                         "read":  1,
+                                         "raw":  -1,
+                                         "value":  true,
+                                         "selectionStart":  2,
+                                         "selectionEnd":  2,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     },
+                                     {
+                                         "read":  2,
+                                         "raw":  -1,
+                                         "value":  true,
+                                         "selectionStart":  2,
+                                         "selectionEnd":  2,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     }
+                                 ],
+                     "desktopWord":  true,
+                     "consistent":  true,
+                     "comparisonWithRound2":  "same",
+                     "readMethod":  "Selection.Font property with caret two characters into sentence twice",
+                     "rangeStart":  0,
+                     "rangeEnd":  21,
+                     "actualText":  "basedOn b + derived b",
+                     "matchedCase":  "exact",
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  null,
+                     "observedAt":  "2026-09-07T14:11:17.3789372+08:00"
+                 },
+                 {
+                     "file":  "toggle-based-on-two-levels-compat15.docx",
+                     "baseFile":  "toggle-based-on-two-levels.docx",
+                     "sentence":  "base b only",
+                     "property":  "Bold",
+                     "compatibilityMode":  15,
+                     "priorDesktopWord":  true,
+                     "priorCompatibilityMode":  12,
+                     "priorCompatibilityNote":  "Recorded numeric value retained.",
+                     "samples":  [
+                                     {
+                                         "read":  1,
+                                         "raw":  -1,
+                                         "value":  true,
+                                         "selectionStart":  24,
+                                         "selectionEnd":  24,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     },
+                                     {
+                                         "read":  2,
+                                         "raw":  -1,
+                                         "value":  true,
+                                         "selectionStart":  24,
+                                         "selectionEnd":  24,
+                                         "showHiddenText":  false,
+                                         "showAll":  false
+                                     }
+                                 ],
+                     "desktopWord":  true,
+                     "consistent":  true,
+                     "comparisonWithRound2":  "same",
+                     "readMethod":  "Selection.Font property with caret two characters into sentence twice",
+                     "rangeStart":  22,
+                     "rangeEnd":  33,
+                     "actualText":  "base b only",
+                     "matchedCase":  "exact",
+                     "header":  null,
+                     "uiVerified":  false,
+                     "uiObservation":  null,
+                     "uiEvidence":  [
+
+                                    ],
+                     "error":  null,
+                     "observedAt":  "2026-09-07T14:11:17.9887813+08:00"
+                 }
+             ],
+    "measuredAt":  "2026-09-07T14:11:18.4869244+08:00",
+    "note":  "Reads current document only; no open, save, conversion or close. GUI evidence remains unverified until actual screenshots are added. Selection remains at last measured point."
+}

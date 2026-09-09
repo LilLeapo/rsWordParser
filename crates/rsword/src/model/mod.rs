@@ -8,38 +8,80 @@
 //! | --- | --- |
 //! | [`inline`] | `Inline` / `Run` / `Segment` 与坐标流（`MOD-06`） |
 //! | [`block`] | `Block` / `TextBlock` / `ProtectedBlock` / `Revision`（`MOD-02/08/09`） |
+//! | [`table`] | `TableBlock` / `Row` / `Cell` 与跨表格的块遍历（`MOD-07`） |
+//! | [`sdt`] | `SdtInfo`：内容控件的种类 / 锁 / 数据绑定（`MOD-08`） |
 //! | [`facts`] | `ParagraphFacts`（`MOD-04`） |
 //! | [`classify`] | 分类规则表与 `TextKind` 判定（`MOD-05/03`） |
 //! | [`build`] | `Document` 与 `rebuild`（`MOD-01/13`） |
-//! | [`decl`] / [`theme`] | 声明模型（`MOD-10`） |
+//! | [`decl`] / [`theme`] / [`notes`] | 声明模型（`MOD-10`）：样式 / 编号 / 主题 / 设置 / 批注 / 注释 |
 
 pub mod block;
 pub mod build;
 pub mod classify;
+pub(crate) mod macros;
+
+pub mod aux;
+pub mod chart;
+pub mod custgeom;
 pub mod decl;
+pub mod diagram;
+pub mod drawing;
 pub mod facts;
+pub mod hf;
+pub mod ink;
 pub mod inline;
+pub mod math;
+pub mod notes;
+pub mod omml;
+pub mod revision;
+pub mod sdt;
+pub mod section;
+pub mod sources;
+pub mod table;
 pub mod theme;
+pub mod units;
+pub mod vml;
 
 pub use block::{
     Block, ImageBlock, ListRef, ProtectedBlock, ProtectedKind, Revision, SdtInfo, TableBlock,
     TextBlock, TextKind,
 };
 pub use build::Document;
+pub use chart::{
+    ChartColor, ChartDisplay, ChartGrouping, ChartKind, ChartPart, ChartSeries, LegendPos,
+};
 pub use classify::{BodyClass, ParaClass, classify_body_child, classify_paragraph, text_kind};
+pub use custgeom::{CustomGeom, GeomCmd, GeomPath};
 pub use decl::{
     AbstractNum, Compat, CompatFacts, CompatSetting, DocDefaults, Font, FontTable, Level,
     LevelOverride, Num, Numbering, OwnHeadingLevel, Settings, Style, StyleType, Styles,
     TableStylePr,
 };
+pub use diagram::{CanvasDisplay, DiagramLine, DiagramPart, DiagramPicture, DiagramShape};
+pub use drawing::{
+    AnchorGeom, ChartRef, DiagramRef, Display, Dist, DocPr, DrawingDisplay, Extent, ImageDisplay,
+    LineDisplay, Position, RectFrac, Wrap,
+};
 pub use facts::{
     DrawingFacts, DrawingKind, MathFacts, ParagraphFacts, PictFacts, PictKind, RevisionFacts,
 };
+pub use ink::{INK_NAME_PREFIX, InkInfo};
 pub use inline::{
     AtomKind, BreakKind, Inline, InlineAtom, Link, LinkTarget, OBJECT_REPLACEMENT, RevisionCtx,
     RevisionMeta, Run, Segment, SegmentKind,
 };
+pub use math::FormulaDisplay;
+pub use notes::{Comment, Comments, Note, NoteKind, Notes, RichRun};
+pub use revision::{RevKind, RevOwner, RevisionEntry, RevisionId, RevisionIndex};
+// `SdtInfo` 从 `block` 一并导出（它是 `Block` 的字段）
+pub use aux::AuxFlows;
+pub use hf::HfPart;
+pub use sdt::{DataBinding, DocPart, SdtControl, SdtLock, SdtRefusal, refusing_sdt};
+pub use section::{HfKind, HfVariant, SectionGeom, SectionInfo, SectionOwner, Sections};
+pub use sources::Source;
+pub use table::{BlockStep, Blocks, Cell, GridCol, Row, box_flows};
 pub use theme::{ColorScheme, FontScheme, FontSlots, Theme, ThemeSlot};
+pub use vml::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};
 
 #[cfg(test)]
 mod tests;

@@ -1,0 +1,125 @@
+﻿{
+    "case":  "table-and-move",
+    "stage":  "base",
+    "path":  "C:\\word\\real-word-round3-20260907\\revfix\\table-and-move\\base.docx",
+    "sha256":  "D62E2CEB1455DAC3AF5598E9DD2138C24710EA7F632B424AEAEFDCED22F1B4CA",
+    "sourcePath":  null,
+    "sourceSha256":  null,
+    "operations":  [
+                       "Created required baseline with TrackRevisions=false; saved once."
+                   ],
+    "readout":  {
+                    "text":  "before 前文\rA1\r\u0007B1\r\u0007\r\u0007A2\r\u0007B2\r\u0007\r\u0007A3\r\u0007B3\r\u0007\r\u0007\r可移动段落。\rafter 后文\r\r",
+                    "paragraphs":  [
+                                       {
+                                           "text":  "before 前文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "A1\r\u0007",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "B1\r\u0007",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r\u0007",
+                                           "alignment":  0,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "A2\r\u0007",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "B2\r\u0007",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r\u0007",
+                                           "alignment":  0,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "A3\r\u0007",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "B3\r\u0007",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r\u0007",
+                                           "alignment":  0,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "可移动段落。\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "after 后文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       }
+                                   ],
+                    "revisions":  [
+
+                                  ],
+                    "revisionCount":  0,
+                    "sections":  [
+                                     {
+                                         "index":  1,
+                                         "start":  0,
+                                         "end":  49,
+                                         "orientation":  0,
+                                         "sectionStart":  2
+                                     }
+                                 ],
+                    "shapes":  [
+
+                               ],
+                    "pages":  1,
+                    "compatibility":  15,
+                    "trackMoves":  true,
+                    "trackFormatting":  true,
+                    "trackRevisions":  false
+                },
+    "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\revfix\\table-and-move\\base.pdf",
+    "date":  "2026-09-07T13:50:50.4988743+08:00",
+    "method":  "Native Windows Word COM; DOCX saved once at this path; PDF export and current-document UI inspection afterward without save back.",
+    "uiPending":  true
+}

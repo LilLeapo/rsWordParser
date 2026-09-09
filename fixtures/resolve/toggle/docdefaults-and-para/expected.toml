@@ -1,0 +1,22 @@
+# RES-04 toggle 校准（任务 5.8）。观察值来自真实 Word，见 fixtures/resolve/README.md 的实测记录。
+#
+# 两条都不加粗。第二条尤其关键：整份文档只有 docDefaults 声明了 b=true，Word 仍然不加粗。
+# 解释见 README——每个段落都有样式（没写 pStyle 就是 Normal），而样式链的根是 docDefaults，
+# 所以 docDefaults 的值在"docDefaults 层"与"段落样式层"各出现一次，自己把自己抵消掉。
+
+doc = "toggle/docdefaults-and-para"
+
+[[run]]
+# docDefaults(b=true) + 段落样式 PBold(b=true)：两层 → 不加粗
+text = "docDefaults b + para b"
+bold = true
+source = "ParaStyle:PBold"
+verified = true
+
+[[run]]
+# 只有 docDefaults(b=true)：段落样式层继承到同一个 true，两层 → 不加粗
+text = "docDefaults b only"
+bold = true
+# 段落样式层把 docDefaults 的值再贡献一次，自己抵消自己——所以来源不是 DocDefaults
+source = "DocDefaults"
+verified = true

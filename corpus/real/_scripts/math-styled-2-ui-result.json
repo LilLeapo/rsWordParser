@@ -1,0 +1,13 @@
+﻿{
+    "action":  "Save",
+    "case":  "math/math-styled",
+    "file":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\math\\math-styled-2.docx",
+    "version":  "16.0",
+    "build":  "16.0.14334",
+    "text":  "before 前文\r\ra+𝑏\r2\r+\r𝑥\r2\r\rafter 后文\r\r",
+    "objects":  [
+
+                ],
+    "mathCount":  1,
+    "pdf":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\math\\math-styled-2.pdf"
+}

@@ -1,0 +1,169 @@
+# TableProps（`w:tblPr`，同一张表也读行级例外 `w:tblPrEx`）与它的子表：PROP-05 CT_TblPr 顺序、
+# PROP-08 字段（任务 3.1）。格式见 README.md。
+
+[[table]]
+name = "TableProps"
+element = "w:tblPr"
+change = "w:tblPrChange"
+doc = "CT_TblPr（§17.4.60）：CT_TblPrBase 为 sequence，顺序强制；之后 tblPrChange。CT_TblPrEx（`w:tblPrEx`，§17.4.61）是它的子集，用同一张表读，`tblPrExChange` 与 `tblPrChange` 同一序号。"
+order = [
+  "w:tblStyle", "w:tblpPr", "w:tblOverlap", "w:bidiVisual", "w:tblStyleRowBandSize", "w:tblStyleColBandSize",
+  "w:tblW", "w:jc", "w:tblCellSpacing", "w:tblInd", "w:tblBorders", "w:shd", "w:tblLayout", "w:tblCellMar",
+  "w:tblLook", "w:tblCaption", "w:tblDescription", "w:tblPrChange|w:tblPrExChange",
+]
+
+[[table.field]]
+name = "style"
+element = "w:tblStyle"
+codec = "Str"
+doc = "表格样式 styleId"
+
+[[table.field]]
+name = "position"
+element = "w:tblpPr"
+codec = "TblpPr"
+doc = "浮动表格定位；存在即浮动"
+
+[[table.field]]
+name = "overlap"
+element = "w:tblOverlap"
+codec = "TblOverlap"
+
+[[table.field]]
+name = "bidi_visual"
+element = "w:bidiVisual"
+codec = "OnOff"
+doc = "从右到左显示列"
+
+[[table.field]]
+name = "style_row_band_size"
+element = "w:tblStyleRowBandSize"
+codec = "Int"
+
+[[table.field]]
+name = "style_col_band_size"
+element = "w:tblStyleColBandSize"
+codec = "Int"
+
+[[table.field]]
+name = "width"
+element = "w:tblW"
+codec = "TblWidth"
+
+[[table.field]]
+name = "jc"
+element = "w:jc"
+codec = "JcTable"
+
+[[table.field]]
+name = "cell_spacing"
+element = "w:tblCellSpacing"
+codec = "TblWidth"
+
+[[table.field]]
+name = "indent"
+element = "w:tblInd"
+codec = "TblWidth"
+
+[[table.field]]
+name = "borders"
+element = "w:tblBorders"
+codec = "TblBorders"
+
+[[table.field]]
+name = "shading"
+element = "w:shd"
+codec = "Shading"
+
+[[table.field]]
+name = "layout"
+element = "w:tblLayout"
+codec = "TblLayout"
+
+[[table.field]]
+name = "cell_margins"
+element = "w:tblCellMar"
+codec = "TblCellMar"
+
+[[table.field]]
+name = "look"
+element = "w:tblLook"
+codec = "TblLook"
+
+[[table.field]]
+name = "caption"
+element = "w:tblCaption"
+codec = "Str"
+
+[[table.field]]
+name = "description"
+element = "w:tblDescription"
+codec = "Str"
+
+# ---- 子表 -----------------------------------------------------------------------------------------
+
+[[table]]
+name = "TblBorders"
+element = "w:tblBorders"
+doc = "CT_TblBorders（§17.4.39）：Strict 拼写 start/end，Transitional 拼写 left/right（PROP-05）。"
+order = ["w:top", "w:start|w:left", "w:bottom", "w:end|w:right", "w:insideH", "w:insideV"]
+
+[[table.field]]
+name = "top"
+element = "w:top"
+codec = "Border"
+
+[[table.field]]
+name = "start"
+element = "w:start"
+legacy = "w:left"
+codec = "Border"
+
+[[table.field]]
+name = "bottom"
+element = "w:bottom"
+codec = "Border"
+
+[[table.field]]
+name = "end"
+element = "w:end"
+legacy = "w:right"
+codec = "Border"
+
+[[table.field]]
+name = "inside_h"
+element = "w:insideH"
+codec = "Border"
+
+[[table.field]]
+name = "inside_v"
+element = "w:insideV"
+codec = "Border"
+
+[[table]]
+name = "TblCellMar"
+element = "w:tblCellMar"
+doc = "CT_TblCellMar（§17.4.43）：表格级单元格缺省边距，各边 CT_TblWidth。"
+order = ["w:top", "w:start|w:left", "w:bottom", "w:end|w:right"]
+
+[[table.field]]
+name = "top"
+element = "w:top"
+codec = "TblWidth"
+
+[[table.field]]
+name = "start"
+element = "w:start"
+legacy = "w:left"
+codec = "TblWidth"
+
+[[table.field]]
+name = "bottom"
+element = "w:bottom"
+codec = "TblWidth"
+
+[[table.field]]
+name = "end"
+element = "w:end"
+legacy = "w:right"
+codec = "TblWidth"

@@ -1,0 +1,45 @@
+﻿{
+    "action":  "Prepare",
+    "case":  "math/math-styled",
+    "template":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\math\\math-styled.docx",
+    "templateSha256Before":  "AD3C026AB0025CDAE719A0BA55E4FE86F1537E6710CBDF4879D19337831D0D15",
+    "officeSaveMethodsCalled":  false,
+    "status":  "prepared-for-ui-review",
+    "phase":  "prepared-not-saved",
+    "log":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\math-styled-prepare-20260907-025101-311.json",
+    "documentName":  "文档22",
+    "windowHwnd":  8653404,
+    "wordVersion":  "16.0",
+    "wordBuild":  "16.0.14334",
+    "normalTextPressedBefore":  false,
+    "checks":  {
+                   "oneEquation":  true,
+                   "fractionPresent":  true,
+                   "superscriptPresent":  true,
+                   "oneTargetRun":  true,
+                   "targetNormalText":  true,
+                   "targetRed":  true,
+                   "targetTwentyPoint":  true,
+                   "otherTextRunsFourteenPoint":  true,
+                   "stillUnsaved":  true
+               },
+    "mathParagraphXml":  [
+                             "\u003cm:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"\u003e\u003cm:oMathParaPr\u003e\u003cm:jc m:val=\"center\" /\u003e\u003c/m:oMathParaPr\u003e\u003cm:oMath\u003e\u003cm:f\u003e\u003cm:fPr\u003e\u003cm:ctrlPr\u003e\u003cw:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"\u003e\u003cw:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /\u003e\u003cw:color w:val=\"000000\" /\u003e\u003cw:sz w:val=\"28\" /\u003e\u003c/w:rPr\u003e\u003c/m:ctrlPr\u003e\u003c/m:fPr\u003e\u003cm:num\u003e\u003cm:r\u003e\u003cm:rPr\u003e\u003cm:nor /\u003e\u003c/m:rPr\u003e\u003cw:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"\u003e\u003cw:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /\u003e\u003cw:i /\u003e\u003cw:color w:val=\"FF0000\" /\u003e\u003cw:sz w:val=\"40\" /\u003e\u003c/w:rPr\u003e\u003cm:t\u003ea\u003c/m:t\u003e\u003c/m:r\u003e\u003cm:r\u003e\u003cw:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"\u003e\u003cw:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /\u003e\u003cw:color w:val=\"000000\" /\u003e\u003cw:sz w:val=\"28\" /\u003e\u003c/w:rPr\u003e\u003cm:t\u003e+b\u003c/m:t\u003e\u003c/m:r\u003e\u003cm:ctrlPr\u003e\u003cw:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"\u003e\u003cw:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /\u003e\u003cw:i /\u003e\u003cw:color w:val=\"000000\" /\u003e\u003cw:sz w:val=\"28\" /\u003e\u003c/w:rPr\u003e\u003c/m:ctrlPr\u003e\u003c/m:num\u003e\u003cm:den\u003e\u003cm:r\u003e\u003cw:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"\u003e\u003cw:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /\u003e\u003cw:color w:val=\"000000\" /\u003e\u003cw:sz w:val=\"28\" /\u003e\u003c/w:rPr\u003e\u003cm:t\u003e2\u003c/m:t\u003e\u003c/m:r\u003e\u003cm:ctrlPr\u003e\u003cw:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"\u003e\u003cw:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /\u003e\u003cw:i /\u003e\u003cw:color w:val=\"000000\" /\u003e\u003cw:sz w:val=\"28\" /\u003e\u003c/w:rPr\u003e\u003c/m:ctrlPr\u003e\u003c/m:den\u003e\u003c/m:f\u003e\u003cm:r\u003e\u003cw:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"\u003e\u003cw:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /\u003e\u003cw:color w:val=\"000000\" /\u003e\u003cw:sz w:val=\"28\" /\u003e\u003c/w:rPr\u003e\u003cm:t\u003e+\u003c/m:t\u003e\u003c/m:r\u003e\u003cm:sSup\u003e\u003cm:sSupPr\u003e\u003cm:ctrlPr\u003e\u003cw:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"\u003e\u003cw:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /\u003e\u003cw:i /\u003e\u003cw:color w:val=\"000000\" /\u003e\u003cw:sz w:val=\"28\" /\u003e\u003c/w:rPr\u003e\u003c/m:ctrlPr\u003e\u003c/m:sSupPr\u003e\u003cm:e\u003e\u003cm:r\u003e\u003cw:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"\u003e\u003cw:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /\u003e\u003cw:color w:val=\"000000\" /\u003e\u003cw:sz w:val=\"28\" /\u003e\u003c/w:rPr\u003e\u003cm:t\u003ex\u003c/m:t\u003e\u003c/m:r\u003e\u003c/m:e\u003e\u003cm:sup\u003e\u003cm:r\u003e\u003cw:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"\u003e\u003cw:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /\u003e\u003cw:color w:val=\"000000\" /\u003e\u003cw:sz w:val=\"28\" /\u003e\u003c/w:rPr\u003e\u003cm:t\u003e2\u003c/m:t\u003e\u003c/m:r\u003e\u003c/m:sup\u003e\u003c/m:sSup\u003e\u003c/m:oMath\u003e\u003c/m:oMathPara\u003e"
+                         ],
+    "runSizesHalfPoints":  [
+                               "28",
+                               "40"
+                           ],
+    "text":  "before 前文\r\ra+𝑏\r2\r+\r𝑥\r2\r\rafter 后文\r\r",
+    "preparedTargetRange":  {
+                                "start":  11,
+                                "end":  12,
+                                "text":  "a",
+                                "size":  20
+                            },
+    "templateSha256After":  "AD3C026AB0025CDAE719A0BA55E4FE86F1537E6710CBDF4879D19337831D0D15",
+    "templateUnchanged":  true,
+    "documentLeftOpen":  true,
+    "documentPath":  "",
+    "documentSavedFlag":  false
+}

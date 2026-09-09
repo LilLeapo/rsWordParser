@@ -1,0 +1,146 @@
+{
+  "tracked-two-authors/base": {
+    "pdfSha256": "C7723468DDD8959611E77FA93E3A3E0CE652C1B8CDDA8F256DB2D7FB4126DD91",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page.",
+    "observed": "One portrait page with before, original body, and after on separate lines. Black regular text, no overlap."
+  },
+  "tracked-two-authors/tracked": {
+    "pdfSha256": "498BFEF62D02EFEBA2C0B3B44480B3FF141F240325BED6F240F0CCA61DF16660",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page; final view does not display authors or revision balloons.",
+    "observed": "One portrait page. Middle paragraph reads author B inserted sentence, the first two characters of original body, then author A inserted sentence. The deleted original suffix is absent. Before/after are separate; no overlap."
+  },
+  "tracked-two-authors/accepted": {
+    "pdfSha256": "47B9C164959FD54EFED76D8966F65FD43F1B6489D129BECA80DA30E97AA628AC",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page.",
+    "observed": "One portrait page. Final body matches tracked PDF: author B sentence, original two-character prefix, author A sentence. Both inserted sentences retained, deleted suffix absent. No overlap."
+  },
+  "tracked-two-authors/rejected": {
+    "pdfSha256": "58F949B682225F519B1E2D49AEA6E8C28C59D02EFC5A0B047A362E53B6DD69ED",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page.",
+    "observed": "One portrait page. Original body restored, both inserted sentences absent. Layout matches base with before and after on separate lines. No overlap."
+  },
+  "sect-insert/before": {
+    "pdfSha256": "0EC708C3993DDBE072904394D03FDABE36E5BA38D1309E23ABA961CA7771D6B5",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page.",
+    "observed": "One portrait page. Before, first section text, second section text, after appear together as four separate lines. No overlap."
+  },
+  "sect-insert/after": {
+    "pdfSha256": "8726F54410106F99E69EE7AD3431D3D593ACA472CA14D11D2EF80C273ECCAE60",
+    "pageNumbers": [1, 2],
+    "method": "Independently viewed both rendered Word-exported PDF pages.",
+    "observed": "Page 1 is portrait and contains before plus first section text. Page 2 is landscape and contains second section text plus after. All text visible with no overlap or blank filler page."
+  },
+  "sect-delete/before": {
+    "pdfSha256": "F64F0114D16B1CF7549E308C0A6707E7B76BA0850DECA79F9140E2E2EE737DA8",
+    "pageNumbers": [1, 2],
+    "method": "Independently viewed both rendered Word-exported PDF pages.",
+    "observed": "Page 1 portrait with before and first section text; page 2 landscape with second section text and after. No overlap."
+  },
+  "sect-delete/after": {
+    "pdfSha256": "E8D419BC66B0E70FBCAFE0BCA73AE0B34301F74EEB529F1B652A160D1027EB1C",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page.",
+    "observed": "One landscape page contains all four lines: before, first section text, second section text, after. Native section-break deletion retains the former second section's landscape page setup. No overlap."
+  },
+  "z-order/before": {
+    "pdfSha256": "39FA9AB28846DBA03A593184B9AA2B1CE085B2C305725E466C210F5725370A31",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page, comparing visible occlusion with anchor positions in OOXML.",
+    "observed": "One portrait page. Three teal/gold images step down and right. Middle image covers upper-left image; lower-right image covers middle. Thus visible back-to-front order is Picture 1, 2, 3. Before, Picture anchor and after remain readable."
+  },
+  "z-order/after": {
+    "pdfSha256": "34D4E51B1F6471FC89087915A9DFAD45F5A06BF1511C5DC5EBC3E9D8800FA065",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page, comparing visible occlusion with anchor positions in OOXML.",
+    "observed": "One portrait page. Upper-left Picture 1 now covers the middle Picture 2; lower-right Picture 3 still covers Picture 2. Visible occlusion agrees with stored back-to-front order 2, 3, 1. All image positions and dimensions appear unchanged; text remains readable."
+  },
+  "move-resize/before": {
+    "pdfSha256": "71DD3EF6B25588089A61CF4F337A951A1FE624B191961D9EF5926265D4FB3D7B",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page.",
+    "observed": "One portrait page. One wide teal/gold picture sits below before/Picture anchor near the left margin; after is farther down. Picture is fully visible and text unobscured."
+  },
+  "move-resize/after": {
+    "pdfSha256": "1BF71918FFFCAD99B3B2134DCABF10750278F961D8DE39984559A1703451D826",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page and compared with before.",
+    "observed": "One portrait page. Same bitmap visibly moved down and right and shrunk to half width and height, preserving its wide aspect ratio. Before/Picture anchor and after remain unchanged and unobscured. Exact geometry is established separately by COM and OOXML."
+  },
+  "para-split-merge/base": {
+    "pdfSha256": "6656E99BFBF8B685714EEAFD112493CF496482DFF7F0EBE06B1C36B2EF465D89",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page.",
+    "observed": "One portrait page. Before, original A paragraph, original B paragraph and after appear on four separate left-aligned lines. No overlap."
+  },
+  "para-split-merge/tracked": {
+    "pdfSha256": "1255F48CDD1B3283D3D5850080104A0FFF72B0CFAF5B18A142361D7A8AF61707",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page; final view does not show revision balloons.",
+    "observed": "One portrait page. A paragraph is split after its second Chinese character; the remaining text is centered on the following line. B paragraph and after marker share a line. Before marker remains separate. No overlap. Exact two-character indentation is established by OOXML, not inferred from this centered-line image."
+  },
+  "para-split-merge/accepted": {
+    "pdfSha256": "C13BA2351C94C53DD05B6686CB35EF71B38BA1B7E1BFAC20B4167EB10AF48F9D",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page.",
+    "observed": "One portrait page. Same split and centered continuation as tracked final view; B paragraph is merged with after marker on one line. No overlap."
+  },
+  "para-split-merge/rejected": {
+    "pdfSha256": "C72A89F65F48213CE4CAADBD5AEE8945F48A97B3AF272ADA3B7300AA7E4036F6",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page.",
+    "observed": "One portrait page. Original A paragraph restored as one left-aligned line; B paragraph and after marker are again separate. Layout matches base, with no centered line or overlap."
+  },
+  "table-and-move/base": {
+    "pdfSha256": "7A761AA91B9BA5437BFF0374E99B316AC25910E16B2A4A4FD441A695A7423DFE",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page.",
+    "observed": "One portrait page. Two-column three-row table contains A1/B1, A2/B2, A3/B3. Before sits above; movable paragraph and after marker sit below. Clear borders and no overlap."
+  },
+  "table-and-move/tracked": {
+    "pdfSha256": "82C735C89B023FC4FF1F097D60C2B3A29476F9A454739BE6DF616858138DB48C",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page; final view does not show revision balloons or duplicate move source.",
+    "observed": "One portrait page. First row merged across both columns, with A1 and B1 stacked; second row reads Inserted A/Inserted B; third row A2/B2. Original row three absent. One movable paragraph immediately precedes after below the table. No overlap."
+  },
+  "table-and-move/accepted": {
+    "pdfSha256": "5CB50A29A432F8C0729B89B1FC26779BC36A1960E948DBB825BFFD426C45A1FD",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page.",
+    "observed": "One portrait page. Same table and body layout as tracked final view: merged first row A1/B1 stacked, inserted row retained, A2/B2 last, A3/B3 absent. One movable paragraph precedes after. No overlap."
+  },
+  "table-and-move/rejected": {
+    "pdfSha256": "18B062A251C956A77AED29E62477FA0ED42EB9ACF88C6C380CC8CA29D0D683A1",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page.",
+    "observed": "One portrait page. Inserted row removed and A3/B3 restored below A2/B2. First row remains merged with A1 and B1 stacked, so this native Word rejection is not visually identical to base. One movable paragraph precedes after. No overlap."
+  },
+  "run-edits/base": {
+    "pdfSha256": "AEF837C949E127E323DC2D64B64A3F8915BFA2221276813D2449628FB44E816A",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page.",
+    "observed": "One portrait page. Before marker, the three original Chinese sentences, and after marker appear as three separate paragraphs. Black regular body text; no overlap."
+  },
+  "run-edits/tracked": {
+    "pdfSha256": "73FF6FF1CE4B9B1AA0B3E9E19BB61443687A26F11E5D9158AFC16545DAA9EEAD",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page; final view does not show revision balloons.",
+    "observed": "One portrait page. Middle paragraph shows first original sentence, inserted sentence, and third original sentence. Third-sentence keyword is visibly bold red; the remainder is black. Second original sentence is absent. Before/after markers visible; no overlap."
+  },
+  "run-edits/accepted": {
+    "pdfSha256": "BDC914F14DF292F5341567965EDD93D39CEF6D5822E89423EC5FCAC850BE1ECD",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page.",
+    "observed": "One portrait page. Accepted text matches tracked final-view content: first original sentence, inserted sentence, third original sentence. Third-sentence keyword bold red. Second original sentence absent. Before/after markers visible; no overlap."
+  },
+  "run-edits/rejected": {
+    "pdfSha256": "893752EBE923214F6D3BA39B7995D04DE93FDAC572127732BA1E67C09D76429F",
+    "pageNumbers": [1],
+    "method": "Independently viewed rendered Word-exported PDF page.",
+    "observed": "One portrait page. Three original sentences restored, all visibly black regular text, and inserted sentence absent. Layout matches base; before/after markers visible; no overlap."
+  }
+}

@@ -1,0 +1,51 @@
+﻿{
+    "file":  "06-chart-insert-line-pie.docx",
+    "compat":  15,
+    "paragraphs":  8,
+    "text":  "before 前文\r/\r/\r我的标题示例\r自定义标题后的正文\r\rafter 后文\r\r",
+    "inlineShapes":  2,
+    "shapes":  0,
+    "charts":  [
+                   {
+                       "title":  "占比",
+                       "type":  5,
+                       "series":  [
+                                      {
+                                          "categories":  [
+                                                             "一月",
+                                                             "二月",
+                                                             "三月"
+                                                         ],
+                                          "values":  [
+                                                         3,
+                                                         5,
+                                                         2
+                                                     ],
+                                          "name":  "系列2"
+                                      }
+                                  ]
+                   },
+                   {
+                       "title":  "趋势",
+                       "type":  65,
+                       "series":  [
+                                      {
+                                          "categories":  [
+                                                             "一月",
+                                                             "二月",
+                                                             "三月"
+                                                         ],
+                                          "values":  [
+                                                         3,
+                                                         5,
+                                                         2
+                                                     ],
+                                          "name":  "系列1"
+                                      }
+                                  ]
+                   }
+               ],
+    "shapeDetails":  [
+
+                     ]
+}

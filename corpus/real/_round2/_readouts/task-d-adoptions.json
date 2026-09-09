@@ -1,0 +1,41 @@
+[
+  {
+    "case": "revisions2/rev-table",
+    "sha256": "C4B062A8EAA0BE0092819BF0ACAE56D1CBA959E4D373355535D78A321B53E466",
+    "provenance": {
+      "nativeSavedPath": "C:\\word\\real-word-round2-20260907\\_trials\\table-style-probe2\\rev-table.docx",
+      "nativeExportedPdf": "C:\\word\\real-word-round2-20260907\\_previews\\trials\\table-style-probe2.pdf",
+      "oldSha256": "7005EADD1877F9ED8FFE2E23D9D4EF1261EC3E40B2364403C8FB7D2A50BBFCFE",
+      "archive": "C:\\word\\real-word-round2-20260907\\_trials\\d-before-adoption-docx\\revisions2\\rev-table",
+      "method": "Byte copy of a verified native Word first-save output; no package edits or additional Word save.",
+      "closedWithoutAnotherSave": true,
+      "adopted": "2026-09-07T12:31:39.9845503+08:00"
+    }
+  },
+  {
+    "case": "fields2/fields-toc-stale",
+    "sha256": "A3B75A976E79EFBDF1E9CE868D352FE13EEE4E6BE426EC777DC1D4F9BD43C118",
+    "provenance": {
+      "nativeSavedPath": "C:\\word\\real-word-round2-20260907\\_trials\\d-layout-retry\\fields2\\fields-toc-stale.docx",
+      "nativeExportedPdf": "C:\\word\\real-word-round2-20260907\\_trials\\d-layout-retry\\_previews\\fields2\\fields-toc-stale.pdf",
+      "oldSha256": "6C1F4A7426F8C754F9166808F2AB4072158B0494C550F8B31A4F873B0ECE66F9",
+      "archive": "C:\\word\\real-word-round2-20260907\\_trials\\d-before-adoption-docx\\fields2\\fields-toc-stale",
+      "method": "Byte copy of a verified native Word first-save output; no package edits or additional Word save.",
+      "closedWithoutAnotherSave": true,
+      "adopted": "2026-09-07T12:31:39.9974983+08:00"
+    }
+  },
+  {
+    "case": "shapes2/textbox-linked",
+    "sha256": "805049AF54FDC7F8A4CDC59F94C1CE87B7149B80683520DF9372FE8C8C11C7C5",
+    "provenance": {
+      "nativeSavedPath": "C:\\word\\real-word-round2-20260907\\_trials\\d-layout-retry\\shapes2\\textbox-linked.docx",
+      "nativeExportedPdf": "C:\\word\\real-word-round2-20260907\\_trials\\d-layout-retry\\_previews\\shapes2\\textbox-linked.pdf",
+      "oldSha256": "FCD2C99679DE6E5D3676F326AEE857BEA15D6DB012B8ADF23E25987E4550706E",
+      "archive": "C:\\word\\real-word-round2-20260907\\_trials\\d-before-adoption-docx\\shapes2\\textbox-linked",
+      "method": "Byte copy of a verified native Word first-save output; no package edits or additional Word save.",
+      "closedWithoutAnotherSave": true,
+      "adopted": "2026-09-07T12:31:40.0005528+08:00"
+    }
+  }
+]

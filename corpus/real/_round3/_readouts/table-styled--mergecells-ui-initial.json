@@ -1,0 +1,44 @@
+{
+    "file":  "table-styled--mergecells.docx",
+    "base":  "table/table-styled.docx",
+    "op":  "mergecells",
+    "expect":  "第一张表格第 2 行的前两格合并成一格（文字连在一起）",
+    "timestamp":  "2026-09-07T14:42:21.6926340+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\table-styled--mergecells.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  22,
+                    "tables":  1,
+                    "comments":  0,
+                    "inline_shapes":  0,
+                    "shapes":  0,
+                    "first_table_rows":  3,
+                    "first_table_cells":  7,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+
+                       ],
+    "text":  "before 前文\rR1 C1\rR1 C2\r\u0007R1 C3\r\u0007\r\u0007R2 C1\rR2 C2\r\u0007R2 C3\r\u0007\r\u0007R3 C1\r\u0007R3 C2\r\u0007N11\r\u0007N12\r\u0007\r\u0007N21\r\u0007N22\r\u0007\r\u0007R3 C3\r\u0007\r\u0007\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+                   {
+                       "text":  "R1 C1\rR1 C2\r\u0007R1 C3\r\u0007\r\u0007R2 C1\rR2 C2\r\u0007R2 C3\r\u0007\r\u0007R3 C1\r\u0007R3 C2\r\u0007N11\r\u0007N12\r\u0007\r\u0007N21\r\u0007N22\r\u0007\r\u0007R3 C3\r\u0007\r\u0007",
+                       "cells":  7
+                   }
+               ],
+    "errors":  [
+
+               ]
+}

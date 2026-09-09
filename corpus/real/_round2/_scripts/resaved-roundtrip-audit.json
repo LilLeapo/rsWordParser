@@ -1,0 +1,1561 @@
+{
+  "auditDate": "2026-09-07T10:21:45.5288582+08:00",
+  "method": "Read-only .NET ZipArchive; all entry bytes decompressed; CRC32 and sizes compared; XML and relationship parts parsed with XmlDocument, including embedded XLSX packages; SHA256 compared with initial input audit. No Word application used.",
+  "fileCount": 9,
+  "allOriginalsUnchanged": true,
+  "allResavedDifferFromOriginals": true,
+  "errorCount": 0,
+  "files": [
+    {
+      "original": "01-chart-insert-bar.docx",
+      "resaved": "01-chart-insert-bar-resaved-by-word.docx",
+      "resavedPath": "C:\\word\\real-word-round2-20260907\\_resaved\\01-chart-insert-bar-resaved-by-word.docx",
+      "originalSha256": "8ABEF72865D1795C2A09B65B73EDF4BE85569F73EF7A84F7F4BD772380BE802B",
+      "initialOriginalSha256": "8ABEF72865D1795C2A09B65B73EDF4BE85569F73EF7A84F7F4BD772380BE802B",
+      "originalUnchanged": true,
+      "resavedSha256": "37A414988253A7A95FA5BFADAAB070DEDDB37CE4B494710E06547363509FE703",
+      "differsFromOriginal": true,
+      "length": 26969,
+      "duplicateZipNames": [],
+      "entryCountIncludingEmbeddedPackages": 26,
+      "xmlPartCount": 25,
+      "errors": [],
+      "charts": [
+        {
+          "part": "word/charts/chart1.xml",
+          "title": "\u5b63\u5ea6\u9500\u552e",
+          "firstSeriesName": "\u534e\u4e1c",
+          "firstSeriesValues": [
+            "120",
+            "88.5",
+            "96"
+          ]
+        }
+      ],
+      "entries": [
+        {
+          "part": "[Content_Types].xml",
+          "length": 1809,
+          "crc32": "90C54C0B",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "_rels/.rels",
+          "length": 590,
+          "crc32": "B71A911E",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/document.xml",
+          "length": 4794,
+          "crc32": "469ED517",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "length": 1214,
+          "crc32": "D7E9C884",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/footnotes.xml",
+          "length": 2821,
+          "crc32": "6FE60AA9",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/endnotes.xml",
+          "length": 2815,
+          "crc32": "691A08F0",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/charts/chart1.xml",
+          "length": 3696,
+          "crc32": "7F9C04FD",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx",
+          "length": 10205,
+          "crc32": "D8D38FFD",
+          "crcValid": true,
+          "xml": "not-xml"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx![Content_Types].xml",
+          "length": 1168,
+          "crc32": "689DEE62",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!_rels/.rels",
+          "length": 588,
+          "crc32": "233055B5",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/workbook.xml",
+          "length": 1500,
+          "crc32": "5D954B07",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/_rels/workbook.xml.rels",
+          "length": 698,
+          "crc32": "97943E81",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/worksheets/sheet1.xml",
+          "length": 1484,
+          "crc32": "05D317C2",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/theme/theme1.xml",
+          "length": 8397,
+          "crc32": "0FFFB0A2",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/styles.xml",
+          "length": 18660,
+          "crc32": "73D2A844",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/sharedStrings.xml",
+          "length": 271,
+          "crc32": "43ED7C4B",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!docProps/core.xml",
+          "length": 497,
+          "crc32": "40C9CF08",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!docProps/app.xml",
+          "length": 765,
+          "crc32": "52EED1AB",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/theme/theme1.xml",
+          "length": 8398,
+          "crc32": "19CC053A",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/charts/_rels/chart1.xml.rels",
+          "length": 319,
+          "crc32": "B1B57963",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/settings.xml",
+          "length": 3732,
+          "crc32": "6A69474A",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/styles.xml",
+          "length": 32125,
+          "crc32": "F07CEBCE",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/webSettings.xml",
+          "length": 894,
+          "crc32": "4E290AEF",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/fontTable.xml",
+          "length": 1954,
+          "crc32": "1800671C",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/core.xml",
+          "length": 747,
+          "crc32": "DF0E99DA",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/app.xml",
+          "length": 712,
+          "crc32": "F3B02491",
+          "crcValid": true,
+          "xml": "ok"
+        }
+      ]
+    },
+    {
+      "original": "01-text-source.docx",
+      "resaved": "01-text-source-resaved-by-word.docx",
+      "resavedPath": "C:\\word\\real-word-round2-20260907\\_resaved\\01-text-source-resaved-by-word.docx",
+      "originalSha256": "DFCDE85859C057D6C93E95A991A360B41ACB2B98DBA8D0F2EEF4CAEDC37FFA6A",
+      "initialOriginalSha256": "DFCDE85859C057D6C93E95A991A360B41ACB2B98DBA8D0F2EEF4CAEDC37FFA6A",
+      "originalUnchanged": true,
+      "resavedSha256": "F7A4E97D1BD8204DEFE9CDD21EB84BC4E073C6DCAEF550FA28178AA9815BB3EC",
+      "differsFromOriginal": true,
+      "length": 14672,
+      "duplicateZipNames": [],
+      "entryCountIncludingEmbeddedPackages": 13,
+      "xmlPartCount": 13,
+      "errors": [],
+      "charts": [],
+      "entries": [
+        {
+          "part": "[Content_Types].xml",
+          "length": 1576,
+          "crc32": "7102BC4A",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "_rels/.rels",
+          "length": 590,
+          "crc32": "B71A911E",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/document.xml",
+          "length": 4042,
+          "crc32": "CE38481B",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "length": 1081,
+          "crc32": "D9A01711",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/footnotes.xml",
+          "length": 2821,
+          "crc32": "FDA368BB",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/endnotes.xml",
+          "length": 2815,
+          "crc32": "54E867F1",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/theme/theme1.xml",
+          "length": 8398,
+          "crc32": "19CC053A",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/settings.xml",
+          "length": 3654,
+          "crc32": "07365290",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/styles.xml",
+          "length": 32125,
+          "crc32": "B6C1EC60",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/webSettings.xml",
+          "length": 894,
+          "crc32": "4E290AEF",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/fontTable.xml",
+          "length": 1954,
+          "crc32": "1800671C",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/core.xml",
+          "length": 747,
+          "crc32": "29E2CBA8",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/app.xml",
+          "length": 711,
+          "crc32": "A693A6A2",
+          "crcValid": true,
+          "xml": "ok"
+        }
+      ]
+    },
+    {
+      "original": "02-chart-setdata.docx",
+      "resaved": "02-chart-setdata-resaved-by-word.docx",
+      "resavedPath": "C:\\word\\real-word-round2-20260907\\_resaved\\02-chart-setdata-resaved-by-word.docx",
+      "originalSha256": "EAF839EEDF187B61B3E71D3FA9BC240C4CD3D2C357E05EA586A4134CCD9803E4",
+      "initialOriginalSha256": "EAF839EEDF187B61B3E71D3FA9BC240C4CD3D2C357E05EA586A4134CCD9803E4",
+      "originalUnchanged": true,
+      "resavedSha256": "11B3C5A4CEBE7129D8251C4BC3018DFE1B7B488A9812C97CD450CB78792A1E49",
+      "differsFromOriginal": true,
+      "length": 27515,
+      "duplicateZipNames": [],
+      "entryCountIncludingEmbeddedPackages": 28,
+      "xmlPartCount": 27,
+      "errors": [],
+      "charts": [
+        {
+          "part": "word/charts/chart1.xml",
+          "title": "\u5df2\u6539\u6807\u9898 Edited",
+          "firstSeriesName": "Series 1",
+          "firstSeriesValues": [
+            "10",
+            "20",
+            "30"
+          ]
+        }
+      ],
+      "entries": [
+        {
+          "part": "[Content_Types].xml",
+          "length": 2017,
+          "crc32": "13B29C8C",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "_rels/.rels",
+          "length": 590,
+          "crc32": "B71A911E",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/document.xml",
+          "length": 4214,
+          "crc32": "7497F52A",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "length": 1214,
+          "crc32": "D7E9C884",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/footnotes.xml",
+          "length": 2821,
+          "crc32": "5F1B2CBC",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/endnotes.xml",
+          "length": 2815,
+          "crc32": "B96CF253",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/charts/chart1.xml",
+          "length": 8078,
+          "crc32": "9C57AD1C",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/charts/style1.xml",
+          "length": 9666,
+          "crc32": "31182DD5",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/charts/colors1.xml",
+          "length": 878,
+          "crc32": "A8A7141C",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx",
+          "length": 8958,
+          "crc32": "B82514E6",
+          "crcValid": true,
+          "xml": "not-xml"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx![Content_Types].xml",
+          "length": 1168,
+          "crc32": "689DEE62",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!_rels/.rels",
+          "length": 588,
+          "crc32": "233055B5",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/workbook.xml",
+          "length": 2072,
+          "crc32": "A87D056D",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/_rels/workbook.xml.rels",
+          "length": 698,
+          "crc32": "97943E81",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/worksheets/sheet1.xml",
+          "length": 1569,
+          "crc32": "07B8A29C",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/theme/theme1.xml",
+          "length": 8397,
+          "crc32": "0FFFB0A2",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/styles.xml",
+          "length": 1809,
+          "crc32": "39F27BB8",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/sharedStrings.xml",
+          "length": 310,
+          "crc32": "E01BC672",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!docProps/core.xml",
+          "length": 613,
+          "crc32": "6457D258",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!docProps/app.xml",
+          "length": 787,
+          "crc32": "8CE3EB1D",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/theme/theme1.xml",
+          "length": 8398,
+          "crc32": "19CC053A",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/charts/_rels/chart1.xml.rels",
+          "length": 561,
+          "crc32": "3CD165FA",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/settings.xml",
+          "length": 3675,
+          "crc32": "BB07BD5D",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/styles.xml",
+          "length": 30780,
+          "crc32": "5C49AB22",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/webSettings.xml",
+          "length": 894,
+          "crc32": "4E290AEF",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/fontTable.xml",
+          "length": 1683,
+          "crc32": "264D21A3",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/core.xml",
+          "length": 800,
+          "crc32": "B377FF85",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/app.xml",
+          "length": 711,
+          "crc32": "AC62C82B",
+          "crcValid": true,
+          "xml": "ok"
+        }
+      ]
+    },
+    {
+      "original": "02-chart-source.docx",
+      "resaved": "02-chart-source-resaved-by-word.docx",
+      "resavedPath": "C:\\word\\real-word-round2-20260907\\_resaved\\02-chart-source-resaved-by-word.docx",
+      "originalSha256": "C62B982160004C32CC9EEEE579B7BF48090BA7A0824E69F9AF5D9036576D4E21",
+      "initialOriginalSha256": "C62B982160004C32CC9EEEE579B7BF48090BA7A0824E69F9AF5D9036576D4E21",
+      "originalUnchanged": true,
+      "resavedSha256": "896BB04758166569D3EFD455A8BC0606A4A6EAC81A12A27D85A23C129F7ACF53",
+      "differsFromOriginal": true,
+      "length": 27498,
+      "duplicateZipNames": [],
+      "entryCountIncludingEmbeddedPackages": 28,
+      "xmlPartCount": 27,
+      "errors": [],
+      "charts": [
+        {
+          "part": "word/charts/chart1.xml",
+          "title": "\u9500\u552e\u7edf\u8ba1",
+          "firstSeriesName": "Series 1",
+          "firstSeriesValues": [
+            "10",
+            "20",
+            "30"
+          ]
+        }
+      ],
+      "entries": [
+        {
+          "part": "[Content_Types].xml",
+          "length": 2017,
+          "crc32": "13B29C8C",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "_rels/.rels",
+          "length": 590,
+          "crc32": "B71A911E",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/document.xml",
+          "length": 4214,
+          "crc32": "D8C7D0CD",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "length": 1214,
+          "crc32": "D7E9C884",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/footnotes.xml",
+          "length": 2821,
+          "crc32": "4FED4EDE",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/endnotes.xml",
+          "length": 2815,
+          "crc32": "86640F4F",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/charts/chart1.xml",
+          "length": 8071,
+          "crc32": "5699166E",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/charts/style1.xml",
+          "length": 9666,
+          "crc32": "31182DD5",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/charts/colors1.xml",
+          "length": 878,
+          "crc32": "A8A7141C",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx",
+          "length": 8959,
+          "crc32": "FB4CAF59",
+          "crcValid": true,
+          "xml": "not-xml"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx![Content_Types].xml",
+          "length": 1168,
+          "crc32": "689DEE62",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!_rels/.rels",
+          "length": 588,
+          "crc32": "233055B5",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/workbook.xml",
+          "length": 2072,
+          "crc32": "C7F6743E",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/_rels/workbook.xml.rels",
+          "length": 698,
+          "crc32": "97943E81",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/worksheets/sheet1.xml",
+          "length": 1569,
+          "crc32": "07B8A29C",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/theme/theme1.xml",
+          "length": 8397,
+          "crc32": "0FFFB0A2",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/styles.xml",
+          "length": 1809,
+          "crc32": "39F27BB8",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/sharedStrings.xml",
+          "length": 310,
+          "crc32": "E01BC672",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!docProps/core.xml",
+          "length": 613,
+          "crc32": "AD365D98",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!docProps/app.xml",
+          "length": 787,
+          "crc32": "8CE3EB1D",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/theme/theme1.xml",
+          "length": 8398,
+          "crc32": "19CC053A",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/charts/_rels/chart1.xml.rels",
+          "length": 561,
+          "crc32": "3CD165FA",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/settings.xml",
+          "length": 3675,
+          "crc32": "76011E0E",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/styles.xml",
+          "length": 30780,
+          "crc32": "0A644D0A",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/webSettings.xml",
+          "length": 894,
+          "crc32": "4E290AEF",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/fontTable.xml",
+          "length": 1683,
+          "crc32": "264D21A3",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/core.xml",
+          "length": 747,
+          "crc32": "643D4034",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/app.xml",
+          "length": 711,
+          "crc32": "A702A87C",
+          "crcValid": true,
+          "xml": "ok"
+        }
+      ]
+    },
+    {
+      "original": "03-image-insert-inline-and-square.docx",
+      "resaved": "03-image-insert-inline-and-square-resaved-by-word.docx",
+      "resavedPath": "C:\\word\\real-word-round2-20260907\\_resaved\\03-image-insert-inline-and-square-resaved-by-word.docx",
+      "originalSha256": "2140F6681ACE032A3789C09A4489C50334D8F8812A74DD320C54727B7B342FB8",
+      "initialOriginalSha256": "2140F6681ACE032A3789C09A4489C50334D8F8812A74DD320C54727B7B342FB8",
+      "originalUnchanged": true,
+      "resavedSha256": "0FD597A3734587EA8D5A3C6FBBE6D88DF99FDFA09C63062977025767CE52474B",
+      "differsFromOriginal": true,
+      "length": 15515,
+      "duplicateZipNames": [],
+      "entryCountIncludingEmbeddedPackages": 14,
+      "xmlPartCount": 13,
+      "errors": [],
+      "charts": [],
+      "entries": [
+        {
+          "part": "[Content_Types].xml",
+          "length": 1626,
+          "crc32": "0C07F0C1",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "_rels/.rels",
+          "length": 590,
+          "crc32": "B71A911E",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/document.xml",
+          "length": 6417,
+          "crc32": "C773A045",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "length": 1213,
+          "crc32": "F87B39B2",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/footnotes.xml",
+          "length": 2821,
+          "crc32": "184B9105",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/endnotes.xml",
+          "length": 2815,
+          "crc32": "FD2D04FE",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/media/image1.png",
+          "length": 70,
+          "crc32": "1C492093",
+          "crcValid": true,
+          "xml": "not-xml"
+        },
+        {
+          "part": "word/theme/theme1.xml",
+          "length": 8398,
+          "crc32": "19CC053A",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/settings.xml",
+          "length": 3732,
+          "crc32": "D3D2EF0D",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/styles.xml",
+          "length": 32125,
+          "crc32": "532A291C",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/webSettings.xml",
+          "length": 894,
+          "crc32": "4E290AEF",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/fontTable.xml",
+          "length": 1954,
+          "crc32": "1800671C",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/core.xml",
+          "length": 747,
+          "crc32": "E9A73B7F",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/app.xml",
+          "length": 712,
+          "crc32": "CFF9517B",
+          "crcValid": true,
+          "xml": "ok"
+        }
+      ]
+    },
+    {
+      "original": "04-image-replace.docx",
+      "resaved": "04-image-replace-resaved-by-word.docx",
+      "resavedPath": "C:\\word\\real-word-round2-20260907\\_resaved\\04-image-replace-resaved-by-word.docx",
+      "originalSha256": "9782AD48F85FC53574E6B9B52A81D47DBB124F9CDE1A70B839864410C58DA778",
+      "initialOriginalSha256": "9782AD48F85FC53574E6B9B52A81D47DBB124F9CDE1A70B839864410C58DA778",
+      "originalUnchanged": true,
+      "resavedSha256": "E13475F515475D7796B9BB418AEBE1E0A95800B84DA767D2AE6658873EA7AB8F",
+      "differsFromOriginal": true,
+      "length": 15155,
+      "duplicateZipNames": [],
+      "entryCountIncludingEmbeddedPackages": 14,
+      "xmlPartCount": 13,
+      "errors": [],
+      "charts": [],
+      "entries": [
+        {
+          "part": "[Content_Types].xml",
+          "length": 1626,
+          "crc32": "0C07F0C1",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "_rels/.rels",
+          "length": 590,
+          "crc32": "B71A911E",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/document.xml",
+          "length": 5957,
+          "crc32": "8D22C06E",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "length": 1213,
+          "crc32": "F87B39B2",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/footnotes.xml",
+          "length": 2821,
+          "crc32": "48CEE7D1",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/endnotes.xml",
+          "length": 2815,
+          "crc32": "427740BC",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/media/image1.png",
+          "length": 70,
+          "crc32": "1C492093",
+          "crcValid": true,
+          "xml": "not-xml"
+        },
+        {
+          "part": "word/theme/theme1.xml",
+          "length": 8398,
+          "crc32": "19CC053A",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/settings.xml",
+          "length": 3675,
+          "crc32": "72405893",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/styles.xml",
+          "length": 30780,
+          "crc32": "32514C31",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/webSettings.xml",
+          "length": 894,
+          "crc32": "4E290AEF",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/fontTable.xml",
+          "length": 1949,
+          "crc32": "CA6ECCF3",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/core.xml",
+          "length": 747,
+          "crc32": "E9A73B7F",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/app.xml",
+          "length": 711,
+          "crc32": "A702A87C",
+          "crcValid": true,
+          "xml": "ok"
+        }
+      ]
+    },
+    {
+      "original": "04-image-source.docx",
+      "resaved": "04-image-source-resaved-by-word.docx",
+      "resavedPath": "C:\\word\\real-word-round2-20260907\\_resaved\\04-image-source-resaved-by-word.docx",
+      "originalSha256": "A8AEFAA7F5598D5128965D75E8A873AF63395819C8451A7B539583068166A4CB",
+      "initialOriginalSha256": "A8AEFAA7F5598D5128965D75E8A873AF63395819C8451A7B539583068166A4CB",
+      "originalUnchanged": true,
+      "resavedSha256": "5B5437A78EFF1193F26B71ED525075288B47E082FD803E4CDEFB89A59F28B1E0",
+      "differsFromOriginal": true,
+      "length": 15324,
+      "duplicateZipNames": [],
+      "entryCountIncludingEmbeddedPackages": 14,
+      "xmlPartCount": 13,
+      "errors": [],
+      "charts": [],
+      "entries": [
+        {
+          "part": "[Content_Types].xml",
+          "length": 1626,
+          "crc32": "0C07F0C1",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "_rels/.rels",
+          "length": 590,
+          "crc32": "B71A911E",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/document.xml",
+          "length": 5957,
+          "crc32": "8D22C06E",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "length": 1213,
+          "crc32": "F87B39B2",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/footnotes.xml",
+          "length": 2821,
+          "crc32": "750751BC",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/endnotes.xml",
+          "length": 2815,
+          "crc32": "E578BE74",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/media/image1.png",
+          "length": 242,
+          "crc32": "A86D96D4",
+          "crcValid": true,
+          "xml": "not-xml"
+        },
+        {
+          "part": "word/theme/theme1.xml",
+          "length": 8398,
+          "crc32": "19CC053A",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/settings.xml",
+          "length": 3675,
+          "crc32": "517548F5",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/styles.xml",
+          "length": 30780,
+          "crc32": "FB790B6A",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/webSettings.xml",
+          "length": 894,
+          "crc32": "4E290AEF",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/fontTable.xml",
+          "length": 1949,
+          "crc32": "CA6ECCF3",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/core.xml",
+          "length": 747,
+          "crc32": "E9A73B7F",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/app.xml",
+          "length": 711,
+          "crc32": "A702A87C",
+          "crcValid": true,
+          "xml": "ok"
+        }
+      ]
+    },
+    {
+      "original": "05-ink-insert.docx",
+      "resaved": "05-ink-insert-resaved-by-word.docx",
+      "resavedPath": "C:\\word\\real-word-round2-20260907\\_resaved\\05-ink-insert-resaved-by-word.docx",
+      "originalSha256": "12E4CD4F1719FEB437E6CA15ADFCBD341FEEB7D7F925D3C42A36F28E5148A249",
+      "initialOriginalSha256": "12E4CD4F1719FEB437E6CA15ADFCBD341FEEB7D7F925D3C42A36F28E5148A249",
+      "originalUnchanged": true,
+      "resavedSha256": "51CEB8C65BA0B41361A96083CDEB745A5C2DF9803470F1B2A546C3DBCCE0D20B",
+      "differsFromOriginal": true,
+      "length": 15516,
+      "duplicateZipNames": [],
+      "entryCountIncludingEmbeddedPackages": 14,
+      "xmlPartCount": 13,
+      "errors": [],
+      "charts": [],
+      "entries": [
+        {
+          "part": "[Content_Types].xml",
+          "length": 1626,
+          "crc32": "0C07F0C1",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "_rels/.rels",
+          "length": 590,
+          "crc32": "B71A911E",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/document.xml",
+          "length": 6661,
+          "crc32": "CC54351F",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "length": 1213,
+          "crc32": "F87B39B2",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/footnotes.xml",
+          "length": 2821,
+          "crc32": "BB0ACC7D",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/endnotes.xml",
+          "length": 2815,
+          "crc32": "9A09B635",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/media/image1.png",
+          "length": 70,
+          "crc32": "1C492093",
+          "crcValid": true,
+          "xml": "not-xml"
+        },
+        {
+          "part": "word/theme/theme1.xml",
+          "length": 8398,
+          "crc32": "19CC053A",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/settings.xml",
+          "length": 3706,
+          "crc32": "D8B7AE74",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/styles.xml",
+          "length": 32125,
+          "crc32": "479688B9",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/webSettings.xml",
+          "length": 894,
+          "crc32": "4E290AEF",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/fontTable.xml",
+          "length": 1954,
+          "crc32": "1800671C",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/core.xml",
+          "length": 747,
+          "crc32": "3FC7A7DB",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/app.xml",
+          "length": 712,
+          "crc32": "918E519D",
+          "crcValid": true,
+          "xml": "ok"
+        }
+      ]
+    },
+    {
+      "original": "06-chart-insert-line-pie.docx",
+      "resaved": "06-chart-insert-line-pie-resaved-by-word.docx",
+      "resavedPath": "C:\\word\\real-word-round2-20260907\\_resaved\\06-chart-insert-line-pie-resaved-by-word.docx",
+      "originalSha256": "1E8F10BE4456152D20EF39E12E409BAEBE1756D7943F8078683B2FF12C8C692D",
+      "initialOriginalSha256": "1E8F10BE4456152D20EF39E12E409BAEBE1756D7943F8078683B2FF12C8C692D",
+      "originalUnchanged": true,
+      "resavedSha256": "1E71C4B1BD98C4119D19DE6C5BF96C2CA5E7CEEF4F2799523F1D1803826EF3C2",
+      "differsFromOriginal": true,
+      "length": 38625,
+      "duplicateZipNames": [],
+      "entryCountIncludingEmbeddedPackages": 39,
+      "xmlPartCount": 37,
+      "errors": [],
+      "charts": [
+        {
+          "part": "word/charts/chart1.xml",
+          "title": "\u5360\u6bd4",
+          "firstSeriesName": "\u7cfb\u52172",
+          "firstSeriesValues": [
+            "3",
+            "5",
+            "2"
+          ]
+        },
+        {
+          "part": "word/charts/chart2.xml",
+          "title": "\u8d8b\u52bf",
+          "firstSeriesName": "\u7cfb\u52171",
+          "firstSeriesValues": [
+            "3",
+            "5",
+            "2"
+          ]
+        }
+      ],
+      "entries": [
+        {
+          "part": "[Content_Types].xml",
+          "length": 1935,
+          "crc32": "E8083ABA",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "_rels/.rels",
+          "length": 590,
+          "crc32": "B71A911E",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/document.xml",
+          "length": 5546,
+          "crc32": "90C6621D",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/_rels/document.xml.rels",
+          "length": 1347,
+          "crc32": "15010C22",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/footnotes.xml",
+          "length": 2821,
+          "crc32": "2853D452",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/endnotes.xml",
+          "length": 2815,
+          "crc32": "F0EAE10A",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/charts/chart1.xml",
+          "length": 1981,
+          "crc32": "4962A2F5",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx",
+          "length": 10192,
+          "crc32": "C198AC13",
+          "crcValid": true,
+          "xml": "not-xml"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx![Content_Types].xml",
+          "length": 1168,
+          "crc32": "689DEE62",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!_rels/.rels",
+          "length": 588,
+          "crc32": "233055B5",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/workbook.xml",
+          "length": 1500,
+          "crc32": "E74C15FD",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/_rels/workbook.xml.rels",
+          "length": 698,
+          "crc32": "97943E81",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/worksheets/sheet1.xml",
+          "length": 1403,
+          "crc32": "1D96028C",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/theme/theme1.xml",
+          "length": 8397,
+          "crc32": "0FFFB0A2",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/styles.xml",
+          "length": 18660,
+          "crc32": "73D2A844",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!xl/sharedStrings.xml",
+          "length": 262,
+          "crc32": "4AEB00A3",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!docProps/core.xml",
+          "length": 497,
+          "crc32": "5E0B02FD",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx!docProps/app.xml",
+          "length": 765,
+          "crc32": "52EED1AB",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/charts/chart2.xml",
+          "length": 2834,
+          "crc32": "29770137",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet1.xlsx",
+          "length": 10192,
+          "crc32": "92D81F8D",
+          "crcValid": true,
+          "xml": "not-xml"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet1.xlsx![Content_Types].xml",
+          "length": 1168,
+          "crc32": "689DEE62",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet1.xlsx!_rels/.rels",
+          "length": 588,
+          "crc32": "233055B5",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet1.xlsx!xl/workbook.xml",
+          "length": 1500,
+          "crc32": "C89F2143",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet1.xlsx!xl/_rels/workbook.xml.rels",
+          "length": 698,
+          "crc32": "97943E81",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet1.xlsx!xl/worksheets/sheet1.xml",
+          "length": 1403,
+          "crc32": "1D96028C",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet1.xlsx!xl/theme/theme1.xml",
+          "length": 8397,
+          "crc32": "0FFFB0A2",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet1.xlsx!xl/styles.xml",
+          "length": 18660,
+          "crc32": "73D2A844",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet1.xlsx!xl/sharedStrings.xml",
+          "length": 262,
+          "crc32": "CA38252D",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet1.xlsx!docProps/core.xml",
+          "length": 497,
+          "crc32": "5E0B02FD",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/embeddings/Microsoft_Excel_Worksheet1.xlsx!docProps/app.xml",
+          "length": 765,
+          "crc32": "52EED1AB",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/theme/theme1.xml",
+          "length": 8398,
+          "crc32": "19CC053A",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/charts/_rels/chart1.xml.rels",
+          "length": 319,
+          "crc32": "B1B57963",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/charts/_rels/chart2.xml.rels",
+          "length": 320,
+          "crc32": "76E83ACA",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/settings.xml",
+          "length": 3732,
+          "crc32": "E21A15FC",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/styles.xml",
+          "length": 32125,
+          "crc32": "F8BAC510",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/webSettings.xml",
+          "length": 894,
+          "crc32": "4E290AEF",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "word/fontTable.xml",
+          "length": 1954,
+          "crc32": "1800671C",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/core.xml",
+          "length": 747,
+          "crc32": "44B18EE2",
+          "crcValid": true,
+          "xml": "ok"
+        },
+        {
+          "part": "docProps/app.xml",
+          "length": 712,
+          "crc32": "CFF9517B",
+          "crcValid": true,
+          "xml": "ok"
+        }
+      ]
+    }
+  ],
+  "crcErrorCount": 0,
+  "xmlParseErrorCount": 0,
+  "totalEntriesIncludingEmbeddedPackages": 190,
+  "totalXmlParts": 181,
+  "duplicateZipNameCount": 0
+}

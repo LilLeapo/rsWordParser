@@ -1,0 +1,85 @@
+﻿{
+    "case":  "sect-insert",
+    "stage":  "after",
+    "path":  "C:\\word\\real-word-round3-20260907\\revfix\\sect-insert\\after.docx",
+    "sha256":  "01E975EF6CEA10C81B9DFAFC269F51190199AA4246CA4F45FC322C148C11E9FA",
+    "sourcePath":  "C:\\word\\real-word-round3-20260907\\revfix\\sect-insert\\before.docx",
+    "sourceSha256":  "2E93619922EC1196DEDB456042C4BD33971916A390F992E8F16114026BC39732",
+    "operations":  [
+                       "Opened unchanged before.docx independently.",
+                       "Inserted next-page section break before second section text; made new second section landscape."
+                   ],
+    "readout":  {
+                    "text":  "before 前文\r第一节正文。\r\f第二节正文。\rafter 后文\r\r",
+                    "paragraphs":  [
+                                       {
+                                           "text":  "before 前文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "第一节正文。\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\f",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "第二节正文。\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "after 后文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       }
+                                   ],
+                    "revisions":  [
+
+                                  ],
+                    "revisionCount":  0,
+                    "sections":  [
+                                     {
+                                         "index":  1,
+                                         "start":  0,
+                                         "end":  18,
+                                         "orientation":  0,
+                                         "sectionStart":  2
+                                     },
+                                     {
+                                         "index":  2,
+                                         "start":  18,
+                                         "end":  35,
+                                         "orientation":  1,
+                                         "sectionStart":  2
+                                     }
+                                 ],
+                    "shapes":  [
+
+                               ],
+                    "pages":  2,
+                    "compatibility":  15,
+                    "trackMoves":  true,
+                    "trackFormatting":  true,
+                    "trackRevisions":  false
+                },
+    "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\revfix\\sect-insert\\after.pdf",
+    "date":  "2026-09-07T13:54:42.9460441+08:00",
+    "method":  "Native Windows Word COM; DOCX saved once at this path; PDF export and current-document UI inspection afterward without save back.",
+    "uiPending":  true
+}

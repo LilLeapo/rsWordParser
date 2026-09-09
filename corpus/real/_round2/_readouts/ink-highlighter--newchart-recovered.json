@@ -1,0 +1,43 @@
+﻿{
+    "source":  "ink-highlighter--newchart.docx",
+    "recoveredName":  "文档1",
+    "compat":  15,
+    "text":  "before 前文\r/\r这是一段用于观察原生墨迹的文字。\rafter 后文\r\r",
+    "paragraphs":  5,
+    "inlineShapes":  1,
+    "shapes":  1,
+    "charts":  [
+                   {
+                       "before":  {
+                                      "title":  "rsword 新图表",
+                                      "type":  51,
+                                      "series":  [
+                                                     {
+                                                         "categories":  [
+                                                                            "甲",
+                                                                            "乙",
+                                                                            "丙"
+                                                                        ],
+                                                         "values":  [
+                                                                        3,
+                                                                        1,
+                                                                        2
+                                                                    ],
+                                                         "name":  "系列 A"
+                                                     }
+                                                 ]
+                                  },
+                       "activation":  "not_attempted_in_this_pass",
+                       "index":  1
+                   }
+               ],
+    "shapeDetails":  [
+                         {
+                             "width":  157.4,
+                             "name":  "Ink 2",
+                             "height":  0,
+                             "type":  23
+                         }
+                     ],
+    "method":  "Word UI open, accepted unreadable-content recovery, Word SaveAs2 and PDF export"
+}

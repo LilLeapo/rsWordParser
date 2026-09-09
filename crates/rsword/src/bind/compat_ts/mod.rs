@@ -9,25 +9,53 @@ use serde_json::{Map, Value, json};
 
 use crate::error::Result;
 use crate::model::Document;
-use crate::package::{Package, RelType};
+use crate::package::{Package, PartId, RelType};
 use crate::resolve::Resolver;
 
 mod blocks;
+mod box_json;
+mod chart;
 mod decl;
+mod diagram;
 pub mod diff;
+mod hf;
+mod image;
+mod ink;
+mod math;
+pub mod media;
+pub mod save_blocks;
+mod table;
+mod textbox;
 pub mod utf16;
 
-pub use diff::{Diff, diff_json, filter_known, path_matches};
+pub use diff::{
+    Diff, EmbeddedKind, KNOWN_DIFFS_MD, KnownDiff, PathStat, Report, Scope, block_of_path,
+    diff_json, embedded_kind, filter_known, is_drawing_path, is_embedded_case, is_embedded_diff,
+    is_hf_path, is_span_field_case, is_table_case, is_text_case, known_diffs, on_embedded_block,
+    parse_known_diffs, path_key, path_matches, split_known,
+};
+pub use media::{MediaMap, MediaOut, MediaSet};
+pub use save_blocks::{SaveBlocksOutcome, apply_save_blocks, bookmark_id_of};
 pub use utf16::Utf16Index;
 
 /// 整份 `ParsedDoc`（含 `extras`），键与 TS 一致；`internal.originalBytes` 不输出（导出脚本也省略）。
 pub fn parsed_doc(pkg: &mut Package) -> Result<Value> {
     let doc = Document::rebuild(pkg)?;
-    Ok(parsed_doc_of(pkg, &doc))
+    // 先把媒体读出来：之后整条投影链路只有 DOM 的不可变借用（`bind::compat_ts::media`）。
+    // 页眉页脚 part 各一张表——图片关系按 part 解析（`PKG-05`）。
+    // SmartArt 绘图 part 的图片填充按那个 part 的关系解，所以也各要一张表（任务 6.3）
+    let aux: Vec<PartId> = doc
+        .hf_parts
+        .keys()
+        .copied()
+        .chain(doc.diagram_parts.values().filter_map(|d| d.drawing))
+        .collect();
+    let media = MediaSet::build(pkg, doc.main_part, &aux);
+    Ok(parsed_doc_of(pkg, &doc, &media))
 }
 
 /// 用已构建的模型投影（`pkg` 里的 part 已解析）。
-pub fn parsed_doc_of(pkg: &Package, doc: &Document) -> Value {
+pub fn parsed_doc_of(pkg: &Package, doc: &Document, media: &MediaSet) -> Value {
     let main = doc.main_part;
     let dom = pkg.part(main).dom().expect("main part parsed by rebuild");
     let rels = &pkg.part(main).rels;
@@ -39,14 +67,45 @@ pub fn parsed_doc_of(pkg: &Package, doc: &Document) -> Value {
     let resolver = Resolver::new(doc);
     let idx = Utf16Index::new(dom.src());
     let numbering = decl::numbering_json(doc);
-    let ctx = blocks::Ctx::new(dom, doc, &resolver, &idx, rels, &numbering);
+    // 正文引用的其他 part（外部文本框 part，任务 5.4d）：各自的 UTF-16 索引要活到投影结束
+    let aux_idx: Vec<(PartId, Utf16Index)> = doc
+        .aux_flows
+        .keys()
+        .filter_map(|&p| pkg.part(p).dom().map(|d| (p, Utf16Index::new(d.src()))))
+        .collect();
+    let aux: blocks::AuxProjMap<'_> = aux_idx
+        .iter()
+        .filter_map(|(p, i)| {
+            Some((
+                *p,
+                blocks::AuxProj {
+                    dom: pkg.part(*p).dom()?,
+                    rels: &pkg.part(*p).rels,
+                    idx: i,
+                    flows: doc.aux_flows.get(p)?,
+                    media: media.part(*p),
+                },
+            ))
+        })
+        .collect();
+    // 主 part 引用的图表 part（任务 6.2）：块上的 `chartDisplay` 与 `extras.chartParts` 都从这张表查
+    let charts = chart::chart_map(pkg, doc);
+    let diagrams = diagram::diagram_map(pkg, doc, media);
+    let ctx = blocks::Ctx::new(dom, doc, &resolver, &idx, rels, &numbering, &media.main)
+        .with_aux(&aux)
+        .with_charts(&charts)
+        .with_diagrams(&diagrams);
     let (elements, blocks) = blocks::body(&ctx);
+    let chart_parts = chart::chart_parts_json(&ctx);
 
     let mut o = Map::new();
     o.insert("blocks".into(), Value::Array(blocks));
-    for k in ["comments", "footnotes", "endnotes", "sources", "inks"] {
-        o.insert(k.into(), Value::Array(Vec::new()));
-    }
+    o.insert("comments".into(), decl::comments_json(doc));
+    o.insert("footnotes".into(), decl::notes_json(doc, &resolver, false));
+    o.insert("endnotes".into(), decl::notes_json(doc, &resolver, true));
+    o.insert("sources".into(), decl::sources_json(doc));
+    let element_nodes = doc.body.map(|b| blocks::element_nodes(dom, b)).unwrap_or_default();
+    o.insert("inks".into(), ink::inks_json(&ctx, &element_nodes));
     o.insert("themeFonts".into(), decl::theme_fonts_json(doc, &resolver));
     o.insert("themeColors".into(), decl::theme_colors_json(doc));
     if let Some(ft) = decl::font_table_json(doc) {
@@ -54,25 +113,8 @@ pub fn parsed_doc_of(pkg: &Package, doc: &Document) -> Value {
     }
     o.insert("protection".into(), decl::protection_json(doc));
     o.insert("writeProtection".into(), decl::write_protection_json(doc));
-    // 页眉页脚（COMPAT-05，M5）：缺省值
-    for k in [
-        "headerText",
-        "headerParas",
-        "footerParas",
-        "headerImages",
-        "footerImages",
-        "watermarkText",
-        "footerText",
-        "headerFirst",
-        "footerFirst",
-        "headerEven",
-        "footerEven",
-    ] {
-        o.insert(k.into(), Value::Null);
-    }
-    o.insert("footerHasPageNumber".into(), Value::Bool(false));
-    o.insert("headerHasPageNumber".into(), Value::Bool(false));
-    o.insert("hfParts".into(), Value::Object(Map::new()));
+    // 页眉页脚（`COMPAT-05`，任务 5.4）
+    hf::hf_json(&ctx, pkg, doc, &resolver, &numbering, media, &mut o);
     o.insert("titlePg".into(), Value::Bool(decl::title_pg(dom)));
     decl::settings_json(doc, settings_dom, &mut o);
     let styles = decl::styles_json(doc, &resolver);
@@ -113,7 +155,10 @@ pub fn parsed_doc_of(pkg: &Package, doc: &Document) -> Value {
     );
     o.insert(
         "extras".into(),
-        json!({ "elements": Value::Array(elements), "chartParts": Value::Object(Map::new()) }),
+        json!({
+            "elements": Value::Array(elements),
+            "chartParts": Value::Object(chart_parts),
+        }),
     );
     Value::Object(o)
 }

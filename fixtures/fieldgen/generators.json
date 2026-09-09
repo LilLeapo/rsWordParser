@@ -1,0 +1,100 @@
+{
+  "toc": [
+    {
+      "entries": [
+        {
+          "level": 1,
+          "text": "第一章",
+          "pageNo": 1
+        },
+        {
+          "level": 2,
+          "text": "第一节 概述",
+          "pageNo": 2
+        },
+        {
+          "level": 3,
+          "text": "Details & <notes>",
+          "pageNo": 3
+        }
+      ],
+      "xml": [
+        "<w:p><w:pPr><w:pStyle w:val=\"TOC1\"/><w:tabs><w:tab w:val=\"right\" w:leader=\"dot\" w:pos=\"9350\"/></w:tabs><w:rPr><w:noProof/></w:rPr></w:pPr><w:r><w:fldChar w:fldCharType=\"begin\" w:dirty=\"true\"/></w:r><w:r><w:instrText xml:space=\"preserve\"> TOC \\o \"1-3\" \\h \\z \\u </w:instrText></w:r><w:r><w:fldChar w:fldCharType=\"separate\"/></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:t xml:space=\"preserve\">第一章</w:t></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:tab/></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:t>1</w:t></w:r></w:p>",
+        "<w:p><w:pPr><w:pStyle w:val=\"TOC2\"/><w:tabs><w:tab w:val=\"right\" w:leader=\"dot\" w:pos=\"9350\"/></w:tabs><w:rPr><w:noProof/></w:rPr></w:pPr><w:r><w:rPr><w:noProof/></w:rPr><w:t xml:space=\"preserve\">第一节 概述</w:t></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:tab/></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:t>2</w:t></w:r></w:p>",
+        "<w:p><w:pPr><w:pStyle w:val=\"TOC3\"/><w:tabs><w:tab w:val=\"right\" w:leader=\"dot\" w:pos=\"9350\"/></w:tabs><w:rPr><w:noProof/></w:rPr></w:pPr><w:r><w:rPr><w:noProof/></w:rPr><w:t xml:space=\"preserve\">Details &amp; &lt;notes&gt;</w:t></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:tab/></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:t>3</w:t></w:r><w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>"
+      ]
+    },
+    {
+      "entries": [
+        {
+          "level": 1,
+          "text": "只有一条"
+        }
+      ],
+      "xml": [
+        "<w:p><w:pPr><w:pStyle w:val=\"TOC1\"/><w:tabs><w:tab w:val=\"right\" w:leader=\"dot\" w:pos=\"9350\"/></w:tabs><w:rPr><w:noProof/></w:rPr></w:pPr><w:r><w:fldChar w:fldCharType=\"begin\" w:dirty=\"true\"/></w:r><w:r><w:instrText xml:space=\"preserve\"> TOC \\o \"1-1\" \\h \\z \\u </w:instrText></w:r><w:r><w:fldChar w:fldCharType=\"separate\"/></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:t xml:space=\"preserve\">只有一条</w:t></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:tab/></w:r><w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>"
+      ]
+    },
+    {
+      "entries": [
+        {
+          "level": 4,
+          "text": "deep",
+          "pageNo": 10
+        },
+        {
+          "level": 1,
+          "text": "top"
+        }
+      ],
+      "xml": [
+        "<w:p><w:pPr><w:pStyle w:val=\"TOC4\"/><w:tabs><w:tab w:val=\"right\" w:leader=\"dot\" w:pos=\"9350\"/></w:tabs><w:rPr><w:noProof/></w:rPr></w:pPr><w:r><w:fldChar w:fldCharType=\"begin\" w:dirty=\"true\"/></w:r><w:r><w:instrText xml:space=\"preserve\"> TOC \\o \"1-4\" \\h \\z \\u </w:instrText></w:r><w:r><w:fldChar w:fldCharType=\"separate\"/></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:t xml:space=\"preserve\">deep</w:t></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:tab/></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:t>10</w:t></w:r></w:p>",
+        "<w:p><w:pPr><w:pStyle w:val=\"TOC1\"/><w:tabs><w:tab w:val=\"right\" w:leader=\"dot\" w:pos=\"9350\"/></w:tabs><w:rPr><w:noProof/></w:rPr></w:pPr><w:r><w:rPr><w:noProof/></w:rPr><w:t xml:space=\"preserve\">top</w:t></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:tab/></w:r><w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>"
+      ]
+    }
+  ],
+  "tocEmpty": [],
+  "caption": [
+    {
+      "label": "图",
+      "number": 1,
+      "text": "系统架构",
+      "xml": "<w:p><w:pPr><w:jc w:val=\"center\"/><w:spacing w:before=\"80\" w:after=\"200\"/></w:pPr><w:r><w:rPr><w:color w:val=\"44546A\"/><w:sz w:val=\"18\"/><w:szCs w:val=\"18\"/></w:rPr><w:t xml:space=\"preserve\">图 </w:t></w:r><w:r><w:rPr><w:color w:val=\"44546A\"/><w:sz w:val=\"18\"/><w:szCs w:val=\"18\"/></w:rPr><w:fldChar w:fldCharType=\"begin\" w:dirty=\"true\"/></w:r><w:r><w:rPr><w:color w:val=\"44546A\"/><w:sz w:val=\"18\"/><w:szCs w:val=\"18\"/></w:rPr><w:instrText xml:space=\"preserve\"> SEQ 图 \\* ARABIC </w:instrText></w:r><w:r><w:rPr><w:color w:val=\"44546A\"/><w:sz w:val=\"18\"/><w:szCs w:val=\"18\"/></w:rPr><w:fldChar w:fldCharType=\"separate\"/></w:r><w:r><w:rPr><w:color w:val=\"44546A\"/><w:sz w:val=\"18\"/><w:szCs w:val=\"18\"/></w:rPr><w:t>1</w:t></w:r><w:r><w:rPr><w:color w:val=\"44546A\"/><w:sz w:val=\"18\"/><w:szCs w:val=\"18\"/></w:rPr><w:fldChar w:fldCharType=\"end\"/></w:r><w:r><w:rPr><w:color w:val=\"44546A\"/><w:sz w:val=\"18\"/><w:szCs w:val=\"18\"/></w:rPr><w:t xml:space=\"preserve\"> 系统架构</w:t></w:r></w:p>"
+    },
+    {
+      "label": "Figure",
+      "number": 12,
+      "text": "",
+      "xml": "<w:p><w:pPr><w:jc w:val=\"center\"/><w:spacing w:before=\"80\" w:after=\"200\"/></w:pPr><w:r><w:rPr><w:color w:val=\"44546A\"/><w:sz w:val=\"18\"/><w:szCs w:val=\"18\"/></w:rPr><w:t xml:space=\"preserve\">Figure </w:t></w:r><w:r><w:rPr><w:color w:val=\"44546A\"/><w:sz w:val=\"18\"/><w:szCs w:val=\"18\"/></w:rPr><w:fldChar w:fldCharType=\"begin\" w:dirty=\"true\"/></w:r><w:r><w:rPr><w:color w:val=\"44546A\"/><w:sz w:val=\"18\"/><w:szCs w:val=\"18\"/></w:rPr><w:instrText xml:space=\"preserve\"> SEQ Figure \\* ARABIC </w:instrText></w:r><w:r><w:rPr><w:color w:val=\"44546A\"/><w:sz w:val=\"18\"/><w:szCs w:val=\"18\"/></w:rPr><w:fldChar w:fldCharType=\"separate\"/></w:r><w:r><w:rPr><w:color w:val=\"44546A\"/><w:sz w:val=\"18\"/><w:szCs w:val=\"18\"/></w:rPr><w:t>12</w:t></w:r><w:r><w:rPr><w:color w:val=\"44546A\"/><w:sz w:val=\"18\"/><w:szCs w:val=\"18\"/></w:rPr><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>"
+    }
+  ],
+  "index": [
+    {
+      "terms": [
+        "banana",
+        " apple ",
+        "Apple",
+        "",
+        "apple",
+        "中文",
+        "Ähnlich"
+      ],
+      "xml": [
+        "<w:p><w:pPr><w:tabs><w:tab w:val=\"right\" w:leader=\"dot\" w:pos=\"4300\"/></w:tabs><w:rPr><w:noProof/></w:rPr></w:pPr><w:r><w:fldChar w:fldCharType=\"begin\" w:dirty=\"true\"/></w:r><w:r><w:instrText xml:space=\"preserve\"> INDEX \\c \"2\" </w:instrText></w:r><w:r><w:fldChar w:fldCharType=\"separate\"/></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:t xml:space=\"preserve\">中文</w:t></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:tab/></w:r></w:p>",
+        "<w:p><w:pPr><w:tabs><w:tab w:val=\"right\" w:leader=\"dot\" w:pos=\"4300\"/></w:tabs><w:rPr><w:noProof/></w:rPr></w:pPr><w:r><w:rPr><w:noProof/></w:rPr><w:t xml:space=\"preserve\">Ähnlich</w:t></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:tab/></w:r></w:p>",
+        "<w:p><w:pPr><w:tabs><w:tab w:val=\"right\" w:leader=\"dot\" w:pos=\"4300\"/></w:tabs><w:rPr><w:noProof/></w:rPr></w:pPr><w:r><w:rPr><w:noProof/></w:rPr><w:t xml:space=\"preserve\">apple</w:t></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:tab/></w:r></w:p>",
+        "<w:p><w:pPr><w:tabs><w:tab w:val=\"right\" w:leader=\"dot\" w:pos=\"4300\"/></w:tabs><w:rPr><w:noProof/></w:rPr></w:pPr><w:r><w:rPr><w:noProof/></w:rPr><w:t xml:space=\"preserve\">Apple</w:t></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:tab/></w:r></w:p>",
+        "<w:p><w:pPr><w:tabs><w:tab w:val=\"right\" w:leader=\"dot\" w:pos=\"4300\"/></w:tabs><w:rPr><w:noProof/></w:rPr></w:pPr><w:r><w:rPr><w:noProof/></w:rPr><w:t xml:space=\"preserve\">banana</w:t></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:tab/></w:r><w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>"
+      ]
+    },
+    {
+      "terms": [
+        "only"
+      ],
+      "xml": [
+        "<w:p><w:pPr><w:tabs><w:tab w:val=\"right\" w:leader=\"dot\" w:pos=\"4300\"/></w:tabs><w:rPr><w:noProof/></w:rPr></w:pPr><w:r><w:fldChar w:fldCharType=\"begin\" w:dirty=\"true\"/></w:r><w:r><w:instrText xml:space=\"preserve\"> INDEX \\c \"2\" </w:instrText></w:r><w:r><w:fldChar w:fldCharType=\"separate\"/></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:t xml:space=\"preserve\">only</w:t></w:r><w:r><w:rPr><w:noProof/></w:rPr><w:tab/></w:r><w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>"
+      ]
+    }
+  ],
+  "indexEmpty": []
+}

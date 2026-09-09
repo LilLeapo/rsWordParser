@@ -1,0 +1,83 @@
+﻿{
+    "file":  "chart-column--chartdata.docx",
+    "index":  1,
+    "before":  {
+                   "title":  "标题已改 rsword",
+                   "type":  51,
+                   "series":  [
+                                  {
+                                      "categories":  [
+                                                         "Category 1",
+                                                         "Category 2",
+                                                         "Category 3"
+                                                     ],
+                                      "values":  [
+                                                     11,
+                                                     21,
+                                                     31
+                                                 ],
+                                      "name":  "改名系列"
+                                  },
+                                  {
+                                      "categories":  [
+                                                         "Category 1",
+                                                         "Category 2",
+                                                         "Category 3"
+                                                     ],
+                                      "values":  [
+                                                     15,
+                                                     25,
+                                                     35
+                                                 ],
+                                      "name":  "Series 2"
+                                  }
+                              ]
+               },
+    "activation":  "ok",
+    "cells":  [
+                  "Category",
+                  "Series 1",
+                  "Series 2",
+                  "Category 1",
+                  10,
+                  15,
+                  "Category 2",
+                  20,
+                  25,
+                  "Category 3",
+                  30,
+                  35
+              ],
+    "after":  {
+                  "title":  "标题已改 rsword",
+                  "type":  51,
+                  "series":  [
+                                 {
+                                     "categories":  [
+                                                        "Category 1",
+                                                        "Category 2",
+                                                        "Category 3"
+                                                    ],
+                                     "values":  [
+                                                    10,
+                                                    20,
+                                                    30
+                                                ],
+                                     "name":  "Series 1"
+                                 },
+                                 {
+                                     "categories":  [
+                                                        "Category 1",
+                                                        "Category 2",
+                                                        "Category 3"
+                                                    ],
+                                     "values":  [
+                                                    15,
+                                                    25,
+                                                    35
+                                                ],
+                                     "name":  "Series 2"
+                                 }
+                             ]
+              }
+}

@@ -1,0 +1,83 @@
+﻿{
+    "file":  "01-chart-insert-bar.docx",
+    "index":  1,
+    "before":  {
+                   "title":  "季度销售",
+                   "type":  51,
+                   "series":  [
+                                  {
+                                      "categories":  [
+                                                         "Q1",
+                                                         "Q2",
+                                                         "Q3"
+                                                     ],
+                                      "values":  [
+                                                     120,
+                                                     88.5,
+                                                     96
+                                                 ],
+                                      "name":  "华东"
+                                  },
+                                  {
+                                      "categories":  [
+                                                         "Q1",
+                                                         "Q2",
+                                                         "Q3"
+                                                     ],
+                                      "values":  [
+                                                     70,
+                                                     null,
+                                                     110
+                                                 ],
+                                      "name":  "华南"
+                                  }
+                              ]
+               },
+    "activation":  "ok",
+    "cells":  [
+                  "",
+                  "华东",
+                  "华南",
+                  "Q1",
+                  120,
+                  70,
+                  "Q2",
+                  88.5,
+                  null,
+                  "Q3",
+                  96,
+                  110
+              ],
+    "after":  {
+                  "title":  "季度销售",
+                  "type":  51,
+                  "series":  [
+                                 {
+                                     "categories":  [
+                                                        "Q1",
+                                                        "Q2",
+                                                        "Q3"
+                                                    ],
+                                     "values":  [
+                                                    120,
+                                                    88.5,
+                                                    96
+                                                ],
+                                     "name":  "华东"
+                                 },
+                                 {
+                                     "categories":  [
+                                                        "Q1",
+                                                        "Q2",
+                                                        "Q3"
+                                                    ],
+                                     "values":  [
+                                                    70,
+                                                    null,
+                                                    110
+                                                ],
+                                     "name":  "华南"
+                                 }
+                             ]
+              }
+}

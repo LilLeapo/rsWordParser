@@ -1,0 +1,53 @@
+﻿{
+    "file":  "ink-highlighter--newchart-resaved-by-word.docx",
+    "index":  1,
+    "before":  {
+                   "title":  "rsword 新图表",
+                   "type":  51,
+                   "series":  [
+                                  {
+                                      "categories":  [
+                                                         "甲",
+                                                         "乙",
+                                                         "丙"
+                                                     ],
+                                      "values":  [
+                                                     3,
+                                                     1,
+                                                     2
+                                                 ],
+                                      "name":  "系列 A"
+                                  }
+                              ]
+               },
+    "activation":  "ok",
+    "cells":  [
+                  "",
+                  "系列 A",
+                  "甲",
+                  3,
+                  "乙",
+                  1,
+                  "丙",
+                  2
+              ],
+    "after":  {
+                  "title":  "rsword 新图表",
+                  "type":  51,
+                  "series":  [
+                                 {
+                                     "categories":  [
+                                                        "甲",
+                                                        "乙",
+                                                        "丙"
+                                                    ],
+                                     "values":  [
+                                                    3,
+                                                    1,
+                                                    2
+                                                ],
+                                     "name":  "系列 A"
+                                 }
+                             ]
+              }
+}

@@ -13,10 +13,22 @@ use crate::xml::Dirty;
 use crate::xml::entities;
 use crate::xml::interner::Interner;
 use crate::xml::lex::{Lex, urange};
-use crate::xml::names::QName;
+use crate::xml::names::{NsId, QName};
 
 /// arena 索引，会话内稳定且永不复用；`Deleted` 节点保留在 arena 中。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    ::serde::Serialize,
+    ::serde::Deserialize,
+)]
+#[serde(transparent)]
 pub struct NodeId(pub u32);
 
 impl NodeId {
@@ -107,11 +119,17 @@ pub enum NodeKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+/// 无损 DOM 节点；修改须经编辑事务维护脏状态和祖先关系（XML-12）。
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub struct Node {
+    /// 元素、文本或不透明节点的内容。
     pub kind: NodeKind,
+    /// 父节点，根节点为 `None`。
     pub parent: Option<NodeId>,
     /// 原文词法区间；`New` 节点为 `None`。
     pub lex: Option<Lex>,
+    /// 当前编辑脏状态。
     pub dirty: Dirty,
 }
 
@@ -268,6 +286,21 @@ impl Dom {
     /// 从 `id` 到根的祖先链（不含自身）。
     pub fn ancestors(&self, id: NodeId) -> impl Iterator<Item = NodeId> + '_ {
         std::iter::successors(self.parent(id), move |&p| self.parent(p))
+    }
+
+    /// 元素是否属于 `want` 命名空间；前缀未绑定时按前缀字面量兜底。
+    ///
+    /// `XML-05` 下未绑定的前缀会记 `XML_UNBOUND_PREFIX` 并原样保留，语义上不属于任何命名空间。
+    /// 但语料里有既写 `<v:shape>` / `<o:OLEObject>` 又不声明 `xmlns:v` / `xmlns:o` 的文档
+    /// （`resource-cleanup__008`），这时前缀字面量是判断「这是什么」的唯一线索，宁可按它认，
+    /// 也好过整段内容认不出来。只用在语义识别上，不影响写回。
+    pub fn is_ns(&self, id: NodeId, want: NsId, prefix: &str) -> bool {
+        let Some(name) = self.name(id) else { return false };
+        if name.ns == want {
+            return true;
+        }
+        matches!(name.ns, NsId::Unbound(_))
+            && self.lex_name(id).and_then(|q| q.split_once(':')).is_some_and(|(p, _)| p == prefix)
     }
 
     /// 深度优先前序遍历（含 `Deleted`），迭代实现。

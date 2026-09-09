@@ -1,6 +1,6 @@
 //! MCE（`XML-09`）与语义遍历（`XML-10`）。
 //!
-//! 解析后一次遍历为每个元素计算 [`Mce`]：`mc:AlternateContent` 选分支、`mc:Ignorable` 标记可忽略元素、
+//! 解析后一次遍历为每个元素计算 `Mce`：`mc:AlternateContent` 选分支、`mc:Ignorable` 标记可忽略元素、
 //! `mc:ProcessContent` 标记透明容器、`mc:MustUnderstand` 记诊断。非 active 分支与可忽略元素都保留在 DOM，
 //! 只对 [`Dom::semantic_children`] 不可见。
 
@@ -12,8 +12,23 @@ use crate::xml::names::{LocalName, NsId, QName};
 use crate::xml::ns::{Scope, push_decls};
 
 /// 默认的已理解命名空间集合（`PKG-09`）。
-pub const DEFAULT_UNDERSTOOD: &[NsId] =
-    &[NsId::Wps, NsId::Wpg, NsId::Wp14, NsId::W14, NsId::W15, NsId::Cx];
+///
+/// `c14`（Word 2010 的图表扩展）在里面：图表 part 里 `c:style` 一律包在 `mc:AlternateContent` 里，
+/// `Choice Requires="c14"` 放 `c14:style`（101–148）、Fallback 放 `c:style`（1–48），两者是同一个值的两种写法，
+/// 但 Word 2010+ 与 TS 读的都是 Choice 那份——语料 `m6-chart__043` 的 Choice 与 Fallback 故意不一致，
+/// 走 Fallback 会把调色板认错（M6 6.1）。
+pub const DEFAULT_UNDERSTOOD: &[NsId] = &[
+    NsId::Wps,
+    NsId::Wpg,
+    // 真实 Word 的绘图画布：`mc:Choice Requires="wpc"` 里是 `wpc:wpc`（子形状是 `wps:wsp` / `pic:pic`），
+    // Fallback 是 VML `v:group`。本引擎按组处理画布子形状，所以算理解（`corpus/real/canvas-*`）。
+    NsId::Wpc,
+    NsId::Wp14,
+    NsId::W14,
+    NsId::W15,
+    NsId::Cx,
+    NsId::C14,
+];
 
 /// `mc:ProcessContent` 里的一项：`p:x`（限定名）或 `p:*`。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -155,6 +170,23 @@ impl Dom {
             .unwrap_or_default()
     }
 
+    /// 子树里任意元素声明了 `xmlns:<prefix>` 时给出它的命名空间。只在作用域查找失败后当退路用。
+    fn prefix_declared_in(&self, node: NodeId, prefix: &str) -> Option<NsId> {
+        let want = self.interner().get(prefix)?;
+        for n in self.descendants(node) {
+            let Some(e) = self.element(n) else { continue };
+            for a in &e.attrs {
+                if a.name.ns == NsId::Xmlns
+                    && a.name.local == LocalName::Other(want)
+                    && let Some((ns, _)) = NsId::from_uri(&self.attr_str(a))
+                {
+                    return Some(ns);
+                }
+            }
+        }
+        None
+    }
+
     fn resolve_prefix_in(&self, scope: &Scope, prefix: &str) -> Option<NsId> {
         if prefix == "xml" {
             return Some(NsId::Xml);
@@ -183,7 +215,12 @@ impl Dom {
                     let requires =
                         self.attr_value(c, requires_q).map(|v| v.into_owned()).unwrap_or_default();
                     let satisfied = requires.split_ascii_whitespace().all(|p| {
-                        self.resolve_prefix_in(scope, p).is_some_and(|ns| understood.contains(&ns))
+                        self.resolve_prefix_in(scope, p)
+                            // 前缀在 `mc:Choice` 处不在作用域，但分支**里面**声明了它：合成
+                            // 语料常把 `xmlns:wps` 写在 `wps:wsp` 自己身上，`Requires="wps"`
+                            // 于是解析不出来。意图毫无歧义，按分支内的声明认（`docs/04` §8）。
+                            .or_else(|| self.prefix_declared_in(c, p))
+                            .is_some_and(|ns| understood.contains(&ns))
                     });
                     if satisfied {
                         return Some(c);
@@ -200,6 +237,35 @@ impl Dom {
     /// `ProcessContent` 命中的元素产出其子节点而非自身。模型层禁止直接读 `children`。
     pub fn semantic_children(&self, node: NodeId) -> SemanticChildren<'_> {
         SemanticChildren { dom: self, stack: vec![(self.children(node), 0)] }
+    }
+
+    /// `XML-10`：语义前序遍历（含 `node` 自身），逐层走 [`Dom::semantic_children`]。
+    ///
+    /// 与 [`Dom::descendants`] 的区别是这里看不见非 active 的 `mc:Choice` / `mc:Fallback`
+    /// 分支。凡是要按语义读子树的地方（绘图、VML、文本框）都用这个，否则会读到未生效的分支——
+    /// 语料里有 `mc:Choice Requires="ma"`（未知前缀）里写着坏 `r:embed`、Fallback 里才是真图的文档。
+    pub fn semantic_descendants(&self, node: NodeId) -> SemanticDescendants<'_> {
+        SemanticDescendants { dom: self, stack: vec![node], scratch: Vec::new() }
+    }
+}
+
+/// [`Dom::semantic_descendants`] 的迭代器。显式栈，不递归（语料里有几千层嵌套）。
+pub struct SemanticDescendants<'a> {
+    dom: &'a Dom,
+    stack: Vec<NodeId>,
+    scratch: Vec<NodeId>,
+}
+
+impl Iterator for SemanticDescendants<'_> {
+    type Item = NodeId;
+
+    fn next(&mut self) -> Option<NodeId> {
+        let id = self.stack.pop()?;
+        let dom = self.dom;
+        self.scratch.clear();
+        self.scratch.extend(dom.semantic_children(id));
+        self.stack.extend(self.scratch.iter().rev().copied());
+        Some(id)
     }
 }
 

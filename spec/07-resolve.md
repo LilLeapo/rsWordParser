@@ -35,13 +35,35 @@ Provenance = Direct | CharStyle(StyleId) | ParaStyle(StyleId) | NumberingLevel{n
 
 toggle 属性：`b bCs i iCs caps smallCaps strike dstrike outline shadow emboss imprint vanish`（ECMA-376 §17.7.3；`specVanish` 不是 toggle）。
 
-**不采用** `child ?? parent` 合并。规范规则（待校准）：
+**不采用** `child ?? parent` 合并。**规则按真实 Word 实测定案**（**2026-09-07，桌面版 Word / Office LTSC 2021 16.0.14334**，八份 fixture 二十五个测点，读数见 `fixtures/resolve/README.md` 与 `corpus/real/_round2/TOGGLE.md`；2026-09-06 的网页版读数在其中 7 个测点上与桌面版不同，**以桌面版为准**。未定死的部分见 `docs/06-toggle-open-question.md`）：
 
-1. run 直接格式指定 → 用直接值。
-2. 否则，若字符样式链中任一层指定 → 有效值 = 段落样式层结果 XOR 字符样式链结果？规范原文：在样式层级中出现时，"该属性在层级各样式中的值为 true 的次数为奇数则为 true"，再与 docDefaults 值异或。
-3. [MS-OI29500] 对 §17.7.3 记录了 Word 的偏差：docDefaults 为 true 时的处理、表格样式中 toggle 的处理、多层 basedOn 的处理与 Word 版本相关。
+1. run 直接格式指定 → 用直接值（实测与规范一致）。
+2. 否则**按字段选规则**（实测发现 Word 对同一类属性并不同待遇）：
 
-**实现要求**：`resolve_toggle(prop, direct, char_chain: &[Option<bool>], para_chain: &[Option<bool>], table: &[Option<bool>], doc_default: Option<bool>) -> Effective<bool>` 单独实现，规则参数化；`fixtures/resolve/toggle/*` 用真实 Word 文档与 Word 实际显示的断言校准，fixture 不通过时以 Word 行为为准修改规则并记录差异。至少覆盖：段落样式 b + 字符样式 b；docDefaults b + 段落样式 b；basedOn 两层都 b；表格样式 firstRow b + 段落样式 b；直接 `w:b w:val="0"` 覆盖。
+   | 字段 | 规则 |
+   | --- | --- |
+   | `b` / `i`（与孪生的 `bCs` / `iCs`）、`caps` / `smallCaps` / `strike` / `vanish` | 层级异或（`WordDesktop`） |
+   | `dstrike` | 最具体的声明胜出（**唯一的例外**：两层都声明时桌面 Word 照样画双删除线） |
+
+   层级异或是：
+
+   ```text
+   有样式层级声明时：有效值 = 段落样式层 ⊕ 表格样式层 ⊕ 字符样式层（只算**声明了**的层级）
+   一层都没声明时：  有效值 = docDefaults
+   ```
+
+   每个**层级**先按"子覆盖父"取一个值（`basedOn` 链内**不**计次数），层级之间才做异或。
+   **`docDefaults` 不参与异或**，它只是没有任何样式层级声明时的底值——所以"整份文档只有 docDefaults 写 `b=true`"是**加粗**的，"docDefaults `b=true` + 段落样式 `b=true`"也是加粗的，而"docDefaults `b=true` + 段落样式 `w:b w:val="0"`"不加粗（都已在桌面版实测）。
+3. **与 ECMA-376 §17.7.3 的差异**：规范说的是"层级各样式中值为 true 的次数"，实测是"层级数"——`basedOn` 链上两层都 `b=true` 时 Word 仍然加粗。这属于 [MS-OI29500] 记录的 Word 偏差一类（该文档也记了 docDefaults、表格样式、多层 basedOn 的处理与 Word 版本相关）。
+4. 兼容模式无关：2026-09-07 第三轮用只多一个 `settings.xml`（`compatibilityMode = 15`）的 `doc-compat15.docx` 重测 25 个测点，读数与模式 12 **逐条相同**，另有 Word 自己「转换」出来的第三方交叉验证。没测到的角只剩 `bCs` / `iCs`（要 RTL 文本）与 Microsoft 365（三轮都是 LTSC 2021，项目负责人决定不测）。清单见 **`docs/06-toggle-open-question.md`**，读数见 `fixtures/resolve/README.md`。
+
+**来源（`RES-01`）**：toggle 的有效值可能由多个层级异或得出，那个值谁都没单独写过，所以来源是 `Provenance::Toggle { levels }`（`levels` 按最具体到最不具体列出参与的层）。只有一个层级参与、且有效值就是它写的那个值时才指那一层；直接格式一票定音时是 `Direct`。"只有 docDefaults 声明"也落到 `Toggle`——段落样式层会把 docDefaults 的值再贡献一次。
+
+**实现**（任务 5.8）：`resolve::toggle::resolve_toggle(rule, &ToggleLayers { direct, char_chain, table, para_chain, doc_default })`，规则由 `ToggleRule` 参数化、**按字段选**（`active_rule(field)`，表在 `toggle_fields!` 里）。`WordObserved`（层级异或）、`MostSpecificWins`（最具体胜出，M1 起的行为，也是 TS `display` 的行为）与 `OddParity`（规范字面）三条都实现了，各有单测。层叠（`Resolver::run_in_table`）按层把各层声明喂给它，所以换规则只改 `ACTIVE_TOGGLE_RULE` 一行。九个 toggle 字段的枚举、读写与常量由 `toggle_fields!` 一张表展开。
+
+**校准已完成**：`fixtures/resolve/toggle/*` 七份 + `fixtures/resolve/sections/*` 一份，八份最小 docx 由 `cargo run -p gen-fixtures` 生成，观察值来自真实 Word，`expected.toml` 全部 `verified = true`，`tests/resolve_fixtures.rs` 全绿。原来激活的 `MostSpecificWins` 在前六份里错了三份；补测的两份又逼出了按字段分的那张表。
+
+**影响面**：这条规则只作用于 `resolve` 这个公开只读视图。`bind/compat_ts` 的 `runs[].bold` 发的是 run 自己 `w:rPr` 的声明值（复现 TS 的形态），不走 `Resolver::run`；`tests/resolve.rs` 的 `StyleDisplay` 比的是每个样式自己的链合并，也不走 toggle 规则。所以换规则后五道差分门与保存语料的数字一个没变——语料并不覆盖这条路径（语料里 `docDefaults` 带 `w:b` 的文档为 0 份）。
 
 ## RES-05 主题字体、颜色与符号字体
 
@@ -69,11 +91,13 @@ run 的 `cs` 状态 = 直接 `w:rtl` ?? 字符样式链 `rtl` ?? 段落样式链
 
 ## RES-08 表格有效属性
 
-- `tblLook`：属性形式（`firstRow lastRow firstColumn lastColumn noHBand noVBand`，`0|false` 为关）优先；否则 `w:val` 位掩码 `0x20 firstRow, 0x40 lastRow, 0x80 firstColumn, 0x100 lastColumn, 0x200 noHBand, 0x400 noVBand`；缺省 firstRow/firstColumn 开、其他关。
+- `tblLook`：属性形式（`firstRow lastRow firstColumn lastColumn noHBand noVBand`，`0|false` 为关）优先；否则 `w:val` 位掩码 `0x20 firstRow, 0x40 lastRow, 0x80 firstColumn, 0x100 lastColumn, 0x200 noHBand, 0x400 noVBand`；缺省等价于 `w:val="04A0"`（firstRow / firstColumn 开、noVBand 开，即横向条带开、纵向条带关）。
+- **重复声明**：一般属性元素取第一个（属性表通则）；`w:tcW` 取**最后一个**（Word 与 TS 的规则，生成器会留下过时的首个值）；`w:tblBorders` / `w:tcBorders` 容器重复出现时按边合并、后者胜（同 `RES-07` 对 `pBdr` 的规则）。这三条都只在视图里生效，模型保持声明值。
 - 条件格式优先级（Word）：`firstRow > lastRow > firstCol > lastCol > 条带（band1Horz/band2Horz，行号从 firstRow 之后起算）> 整表`；单元格自身声明优先于一切。
 - 表格样式链：`tblStyle` 的 basedOn 链；`tblPr/tblBorders`、`tblCellMar` 文档未声明时回退样式。
 - 单元格边距缺省：上下 0、左右 108 twips。
-- **列宽视图**：`grid = tblGrid`；`tcW` 全部为 dxa 且每列都有值时以 tcW 为准（TS `tcwColumnWidths` 规则，含 fixed 布局下总宽差异判定）；`tblW pct` 优先于绝对宽。
+- **列宽视图** `ColumnView { widths_twips: Vec<i32>, source: Grid | TcW | Stretched | Reconciled, spans: Vec<Vec<u16>> /* 每行每格占的列数 */, gaps: Vec<(u16, u16)> /* 每行 gridBefore / gridAfter */ }`：按 TS 顺序应用四条启发式并标 `source`——① `grid = tblGrid`（总和 > 0 才有；全部 > 0 才有 twips）；② `tcwColumnWidths`（每行从 `gridBefore` 起算，未跨列格的**最后一个** dxa `tcW` 每列取最大，须每列都有值）与 grid 不一致（列数不同 / 任一列相差 > 2 个百分点 / fixed 布局且总和差 > 列数）→ 以 tcW 为准；③ 非 fixed 且 grid 总和 < `tblW dxa` − 列数 → 按比例拉伸到 `tblW`；④ 各行 gridSpan 总和不等 → `reconcileGridColumns`（每行累计右边界取并集、容差内吸附、> 96 个边界放弃）重算列数与各格跨度。`tblW pct` 优先于绝对宽。全部是显示层规则，**不改模型、不写回**。
+- `Resolver::table(&TableBlock) -> TableView`；`TableView::cell(r, c) -> EffectiveCellProps`（底纹、8 边边框、边距、`vAlign`、`textDirection`、条件 rPr / pPr 叠加），每项带 `Provenance::TableStyle{style, cond}`；`Row.tbl_pr_ex` 在该行优先于 `tblPr`。
 - `hMerge continue` 折叠到左侧单元格的 `colSpan`。
 - `trHeight` 上限 31680。
 
@@ -85,8 +109,9 @@ run 的 `cs` 状态 = 直接 `w:rtl` ?? 字符样式链 `rtl` ?? 段落样式链
 
 ## RES-10 节
 
-- 节序列由 `SectionInfo` 顺序给出；每节 `headerReference/footerReference` 缺失的 `type`（default/first/even）**继承上一节**的同类型引用（Word "链接到前一节"）；第一节缺失 → 无。
-- `titlePg` 为该节属性；`evenAndOddHeaders` 为文档属性；有效页眉选择：首页且 `titlePg` → first；偶数页且 `evenAndOddHeaders` → even；否则 default。
+- 节序列由 `SectionInfo` 顺序给出；每节 `headerReference/footerReference` 缺失的 `type`（default/first/even）**继承上一节**的同类型引用（Word "链接到前一节"）；第一节缺失 → 无。三个变体**各自**继承（不是整组继承）。
+- `Resolver::section(sections, idx) -> EffectiveSection`：六个槽（kind × variant）各是 `HfSlot::Absent | Declared(rId) | Inherited { from, id }`。`Declared` 与 `Inherited` 的区别是 `SetHeaderFooter`（`EDIT-03`）改写 part 还是新建 part 的分界。
+- `titlePg` 为该节属性；`evenAndOddHeaders` 为文档属性；有效页眉选择：首页且 `titlePg` → first；偶数页且 `evenAndOddHeaders` → even；否则 default。选中的变体为空时**禁止**回退 default——Word 里"首页不同"而没有首页页眉就是首页没有页眉。
 - `w:type` 缺省 `nextPage`；第一节的 type 无意义。
 - `section_of(node) -> SectionIdx`：节点所属节 = 第一个 `sectPr` 在其之后（文档序）的节。
 
@@ -110,9 +135,9 @@ fixtures/resolve/<area>/<case>/
 | ID | 用例 |
 | --- | --- |
 | RES-02 | basedOn 环不死循环；最后一个 default 胜出；`outlineLvl 9` 阻断 |
-| RES-04 | 五个 toggle fixture |
+| RES-04 | 七个 toggle fixture（`b` / `i` 走异或，`strike` 一族走最具体胜出） |
 | RES-05 | 空 EA 槽 + `themeFontLang ja` → Yu Mincho；`themeColor accent1 + tint 99` 与 Word 显示一致（允许 ±1/255 误差） |
 | RES-06 | `w:rtl` run 只读 `bCs`，`w:b` 被忽略 |
-| RES-08 | `tblLook w:val="04A0"` 解出 firstRow/firstColumn/noHBand |
+| RES-08 | `tblLook w:val="04A0"` 解出 firstRow / firstColumn / noVBand（= 横向条带开、纵向条带关），属性形式优先于位；重复 `w:tcW` 取最后一个；重复 `tblBorders` / `tcBorders` 按边合并后者胜；`trHeight` 截到 31680；全语料的列宽与格跨度与 TS 一致 |
 | RES-09 | `lvlRestart=0` 的级别不重置；`isLgl` 的 `%1.%2` 中 %1 为 decimal |
 | RES-10 | 第二节无 header 引用时继承第一节 |

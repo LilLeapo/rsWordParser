@@ -1,0 +1,134 @@
+{
+  "helper": "toggle-read.ps1/v1",
+  "sessionId": "round2-20260907-live",
+  "measuredAt": "2026-09-07T10:40:16.7953264+08:00",
+  "file": "toggle-docdefaults-and-para-off.docx",
+  "fullName": "C:\\word\\round2-work-20260907\\real-word-round2-inputs\\fixtures\\toggle-docdefaults-and-para-off.docx",
+  "wordVersion": "16.0",
+  "wordBuild": "16.0.14334",
+  "compatibilityMode": 12,
+  "visible": true,
+  "documentSavedFlag": true,
+  "originalView": {
+    "ShowHiddenText": false,
+    "ShowAll": false
+  },
+  "rows": [
+    {
+      "file": "toggle-docdefaults-and-para-off.docx",
+      "sentence": "docDefaults b + para b=0",
+      "property": "Bold",
+      "compatibilityMode": 12,
+      "readMethod": "Selection.Font property at a collapsed caret inside the sentence, twice",
+      "declaredStyles": "docDefaults b + paragraph POff b=0",
+      "priorWeb": true,
+      "desktopWord": false,
+      "samples": [
+        {
+          "read": 1,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "Times New Roman",
+          "fontNameAscii": "Times New Roman",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "Times New Roman",
+          "fontNameAscii": "Times New Roman",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "different-from-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-docdefaults-and-para-off-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面第一句不加粗；第二句加粗形成对照。"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 0,
+      "rangeEnd": 24,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:40:15.4023635+08:00",
+      "uiObservation": "页面第一句不加粗；第二句加粗形成对照。"
+    },
+    {
+      "file": "toggle-docdefaults-and-para-off.docx",
+      "sentence": "docDefaults b only",
+      "property": "Bold",
+      "compatibilityMode": 12,
+      "readMethod": "Selection.Font property at a collapsed caret inside the sentence, twice",
+      "declaredStyles": "docDefaults b; no pStyle",
+      "priorWeb": false,
+      "desktopWord": true,
+      "samples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 27,
+          "selectionEnd": 27,
+          "fontName": "Times New Roman",
+          "fontNameAscii": "Times New Roman",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 27,
+          "selectionEnd": 27,
+          "fontName": "Times New Roman",
+          "fontNameAscii": "Times New Roman",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "different-from-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-docdefaults-and-para-off-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面第二句加粗，截图中加粗按钮按下。"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 25,
+      "rangeEnd": 43,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:40:16.089854+08:00",
+      "uiObservation": "页面第二句加粗，截图中加粗按钮按下。"
+    }
+  ],
+  "note": "Final report annotations add actual UI evidence to recorded measurements. No document was opened, saved or changed during report preparation. Font-dialog evidence applies only to specifically linked cases.",
+  "uiReview": {
+    "reviewedAt": "2026-09-07T10:47:29.7611241+08:00",
+    "method": "Main operator's actual Word page/ribbon observations and selected Font-dialog inspections, supported by reviewed screenshot files. Two object-model readings are retained per case; not two manual Font-dialog checks for each case.",
+    "compatibilityEvidence": "Actual Word Document.CompatibilityMode=12 in this file's recorded readout."
+  }
+}

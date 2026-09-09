@@ -1,0 +1,71 @@
+﻿{
+    "case":  "sect-insert",
+    "stage":  "before",
+    "path":  "C:\\word\\real-word-round3-20260907\\revfix\\sect-insert\\before.docx",
+    "sha256":  "2E93619922EC1196DEDB456042C4BD33971916A390F992E8F16114026BC39732",
+    "sourcePath":  null,
+    "sourceSha256":  null,
+    "operations":  [
+                       "Created required baseline with TrackRevisions=false; saved once."
+                   ],
+    "readout":  {
+                    "text":  "before 前文\r第一节正文。\r第二节正文。\rafter 后文\r\r",
+                    "paragraphs":  [
+                                       {
+                                           "text":  "before 前文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "第一节正文。\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "第二节正文。\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "after 后文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       }
+                                   ],
+                    "revisions":  [
+
+                                  ],
+                    "revisionCount":  0,
+                    "sections":  [
+                                     {
+                                         "index":  1,
+                                         "start":  0,
+                                         "end":  34,
+                                         "orientation":  0,
+                                         "sectionStart":  2
+                                     }
+                                 ],
+                    "shapes":  [
+
+                               ],
+                    "pages":  1,
+                    "compatibility":  15,
+                    "trackMoves":  true,
+                    "trackFormatting":  true,
+                    "trackRevisions":  false
+                },
+    "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\revfix\\sect-insert\\before.pdf",
+    "date":  "2026-09-07T13:54:20.4837310+08:00",
+    "method":  "Native Windows Word COM; DOCX saved once at this path; PDF export and current-document UI inspection afterward without save back.",
+    "uiPending":  true
+}

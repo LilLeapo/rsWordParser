@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use crate::package::uri::PartUri;
-use crate::xml::{Dom, LocalName, NodeKind, NsId, QName};
+use crate::xml::{Dom, LocalName, NsId, QName};
 
 /// 已知图片扩展名 → MIME（`PKG-04` 判定顺序的第一步）。
 const IMAGE_EXT: &[(&str, &str)] = &[
@@ -55,9 +55,7 @@ impl ContentTypes {
                         ct.overrides.insert(key, t.into_owned());
                     }
                 }
-                _ => {
-                    debug_assert!(!matches!(dom.node(child).kind, NodeKind::Element(_)) || true);
-                }
+                _ => {}
             }
         }
         ct
@@ -69,6 +67,22 @@ impl ContentTypes {
 
     pub fn default_for_extension(&self, ext: &str) -> Option<&str> {
         self.defaults.get(&ext.to_ascii_lowercase()).map(String::as_str)
+    }
+
+    /// 写侧新增了一条 `Default`（`SAVE-05`）：缓存同步，免得同一会话再补第二条重复的（Word 对重复的
+    /// `Default Extension` 弹恢复提示——真实 Word 核对发现，`docs/07` 任务 B）。
+    pub(crate) fn add_default(&mut self, ext: &str, content_type: &str) {
+        self.defaults.insert(ext.to_ascii_lowercase(), content_type.to_string());
+    }
+
+    /// 写侧新增了一条 `Override`：缓存同步。
+    pub(crate) fn add_override(&mut self, uri: &PartUri, content_type: &str) {
+        self.overrides.insert(uri.override_key(), content_type.to_string());
+    }
+
+    /// 写侧删掉了一条 `Override`（资源回收）：缓存同步。
+    pub(crate) fn remove_override(&mut self, uri: &PartUri) {
+        self.overrides.remove(&uri.override_key());
     }
 
     pub fn override_for(&self, uri: &PartUri) -> Option<&str> {

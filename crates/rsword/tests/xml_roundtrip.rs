@@ -45,9 +45,13 @@ fn xml_13_clean_roundtrip_all_corpus() {
     let expected_err = [
         ("xml-unbalanced-main", "word/document.xml"),
         ("xml-unbalanced-header", "word/header1.xml"),
+        // 页眉 part 整个是二进制垃圾（任务 5.9 的 hostile）：解析必须失败，part 降级为 `Opaque`
+        ("hf-part-binary", "word/header1.xml"),
+        // 图表 part 标签不闭合（M6 6.9 的 hostile，`spec/17`）：解析必须失败，part 降级为 `Opaque`
+        ("chart-part-malformed", "word/charts/chart1.xml"),
     ];
 
-    for kind in ["synthetic", "hostile"] {
+    for kind in ["synthetic", "hostile", "real"] {
         for path in common::docx_paths(kind) {
             let stem = path.file_stem().unwrap().to_string_lossy().to_string();
             let file = File::open(&path).unwrap();

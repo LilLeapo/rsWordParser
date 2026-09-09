@@ -119,11 +119,17 @@ pub fn r11_equation(f: &ParagraphFacts) -> Option<ParaClass> {
 }
 
 pub fn r12_chart(f: &ParagraphFacts) -> Option<ParaClass> {
-    // ChartEx 且有 Fallback 图 → Image 的判定要看 mc:Fallback 内容，M3 随显示模型补
-    f.drawings
-        .iter()
-        .any(|d| matches!(d.kind, DrawingKind::Chart | DrawingKind::ChartEx))
-        .then_some(ParaClass::Protected(ProtectedKind::Chart))
+    let mut chart = false;
+    for d in &f.drawings {
+        match d.kind {
+            // chartex（旭日图 / 瀑布图 …）配了预渲染的回退图：Word 之外的渲染器画的就是这张图，
+            // 数据模型的降级读法只留给没有回退图的 part。`graphic_display` 取回退图的显示模型。
+            DrawingKind::ChartEx if d.fallback_picture.is_some() => return Some(ParaClass::Image),
+            DrawingKind::Chart | DrawingKind::ChartEx => chart = true,
+            _ => {}
+        }
+    }
+    chart.then_some(ParaClass::Protected(ProtectedKind::Chart))
 }
 
 pub fn r13_smart_art(f: &ParagraphFacts) -> Option<ParaClass> {
@@ -141,7 +147,7 @@ pub fn r14_locked_canvas(f: &ParagraphFacts) -> Option<ParaClass> {
 }
 
 pub fn r15_image(f: &ParagraphFacts) -> Option<ParaClass> {
-    if f.visible_text || f.objects != 0 || f.math.count != 0 {
+    if f.visible_text || !f.objects.is_empty() || f.math.count != 0 {
         return None;
     }
     let single_picture =
@@ -152,7 +158,7 @@ pub fn r15_image(f: &ParagraphFacts) -> Option<ParaClass> {
 }
 
 pub fn r16_invisible_shapes(f: &ParagraphFacts) -> Option<ParaClass> {
-    if f.visible_text || f.picts.is_empty() || !f.drawings.is_empty() || f.objects != 0 {
+    if f.visible_text || f.picts.is_empty() || !f.drawings.is_empty() || !f.objects.is_empty() {
         return None;
     }
     f.picts
@@ -162,7 +168,7 @@ pub fn r16_invisible_shapes(f: &ParagraphFacts) -> Option<ParaClass> {
 }
 
 pub fn r17_rule(f: &ParagraphFacts) -> Option<ParaClass> {
-    if f.visible_text || f.picts.is_empty() || !f.drawings.is_empty() || f.objects != 0 {
+    if f.visible_text || f.picts.is_empty() || !f.drawings.is_empty() || !f.objects.is_empty() {
         return None;
     }
     f.picts
@@ -172,7 +178,7 @@ pub fn r17_rule(f: &ParagraphFacts) -> Option<ParaClass> {
 }
 
 pub fn r18_ole(f: &ParagraphFacts) -> Option<ParaClass> {
-    (!f.visible_text && f.objects > 0 && f.drawings.is_empty() && f.picts.is_empty())
+    (!f.visible_text && !f.objects.is_empty() && f.drawings.is_empty() && f.picts.is_empty())
         .then_some(ParaClass::Protected(ProtectedKind::Ole))
 }
 

@@ -81,6 +81,10 @@ fn mod_13_rebuild_is_idempotent_and_text_blocks_match_ts() {
                     continue;
                 };
                 let Block::Text(t) = ours else {
+                    if known(&file, "kind") {
+                        *st.skipped.entry("known_kind").or_default() += 1;
+                        continue;
+                    }
                     st.mismatches.push(format!(
                         "{file}: docxIndex {idx} TS {ty}，本引擎 {}",
                         block_kind(ours)

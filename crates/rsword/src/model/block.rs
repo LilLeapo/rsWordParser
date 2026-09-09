@@ -1,8 +1,11 @@
 //! 块模型（`MOD-02`、`MOD-03`、`MOD-08`、`MOD-09`，`docs/03` §6.3）。
 
+use crate::model::drawing::Display;
 use crate::model::facts::ParagraphFacts;
 use crate::model::inline::{Inline, RevisionMeta};
-use crate::semantic::props::{ParaProps, RunProps};
+pub use crate::model::sdt::SdtInfo;
+pub use crate::model::table::TableBlock;
+use crate::semantic::props::{CellProps, ParaProps, RowProps, RunProps, TableProps};
 use crate::span::FieldId;
 use crate::xml::{NodeId, QName};
 
@@ -103,18 +106,12 @@ pub struct ListRef {
     pub from_style: bool,
 }
 
-/// 表格（`MOD-07`）。M1 只占位：行列模型在 M2。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TableBlock {
-    pub node: NodeId,
-    pub sdt: Option<SdtInfo>,
-    pub revisions: Vec<Revision>,
-}
-
-/// 只含一张图片的段落（`MOD-05` R15）。显示模型在 M3。
+/// 只含一张图片的段落（`MOD-05` R15）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImageBlock {
     pub node: NodeId,
+    /// 该段唯一那个绘图的显示模型（`MOD-11`）。VML 图片（`w:pict`）的显示模型在 4.5。
+    pub display: Option<Display>,
     pub sdt: Option<SdtInfo>,
     pub revisions: Vec<Revision>,
 }
@@ -126,11 +123,16 @@ pub struct ProtectedBlock {
     pub kind: ProtectedKind,
     /// 可见文本预览（最多 80 个字符），供编辑器显示占位。
     pub preview: String,
+    /// 显示载荷（`MOD-11`）：段落里第一个图形——细横线 / 嵌入对象的 VML、图表 / SmartArt / 画布的绘图。
+    pub display: Option<Display>,
+    /// 段落里**其余**顶层绘图的显示模型（`R13`：SmartArt 旁的照片 / 形状各有自己的锚点），文档序。
+    /// 只有段落分类建的保护块会填；表格 / 节属性 / 过深等结构块恒为空。
+    pub siblings: Vec<Display>,
     pub sdt: Option<SdtInfo>,
     pub revisions: Vec<Revision>,
 }
 
-/// 保护原因；显示载荷（`ChartDisplay` 等，`MOD-11`）在 M3 挂到对应变体。
+/// 保护原因。显示载荷挂在 [`ProtectedBlock::display`]；图表 / SmartArt 的载荷在 M6。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProtectedKind {
     FieldBlockResult(FieldId),
@@ -169,18 +171,12 @@ impl ProtectedKind {
     }
 }
 
-/// 最近的 `w:sdt` 祖先（`MOD-08`）。M1 只记节点；控件类型、锁、数据绑定在 M2。
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SdtInfo {
-    pub node: NodeId,
-}
-
 /// 块级 / 段落标记修订（`MOD-09`）。run 级修订在 [`crate::model::inline::RevisionCtx`]。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Revision {
-    /// 顶层 `w:ins` 包裹的块。
+    /// 顶层 `w:ins` 包裹的块；也用于 `trPr/ins`（整行插入，挂在 `Row.revisions`）。
     Insert(RevisionMeta),
-    /// 顶层 `w:del` 包裹的块。
+    /// 顶层 `w:del` 包裹的块；也用于 `trPr/del`（整行删除）。
     Delete(RevisionMeta),
     MoveFrom(RevisionMeta),
     MoveTo(RevisionMeta),
@@ -195,4 +191,39 @@ pub enum Revision {
     },
     /// `numPr/numberingChange`。
     NumberingChange(RevisionMeta),
+    /// `tblPr/tblPrChange`：表格属性旧值（`TableBlock.revisions`）。
+    TablePropsChange {
+        meta: RevisionMeta,
+        old: Box<TableProps>,
+    },
+    /// `sectPr/sectPrChange`：旧值快照（`SectionInfo.revisions`，任务 5.2）。
+    ///
+    /// 与 `TablePropsChange` 一族同形（typed + `Box`）而不是 `spec/06` 早先写的 `old: NodeId`：
+    /// 四个 `*PrChange` 同一形状，M7 的 Accept / Reject 就能共用一条 `plan_apply_*` 路径。
+    /// 快照元素本身仍能从 `meta.node`（`w:sectPrChange`）一步走到，信息没丢。
+    SectPropsChange {
+        meta: RevisionMeta,
+        old: Box<crate::semantic::props::SectionProps>,
+    },
+    /// `tblGrid/tblGridChange`：旧网格；`old` 是快照里的 `w:tblGrid`（没有就是 change 元素本身）。
+    TableGridChange {
+        meta: RevisionMeta,
+        old: NodeId,
+    },
+    /// `trPr/trPrChange`（`Row.revisions`）。
+    RowPropsChange {
+        meta: RevisionMeta,
+        old: Box<RowProps>,
+    },
+    /// `tcPr/tcPrChange`（`Cell.revisions`）。
+    CellPropsChange {
+        meta: RevisionMeta,
+        old: Box<CellProps>,
+    },
+    /// `tcPr/cellIns`。
+    CellInsert(RevisionMeta),
+    /// `tcPr/cellDel`。
+    CellDelete(RevisionMeta),
+    /// `tcPr/cellMerge`。
+    CellMerge(RevisionMeta),
 }

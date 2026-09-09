@@ -1,0 +1,32 @@
+﻿{
+    "date":  "2026-09-07T13:45:48.3823108+08:00",
+    "version":  "16.0",
+    "build":  "16.0.14334",
+    "product":  {
+                    "ProductName":  "Microsoft Office",
+                    "ProductVersion":  "16.0.14334.20848",
+                    "FileVersion":  "16.0.14334.20848"
+                },
+    "windows":  {
+                    "Caption":  "Microsoft Windows 11 专业版",
+                    "Version":  "10.0.22631",
+                    "BuildNumber":  "22631",
+                    "OSArchitecture":  "64 位"
+                },
+    "office":  {
+                   "ProductReleaseIds":  "ProPlus2021Volume",
+                   "VersionToReport":  "16.0.14334.20848",
+                   "Platform":  "x64"
+               },
+    "originalSettings":  {
+                             "UserName":  "Administrator",
+                             "UserInitials":  "A",
+                             "UseLocalUserInfo":  false,
+                             "DisplayAlerts":  0,
+                             "SaveNormalPrompt":  false,
+                             "UpdateLinksAtOpen":  false,
+                             "UpdateFieldsAtPrint":  false,
+                             "UpdateLinksAtPrint":  false
+                         },
+    "hwnd":  null
+}

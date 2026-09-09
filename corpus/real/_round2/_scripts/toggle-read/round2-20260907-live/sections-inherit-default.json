@@ -1,0 +1,74 @@
+{
+  "helper": "toggle-read.ps1/v1",
+  "sessionId": "round2-20260907-live",
+  "measuredAt": "2026-09-07T10:44:41.2032902+08:00",
+  "file": "sections-inherit-default.docx",
+  "fullName": "C:\\word\\round2-work-20260907\\real-word-round2-inputs\\fixtures\\sections-inherit-default.docx",
+  "wordVersion": "16.0",
+  "wordBuild": "16.0.14334",
+  "compatibilityMode": 12,
+  "visible": true,
+  "documentSavedFlag": true,
+  "originalView": {
+    "ShowHiddenText": false,
+    "ShowAll": false
+  },
+  "rows": [
+    {
+      "file": "sections-inherit-default.docx",
+      "sentence": "第二页页眉",
+      "property": "HeaderDefault",
+      "compatibilityMode": 12,
+      "readMethod": "Selection.Range.Text with header selected twice",
+      "declaredStyles": "section 1 header reference rIdX0; section 2 no headerReference",
+      "priorWeb": "第一节页眉",
+      "desktopWord": "第一节页眉",
+      "samples": [
+        {
+          "read": 1,
+          "raw": "第一节页眉\r",
+          "value": "第一节页眉",
+          "selectionStart": 0,
+          "selectionEnd": 6
+        },
+        {
+          "read": 2,
+          "raw": "第一节页眉\r",
+          "value": "第一节页眉",
+          "selectionStart": 0,
+          "selectionEnd": 6
+        }
+      ],
+      "consistent": true,
+      "comparison": "same-as-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-sections-inherit-default-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "界面显示“页眉 - 第 2 节”“与上一节相同”和“第一节页眉”；两次正文页码定位为第 2 页，LinkToPrevious=true。"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 0,
+      "rangeEnd": 6,
+      "storyType": 7,
+      "header": {
+        "section": 2,
+        "page": 2,
+        "linkToPrevious": true,
+        "exists": true
+      },
+      "error": null,
+      "observedAt": "2026-09-07T10:44:40.3984783+08:00",
+      "uiObservation": "界面显示“页眉 - 第 2 节”“与上一节相同”和“第一节页眉”；两次正文页码定位为第 2 页，LinkToPrevious=true。"
+    }
+  ],
+  "note": "Final report annotations add actual UI evidence to recorded measurements. No document was opened, saved or changed during report preparation. Font-dialog evidence applies only to specifically linked cases.",
+  "uiReview": {
+    "reviewedAt": "2026-09-07T10:47:29.7611241+08:00",
+    "method": "Main operator's actual Word page/ribbon observations and selected Font-dialog inspections, supported by reviewed screenshot files. Two object-model readings are retained per case; not two manual Font-dialog checks for each case.",
+    "compatibilityEvidence": "Actual Word Document.CompatibilityMode=12 in this file's recorded readout."
+  }
+}

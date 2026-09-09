@@ -1,0 +1,543 @@
+[
+  {
+    "file": "image/image-emf.docx",
+    "copy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\ui-offline\\20260907-022713-498\\image-image-emf.zip",
+    "sourceSha256": "92B204318BF212D6602B1D8D4CFD7EDFDC3EFC657E9C6CCCD8837B5846E1A644",
+    "originalUnchanged": true,
+    "parts": [
+      "[Content_Types].xml",
+      "_rels/.rels",
+      "word/document.xml",
+      "word/_rels/document.xml.rels",
+      "word/media/image1.emf",
+      "word/theme/theme1.xml",
+      "word/settings.xml",
+      "word/styles.xml",
+      "word/webSettings.xml",
+      "word/fontTable.xml",
+      "docProps/core.xml",
+      "docProps/app.xml"
+    ],
+    "tags": {
+      "inline": 1,
+      "anchor": 0,
+      "pic": 1,
+      "chart": 0,
+      "OLEObject": 0,
+      "srcRect": 1,
+      "svgBlip": 0,
+      "AlternateContent": 0,
+      "Fallback": 0
+    },
+    "docPr": [
+      "<wp:docPr id=\"1\" name=\"图片 1\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />"
+    ],
+    "transforms": [
+      "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"5274310\" cy=\"3188335\" /></a:xfrm>"
+    ],
+    "sourceRectangles": [
+      "<a:srcRect xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" />"
+    ],
+    "inlineExtents": [
+      "<wp:extent cx=\"5274310\" cy=\"3188335\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />"
+    ],
+    "media": [
+      {
+        "part": "word/media/image1.emf",
+        "bytes": 29104,
+        "decoded": true,
+        "width": 642,
+        "height": 389,
+        "rawFormatGuid": "b96b3cac-0728-11d3-9d7b-0000f81ef32e"
+      }
+    ],
+    "charts": [],
+    "relationships": [
+      {
+        "part": "word/_rels/document.xml.rels",
+        "id": "rId4",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+        "target": "media/image1.emf",
+        "targetMode": ""
+      }
+    ]
+  },
+  {
+    "file": "chart/chart-pasted-embedded.docx",
+    "copy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\ui-offline\\20260907-022713-498\\chart-chart-pasted-embedded.zip",
+    "sourceSha256": "CB34F3933F1C394F69F2004EC13EE6871CC9CE63F883390E973A62029D54926C",
+    "originalUnchanged": true,
+    "parts": [
+      "[Content_Types].xml",
+      "_rels/.rels",
+      "word/document.xml",
+      "word/_rels/document.xml.rels",
+      "word/charts/chart1.xml",
+      "word/embeddings/Microsoft_Excel_Worksheet.xlsx",
+      "word/theme/theme1.xml",
+      "word/charts/_rels/chart1.xml.rels",
+      "word/settings.xml",
+      "word/styles.xml",
+      "word/webSettings.xml",
+      "word/fontTable.xml",
+      "docProps/core.xml",
+      "docProps/app.xml"
+    ],
+    "tags": {
+      "inline": 1,
+      "anchor": 0,
+      "pic": 0,
+      "chart": 1,
+      "OLEObject": 0,
+      "srcRect": 0,
+      "svgBlip": 0,
+      "AlternateContent": 0,
+      "Fallback": 0
+    },
+    "docPr": [
+      "<wp:docPr id=\"1\" name=\"图表 1\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\"><a:extLst xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:ext uri=\"{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}\"><a16:creationId xmlns:a16=\"http://schemas.microsoft.com/office/drawing/2014/main\" id=\"{28C0ECEF-E1E3-4E88-A79F-65A2BA6B423C}\" /></a:ext></a:extLst></wp:docPr>"
+    ],
+    "transforms": [],
+    "sourceRectangles": [],
+    "inlineExtents": [
+      "<wp:extent cx=\"5274310\" cy=\"3186430\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />"
+    ],
+    "media": [],
+    "charts": [
+      {
+        "part": "word/charts/chart1.xml",
+        "layoutIds": [],
+        "externalData": [
+          "<c:externalData r:id=\"rId1\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:c=\"http://schemas.openxmlformats.org/drawingml/2006/chart\"><c:autoUpdate val=\"0\" /></c:externalData>"
+        ],
+        "refErrorCount": 0,
+        "dimensions": []
+      }
+    ],
+    "relationships": [
+      {
+        "part": "word/charts/_rels/chart1.xml.rels",
+        "id": "rId1",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+        "target": "../embeddings/Microsoft_Excel_Worksheet.xlsx",
+        "targetMode": ""
+      },
+      {
+        "part": "word/_rels/document.xml.rels",
+        "id": "rId4",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+        "target": "charts/chart1.xml",
+        "targetMode": ""
+      }
+    ]
+  },
+  {
+    "file": "chart/chart-pasted-linked.docx",
+    "copy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\ui-offline\\20260907-022713-498\\chart-chart-pasted-linked.zip",
+    "sourceSha256": "501120A3C7DEE2A4A024D88BF3FB63D447D9C372F2F293755DC48689F403129A",
+    "originalUnchanged": true,
+    "parts": [
+      "[Content_Types].xml",
+      "_rels/.rels",
+      "word/document.xml",
+      "word/_rels/document.xml.rels",
+      "word/charts/chart1.xml",
+      "word/theme/theme1.xml",
+      "word/charts/_rels/chart1.xml.rels",
+      "word/settings.xml",
+      "word/styles.xml",
+      "word/webSettings.xml",
+      "word/fontTable.xml",
+      "docProps/core.xml",
+      "docProps/app.xml"
+    ],
+    "tags": {
+      "inline": 1,
+      "anchor": 0,
+      "pic": 0,
+      "chart": 1,
+      "OLEObject": 0,
+      "srcRect": 0,
+      "svgBlip": 0,
+      "AlternateContent": 0,
+      "Fallback": 0
+    },
+    "docPr": [
+      "<wp:docPr id=\"1\" name=\"图表 1\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\"><a:extLst xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:ext uri=\"{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}\"><a16:creationId xmlns:a16=\"http://schemas.microsoft.com/office/drawing/2014/main\" id=\"{28C0ECEF-E1E3-4E88-A79F-65A2BA6B423C}\" /></a:ext></a:extLst></wp:docPr>"
+    ],
+    "transforms": [],
+    "sourceRectangles": [],
+    "inlineExtents": [
+      "<wp:extent cx=\"5274310\" cy=\"3186430\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />"
+    ],
+    "media": [],
+    "charts": [
+      {
+        "part": "word/charts/chart1.xml",
+        "layoutIds": [],
+        "externalData": [
+          "<c:externalData r:id=\"rId1\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:c=\"http://schemas.openxmlformats.org/drawingml/2006/chart\"><c:autoUpdate val=\"0\" /></c:externalData>"
+        ],
+        "refErrorCount": 0,
+        "dimensions": []
+      }
+    ],
+    "relationships": [
+      {
+        "part": "word/charts/_rels/chart1.xml.rels",
+        "id": "rId1",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject",
+        "target": "file:///C:\\code\\rsWordParser\\real-word-corpus-20260906\\_assets\\chart-paste-source.xlsx",
+        "targetMode": "External"
+      },
+      {
+        "part": "word/_rels/document.xml.rels",
+        "id": "rId4",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart",
+        "target": "charts/chart1.xml",
+        "targetMode": ""
+      }
+    ]
+  },
+  {
+    "file": "chart/chart-pasted-picture.docx",
+    "copy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\ui-offline\\20260907-022713-498\\chart-chart-pasted-picture.zip",
+    "sourceSha256": "61BC6A84BDF650EF929B56F082961BC5374CF062E32DA4A1E0EEE610B52C1E5F",
+    "originalUnchanged": true,
+    "parts": [
+      "[Content_Types].xml",
+      "_rels/.rels",
+      "word/document.xml",
+      "word/_rels/document.xml.rels",
+      "word/media/image1.png",
+      "word/theme/theme1.xml",
+      "word/settings.xml",
+      "word/styles.xml",
+      "word/webSettings.xml",
+      "word/fontTable.xml",
+      "docProps/core.xml",
+      "docProps/app.xml"
+    ],
+    "tags": {
+      "inline": 1,
+      "anchor": 0,
+      "pic": 1,
+      "chart": 0,
+      "OLEObject": 0,
+      "srcRect": 1,
+      "svgBlip": 0,
+      "AlternateContent": 0,
+      "Fallback": 0
+    },
+    "docPr": [
+      "<wp:docPr id=\"1\" name=\"图片 1\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />"
+    ],
+    "transforms": [
+      "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"6102350\" cy=\"3688715\" /></a:xfrm>"
+    ],
+    "sourceRectangles": [
+      "<a:srcRect xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" />"
+    ],
+    "inlineExtents": [
+      "<wp:extent cx=\"6102350\" cy=\"3688715\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />"
+    ],
+    "media": [
+      {
+        "part": "word/media/image1.png",
+        "bytes": 12461,
+        "decoded": true,
+        "width": 1001,
+        "height": 605,
+        "rawFormatGuid": "b96b3caf-0728-11d3-9d7b-0000f81ef32e"
+      }
+    ],
+    "charts": [],
+    "relationships": [
+      {
+        "part": "word/_rels/document.xml.rels",
+        "id": "rId4",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+        "target": "media/image1.png",
+        "targetMode": ""
+      }
+    ]
+  },
+  {
+    "file": "chart/chartex-sunburst-2.docx",
+    "copy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\ui-offline\\20260907-022713-498\\chart-chartex-sunburst-2.zip",
+    "sourceSha256": "8E050251603655610D11B986962D1EC697AD34CB72AA30134EEC6082C57841AF",
+    "originalUnchanged": true,
+    "parts": [
+      "[Content_Types].xml",
+      "_rels/.rels",
+      "word/document.xml",
+      "word/_rels/document.xml.rels",
+      "word/charts/chartEx1.xml",
+      "word/embeddings/Microsoft_Excel_Worksheet.xlsx",
+      "word/charts/style1.xml",
+      "word/charts/colors1.xml",
+      "word/media/image1.png",
+      "word/theme/theme1.xml",
+      "word/charts/_rels/chartEx1.xml.rels",
+      "word/settings.xml",
+      "word/styles.xml",
+      "word/webSettings.xml",
+      "word/fontTable.xml",
+      "docProps/core.xml",
+      "docProps/app.xml"
+    ],
+    "tags": {
+      "inline": 2,
+      "anchor": 0,
+      "pic": 1,
+      "chart": 1,
+      "OLEObject": 0,
+      "srcRect": 0,
+      "svgBlip": 0,
+      "AlternateContent": 1,
+      "Fallback": 1
+    },
+    "docPr": [
+      "<wp:docPr id=\"1\" name=\"图表 1\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />",
+      "<wp:docPr id=\"1\" name=\"图表 1\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />"
+    ],
+    "transforms": [
+      "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"5274310\" cy=\"3076575\" /></a:xfrm>"
+    ],
+    "sourceRectangles": [],
+    "inlineExtents": [
+      "<wp:extent cx=\"5274310\" cy=\"3076575\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />",
+      "<wp:extent cx=\"5274310\" cy=\"3076575\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />"
+    ],
+    "media": [
+      {
+        "part": "word/media/image1.png",
+        "bytes": 17554,
+        "decoded": true,
+        "width": 555,
+        "height": 324,
+        "rawFormatGuid": "b96b3caf-0728-11d3-9d7b-0000f81ef32e"
+      }
+    ],
+    "charts": [
+      {
+        "part": "word/charts/chartEx1.xml",
+        "layoutIds": [
+          "sunburst"
+        ],
+        "externalData": [
+          "<cx:externalData r:id=\"rId1\" cx:autoUpdate=\"0\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:cx=\"http://schemas.microsoft.com/office/drawing/2014/chartex\" />"
+        ],
+        "refErrorCount": 0,
+        "dimensions": [
+          {
+            "kind": "strDim",
+            "type": "cat",
+            "formula": "Sheet1!$A$2:$C$17",
+            "points": [
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "Item 1",
+              "Item 2",
+              "Item 3",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "Group A",
+              "Group A",
+              "Group B",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+            ]
+          },
+          {
+            "kind": "numDim",
+            "type": "size",
+            "formula": "Sheet1!$D$2:$D$17",
+            "points": [
+              "10",
+              "20",
+              "30"
+            ]
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "part": "word/charts/_rels/chartEx1.xml.rels",
+        "id": "rId1",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+        "target": "../embeddings/Microsoft_Excel_Worksheet.xlsx",
+        "targetMode": ""
+      },
+      {
+        "part": "word/_rels/document.xml.rels",
+        "id": "rId5",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+        "target": "media/image1.png",
+        "targetMode": ""
+      },
+      {
+        "part": "word/_rels/document.xml.rels",
+        "id": "rId4",
+        "type": "http://schemas.microsoft.com/office/2014/relationships/chartEx",
+        "target": "charts/chartEx1.xml",
+        "targetMode": ""
+      }
+    ]
+  },
+  {
+    "file": "chart/chartex-treemap.docx",
+    "copy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\ui-offline\\20260907-022713-498\\chart-chartex-treemap.zip",
+    "sourceSha256": "59C3615DECD85D554F121E7A289F8FB4BD1F71A792ECFC425896DA3897142F19",
+    "originalUnchanged": true,
+    "parts": [
+      "[Content_Types].xml",
+      "_rels/.rels",
+      "word/document.xml",
+      "word/_rels/document.xml.rels",
+      "word/charts/chartEx1.xml",
+      "word/embeddings/Microsoft_Excel_Worksheet.xlsx",
+      "word/charts/style1.xml",
+      "word/charts/colors1.xml",
+      "word/media/image1.png",
+      "word/theme/theme1.xml",
+      "word/charts/_rels/chartEx1.xml.rels",
+      "word/settings.xml",
+      "word/styles.xml",
+      "word/webSettings.xml",
+      "word/fontTable.xml",
+      "docProps/core.xml",
+      "docProps/app.xml"
+    ],
+    "tags": {
+      "inline": 2,
+      "anchor": 0,
+      "pic": 1,
+      "chart": 1,
+      "OLEObject": 0,
+      "srcRect": 0,
+      "svgBlip": 0,
+      "AlternateContent": 1,
+      "Fallback": 1
+    },
+    "docPr": [
+      "<wp:docPr id=\"1\" name=\"图表 1\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />",
+      "<wp:docPr id=\"1\" name=\"图表 1\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />"
+    ],
+    "transforms": [
+      "<a:xfrm xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:off x=\"0\" y=\"0\" /><a:ext cx=\"5274310\" cy=\"3076575\" /></a:xfrm>"
+    ],
+    "sourceRectangles": [],
+    "inlineExtents": [
+      "<wp:extent cx=\"5274310\" cy=\"3076575\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />",
+      "<wp:extent cx=\"5274310\" cy=\"3076575\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" />"
+    ],
+    "media": [
+      {
+        "part": "word/media/image1.png",
+        "bytes": 3038,
+        "decoded": true,
+        "width": 555,
+        "height": 324,
+        "rawFormatGuid": "b96b3caf-0728-11d3-9d7b-0000f81ef32e"
+      }
+    ],
+    "charts": [
+      {
+        "part": "word/charts/chartEx1.xml",
+        "layoutIds": [
+          "treemap"
+        ],
+        "externalData": [
+          "<cx:externalData r:id=\"rId1\" cx:autoUpdate=\"0\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:cx=\"http://schemas.microsoft.com/office/drawing/2014/chartex\" />"
+        ],
+        "refErrorCount": 0,
+        "dimensions": [
+          {
+            "kind": "strDim",
+            "type": "cat",
+            "formula": "Sheet1!$A$2:$C$17",
+            "points": [
+              "Item 1",
+              "Item 2",
+              "Item 3",
+              "Group A",
+              "Group A",
+              "Group B"
+            ]
+          },
+          {
+            "kind": "numDim",
+            "type": "size",
+            "formula": "Sheet1!$D$2:$D$17",
+            "points": [
+              "10",
+              "20",
+              "30"
+            ]
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "part": "word/charts/_rels/chartEx1.xml.rels",
+        "id": "rId1",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+        "target": "../embeddings/Microsoft_Excel_Worksheet.xlsx",
+        "targetMode": ""
+      },
+      {
+        "part": "word/_rels/document.xml.rels",
+        "id": "rId5",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+        "target": "media/image1.png",
+        "targetMode": ""
+      },
+      {
+        "part": "word/_rels/document.xml.rels",
+        "id": "rId4",
+        "type": "http://schemas.microsoft.com/office/2014/relationships/chartEx",
+        "target": "charts/chartEx1.xml",
+        "targetMode": ""
+      }
+    ]
+  }
+]

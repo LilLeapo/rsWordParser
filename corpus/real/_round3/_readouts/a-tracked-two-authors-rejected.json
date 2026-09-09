@@ -1,0 +1,66 @@
+﻿{
+    "case":  "tracked-two-authors",
+    "stage":  "rejected",
+    "path":  "C:\\word\\real-word-round3-20260907\\revfix\\tracked-two-authors\\rejected.docx",
+    "sha256":  "609476FBA31D3960F99C046E97A7913CA2BE9AF5B0D7AA70CF471D000261AFA0",
+    "sourcePath":  "C:\\word\\real-word-round3-20260907\\revfix\\tracked-two-authors\\tracked.docx",
+    "sourceSha256":  "19828B02A745916BE7D3FE6BD674F555FB9BB3D876372EF396A044441A5F2072",
+    "operations":  [
+                       "Opened unchanged tracked.docx independently.",
+                       "Word Document.RejectAllRevisions from the same tracked file; not Undo-based."
+                   ],
+    "readout":  {
+                    "text":  "before 前文\r原始正文。\rafter 后文\r\r",
+                    "paragraphs":  [
+                                       {
+                                           "text":  "before 前文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "原始正文。\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "after 后文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       }
+                                   ],
+                    "revisions":  [
+
+                                  ],
+                    "revisionCount":  0,
+                    "sections":  [
+                                     {
+                                         "index":  1,
+                                         "start":  0,
+                                         "end":  26,
+                                         "orientation":  0,
+                                         "sectionStart":  2
+                                     }
+                                 ],
+                    "shapes":  [
+
+                               ],
+                    "pages":  1,
+                    "compatibility":  15,
+                    "trackMoves":  true,
+                    "trackFormatting":  true,
+                    "trackRevisions":  true
+                },
+    "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\revfix\\tracked-two-authors\\rejected.pdf",
+    "date":  "2026-09-07T13:53:50.5229460+08:00",
+    "method":  "Native Windows Word COM; DOCX saved once at this path; PDF export and current-document UI inspection afterward without save back.",
+    "uiPending":  true
+}

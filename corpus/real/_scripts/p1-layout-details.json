@@ -1,0 +1,264 @@
+[
+  {
+    "file": "revisions/revisions-comments.docx",
+    "snapshot": "_checks/p1-layout/20260907-015125-806/revisions-comments.zip",
+    "sha256": "0A97C48C761C19D268C8F1DB6ABBE1A2B9557071575CC8DD97E05C688EC67926",
+    "insertedText": [
+      "新增句子。"
+    ],
+    "deletedText": [
+      "待删除句子。"
+    ],
+    "formatChanges": 1,
+    "comments": [
+      {
+        "id": "3",
+        "author": "燚坡 李",
+        "text": "第一条批注"
+      },
+      {
+        "id": "4",
+        "author": "燚坡 李",
+        "text": "第一条批注的回复"
+      },
+      {
+        "id": "5",
+        "author": "燚坡 李",
+        "text": "第二条未解决批注"
+      }
+    ],
+    "commentThreads": [
+      {
+        "paraId": "4A9EEAE1",
+        "done": "1"
+      },
+      {
+        "paraId": "7D4316D4",
+        "paraIdParent": "4A9EEAE1",
+        "done": "1"
+      },
+      {
+        "paraId": "78CD1A2D",
+        "done": "0"
+      }
+    ],
+    "originalUnchanged": true
+  },
+  {
+    "file": "shapes/textbox-shapes.docx",
+    "snapshot": "_checks/p1-layout/20260907-015125-806/textbox-shapes.zip",
+    "sha256": "E862DA27C2C18D691FB3D5BA7685A30A15EC0ACF50563B5BA6A426D532E3DF92",
+    "textboxes": [
+      {
+        "paragraphs": [
+          "圆角矩形"
+        ]
+      },
+      {
+        "paragraphs": [
+          "圆角矩形"
+        ]
+      },
+      {
+        "paragraphs": [
+          "文本框第一段",
+          "文本框第二段"
+        ]
+      },
+      {
+        "paragraphs": [
+          "文本框第一段",
+          "文本框第二段"
+        ]
+      }
+    ],
+    "roundedRectangleGeometryCount": 1,
+    "groupCountIncludingFallbacks": 2,
+    "wordArtText": [
+      "艺术字"
+    ],
+    "anchors": [
+      {
+        "name": "矩形: 圆角 2",
+        "anchorParagraphIndex": 2,
+        "verticalRelativeFrom": "paragraph",
+        "verticalPositionEmu": "-795020",
+        "anchorParagraphText": ""
+      },
+      {
+        "name": "文本框 1",
+        "anchorParagraphIndex": 2,
+        "verticalRelativeFrom": "paragraph",
+        "verticalPositionEmu": "-795020",
+        "anchorParagraphText": ""
+      },
+      {
+        "name": "组合 5",
+        "anchorParagraphIndex": 3,
+        "verticalRelativeFrom": "paragraph",
+        "verticalPositionEmu": "276620",
+        "anchorParagraphText": "after 后文"
+      }
+    ],
+    "originalUnchanged": true
+  },
+  {
+    "file": "shapes/textbox-shapes-2.docx",
+    "snapshot": "_checks/p1-layout/20260907-015125-806/textbox-shapes-2.zip",
+    "sha256": "257FFCE5B358BC3FFC58777D3A339ABE9672E4DC04D4B7BFB69D477BC866D72C",
+    "textboxes": [
+      {
+        "paragraphs": [
+          "圆角矩形"
+        ]
+      },
+      {
+        "paragraphs": [
+          "圆角矩形"
+        ]
+      },
+      {
+        "paragraphs": [
+          "文本框第一段",
+          "文本框第二段"
+        ]
+      },
+      {
+        "paragraphs": [
+          "文本框第一段",
+          "文本框第二段"
+        ]
+      }
+    ],
+    "roundedRectangleGeometryCount": 1,
+    "groupCountIncludingFallbacks": 2,
+    "wordArtText": [
+      "艺术字"
+    ],
+    "anchors": [
+      {
+        "name": "矩形: 圆角 2",
+        "anchorParagraphIndex": 2,
+        "verticalRelativeFrom": "paragraph",
+        "verticalPositionEmu": "-596900",
+        "anchorParagraphText": ""
+      },
+      {
+        "name": "文本框 1",
+        "anchorParagraphIndex": 2,
+        "verticalRelativeFrom": "paragraph",
+        "verticalPositionEmu": "-596900",
+        "anchorParagraphText": ""
+      },
+      {
+        "name": "组合 5",
+        "anchorParagraphIndex": 4,
+        "verticalRelativeFrom": "paragraph",
+        "verticalPositionEmu": "276620",
+        "anchorParagraphText": ""
+      }
+    ],
+    "originalUnchanged": true
+  },
+  {
+    "file": "sdt/content-controls.docx",
+    "snapshot": "_checks/p1-layout/20260907-015125-806/content-controls.zip",
+    "sha256": "9CAFC117B246C0869EC0AAB8D1215D0AF5C87E78BECBBFEB94EF9F8B80A7193C",
+    "controls": [
+      {
+        "type": "richText",
+        "text": "已锁定富文本",
+        "entries": [],
+        "lock": "sdtContentLocked",
+        "propertiesXml": "<w:sdtPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rPr><w:rFonts w:hint=\"eastAsia\" /><w:sz w:val=\"22\" /></w:rPr><w:alias w:val=\"富文本：\" /><w:id w:val=\"-116149717\" /><w:lock w:val=\"sdtContentLocked\" /><w:placeholder><w:docPart w:val=\"DefaultPlaceholder_-1854013440\" /></w:placeholder></w:sdtPr>"
+      },
+      {
+        "type": "comboBox",
+        "text": "选项二",
+        "entries": [
+          "选项一",
+          "选项二"
+        ],
+        "lock": "",
+        "propertiesXml": "<w:sdtPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rPr><w:rFonts w:hint=\"eastAsia\" /><w:sz w:val=\"22\" /></w:rPr><w:alias w:val=\"下拉列表：\" /><w:id w:val=\"1285929049\" /><w:placeholder><w:docPart w:val=\"DefaultPlaceholder_-1854013438\" /></w:placeholder><w:comboBox><w:listItem w:displayText=\"选项一\" w:value=\"选项一\" /><w:listItem w:displayText=\"选项二\" w:value=\"选项二\" /></w:comboBox></w:sdtPr>"
+      },
+      {
+        "type": "date",
+        "text": "2026-09-07",
+        "entries": [],
+        "lock": "",
+        "propertiesXml": "<w:sdtPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rPr><w:rFonts w:hint=\"eastAsia\" /><w:sz w:val=\"22\" /></w:rPr><w:alias w:val=\"日期：\" /><w:id w:val=\"1563211054\" /><w:placeholder><w:docPart w:val=\"DefaultPlaceholder_-1854013437\" /></w:placeholder><w:date w:fullDate=\"2026-09-07T00:00:00Z\"><w:dateFormat w:val=\"yyyy-MM-dd\" /><w:lid w:val=\"zh-CN\" /><w:storeMappedDataAs w:val=\"dateTime\" /><w:calendar w:val=\"gregorian\" /></w:date></w:sdtPr>"
+      },
+      {
+        "type": "checkbox",
+        "text": "☒",
+        "entries": [],
+        "lock": "",
+        "propertiesXml": "<w:sdtPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rPr><w:rFonts w:hint=\"eastAsia\" /><w:sz w:val=\"22\" /></w:rPr><w:alias w:val=\"复选框：\" /><w:id w:val=\"1881588191\" /><w14:checkbox xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\"><w14:checked w14:val=\"1\" /><w14:checkedState w14:val=\"2612\" w14:font=\"MS Gothic\" /><w14:uncheckedState w14:val=\"2610\" w14:font=\"MS Gothic\" /></w14:checkbox></w:sdtPr>"
+      }
+    ],
+    "originalUnchanged": true
+  },
+  {
+    "file": "sdt/content-controls-2.docx",
+    "snapshot": "_checks/p1-layout/20260907-015125-806/content-controls-2.zip",
+    "sha256": "6E0D8A8DA133308ACAAFF38A64862BDE8BA7D94E547D9380DA90A86CCC679940",
+    "controls": [
+      {
+        "type": "richText",
+        "text": "已锁定富文本",
+        "entries": [],
+        "lock": "sdtContentLocked",
+        "propertiesXml": "<w:sdtPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rPr><w:rFonts w:hint=\"eastAsia\" /><w:sz w:val=\"22\" /></w:rPr><w:alias w:val=\"富文本：\" /><w:id w:val=\"-1312862542\" /><w:lock w:val=\"sdtContentLocked\" /><w:placeholder><w:docPart w:val=\"DefaultPlaceholder_-1854013440\" /></w:placeholder></w:sdtPr>"
+      },
+      {
+        "type": "dropDownList",
+        "text": "选项二",
+        "entries": [
+          "选项一",
+          "选项二"
+        ],
+        "lock": "",
+        "propertiesXml": "<w:sdtPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rPr><w:rFonts w:hint=\"eastAsia\" /><w:sz w:val=\"22\" /></w:rPr><w:alias w:val=\"下拉列表：\" /><w:id w:val=\"825784464\" /><w:placeholder><w:docPart w:val=\"DefaultPlaceholder_-1854013438\" /></w:placeholder><w:dropDownList><w:listItem w:displayText=\"选项一\" w:value=\"选项一\" /><w:listItem w:displayText=\"选项二\" w:value=\"选项二\" /></w:dropDownList></w:sdtPr>"
+      },
+      {
+        "type": "date",
+        "text": "2026-09-07",
+        "entries": [],
+        "lock": "",
+        "propertiesXml": "<w:sdtPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rPr><w:rFonts w:hint=\"eastAsia\" /><w:sz w:val=\"22\" /></w:rPr><w:alias w:val=\"日期：\" /><w:id w:val=\"-897284593\" /><w:placeholder><w:docPart w:val=\"DefaultPlaceholder_-1854013437\" /></w:placeholder><w:date w:fullDate=\"2026-09-07T00:00:00Z\"><w:dateFormat w:val=\"yyyy-MM-dd\" /><w:lid w:val=\"zh-CN\" /><w:storeMappedDataAs w:val=\"dateTime\" /><w:calendar w:val=\"gregorian\" /></w:date></w:sdtPr>"
+      },
+      {
+        "type": "checkbox",
+        "text": "☒",
+        "entries": [],
+        "lock": "",
+        "propertiesXml": "<w:sdtPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rPr><w:rFonts w:hint=\"eastAsia\" /><w:sz w:val=\"22\" /></w:rPr><w:alias w:val=\"复选框：\" /><w:id w:val=\"-94020196\" /><w14:checkbox xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\"><w14:checked w14:val=\"1\" /><w14:checkedState w14:val=\"2612\" w14:font=\"MS Gothic\" /><w14:uncheckedState w14:val=\"2610\" w14:font=\"MS Gothic\" /></w14:checkbox></w:sdtPr>"
+      }
+    ],
+    "originalUnchanged": true
+  },
+  {
+    "file": "links/hyperlinks-bookmarks.docx",
+    "snapshot": "_checks/p1-layout/20260907-015125-806/hyperlinks-bookmarks.zip",
+    "sha256": "2DD3E3FB0EB92A8612BCB28F94393659B764A9D8B7A71AE27CC0ECAF6118E160",
+    "hyperlinks": [
+      {
+        "text": "外部链接",
+        "target": "https://example.com",
+        "anchor": ""
+      },
+      {
+        "text": "返回书签",
+        "target": "",
+        "anchor": "Target"
+      },
+      {
+        "text": "邮件链接",
+        "target": "mailto:test@example.com",
+        "anchor": ""
+      }
+    ],
+    "originalUnchanged": true
+  }
+]

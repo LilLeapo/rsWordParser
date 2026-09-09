@@ -33,7 +33,7 @@ struct EnumDecl {
     values: Vec<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 struct StructDecl {
     #[serde(default)]
@@ -41,7 +41,7 @@ struct StructDecl {
     attrs: Vec<AttrDecl>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 struct AttrDecl {
     name: String,
@@ -115,6 +115,7 @@ const BUILTIN: &[(&str, &str)] = &[
     ("Str", "String"),
     ("Int", "Val<i32>"),
     ("UInt", "Val<u32>"),
+    ("MeasureOrPercent", "Val<Measure>"),
 ];
 
 #[derive(Clone)]
@@ -210,12 +211,19 @@ impl Names<'_> {
     }
 }
 
-/// 生成 `props.rs` 源码。`prefixes`：前缀 → `NsId` 变体；`locals`：局部名 → `LocalName` 变体。
-pub fn generate(
+/// 解析后的属性模型（`generate` 与 `generate_json` 共用同一份解析，`BIND-02` 的投影永不漂移）。
+struct Model {
+    enums: Vec<(String, EnumDecl)>,
+    structs: Vec<(String, StructDecl, Vec<Attr>)>,
+    tables: Vec<Table>,
+}
+
+/// 读取并校验 `schema/props/*.toml`（名字解析、`PROP-05` 顺序、缺失局部名断言）。
+fn parse_all(
     dir: &Path,
     prefixes: &BTreeMap<String, String>,
     locals: &BTreeMap<String, String>,
-) -> String {
+) -> Model {
     let mut names = Names { prefixes, locals, missing_locals: BTreeSet::new() };
 
     let types_path = dir.join("types.toml");
@@ -289,11 +297,11 @@ pub fn generate(
     };
 
     // 结构体
-    let mut structs: Vec<(String, &StructDecl, Vec<Attr>)> = Vec::new();
+    let mut structs: Vec<(String, StructDecl, Vec<Attr>)> = Vec::new();
     for (name, decl) in &types.structs {
         let mut taken = BTreeSet::new();
         let attrs = resolve_attrs(&mut names, &decl.attrs, &format!("struct {name}"), &mut taken);
-        structs.push((name.clone(), decl, attrs));
+        structs.push((name.clone(), decl.clone(), attrs));
     }
 
     // 表
@@ -389,19 +397,236 @@ pub fn generate(
         names.missing_locals.iter().cloned().collect::<Vec<_>>().join("\n")
     );
 
+    Model { enums: types.enums.into_iter().collect(), structs, tables }
+}
+
+/// 生成 `props.rs` 源码。`prefixes`：前缀 → `NsId` 变体；`locals`：局部名 → `LocalName` 变体。
+pub fn generate(
+    dir: &Path,
+    prefixes: &BTreeMap<String, String>,
+    locals: &BTreeMap<String, String>,
+) -> String {
+    let m = parse_all(dir, prefixes, locals);
     let mut out = String::new();
     writeln!(out, "// 由 build/props.rs 从 schema/props/*.toml 生成，勿手改。\n").unwrap();
-    for (name, decl) in &types.enums {
+    for (name, decl) in &m.enums {
         gen_enum(&mut out, name, decl);
     }
-    for (name, decl, attrs) in &structs {
+    for (name, decl, attrs) in &m.structs {
         gen_struct(&mut out, name, decl, attrs);
     }
-    for t in &tables {
+    for t in &m.tables {
         gen_table(&mut out, t);
     }
-    gen_index(&mut out, &tables);
+    gen_index(&mut out, &m.tables);
     out
+}
+
+// ---- 生成：BIND-02 的 JSON 投影（$OUT_DIR/props_json.rs，include 进 bind::native::json） -------
+
+/// 生成 `props_json.rs`：同一份 TOML 元数据展开每张表 / 每个属性结构体 / 每个枚举的
+/// `impl ToJson` 与 schema（生成器只按类型名发射，codec 的 JSON 语义在 `bind::native::json` 的
+/// `ToJson` 实现里）。BIND-03 的 patch schema 同样从字段表生成。
+pub fn generate_json(
+    dir: &Path,
+    prefixes: &BTreeMap<String, String>,
+    locals: &BTreeMap<String, String>,
+) -> String {
+    let m = parse_all(dir, prefixes, locals);
+    let mut out = String::new();
+    writeln!(
+        out,
+        "// 由 build/props.rs 从 schema/props/*.toml 生成，勿手改（BIND-02 的 JSON 投影）。\n"
+    )
+    .unwrap();
+    for (name, decl) in &m.enums {
+        gen_json_enum(&mut out, name, decl);
+    }
+    for (name, _, attrs) in &m.structs {
+        gen_json_struct(&mut out, name, attrs);
+    }
+    for t in &m.tables {
+        gen_json_table(&mut out, t);
+        gen_json_patch(&mut out, t);
+    }
+    gen_json_camel_test(&mut out, &m);
+    out
+}
+
+/// 字段名的 JSON 键（`BIND-02`：camelCase）。
+fn camel(snake: &str) -> String {
+    let p = pascal(snake);
+    let mut c = p.chars();
+    match c.next() {
+        Some(f) => f.to_lowercase().chain(c.as_str().chars()).collect(),
+        None => String::new(),
+    }
+}
+
+/// `Option<值>` 的写出：`set_some!`（有值才写）。值类型全部实现 `ToJson`。
+fn gen_json_set_some(out: &mut String, key: &str, field: &str) {
+    writeln!(
+        out,
+        "        crate::bind::native::json::set_some!(&mut o, {key:?} => self.{field}.as_ref().map(|v| crate::bind::native::json::ToJson::to_json(v, cx)));"
+    )
+    .unwrap();
+}
+
+/// 字段类型的 schema 表达式：`multi` 套数组；`Raw` 字段按 `NodeId`（整数）。
+fn gen_json_schema_expr(kind: &Kind, multi: bool) -> String {
+    let ty = match kind {
+        Kind::Scalar { value, .. } => value.clone(),
+        Kind::Struct(s) | Kind::Table(s) => s.clone(),
+        Kind::Raw => "crate::xml::NodeId".to_string(),
+    };
+    let inner = format!("<{ty} as crate::bind::native::json::ToJson>::schema(defs)");
+    if multi { format!("crate::bind::native::schema::arr_schema({inner})") } else { inner }
+}
+
+fn gen_json_schema_fn(out: &mut String, name: &str, body: &str, has_required: bool) {
+    writeln!(out, "    fn schema(defs: &mut crate::bind::native::schema::SchemaDefs) -> ::serde_json::Value {{").unwrap();
+    writeln!(out, "        defs.define({name:?}, |defs| {{").unwrap();
+    writeln!(out, "            let mut p = ::serde_json::Map::new();").unwrap();
+    if has_required {
+        writeln!(
+            out,
+            "            let mut r: ::std::vec::Vec<&'static str> = ::std::vec::Vec::new();"
+        )
+        .unwrap();
+    } else {
+        writeln!(out, "            let r: ::std::vec::Vec<&'static str> = ::std::vec::Vec::new();")
+            .unwrap();
+    }
+    write!(out, "{body}").unwrap();
+    writeln!(out, "            crate::bind::native::schema::obj_schema(p, r)").unwrap();
+    writeln!(out, "        }})\n    }}\n}}\n").unwrap();
+}
+
+fn gen_json_enum(out: &mut String, name: &str, decl: &EnumDecl) {
+    writeln!(out, "impl crate::bind::native::json::ToJson for {name} {{").unwrap();
+    writeln!(out, "    fn to_json(&self, _cx: &crate::bind::native::json::ProjCx<'_>) -> ::serde_json::Value {{").unwrap();
+    writeln!(out, "        ::serde_json::Value::from(self.as_str())\n    }}").unwrap();
+    writeln!(out, "    fn schema(_defs: &mut crate::bind::native::schema::SchemaDefs) -> ::serde_json::Value {{").unwrap();
+    let values: Vec<String> = decl.values.iter().map(|v| format!("{v:?}")).collect();
+    writeln!(out, "        crate::bind::native::schema::enum_str_schema(&[{}])", values.join(", "))
+        .unwrap();
+    writeln!(out, "    }}\n}}\n").unwrap();
+}
+
+fn gen_json_struct(out: &mut String, name: &str, attrs: &[Attr]) {
+    writeln!(out, "impl crate::bind::native::json::ToJson for {name} {{").unwrap();
+    writeln!(out, "    fn to_json(&self, cx: &crate::bind::native::json::ProjCx<'_>) -> ::serde_json::Value {{").unwrap();
+    writeln!(out, "        let mut o = ::serde_json::Map::new();").unwrap();
+    let mut body = String::new();
+    for a in attrs {
+        gen_json_set_some(out, &camel(&a.name), &a.name);
+        writeln!(
+            body,
+            "            p.insert({:?}.into(), {});",
+            camel(&a.name),
+            gen_json_schema_expr(
+                &Kind::Scalar { codec: a.codec.clone(), value: a.value.clone() },
+                false
+            )
+        )
+        .unwrap();
+    }
+    writeln!(out, "        ::serde_json::Value::Object(o)\n    }}").unwrap();
+    gen_json_schema_fn(out, name, &body, false);
+}
+
+fn gen_json_table(out: &mut String, t: &Table) {
+    let name = &t.name;
+    writeln!(out, "impl crate::bind::native::json::ToJson for {name} {{").unwrap();
+    writeln!(out, "    fn to_json(&self, cx: &crate::bind::native::json::ProjCx<'_>) -> ::serde_json::Value {{").unwrap();
+    writeln!(out, "        let mut o = ::serde_json::Map::new();").unwrap();
+    let mut body = String::new();
+    for a in &t.attrs {
+        gen_json_set_some(out, &camel(&a.name), &a.name);
+        writeln!(
+            body,
+            "            p.insert({:?}.into(), {});",
+            camel(&a.name),
+            gen_json_schema_expr(
+                &Kind::Scalar { codec: a.codec.clone(), value: a.value.clone() },
+                false
+            )
+        )
+        .unwrap();
+    }
+    for f in &t.fields {
+        if f.multi {
+            writeln!(out, "        crate::bind::native::json::set(&mut o, {:?}, crate::bind::native::json::ToJson::to_json(&self.{}, cx));", camel(&f.name), f.name).unwrap();
+            writeln!(
+                body,
+                "            p.insert({:?}.into(), {});",
+                camel(&f.name),
+                gen_json_schema_expr(&f.kind, true)
+            )
+            .unwrap();
+            writeln!(body, "            r.push({:?});", camel(&f.name)).unwrap();
+        } else {
+            gen_json_set_some(out, &camel(&f.name), &f.name);
+            writeln!(
+                body,
+                "            p.insert({:?}.into(), {});",
+                camel(&f.name),
+                gen_json_schema_expr(&f.kind, false)
+            )
+            .unwrap();
+        }
+    }
+    writeln!(
+        out,
+        "        // `raw_unmodeled`：未建模子元素的原位引用，属 BIND-02 禁止投影的原字节邻接项。"
+    )
+    .unwrap();
+    writeln!(out, "        ::serde_json::Value::Object(o)\n    }}").unwrap();
+    gen_json_schema_fn(out, name, &body, t.fields.iter().any(|f| f.multi));
+}
+
+/// BIND-03 patch 与属性值共用字段表；字段缺席就是 Keep，所以没有 required。
+fn gen_json_patch(out: &mut String, t: &Table) {
+    let name = format!("{}Patch", t.name);
+    writeln!(out, "impl crate::bind::native::json::ToJson for {name} {{").unwrap();
+    writeln!(out, "    fn to_json(&self, _cx: &crate::bind::native::json::ProjCx<'_>) -> ::serde_json::Value {{ ::serde_json::to_value(self).expect(\"patch serialization\") }}").unwrap();
+    let mut body = String::new();
+    for (key, ty) in t
+        .attrs
+        .iter()
+        .map(|a| (&a.name, format!("Change<{}>", a.value)))
+        .chain(t.fields.iter().map(|f| (&f.name, patch_ty(f))))
+    {
+        writeln!(body, "            p.insert({:?}.into(), <{ty} as crate::bind::native::json::ToJson>::schema(defs));", camel(key)).unwrap();
+    }
+    gen_json_schema_fn(out, &name, &body, false);
+}
+
+/// 全部生成键 == `camel_case(字段名)`（与 `bind::native::json` 的同名校验函数对拍，防生成器漂移）。
+fn gen_json_camel_test(out: &mut String, m: &Model) {
+    let mut pairs: Vec<(String, String)> = Vec::new();
+    for (_, _, attrs) in &m.structs {
+        for a in attrs {
+            pairs.push((a.name.clone(), camel(&a.name)));
+        }
+    }
+    for t in &m.tables {
+        for a in &t.attrs {
+            pairs.push((a.name.clone(), camel(&a.name)));
+        }
+        for f in &t.fields {
+            pairs.push((f.name.clone(), camel(&f.name)));
+        }
+    }
+    writeln!(out, "\n#[cfg(test)]\nmod json_cover {{").unwrap();
+    writeln!(out, "    #[test]\n    fn json_fields_camel_props() {{").unwrap();
+    writeln!(out, "        for (field, key) in [").unwrap();
+    for (f, k) in &pairs {
+        writeln!(out, "            ({f:?}, {k:?}),").unwrap();
+    }
+    writeln!(out, "        ] {{").unwrap();
+    writeln!(out, "            assert_eq!(crate::bind::native::json::camel_case(field), key, \"{{field}} 的 JSON 键须为 camelCase\");").unwrap();
+    writeln!(out, "        }}\n    }}\n}}").unwrap();
 }
 
 // ---- 名字工具 ----------------------------------------------------------------------------------
@@ -478,10 +703,12 @@ fn gen_enum(out: &mut String, name: &str, decl: &EnumDecl) {
         assert!(seen.insert(var.clone()), "enum {name}: 值 `{v}` 的变体名 `{var}` 重复");
     }
     doc_attr(out, "", &decl.doc);
-    writeln!(out, "#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]").unwrap();
+    // Ord 按声明顺序：枚举值要能当 BTreeMap 的键（resolve 的条件格式表）
+    writeln!(out, "#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, ::serde::Serialize, ::serde::Deserialize)]").unwrap();
     writeln!(out, "pub enum {name} {{").unwrap();
     for (v, var) in &variants {
         writeln!(out, "    /// `{v}`").unwrap();
+        writeln!(out, "    #[serde(rename = {v:?})]").unwrap();
         writeln!(out, "    {var},").unwrap();
     }
     writeln!(out, "}}\n").unwrap();
@@ -528,7 +755,12 @@ fn gen_enum(out: &mut String, name: &str, decl: &EnumDecl) {
 
 fn gen_struct(out: &mut String, name: &str, decl: &StructDecl, attrs: &[Attr]) {
     doc_attr(out, "", &decl.doc);
-    writeln!(out, "#[derive(Debug, Clone, Default, PartialEq, Eq)]").unwrap();
+    writeln!(
+        out,
+        "#[derive(Debug, Clone, Default, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]"
+    )
+    .unwrap();
+    writeln!(out, "#[serde(default, rename_all = \"camelCase\", deny_unknown_fields)]").unwrap();
     writeln!(out, "pub struct {name} {{").unwrap();
     for a in attrs {
         let doc = if a.doc.is_empty() {
@@ -537,6 +769,7 @@ fn gen_struct(out: &mut String, name: &str, decl: &StructDecl, attrs: &[Attr]) {
             format!("`@{}`：{}", a.attr.text, a.doc)
         };
         doc_attr(out, "    ", &doc);
+        writeln!(out, "    #[serde(skip_serializing_if = \"Option::is_none\")]").unwrap();
         writeln!(out, "    pub {}: Option<{}>,", a.name, a.value).unwrap();
     }
     writeln!(out, "}}\n").unwrap();
@@ -605,11 +838,19 @@ fn gen_struct(out: &mut String, name: &str, decl: &StructDecl, attrs: &[Attr]) {
 
     writeln!(out, "    /// 没有任何属性。").unwrap();
     writeln!(out, "    pub fn is_empty(&self) -> bool {{").unwrap();
-    write!(out, "        true").unwrap();
-    for a in attrs {
-        write!(out, " && self.{}.is_none()", a.name).unwrap();
+    let clauses: Vec<String> = attrs.iter().map(|a| format!("self.{}.is_none()", a.name)).collect();
+    write_and_chain(out, &clauses);
+    writeln!(out, "    }}\n}}\n").unwrap();
+}
+
+/// 把若干条件用 " && " 连成一个布尔表达式并写出（空列表退化为 `true`）。
+/// 不写引导的 `true &&`，否则生成代码会触发 clippy::nonminimal_bool。
+fn write_and_chain(out: &mut impl std::fmt::Write, clauses: &[String]) {
+    if clauses.is_empty() {
+        writeln!(out, "        true").unwrap();
+    } else {
+        writeln!(out, "        {}", clauses.join(" && ")).unwrap();
     }
-    writeln!(out, "\n    }}\n}}\n").unwrap();
 }
 
 // ---- 生成：表 ----------------------------------------------------------------------------------
@@ -672,7 +913,9 @@ fn gen_table(out: &mut String, t: &Table) {
         format!("`{}`：{}", t.element.text, t.doc)
     };
     doc_attr(out, "", &doc);
-    writeln!(out, "#[derive(Debug, Clone, Default)]").unwrap();
+    writeln!(out, "#[derive(Debug, Clone, Default, ::serde::Serialize, ::serde::Deserialize)]")
+        .unwrap();
+    writeln!(out, "#[serde(default, rename_all = \"camelCase\", deny_unknown_fields)]").unwrap();
     writeln!(out, "pub struct {name} {{").unwrap();
     for a in &t.attrs {
         let d = if a.doc.is_empty() {
@@ -681,6 +924,7 @@ fn gen_table(out: &mut String, t: &Table) {
             format!("容器属性 `@{}`：{}", a.attr.text, a.doc)
         };
         doc_attr(out, "    ", &d);
+        writeln!(out, "    #[serde(skip_serializing_if = \"Option::is_none\")]").unwrap();
         writeln!(out, "    pub {}: Option<{}>,", a.name, a.value).unwrap();
     }
     for f in &t.fields {
@@ -692,23 +936,27 @@ fn gen_table(out: &mut String, t: &Table) {
             write!(d, "：{}", f.doc).unwrap();
         }
         doc_attr(out, "    ", &d);
+        if !f.multi {
+            writeln!(out, "    #[serde(skip_serializing_if = \"Option::is_none\")]").unwrap();
+        }
         writeln!(out, "    pub {}: {},", f.name, field_ty(f)).unwrap();
     }
     writeln!(out, "    /// 未建模的子元素（含重复出现的建模元素）：原位保留，不参与比较。")
         .unwrap();
-    writeln!(out, "    pub raw_unmodeled: Vec<NodeId>,").unwrap();
+    writeln!(out, "    #[serde(skip)]\n    pub raw_unmodeled: Vec<NodeId>,").unwrap();
     writeln!(out, "}}\n").unwrap();
 
     writeln!(out, "impl PartialEq for {name} {{").unwrap();
     writeln!(out, "    fn eq(&self, o: &Self) -> bool {{").unwrap();
-    write!(out, "        true").unwrap();
-    for a in &t.attrs {
-        write!(out, " && self.{n} == o.{n}", n = a.name).unwrap();
-    }
-    for f in &t.fields {
-        write!(out, " && self.{n} == o.{n}", n = f.name).unwrap();
-    }
-    writeln!(out, "\n    }}\n}}\n").unwrap();
+    let clauses: Vec<String> = t
+        .attrs
+        .iter()
+        .map(|a| a.name.as_str())
+        .chain(t.fields.iter().map(|f| f.name.as_str()))
+        .map(|n| format!("self.{n} == o.{n}"))
+        .collect();
+    write_and_chain(out, &clauses);
+    writeln!(out, "    }}\n}}\n").unwrap();
     writeln!(out, "impl Eq for {name} {{}}\n").unwrap();
 
     // 字段枚举
@@ -890,26 +1138,38 @@ fn gen_table(out: &mut String, t: &Table) {
         "/// [`{name}`] 的变更集（`PROP-06`）：每个字段 `Keep | Unset | Set`，嵌套表另有 `Patch`。"
     )
     .unwrap();
-    writeln!(out, "#[derive(Debug, Clone, Default, PartialEq, Eq)]").unwrap();
+    writeln!(
+        out,
+        "#[derive(Debug, Clone, Default, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize)]"
+    )
+    .unwrap();
+    writeln!(out, "#[serde(default, rename_all = \"camelCase\", deny_unknown_fields)]").unwrap();
     writeln!(out, "pub struct {patch} {{").unwrap();
     for a in &t.attrs {
+        writeln!(out, "    #[serde(skip_serializing_if = \"Change::wire_is_keep\")]").unwrap();
         writeln!(out, "    pub {}: Change<{}>,", a.name, a.value).unwrap();
     }
     for f in &t.fields {
+        let change =
+            if matches!(&f.kind, Kind::Table(_)) && !f.multi { "TableChange" } else { "Change" };
+        writeln!(out, "    #[serde(skip_serializing_if = \"{change}::wire_is_keep\")]").unwrap();
         writeln!(out, "    pub {}: {},", f.name, patch_ty(f)).unwrap();
     }
     writeln!(out, "}}\n").unwrap();
 
     writeln!(out, "impl PropsPatch for {patch} {{").unwrap();
     writeln!(out, "    fn is_empty(&self) -> bool {{").unwrap();
-    write!(out, "        true").unwrap();
-    for a in &t.attrs {
-        write!(out, " && self.{}.is_keep()", a.name).unwrap();
-    }
-    for f in &t.fields {
-        write!(out, " && self.{}.is_keep()", f.name).unwrap();
-    }
-    writeln!(out, "\n    }}\n}}\n").unwrap();
+    // 逐项 `is_keep()` 用 " && " 连接；不写引导的 `true &&`，否则生成代码会触发
+    // clippy::nonminimal_bool（表为空时才退化成单独的 `true`）
+    let clauses: Vec<String> = t
+        .attrs
+        .iter()
+        .map(|a| a.name.as_str())
+        .chain(t.fields.iter().map(|f| f.name.as_str()))
+        .map(|n| format!("self.{n}.is_keep()"))
+        .collect();
+    write_and_chain(out, &clauses);
+    writeln!(out, "    }}\n}}\n").unwrap();
 
     writeln!(out, "impl {patch} {{").unwrap();
     writeln!(out, "    pub fn kind(&self, field: {field_enum}) -> ChangeKind {{").unwrap();

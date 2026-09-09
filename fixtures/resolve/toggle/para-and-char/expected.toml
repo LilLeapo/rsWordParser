@@ -1,0 +1,21 @@
+# RES-04 toggle 校准（任务 5.8）。观察值来自真实 Word，见 fixtures/resolve/README.md 的实测记录。
+#
+# 段落样式 b=true 与字符样式 b=true 叠加 → Word 显示**不加粗**。
+# 这一条推翻了"最具体的声明胜出"：两个不同层级各声明一次 true，Word 按奇偶抵消。
+
+doc = "toggle/para-and-char"
+
+[[run]]
+# 段落样式 PBold(b=true) + 字符样式 CBold(b=true)：两个层级，偶数次 → 不加粗
+text = "para b + char b"
+bold = false
+# 这个 false 谁都没单独写过：两层各写了一次 true，异或掉了
+source = "Toggle:CharStyle:CBold+ParaStyle:PBold"
+verified = true
+
+[[run]]
+# 只有段落样式 PBold(b=true)：一个层级，奇数次 → 加粗
+text = "para b only"
+bold = true
+source = "ParaStyle:PBold"
+verified = true

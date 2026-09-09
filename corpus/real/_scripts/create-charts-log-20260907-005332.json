@@ -1,0 +1,86 @@
+{
+  "Script": "create-charts.ps1",
+  "StartedUtc": "2026-09-06T16:53:32.6156153Z",
+  "UpdatedUtc": "2026-09-06T16:53:39.1505731Z",
+  "CompletedUtc": "2026-09-06T16:53:39.1497797Z",
+  "OutputRoot": "C:\\code\\rsWordParser\\real-word-corpus-20260906",
+  "WordVersion": "16.0",
+  "WordBuild": "16.0.14334",
+  "WordProductCode": "{90160000-000F-0000-1000-0000000FF1CE}",
+  "WindowsVersion": "Microsoft Windows NT 10.0.22631.0",
+  "PowerShellVersion": "7.6.5",
+  "SaveFormat": 12,
+  "Method": "Word COM; Documents.Add; InlineShapes.AddChart2; ChartData.Workbook; SaveAs2 once",
+  "ObservationStatus": "COM property readback only. Visual observation and copied-package self-check still required.",
+  "Entries": [
+    {
+      "RequestedFile": "chart/chart-column.docx",
+      "File": "chart/chart-column.docx",
+      "Requested": {
+        "NoTitle": null,
+        "Style": null,
+        "Palette": null,
+        "NoLegend": null,
+        "HoleSize": null,
+        "Floating": null,
+        "LegendTop": null,
+        "Gray": null,
+        "Name": "chart-column",
+        "InTable": null,
+        "SingleSeries": null,
+        "Combo": null,
+        "XY": null,
+        "Dates": null,
+        "Bubble": null,
+        "Type": 51,
+        "RedPoint": null,
+        "Kind": "clustered column",
+        "Color": null,
+        "ChartEx": null
+      },
+      "RequestedTitle": "销售统计",
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Name": "Series 1",
+          "Values": [
+            10,
+            20,
+            30
+          ]
+        },
+        "Series2": {
+          "Name": "Series 2",
+          "Values": [
+            15,
+            25,
+            35
+          ]
+        },
+        "BubbleSizes": null
+      },
+      "Status": "failed",
+      "Stage": "populate worksheet and SetSourceData",
+      "StartedUtc": "2026-09-06T16:53:34.6598648Z",
+      "FinishedUtc": "2026-09-06T16:53:38.9614624Z",
+      "Actual": null,
+      "Warnings": [],
+      "Error": {
+        "Message": "未指定的错误 (0x80004005 (E_FAIL))",
+        "HResult": "0x80004005",
+        "Detail": "未指定的错误 (0x80004005 (E_FAIL))",
+        "ScriptStackTrace": "at Set-ChartWorkbook, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 175\r\nat <ScriptBlock>, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-charts.ps1: line 369"
+      },
+      "SavedOnce": false,
+      "Bytes": null,
+      "PackageCheck": null,
+      "PreviewFile": null,
+      "PreviewStatus": "not-exported"
+    }
+  ],
+  "FatalError": null
+}

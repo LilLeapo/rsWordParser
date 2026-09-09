@@ -1,0 +1,141 @@
+{
+    "recorded":  1544,
+    "expected":  1544,
+    "actual_unique_baselines":  180,
+    "open_ok":  1544,
+    "open_error":  0,
+    "assessments":  [
+                        {
+                            "result":  "pass",
+                            "count":  1526
+                        },
+                        {
+                            "result":  "mismatch",
+                            "count":  7
+                        },
+                        {
+                            "result":  "incomplete",
+                            "count":  11
+                        }
+                    ],
+    "ui_checked":  69,
+    "missing_mandatory_ui":  [
+
+                             ],
+    "missing_planned_ui":  [],
+    "comparison_counts":  [
+                              {
+                                  "result":  "added",
+                                  "count":  600
+                              },
+                              {
+                                  "result":  "unchanged",
+                                  "count":  929
+                              },
+                              {
+                                  "result":  "fixed",
+                                  "count":  15
+                              }
+                          ],
+    "non_generated_manifest_entries":  [
+                                           {
+                                               "base":  "chart/chartex-boxwhisker-2.docx",
+                                               "expect":  "",
+                                               "file":  "chartex-boxwhisker-2--chartdata.docx",
+                                               "op":  "chartdata",
+                                               "status":  "skipped: edit rejected (EDIT_UNSUPPORTED): chartex（cx:chartSpace）图表只有降级显示，SetChartData 不支持"
+                                           },
+                                           {
+                                               "base":  "chart/chartex-boxwhisker.docx",
+                                               "expect":  "",
+                                               "file":  "chartex-boxwhisker--chartdata.docx",
+                                               "op":  "chartdata",
+                                               "status":  "skipped: edit rejected (EDIT_UNSUPPORTED): chartex（cx:chartSpace）图表只有降级显示，SetChartData 不支持"
+                                           },
+                                           {
+                                               "base":  "chart/chartex-funnel-2.docx",
+                                               "expect":  "",
+                                               "file":  "chartex-funnel-2--chartdata.docx",
+                                               "op":  "chartdata",
+                                               "status":  "skipped: edit rejected (EDIT_UNSUPPORTED): chartex（cx:chartSpace）图表只有降级显示，SetChartData 不支持"
+                                           },
+                                           {
+                                               "base":  "chart/chartex-funnel.docx",
+                                               "expect":  "",
+                                               "file":  "chartex-funnel--chartdata.docx",
+                                               "op":  "chartdata",
+                                               "status":  "skipped: edit rejected (EDIT_UNSUPPORTED): chartex（cx:chartSpace）图表只有降级显示，SetChartData 不支持"
+                                           },
+                                           {
+                                               "base":  "chart/chartex-histogram-2.docx",
+                                               "expect":  "",
+                                               "file":  "chartex-histogram-2--chartdata.docx",
+                                               "op":  "chartdata",
+                                               "status":  "skipped: edit rejected (EDIT_UNSUPPORTED): chartex（cx:chartSpace）图表只有降级显示，SetChartData 不支持"
+                                           },
+                                           {
+                                               "base":  "chart/chartex-histogram.docx",
+                                               "expect":  "",
+                                               "file":  "chartex-histogram--chartdata.docx",
+                                               "op":  "chartdata",
+                                               "status":  "skipped: edit rejected (EDIT_UNSUPPORTED): chartex（cx:chartSpace）图表只有降级显示，SetChartData 不支持"
+                                           },
+                                           {
+                                               "base":  "chart/chartex-sunburst-2.docx",
+                                               "expect":  "",
+                                               "file":  "chartex-sunburst-2--chartdata.docx",
+                                               "op":  "chartdata",
+                                               "status":  "skipped: edit rejected (EDIT_UNSUPPORTED): chartex（cx:chartSpace）图表只有降级显示，SetChartData 不支持"
+                                           },
+                                           {
+                                               "base":  "chart/chartex-sunburst.docx",
+                                               "expect":  "",
+                                               "file":  "chartex-sunburst--chartdata.docx",
+                                               "op":  "chartdata",
+                                               "status":  "skipped: edit rejected (EDIT_UNSUPPORTED): chartex（cx:chartSpace）图表只有降级显示，SetChartData 不支持"
+                                           },
+                                           {
+                                               "base":  "chart/chartex-treemap.docx",
+                                               "expect":  "",
+                                               "file":  "chartex-treemap--chartdata.docx",
+                                               "op":  "chartdata",
+                                               "status":  "skipped: edit rejected (EDIT_UNSUPPORTED): chartex（cx:chartSpace）图表只有降级显示，SetChartData 不支持"
+                                           },
+                                           {
+                                               "base":  "chart/chartex-waterfall-2.docx",
+                                               "expect":  "",
+                                               "file":  "chartex-waterfall-2--chartdata.docx",
+                                               "op":  "chartdata",
+                                               "status":  "skipped: edit rejected (EDIT_UNSUPPORTED): chartex（cx:chartSpace）图表只有降级显示，SetChartData 不支持"
+                                           },
+                                           {
+                                               "base":  "chart/chartex-waterfall.docx",
+                                               "expect":  "",
+                                               "file":  "chartex-waterfall--chartdata.docx",
+                                               "op":  "chartdata",
+                                               "status":  "skipped: edit rejected (EDIT_UNSUPPORTED): chartex（cx:chartSpace）图表只有降级显示，SetChartData 不支持"
+                                           },
+                                           {
+                                               "base":  "fields2/fields-toc-stale.docx",
+                                               "expect":  "正文第二个块（多半是特征本身）整块消失，前后文照旧；文件里它独占的媒体 / 图表 part 一起消失",
+                                               "file":  "fields-toc-stale--deleteblock.docx",
+                                               "op":  "deleteblock",
+                                               "status":  "save failed: engine invariant violated: [FLD_STRAY_END] part#2 (engine invariant violation): 字段结构在本次编辑后新增了 1 处 FLD_STRAY_END 缺陷"
+                                           }
+                                       ],
+    "declared_unavailable_sampling":  [
+                                          "M7 chartdata: no generated derivative in supplied manifest"
+                                      ],
+    "reviewed_counts":  [
+                            {
+                                "result":  "pass",
+                                "count":  1533
+                            },
+                            {
+                                "result":  "incomplete",
+                                "count":  11
+                            }
+                        ],
+    "independent_ink_review_count":  7,
+    "reviewed_counts_scope":  "Original measured checks plus separately hash-verified ink-list interpretation; UI findings remain separate."
+}

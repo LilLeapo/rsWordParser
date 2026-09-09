@@ -1,0 +1,18 @@
+# RES-10 节继承校准（任务 5.8）。观察值来自真实 Word，见 fixtures/resolve/README.md 的实测记录。
+#
+# 第二节自己没有 headerReference，Word 在第二页显示的仍是第一节的页眉——与 ECMA-376
+# §17.10.1 一致，也与本引擎的 `HfSlot::Inherited` 一致。
+
+doc = "sections/inherit-default"
+
+[[section]]
+idx = 0
+header_default = "第一节页眉"
+inherited_from = -1
+verified = true
+
+[[section]]
+idx = 1
+header_default = "第一节页眉"
+inherited_from = 0
+verified = true

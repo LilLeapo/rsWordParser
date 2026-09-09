@@ -1,0 +1,138 @@
+{
+  "blank/blank-new": {
+    "pdfSha256": "7E4A5B922DA41593314E36386EA2EF1C6CDB1B498C1FE73F9801B914D9E5FC6D",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+    "observation": "One completely blank white page. No visible text, marks, header or footer. The blank appearance is expected; the raster has zero pixels below the nonwhite threshold.",
+    "issues": [],
+    "evidence": ["screenshots/task-d-pdf/blank--blank-new-page-1.png"]
+  },
+  "blank/blank-styles-used": {
+    "pdfSha256": "CC03AB8D876C0437C16A26C485A65DD6AAE73A596AF3A405C28C639692C30FD5",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+    "observation": "One completely blank white page after the previously styled content was deleted. No visible text or objects. Retained style definitions are established separately by the DOCX structure check.",
+    "issues": [],
+    "evidence": ["screenshots/task-d-pdf/blank--blank-styles-used-page-1.png"]
+  },
+  "revisions2/rev-insert-delete": {
+    "pdfSha256": "15BA42259A37B9DEEE1DD5FE72068521FBAD89E03235EA0914E3BDA6BF723964",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+    "observation": "The before/after markers and both Author A and Author B inserted sentences are visible. The deleted original sentence is absent, leaving a blank paragraph. The PDF presents final content without revision colors or author balloons; revision types and authors require the separate DOCX/UI evidence.",
+    "issues": [],
+    "evidence": ["screenshots/task-d-pdf/revisions2--rev-insert-delete-page-1.png"]
+  },
+  "revisions2/rev-move": {
+    "pdfSha256": "848CF61FA27980400F3EAACF2B3EE7DE7949C6798AB99D27E2AD00B956B8137D",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+    "observation": "Two stationary paragraphs appear first. The moved original paragraph appears after both and immediately before the after marker. Text is readable without overlap. The PDF does not display tracked-move markup; native move tags are verified separately.",
+    "issues": [],
+    "evidence": ["screenshots/task-d-pdf/revisions2--rev-move-page-1.png"]
+  },
+  "revisions2/rev-format": {
+    "pdfSha256": "15AFA0ABEA659621182D50A43C653AEC07AC6D21B025F607D4384AFF43CD419E",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+    "observation": "Run formatting target is visibly bold red. Paragraph alignment and indent target is centered. Numbering target has a visible 1. marker. Before/after markers remain visible and the lines do not overlap.",
+    "issues": [],
+    "evidence": ["screenshots/task-d-pdf/revisions2--rev-format-page-1.png"]
+  },
+  "revisions2/rev-section": {
+    "pdfSha256": "44AD4DA3C96F249076A27B0A64A279FC1104126E9BD846CBBCFAF79AE14B9F1D",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+    "observation": "One landscape page. Before, Section formatting target, and after are visible near the top left, with no clipping or overlap. Exact margins and tracked section-change markup are established by the separate DOCX check.",
+    "issues": [],
+    "evidence": ["screenshots/task-d-pdf/revisions2--rev-section-page-1.png"]
+  },
+  "revisions2/rev-accept-reject": {
+    "pdfSha256": "78F8D5DF185C18114E70073C21409C608487FFC30C42D070594A5A4F0786F871",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+    "observation": "First original anchor is followed by ACCEPTED-INSERT. Second original anchor has no REJECTED-INSERT. Third original anchor is followed by PENDING-INSERT. Before/after markers remain visible. The pending revision's native status is verified separately because this PDF shows final content.",
+    "issues": [],
+    "evidence": ["screenshots/task-d-pdf/revisions2--rev-accept-reject-page-1.png"]
+  },
+  "revisions2/rev-comment-threads": {
+    "pdfSha256": "25EFA86BCD078DE16DCFC2BC14BE4F6C4C1DED824E0C69DEF2189E54AD0D9DD5",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+    "observation": "The three body paragraphs for the threaded, whole-paragraph and one-word comment targets are visible between before/after. No comment balloons or reply text appear in this final-content PDF. Comment counts, reply hierarchy and resolved state require the separate DOCX/UI evidence.",
+    "issues": ["The independent DOCX check finds two sibling replies to the root, with maximum reply depth 1; the requested second nesting level was flattened by Word."],
+    "evidence": ["screenshots/task-d-pdf/revisions2--rev-comment-threads-page-1.png"]
+  },
+  "fields2/fields-seq-captions": {
+    "pdfSha256": "AAD57556DAB83F5AFF49CEE2D99625EE80C902282A91E3667DCB766B5E6C01A0",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+    "observation": "Three small blue/yellow images appear vertically, each followed by a figure caption numbered 1, 2, and 3. The cross-reference below the third image displays figure 2. Before/after markers are visible and no labels overlap.",
+    "issues": [],
+    "evidence": ["screenshots/task-d-pdf/fields2--fields-seq-captions-page-1.png"]
+  },
+  "fields2/fields-index": {
+    "pdfSha256": "D3B923569DA2B91A64C8D12DD5F2A552BA0BAF309E36B235EA3AEC75D9CCFB21",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+    "observation": "Alpha, Beta, and Gamma sample lines are followed by an alphabetical index with A, B, and G headings. Each indexed term has page number 1. XE field codes are not printed. Before/after markers remain visible.",
+    "issues": [],
+    "evidence": ["screenshots/task-d-pdf/fields2--fields-index-page-1.png"]
+  },
+  "fields2/fields-toc-stale": {
+    "pdfSha256": "14091FB948F7CD99B645F48A66536CAB21711B5AEEA344A8063A3D4BE9612B13",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x, compared with saved DOCX cached field text.",
+    "observation": "The TOC retains Original heading one/two/three with page number 1 for all three entries, while the body visibly uses Changed heading one/two and Original heading three. The three body heading levels have distinct sizes and formatting. No undefined-bookmark or other field error is visible. Before/after markers and all body text are readable without overlap. The independent DOCX check confirms all three PAGEREF targets retain paired bookmarks.",
+    "issues": [],
+    "evidence": ["screenshots/task-d-pdf/fields2--fields-toc-stale-page-1.png"]
+  },
+  "fields2/fields-citations": {
+    "pdfSha256": "782E2EFB42E34CFF352435D5723372913078C8EFFBBD49A5A7A88E14553355BD",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+    "observation": "Book citation displays (BookAuthor, 2026); journal citation displays (JournalAuthor, 2025). Two bibliography entries follow, containing Corpus Book and Corpus Journal Article, with book/journal titles visibly italicized. Before/after markers remain visible. No field error text appears.",
+    "issues": [],
+    "evidence": ["screenshots/task-d-pdf/fields2--fields-citations-page-1.png"]
+  },
+  "fields2/fields-page-in-footer": {
+    "pdfSha256": "14BA439612BBBE5EF2A42D059E3268CD069BF00D40F8B85A9E8D0ABEC540F80C",
+    "pageNumbers": [1, 2, 3],
+    "method": "Independent visual inspection of all three actual Word-exported PDF pages rendered with pypdfium2 at 1.25x.",
+    "observation": "Three portrait pages display Page one body, Page two body, and Page three body respectively. The left-aligned footer is page 1/3, 2/3, and 3/3 in the requested Chinese wording. Before appears on page 1 and after on page 3. Footer text is visible without clipping; a horizontal header rule appears on all three pages.",
+    "issues": [],
+    "evidence": ["screenshots/task-d-pdf/fields2--fields-page-in-footer-page-1.png", "screenshots/task-d-pdf/fields2--fields-page-in-footer-page-2.png", "screenshots/task-d-pdf/fields2--fields-page-in-footer-page-3.png"]
+  },
+  "sections2/sections-breaks-zoo": {
+    "pdfSha256": "7DAB0AB5EB09CC0BA68E882FBDD62EF368721BA55E19F37922A3238B67E06287",
+    "pageNumbers": [1, 2, 3, 4, 5],
+    "method": "Independent visual inspection of all five actual Word-exported PDF pages rendered with pypdfium2 at 1.25x.",
+    "observation": "Page 1 has before and Section one. Page 2 contains both Section 2 and Section 3. Page 3 is completely blank, consistent with the following section starting on an even page. Page 4 has Section 4; page 5 has Section 5 and after. The third section's custom first-page header text is not visible on any PDF page; content pages only have an empty header with a horizontal rule.",
+    "issues": ["The DOCX does contain third-section titlePg and a first-page header reference, but that custom text is not rendered on these five pages; section 3 begins continuously on the same page as section 2."],
+    "evidence": ["screenshots/task-d-pdf/sections2--sections-breaks-zoo-page-1.png", "screenshots/task-d-pdf/sections2--sections-breaks-zoo-page-2.png", "screenshots/task-d-pdf/sections2--sections-breaks-zoo-page-3.png", "screenshots/task-d-pdf/sections2--sections-breaks-zoo-page-4.png", "screenshots/task-d-pdf/sections2--sections-breaks-zoo-page-5.png"]
+  },
+  "image2/image-z-order": {
+    "pdfSha256": "65B5F3AB797373D7EB7335E706C8CAE9DA39385FEED24127B5D742B019D03314",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x, paired with native anchor-order checks.",
+    "observation": "Three copies of the same blue/yellow image overlap in a staircase descending to the right. The bottom-right image visibly covers the overlap in front. Before, Floating images anchor, and after are unobscured. The named picture order 2 behind 1 behind 3 is established by the independent DOCX relativeHeight check.",
+    "issues": [],
+    "evidence": ["screenshots/task-d-pdf/image2--image-z-order-page-1.png"]
+  },
+  "shapes2/textbox-linked": {
+    "pdfSha256": "BC69EED0DBA78706333DE3EC982ABF2C693F6E4DFC5CCD3278110E614EE3E8E1",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x, paired with native linked-textbox structure checks.",
+    "observation": "The left textbox contains Line 01 through Line 05; the right textbox contains Line 06 through Line 10, establishing visible story overflow. Both frames are aligned side by side below the before marker and Linked textboxes anchor body line. The after marker is below both frames. All ten text lines, frame boundaries and body markers are fully readable with no overlap or clipping. Native linked-textbox IDs and the continuation sequence are checked separately in DOCX structure.",
+    "issues": [],
+    "evidence": ["screenshots/task-d-pdf/shapes2--textbox-linked-page-1.png"]
+  },
+  "revisions2/rev-table": {
+    "pdfSha256": "8370476B9A501A19A37F4EC66F85E00E832C5D30735846E1D96E4A52706694AE",
+    "pageNumbers": [1],
+    "method": "Independent visual inspection of the actual Word-exported PDF rendered with pypdfium2 at 1.25x.",
+    "observation": "A red-bordered table has one full-width first-row cell containing Original R1 C1 and Original R1 C2 on separate lines, then two cells containing Inserted row left/right. The deleted original second row is absent in this final-content PDF. Before/after markers remain visible, with no clipping or overlap. Native row insertion/deletion, cell-property changes and one table-property change are independently present in the saved DOCX; the PDF itself shows final content without revision markup.",
+    "issues": [],
+    "evidence": ["screenshots/task-d-pdf/revisions2--rev-table-page-1.png"]
+  }
+}

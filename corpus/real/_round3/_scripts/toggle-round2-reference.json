@@ -1,0 +1,1228 @@
+{
+  "schemaVersion": 1,
+  "method": "Snapshot of completed round2 raw Word readings; no new Word measurement.",
+  "sourceRoot": "C:\\word\\real-word-round2-20260907",
+  "createdAt": "2026-09-07T13:46:55.9236832+08:00",
+  "rows": [
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "i twice",
+      "property": "Italic",
+      "declaredStyles": "paragraph Pi + character Ci",
+      "priorDesktopWord": false,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-other-toggles.json",
+      "priorReadoutSha256": "83EDB74734A96C5510467C8561D7A3BE6853F527DD9B9003DF712DECE75C2A2B",
+      "priorUiObservation": "页面文字直立，未显示倾斜。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面文字直立，未显示倾斜。"
+        }
+      ],
+      "priorRangeStart": 0,
+      "priorRangeEnd": 7
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "i once",
+      "property": "Italic",
+      "declaredStyles": "paragraph Pi",
+      "priorDesktopWord": true,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 9,
+          "selectionEnd": 9,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 9,
+          "selectionEnd": 9,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-other-toggles.json",
+      "priorReadoutSha256": "83EDB74734A96C5510467C8561D7A3BE6853F527DD9B9003DF712DECE75C2A2B",
+      "priorUiObservation": "页面文字倾斜，与同段前一句直立形成对照。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面文字倾斜，与同段前一句直立形成对照。"
+        }
+      ],
+      "priorRangeStart": 7,
+      "priorRangeEnd": 13
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "strike twice",
+      "property": "StrikeThrough",
+      "declaredStyles": "paragraph Pstrike + character Cstrike",
+      "priorDesktopWord": false,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 16,
+          "selectionEnd": 16,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 16,
+          "selectionEnd": 16,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-other-toggles.json",
+      "priorReadoutSha256": "83EDB74734A96C5510467C8561D7A3BE6853F527DD9B9003DF712DECE75C2A2B",
+      "priorUiObservation": "页面未显示单删除线；关键字体对话框中的删除线复选框未勾选。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面未显示单删除线；关键字体对话框中的删除线复选框未勾选。"
+        },
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-strike-twice-font-1-1.jpg",
+          "scope": "one recorded Font-dialog inspection for this case"
+        }
+      ],
+      "priorRangeStart": 14,
+      "priorRangeEnd": 26
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "strike once",
+      "property": "StrikeThrough",
+      "declaredStyles": "paragraph Pstrike",
+      "priorDesktopWord": true,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 28,
+          "selectionEnd": 28,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 28,
+          "selectionEnd": 28,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-other-toggles.json",
+      "priorReadoutSha256": "83EDB74734A96C5510467C8561D7A3BE6853F527DD9B9003DF712DECE75C2A2B",
+      "priorUiObservation": "页面显示单删除线。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面显示单删除线。"
+        }
+      ],
+      "priorRangeStart": 26,
+      "priorRangeEnd": 37
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "caps twice",
+      "property": "AllCaps",
+      "declaredStyles": "paragraph Pcaps + character Ccaps",
+      "priorDesktopWord": false,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 40,
+          "selectionEnd": 40,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 40,
+          "selectionEnd": 40,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-other-toggles.json",
+      "priorReadoutSha256": "83EDB74734A96C5510467C8561D7A3BE6853F527DD9B9003DF712DECE75C2A2B",
+      "priorUiObservation": "页面仍显示小写 caps twice。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面仍显示小写 caps twice。"
+        }
+      ],
+      "priorRangeStart": 38,
+      "priorRangeEnd": 48
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "caps once",
+      "property": "AllCaps",
+      "declaredStyles": "paragraph Pcaps",
+      "priorDesktopWord": true,
+      "priorSamples": [
+        {
+          "selectionStart": 50,
+          "raw": -1,
+          "read": 1,
+          "value": true,
+          "selectionEnd": 50
+        },
+        {
+          "selectionStart": 50,
+          "raw": -1,
+          "read": 2,
+          "value": true,
+          "selectionEnd": 50
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-other-toggles.json",
+      "priorReadoutSha256": "83EDB74734A96C5510467C8561D7A3BE6853F527DD9B9003DF712DECE75C2A2B",
+      "priorUiObservation": "页面显示 CAPS ONCE；补测两次 AllCaps=-1。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面显示 CAPS ONCE；补测两次 AllCaps=-1。"
+        }
+      ],
+      "priorRangeStart": 48,
+      "priorRangeEnd": 57
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "smallcaps twice",
+      "property": "SmallCaps",
+      "declaredStyles": "paragraph Psmallcaps + character Csmallcaps",
+      "priorDesktopWord": false,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 60,
+          "selectionEnd": 60,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 60,
+          "selectionEnd": 60,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-other-toggles.json",
+      "priorReadoutSha256": "83EDB74734A96C5510467C8561D7A3BE6853F527DD9B9003DF712DECE75C2A2B",
+      "priorUiObservation": "页面显示普通小写 smallcaps twice。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面显示普通小写 smallcaps twice。"
+        }
+      ],
+      "priorRangeStart": 58,
+      "priorRangeEnd": 73
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "smallcaps once",
+      "property": "SmallCaps",
+      "declaredStyles": "paragraph Psmallcaps",
+      "priorDesktopWord": true,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 75,
+          "selectionEnd": 75,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 75,
+          "selectionEnd": 75,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-other-toggles.json",
+      "priorReadoutSha256": "83EDB74734A96C5510467C8561D7A3BE6853F527DD9B9003DF712DECE75C2A2B",
+      "priorUiObservation": "页面显示小型大写 SMALLCAPS ONCE。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面显示小型大写 SMALLCAPS ONCE。"
+        }
+      ],
+      "priorRangeStart": 73,
+      "priorRangeEnd": 87
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "dstrike twice",
+      "property": "DoubleStrikeThrough",
+      "declaredStyles": "paragraph Pdstrike + character Cdstrike",
+      "priorDesktopWord": true,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 90,
+          "selectionEnd": 90,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 90,
+          "selectionEnd": 90,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-other-toggles.json",
+      "priorReadoutSha256": "83EDB74734A96C5510467C8561D7A3BE6853F527DD9B9003DF712DECE75C2A2B",
+      "priorUiObservation": "页面显示双删除线；关键字体对话框中的双删除线复选框已勾选。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面显示双删除线；关键字体对话框中的双删除线复选框已勾选。"
+        },
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-dstrike-twice-font-1.jpg",
+          "scope": "one recorded Font-dialog inspection for this case"
+        }
+      ],
+      "priorRangeStart": 88,
+      "priorRangeEnd": 101
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "dstrike once",
+      "property": "DoubleStrikeThrough",
+      "declaredStyles": "paragraph Pdstrike",
+      "priorDesktopWord": true,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 103,
+          "selectionEnd": 103,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 103,
+          "selectionEnd": 103,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-other-toggles.json",
+      "priorReadoutSha256": "83EDB74734A96C5510467C8561D7A3BE6853F527DD9B9003DF712DECE75C2A2B",
+      "priorUiObservation": "页面显示双删除线。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面显示双删除线。"
+        }
+      ],
+      "priorRangeStart": 101,
+      "priorRangeEnd": 113
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "vanish twice",
+      "property": "Hidden",
+      "declaredStyles": "paragraph Pvanish + character Cvanish",
+      "priorDesktopWord": false,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 114,
+          "selectionEnd": 126,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 114,
+          "selectionEnd": 126,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-other-toggles.json",
+      "priorReadoutSha256": "83EDB74734A96C5510467C8561D7A3BE6853F527DD9B9003DF712DECE75C2A2B",
+      "priorUiObservation": "关闭隐藏文字显示后，该句仍然可见；整句两次 Hidden=0。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "关闭隐藏文字显示后，该句仍然可见；整句两次 Hidden=0。"
+        }
+      ],
+      "priorRangeStart": 114,
+      "priorRangeEnd": 126
+    },
+    {
+      "file": "toggle-other-toggles.docx",
+      "sentence": "vanish once",
+      "property": "Hidden",
+      "declaredStyles": "paragraph Pvanish",
+      "priorDesktopWord": true,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 126,
+          "selectionEnd": 137,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 126,
+          "selectionEnd": 137,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-other-toggles.json",
+      "priorReadoutSha256": "83EDB74734A96C5510467C8561D7A3BE6853F527DD9B9003DF712DECE75C2A2B",
+      "priorUiObservation": "关闭隐藏文字显示后，该句不显示；整句两次 Hidden=-1，关键字体对话框的隐藏复选框已勾选。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-other-render-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "关闭隐藏文字显示后，该句不显示；整句两次 Hidden=-1，关键字体对话框的隐藏复选框已勾选。"
+        },
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-vanish-once-font-1.jpg",
+          "scope": "one recorded Font-dialog inspection for this case"
+        }
+      ],
+      "priorRangeStart": 126,
+      "priorRangeEnd": 137
+    },
+    {
+      "file": "toggle-para-and-char.docx",
+      "sentence": "para b + char b",
+      "property": "Bold",
+      "declaredStyles": "paragraph PBold + character CBold",
+      "priorDesktopWord": false,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": null,
+      "priorFileCompatibilityMode": null,
+      "priorCompatibilityNote": "Exact numeric value absent in round2; prior GUI title showed compatibility mode.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-para-and-char.json",
+      "priorReadoutSha256": "3C06CB32D07E06F2A3F9BE10ACF990710899ADBAFAA5D6687BC71068651BFDEC",
+      "priorUiObservation": "页面第一句不加粗。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-para-and-char-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面第一句不加粗。"
+        }
+      ],
+      "priorRangeStart": 0,
+      "priorRangeEnd": 15
+    },
+    {
+      "file": "toggle-para-and-char.docx",
+      "sentence": "para b only",
+      "property": "Bold",
+      "declaredStyles": "paragraph PBold",
+      "priorDesktopWord": true,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 18,
+          "selectionEnd": 18,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 18,
+          "selectionEnd": 18,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": null,
+      "priorFileCompatibilityMode": null,
+      "priorCompatibilityNote": "Exact numeric value absent in round2; prior GUI title showed compatibility mode.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-para-and-char.json",
+      "priorReadoutSha256": "3C06CB32D07E06F2A3F9BE10ACF990710899ADBAFAA5D6687BC71068651BFDEC",
+      "priorUiObservation": "页面第二句加粗，截图中光标位于第二句时加粗按钮按下。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-para-and-char-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面第二句加粗，截图中光标位于第二句时加粗按钮按下。"
+        }
+      ],
+      "priorRangeStart": 16,
+      "priorRangeEnd": 27
+    },
+    {
+      "file": "toggle-docdefaults-and-para.docx",
+      "sentence": "docDefaults b + para b",
+      "property": "Bold",
+      "declaredStyles": "docDefaults b + paragraph PBold",
+      "priorDesktopWord": true,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "Times New Roman",
+          "fontNameAscii": "Times New Roman",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "Times New Roman",
+          "fontNameAscii": "Times New Roman",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-docdefaults-and-para.json",
+      "priorReadoutSha256": "68BDC1F52CDBE35DACED1D07DFCE47E08270AB7B295ECB57925166679CD3A752",
+      "priorUiObservation": "页面第一句加粗。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-docdefaults-and-para-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面第一句加粗。"
+        }
+      ],
+      "priorRangeStart": 0,
+      "priorRangeEnd": 22
+    },
+    {
+      "file": "toggle-docdefaults-and-para.docx",
+      "sentence": "docDefaults b only",
+      "property": "Bold",
+      "declaredStyles": "docDefaults b; no pStyle",
+      "priorDesktopWord": true,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 25,
+          "selectionEnd": 25,
+          "fontName": "Times New Roman",
+          "fontNameAscii": "Times New Roman",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 25,
+          "selectionEnd": 25,
+          "fontName": "Times New Roman",
+          "fontNameAscii": "Times New Roman",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-docdefaults-and-para.json",
+      "priorReadoutSha256": "68BDC1F52CDBE35DACED1D07DFCE47E08270AB7B295ECB57925166679CD3A752",
+      "priorUiObservation": "页面第二句加粗，截图中加粗按钮按下。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-docdefaults-and-para-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面第二句加粗，截图中加粗按钮按下。"
+        }
+      ],
+      "priorRangeStart": 23,
+      "priorRangeEnd": 41
+    },
+    {
+      "file": "toggle-docdefaults-and-para-off.docx",
+      "sentence": "docDefaults b + para b=0",
+      "property": "Bold",
+      "declaredStyles": "docDefaults b + paragraph POff b=0",
+      "priorDesktopWord": false,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "Times New Roman",
+          "fontNameAscii": "Times New Roman",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "Times New Roman",
+          "fontNameAscii": "Times New Roman",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-docdefaults-and-para-off.json",
+      "priorReadoutSha256": "8DE4D1162C59436789EE4266D3FBBDE0F2912054213343502D855BA176BB12C3",
+      "priorUiObservation": "页面第一句不加粗；第二句加粗形成对照。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-docdefaults-and-para-off-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面第一句不加粗；第二句加粗形成对照。"
+        }
+      ],
+      "priorRangeStart": 0,
+      "priorRangeEnd": 24
+    },
+    {
+      "file": "toggle-docdefaults-and-para-off.docx",
+      "sentence": "docDefaults b only",
+      "property": "Bold",
+      "declaredStyles": "docDefaults b; no pStyle",
+      "priorDesktopWord": true,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 27,
+          "selectionEnd": 27,
+          "fontName": "Times New Roman",
+          "fontNameAscii": "Times New Roman",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 27,
+          "selectionEnd": 27,
+          "fontName": "Times New Roman",
+          "fontNameAscii": "Times New Roman",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-docdefaults-and-para-off.json",
+      "priorReadoutSha256": "8DE4D1162C59436789EE4266D3FBBDE0F2912054213343502D855BA176BB12C3",
+      "priorUiObservation": "页面第二句加粗，截图中加粗按钮按下。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-docdefaults-and-para-off-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面第二句加粗，截图中加粗按钮按下。"
+        }
+      ],
+      "priorRangeStart": 25,
+      "priorRangeEnd": 43
+    },
+    {
+      "file": "toggle-based-on-two-levels.docx",
+      "sentence": "basedOn b + derived b",
+      "property": "Bold",
+      "declaredStyles": "paragraph Derived b; basedOn Base b",
+      "priorDesktopWord": true,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-based-on-two-levels.json",
+      "priorReadoutSha256": "36E210ED3C58AA70AC60AD2A17D2223FAB6DA17F1F4D9E83556C6F3A75083D02",
+      "priorUiObservation": "页面第一句加粗。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-based-on-two-levels-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面第一句加粗。"
+        }
+      ],
+      "priorRangeStart": 0,
+      "priorRangeEnd": 21
+    },
+    {
+      "file": "toggle-based-on-two-levels.docx",
+      "sentence": "base b only",
+      "property": "Bold",
+      "declaredStyles": "paragraph Base b",
+      "priorDesktopWord": true,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 24,
+          "selectionEnd": 24,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 24,
+          "selectionEnd": 24,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-based-on-two-levels.json",
+      "priorReadoutSha256": "36E210ED3C58AA70AC60AD2A17D2223FAB6DA17F1F4D9E83556C6F3A75083D02",
+      "priorUiObservation": "页面第二句加粗，截图中加粗按钮按下。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-based-on-two-levels-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面第二句加粗，截图中加粗按钮按下。"
+        }
+      ],
+      "priorRangeStart": 22,
+      "priorRangeEnd": 33
+    },
+    {
+      "file": "toggle-table-first-row.docx",
+      "sentence": "table firstRow b + para b",
+      "property": "Bold",
+      "declaredStyles": "table TBold firstRow b + paragraph PBold",
+      "priorDesktopWord": false,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-table-first-row.json",
+      "priorReadoutSha256": "00D9F22CF0FB96271C5E2D20C463EF82DAE48988141E27DD8C31E7FC39251444",
+      "priorUiObservation": "表格首行文字不加粗。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-table-first-row-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "表格首行文字不加粗。"
+        }
+      ],
+      "priorRangeStart": 0,
+      "priorRangeEnd": 25
+    },
+    {
+      "file": "toggle-table-first-row.docx",
+      "sentence": "table body + para b",
+      "property": "Bold",
+      "declaredStyles": "table TBold body without b + paragraph PBold",
+      "priorDesktopWord": true,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 29,
+          "selectionEnd": 29,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 29,
+          "selectionEnd": 29,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-table-first-row.json",
+      "priorReadoutSha256": "00D9F22CF0FB96271C5E2D20C463EF82DAE48988141E27DD8C31E7FC39251444",
+      "priorUiObservation": "表格正文行文字加粗，截图中加粗按钮按下。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-table-first-row-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "表格正文行文字加粗，截图中加粗按钮按下。"
+        }
+      ],
+      "priorRangeStart": 27,
+      "priorRangeEnd": 46
+    },
+    {
+      "file": "toggle-direct-off.docx",
+      "sentence": "direct b=0 over style b",
+      "property": "Bold",
+      "declaredStyles": "paragraph PBold + direct b=0",
+      "priorDesktopWord": false,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-direct-off.json",
+      "priorReadoutSha256": "ACA406C775B5A1A10FA0893FA1F5B4169DC1E57D79D07CFBEECC774319B3CC94",
+      "priorUiObservation": "页面第一句不加粗。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-direct-off-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面第一句不加粗。"
+        }
+      ],
+      "priorRangeStart": 0,
+      "priorRangeEnd": 23
+    },
+    {
+      "file": "toggle-direct-off.docx",
+      "sentence": "style b, no direct",
+      "property": "Bold",
+      "declaredStyles": "paragraph PBold",
+      "priorDesktopWord": true,
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 26,
+          "selectionEnd": 26,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 26,
+          "selectionEnd": 26,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\toggle-direct-off.json",
+      "priorReadoutSha256": "ACA406C775B5A1A10FA0893FA1F5B4169DC1E57D79D07CFBEECC774319B3CC94",
+      "priorUiObservation": "页面第二句加粗，截图中加粗按钮按下。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-direct-off-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面第二句加粗，截图中加粗按钮按下。"
+        }
+      ],
+      "priorRangeStart": 24,
+      "priorRangeEnd": 42
+    },
+    {
+      "file": "sections-inherit-default.docx",
+      "sentence": "第二页页眉",
+      "property": "HeaderDefault",
+      "declaredStyles": "section 1 header reference rIdX0; section 2 no headerReference",
+      "priorDesktopWord": "第一节页眉",
+      "priorSamples": [
+        {
+          "read": 1,
+          "raw": "第一节页眉\r",
+          "value": "第一节页眉",
+          "selectionStart": 0,
+          "selectionEnd": 6
+        },
+        {
+          "read": 2,
+          "raw": "第一节页眉\r",
+          "value": "第一节页眉",
+          "selectionStart": 0,
+          "selectionEnd": 6
+        }
+      ],
+      "priorCompatibilityMode": 12,
+      "priorFileCompatibilityMode": 12,
+      "priorCompatibilityNote": "Recorded numeric value retained.",
+      "priorReadoutPath": "C:\\word\\real-word-round2-20260907\\_scripts\\toggle-read\\round2-20260907-live\\sections-inherit-default.json",
+      "priorReadoutSha256": "62D01769D95FE64D861B21465E32851D897C89177F27BAF07E5BAEEB22E10EC3",
+      "priorUiObservation": "界面显示“页眉 - 第 2 节”“与上一节相同”和“第一节页眉”；两次正文页码定位为第 2 页，LinkToPrevious=true。",
+      "priorUiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-sections-inherit-default-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "界面显示“页眉 - 第 2 节”“与上一节相同”和“第一节页眉”；两次正文页码定位为第 2 页，LinkToPrevious=true。"
+        }
+      ],
+      "priorRangeStart": 0,
+      "priorRangeEnd": 6
+    }
+  ]
+}

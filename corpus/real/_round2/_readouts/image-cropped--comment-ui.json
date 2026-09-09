@@ -1,0 +1,32 @@
+﻿{
+    "file":  "image-cropped--comment.docx",
+    "compat":  15,
+    "paragraphs":  4,
+    "text":  "before 前文\r/\rafter 后文\r\r",
+    "inlineShapes":  1,
+    "shapes":  0,
+    "charts":  [
+
+               ],
+    "shapeDetails":  [
+
+                     ],
+    "comments":  [
+                     {
+                         "scope":  "befo",
+                         "author":  "rsword",
+                         "text":  "rsword 批注"
+                     }
+                 ],
+    "headers":  [
+                    {
+                        "even":  "\r",
+                        "primary":  "\r",
+                        "first":  "\r",
+                        "index":  1
+                    }
+                ],
+    "tables":  [
+
+               ]
+}

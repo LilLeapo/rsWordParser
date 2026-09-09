@@ -1,0 +1,45 @@
+﻿{
+    "file":  "02-chart-setdata.docx",
+    "compat":  15,
+    "paragraphs":  4,
+    "text":  "before 前文\r/\rafter 后文\r\r",
+    "inlineShapes":  1,
+    "shapes":  0,
+    "charts":  [
+                   {
+                       "title":  "已改标题 Edited",
+                       "type":  51,
+                       "series":  [
+                                      {
+                                          "categories":  [
+                                                             "Category 1",
+                                                             "Category 2",
+                                                             "Category 3"
+                                                         ],
+                                          "values":  [
+                                                         9,
+                                                         8,
+                                                         7
+                                                     ],
+                                          "name":  "改名系列"
+                                      },
+                                      {
+                                          "categories":  [
+                                                             "Category 1",
+                                                             "Category 2",
+                                                             "Category 3"
+                                                         ],
+                                          "values":  [
+                                                         15,
+                                                         25,
+                                                         35
+                                                     ],
+                                          "name":  "Series 2"
+                                      }
+                                  ]
+                   }
+               ],
+    "shapeDetails":  [
+
+                     ]
+}

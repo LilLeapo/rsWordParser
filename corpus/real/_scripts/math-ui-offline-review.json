@@ -1,0 +1,102 @@
+[
+  {
+    "file": "math/math-display-two-2.docx",
+    "copy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\math-ui-offline\\20260907-025249-632\\math-display-two-2.zip",
+    "sourceSha256": "85633957FE4DE648B22DCC55A3503A24033BEDD358CD70BDA11E3A6089BACA1D",
+    "originalUnchanged": true,
+    "oMathParaCount": 1,
+    "oMathCount": 2,
+    "equationsPerMathParagraph": [
+      2
+    ],
+    "equations": [
+      {
+        "text": "1+1=2",
+        "lineBreaks": 1
+      },
+      {
+        "text": "2+2=4",
+        "lineBreaks": 0
+      }
+    ],
+    "paragraphs": [
+      {
+        "text": "before 前文",
+        "mathParagraphCount": 0
+      },
+      {
+        "text": "1+1=22+2=4",
+        "mathParagraphCount": 1
+      },
+      {
+        "text": "after 后文",
+        "mathParagraphCount": 0
+      },
+      {
+        "text": "",
+        "mathParagraphCount": 0
+      }
+    ],
+    "runFontSizesHalfPoints": [
+      "22"
+    ],
+    "mathRuns": [
+      "<m:r xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:sz w:val=\"22\" /></w:rPr><m:t>1+1=2</m:t></m:r>",
+      "<m:r xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:sz w:val=\"22\" /></w:rPr><w:br xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" /></m:r>",
+      "<m:r xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:sz w:val=\"22\" /></w:rPr><m:t>2+2=4</m:t></m:r>"
+    ],
+    "mathParagraphXml": [
+      "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:sz w:val=\"22\" /></w:rPr><m:t>1+1=2</m:t></m:r><m:r><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:sz w:val=\"22\" /></w:rPr><w:br xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" /></m:r></m:oMath><m:oMath><m:r><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:sz w:val=\"22\" /></w:rPr><m:t>2+2=4</m:t></m:r></m:oMath></m:oMathPara>"
+    ]
+  },
+  {
+    "file": "math/math-styled-2.docx",
+    "copy": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\math-ui-offline\\20260907-025249-632\\math-styled-2.zip",
+    "sourceSha256": "7DEF3ED8CE64E484434B6702F0193C5790101311D8E08237B0E3A6AEAB7501AA",
+    "originalUnchanged": true,
+    "oMathParaCount": 1,
+    "oMathCount": 1,
+    "equationsPerMathParagraph": [
+      1
+    ],
+    "equations": [
+      {
+        "text": "a+b2+x2",
+        "lineBreaks": 0
+      }
+    ],
+    "paragraphs": [
+      {
+        "text": "before 前文",
+        "mathParagraphCount": 0
+      },
+      {
+        "text": "a+b2+x2",
+        "mathParagraphCount": 1
+      },
+      {
+        "text": "after 后文",
+        "mathParagraphCount": 0
+      },
+      {
+        "text": "",
+        "mathParagraphCount": 0
+      }
+    ],
+    "runFontSizesHalfPoints": [
+      "28",
+      "40"
+    ],
+    "mathRuns": [
+      "<m:r xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:rPr><m:nor /></m:rPr><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:i /><w:color w:val=\"FF0000\" /><w:sz w:val=\"40\" /></w:rPr><m:t>a</m:t></m:r>",
+      "<m:r xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:color w:val=\"000000\" /><w:sz w:val=\"28\" /></w:rPr><m:t>+b</m:t></m:r>",
+      "<m:r xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:color w:val=\"000000\" /><w:sz w:val=\"28\" /></w:rPr><m:t>2</m:t></m:r>",
+      "<m:r xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:color w:val=\"000000\" /><w:sz w:val=\"28\" /></w:rPr><m:t>+</m:t></m:r>",
+      "<m:r xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:color w:val=\"000000\" /><w:sz w:val=\"28\" /></w:rPr><m:t>x</m:t></m:r>",
+      "<m:r xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:color w:val=\"000000\" /><w:sz w:val=\"28\" /></w:rPr><m:t>2</m:t></m:r>"
+    ],
+    "mathParagraphXml": [
+      "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMathParaPr><m:jc m:val=\"center\" /></m:oMathParaPr><m:oMath><m:f><m:fPr><m:ctrlPr><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:color w:val=\"000000\" /><w:sz w:val=\"28\" /></w:rPr></m:ctrlPr></m:fPr><m:num><m:r><m:rPr><m:nor /></m:rPr><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:i /><w:color w:val=\"FF0000\" /><w:sz w:val=\"40\" /></w:rPr><m:t>a</m:t></m:r><m:r><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:color w:val=\"000000\" /><w:sz w:val=\"28\" /></w:rPr><m:t>+b</m:t></m:r><m:ctrlPr><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:i /><w:color w:val=\"000000\" /><w:sz w:val=\"28\" /></w:rPr></m:ctrlPr></m:num><m:den><m:r><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:color w:val=\"000000\" /><w:sz w:val=\"28\" /></w:rPr><m:t>2</m:t></m:r><m:ctrlPr><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:i /><w:color w:val=\"000000\" /><w:sz w:val=\"28\" /></w:rPr></m:ctrlPr></m:den></m:f><m:r><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:color w:val=\"000000\" /><w:sz w:val=\"28\" /></w:rPr><m:t>+</m:t></m:r><m:sSup><m:sSupPr><m:ctrlPr><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:i /><w:color w:val=\"000000\" /><w:sz w:val=\"28\" /></w:rPr></m:ctrlPr></m:sSupPr><m:e><m:r><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:color w:val=\"000000\" /><w:sz w:val=\"28\" /></w:rPr><m:t>x</m:t></m:r></m:e><m:sup><m:r><w:rPr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:rFonts w:ascii=\"Cambria Math\" w:hAnsi=\"Cambria Math\" /><w:color w:val=\"000000\" /><w:sz w:val=\"28\" /></w:rPr><m:t>2</m:t></m:r></m:sup></m:sSup></m:oMath></m:oMathPara>"
+    ]
+  }
+]

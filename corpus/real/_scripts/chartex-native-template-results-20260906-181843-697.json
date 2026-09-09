@@ -1,0 +1,47 @@
+﻿{
+    "startedUtc":  "2026-09-06T18:18:43.7146033Z",
+    "method":  "Word Documents.Add(existing native DOCX as template), Chart.ChartType conversion, one SaveAs2 and Word PDF export",
+    "observationStatus":  "COM readback only; inspect actual Word UI or exported PDF separately",
+    "entries":  [
+                    {
+                        "case":  "chart/chartex-waterfall",
+                        "source":  "chart/chart-column.docx",
+                        "requestedType":  119,
+                        "status":  "failed",
+                        "stage":  "Native Chart.ChartType conversion",
+                        "savedOnce":  false,
+                        "sourceSha256Before":  "C62B982160004C32CC9EEEE579B7BF48090BA7A0824E69F9AF5D9036576D4E21",
+                        "file":  "chart/chartex-waterfall.docx",
+                        "preview":  "_previews/chart/chartex-waterfall.pdf",
+                        "before":  {
+                                       "series":  [
+                                                      {
+                                                          "index":  1,
+                                                          "Name":  "Series 1",
+                                                          "Formula":  null,
+                                                          "XValues":  null,
+                                                          "Values":  null
+                                                      }
+                                                  ],
+                                       "ChartType":  51,
+                                       "HasTitle":  true,
+                                       "HasLegend":  true,
+                                       "ChartStyle":  201,
+                                       "ChartColor":  10,
+                                       "title":  "销售统计",
+                                       "seriesError":  "The RPC server is unavailable. (Exception from HRESULT: 0x800706BA)"
+                                   },
+                        "error":  {
+                                      "message":  "The RPC server is unavailable. (Exception from HRESULT: 0x800706BA)",
+                                      "hresult":  "0x800706BA",
+                                      "scriptStack":  "at \u003cScriptBlock\u003e, C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-chartex-from-native-template.ps1: line 92\r\nat \u003cScriptBlock\u003e, \u003cNo file\u003e: line 1"
+                                  },
+                        "closeError":  "The RPC server is unavailable. (Exception from HRESULT: 0x800706BA)",
+                        "sourceSha256After":  "C62B982160004C32CC9EEEE579B7BF48090BA7A0824E69F9AF5D9036576D4E21",
+                        "sourceUnchanged":  true,
+                        "finishedUtc":  "2026-09-06T18:18:45.1363495Z"
+                    }
+                ],
+    "wordVersion":  "16.0",
+    "wordBuild":  "16.0.14334"
+}

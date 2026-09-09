@@ -1,0 +1,1802 @@
+{
+  "generatedAt": "2026-09-07T01:20:51.7661647+08:00",
+  "source": "Windows desktop Word COM; no package/XML editing",
+  "evidence": "Object-model observations only. Visual inspection and copied-package self-check are separate required steps.",
+  "cases": [
+    {
+      "runId": "2026-09-07T00:56:17.3114495+08:00",
+      "requestedFile": "smartart/smartart-list.docx",
+      "file": "smartart/smartart-list.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "基本列表，五个同级节点",
+      "details": {
+        "layoutName": "基本列表",
+        "layoutId": "urn:microsoft.com/office/officeart/2005/8/layout/default",
+        "colorName": "彩色填充 - 个性色 1",
+        "colorId": "urn:microsoft.com/office/officeart/2005/8/colors/accent1_2",
+        "quickStyleName": "简单填充",
+        "quickStyleId": "urn:microsoft.com/office/officeart/2005/8/quickstyle/simple1",
+        "nodesInObjectModelReadingOrder": [
+          {
+            "readingOrder": 1,
+            "level": 1,
+            "nodeType": 1,
+            "text": "第一项"
+          },
+          {
+            "readingOrder": 2,
+            "level": 1,
+            "nodeType": 1,
+            "text": "第二项"
+          },
+          {
+            "readingOrder": 3,
+            "level": 1,
+            "nodeType": 1,
+            "text": "第三项"
+          },
+          {
+            "readingOrder": 4,
+            "level": 1,
+            "nodeType": 1,
+            "text": "第四项"
+          },
+          {
+            "readingOrder": 5,
+            "level": 1,
+            "nodeType": 1,
+            "text": "第五项"
+          }
+        ],
+        "expectedConnectionAppearance": "基本列表，无流程连线",
+        "floating": false,
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 3,
+            "start": 12,
+            "end": 21
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/smartart/smartart-list.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 19395,
+      "pdfBytes": 23884
+    },
+    {
+      "runId": "2026-09-07T00:56:17.3114495+08:00",
+      "requestedFile": "math/math-fraction.docx",
+      "file": "math/math-fraction.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "OMaths.Add，UnicodeMath输入，BuildUp生成叠式分式和上标",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: Word did not build the requested fraction structure (function type 7).",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:187 char:52\r\n+ … s $Math)) { throw \"Word did not build the requested $Description stru …\r\n+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T00:58:44.4377354+08:00",
+      "requestedFile": "smartart/smartart-hierarchy.docx",
+      "file": "smartart/smartart-hierarchy.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "组织结构图，总经理下设部门A、部门B，部门A下设组1，总经理另有助理",
+      "details": {},
+      "error": "System.ArgumentException: 指定的值超出了范围。\r\n   at System.Management.Automation.ComInterop.ComRuntimeHelpers.CheckThrowException(Int32 hresult, ExcepInfo& excepInfo, ComMethodDesc method, Object[] args, UInt32 argErr)\r\n   at CallSite.Target(Closure, CallSite, ComObject, Int32, Int32)\r\n   at System.Dynamic.UpdateDelegates.UpdateAndExecute3[T0,T1,T2,TRet](CallSite site, T0 arg0, T1 arg1, T2 arg2)\r\n   at System.Management.Automation.Interpreter.DynamicInstruction`4.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:240 char:9\r\n+         $assistant = $root.AddNode(5, 2)\r\n+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T00:58:44.4377354+08:00",
+      "requestedFile": "smartart/smartart-process.docx",
+      "file": "smartart/smartart-process.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "基本流程，三个步骤",
+      "details": {
+        "layoutName": "基本流程",
+        "layoutId": "urn:microsoft.com/office/officeart/2005/8/layout/process1",
+        "colorName": "彩色填充 - 个性色 1",
+        "colorId": "urn:microsoft.com/office/officeart/2005/8/colors/accent1_2",
+        "quickStyleName": "简单填充",
+        "quickStyleId": "urn:microsoft.com/office/officeart/2005/8/quickstyle/simple1",
+        "nodesInObjectModelReadingOrder": [
+          {
+            "readingOrder": 1,
+            "level": 1,
+            "nodeType": 1,
+            "text": "准备"
+          },
+          {
+            "readingOrder": 2,
+            "level": 1,
+            "nodeType": 1,
+            "text": "执行"
+          },
+          {
+            "readingOrder": 3,
+            "level": 1,
+            "nodeType": 1,
+            "text": "完成"
+          }
+        ],
+        "expectedConnectionAppearance": "基本流程直线箭头",
+        "floating": false,
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 3,
+            "start": 12,
+            "end": 21
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/smartart/smartart-process.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 19344,
+      "pdfBytes": 24308
+    },
+    {
+      "runId": "2026-09-07T00:58:44.4377354+08:00",
+      "requestedFile": "smartart/smartart-cycle.docx",
+      "file": "smartart/smartart-cycle.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "基本循环，三个节点",
+      "details": {
+        "layoutName": "基本循环",
+        "layoutId": "urn:microsoft.com/office/officeart/2005/8/layout/cycle2",
+        "colorName": "彩色填充 - 个性色 1",
+        "colorId": "urn:microsoft.com/office/officeart/2005/8/colors/accent1_2",
+        "quickStyleName": "简单填充",
+        "quickStyleId": "urn:microsoft.com/office/officeart/2005/8/quickstyle/simple1",
+        "nodesInObjectModelReadingOrder": [
+          {
+            "readingOrder": 1,
+            "level": 1,
+            "nodeType": 1,
+            "text": "计划"
+          },
+          {
+            "readingOrder": 2,
+            "level": 1,
+            "nodeType": 1,
+            "text": "实施"
+          },
+          {
+            "readingOrder": 3,
+            "level": 1,
+            "nodeType": 1,
+            "text": "检查"
+          }
+        ],
+        "expectedConnectionAppearance": "基本循环弧形箭头",
+        "floating": false,
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 3,
+            "start": 12,
+            "end": 21
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/smartart/smartart-cycle.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 19832,
+      "pdfBytes": 24649
+    },
+    {
+      "runId": "2026-09-07T00:58:44.4377354+08:00",
+      "requestedFile": "smartart/smartart-picture.docx",
+      "file": "smartart/smartart-picture.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "图片列表，两个节点，各一个小PNG图片填充",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: Requested SmartArt layout not found: 图片列表, Picture List, 图片题注列表, Picture Caption List. Available layouts written to smartart-layouts.json.",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:115 char:5\r\n+     throw \"Requested SmartArt layout not found: $($Names -join ', '). …\r\n+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+      "closeError": "RPC 服务器不可用。 (0x800706BA)"
+    },
+    {
+      "runId": "2026-09-07T00:58:44.4377354+08:00",
+      "requestedFile": "smartart/smartart-styled.docx",
+      "file": "smartart/smartart-styled.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "基本流程，彩色范围，三维SmartArt样式",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:462 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T00:58:44.4377354+08:00",
+      "requestedFile": "smartart/smartart-floating.docx",
+      "file": "smartart/smartart-floating.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "浮动四周型SmartArt及同段锚定的浮动图片",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:462 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T00:58:44.4377354+08:00",
+      "requestedFile": "smartart/smartart-in-table.docx",
+      "file": "smartart/smartart-in-table.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "2×2表格左上格插基本流程SmartArt",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:462 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T00:58:44.4377354+08:00",
+      "requestedFile": "smartart/smartart-edited-text.docx",
+      "file": "smartart/smartart-edited-text.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "创建基本流程后将第二节点由执行改为执行（已修改），最后仅保存一次",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:462 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:08:42.7689354+08:00",
+      "requestedFile": "smartart/smartart-hierarchy.docx",
+      "file": "smartart/smartart-hierarchy.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 27320,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "组织结构图，总经理下设部门A、部门B，部门A下设组1，总经理另有助理",
+      "details": {
+        "hierarchy": [
+          "总经理 > 部门A > 组1",
+          "总经理 > 部门B",
+          "总经理 > 助理（助理节点）"
+        ],
+        "layoutName": "组织结构图",
+        "layoutId": "urn:microsoft.com/office/officeart/2005/8/layout/orgChart1",
+        "colorName": "彩色填充 - 个性色 1",
+        "colorId": "urn:microsoft.com/office/officeart/2005/8/colors/accent1_2",
+        "quickStyleName": "简单填充",
+        "quickStyleId": "urn:microsoft.com/office/officeart/2005/8/quickstyle/simple1",
+        "nodesInObjectModelReadingOrder": [
+          {
+            "readingOrder": 1,
+            "level": 1,
+            "nodeType": 1,
+            "text": "总经理"
+          },
+          {
+            "readingOrder": 2,
+            "level": 2,
+            "nodeType": 1,
+            "text": "部门A"
+          },
+          {
+            "readingOrder": 3,
+            "level": 3,
+            "nodeType": 1,
+            "text": "组1"
+          },
+          {
+            "readingOrder": 4,
+            "level": 2,
+            "nodeType": 1,
+            "text": "部门B"
+          },
+          {
+            "readingOrder": 5,
+            "level": 2,
+            "nodeType": 2,
+            "text": "助理"
+          }
+        ],
+        "expectedConnectionAppearance": "组织结构图直线连接；助理为专用助理节点",
+        "floating": false,
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 3,
+            "start": 12,
+            "end": 21
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/smartart/smartart-hierarchy.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 24049,
+      "pdfBytes": 25517
+    },
+    {
+      "runId": "2026-09-07T01:08:42.7689354+08:00",
+      "requestedFile": "smartart/smartart-picture.docx",
+      "file": "smartart/smartart-picture.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 27320,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "图片列表，两个节点，各一个小PNG图片填充",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: Requested SmartArt layout not found: 图片列表, Picture List, 垂直图片列表, Vertical Picture List, 图片题注列表, Picture Caption List. Available layouts written to smartart-layouts.json.",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:163 char:5\r\n+     throw \"Requested SmartArt layout not found: $($Names -join ', '). …\r\n+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+      "closeError": "RPC 服务器不可用。 (0x800706BA)"
+    },
+    {
+      "runId": "2026-09-07T01:08:42.7689354+08:00",
+      "requestedFile": "smartart/smartart-styled.docx",
+      "file": "smartart/smartart-styled.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 27320,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "基本流程，彩色范围，三维SmartArt样式",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:517 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:08:42.7689354+08:00",
+      "requestedFile": "smartart/smartart-floating.docx",
+      "file": "smartart/smartart-floating.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 27320,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "浮动四周型SmartArt及同段锚定的浮动图片",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:517 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:08:42.7689354+08:00",
+      "requestedFile": "smartart/smartart-in-table.docx",
+      "file": "smartart/smartart-in-table.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 27320,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "2×2表格左上格插基本流程SmartArt",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:517 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:08:42.7689354+08:00",
+      "requestedFile": "smartart/smartart-edited-text.docx",
+      "file": "smartart/smartart-edited-text.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 27320,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "创建基本流程后将第二节点由执行改为执行（已修改），最后仅保存一次",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:517 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:08:42.7689354+08:00",
+      "requestedFile": "math/math-fraction.docx",
+      "file": "math/math-fraction.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 27320,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "OMaths.Add，UnicodeMath输入，BuildUp生成叠式分式和上标",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:517 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:08:42.7689354+08:00",
+      "requestedFile": "math/math-integral.docx",
+      "file": "math/math-integral.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 27320,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "带下限0、上限1的定积分",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:517 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:08:42.7689354+08:00",
+      "requestedFile": "math/math-matrix.docx",
+      "file": "math/math-matrix.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 27320,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "UnicodeMath矩阵操作符，2×2矩阵，方括号",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:517 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:08:42.7689354+08:00",
+      "requestedFile": "math/math-inline.docx",
+      "file": "math/math-inline.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 27320,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "质能方程一句话中间插入E=mc²，OMath.Type=行内",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:517 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:08:42.7689354+08:00",
+      "requestedFile": "math/math-display-two.docx",
+      "file": "math/math-display-two.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 27320,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "同一空段内依次创建两个独立OMath，间隔一个制表符",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:517 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:08:42.7689354+08:00",
+      "requestedFile": "math/math-builtin.docx",
+      "file": "math/math-builtin.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 27320,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "从本机Word内置构建基块插入二次公式、泰勒展开、傅里叶级数",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:517 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:08:42.7689354+08:00",
+      "requestedFile": "math/math-latex.docx",
+      "file": "math/math-latex.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 27320,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "需要在Word公式工具中选择真正的LaTeX输入模式",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:517 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:08:42.7689354+08:00",
+      "requestedFile": "math/math-linear.docx",
+      "file": "math/math-linear.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 27320,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "创建半倍求和公式后OMath.Linearize，以线性格式保存",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:517 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:08:42.7689354+08:00",
+      "requestedFile": "math/math-styled.docx",
+      "file": "math/math-styled.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 27320,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "分式加上标；主体14磅，分子a为红色20磅；整段居中",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:517 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:08:42.7689354+08:00",
+      "requestedFile": "math/math-in-table.docx",
+      "file": "math/math-in-table.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 27320,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "2×2表格左上格插入叠式分式和上标公式",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:517 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:09:23.617849+08:00",
+      "requestedFile": "math/math-fraction.docx",
+      "file": "math/math-fraction.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 6256,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "OMaths.Add，UnicodeMath输入，BuildUp生成叠式分式和上标",
+      "details": {
+        "detectedMathParser": "LaTeX",
+        "actualMathInput": "\\frac{a+b}{2}+x^2",
+        "reading": "(a+b)/2 + x²",
+        "placement": "独立一段，单个公式",
+        "appearance": "Word default equation color and font size",
+        "equations": [
+          {
+            "index": 1,
+            "type": 0,
+            "text": "\r𝑎+𝑏\r2\r+\r𝑥\r2\r",
+            "start": 10,
+            "end": 26,
+            "fontName": "Cambria Math",
+            "fontSize": 10.5,
+            "justification": 1,
+            "topLevelFunctionTypes": [
+              7,
+              20,
+              19
+            ]
+          }
+        ],
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 3,
+            "start": 27,
+            "end": 36
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/math/math-fraction.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 12489,
+      "pdfBytes": 49205
+    },
+    {
+      "runId": "2026-09-07T01:09:23.617849+08:00",
+      "requestedFile": "math/math-integral.docx",
+      "file": "math/math-integral.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 6256,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "带下限0、上限1的定积分",
+      "details": {
+        "detectedMathParser": "LaTeX",
+        "actualMathInput": "∫_0^1 x^2 ⅆx",
+        "reading": "从0到1对x²积分，微分变量x",
+        "placement": "独立一段，单个公式",
+        "appearance": "Word default equation color and font size",
+        "equations": [
+          {
+            "index": 1,
+            "type": 0,
+            "text": "\r0\r1\r\r𝑥\r2\rⅆ𝑥\r",
+            "start": 10,
+            "end": 25,
+            "fontName": "Cambria Math",
+            "fontSize": 10.5,
+            "justification": 1,
+            "topLevelFunctionTypes": [
+              13
+            ]
+          }
+        ],
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 3,
+            "start": 26,
+            "end": 35
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/math/math-integral.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 12504,
+      "pdfBytes": 47974
+    },
+    {
+      "runId": "2026-09-07T01:09:23.617849+08:00",
+      "requestedFile": "math/math-matrix.docx",
+      "file": "math/math-matrix.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 6256,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "UnicodeMath矩阵操作符，2×2矩阵，方括号",
+      "details": {
+        "detectedMathParser": "LaTeX",
+        "actualMathInput": "\\left[\\matrix{a&b\\\\c&d}\\right]",
+        "matrixInput": "[■(a&b@c&d)]",
+        "reading": "方括号内2×2矩阵，第一行a、b，第二行c、d",
+        "placement": "独立一段，单个公式",
+        "appearance": "Word default equation color and font size",
+        "equations": [
+          {
+            "index": 1,
+            "type": 0,
+            "text": "\r\r𝑎\r𝑏\r𝑐\r𝑑\r\r",
+            "start": 10,
+            "end": 25,
+            "fontName": "Cambria Math",
+            "fontSize": 10.5,
+            "justification": 1,
+            "topLevelFunctionTypes": [
+              5
+            ]
+          }
+        ],
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 3,
+            "start": 26,
+            "end": 35
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/math/math-matrix.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 12525,
+      "pdfBytes": 47739
+    },
+    {
+      "runId": "2026-09-07T01:09:23.617849+08:00",
+      "requestedFile": "math/math-inline.docx",
+      "file": "math/math-inline.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 6256,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "质能方程一句话中间插入E=mc²，OMath.Type=行内",
+      "details": {
+        "reading": "质能方程 E=mc² 很短",
+        "placement": "正文行内，公式前后有普通文字",
+        "appearance": "Word default equation color and font size",
+        "equations": [
+          {
+            "index": 1,
+            "type": 1,
+            "text": "𝐸=𝑚\r𝑐\r2\r",
+            "start": 15,
+            "end": 26,
+            "fontName": "Cambria Math",
+            "fontSize": 10.5,
+            "justification": 7,
+            "topLevelFunctionTypes": [
+              20,
+              19
+            ]
+          }
+        ],
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 3,
+            "start": 30,
+            "end": 39
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/math/math-inline.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 12507,
+      "pdfBytes": 50213
+    },
+    {
+      "runId": "2026-09-07T01:09:23.617849+08:00",
+      "requestedFile": "math/math-display-two.docx",
+      "file": "math/math-display-two.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 6256,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "同一空段内依次创建两个独立OMath，间隔一个制表符",
+      "details": {
+        "reading": "x²+y²=z²；E=mc²",
+        "placement": "同一个公式段中两个公式并排，需复制解包确认同属一个m:oMathPara",
+        "appearance": "Word default equation color and font size",
+        "equations": [
+          {
+            "index": 1,
+            "type": 0,
+            "text": "\r𝑥\r2\r+\r𝑦\r2\r=\r𝑧\r2\r",
+            "start": 10,
+            "end": 30,
+            "fontName": "Cambria Math",
+            "fontSize": 10.5,
+            "justification": 1,
+            "topLevelFunctionTypes": [
+              19,
+              20,
+              19,
+              20,
+              19
+            ]
+          },
+          {
+            "index": 2,
+            "type": 0,
+            "text": "𝐸=𝑚\r𝑐\r2\r",
+            "start": 33,
+            "end": 44,
+            "fontName": "Cambria Math",
+            "fontSize": 10.5,
+            "justification": 1,
+            "topLevelFunctionTypes": [
+              20,
+              19
+            ]
+          }
+        ],
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 3,
+            "start": 45,
+            "end": 54
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/math/math-display-two.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 12502,
+      "pdfBytes": 50177
+    },
+    {
+      "runId": "2026-09-07T01:09:23.617849+08:00",
+      "requestedFile": "math/math-builtin.docx",
+      "file": "math/math-builtin.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 6256,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "从本机Word内置构建基块插入二次公式、泰勒展开、傅里叶级数",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: Built-in Word equation not found: 傅里叶级数, Fourier Series. No synthesized substitute was used.",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:279 char:5\r\n+     throw \"Built-in Word equation not found: $($Names -join ', '). No …\r\n+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:09:23.617849+08:00",
+      "requestedFile": "math/math-latex.docx",
+      "file": "math/math-latex.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 6256,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "需要在Word公式工具中选择真正的LaTeX输入模式",
+      "details": {
+        "requiredLatexInput": "\\frac{1}{2}\\sum_{i=1}^{n} x_i",
+        "requiresUi": true
+      },
+      "error": "System.Management.Automation.RuntimeException: INCOMPLETE: LaTeX input mode cannot be reliably selected and read back through the documented Word COM interface used here. Complete this case through the Word UI; no UnicodeMath substitute has been saved.",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:458 char:9\r\n+         throw 'INCOMPLETE: LaTeX input mode cannot be reliably select …\r\n+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:09:23.617849+08:00",
+      "requestedFile": "math/math-linear.docx",
+      "file": "math/math-linear.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 6256,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "创建半倍求和公式后OMath.Linearize，以线性格式保存",
+      "details": {
+        "detectedMathParser": "LaTeX",
+        "actualMathInput": "\\frac{1}{2}\\sum_{i=1}^{n} x_i",
+        "reading": "1/2乘从i=1到n的x_i之和，显示为线性格式",
+        "placement": "独立一段，单个线性公式",
+        "appearance": "Word default equation color and font size",
+        "equations": [
+          {
+            "index": 1,
+            "type": 0,
+            "text": "\\frac{1}{2}\\sum_{i=1}^{n}x_i",
+            "start": 10,
+            "end": 38,
+            "fontName": "Cambria Math",
+            "fontSize": 10.5,
+            "justification": 1,
+            "topLevelFunctionTypes": [
+              20
+            ]
+          }
+        ],
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 3,
+            "start": 39,
+            "end": 48
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/math/math-linear.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 12469,
+      "pdfBytes": 58430
+    },
+    {
+      "runId": "2026-09-07T01:09:23.617849+08:00",
+      "requestedFile": "math/math-styled.docx",
+      "file": "math/math-styled.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 6256,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "分式加上标；主体14磅，分子a为红色20磅；整段居中",
+      "details": {
+        "detectedMathParser": "LaTeX",
+        "actualMathInput": "\\frac{a+b}{2}+x^2",
+        "reading": "(a+b)/2 + x²",
+        "placement": "独立一段，单个公式，居中",
+        "appearance": "主体14磅；分子a为红色20磅；其余默认颜色；居中",
+        "equations": [
+          {
+            "index": 1,
+            "type": 0,
+            "text": "\r𝑎+𝑏\r2\r+\r𝑥\r2\r",
+            "start": 10,
+            "end": 26,
+            "fontName": "Cambria Math",
+            "fontSize": 20.0,
+            "justification": 2,
+            "topLevelFunctionTypes": [
+              7,
+              20,
+              19
+            ]
+          }
+        ],
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 3,
+            "start": 27,
+            "end": 36
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/math/math-styled.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 12549,
+      "pdfBytes": 49226
+    },
+    {
+      "runId": "2026-09-07T01:09:23.617849+08:00",
+      "requestedFile": "math/math-in-table.docx",
+      "file": "math/math-in-table.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 6256,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "2×2表格左上格插入叠式分式和上标公式",
+      "details": {
+        "detectedMathParser": "LaTeX",
+        "actualMathInput": "\\frac{a+b}{2}+x^2",
+        "reading": "(a+b)/2 + x²",
+        "placement": "2×2表格左上格中的独立公式",
+        "appearance": "Word default equation color and font size",
+        "equations": [
+          {
+            "index": 1,
+            "type": 0,
+            "text": "\r𝑎+𝑏\r2\r+\r𝑥\r2\r",
+            "start": 10,
+            "end": 26,
+            "fontName": "Cambria Math",
+            "fontSize": 10.5,
+            "justification": 1,
+            "topLevelFunctionTypes": [
+              7,
+              20,
+              19
+            ]
+          }
+        ],
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 9,
+            "start": 39,
+            "end": 48
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/math/math-in-table.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 12896,
+      "pdfBytes": 50849
+    },
+    {
+      "runId": "2026-09-07T01:09:52.3536244+08:00",
+      "requestedFile": "smartart/smartart-picture.docx",
+      "file": "smartart/smartart-picture.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 32168,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "图片列表，两个节点，各一个小PNG图片填充",
+      "details": {
+        "pictureFills": [
+          {
+            "node": 1,
+            "shapeName": "",
+            "fillType": 6
+          },
+          {
+            "node": 2,
+            "shapeName": "",
+            "fillType": 6
+          }
+        ],
+        "layoutName": "图片题注列表",
+        "layoutId": "urn:microsoft.com/office/officeart/2005/8/layout/pList1",
+        "colorName": "彩色填充 - 个性色 1",
+        "colorId": "urn:microsoft.com/office/officeart/2005/8/colors/accent1_2",
+        "quickStyleName": "简单填充",
+        "quickStyleId": "urn:microsoft.com/office/officeart/2005/8/quickstyle/simple1",
+        "nodesInObjectModelReadingOrder": [
+          {
+            "readingOrder": 1,
+            "level": 1,
+            "nodeType": 1,
+            "text": "图片一"
+          },
+          {
+            "readingOrder": 2,
+            "level": 1,
+            "nodeType": 1,
+            "text": "图片二"
+          }
+        ],
+        "expectedConnectionAppearance": "图片列表，无流程连线",
+        "floating": false,
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 3,
+            "start": 12,
+            "end": 21
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/smartart/smartart-picture.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 20016,
+      "pdfBytes": 23102
+    },
+    {
+      "runId": "2026-09-07T01:17:49.7532038+08:00",
+      "requestedFile": "smartart/smartart-styled.docx",
+      "file": "smartart/smartart-styled.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 2524,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "基本流程，彩色范围，三维SmartArt样式",
+      "details": {
+        "layoutName": "基本流程",
+        "layoutId": "urn:microsoft.com/office/officeart/2005/8/layout/process1",
+        "colorName": "彩色范围 - 个性色 2 至 3",
+        "colorId": "urn:microsoft.com/office/officeart/2005/8/colors/colorful2",
+        "quickStyleName": "金属场景",
+        "quickStyleId": "urn:microsoft.com/office/officeart/2005/8/quickstyle/3d7",
+        "nodesInObjectModelReadingOrder": [
+          {
+            "readingOrder": 1,
+            "level": 1,
+            "nodeType": 1,
+            "text": "准备"
+          },
+          {
+            "readingOrder": 2,
+            "level": 1,
+            "nodeType": 1,
+            "text": "执行"
+          },
+          {
+            "readingOrder": 3,
+            "level": 1,
+            "nodeType": 1,
+            "text": "完成"
+          }
+        ],
+        "expectedConnectionAppearance": "基本流程直线箭头；三维效果",
+        "floating": false,
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 3,
+            "start": 12,
+            "end": 21
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/smartart/smartart-styled.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 19926,
+      "pdfBytes": 50883
+    },
+    {
+      "runId": "2026-09-07T01:17:49.7532038+08:00",
+      "requestedFile": "smartart/smartart-floating.docx",
+      "file": "smartart/smartart-floating.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 2524,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "浮动四周型SmartArt及同段锚定的浮动图片",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: Requested SmartArt layout not found: 基本流程, Basic Process. Available layouts written to smartart-layouts.json.",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:163 char:5\r\n+     throw \"Requested SmartArt layout not found: $($Names -join ', '). …\r\n+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+      "closeError": "RPC 服务器不可用。 (0x800706BA)"
+    },
+    {
+      "runId": "2026-09-07T01:17:49.7532038+08:00",
+      "requestedFile": "smartart/smartart-in-table.docx",
+      "file": "smartart/smartart-in-table.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 2524,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "2×2表格左上格插基本流程SmartArt",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:534 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:17:49.7532038+08:00",
+      "requestedFile": "smartart/smartart-edited-text.docx",
+      "file": "smartart/smartart-edited-text.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 2524,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "创建基本流程后将第二节点由执行改为执行（已修改），最后仅保存一次",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:534 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:17:49.7532038+08:00",
+      "requestedFile": "math/math-builtin.docx",
+      "file": "math/math-builtin.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 2524,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "从本机Word内置构建基块插入二次公式、泰勒展开、傅里叶级数",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:534 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:17:49.7532038+08:00",
+      "requestedFile": "math/math-latex.docx",
+      "file": "math/math-latex.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 2524,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "执行Word官方EquationLaTexFormat命令并读回选中状态，再输入指定LaTeX并BuildUp",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: You cannot call a method on a null-valued expression.\r\n   at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)\r\n   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)\r\n   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:534 char:13\r\n+             $script:Document = $script:Word.Documents.Add()\r\n+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:18:58.2553802+08:00",
+      "requestedFile": "smartart/smartart-floating.docx",
+      "file": "smartart/smartart-floating.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 13084,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "浮动四周型SmartArt及同段锚定的浮动图片",
+      "details": {},
+      "error": "System.Management.Automation.RuntimeException: The floating picture and SmartArt do not share the same paragraph anchor.",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:372 char:115\r\n+ … ge.Start) { throw 'The floating picture and SmartArt do not share the …\r\n+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:18:58.2553802+08:00",
+      "requestedFile": "smartart/smartart-in-table.docx",
+      "file": "smartart/smartart-in-table.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 32712,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "2×2表格左上格插基本流程SmartArt",
+      "details": {
+        "layoutName": "基本流程",
+        "layoutId": "urn:microsoft.com/office/officeart/2005/8/layout/process1",
+        "colorName": "彩色填充 - 个性色 1",
+        "colorId": "urn:microsoft.com/office/officeart/2005/8/colors/accent1_2",
+        "quickStyleName": "简单填充",
+        "quickStyleId": "urn:microsoft.com/office/officeart/2005/8/quickstyle/simple1",
+        "nodesInObjectModelReadingOrder": [
+          {
+            "readingOrder": 1,
+            "level": 1,
+            "nodeType": 1,
+            "text": "准备"
+          },
+          {
+            "readingOrder": 2,
+            "level": 1,
+            "nodeType": 1,
+            "text": "执行"
+          },
+          {
+            "readingOrder": 3,
+            "level": 1,
+            "nodeType": 1,
+            "text": "完成"
+          }
+        ],
+        "expectedConnectionAppearance": "表格左上格，基本流程直线箭头",
+        "floating": false,
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 9,
+            "start": 24,
+            "end": 33
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/smartart/smartart-in-table.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 19739,
+      "pdfBytes": 25948
+    },
+    {
+      "runId": "2026-09-07T01:18:58.2553802+08:00",
+      "requestedFile": "smartart/smartart-edited-text.docx",
+      "file": "smartart/smartart-edited-text.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 34840,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "创建基本流程后将第二节点由执行改为执行（已修改），最后仅保存一次",
+      "details": {
+        "edit": {
+          "node": 2,
+          "before": "执行",
+          "after": "执行（已修改）"
+        },
+        "layoutName": "基本流程",
+        "layoutId": "urn:microsoft.com/office/officeart/2005/8/layout/process1",
+        "colorName": "彩色填充 - 个性色 1",
+        "colorId": "urn:microsoft.com/office/officeart/2005/8/colors/accent1_2",
+        "quickStyleName": "简单填充",
+        "quickStyleId": "urn:microsoft.com/office/officeart/2005/8/quickstyle/simple1",
+        "nodesInObjectModelReadingOrder": [
+          {
+            "readingOrder": 1,
+            "level": 1,
+            "nodeType": 1,
+            "text": "准备"
+          },
+          {
+            "readingOrder": 2,
+            "level": 1,
+            "nodeType": 1,
+            "text": "执行（已修改）"
+          },
+          {
+            "readingOrder": 3,
+            "level": 1,
+            "nodeType": 1,
+            "text": "完成"
+          }
+        ],
+        "expectedConnectionAppearance": "基本流程直线箭头",
+        "floating": false,
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 3,
+            "start": 12,
+            "end": 21
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/smartart/smartart-edited-text.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 19372,
+      "pdfBytes": 25439
+    },
+    {
+      "runId": "2026-09-07T01:18:58.2553802+08:00",
+      "requestedFile": "math/math-builtin.docx",
+      "file": "math/math-builtin.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 24872,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "从本机Word内置构建基块插入二次公式、泰勒展开、傅里叶级数",
+      "details": {
+        "buildingBlockNames": [
+          "二次公式",
+          "泰勒展开式",
+          "傅立叶级数 "
+        ],
+        "reading": "Word内置二次公式、泰勒展开、傅里叶级数",
+        "placement": "三个内置公式，各自一段",
+        "appearance": "Word default equation color and font size",
+        "equations": [
+          {
+            "index": 1,
+            "type": 0,
+            "text": "𝑥=\r−𝑏±\r\r𝑏\r2\r−4𝑎𝑐\r\r2𝑎\r",
+            "start": 10,
+            "end": 38,
+            "fontName": "Cambria Math",
+            "fontSize": 10.5,
+            "justification": 1,
+            "topLevelFunctionTypes": [
+              20,
+              7
+            ]
+          },
+          {
+            "index": 2,
+            "type": 0,
+            "text": "\r𝑒\r𝑥\r=1+\r𝑥\r1!\r+\r\r𝑥\r2\r\r2!\r+\r\r𝑥\r3\r\r3!\r+…,  −∞<𝑥<∞",
+            "start": 39,
+            "end": 92,
+            "fontName": "Cambria Math",
+            "fontSize": 10.5,
+            "justification": 1,
+            "topLevelFunctionTypes": [
+              19,
+              20,
+              7,
+              20,
+              7,
+              20,
+              7,
+              20
+            ]
+          },
+          {
+            "index": 3,
+            "type": 0,
+            "text": "𝑓\r𝑥\r=\r𝑎\r0\r+\r𝑛=1\r∞\r\r\r𝑎\r𝑛\r\rcos\r\r𝑛𝜋𝑥\r𝐿\r\r+\r𝑏\r𝑛\r\rsin\r\r𝑛𝜋𝑥\r𝐿\r\r\r\r",
+            "start": 93,
+            "end": 167,
+            "fontName": "Cambria Math",
+            "fontSize": 10.5,
+            "justification": 1,
+            "topLevelFunctionTypes": [
+              20,
+              5,
+              20,
+              17,
+              20,
+              13
+            ]
+          }
+        ],
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 5,
+            "start": 168,
+            "end": 177
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/math/math-builtin.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 12973,
+      "pdfBytes": 63165
+    },
+    {
+      "runId": "2026-09-07T01:18:58.2553802+08:00",
+      "requestedFile": "math/math-latex.docx",
+      "file": "math/math-latex.docx",
+      "status": "incomplete",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 28440,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "执行Word官方EquationLaTexFormat命令并读回选中状态，再输入指定LaTeX并BuildUp",
+      "details": {
+        "detectedMathParser": "LaTeX",
+        "actualMathInput": "x"
+      },
+      "error": "System.Management.Automation.RuntimeException: Word did not build the requested LaTeX fraction structure (function type 7).",
+      "savedOnce": false,
+      "pdfPreview": null,
+      "pdfExportStatus": "pending",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "errorPosition": "At C:\\code\\rsWordParser\\real-word-corpus-20260906\\_scripts\\create-smartart-math.ps1:247 char:52\r\n+ … s $Math)) { throw \"Word did not build the requested $Description stru …\r\n+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    },
+    {
+      "runId": "2026-09-07T01:20:40.6380329+08:00",
+      "requestedFile": "smartart/smartart-floating.docx",
+      "file": "smartart/smartart-floating.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 10304,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "浮动四周型SmartArt及同段锚定的浮动图片",
+      "details": {
+        "sameParagraphPictureAnchor": 11,
+        "layoutName": "基本流程",
+        "layoutId": "urn:microsoft.com/office/officeart/2005/8/layout/process1",
+        "colorName": "彩色填充 - 个性色 1",
+        "colorId": "urn:microsoft.com/office/officeart/2005/8/colors/accent1_2",
+        "quickStyleName": "简单填充",
+        "quickStyleId": "urn:microsoft.com/office/officeart/2005/8/quickstyle/simple1",
+        "nodesInObjectModelReadingOrder": [
+          {
+            "readingOrder": 1,
+            "level": 1,
+            "nodeType": 1,
+            "text": "准备"
+          },
+          {
+            "readingOrder": 2,
+            "level": 1,
+            "nodeType": 1,
+            "text": "执行"
+          },
+          {
+            "readingOrder": 3,
+            "level": 1,
+            "nodeType": 1,
+            "text": "完成"
+          }
+        ],
+        "expectedConnectionAppearance": "基本流程直线箭头",
+        "floating": true,
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 3,
+            "start": 13,
+            "end": 22
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/smartart/smartart-floating.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 20220,
+      "pdfBytes": 24687
+    },
+    {
+      "runId": "2026-09-07T01:20:40.6380329+08:00",
+      "requestedFile": "math/math-latex.docx",
+      "file": "math/math-latex.docx",
+      "status": "created-pending-visual-and-package-check",
+      "wordVersion": "16.0",
+      "wordBuild": "16.0.14334",
+      "wordProcessId": 32316,
+      "method": "_scripts/create-smartart-math.ps1",
+      "steps": "执行Word官方EquationLaTexFormat命令并读回选中状态，再输入指定LaTeX并BuildUp",
+      "details": {
+        "detectedMathParser": "LaTeX",
+        "actualMathInput": "\\frac{1}{2}\\sum_{i=1}^{n} x_i",
+        "latexInput": "\\frac{1}{2}\\sum_{i=1}^{n} x_i",
+        "inputModeCommand": "EquationLaTexFormat",
+        "inputModeReadBack": true,
+        "reading": "1/2乘从i=1到n的x_i之和",
+        "placement": "独立一段，真正LaTeX输入模式转换",
+        "appearance": "Word default equation color and font size",
+        "equations": [
+          {
+            "index": 1,
+            "type": 0,
+            "text": "\r1\r2\r\r𝑖=1\r𝑛\r\r𝑥\r𝑖\r\r",
+            "start": 10,
+            "end": 32,
+            "fontName": "Cambria Math",
+            "fontSize": 10.5,
+            "justification": 1,
+            "topLevelFunctionTypes": [
+              7,
+              13
+            ]
+          }
+        ],
+        "markerParagraphs": {
+          "before": {
+            "paragraph": 1,
+            "start": 0,
+            "end": 10
+          },
+          "after": {
+            "paragraph": 3,
+            "start": 33,
+            "end": 42
+          }
+        }
+      },
+      "error": null,
+      "savedOnce": true,
+      "pdfPreview": "_previews/math/math-latex.pdf",
+      "pdfExportStatus": "exported-pending-visual-inspection",
+      "visualInspection": "pending",
+      "copiedPackageSelfCheck": "pending",
+      "compatibilityMode": 15,
+      "bytes": 12531,
+      "pdfBytes": 49683
+    }
+  ]
+}

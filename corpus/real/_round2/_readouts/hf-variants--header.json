@@ -1,0 +1,14 @@
+﻿{
+    "file":  "hf-variants--header.docx",
+    "compat":  15,
+    "paragraphs":  7,
+    "text":  "before 前文\r首页正文\r\f奇偶页正文\r\f第三页正文\r\rafter 后文\r\r",
+    "inlineShapes":  0,
+    "shapes":  0,
+    "charts":  [
+
+               ],
+    "shapeDetails":  [
+
+                     ]
+}

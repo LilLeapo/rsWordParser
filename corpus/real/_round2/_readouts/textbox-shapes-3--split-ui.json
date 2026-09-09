@@ -1,0 +1,67 @@
+﻿{
+    "file":  "textbox-shapes-3--split.docx",
+    "compat":  15,
+    "paragraphs":  5,
+    "text":  "be\rfore 前文\r\rafter 后文\r\r",
+    "inlineShapes":  0,
+    "shapes":  4,
+    "charts":  [
+
+               ],
+    "shapeDetails":  [
+                         {
+                             "width":  210,
+                             "wrap":  3,
+                             "name":  "Text Box 1",
+                             "type":  17,
+                             "height":  70,
+                             "top":  25,
+                             "left":  30,
+                             "relativeHorizontal":  0
+                         },
+                         {
+                             "width":  150,
+                             "wrap":  3,
+                             "name":  "Rounded Rectangle 2",
+                             "type":  1,
+                             "height":  70,
+                             "top":  25,
+                             "left":  270,
+                             "relativeHorizontal":  0
+                         },
+                         {
+                             "width":  180.05,
+                             "wrap":  3,
+                             "name":  "Group 5",
+                             "type":  6,
+                             "height":  55,
+                             "top":  125,
+                             "left":  30,
+                             "relativeHorizontal":  0
+                         },
+                         {
+                             "width":  85.5,
+                             "wrap":  3,
+                             "name":  "Text Box 6",
+                             "type":  17,
+                             "height":  100.8,
+                             "top":  220,
+                             "left":  30,
+                             "relativeHorizontal":  0
+                         }
+                     ],
+    "comments":  [
+
+                 ],
+    "headers":  [
+                    {
+                        "even":  "\r",
+                        "primary":  "\r",
+                        "first":  "\r",
+                        "index":  1
+                    }
+                ],
+    "tables":  [
+
+               ]
+}

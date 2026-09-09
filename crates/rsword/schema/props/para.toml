@@ -126,9 +126,9 @@ doc = "段落标记的 run 属性（嵌套表）"
 [[table.field]]
 name = "sect_pr"
 element = "w:sectPr"
-codec = "Raw"
+codec = "SectionProps"
 in_change = false
-doc = "节属性；M1 只记位置（MOD-04 用），M2 建 SectionProps"
+doc = "段落级节属性（分节段落）；嵌套表 `section.toml`（任务 5.1，M1 起是 Raw）"
 
 # ---- 子表 -----------------------------------------------------------------------------------------
 

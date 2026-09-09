@@ -1,0 +1,23 @@
+﻿{
+    "file":  "04-image-replace.docx",
+    "compat":  15,
+    "paragraphs":  4,
+    "text":  "before 前文\r\rafter 后文\r\r",
+    "inlineShapes":  0,
+    "shapes":  1,
+    "charts":  [
+
+               ],
+    "shapeDetails":  [
+                         {
+                             "width":  144,
+                             "wrap":  0,
+                             "name":  "Picture 1",
+                             "type":  13,
+                             "height":  72,
+                             "top":  0,
+                             "left":  180,
+                             "relativeHorizontal":  0
+                         }
+                     ]
+}

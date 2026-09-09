@@ -1,0 +1,47 @@
+﻿{
+    "file":  "revisions-comments--comment.docx",
+    "compat":  15,
+    "paragraphs":  8,
+    "text":  "before 前文\r原始正文。新增句子。\r\r格式修改文字。\r批注位置一。批注位置二。\r\rafter 后文\r\r",
+    "inlineShapes":  0,
+    "shapes":  0,
+    "charts":  [
+
+               ],
+    "shapeDetails":  [
+
+                     ],
+    "comments":  [
+                     {
+                         "scope":  "befo",
+                         "author":  "rsword",
+                         "text":  "rsword 批注"
+                     },
+                     {
+                         "scope":  "批注位置一",
+                         "author":  "燚坡 李",
+                         "text":  "第一条批注"
+                     },
+                     {
+                         "scope":  "批注位置一",
+                         "author":  "燚坡 李",
+                         "text":  "第一条批注的回复"
+                     },
+                     {
+                         "scope":  "批注位置二",
+                         "author":  "燚坡 李",
+                         "text":  "第二条未解决批注"
+                     }
+                 ],
+    "headers":  [
+                    {
+                        "even":  "\r",
+                        "primary":  "\r",
+                        "first":  "\r",
+                        "index":  1
+                    }
+                ],
+    "tables":  [
+
+               ]
+}

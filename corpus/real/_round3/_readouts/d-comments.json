@@ -1,0 +1,45 @@
+﻿{
+    "comments":  [
+                     {
+                         "ancestor":  null,
+                         "done":  true,
+                         "replies":  2,
+                         "text":  "Root comment 1",
+                         "index":  1
+                     },
+                     {
+                         "ancestor":  1,
+                         "done":  true,
+                         "replies":  0,
+                         "text":  "Reply 1 to root 1.",
+                         "index":  2
+                     },
+                     {
+                         "ancestor":  1,
+                         "done":  true,
+                         "replies":  0,
+                         "text":  "Reply 2 to reply 1 via its Reply button.",
+                         "index":  3
+                     },
+                     {
+                         "ancestor":  null,
+                         "done":  false,
+                         "replies":  0,
+                         "text":  "Root comment 2",
+                         "index":  4
+                     },
+                     {
+                         "ancestor":  null,
+                         "done":  false,
+                         "replies":  0,
+                         "text":  "Root comment 3",
+                         "index":  5
+                     }
+                 ],
+    "compat":  15,
+    "sha256":  "531F5FEE471CF1F81BA948D4A8857F1A9A3606675968E2A34C5E13CD7FD0B1E8",
+    "file":  "comments2/comment-nesting.docx",
+    "shapes":  [
+
+               ]
+}

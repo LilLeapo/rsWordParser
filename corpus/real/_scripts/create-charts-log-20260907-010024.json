@@ -1,0 +1,144 @@
+{
+  "Script": "create-charts.ps1",
+  "StartedUtc": "2026-09-06T17:00:24.0977625Z",
+  "UpdatedUtc": "2026-09-06T17:00:30.9707325Z",
+  "CompletedUtc": "2026-09-06T17:00:30.9701325Z",
+  "OutputRoot": "C:\\code\\rsWordParser\\real-word-corpus-20260906",
+  "WordVersion": "16.0",
+  "WordBuild": "16.0.14334",
+  "WordProductCode": "{90160000-000F-0000-1000-0000000FF1CE}",
+  "WordProcessId": 29012,
+  "WindowsVersion": "Microsoft Windows NT 10.0.22631.0",
+  "PowerShellVersion": "7.6.5",
+  "SaveFormat": 12,
+  "Method": "Word COM; Documents.Add; InlineShapes.AddChart2; ChartData.Workbook; SaveAs2 once",
+  "ObservationStatus": "COM property readback only. Visual observation and copied-package self-check still required.",
+  "Entries": [
+    {
+      "RequestedFile": "chart/chart-stacked.docx",
+      "File": "chart/chart-stacked.docx",
+      "Requested": {
+        "SingleSeries": null,
+        "RedPoint": null,
+        "ChartEx": null,
+        "Palette": null,
+        "Dates": null,
+        "Kind": "stacked column",
+        "NoTitle": null,
+        "XY": null,
+        "Style": null,
+        "Bubble": null,
+        "Color": null,
+        "NoLegend": null,
+        "Floating": null,
+        "Combo": null,
+        "HoleSize": null,
+        "InTable": null,
+        "LegendTop": null,
+        "Name": "chart-stacked",
+        "Type": 52,
+        "Gray": null
+      },
+      "RequestedTitle": "销售统计",
+      "Worksheet": {
+        "Categories": [
+          "Category 1",
+          "Category 2",
+          "Category 3"
+        ],
+        "Series1": {
+          "Values": [
+            10,
+            20,
+            30
+          ],
+          "Name": "Series 1"
+        },
+        "Series2": {
+          "Values": [
+            15,
+            25,
+            35
+          ],
+          "Name": "Series 2"
+        },
+        "BubbleSizes": null
+      },
+      "Status": "saved-package-check-passed-needs-visual-check",
+      "Stage": "finished",
+      "StartedUtc": "2026-09-06T17:00:26.5369831Z",
+      "FinishedUtc": "2026-09-06T17:00:30.6649620Z",
+      "Actual": {
+        "ChartType": 52,
+        "ChartStyle": 297,
+        "ChartColor": 10,
+        "HasTitle": true,
+        "Title": "销售统计",
+        "HasLegend": true,
+        "LegendPosition": -4152,
+        "Series": [
+          {
+            "Name": "Series 1",
+            "Values": [
+              10.0,
+              20.0,
+              30.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 52,
+            "AxisGroup": 1,
+            "FillRgb": 12874308
+          },
+          {
+            "Name": "Series 2",
+            "Values": [
+              15.0,
+              25.0,
+              35.0
+            ],
+            "XValues": [
+              "Category 1",
+              "Category 2",
+              "Category 3"
+            ],
+            "ChartType": 52,
+            "AxisGroup": 1,
+            "FillRgb": 3243501
+          }
+        ],
+        "Layout": {
+          "InTable": false,
+          "WidthPt": 420.0,
+          "Floating": false,
+          "HeightPt": 240.0
+        }
+      },
+      "Warnings": [],
+      "Error": null,
+      "SavedOnce": true,
+      "Bytes": 25536,
+      "PackageCheck": {
+        "Method": "ZipFile.OpenRead; XML parsed read-only; original package never rewritten",
+        "Passed": true,
+        "ChartParts": [
+          "word/charts/chart1.xml"
+        ],
+        "EmbeddedWorkbooks": [
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+        ],
+        "ExternalData": true,
+        "ChartRelationships": true,
+        "ChartReference": true,
+        "FallbackImage": false,
+        "Failures": []
+      },
+      "PreviewFile": "_previews/chart/chart-stacked.pdf",
+      "PreviewStatus": "Word-exported PDF; not visually verified"
+    }
+  ],
+  "FatalError": null
+}

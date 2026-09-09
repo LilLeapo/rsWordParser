@@ -1,0 +1,14 @@
+﻿{
+    "file":  "sections-three--header.docx",
+    "compat":  15,
+    "paragraphs":  9,
+    "text":  "before 前文\r第一节正文\r\f第二节正文\r\f第三节正文\r\rafter 后文\r\r",
+    "inlineShapes":  0,
+    "shapes":  0,
+    "charts":  [
+
+               ],
+    "shapeDetails":  [
+
+                     ]
+}

@@ -1,0 +1,124 @@
+[
+  {
+    "case": "blank/blank-new",
+    "observation": "首次保存后直接查看 Word 当前文档：单页空白，状态栏0字；无正文或图形。",
+    "screenshots": [
+      "screenshots/d-blank-new-0.jpg"
+    ]
+  },
+  {
+    "case": "blank/blank-styles-used",
+    "observation": "首次保存后查看 Word 当前页面：内容已清空，单页0字；样式定义由结构自检核实。",
+    "screenshots": [
+      "screenshots/d-blank-styles-used-0.jpg"
+    ]
+  },
+  {
+    "case": "revisions2/rev-insert-delete",
+    "observation": "Word当前页面显示before/after；展开修订后作者甲插入及删除呈紫色，作者乙插入呈绿色，删除句带删除线，两处插入带下划线。结构自检确认两位不同作者。",
+    "screenshots": [
+      "screenshots/d-rev-insert-delete-0.jpg",
+      "screenshots/d-rev-insert-delete-markup-0.jpg"
+    ]
+  },
+  {
+    "case": "revisions2/rev-move",
+    "observation": "Word页面中两个Stationary段仍在前，原Move段现位于after之前，左侧有修订标记；当前为简易标记显示。原生moveFrom/moveTo及配对标记由结构自检确认。",
+    "screenshots": [
+      "screenshots/d-rev-move-0.jpg"
+    ]
+  },
+  {
+    "case": "revisions2/rev-format",
+    "observation": "Word页面显示红色加粗的Run formatting target；下一段居中且右移，第三段显示编号1；before/after清晰，左侧有修订标记。",
+    "screenshots": [
+      "screenshots/d-rev-format-0.jpg"
+    ]
+  },
+  {
+    "case": "revisions2/rev-table",
+    "observation": "Viewed the current Word document immediately after its first save/PDF export. Red table borders are visible; the first row spans both original cells and retains their two paragraphs. The inserted row has two cells. The deleted original second row is hidden in Simple Markup; the revision bar is visible. Native row insert/delete, tcPrChange and tblPrChange are established by separate package checks. Closed without another save.",
+    "screenshots": [
+      "screenshots/d-rev-table-styled-final-0.jpg"
+    ]
+  },
+  {
+    "case": "revisions2/rev-section",
+    "observation": "Word当前页面明显为横向，before/target/after在左上，左侧有修订标记；页边距数值和sectPrChange以Word读数及结构检查确认。",
+    "screenshots": [
+      "screenshots/d-rev-section-0.jpg"
+    ]
+  },
+  {
+    "case": "revisions2/rev-accept-reject",
+    "observation": "Word页面显示ACCEPTED-INSERT已留在第一句，第二句没有REJECTED-INSERT，第三句仍有PENDING-INSERT并有修订边线。结构检查只剩一个插入修订。",
+    "screenshots": [
+      "screenshots/d-rev-accept-reject-0.jpg"
+    ]
+  },
+  {
+    "case": "revisions2/rev-comment-threads",
+    "observation": "Word右侧显示三组根批注；第一组根批注和两条回复已灰化为解决状态，另外两条为Whole paragraph comment和One-word comment。两条回复在UI同级，结构也同指根批注，未实现真正两层嵌套。",
+    "screenshots": [
+      "screenshots/d-rev-comment-threads-0.jpg"
+    ]
+  },
+  {
+    "case": "fields2/fields-seq-captions",
+    "observation": "Word当前单页显示三张蓝黄小图及图1/图2/图3题注，交叉引用显示图2；before/after可见，没有错误引用文字。",
+    "screenshots": [
+      "screenshots/d-fields-seq-captions-0.jpg"
+    ]
+  },
+  {
+    "case": "fields2/fields-index",
+    "observation": "Word页面显示Alpha/Beta/Gamma正文，索引按A/B/G分组并各列页码1；before/after均可见，无索引错误消息。",
+    "screenshots": [
+      "screenshots/d-fields-index-0.jpg"
+    ]
+  },
+  {
+    "case": "fields2/fields-toc-stale",
+    "observation": "Viewed the current Word page after the first save and PDF export. TOC shows Original heading one/two/three and page 1 for all three. Body headings one and two show Changed, while heading three remains Original. No bookmark error is visible; before/after markers and all three body paragraphs are present. Closed without another save.",
+    "screenshots": [
+      "screenshots/d-fields-toc-stale-final-0.jpg"
+    ]
+  },
+  {
+    "case": "fields2/fields-citations",
+    "observation": "Word页面显示(BookAuthor, 2026)及(JournalAuthor, 2025)两处引文，下面各有书籍和期刊的完整书目条目；before/after可见，无字段错误文字。",
+    "screenshots": [
+      "screenshots/d-fields-citations-0.jpg"
+    ]
+  },
+  {
+    "case": "fields2/fields-page-in-footer",
+    "observation": "Word状态栏共3页；首屏有Page one body，滚动后看到第一页页脚“第1页 / 共3页”及第二页Page two body。其余页码由逐页PDF核验补充。",
+    "screenshots": [
+      "screenshots/d-fields-page-in-footer-0.jpg",
+      "screenshots/d-fields-page-in-footer-bottom-0.jpg"
+    ]
+  },
+  {
+    "case": "sections2/sections-breaks-zoo",
+    "observation": "Word打印视图状态栏5页；切换草稿视图后，五节正文及before/after全部可见，四处分节符依次明确标为下一页、连续、偶数页、奇数页。第三节首页页眉的结构与实际分页另由PDF/包检查记录。",
+    "screenshots": [
+      "screenshots/d-sections-breaks-zoo-0.jpg",
+      "screenshots/d-sections-breaks-zoo-draft-0.jpg"
+    ]
+  },
+  {
+    "case": "image2/image-z-order",
+    "observation": "Word页面显示三张蓝黄浮动图错位叠放；左上图覆盖中间图，右下图在最上层，和对象位置及自检的底到顶2→1→3一致；before/after未被遮住。",
+    "screenshots": [
+      "screenshots/d-image-z-order-0.jpg"
+    ]
+  },
+  {
+    "case": "shapes2/textbox-linked",
+    "observation": "Viewed the current Word page after the first save and PDF export. Two separate textboxes sit below the anchor paragraph, clear of before and after. Left contains Line 01 through Line 05; right contains Line 06 through Line 10, each exactly once. Text and frames do not overlap body text. Closed without another save.",
+    "screenshots": [
+      "screenshots/d-textbox-linked-final-0.jpg"
+    ]
+  }
+]

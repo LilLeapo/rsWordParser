@@ -1,0 +1,91 @@
+{
+    "file":  "textbox-linked--ink.docx",
+    "base":  "shapes2/textbox-linked.docx",
+    "op":  "ink",
+    "expect":  "第一个文字段落**前方**压着一块 120 × 30 pt 的纯色浮动图片（偏移 15 / −3.75 pt），文字不被挤开",
+    "timestamp":  "2026-09-07T14:45:32.5002442+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\textbox-linked--ink.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  4,
+                    "tables":  0,
+                    "comments":  0,
+                    "inline_shapes":  0,
+                    "shapes":  3,
+                    "first_table_rows":  null,
+                    "first_table_cells":  null,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+                           {
+                               "collection":  "Shapes",
+                               "index":  1,
+                               "type":  13,
+                               "width":  120,
+                               "height":  30,
+                               "name":  "aidocs-ink 3",
+                               "left":  15,
+                               "top":  -3.75,
+                               "relative_horizontal":  2,
+                               "relative_vertical":  2,
+                               "wrap_type":  3,
+                               "z_order":  1,
+                               "errors":  [
+
+                                          ]
+                           },
+                           {
+                               "collection":  "Shapes",
+                               "index":  2,
+                               "type":  17,
+                               "width":  180,
+                               "height":  90,
+                               "name":  "Text Box 1",
+                               "left":  0,
+                               "top":  25,
+                               "relative_horizontal":  0,
+                               "relative_vertical":  2,
+                               "wrap_type":  3,
+                               "z_order":  2,
+                               "errors":  [
+
+                                          ]
+                           },
+                           {
+                               "collection":  "Shapes",
+                               "index":  3,
+                               "type":  17,
+                               "width":  180,
+                               "height":  90,
+                               "name":  "Text Box 2",
+                               "left":  210,
+                               "top":  25,
+                               "relative_horizontal":  0,
+                               "relative_vertical":  2,
+                               "wrap_type":  3,
+                               "z_order":  3,
+                               "errors":  [
+
+                                          ]
+                           }
+                       ],
+    "text":  "before 前文\rLinked textboxes anchor.\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+
+               ],
+    "errors":  [
+
+               ]
+}

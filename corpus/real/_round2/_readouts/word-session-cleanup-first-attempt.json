@@ -1,0 +1,6 @@
+﻿{
+    "stack":  "at Get-FileHash\u003cProcess\u003e, C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\Modules\\Microsoft.PowerShell.Utility\\Microsoft.PowerShell.Utility.psm1: line 129\r\nat \u003cScriptBlock\u003e, C:\\word\\real-word-round2-20260907\\_scripts\\finish-word-session.ps1: line 23\r\nat \u003cScriptBlock\u003e, \u003cNo file\u003e: line 1\r\nat \u003cScriptBlock\u003e, C:\\word\\real-word-round2-20260907\\_scripts\\word-worker.ps1: line 29",
+    "ok":  false,
+    "error":  "The file \u0027C:\\word\\real-word-round2-20260907\\_resaved\\fields-toc--split-resaved-by-word.docx\u0027 cannot be read: The process cannot access the file \u0027C:\\word\\real-word-round2-20260907\\_resaved\\fields-toc--split-resaved-by-word.docx\u0027 because it is being used by another process.",
+    "id":  "final-word-cleanup"
+}

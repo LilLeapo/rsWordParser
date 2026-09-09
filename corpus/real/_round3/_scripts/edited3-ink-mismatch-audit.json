@@ -1,0 +1,1529 @@
+{
+  "generatedUtc": "2026-09-07T06:29:59.674419+00:00",
+  "method": "Read-only JSONL snapshot, ZIP/lxml source-vs-edited comparison, plus existing repository source inspection. No Word calls or GUI observations; no DOCX or repository edits. Existing PDF reports are untouched.",
+  "jsonlRowsAtSnapshot": 1372,
+  "incompleteJsonlLinesIgnored": 0,
+  "codeEvidence": [
+    {
+      "path": "C:\\Users\\Administrator\\rsWordParser\\crates\\rsword\\src\\edit\\ink_ops.rs",
+      "sha256": "1EE9DF83FD28BC40D879260B7D701FFC6F3E612B15B7933E458AEFCD0553BA96",
+      "lines": "3-6, 51-63",
+      "meaning": "inks is an authoritative list; remove_inks deletes all editor aidocs-ink runs before insertion."
+    },
+    {
+      "path": "C:\\Users\\Administrator\\rsWordParser\\crates\\rsword\\src\\save\\options\\mod.rs",
+      "sha256": "6199199566C7F3974DA192E32D7BDD2E495E9A5D0D09B71A83A813D834664AEE",
+      "lines": "99-101, 172-175",
+      "meaning": "SaveOptions.inks=Some schedules RemoveInks then InsertInk for each supplied entry."
+    },
+    {
+      "path": "C:\\Users\\Administrator\\rsWordParser\\crates\\rsword\\tests\\ink.rs",
+      "sha256": "02C4CB33A88E947EBCE79E69B5761FB2CD169B82FC250E0AB7155CA707FE5BF1",
+      "lines": "191-194",
+      "meaning": "Existing test documents authoritative-list and repeated-save-does-not-accumulate semantics. Test was read, not executed."
+    }
+  ],
+  "rows": [
+    {
+      "file": "05-ink-insert-resaved-by-word--ink.docx",
+      "manifestExpectation": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "batchAssessmentPreserved": "mismatch",
+      "batchShapes": {
+        "baseline": 2,
+        "naiveExpectedPlusOne": 3,
+        "actual": 1
+      },
+      "baseline": {
+        "path": "C:\\word\\real-word-round2-20260907\\_resaved\\05-ink-insert-resaved-by-word.docx",
+        "sha256": "51CEB8C65BA0B41361A96083CDEB745A5C2DF9803470F1B2A546C3DBCCE0D20B",
+        "zipCrcError": null,
+        "anchors": [
+          {
+            "id": "1",
+            "name": "aidocs-ink 1",
+            "kind": "anchor",
+            "aidocsInk": true,
+            "payload": "{\"strokes\":[{\"tool\":\"pen\",\"color\":\"C00000\"}]}",
+            "xEmu": "381000",
+            "yEmu": "-95250",
+            "widthEmu": "1905000",
+            "heightEmu": "762000",
+            "wrapNone": true,
+            "media": "word/media/image1.png",
+            "mediaSha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "semanticSha256": "30A85B85AA149CBBA4F9B600E49A04872776762823F118ACA0258628C3EE18E1"
+          },
+          {
+            "id": "2",
+            "name": "aidocs-ink 2",
+            "kind": "anchor",
+            "aidocsInk": true,
+            "payload": "{\"strokes\":[{\"tool\":\"pen\",\"color\":\"C00000\"}]}",
+            "xEmu": "2857500",
+            "yEmu": "190500",
+            "widthEmu": "1905000",
+            "heightEmu": "762000",
+            "wrapNone": true,
+            "media": "word/media/image1.png",
+            "mediaSha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "semanticSha256": "CDD347C534E83E34834878A522E3B778CF7106D9ABD65CDF011CEECD5FC24839"
+          }
+        ],
+        "anchorCount": 2,
+        "inlineCount": 0,
+        "overlayCount": 2,
+        "docPrIds": [
+          "1",
+          "2"
+        ],
+        "nativeInkPartHashes": {},
+        "partHashes": {
+          "[Content_Types].xml": "7449E9F52AD3D82AF4D3510C2E9E4B6C5A593D9004FDF831B114462B017C60CE",
+          "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+          "word/document.xml": "E529084F1EED7F25115287FACB7E6BDBCC0CA2221C00481336624A5F39309413",
+          "word/_rels/document.xml.rels": "8D7F9080612B38A10FB4240DB44136FB44DD66C7ABF6CC68A314FDAB2E57FC12",
+          "word/footnotes.xml": "F03144B59F518ABC7131454EE30F1EAC1E7303EB8DD582BF30909E260DFAD5D0",
+          "word/endnotes.xml": "3F6AE452632CDCC68544FB25D270415D366100D7FFE91601E433E8FC73491E63",
+          "word/media/image1.png": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+          "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+          "word/settings.xml": "17BE18BBACD9A51694A94524FE4DEB34327C2FDF16C40920608D79E118CBB73B",
+          "word/styles.xml": "46706AAD4AB76105093A42F9D12E4983C761D4E537E5F202627640709FF7850B",
+          "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+          "word/fontTable.xml": "F41530B6686B7BE28A7E31CDE7C25F207192A5253BF68AAF0446DAF6FB374D75",
+          "docProps/core.xml": "E8C2458F2D58572582540326D859DA32B8E32740F6624D86D3AA668CBEE58D29",
+          "docProps/app.xml": "FBEA7111ACCE540FE97EAE5CDBD2DA6BD3973C094DDBD0842C9DF62395BD91E1"
+        },
+        "featureCounts": {
+          "nativeContentPart": 0,
+          "math": 0,
+          "ole": 0
+        }
+      },
+      "edited": {
+        "path": "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\05-ink-insert-resaved-by-word--ink.docx",
+        "sha256": "20C882CE2178E0C212699105BA18FC377086DF540E98F100D018475EB6B0F0CF",
+        "zipCrcError": null,
+        "anchors": [
+          {
+            "id": "1",
+            "name": "aidocs-ink 1",
+            "kind": "anchor",
+            "aidocsInk": true,
+            "payload": "{\"strokes\":[]}",
+            "xEmu": "190500",
+            "yEmu": "-47625",
+            "widthEmu": "1524000",
+            "heightEmu": "381000",
+            "wrapNone": true,
+            "media": "word/media/image2.png",
+            "mediaSha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "semanticSha256": "793A755F282283F4A85721FE3FD310B660717DA4CC8A9835FC99E7B490F45A3C"
+          }
+        ],
+        "anchorCount": 1,
+        "inlineCount": 0,
+        "overlayCount": 1,
+        "docPrIds": [
+          "1"
+        ],
+        "nativeInkPartHashes": {},
+        "partHashes": {
+          "[Content_Types].xml": "7449E9F52AD3D82AF4D3510C2E9E4B6C5A593D9004FDF831B114462B017C60CE",
+          "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+          "word/document.xml": "683EC63C731780998C5FFF0D524B94173A9D1AF88F53D1F296AE78472402421C",
+          "word/_rels/document.xml.rels": "C890AA37A5D4B050F3AA1DCB30E50B1E75F1858B4E0F6C9633650BE5E8AF608E",
+          "word/footnotes.xml": "F03144B59F518ABC7131454EE30F1EAC1E7303EB8DD582BF30909E260DFAD5D0",
+          "word/endnotes.xml": "3F6AE452632CDCC68544FB25D270415D366100D7FFE91601E433E8FC73491E63",
+          "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+          "word/settings.xml": "17BE18BBACD9A51694A94524FE4DEB34327C2FDF16C40920608D79E118CBB73B",
+          "word/styles.xml": "46706AAD4AB76105093A42F9D12E4983C761D4E537E5F202627640709FF7850B",
+          "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+          "word/fontTable.xml": "F41530B6686B7BE28A7E31CDE7C25F207192A5253BF68AAF0446DAF6FB374D75",
+          "docProps/core.xml": "E8C2458F2D58572582540326D859DA32B8E32740F6624D86D3AA668CBEE58D29",
+          "docProps/app.xml": "FBEA7111ACCE540FE97EAE5CDBD2DA6BD3973C094DDBD0842C9DF62395BD91E1",
+          "word/media/image2.png": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0"
+        },
+        "featureCounts": {
+          "nativeContentPart": 0,
+          "math": 0,
+          "ole": 0
+        }
+      },
+      "diagnosis": {
+        "baselineAidocsOverlays": 2,
+        "editedAidocsOverlays": 1,
+        "expectedIfAuthoritativeOneOverlayList": 1,
+        "nativeWordCountAgreesWithReplacement": true,
+        "allNonOverlayDrawingSemanticTreesUnchanged": true,
+        "nativeInkPartsByteIdentical": true,
+        "otherFeatureCountsUnchanged": true,
+        "editedDocPrIdsUnique": true,
+        "replacementOverlayUsesSameBitmapBytes": true,
+        "replacementOverlayMediaPartNamesChanged": true,
+        "onlyDocumentAndItsRelationshipsModifiedAmongRetainedParts": true,
+        "conclusion": "Old aidocs-ink overlay layer replaced with a single new overlay; no loss of non-overlay drawings or native ink detected."
+      },
+      "packageChanges": {
+        "changedParts": [
+          "word/_rels/document.xml.rels",
+          "word/document.xml"
+        ],
+        "removedParts": [
+          "word/media/image1.png"
+        ],
+        "addedParts": [
+          "word/media/image2.png"
+        ]
+      }
+    },
+    {
+      "file": "ink-highlighter--ink-resaved-by-word--ink.docx",
+      "manifestExpectation": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "batchAssessmentPreserved": "mismatch",
+      "batchShapes": {
+        "baseline": 2,
+        "naiveExpectedPlusOne": 3,
+        "actual": 2
+      },
+      "baseline": {
+        "path": "C:\\word\\real-word-round2-20260907\\_resaved\\ink-highlighter--ink-resaved-by-word.docx",
+        "sha256": "5EEDCEA2A6B2533389491C961608B2F0732A1132C24AA22FED40D400C04F35AB",
+        "zipCrcError": null,
+        "anchors": [
+          {
+            "id": "1",
+            "name": "aidocs-ink 1",
+            "kind": "anchor",
+            "aidocsInk": true,
+            "payload": "{\"strokes\":[]}",
+            "xEmu": "190500",
+            "yEmu": "-47625",
+            "widthEmu": "1524000",
+            "heightEmu": "381000",
+            "wrapNone": true,
+            "media": "word/media/image1.png",
+            "mediaSha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "semanticSha256": "A1146B1192C616D132245C23D2DD5896DA5C972739D046089E359CD092A5080E"
+          },
+          {
+            "id": "2",
+            "name": "\u58a8\u8ff9 2",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "56180",
+            "yEmu": "103818",
+            "widthEmu": "1999080",
+            "heightEmu": "360",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "7D013766ECBE12CCA2A4F3BDFEF07B680838B8E6D71FBBA8E9562D4F430997DA"
+          }
+        ],
+        "anchorCount": 2,
+        "inlineCount": 0,
+        "overlayCount": 1,
+        "docPrIds": [
+          "1",
+          "2"
+        ],
+        "nativeInkPartHashes": {
+          "word/ink/ink1.xml": "5A1AD8257BCF5D651A421EBA342B78F56C29735BAAE3C9962CDDB164C53E2B23"
+        },
+        "partHashes": {
+          "[Content_Types].xml": "341A9A2C1FF9CAE81443BE9610B3BBAB5FABB46DDDD94BA53A7207A78E44C1BD",
+          "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+          "word/document.xml": "4BCCEE254C512C9753464E421DBC067C2DE1594E6ECE8FC2558BBA82058067B4",
+          "word/_rels/document.xml.rels": "BE2659A114B27FDE609CB1010FE25EC3306222FDEAB2DEB1EB07B86CE9D024D8",
+          "word/footnotes.xml": "53CBCEE119FB3C1D4086E3C08105BBEB293F85B7C4F94A2E2D5CD5F4243D7642",
+          "word/endnotes.xml": "3C950163B44A238E6E0DABFFE3E3CC0A4AAF59C175838296AD3472DF2738C838",
+          "word/media/image1.png": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+          "word/ink/ink1.xml": "5A1AD8257BCF5D651A421EBA342B78F56C29735BAAE3C9962CDDB164C53E2B23",
+          "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+          "word/settings.xml": "068974164AB1AD35452199D26C6A00379119C3A4D5D63FB39D8920C393C3DD7B",
+          "word/styles.xml": "31D6C9FDFAEB55CD57C7409FD5ACDE91C8572427E21CD2665E7DF0C4E9E85B02",
+          "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+          "word/fontTable.xml": "8E1FC3F1AC2FEE8E2539144C0A88BCFD6096BFB33A7FC8E08B29D44B24429D20",
+          "docProps/core.xml": "AD54CF81E7787B0970F80EA350E3045702A8819E410C1530D5CC510920DE5363",
+          "docProps/app.xml": "BE768779B6F1C84E2D7106FAA727CD9BB4C6824429EB1B1EA97005BEE06C5EED",
+          "word/media/image10.png": "91B838D57043E7B9252355F85A88810B708EB9B770DDEE425D6A45E80E462D5D"
+        },
+        "featureCounts": {
+          "nativeContentPart": 1,
+          "math": 0,
+          "ole": 0
+        }
+      },
+      "edited": {
+        "path": "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\ink-highlighter--ink-resaved-by-word--ink.docx",
+        "sha256": "0553F225CE498C739D183D3339DAA5670F1D695104F6A730F75F40332B74B69C",
+        "zipCrcError": null,
+        "anchors": [
+          {
+            "id": "3",
+            "name": "aidocs-ink 3",
+            "kind": "anchor",
+            "aidocsInk": true,
+            "payload": "{\"strokes\":[]}",
+            "xEmu": "190500",
+            "yEmu": "-47625",
+            "widthEmu": "1524000",
+            "heightEmu": "381000",
+            "wrapNone": true,
+            "media": "word/media/image2.png",
+            "mediaSha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "semanticSha256": "5FD33F0ED1C696B0E4F626B6F7E9B7A38DFFE3BAF23EDA893239EB8001C91BD8"
+          },
+          {
+            "id": "2",
+            "name": "\u58a8\u8ff9 2",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "56180",
+            "yEmu": "103818",
+            "widthEmu": "1999080",
+            "heightEmu": "360",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "7D013766ECBE12CCA2A4F3BDFEF07B680838B8E6D71FBBA8E9562D4F430997DA"
+          }
+        ],
+        "anchorCount": 2,
+        "inlineCount": 0,
+        "overlayCount": 1,
+        "docPrIds": [
+          "3",
+          "2"
+        ],
+        "nativeInkPartHashes": {
+          "word/ink/ink1.xml": "5A1AD8257BCF5D651A421EBA342B78F56C29735BAAE3C9962CDDB164C53E2B23"
+        },
+        "partHashes": {
+          "[Content_Types].xml": "341A9A2C1FF9CAE81443BE9610B3BBAB5FABB46DDDD94BA53A7207A78E44C1BD",
+          "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+          "word/document.xml": "3DE64A0E54E6626D5F60BE907C473AABD91419258DCA66FB6179A4930C588BA4",
+          "word/_rels/document.xml.rels": "BF7EAF694B72A6E8EE4BDC37EB2FC43FDC821BCEE0B74021A4BDD1748EB0F833",
+          "word/footnotes.xml": "53CBCEE119FB3C1D4086E3C08105BBEB293F85B7C4F94A2E2D5CD5F4243D7642",
+          "word/endnotes.xml": "3C950163B44A238E6E0DABFFE3E3CC0A4AAF59C175838296AD3472DF2738C838",
+          "word/ink/ink1.xml": "5A1AD8257BCF5D651A421EBA342B78F56C29735BAAE3C9962CDDB164C53E2B23",
+          "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+          "word/settings.xml": "068974164AB1AD35452199D26C6A00379119C3A4D5D63FB39D8920C393C3DD7B",
+          "word/styles.xml": "31D6C9FDFAEB55CD57C7409FD5ACDE91C8572427E21CD2665E7DF0C4E9E85B02",
+          "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+          "word/fontTable.xml": "8E1FC3F1AC2FEE8E2539144C0A88BCFD6096BFB33A7FC8E08B29D44B24429D20",
+          "docProps/core.xml": "AD54CF81E7787B0970F80EA350E3045702A8819E410C1530D5CC510920DE5363",
+          "docProps/app.xml": "BE768779B6F1C84E2D7106FAA727CD9BB4C6824429EB1B1EA97005BEE06C5EED",
+          "word/media/image10.png": "91B838D57043E7B9252355F85A88810B708EB9B770DDEE425D6A45E80E462D5D",
+          "word/media/image2.png": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0"
+        },
+        "featureCounts": {
+          "nativeContentPart": 1,
+          "math": 0,
+          "ole": 0
+        }
+      },
+      "diagnosis": {
+        "baselineAidocsOverlays": 1,
+        "editedAidocsOverlays": 1,
+        "expectedIfAuthoritativeOneOverlayList": 2,
+        "nativeWordCountAgreesWithReplacement": true,
+        "allNonOverlayDrawingSemanticTreesUnchanged": true,
+        "nativeInkPartsByteIdentical": true,
+        "otherFeatureCountsUnchanged": true,
+        "editedDocPrIdsUnique": true,
+        "replacementOverlayUsesSameBitmapBytes": true,
+        "replacementOverlayMediaPartNamesChanged": true,
+        "onlyDocumentAndItsRelationshipsModifiedAmongRetainedParts": true,
+        "conclusion": "Old aidocs-ink overlay layer replaced with a single new overlay; no loss of non-overlay drawings or native ink detected."
+      },
+      "packageChanges": {
+        "changedParts": [
+          "word/_rels/document.xml.rels",
+          "word/document.xml"
+        ],
+        "removedParts": [
+          "word/media/image1.png"
+        ],
+        "addedParts": [
+          "word/media/image2.png"
+        ]
+      }
+    },
+    {
+      "file": "ink-pen--ink-resaved-by-word--ink.docx",
+      "manifestExpectation": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "batchAssessmentPreserved": "mismatch",
+      "batchShapes": {
+        "baseline": 3,
+        "naiveExpectedPlusOne": 4,
+        "actual": 3
+      },
+      "baseline": {
+        "path": "C:\\word\\real-word-round2-20260907\\_resaved\\ink-pen--ink-resaved-by-word.docx",
+        "sha256": "2A41CB73A0B4866280C5F3B510BEACDA3AA45D5B3522D03AE052B9D093089E69",
+        "zipCrcError": null,
+        "anchors": [
+          {
+            "id": "1",
+            "name": "aidocs-ink 1",
+            "kind": "anchor",
+            "aidocsInk": true,
+            "payload": "{\"strokes\":[]}",
+            "xEmu": "190500",
+            "yEmu": "-47625",
+            "widthEmu": "1524000",
+            "heightEmu": "381000",
+            "wrapNone": true,
+            "media": "word/media/image1.png",
+            "mediaSha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "semanticSha256": "4837D48E7A497174C8DEF2DF730C2F9279C9EAC789FB8D404D53E9D2379EC001"
+          },
+          {
+            "id": "2",
+            "name": "\u58a8\u8ff9 2",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "1548380",
+            "yEmu": "8778",
+            "widthEmu": "174600",
+            "heightEmu": "119880",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "D05210744777B3BFCE9AF3C20D9DC1CD771DB379117923E4B131A4FDC6D4A058"
+          },
+          {
+            "id": "3",
+            "name": "\u58a8\u8ff9 3",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "56180",
+            "yEmu": "215778",
+            "widthEmu": "823680",
+            "heightEmu": "360",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "E60B86B6DC1E7DA0C8EA3EAC5131A10492DD49C80F2FE4A1D61AF5D6BC00B193"
+          }
+        ],
+        "anchorCount": 3,
+        "inlineCount": 0,
+        "overlayCount": 1,
+        "docPrIds": [
+          "1",
+          "2",
+          "3"
+        ],
+        "nativeInkPartHashes": {
+          "word/ink/ink1.xml": "8BA62D03204B05AFAF9673A486905F12B7162159D41993685865F43ED4004B26",
+          "word/ink/ink2.xml": "87AC9CAE291C1584D2632171772AF7696FEEBDF920353D724EB8901E59DA406C"
+        },
+        "partHashes": {
+          "[Content_Types].xml": "4AC2E9D8B4CEFE6F70DC9897F6A3AA26571EAC1C3000656F2FB0414FEDFEEBBD",
+          "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+          "word/document.xml": "36B12236C76CC1B278890615ED5B0595A5D692C8E72558A9AEB05AF1B622BA33",
+          "word/_rels/document.xml.rels": "19DCDBD1AD53E2E30B1F720EFE834C4FDF720ADEA74B487DCA3E068C8A35CEA6",
+          "word/footnotes.xml": "9121B283FC5145EFC4101CC0A7FCAA85124D26259BF5BB16F55B3F884B45902F",
+          "word/endnotes.xml": "4DB96983BC6C0138B7D13211E6A6991778B43409E89164AA9F9320A79FEDC516",
+          "word/media/image1.png": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+          "word/ink/ink1.xml": "8BA62D03204B05AFAF9673A486905F12B7162159D41993685865F43ED4004B26",
+          "word/ink/ink2.xml": "87AC9CAE291C1584D2632171772AF7696FEEBDF920353D724EB8901E59DA406C",
+          "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+          "word/settings.xml": "F9FA336FA1C417B7B04C49D39AD7477FEE61D8D2A22CE3436C88496A1A15096A",
+          "word/styles.xml": "F48284AB10ED237641DFF44164BAF5C36B5A668AC0CE44AC1FB6C0643FDFDCC1",
+          "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+          "word/fontTable.xml": "8E1FC3F1AC2FEE8E2539144C0A88BCFD6096BFB33A7FC8E08B29D44B24429D20",
+          "docProps/core.xml": "C30F57EC165CF422FF6FDAC63753198FAED7D19373BB4192CA1387A94129F3B9",
+          "docProps/app.xml": "40A1AB819AA070A8348E464B86FD1A51C2CA3A91CE84A82E021C02B02424842C",
+          "word/media/image10.png": "EAC7234BE8C2D3101A92BA743748C3C93FA569768D5C971A1B3936C68D2D8E87",
+          "word/media/image2.png": "AB16C9D50503803DE90A5F8093C9CFA68D3DFE7C3768DACF2F2CC546B27335F5"
+        },
+        "featureCounts": {
+          "nativeContentPart": 2,
+          "math": 0,
+          "ole": 0
+        }
+      },
+      "edited": {
+        "path": "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\ink-pen--ink-resaved-by-word--ink.docx",
+        "sha256": "FD2B0A0AC974BBE681176EB6D47C886A0E4B53401A2C9E8331B36F7936ED2723",
+        "zipCrcError": null,
+        "anchors": [
+          {
+            "id": "4",
+            "name": "aidocs-ink 4",
+            "kind": "anchor",
+            "aidocsInk": true,
+            "payload": "{\"strokes\":[]}",
+            "xEmu": "190500",
+            "yEmu": "-47625",
+            "widthEmu": "1524000",
+            "heightEmu": "381000",
+            "wrapNone": true,
+            "media": "word/media/image3.png",
+            "mediaSha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "semanticSha256": "F0FF9381ECCB5F423FB72478A1093C5C45157A3BAEBB6136B60016457B67422B"
+          },
+          {
+            "id": "2",
+            "name": "\u58a8\u8ff9 2",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "1548380",
+            "yEmu": "8778",
+            "widthEmu": "174600",
+            "heightEmu": "119880",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "D05210744777B3BFCE9AF3C20D9DC1CD771DB379117923E4B131A4FDC6D4A058"
+          },
+          {
+            "id": "3",
+            "name": "\u58a8\u8ff9 3",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "56180",
+            "yEmu": "215778",
+            "widthEmu": "823680",
+            "heightEmu": "360",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "E60B86B6DC1E7DA0C8EA3EAC5131A10492DD49C80F2FE4A1D61AF5D6BC00B193"
+          }
+        ],
+        "anchorCount": 3,
+        "inlineCount": 0,
+        "overlayCount": 1,
+        "docPrIds": [
+          "4",
+          "2",
+          "3"
+        ],
+        "nativeInkPartHashes": {
+          "word/ink/ink1.xml": "8BA62D03204B05AFAF9673A486905F12B7162159D41993685865F43ED4004B26",
+          "word/ink/ink2.xml": "87AC9CAE291C1584D2632171772AF7696FEEBDF920353D724EB8901E59DA406C"
+        },
+        "partHashes": {
+          "[Content_Types].xml": "4AC2E9D8B4CEFE6F70DC9897F6A3AA26571EAC1C3000656F2FB0414FEDFEEBBD",
+          "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+          "word/document.xml": "AB3EFABADA912F7F703CCF01BE02D31877D5AA6D4469E4451694DF717791138D",
+          "word/_rels/document.xml.rels": "2EFFEF1B9EACA1B597BC462D6FC03450B04B19550ABC2455691D0117F24F811A",
+          "word/footnotes.xml": "9121B283FC5145EFC4101CC0A7FCAA85124D26259BF5BB16F55B3F884B45902F",
+          "word/endnotes.xml": "4DB96983BC6C0138B7D13211E6A6991778B43409E89164AA9F9320A79FEDC516",
+          "word/ink/ink1.xml": "8BA62D03204B05AFAF9673A486905F12B7162159D41993685865F43ED4004B26",
+          "word/ink/ink2.xml": "87AC9CAE291C1584D2632171772AF7696FEEBDF920353D724EB8901E59DA406C",
+          "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+          "word/settings.xml": "F9FA336FA1C417B7B04C49D39AD7477FEE61D8D2A22CE3436C88496A1A15096A",
+          "word/styles.xml": "F48284AB10ED237641DFF44164BAF5C36B5A668AC0CE44AC1FB6C0643FDFDCC1",
+          "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+          "word/fontTable.xml": "8E1FC3F1AC2FEE8E2539144C0A88BCFD6096BFB33A7FC8E08B29D44B24429D20",
+          "docProps/core.xml": "C30F57EC165CF422FF6FDAC63753198FAED7D19373BB4192CA1387A94129F3B9",
+          "docProps/app.xml": "40A1AB819AA070A8348E464B86FD1A51C2CA3A91CE84A82E021C02B02424842C",
+          "word/media/image10.png": "EAC7234BE8C2D3101A92BA743748C3C93FA569768D5C971A1B3936C68D2D8E87",
+          "word/media/image2.png": "AB16C9D50503803DE90A5F8093C9CFA68D3DFE7C3768DACF2F2CC546B27335F5",
+          "word/media/image3.png": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0"
+        },
+        "featureCounts": {
+          "nativeContentPart": 2,
+          "math": 0,
+          "ole": 0
+        }
+      },
+      "diagnosis": {
+        "baselineAidocsOverlays": 1,
+        "editedAidocsOverlays": 1,
+        "expectedIfAuthoritativeOneOverlayList": 3,
+        "nativeWordCountAgreesWithReplacement": true,
+        "allNonOverlayDrawingSemanticTreesUnchanged": true,
+        "nativeInkPartsByteIdentical": true,
+        "otherFeatureCountsUnchanged": true,
+        "editedDocPrIdsUnique": true,
+        "replacementOverlayUsesSameBitmapBytes": true,
+        "replacementOverlayMediaPartNamesChanged": true,
+        "onlyDocumentAndItsRelationshipsModifiedAmongRetainedParts": true,
+        "conclusion": "Old aidocs-ink overlay layer replaced with a single new overlay; no loss of non-overlay drawings or native ink detected."
+      },
+      "packageChanges": {
+        "changedParts": [
+          "word/_rels/document.xml.rels",
+          "word/document.xml"
+        ],
+        "removedParts": [
+          "word/media/image1.png"
+        ],
+        "addedParts": [
+          "word/media/image3.png"
+        ]
+      }
+    },
+    {
+      "file": "ink-to-shape--ink-resaved-by-word--ink.docx",
+      "manifestExpectation": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "batchAssessmentPreserved": "mismatch",
+      "batchShapes": {
+        "baseline": 9,
+        "naiveExpectedPlusOne": 10,
+        "actual": 9
+      },
+      "baseline": {
+        "path": "C:\\word\\real-word-round2-20260907\\_resaved\\ink-to-shape--ink-resaved-by-word.docx",
+        "sha256": "D8F6CF0EA7EF902D344DAB413637C58C601780F30A1912F0539F18D435103AC1",
+        "zipCrcError": null,
+        "anchors": [
+          {
+            "id": "1",
+            "name": "aidocs-ink 1",
+            "kind": "anchor",
+            "aidocsInk": true,
+            "payload": "{\"strokes\":[]}",
+            "xEmu": "190500",
+            "yEmu": "-47625",
+            "widthEmu": "1524000",
+            "heightEmu": "381000",
+            "wrapNone": true,
+            "media": "word/media/image1.png",
+            "mediaSha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "semanticSha256": "43C133FC0475A9FD8D745251921F056D034CB52D770CA97587C98C21D24DCF12"
+          },
+          {
+            "id": "8",
+            "name": "\u58a8\u8ff9 8",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "1030700",
+            "yEmu": "676218",
+            "widthEmu": "359280",
+            "heightEmu": "144000",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "1F433A7F4EE9FAD96BB7EE205EB7EAF2908293D45C60000F84B5B4FA2F5C9FC7"
+          },
+          {
+            "id": "7",
+            "name": "\u58a8\u8ff9 7",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "875180",
+            "yEmu": "824898",
+            "widthEmu": "154080",
+            "heightEmu": "366120",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "98D4CA5155B95BA64E80498B735F9BFC25B3C145A1737E589BA8640ABB124B68"
+          },
+          {
+            "id": "6",
+            "name": "\u58a8\u8ff9 6",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "876980",
+            "yEmu": "1195698",
+            "widthEmu": "154080",
+            "heightEmu": "366120",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "716EF614E1450DB387DEE6163CABF9A9177C4140DA796A9F7FDD27DC7F78B425"
+          },
+          {
+            "id": "5",
+            "name": "\u58a8\u8ff9 5",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "1034300",
+            "yEmu": "1564698",
+            "widthEmu": "359280",
+            "heightEmu": "144000",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "0C5585CB3170245ABC9694C404BF00AB9A86341B83690BC888EFC9EC7922F35F"
+          },
+          {
+            "id": "4",
+            "name": "\u58a8\u8ff9 4",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "1396460",
+            "yEmu": "1561458",
+            "widthEmu": "359280",
+            "heightEmu": "144000",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "6CB9FDE4D0F537465CB1CCC796827C241408CF9F26540B3F143A2630C781A3F5"
+          },
+          {
+            "id": "3",
+            "name": "\u58a8\u8ff9 3",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "1756820",
+            "yEmu": "1190658",
+            "widthEmu": "154080",
+            "heightEmu": "366120",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "BCCD25FDF8F181CFEF3230BFB1F881C3AE4685A7D043C56F1DD1590965C79FFC"
+          },
+          {
+            "id": "2",
+            "name": "\u58a8\u8ff9 2",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "1755380",
+            "yEmu": "819498",
+            "widthEmu": "154080",
+            "heightEmu": "366120",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "BF26102A972E70003F714617F2DB5283ADE7B5D357641CF630876C0CC05DA514"
+          },
+          {
+            "id": "9",
+            "name": "\u58a8\u8ff9 9",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "1393220",
+            "yEmu": "672978",
+            "widthEmu": "359280",
+            "heightEmu": "144000",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "EA4B3E9D6FF84CAA6A8D7092692E8DC4BF397D849674525010C91EF9CF1927A9"
+          }
+        ],
+        "anchorCount": 9,
+        "inlineCount": 0,
+        "overlayCount": 1,
+        "docPrIds": [
+          "1",
+          "8",
+          "7",
+          "6",
+          "5",
+          "4",
+          "3",
+          "2",
+          "9"
+        ],
+        "nativeInkPartHashes": {
+          "word/ink/ink1.xml": "466EDFA943343A52FF7E94B065C4C06DCE4CF06CED37CABE8F74BD73BE87A734",
+          "word/ink/ink2.xml": "C41E17A1B93C311FBA2D68E76F3EAC511A14FFE7F1B04F4630730A5B57018E61",
+          "word/ink/ink3.xml": "5E4D61828D4FE849E3FB684D3315955CDF38EBA1A07EF18D011F20A6DB3426DA",
+          "word/ink/ink4.xml": "F60A3AB30B9F2F53AE3E20084A7B93207327363EBB55D9C4CD6F257C7745D383",
+          "word/ink/ink5.xml": "4B7B44ADFC0B3E34E17D1E21A1BAC15F51E420E7EEAB0B8E01A831D295DF96C5",
+          "word/ink/ink6.xml": "48219F7D34C7F160311472D69FC7531CF454610DE49AC30636712735DA8A5D4F",
+          "word/ink/ink7.xml": "30561BA03367D5D892EE32A77EA4C22BB692BA3C43394876249C27CBB5BA8969",
+          "word/ink/ink8.xml": "C9A255C2B0533968AACDD40FA6387A13F19F51158F0318156341E0148650156D"
+        },
+        "partHashes": {
+          "[Content_Types].xml": "0101937B7023608EFA5F9E8B7682732E39DE34F4FD91599B3B4B4608F3E87E0A",
+          "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+          "word/document.xml": "6A80E7FDCF1D53AF7EF27514783AA5B43D5C2412DDC60AC1D334E69F2909BA6F",
+          "word/_rels/document.xml.rels": "38BF0E3FAC1A737687209969DEA2A5D23E7F80D966F3E4B7C200F7F64EC2FE9E",
+          "word/footnotes.xml": "9CCEADF2A1F1BD521C5782A384A751A5C6790E84A3F280F52BE45BDE5FF2F41B",
+          "word/endnotes.xml": "32D6B5D50968A37CFA3D1B0515F463F4EDF6ED8C65680087EEABDDF661424981",
+          "word/media/image1.png": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+          "word/ink/ink1.xml": "466EDFA943343A52FF7E94B065C4C06DCE4CF06CED37CABE8F74BD73BE87A734",
+          "word/ink/ink2.xml": "C41E17A1B93C311FBA2D68E76F3EAC511A14FFE7F1B04F4630730A5B57018E61",
+          "word/ink/ink3.xml": "5E4D61828D4FE849E3FB684D3315955CDF38EBA1A07EF18D011F20A6DB3426DA",
+          "word/ink/ink4.xml": "F60A3AB30B9F2F53AE3E20084A7B93207327363EBB55D9C4CD6F257C7745D383",
+          "word/ink/ink5.xml": "4B7B44ADFC0B3E34E17D1E21A1BAC15F51E420E7EEAB0B8E01A831D295DF96C5",
+          "word/ink/ink6.xml": "48219F7D34C7F160311472D69FC7531CF454610DE49AC30636712735DA8A5D4F",
+          "word/ink/ink7.xml": "30561BA03367D5D892EE32A77EA4C22BB692BA3C43394876249C27CBB5BA8969",
+          "word/ink/ink8.xml": "C9A255C2B0533968AACDD40FA6387A13F19F51158F0318156341E0148650156D",
+          "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+          "word/settings.xml": "D27870EC8276B0CE4D641ABCA6531CBE390DAC700F8D4972B99D903B03631A4B",
+          "word/styles.xml": "E9CCD2005A9DAB67C036CAEE76CB8FAE7ADBD4E34D89F8FE9F398FBD27956601",
+          "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+          "word/fontTable.xml": "8E1FC3F1AC2FEE8E2539144C0A88BCFD6096BFB33A7FC8E08B29D44B24429D20",
+          "docProps/core.xml": "F7D44500CBCB10D92D04BBC0B8422D09E5EC8CD00BD686B5BCFB1B5BE7FFE586",
+          "docProps/app.xml": "457A017F93686D59A027F5575B5C4805F18E4D7A67225B112CC62E418A1C0FD6",
+          "word/media/image10.png": "C301B3A1843C8B0EED81A08B449B13B90247847D7E730D40670C778195FBACC1",
+          "word/media/image2.png": "8C9968861DF463EE1347694DA7813F939AAD30989319B38DC3913A9978C64BC5",
+          "word/media/image3.png": "411BCFDC0B565E27AAFA6032B2781187BB4A36E638E12C3846CF9D931B04F663",
+          "word/media/image4.png": "DD6D3AF90BC9F79B5D5E4F64CD3D0FA0FC29A6CCD21451176C358C6DD7400C17",
+          "word/media/image5.png": "2D2C0C044F78155E6770D59DFD84D1928E440A5ACE8EE86524F1FD30C7360281",
+          "word/media/image6.png": "A487FEFAB3DC0C818D56DB4039865EAF08A1E712260A4DBDF0E7D7F9FF973CD6",
+          "word/media/image7.png": "40A9A97F3C032EE5897CF4C454898C8460D7973F29612AF20841B34B43D3A803"
+        },
+        "featureCounts": {
+          "nativeContentPart": 8,
+          "math": 0,
+          "ole": 0
+        }
+      },
+      "edited": {
+        "path": "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\ink-to-shape--ink-resaved-by-word--ink.docx",
+        "sha256": "4EEC203F168AAA52AE1859B30FA2C3C5A00B45F621E5F2DBBDBFC90CB06FCA81",
+        "zipCrcError": null,
+        "anchors": [
+          {
+            "id": "10",
+            "name": "aidocs-ink 10",
+            "kind": "anchor",
+            "aidocsInk": true,
+            "payload": "{\"strokes\":[]}",
+            "xEmu": "190500",
+            "yEmu": "-47625",
+            "widthEmu": "1524000",
+            "heightEmu": "381000",
+            "wrapNone": true,
+            "media": "word/media/image8.png",
+            "mediaSha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "semanticSha256": "00FF3B0484BB6C9F5958BBD97F8470E1A38A5A464BDC6C12A7E8A0048C4154CD"
+          },
+          {
+            "id": "8",
+            "name": "\u58a8\u8ff9 8",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "1030700",
+            "yEmu": "676218",
+            "widthEmu": "359280",
+            "heightEmu": "144000",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "1F433A7F4EE9FAD96BB7EE205EB7EAF2908293D45C60000F84B5B4FA2F5C9FC7"
+          },
+          {
+            "id": "7",
+            "name": "\u58a8\u8ff9 7",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "875180",
+            "yEmu": "824898",
+            "widthEmu": "154080",
+            "heightEmu": "366120",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "98D4CA5155B95BA64E80498B735F9BFC25B3C145A1737E589BA8640ABB124B68"
+          },
+          {
+            "id": "6",
+            "name": "\u58a8\u8ff9 6",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "876980",
+            "yEmu": "1195698",
+            "widthEmu": "154080",
+            "heightEmu": "366120",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "716EF614E1450DB387DEE6163CABF9A9177C4140DA796A9F7FDD27DC7F78B425"
+          },
+          {
+            "id": "5",
+            "name": "\u58a8\u8ff9 5",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "1034300",
+            "yEmu": "1564698",
+            "widthEmu": "359280",
+            "heightEmu": "144000",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "0C5585CB3170245ABC9694C404BF00AB9A86341B83690BC888EFC9EC7922F35F"
+          },
+          {
+            "id": "4",
+            "name": "\u58a8\u8ff9 4",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "1396460",
+            "yEmu": "1561458",
+            "widthEmu": "359280",
+            "heightEmu": "144000",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "6CB9FDE4D0F537465CB1CCC796827C241408CF9F26540B3F143A2630C781A3F5"
+          },
+          {
+            "id": "3",
+            "name": "\u58a8\u8ff9 3",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "1756820",
+            "yEmu": "1190658",
+            "widthEmu": "154080",
+            "heightEmu": "366120",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "BCCD25FDF8F181CFEF3230BFB1F881C3AE4685A7D043C56F1DD1590965C79FFC"
+          },
+          {
+            "id": "2",
+            "name": "\u58a8\u8ff9 2",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "1755380",
+            "yEmu": "819498",
+            "widthEmu": "154080",
+            "heightEmu": "366120",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "BF26102A972E70003F714617F2DB5283ADE7B5D357641CF630876C0CC05DA514"
+          },
+          {
+            "id": "9",
+            "name": "\u58a8\u8ff9 9",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "1393220",
+            "yEmu": "672978",
+            "widthEmu": "359280",
+            "heightEmu": "144000",
+            "wrapNone": true,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "EA4B3E9D6FF84CAA6A8D7092692E8DC4BF397D849674525010C91EF9CF1927A9"
+          }
+        ],
+        "anchorCount": 9,
+        "inlineCount": 0,
+        "overlayCount": 1,
+        "docPrIds": [
+          "10",
+          "8",
+          "7",
+          "6",
+          "5",
+          "4",
+          "3",
+          "2",
+          "9"
+        ],
+        "nativeInkPartHashes": {
+          "word/ink/ink1.xml": "466EDFA943343A52FF7E94B065C4C06DCE4CF06CED37CABE8F74BD73BE87A734",
+          "word/ink/ink2.xml": "C41E17A1B93C311FBA2D68E76F3EAC511A14FFE7F1B04F4630730A5B57018E61",
+          "word/ink/ink3.xml": "5E4D61828D4FE849E3FB684D3315955CDF38EBA1A07EF18D011F20A6DB3426DA",
+          "word/ink/ink4.xml": "F60A3AB30B9F2F53AE3E20084A7B93207327363EBB55D9C4CD6F257C7745D383",
+          "word/ink/ink5.xml": "4B7B44ADFC0B3E34E17D1E21A1BAC15F51E420E7EEAB0B8E01A831D295DF96C5",
+          "word/ink/ink6.xml": "48219F7D34C7F160311472D69FC7531CF454610DE49AC30636712735DA8A5D4F",
+          "word/ink/ink7.xml": "30561BA03367D5D892EE32A77EA4C22BB692BA3C43394876249C27CBB5BA8969",
+          "word/ink/ink8.xml": "C9A255C2B0533968AACDD40FA6387A13F19F51158F0318156341E0148650156D"
+        },
+        "partHashes": {
+          "[Content_Types].xml": "0101937B7023608EFA5F9E8B7682732E39DE34F4FD91599B3B4B4608F3E87E0A",
+          "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+          "word/document.xml": "FF31B0D31440476E6BF01818F783847ABBBC6B09F2C1D60385B0CBFE36BC319F",
+          "word/_rels/document.xml.rels": "D616B6B007DFAE5F2EF3390C768403056123FE247C89D30D2EC4765CF7BFB27E",
+          "word/footnotes.xml": "9CCEADF2A1F1BD521C5782A384A751A5C6790E84A3F280F52BE45BDE5FF2F41B",
+          "word/endnotes.xml": "32D6B5D50968A37CFA3D1B0515F463F4EDF6ED8C65680087EEABDDF661424981",
+          "word/ink/ink1.xml": "466EDFA943343A52FF7E94B065C4C06DCE4CF06CED37CABE8F74BD73BE87A734",
+          "word/ink/ink2.xml": "C41E17A1B93C311FBA2D68E76F3EAC511A14FFE7F1B04F4630730A5B57018E61",
+          "word/ink/ink3.xml": "5E4D61828D4FE849E3FB684D3315955CDF38EBA1A07EF18D011F20A6DB3426DA",
+          "word/ink/ink4.xml": "F60A3AB30B9F2F53AE3E20084A7B93207327363EBB55D9C4CD6F257C7745D383",
+          "word/ink/ink5.xml": "4B7B44ADFC0B3E34E17D1E21A1BAC15F51E420E7EEAB0B8E01A831D295DF96C5",
+          "word/ink/ink6.xml": "48219F7D34C7F160311472D69FC7531CF454610DE49AC30636712735DA8A5D4F",
+          "word/ink/ink7.xml": "30561BA03367D5D892EE32A77EA4C22BB692BA3C43394876249C27CBB5BA8969",
+          "word/ink/ink8.xml": "C9A255C2B0533968AACDD40FA6387A13F19F51158F0318156341E0148650156D",
+          "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+          "word/settings.xml": "D27870EC8276B0CE4D641ABCA6531CBE390DAC700F8D4972B99D903B03631A4B",
+          "word/styles.xml": "E9CCD2005A9DAB67C036CAEE76CB8FAE7ADBD4E34D89F8FE9F398FBD27956601",
+          "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+          "word/fontTable.xml": "8E1FC3F1AC2FEE8E2539144C0A88BCFD6096BFB33A7FC8E08B29D44B24429D20",
+          "docProps/core.xml": "F7D44500CBCB10D92D04BBC0B8422D09E5EC8CD00BD686B5BCFB1B5BE7FFE586",
+          "docProps/app.xml": "457A017F93686D59A027F5575B5C4805F18E4D7A67225B112CC62E418A1C0FD6",
+          "word/media/image10.png": "C301B3A1843C8B0EED81A08B449B13B90247847D7E730D40670C778195FBACC1",
+          "word/media/image2.png": "8C9968861DF463EE1347694DA7813F939AAD30989319B38DC3913A9978C64BC5",
+          "word/media/image3.png": "411BCFDC0B565E27AAFA6032B2781187BB4A36E638E12C3846CF9D931B04F663",
+          "word/media/image4.png": "DD6D3AF90BC9F79B5D5E4F64CD3D0FA0FC29A6CCD21451176C358C6DD7400C17",
+          "word/media/image5.png": "2D2C0C044F78155E6770D59DFD84D1928E440A5ACE8EE86524F1FD30C7360281",
+          "word/media/image6.png": "A487FEFAB3DC0C818D56DB4039865EAF08A1E712260A4DBDF0E7D7F9FF973CD6",
+          "word/media/image7.png": "40A9A97F3C032EE5897CF4C454898C8460D7973F29612AF20841B34B43D3A803",
+          "word/media/image8.png": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0"
+        },
+        "featureCounts": {
+          "nativeContentPart": 8,
+          "math": 0,
+          "ole": 0
+        }
+      },
+      "diagnosis": {
+        "baselineAidocsOverlays": 1,
+        "editedAidocsOverlays": 1,
+        "expectedIfAuthoritativeOneOverlayList": 9,
+        "nativeWordCountAgreesWithReplacement": true,
+        "allNonOverlayDrawingSemanticTreesUnchanged": true,
+        "nativeInkPartsByteIdentical": true,
+        "otherFeatureCountsUnchanged": true,
+        "editedDocPrIdsUnique": true,
+        "replacementOverlayUsesSameBitmapBytes": true,
+        "replacementOverlayMediaPartNamesChanged": true,
+        "onlyDocumentAndItsRelationshipsModifiedAmongRetainedParts": true,
+        "conclusion": "Old aidocs-ink overlay layer replaced with a single new overlay; no loss of non-overlay drawings or native ink detected."
+      },
+      "packageChanges": {
+        "changedParts": [
+          "word/_rels/document.xml.rels",
+          "word/document.xml"
+        ],
+        "removedParts": [
+          "word/media/image1.png"
+        ],
+        "addedParts": [
+          "word/media/image8.png"
+        ]
+      }
+    },
+    {
+      "file": "math-matrix--ink-resaved-by-word--ink.docx",
+      "manifestExpectation": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "batchAssessmentPreserved": "mismatch",
+      "batchShapes": {
+        "baseline": 1,
+        "naiveExpectedPlusOne": 2,
+        "actual": 1
+      },
+      "baseline": {
+        "path": "C:\\word\\real-word-round2-20260907\\_resaved\\math-matrix--ink-resaved-by-word.docx",
+        "sha256": "F193328F754B49E25813E8E8760D7E8089F3513303BAC81AC18A9CAAB0D6B15F",
+        "zipCrcError": null,
+        "anchors": [
+          {
+            "id": "1",
+            "name": "aidocs-ink 1",
+            "kind": "anchor",
+            "aidocsInk": true,
+            "payload": "{\"strokes\":[]}",
+            "xEmu": "190500",
+            "yEmu": "-47625",
+            "widthEmu": "1524000",
+            "heightEmu": "381000",
+            "wrapNone": true,
+            "media": "word/media/image1.png",
+            "mediaSha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "semanticSha256": "D6A302469DAE030DACACF492E6D4B87ACA8994760826ED48E4015F30880E85FE"
+          }
+        ],
+        "anchorCount": 1,
+        "inlineCount": 0,
+        "overlayCount": 1,
+        "docPrIds": [
+          "1"
+        ],
+        "nativeInkPartHashes": {},
+        "partHashes": {
+          "[Content_Types].xml": "7449E9F52AD3D82AF4D3510C2E9E4B6C5A593D9004FDF831B114462B017C60CE",
+          "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+          "word/document.xml": "12435F9A5FCFAE2D8B60F4884EAFC35ABC528861F2FD8A8FD9F79C041BBDAEF3",
+          "word/_rels/document.xml.rels": "8D7F9080612B38A10FB4240DB44136FB44DD66C7ABF6CC68A314FDAB2E57FC12",
+          "word/footnotes.xml": "0067D2F3CA679B6B052C526E58EA4F3740E86EE6596A8A656CAF569BC0ADB926",
+          "word/endnotes.xml": "F6D27546BBEC73D3EDCFFF022A74AD6E8EE297C711468F5E5974AF576DC443A7",
+          "word/media/image1.png": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+          "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+          "word/settings.xml": "D8290AE50A023147D7EFFE27248F3B65F38A849B12D243C4EE9F6B74E96A1DA9",
+          "word/styles.xml": "D1C6728B35110E2E4AD822B09FC8941FBB711BD4F7507DE35492E6042D59C402",
+          "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+          "word/fontTable.xml": "3F5F86DE829CFF6FDEFC51ADE81499EE97C38F780BB05FA286A4D147E90BB2F6",
+          "docProps/core.xml": "7FB00FC0FBAC19B73578FE4B6F258B5314ECCE34926EAA25CAF1091BE775C10F",
+          "docProps/app.xml": "8D40C70AA3C61F8F3F07DE6BA64B21112BE231636E14ED73ED4CA558DA42F601"
+        },
+        "featureCounts": {
+          "nativeContentPart": 0,
+          "math": 1,
+          "ole": 0
+        }
+      },
+      "edited": {
+        "path": "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\math-matrix--ink-resaved-by-word--ink.docx",
+        "sha256": "260737F195E5B719574B57F898B5CA10AB43B95F93337B5B0BFCBBF0EA26ADC1",
+        "zipCrcError": null,
+        "anchors": [
+          {
+            "id": "1",
+            "name": "aidocs-ink 1",
+            "kind": "anchor",
+            "aidocsInk": true,
+            "payload": "{\"strokes\":[]}",
+            "xEmu": "190500",
+            "yEmu": "-47625",
+            "widthEmu": "1524000",
+            "heightEmu": "381000",
+            "wrapNone": true,
+            "media": "word/media/image2.png",
+            "mediaSha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "semanticSha256": "793A755F282283F4A85721FE3FD310B660717DA4CC8A9835FC99E7B490F45A3C"
+          }
+        ],
+        "anchorCount": 1,
+        "inlineCount": 0,
+        "overlayCount": 1,
+        "docPrIds": [
+          "1"
+        ],
+        "nativeInkPartHashes": {},
+        "partHashes": {
+          "[Content_Types].xml": "7449E9F52AD3D82AF4D3510C2E9E4B6C5A593D9004FDF831B114462B017C60CE",
+          "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+          "word/document.xml": "D4415FA1823FEE11D03C8E225E82052DFBFD69EA49BC487BEE1EFA399748684F",
+          "word/_rels/document.xml.rels": "C890AA37A5D4B050F3AA1DCB30E50B1E75F1858B4E0F6C9633650BE5E8AF608E",
+          "word/footnotes.xml": "0067D2F3CA679B6B052C526E58EA4F3740E86EE6596A8A656CAF569BC0ADB926",
+          "word/endnotes.xml": "F6D27546BBEC73D3EDCFFF022A74AD6E8EE297C711468F5E5974AF576DC443A7",
+          "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+          "word/settings.xml": "D8290AE50A023147D7EFFE27248F3B65F38A849B12D243C4EE9F6B74E96A1DA9",
+          "word/styles.xml": "D1C6728B35110E2E4AD822B09FC8941FBB711BD4F7507DE35492E6042D59C402",
+          "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+          "word/fontTable.xml": "3F5F86DE829CFF6FDEFC51ADE81499EE97C38F780BB05FA286A4D147E90BB2F6",
+          "docProps/core.xml": "7FB00FC0FBAC19B73578FE4B6F258B5314ECCE34926EAA25CAF1091BE775C10F",
+          "docProps/app.xml": "8D40C70AA3C61F8F3F07DE6BA64B21112BE231636E14ED73ED4CA558DA42F601",
+          "word/media/image2.png": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0"
+        },
+        "featureCounts": {
+          "nativeContentPart": 0,
+          "math": 1,
+          "ole": 0
+        }
+      },
+      "diagnosis": {
+        "baselineAidocsOverlays": 1,
+        "editedAidocsOverlays": 1,
+        "expectedIfAuthoritativeOneOverlayList": 1,
+        "nativeWordCountAgreesWithReplacement": true,
+        "allNonOverlayDrawingSemanticTreesUnchanged": true,
+        "nativeInkPartsByteIdentical": true,
+        "otherFeatureCountsUnchanged": true,
+        "editedDocPrIdsUnique": true,
+        "replacementOverlayUsesSameBitmapBytes": true,
+        "replacementOverlayMediaPartNamesChanged": true,
+        "onlyDocumentAndItsRelationshipsModifiedAmongRetainedParts": true,
+        "conclusion": "Old aidocs-ink overlay layer replaced with a single new overlay; no loss of non-overlay drawings or native ink detected."
+      },
+      "packageChanges": {
+        "changedParts": [
+          "word/_rels/document.xml.rels",
+          "word/document.xml"
+        ],
+        "removedParts": [
+          "word/media/image1.png"
+        ],
+        "addedParts": [
+          "word/media/image2.png"
+        ]
+      }
+    },
+    {
+      "file": "ole-excel-embedded--ink-resaved-by-word--ink.docx",
+      "manifestExpectation": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "batchAssessmentPreserved": "mismatch",
+      "batchShapes": {
+        "baseline": 1,
+        "naiveExpectedPlusOne": 2,
+        "actual": 1
+      },
+      "baseline": {
+        "path": "C:\\word\\real-word-round2-20260907\\_resaved\\ole-excel-embedded--ink-resaved-by-word.docx",
+        "sha256": "C406BFB6E67CA8E7A1E2A17231CCECEB66C5D98E9209945FAD2BCB3677EB0F12",
+        "zipCrcError": null,
+        "anchors": [
+          {
+            "id": "1",
+            "name": "aidocs-ink 1",
+            "kind": "anchor",
+            "aidocsInk": true,
+            "payload": "{\"strokes\":[]}",
+            "xEmu": "190500",
+            "yEmu": "-47625",
+            "widthEmu": "1524000",
+            "heightEmu": "381000",
+            "wrapNone": true,
+            "media": "word/media/image1.png",
+            "mediaSha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "semanticSha256": "97708A12C388886409A35F314BF37A9192FCE32DFB3CCF029ECB476FBB8C0F44"
+          }
+        ],
+        "anchorCount": 1,
+        "inlineCount": 0,
+        "overlayCount": 1,
+        "docPrIds": [
+          "1"
+        ],
+        "nativeInkPartHashes": {},
+        "partHashes": {
+          "[Content_Types].xml": "D57FA1D2D774965FFA6558C08942CA6F385B34AC86DB14EA625050923A521F6F",
+          "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+          "word/document.xml": "890A013DB3EE91CB24B2F82CA836B8129BDDE8697AF0BE215E268CC2C7FE067D",
+          "word/_rels/document.xml.rels": "8E41A0A89AD25A1A1CAE9722A2697E6F58E911C2C592EC1BAC0EE828DCA7410A",
+          "word/footnotes.xml": "267258F64069B1FB2D11298B0C8A4F9632CF7378E5169A2CEE2C9538626FD4E1",
+          "word/endnotes.xml": "AE929D56001719D1F7314B30C4735DD46F13DE0E48AF25A82949CCE9A9BD7302",
+          "word/header1.xml": "B18305AE755AE3556623FC996B52FD8BABDB84546EFC38437152609C515093AF",
+          "word/header2.xml": "28FAD9FCE09FB6B8BE6252932833A96F451FD31542D6EE1C1731D5FBAA459671",
+          "word/footer1.xml": "DDAF8A643C6041682E0FEA034B5403F4C51FCF0433E79300AEB6A9CDF9A49356",
+          "word/footer2.xml": "C212703344692469F5D2B4BAA0B985BC4021E527F946B2A1B9840F47E389BDC8",
+          "word/header3.xml": "A7F9EDC3E02CA06C2638DAD1BF24AD659722C0EFF13A49C7AF97480F300DDEAB",
+          "word/footer3.xml": "827DC9747A1910350CF262F1A7BACE8AF1D39C3BC57C0920DBB63AB3F9661E6B",
+          "word/media/image1.png": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+          "word/media/image2.emf": "4F2D67D3F351278AD0AB8F69AD234DCCC612CEC55852F99AAF4FC830B81DFFD6",
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx": "54B0E23E05873B2CF26E7C2DD587336FCBA471B7EB7DDA413E7714904E4E86A2",
+          "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+          "word/settings.xml": "7E14F86F03A1DEA07923A628BE859DC45230D2150E764A210FFAA6126FE83B7E",
+          "word/styles.xml": "76E5165EA72437510D622DCBE9275554A042F56076032007359E07F365DA08D8",
+          "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+          "word/fontTable.xml": "8E1FC3F1AC2FEE8E2539144C0A88BCFD6096BFB33A7FC8E08B29D44B24429D20",
+          "docProps/core.xml": "14843400DFDF07D879F56D3FFFEFB39A394154381A3AF90586E4D15B0077C993",
+          "docProps/app.xml": "A820501E2F299907B766270922ACE6882B8A0B8AE28C8C164115032ECB9F61EF"
+        },
+        "featureCounts": {
+          "nativeContentPart": 0,
+          "math": 0,
+          "ole": 1
+        }
+      },
+      "edited": {
+        "path": "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\ole-excel-embedded--ink-resaved-by-word--ink.docx",
+        "sha256": "9E4E95A1E516E382C14B92BADC0852263711CFD4F33C32BCB62ED9833B747A20",
+        "zipCrcError": null,
+        "anchors": [
+          {
+            "id": "1",
+            "name": "aidocs-ink 1",
+            "kind": "anchor",
+            "aidocsInk": true,
+            "payload": "{\"strokes\":[]}",
+            "xEmu": "190500",
+            "yEmu": "-47625",
+            "widthEmu": "1524000",
+            "heightEmu": "381000",
+            "wrapNone": true,
+            "media": "word/media/image3.png",
+            "mediaSha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "semanticSha256": "96966754BD37FCBF44358D2AEFE5EDDFB45CEEE554B1A07487C2E3E0141F8A83"
+          }
+        ],
+        "anchorCount": 1,
+        "inlineCount": 0,
+        "overlayCount": 1,
+        "docPrIds": [
+          "1"
+        ],
+        "nativeInkPartHashes": {},
+        "partHashes": {
+          "[Content_Types].xml": "D57FA1D2D774965FFA6558C08942CA6F385B34AC86DB14EA625050923A521F6F",
+          "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+          "word/document.xml": "C541B78EDBABEFB09B60C4A70C02A3042D51B9F578E2D3645200588948E46A8A",
+          "word/_rels/document.xml.rels": "7DC2FFDE10BF68DCA9EB11027E3F0C04F7B2950DC19EF15FE1F924E1C0437B78",
+          "word/footnotes.xml": "267258F64069B1FB2D11298B0C8A4F9632CF7378E5169A2CEE2C9538626FD4E1",
+          "word/endnotes.xml": "AE929D56001719D1F7314B30C4735DD46F13DE0E48AF25A82949CCE9A9BD7302",
+          "word/header1.xml": "B18305AE755AE3556623FC996B52FD8BABDB84546EFC38437152609C515093AF",
+          "word/header2.xml": "28FAD9FCE09FB6B8BE6252932833A96F451FD31542D6EE1C1731D5FBAA459671",
+          "word/footer1.xml": "DDAF8A643C6041682E0FEA034B5403F4C51FCF0433E79300AEB6A9CDF9A49356",
+          "word/footer2.xml": "C212703344692469F5D2B4BAA0B985BC4021E527F946B2A1B9840F47E389BDC8",
+          "word/header3.xml": "A7F9EDC3E02CA06C2638DAD1BF24AD659722C0EFF13A49C7AF97480F300DDEAB",
+          "word/footer3.xml": "827DC9747A1910350CF262F1A7BACE8AF1D39C3BC57C0920DBB63AB3F9661E6B",
+          "word/media/image2.emf": "4F2D67D3F351278AD0AB8F69AD234DCCC612CEC55852F99AAF4FC830B81DFFD6",
+          "word/embeddings/Microsoft_Excel_Worksheet.xlsx": "54B0E23E05873B2CF26E7C2DD587336FCBA471B7EB7DDA413E7714904E4E86A2",
+          "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+          "word/settings.xml": "7E14F86F03A1DEA07923A628BE859DC45230D2150E764A210FFAA6126FE83B7E",
+          "word/styles.xml": "76E5165EA72437510D622DCBE9275554A042F56076032007359E07F365DA08D8",
+          "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+          "word/fontTable.xml": "8E1FC3F1AC2FEE8E2539144C0A88BCFD6096BFB33A7FC8E08B29D44B24429D20",
+          "docProps/core.xml": "14843400DFDF07D879F56D3FFFEFB39A394154381A3AF90586E4D15B0077C993",
+          "docProps/app.xml": "A820501E2F299907B766270922ACE6882B8A0B8AE28C8C164115032ECB9F61EF",
+          "word/media/image3.png": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0"
+        },
+        "featureCounts": {
+          "nativeContentPart": 0,
+          "math": 0,
+          "ole": 1
+        }
+      },
+      "diagnosis": {
+        "baselineAidocsOverlays": 1,
+        "editedAidocsOverlays": 1,
+        "expectedIfAuthoritativeOneOverlayList": 1,
+        "nativeWordCountAgreesWithReplacement": true,
+        "allNonOverlayDrawingSemanticTreesUnchanged": true,
+        "nativeInkPartsByteIdentical": true,
+        "otherFeatureCountsUnchanged": true,
+        "editedDocPrIdsUnique": true,
+        "replacementOverlayUsesSameBitmapBytes": true,
+        "replacementOverlayMediaPartNamesChanged": true,
+        "onlyDocumentAndItsRelationshipsModifiedAmongRetainedParts": true,
+        "conclusion": "Old aidocs-ink overlay layer replaced with a single new overlay; no loss of non-overlay drawings or native ink detected."
+      },
+      "packageChanges": {
+        "changedParts": [
+          "word/_rels/document.xml.rels",
+          "word/document.xml"
+        ],
+        "removedParts": [
+          "word/media/image1.png"
+        ],
+        "addedParts": [
+          "word/media/image3.png"
+        ]
+      }
+    },
+    {
+      "file": "smartart-floating--ink-resaved-by-word--ink.docx",
+      "manifestExpectation": "\u7b2c\u4e00\u4e2a\u6587\u5b57\u6bb5\u843d**\u524d\u65b9**\u538b\u7740\u4e00\u5757 120 \u00d7 30 pt \u7684\u7eaf\u8272\u6d6e\u52a8\u56fe\u7247\uff08\u504f\u79fb 15 / \u22123.75 pt\uff09\uff0c\u6587\u5b57\u4e0d\u88ab\u6324\u5f00",
+      "batchAssessmentPreserved": "mismatch",
+      "batchShapes": {
+        "baseline": 3,
+        "naiveExpectedPlusOne": 4,
+        "actual": 3
+      },
+      "baseline": {
+        "path": "C:\\word\\real-word-round2-20260907\\_resaved\\smartart-floating--ink-resaved-by-word.docx",
+        "sha256": "8AB03E7FCEF2366C7723026E1521B31FE6580E8EA9261B376C468CDD0C978696",
+        "zipCrcError": null,
+        "anchors": [
+          {
+            "id": "3",
+            "name": "aidocs-ink 3",
+            "kind": "anchor",
+            "aidocsInk": true,
+            "payload": "{\"strokes\":[]}",
+            "xEmu": "190500",
+            "yEmu": "-47625",
+            "widthEmu": "1524000",
+            "heightEmu": "381000",
+            "wrapNone": true,
+            "media": "word/media/image1.png",
+            "mediaSha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "semanticSha256": "28C846E066BC2AAA0091D6F92A5D7ADBD6737D8DB3B2418D5A730FC6340E0E0C"
+          },
+          {
+            "id": "1",
+            "name": "\u56fe\u793a 1",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "0",
+            "yEmu": "0",
+            "widthEmu": "3810000",
+            "heightEmu": "2286000",
+            "wrapNone": false,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "36A19253C2ED74642AD890F412F68B467D4101B0D5F40E528A0A646EBF8FCAD7"
+          },
+          {
+            "id": "2",
+            "name": "\u56fe\u7247 2",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "4067175",
+            "yEmu": "-4445",
+            "widthEmu": "1219200",
+            "heightEmu": "609600",
+            "wrapNone": false,
+            "media": "word/media/image2.png",
+            "mediaSha256": "91A27C9AE84524F4B5E9114EDDFA017B21D7B6AD77AEECDC9FDC2E3EF184D6CB",
+            "semanticSha256": "E696E5F64D0C22608877F3FDE38AAE6951F8790A2ECA0929EED2D015E07ACFBC"
+          }
+        ],
+        "anchorCount": 3,
+        "inlineCount": 0,
+        "overlayCount": 1,
+        "docPrIds": [
+          "3",
+          "1",
+          "2"
+        ],
+        "nativeInkPartHashes": {},
+        "partHashes": {
+          "[Content_Types].xml": "DFB39F1BEC945EC125203B6BC40808C4D484D7C553244B6052F4CC5B806203B5",
+          "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+          "word/document.xml": "3EA991BE693B2A19447470AE73E74142A901EED27C6BE4068250E3D24F0AA91F",
+          "word/diagrams/data1.xml": "B319BFB06BE93643B89A59777DC1D83798E7E5C67F799221D4E1CA9A60150058",
+          "word/_rels/document.xml.rels": "ADE8CA77DE3F1DFFD6824974DEABAEF8B6223960FBFE4AB488CA606A272AFC13",
+          "word/footnotes.xml": "4E256EC1C29E8C7CEA8B30A56700B653D5706AC0328D659B01C22A8C14E9738A",
+          "word/endnotes.xml": "2A6F98B6701EFC3465516E90C35FA325A4B4729C176F0C734C3CFD15B80E4454",
+          "word/header1.xml": "46958BD119F3C6EB40A8394E77CF31408E3034D0054D84ABBF40E6460206163A",
+          "word/header2.xml": "ADB5D5B88246B38B6FC2DEF9575B8A0F5511643F7294A06E7E666F2D75EB9DC7",
+          "word/footer1.xml": "4EE0E5626F22B46D4A888098CA2B86BDA679E48700D90AA2D6DB53DACFCB6188",
+          "word/footer2.xml": "FE0DFFFDB19249F4AE7243399C994214C892ACEE2C15A9C583D09F39C21A20E6",
+          "word/header3.xml": "E867B0661A618268D32F5723B392059AA17D95AFC1C7A5EFCF2DA8A0B497B904",
+          "word/footer3.xml": "92B4AA08C85BFF77ABB614236F1FAC9230435CDAA4B14B4BF9AB6BC3386C94E0",
+          "word/media/image1.png": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+          "word/diagrams/layout1.xml": "6DFF17E5156E28A544C07FA1FC1A81A889B4AA1667C7EBC39630E2B54BF6389E",
+          "word/diagrams/quickStyle1.xml": "B1AA29DFD0C14EC21C67D467F1C485D358471ACA663657B87CC81D7EE8116B6C",
+          "word/diagrams/colors1.xml": "3133B8CDE18A92DCE566E096D63E6999273DC9C0BE88EC3B620D8884518E8A6A",
+          "word/diagrams/drawing1.xml": "1FB6D0C516027AE830E1A645ACB0AE1FE2EBCDBF7CAF572F465DBBAF9F1DEDC2",
+          "word/media/image2.png": "91A27C9AE84524F4B5E9114EDDFA017B21D7B6AD77AEECDC9FDC2E3EF184D6CB",
+          "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+          "word/settings.xml": "1BBC41043E3ED695B28C23819DD05A37D99A3EE73A61A409EAD0EF6C5B3DE06E",
+          "word/styles.xml": "DD9A239D8DF17EE3E64C7F0DBE66678F5043837E85238A8B1BE6D91EA5BA8527",
+          "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+          "word/fontTable.xml": "8E1FC3F1AC2FEE8E2539144C0A88BCFD6096BFB33A7FC8E08B29D44B24429D20",
+          "docProps/core.xml": "14843400DFDF07D879F56D3FFFEFB39A394154381A3AF90586E4D15B0077C993",
+          "docProps/app.xml": "6ED82D812078249379781D83124F1507714D3CF4990567EF9F097FEE2DED7EA2"
+        },
+        "featureCounts": {
+          "nativeContentPart": 0,
+          "math": 0,
+          "ole": 0
+        }
+      },
+      "edited": {
+        "path": "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\smartart-floating--ink-resaved-by-word--ink.docx",
+        "sha256": "34E66A80286A5CFF255C52C648D39FEA80CEBDDD88C5FA364F08EDBA0528C4ED",
+        "zipCrcError": null,
+        "anchors": [
+          {
+            "id": "3",
+            "name": "aidocs-ink 3",
+            "kind": "anchor",
+            "aidocsInk": true,
+            "payload": "{\"strokes\":[]}",
+            "xEmu": "190500",
+            "yEmu": "-47625",
+            "widthEmu": "1524000",
+            "heightEmu": "381000",
+            "wrapNone": true,
+            "media": "word/media/image3.png",
+            "mediaSha256": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0",
+            "semanticSha256": "403AE90FC89BA84DF9B03F4FD0960A76BA02BD9CC4D8F34AF36ADA86568A64C7"
+          },
+          {
+            "id": "1",
+            "name": "\u56fe\u793a 1",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "0",
+            "yEmu": "0",
+            "widthEmu": "3810000",
+            "heightEmu": "2286000",
+            "wrapNone": false,
+            "media": null,
+            "mediaSha256": null,
+            "semanticSha256": "36A19253C2ED74642AD890F412F68B467D4101B0D5F40E528A0A646EBF8FCAD7"
+          },
+          {
+            "id": "2",
+            "name": "\u56fe\u7247 2",
+            "kind": "anchor",
+            "aidocsInk": false,
+            "payload": null,
+            "xEmu": "4067175",
+            "yEmu": "-4445",
+            "widthEmu": "1219200",
+            "heightEmu": "609600",
+            "wrapNone": false,
+            "media": "word/media/image2.png",
+            "mediaSha256": "91A27C9AE84524F4B5E9114EDDFA017B21D7B6AD77AEECDC9FDC2E3EF184D6CB",
+            "semanticSha256": "E696E5F64D0C22608877F3FDE38AAE6951F8790A2ECA0929EED2D015E07ACFBC"
+          }
+        ],
+        "anchorCount": 3,
+        "inlineCount": 0,
+        "overlayCount": 1,
+        "docPrIds": [
+          "3",
+          "1",
+          "2"
+        ],
+        "nativeInkPartHashes": {},
+        "partHashes": {
+          "[Content_Types].xml": "DFB39F1BEC945EC125203B6BC40808C4D484D7C553244B6052F4CC5B806203B5",
+          "_rels/.rels": "E19238D7A71FA7A2490776252686F70E2DE6238C87CD509B5E3A3CC07C2EA4DF",
+          "word/document.xml": "FABE3F4DC47218A9C16D7C1B827AB55346A71787340957C252D75C52F4B3C195",
+          "word/diagrams/data1.xml": "B319BFB06BE93643B89A59777DC1D83798E7E5C67F799221D4E1CA9A60150058",
+          "word/_rels/document.xml.rels": "065EFA624FC59EE1C1AD334D5E72C3CAB41DE33657B0150413D28B610A98CBFC",
+          "word/footnotes.xml": "4E256EC1C29E8C7CEA8B30A56700B653D5706AC0328D659B01C22A8C14E9738A",
+          "word/endnotes.xml": "2A6F98B6701EFC3465516E90C35FA325A4B4729C176F0C734C3CFD15B80E4454",
+          "word/header1.xml": "46958BD119F3C6EB40A8394E77CF31408E3034D0054D84ABBF40E6460206163A",
+          "word/header2.xml": "ADB5D5B88246B38B6FC2DEF9575B8A0F5511643F7294A06E7E666F2D75EB9DC7",
+          "word/footer1.xml": "4EE0E5626F22B46D4A888098CA2B86BDA679E48700D90AA2D6DB53DACFCB6188",
+          "word/footer2.xml": "FE0DFFFDB19249F4AE7243399C994214C892ACEE2C15A9C583D09F39C21A20E6",
+          "word/header3.xml": "E867B0661A618268D32F5723B392059AA17D95AFC1C7A5EFCF2DA8A0B497B904",
+          "word/footer3.xml": "92B4AA08C85BFF77ABB614236F1FAC9230435CDAA4B14B4BF9AB6BC3386C94E0",
+          "word/diagrams/layout1.xml": "6DFF17E5156E28A544C07FA1FC1A81A889B4AA1667C7EBC39630E2B54BF6389E",
+          "word/diagrams/quickStyle1.xml": "B1AA29DFD0C14EC21C67D467F1C485D358471ACA663657B87CC81D7EE8116B6C",
+          "word/diagrams/colors1.xml": "3133B8CDE18A92DCE566E096D63E6999273DC9C0BE88EC3B620D8884518E8A6A",
+          "word/diagrams/drawing1.xml": "1FB6D0C516027AE830E1A645ACB0AE1FE2EBCDBF7CAF572F465DBBAF9F1DEDC2",
+          "word/media/image2.png": "91A27C9AE84524F4B5E9114EDDFA017B21D7B6AD77AEECDC9FDC2E3EF184D6CB",
+          "word/theme/theme1.xml": "7017CBE8B7512B56E04E6B3E3579AA862A35B6F9F31E0BF48328F6E5C074EBBD",
+          "word/settings.xml": "1BBC41043E3ED695B28C23819DD05A37D99A3EE73A61A409EAD0EF6C5B3DE06E",
+          "word/styles.xml": "DD9A239D8DF17EE3E64C7F0DBE66678F5043837E85238A8B1BE6D91EA5BA8527",
+          "word/webSettings.xml": "A935BE2DDE349160EE390CC5B6A06AA057CFD44FEAC230F6EFF440889F53902F",
+          "word/fontTable.xml": "8E1FC3F1AC2FEE8E2539144C0A88BCFD6096BFB33A7FC8E08B29D44B24429D20",
+          "docProps/core.xml": "14843400DFDF07D879F56D3FFFEFB39A394154381A3AF90586E4D15B0077C993",
+          "docProps/app.xml": "6ED82D812078249379781D83124F1507714D3CF4990567EF9F097FEE2DED7EA2",
+          "word/media/image3.png": "6B7FA434F92A8B80AAB02D9BF1A12E49FFCAE424E4013A1C4F68B67E3D2BBCD0"
+        },
+        "featureCounts": {
+          "nativeContentPart": 0,
+          "math": 0,
+          "ole": 0
+        }
+      },
+      "diagnosis": {
+        "baselineAidocsOverlays": 1,
+        "editedAidocsOverlays": 1,
+        "expectedIfAuthoritativeOneOverlayList": 3,
+        "nativeWordCountAgreesWithReplacement": true,
+        "allNonOverlayDrawingSemanticTreesUnchanged": true,
+        "nativeInkPartsByteIdentical": true,
+        "otherFeatureCountsUnchanged": true,
+        "editedDocPrIdsUnique": true,
+        "replacementOverlayUsesSameBitmapBytes": true,
+        "replacementOverlayMediaPartNamesChanged": true,
+        "onlyDocumentAndItsRelationshipsModifiedAmongRetainedParts": true,
+        "conclusion": "Old aidocs-ink overlay layer replaced with a single new overlay; no loss of non-overlay drawings or native ink detected."
+      },
+      "packageChanges": {
+        "changedParts": [
+          "word/_rels/document.xml.rels",
+          "word/document.xml"
+        ],
+        "removedParts": [
+          "word/media/image1.png"
+        ],
+        "addedParts": [
+          "word/media/image3.png"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "mismatchFiles": 7,
+    "replacementFormulaExplainsCount": 7,
+    "nonOverlayDrawingsPreserved": 7,
+    "nativeInkPartsPreserved": 7,
+    "advice": "Do not reinterpret the recorded Word counts or silently overwrite batch mismatches. Add a semantic diagnosis: authoritative ink-list replacement expects baseline shapes minus existing aidocs-ink count plus one. Native ink is separate. If the task intended additive ink, flag the input generator/specification mismatch; the current package behavior matches the repository save API."
+  }
+}

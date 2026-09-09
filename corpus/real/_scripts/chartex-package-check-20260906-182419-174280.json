@@ -1,0 +1,1669 @@
+{
+  "method": "Copy originals, inspect copied ZIP/XML/XLSX read-only; no Office automation",
+  "createdUtc": "2026-09-06T18:24:19.183313+00:00",
+  "counts": {
+    "passed": 0,
+    "failed": 4,
+    "error": 0,
+    "missing": 0
+  },
+  "results": [
+    {
+      "case": "chartex-waterfall",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chartex-waterfall.docx",
+      "status": "failed",
+      "checks": [
+        {
+          "name": "copied bytes equal original",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "one chartEx part",
+          "passed": true,
+          "evidence": [
+            "word/charts/chartEx1.xml"
+          ]
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "cx chartSpace root",
+          "passed": true,
+          "evidence": "{http://schemas.microsoft.com/office/drawing/2014/chartex}chartSpace"
+        },
+        {
+          "name": "requested modern chart layout",
+          "passed": true,
+          "evidence": [
+            "waterfall"
+          ]
+        },
+        {
+          "name": "series reference existing cached datasets",
+          "passed": true,
+          "evidence": [
+            "0"
+          ]
+        },
+        {
+          "name": "nonempty cached chart data",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": []
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "val",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "name": "cached categories contain no reference errors",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "name": "chart cache reflects written numeric data",
+          "passed": true,
+          "evidence": {
+            "cached": [
+              [
+                10,
+                20,
+                30
+              ]
+            ],
+            "matchedExpectedSeries": [
+              [
+                10,
+                20,
+                30
+              ]
+            ]
+          }
+        },
+        {
+          "name": "chart cache reflects written category labels",
+          "passed": false,
+          "evidence": [
+            "Item 1",
+            "Item 2",
+            "Item 3",
+            "Group A",
+            "Group A",
+            "Group B"
+          ]
+        },
+        {
+          "name": "externalData exists",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "externalData resolves to embedded xlsx",
+          "passed": true,
+          "evidence": {
+            "id": "rId1",
+            "relationship": {
+              "Id": "rId1",
+              "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+              "Target": "../embeddings/Microsoft_Excel_Worksheet.xlsx"
+            },
+            "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        },
+        {
+          "name": "embedded workbook contains the intended three data rows",
+          "passed": false,
+          "evidence": {
+            "numericColumn": "C",
+            "mismatches": {
+              "B1": {
+                "expected": "Series 1",
+                "actual": "Subcategory"
+              },
+              "C1": {
+                "expected": "Series 2",
+                "actual": null
+              },
+              "A2": {
+                "expected": "Category 1",
+                "actual": "Group A"
+              },
+              "B2": {
+                "expected": 10,
+                "actual": "Item 1"
+              },
+              "C2": {
+                "expected": 15,
+                "actual": null
+              },
+              "A3": {
+                "expected": "Category 2",
+                "actual": "Group A"
+              },
+              "B3": {
+                "expected": 20,
+                "actual": "Item 2"
+              },
+              "C3": {
+                "expected": 25,
+                "actual": null
+              },
+              "A4": {
+                "expected": "Category 3",
+                "actual": "Group B"
+              },
+              "B4": {
+                "expected": 30,
+                "actual": "Item 3"
+              },
+              "C4": {
+                "expected": 35,
+                "actual": null
+              }
+            }
+          }
+        },
+        {
+          "name": "no old populated workbook rows beyond row 4",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "name": "cached formulas refer to actual embedded worksheet names",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "name": "document cx chart reference resolves",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "chart reference belongs to AlternateContent",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "matching fallback contains an image relationship",
+          "passed": true,
+          "evidence": [
+            "rId5"
+          ]
+        },
+        {
+          "name": "fallback relationship resolves to real embedded PNG",
+          "passed": true,
+          "evidence": {
+            "id": "rId5",
+            "target": "word/media/image1.png"
+          }
+        },
+        {
+          "name": "title is the requested sales title",
+          "passed": true,
+          "evidence": "销售统计"
+        },
+        {
+          "name": "original bytes remain unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "actual": {
+        "chartPart": "word/charts/chartEx1.xml",
+        "layoutIds": [
+          "waterfall"
+        ],
+        "series": [
+          {
+            "attributes": {
+              "layoutId": "waterfall",
+              "uniqueId": "{836F8D4C-1F4F-4E86-80FF-69232E3757BE}"
+            },
+            "dataIds": [
+              "0"
+            ],
+            "layoutPropertiesXml": "<ns0:layoutPr xmlns:ns0=\"http://schemas.microsoft.com/office/drawing/2014/chartex\"><ns0:subtotals /></ns0:layoutPr>"
+          }
+        ],
+        "cache": [
+          {
+            "id": "0",
+            "dimensions": [
+              {
+                "kind": "strDim",
+                "type": "cat",
+                "formula": "Sheet1!$A$2:$C$17",
+                "levels": [
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": []
+                  },
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": "Item 1"
+                      },
+                      {
+                        "index": 1,
+                        "value": "Item 2"
+                      },
+                      {
+                        "index": 2,
+                        "value": "Item 3"
+                      }
+                    ]
+                  },
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": "Group A"
+                      },
+                      {
+                        "index": 1,
+                        "value": "Group A"
+                      },
+                      {
+                        "index": 2,
+                        "value": "Group B"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "numDim",
+                "type": "val",
+                "formula": "Sheet1!$D$2:$D$17",
+                "levels": [
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": "G/通用格式",
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": 10
+                      },
+                      {
+                        "index": 1,
+                        "value": 20
+                      },
+                      {
+                        "index": 2,
+                        "value": 30
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "embeddedWorkbooks": [
+          {
+            "sheets": [
+              {
+                "name": "Sheet1",
+                "part": "xl/worksheets/sheet1.xml",
+                "cells": {
+                  "A1": "Category",
+                  "B1": "Subcategory",
+                  "D1": "Value",
+                  "A2": "Group A",
+                  "B2": "Item 1",
+                  "D2": 10,
+                  "A3": "Group A",
+                  "B3": "Item 2",
+                  "D3": 20,
+                  "A4": "Group B",
+                  "B4": "Item 3",
+                  "D4": 30
+                },
+                "formulas": {}
+              }
+            ],
+            "bytes": 8988,
+            "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        ],
+        "fallbackImages": [
+          {
+            "relationshipId": "rId5",
+            "part": "word/media/image1.png",
+            "png": true,
+            "pixelSize": [
+              555,
+              324
+            ],
+            "bytes": 3109
+          }
+        ],
+        "title": "销售统计",
+        "legend": null,
+        "floating": false,
+        "chartRelationships": {
+          "rId3": {
+            "Id": "rId3",
+            "Type": "http://schemas.microsoft.com/office/2011/relationships/chartColorStyle",
+            "Target": "colors1.xml"
+          },
+          "rId2": {
+            "Id": "rId2",
+            "Type": "http://schemas.microsoft.com/office/2011/relationships/chartStyle",
+            "Target": "style1.xml"
+          },
+          "rId1": {
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+            "Target": "../embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        }
+      },
+      "observationStatus": "Package evidence only; actual Word UI observation must be supplied separately.",
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\chartex\\20260906-182419-174280\\chartex-waterfall.docx",
+      "sha256": "3f24a09be2def7e5917ad9dda83fad6bfb6f211fe0218c072acb5a557e6f857a",
+      "warnings": [
+        "Only one requested numeric series is present in the chart cache. Some modern chart types plot one series; record the actual UI display and do not claim two displayed series."
+      ]
+    },
+    {
+      "case": "chartex-histogram",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chartex-histogram.docx",
+      "status": "failed",
+      "checks": [
+        {
+          "name": "copied bytes equal original",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "one chartEx part",
+          "passed": true,
+          "evidence": [
+            "word/charts/chartEx1.xml"
+          ]
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "cx chartSpace root",
+          "passed": true,
+          "evidence": "{http://schemas.microsoft.com/office/drawing/2014/chartex}chartSpace"
+        },
+        {
+          "name": "requested modern chart layout",
+          "passed": true,
+          "evidence": [
+            "clusteredColumn"
+          ]
+        },
+        {
+          "name": "histogram binning settings",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "series reference existing cached datasets",
+          "passed": true,
+          "evidence": [
+            "0"
+          ]
+        },
+        {
+          "name": "nonempty cached chart data",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": []
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "val",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "name": "cached categories contain no reference errors",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "name": "chart cache reflects written numeric data",
+          "passed": true,
+          "evidence": {
+            "cached": [
+              [
+                10,
+                20,
+                30
+              ]
+            ],
+            "matchedExpectedSeries": [
+              [
+                10,
+                20,
+                30
+              ]
+            ]
+          }
+        },
+        {
+          "name": "externalData exists",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "externalData resolves to embedded xlsx",
+          "passed": true,
+          "evidence": {
+            "id": "rId1",
+            "relationship": {
+              "Id": "rId1",
+              "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+              "Target": "../embeddings/Microsoft_Excel_Worksheet.xlsx"
+            },
+            "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        },
+        {
+          "name": "embedded workbook contains the intended three data rows",
+          "passed": false,
+          "evidence": {
+            "numericColumn": "C",
+            "mismatches": {
+              "B1": {
+                "expected": "Series 1",
+                "actual": "Subcategory"
+              },
+              "C1": {
+                "expected": "Series 2",
+                "actual": null
+              },
+              "A2": {
+                "expected": "Category 1",
+                "actual": "Group A"
+              },
+              "B2": {
+                "expected": 10,
+                "actual": "Item 1"
+              },
+              "C2": {
+                "expected": 15,
+                "actual": null
+              },
+              "A3": {
+                "expected": "Category 2",
+                "actual": "Group A"
+              },
+              "B3": {
+                "expected": 20,
+                "actual": "Item 2"
+              },
+              "C3": {
+                "expected": 25,
+                "actual": null
+              },
+              "A4": {
+                "expected": "Category 3",
+                "actual": "Group B"
+              },
+              "B4": {
+                "expected": 30,
+                "actual": "Item 3"
+              },
+              "C4": {
+                "expected": 35,
+                "actual": null
+              }
+            }
+          }
+        },
+        {
+          "name": "no old populated workbook rows beyond row 4",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "name": "cached formulas refer to actual embedded worksheet names",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "name": "document cx chart reference resolves",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "chart reference belongs to AlternateContent",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "matching fallback contains an image relationship",
+          "passed": true,
+          "evidence": [
+            "rId5"
+          ]
+        },
+        {
+          "name": "fallback relationship resolves to real embedded PNG",
+          "passed": true,
+          "evidence": {
+            "id": "rId5",
+            "target": "word/media/image1.png"
+          }
+        },
+        {
+          "name": "title is the requested sales title",
+          "passed": true,
+          "evidence": "销售统计"
+        },
+        {
+          "name": "original bytes remain unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "actual": {
+        "chartPart": "word/charts/chartEx1.xml",
+        "layoutIds": [
+          "clusteredColumn"
+        ],
+        "series": [
+          {
+            "attributes": {
+              "layoutId": "clusteredColumn",
+              "uniqueId": "{836F8D4C-1F4F-4E86-80FF-69232E3757BE}"
+            },
+            "dataIds": [
+              "0"
+            ],
+            "layoutPropertiesXml": "<ns0:layoutPr xmlns:ns0=\"http://schemas.microsoft.com/office/drawing/2014/chartex\"><ns0:binning intervalClosed=\"r\" /></ns0:layoutPr>"
+          }
+        ],
+        "cache": [
+          {
+            "id": "0",
+            "dimensions": [
+              {
+                "kind": "strDim",
+                "type": "cat",
+                "formula": "Sheet1!$A$2:$C$17",
+                "levels": [
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": []
+                  },
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": "Item 1"
+                      },
+                      {
+                        "index": 1,
+                        "value": "Item 2"
+                      },
+                      {
+                        "index": 2,
+                        "value": "Item 3"
+                      }
+                    ]
+                  },
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": "Group A"
+                      },
+                      {
+                        "index": 1,
+                        "value": "Group A"
+                      },
+                      {
+                        "index": 2,
+                        "value": "Group B"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "numDim",
+                "type": "val",
+                "formula": "Sheet1!$D$2:$D$17",
+                "levels": [
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": "G/通用格式",
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": 10
+                      },
+                      {
+                        "index": 1,
+                        "value": 20
+                      },
+                      {
+                        "index": 2,
+                        "value": 30
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "embeddedWorkbooks": [
+          {
+            "sheets": [
+              {
+                "name": "Sheet1",
+                "part": "xl/worksheets/sheet1.xml",
+                "cells": {
+                  "A1": "Category",
+                  "B1": "Subcategory",
+                  "D1": "Value",
+                  "A2": "Group A",
+                  "B2": "Item 1",
+                  "D2": 10,
+                  "A3": "Group A",
+                  "B3": "Item 2",
+                  "D3": 20,
+                  "A4": "Group B",
+                  "B4": "Item 3",
+                  "D4": 30
+                },
+                "formulas": {}
+              }
+            ],
+            "bytes": 8988,
+            "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        ],
+        "fallbackImages": [
+          {
+            "relationshipId": "rId5",
+            "part": "word/media/image1.png",
+            "png": true,
+            "pixelSize": [
+              555,
+              324
+            ],
+            "bytes": 2452
+          }
+        ],
+        "title": "销售统计",
+        "legend": null,
+        "floating": false,
+        "chartRelationships": {
+          "rId3": {
+            "Id": "rId3",
+            "Type": "http://schemas.microsoft.com/office/2011/relationships/chartColorStyle",
+            "Target": "colors1.xml"
+          },
+          "rId2": {
+            "Id": "rId2",
+            "Type": "http://schemas.microsoft.com/office/2011/relationships/chartStyle",
+            "Target": "style1.xml"
+          },
+          "rId1": {
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+            "Target": "../embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        }
+      },
+      "observationStatus": "Package evidence only; actual Word UI observation must be supplied separately.",
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\chartex\\20260906-182419-174280\\chartex-histogram.docx",
+      "sha256": "2d04d4d26ceb6bdccd76a02aa47fd485d002dea93552715c2c82f8f52a2978f3",
+      "warnings": [
+        "Only one requested numeric series is present in the chart cache. Some modern chart types plot one series; record the actual UI display and do not claim two displayed series."
+      ]
+    },
+    {
+      "case": "chartex-boxwhisker",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chartex-boxwhisker.docx",
+      "status": "failed",
+      "checks": [
+        {
+          "name": "copied bytes equal original",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "one chartEx part",
+          "passed": true,
+          "evidence": [
+            "word/charts/chartEx1.xml"
+          ]
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "cx chartSpace root",
+          "passed": true,
+          "evidence": "{http://schemas.microsoft.com/office/drawing/2014/chartex}chartSpace"
+        },
+        {
+          "name": "requested modern chart layout",
+          "passed": true,
+          "evidence": [
+            "boxWhisker"
+          ]
+        },
+        {
+          "name": "series reference existing cached datasets",
+          "passed": true,
+          "evidence": [
+            "0"
+          ]
+        },
+        {
+          "name": "nonempty cached chart data",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": []
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "val",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "name": "cached categories contain no reference errors",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "name": "chart cache reflects written numeric data",
+          "passed": true,
+          "evidence": {
+            "cached": [
+              [
+                10,
+                20,
+                30
+              ]
+            ],
+            "matchedExpectedSeries": [
+              [
+                10,
+                20,
+                30
+              ]
+            ]
+          }
+        },
+        {
+          "name": "chart cache reflects written category labels",
+          "passed": false,
+          "evidence": [
+            "Item 1",
+            "Item 2",
+            "Item 3",
+            "Group A",
+            "Group A",
+            "Group B"
+          ]
+        },
+        {
+          "name": "externalData exists",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "externalData resolves to embedded xlsx",
+          "passed": true,
+          "evidence": {
+            "id": "rId1",
+            "relationship": {
+              "Id": "rId1",
+              "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+              "Target": "../embeddings/Microsoft_Excel_Worksheet.xlsx"
+            },
+            "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        },
+        {
+          "name": "embedded workbook contains the intended three data rows",
+          "passed": false,
+          "evidence": {
+            "numericColumn": "C",
+            "mismatches": {
+              "B1": {
+                "expected": "Series 1",
+                "actual": "Subcategory"
+              },
+              "C1": {
+                "expected": "Series 2",
+                "actual": null
+              },
+              "A2": {
+                "expected": "Category 1",
+                "actual": "Group A"
+              },
+              "B2": {
+                "expected": 10,
+                "actual": "Item 1"
+              },
+              "C2": {
+                "expected": 15,
+                "actual": null
+              },
+              "A3": {
+                "expected": "Category 2",
+                "actual": "Group A"
+              },
+              "B3": {
+                "expected": 20,
+                "actual": "Item 2"
+              },
+              "C3": {
+                "expected": 25,
+                "actual": null
+              },
+              "A4": {
+                "expected": "Category 3",
+                "actual": "Group B"
+              },
+              "B4": {
+                "expected": 30,
+                "actual": "Item 3"
+              },
+              "C4": {
+                "expected": 35,
+                "actual": null
+              }
+            }
+          }
+        },
+        {
+          "name": "no old populated workbook rows beyond row 4",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "name": "cached formulas refer to actual embedded worksheet names",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "name": "document cx chart reference resolves",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "chart reference belongs to AlternateContent",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "matching fallback contains an image relationship",
+          "passed": true,
+          "evidence": [
+            "rId5"
+          ]
+        },
+        {
+          "name": "fallback relationship resolves to real embedded PNG",
+          "passed": true,
+          "evidence": {
+            "id": "rId5",
+            "target": "word/media/image1.png"
+          }
+        },
+        {
+          "name": "title is the requested sales title",
+          "passed": true,
+          "evidence": "销售统计"
+        },
+        {
+          "name": "original bytes remain unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "actual": {
+        "chartPart": "word/charts/chartEx1.xml",
+        "layoutIds": [
+          "boxWhisker"
+        ],
+        "series": [
+          {
+            "attributes": {
+              "layoutId": "boxWhisker",
+              "uniqueId": "{836F8D4C-1F4F-4E86-80FF-69232E3757BE}"
+            },
+            "dataIds": [
+              "0"
+            ],
+            "layoutPropertiesXml": "<ns0:layoutPr xmlns:ns0=\"http://schemas.microsoft.com/office/drawing/2014/chartex\"><ns0:statistics quartileMethod=\"exclusive\" /></ns0:layoutPr>"
+          }
+        ],
+        "cache": [
+          {
+            "id": "0",
+            "dimensions": [
+              {
+                "kind": "strDim",
+                "type": "cat",
+                "formula": "Sheet1!$A$2:$C$17",
+                "levels": [
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": []
+                  },
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": "Item 1"
+                      },
+                      {
+                        "index": 1,
+                        "value": "Item 2"
+                      },
+                      {
+                        "index": 2,
+                        "value": "Item 3"
+                      }
+                    ]
+                  },
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": "Group A"
+                      },
+                      {
+                        "index": 1,
+                        "value": "Group A"
+                      },
+                      {
+                        "index": 2,
+                        "value": "Group B"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "numDim",
+                "type": "val",
+                "formula": "Sheet1!$D$2:$D$17",
+                "levels": [
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": "G/通用格式",
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": 10
+                      },
+                      {
+                        "index": 1,
+                        "value": 20
+                      },
+                      {
+                        "index": 2,
+                        "value": 30
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "embeddedWorkbooks": [
+          {
+            "sheets": [
+              {
+                "name": "Sheet1",
+                "part": "xl/worksheets/sheet1.xml",
+                "cells": {
+                  "A1": "Category",
+                  "B1": "Subcategory",
+                  "D1": "Value",
+                  "A2": "Group A",
+                  "B2": "Item 1",
+                  "D2": 10,
+                  "A3": "Group A",
+                  "B3": "Item 2",
+                  "D3": 20,
+                  "A4": "Group B",
+                  "B4": "Item 3",
+                  "D4": 30
+                },
+                "formulas": {}
+              }
+            ],
+            "bytes": 8988,
+            "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        ],
+        "fallbackImages": [
+          {
+            "relationshipId": "rId5",
+            "part": "word/media/image1.png",
+            "png": true,
+            "pixelSize": [
+              555,
+              324
+            ],
+            "bytes": 2407
+          }
+        ],
+        "title": "销售统计",
+        "legend": null,
+        "floating": false,
+        "chartRelationships": {
+          "rId3": {
+            "Id": "rId3",
+            "Type": "http://schemas.microsoft.com/office/2011/relationships/chartColorStyle",
+            "Target": "colors1.xml"
+          },
+          "rId2": {
+            "Id": "rId2",
+            "Type": "http://schemas.microsoft.com/office/2011/relationships/chartStyle",
+            "Target": "style1.xml"
+          },
+          "rId1": {
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+            "Target": "../embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        }
+      },
+      "observationStatus": "Package evidence only; actual Word UI observation must be supplied separately.",
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\chartex\\20260906-182419-174280\\chartex-boxwhisker.docx",
+      "sha256": "819cfadc2d3d89503a767f3de0552a13c24b6ae530a3d42ea76f3271244b5eb3",
+      "warnings": [
+        "Only one requested numeric series is present in the chart cache. Some modern chart types plot one series; record the actual UI display and do not claim two displayed series."
+      ]
+    },
+    {
+      "case": "chartex-funnel",
+      "file": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chartex-funnel.docx",
+      "status": "failed",
+      "checks": [
+        {
+          "name": "copied bytes equal original",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "one chartEx part",
+          "passed": true,
+          "evidence": [
+            "word/charts/chartEx1.xml"
+          ]
+        },
+        {
+          "name": "before and after markers",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "cx chartSpace root",
+          "passed": true,
+          "evidence": "{http://schemas.microsoft.com/office/drawing/2014/chartex}chartSpace"
+        },
+        {
+          "name": "requested modern chart layout",
+          "passed": true,
+          "evidence": [
+            "funnel"
+          ]
+        },
+        {
+          "name": "series reference existing cached datasets",
+          "passed": true,
+          "evidence": [
+            "0"
+          ]
+        },
+        {
+          "name": "nonempty cached chart data",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": []
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "cat",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "name": "cache indices fit declared point count",
+          "passed": true,
+          "evidence": {
+            "dataId": "0",
+            "dimension": "val",
+            "declared": "16",
+            "indices": [
+              0,
+              1,
+              2
+            ]
+          }
+        },
+        {
+          "name": "cached categories contain no reference errors",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "name": "chart cache reflects written numeric data",
+          "passed": true,
+          "evidence": {
+            "cached": [
+              [
+                10,
+                20,
+                30
+              ]
+            ],
+            "matchedExpectedSeries": [
+              [
+                10,
+                20,
+                30
+              ]
+            ]
+          }
+        },
+        {
+          "name": "chart cache reflects written category labels",
+          "passed": false,
+          "evidence": [
+            "Item 1",
+            "Item 2",
+            "Item 3",
+            "Group A",
+            "Group A",
+            "Group B"
+          ]
+        },
+        {
+          "name": "externalData exists",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "externalData resolves to embedded xlsx",
+          "passed": true,
+          "evidence": {
+            "id": "rId1",
+            "relationship": {
+              "Id": "rId1",
+              "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+              "Target": "../embeddings/Microsoft_Excel_Worksheet.xlsx"
+            },
+            "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        },
+        {
+          "name": "embedded workbook contains the intended three data rows",
+          "passed": false,
+          "evidence": {
+            "numericColumn": "C",
+            "mismatches": {
+              "B1": {
+                "expected": "Series 1",
+                "actual": "Subcategory"
+              },
+              "C1": {
+                "expected": "Series 2",
+                "actual": null
+              },
+              "A2": {
+                "expected": "Category 1",
+                "actual": "Group A"
+              },
+              "B2": {
+                "expected": 10,
+                "actual": "Item 1"
+              },
+              "C2": {
+                "expected": 15,
+                "actual": null
+              },
+              "A3": {
+                "expected": "Category 2",
+                "actual": "Group A"
+              },
+              "B3": {
+                "expected": 20,
+                "actual": "Item 2"
+              },
+              "C3": {
+                "expected": 25,
+                "actual": null
+              },
+              "A4": {
+                "expected": "Category 3",
+                "actual": "Group B"
+              },
+              "B4": {
+                "expected": 30,
+                "actual": "Item 3"
+              },
+              "C4": {
+                "expected": 35,
+                "actual": null
+              }
+            }
+          }
+        },
+        {
+          "name": "no old populated workbook rows beyond row 4",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "name": "cached formulas refer to actual embedded worksheet names",
+          "passed": true,
+          "evidence": []
+        },
+        {
+          "name": "document cx chart reference resolves",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "chart reference belongs to AlternateContent",
+          "passed": true,
+          "evidence": null
+        },
+        {
+          "name": "matching fallback contains an image relationship",
+          "passed": true,
+          "evidence": [
+            "rId5"
+          ]
+        },
+        {
+          "name": "fallback relationship resolves to real embedded PNG",
+          "passed": true,
+          "evidence": {
+            "id": "rId5",
+            "target": "word/media/image1.png"
+          }
+        },
+        {
+          "name": "title is the requested sales title",
+          "passed": true,
+          "evidence": "销售统计"
+        },
+        {
+          "name": "original bytes remain unchanged",
+          "passed": true,
+          "evidence": null
+        }
+      ],
+      "actual": {
+        "chartPart": "word/charts/chartEx1.xml",
+        "layoutIds": [
+          "funnel"
+        ],
+        "series": [
+          {
+            "attributes": {
+              "layoutId": "funnel",
+              "uniqueId": "{836F8D4C-1F4F-4E86-80FF-69232E3757BE}"
+            },
+            "dataIds": [
+              "0"
+            ],
+            "layoutPropertiesXml": null
+          }
+        ],
+        "cache": [
+          {
+            "id": "0",
+            "dimensions": [
+              {
+                "kind": "strDim",
+                "type": "cat",
+                "formula": "Sheet1!$A$2:$C$17",
+                "levels": [
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": []
+                  },
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": "Item 1"
+                      },
+                      {
+                        "index": 1,
+                        "value": "Item 2"
+                      },
+                      {
+                        "index": 2,
+                        "value": "Item 3"
+                      }
+                    ]
+                  },
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": null,
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": "Group A"
+                      },
+                      {
+                        "index": 1,
+                        "value": "Group A"
+                      },
+                      {
+                        "index": 2,
+                        "value": "Group B"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "numDim",
+                "type": "val",
+                "formula": "Sheet1!$D$2:$D$17",
+                "levels": [
+                  {
+                    "declaredPointCount": "16",
+                    "formatCode": "G/通用格式",
+                    "points": [
+                      {
+                        "index": 0,
+                        "value": 10
+                      },
+                      {
+                        "index": 1,
+                        "value": 20
+                      },
+                      {
+                        "index": 2,
+                        "value": 30
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "embeddedWorkbooks": [
+          {
+            "sheets": [
+              {
+                "name": "Sheet1",
+                "part": "xl/worksheets/sheet1.xml",
+                "cells": {
+                  "A1": "Category",
+                  "B1": "Subcategory",
+                  "D1": "Value",
+                  "A2": "Group A",
+                  "B2": "Item 1",
+                  "D2": 10,
+                  "A3": "Group A",
+                  "B3": "Item 2",
+                  "D3": 20,
+                  "A4": "Group B",
+                  "B4": "Item 3",
+                  "D4": 30
+                },
+                "formulas": {}
+              }
+            ],
+            "bytes": 8988,
+            "part": "word/embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        ],
+        "fallbackImages": [
+          {
+            "relationshipId": "rId5",
+            "part": "word/media/image1.png",
+            "png": true,
+            "pixelSize": [
+              555,
+              324
+            ],
+            "bytes": 2734
+          }
+        ],
+        "title": "销售统计",
+        "legend": null,
+        "floating": false,
+        "chartRelationships": {
+          "rId3": {
+            "Id": "rId3",
+            "Type": "http://schemas.microsoft.com/office/2011/relationships/chartColorStyle",
+            "Target": "colors1.xml"
+          },
+          "rId2": {
+            "Id": "rId2",
+            "Type": "http://schemas.microsoft.com/office/2011/relationships/chartStyle",
+            "Target": "style1.xml"
+          },
+          "rId1": {
+            "Id": "rId1",
+            "Type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/package",
+            "Target": "../embeddings/Microsoft_Excel_Worksheet.xlsx"
+          }
+        }
+      },
+      "observationStatus": "Package evidence only; actual Word UI observation must be supplied separately.",
+      "snapshot": "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_checks\\chartex\\20260906-182419-174280\\chartex-funnel.docx",
+      "sha256": "e7cae79894b2bb16d7cd055700c6f5e15d902ef0c8c76e40e94cc33e4d258ee4",
+      "warnings": [
+        "Only one requested numeric series is present in the chart cache. Some modern chart types plot one series; record the actual UI display and do not claim two displayed series."
+      ]
+    }
+  ]
+}

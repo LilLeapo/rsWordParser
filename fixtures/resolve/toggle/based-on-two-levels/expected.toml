@@ -1,0 +1,21 @@
+# RES-04 toggle 校准（任务 5.8）。观察值来自真实 Word，见 fixtures/resolve/README.md 的实测记录。
+#
+# 两条都加粗：`basedOn` 链**不做**奇偶抵消，链内是普通的"子覆盖父"。
+# 奇偶只发生在不同**层级**之间（docDefaults / 段落样式 / 表格样式 / 字符样式）。
+
+doc = "toggle/based-on-two-levels"
+
+[[run]]
+# Derived(b=true) basedOn Base(b=true)：同一层级内合并 → 仍是一个 true → 加粗
+text = "basedOn b + derived b"
+bold = true
+# 链内合并，只算一个层级 → 来源就是链的叶子
+source = "ParaStyle:Derived"
+verified = true
+
+[[run]]
+# 只用 Base(b=true) → 加粗
+text = "base b only"
+bold = true
+source = "ParaStyle:Base"
+verified = true

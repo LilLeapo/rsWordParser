@@ -1,0 +1,2201 @@
+{
+  "generatedUtc": "2026-09-07T06:53:31.732884+00:00",
+  "method": "Independent rendered Word-exported PDF inspection. PDF is exported after UI inspection, workbook activation where applicable and native Word resave. It is not proof of absence of a recovery dialog or of pre-activation chart values.",
+  "rows": [
+    {
+      "file": "ink-pen--newimage.docx",
+      "sourceSha256": "E19EBFB30A7C117F9DE7B75852642D1ECC07395A511C36BD130D3AE5C64C7081",
+      "resavedSha256": "5B18828E61ACC12DE3062393BE1D3332B23592DBD706F5483B972F73D3D78F63",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-pen--newimage.pdf",
+        "sha256": "DBE64E3A42482D7136AC7CC67AD4B14709B9468385666828B7AFF3F8594A3277",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ink-pen--newimage-page-1.png",
+            "pngSha256": "3662E82E4D63AF66FE375270891DFA0E88FA9802AFB025D6631BE1098D94609A",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u8fd9\u662f\u4e00\u6bb5\u7528\u4e8e\u89c2\u5bdf\u539f\u751f\u58a8\u8ff9\u7684\u6587\u5b57\u3002\nafter \u540e\u6587",
+            "nonwhitePixels": 12002
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "DBE64E3A42482D7136AC7CC67AD4B14709B9468385666828B7AFF3F8594A3277",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF.",
+          "observed": "One portrait page. New bright green picture is fully visible at the upper right. Original black pen underline and a small black stroke crossing body text remain visible. Before/body/after are retained."
+        }
+      }
+    },
+    {
+      "file": "ink-pen--newchart.docx",
+      "sourceSha256": "1AB268389D4F4D437C2051732B82497E3B03D4EE6CF87A00EBC6E3D43EB63B6B",
+      "resavedSha256": "69CE7FDFDF20F358A634FBBCFE3D179A5389CF959F421F96852B2020CF4910ED",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-pen--newchart.pdf",
+        "sha256": "96828FF208EF9EEF718AC4EA789B4541DC4482A616398E98D225BA352C65100E",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ink-pen--newchart-page-1.png",
+            "pngSha256": "6F87906C6314B8016CB869F5BFB48F0A402783A229E877A0B11AF4B499D8F6C2",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nrsword \u65b0\u56fe\u8868\n3.5\n3\n2.5\n2\n1.5\n1\n0.5\n0\n\u7532 \u4e59 \u4e19\n\u8fd9\u662f\u4e00\u6bb5\u7528\u4e8e\u89c2\u5bdf\u539f\u751f\u58a8\u8ff9\u7684\u6587\u5b57\u3002\nafter \u540e\u6587",
+            "nonwhitePixels": 25334
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "96828FF208EF9EEF718AC4EA789B4541DC4482A616398E98D225BA352C65100E",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF after native chart-data activation.",
+          "observed": "One portrait page. New chart title reads rsword with Chinese new-chart suffix. Categories are the three Chinese labels and blue columns show heights 3, 1, 2. Original ink/body follows the chart; before/after remain visible."
+        }
+      }
+    },
+    {
+      "file": "ink-pen--ink.docx",
+      "sourceSha256": "37B54E68BCA8921008A90D25BC6E982A3CA9084548CDD978592FCA6B556E12AA",
+      "resavedSha256": "5F05B8A3592723FB01A50E781C7D959B3C6B0BD51615C0E50EFBD3E779D97600",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-pen--ink.pdf",
+        "sha256": "BB0B270762A0DE656FF7EBFA2CF005DBC9F64B2B805F053FBAD0A3959F5C1FFA",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ink-pen--ink-page-1.png",
+            "pngSha256": "AEF6B81ABA1315379AE82C5ACC7CDCA7949166D1925E7957E65874D0D30982C8",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u8fd9\u662f\u4e00\u6bb5\u7528\u4e8e\u89c2\u5bdf\u539f\u751f\u58a8\u8ff9\u7684\u6587\u5b57\u3002\nafter \u540e\u6587",
+            "nonwhitePixels": 7053
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "BB0B270762A0DE656FF7EBFA2CF005DBC9F64B2B805F053FBAD0A3959F5C1FFA",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF.",
+          "observed": "One portrait page. Green overlay overlaps the before and body text region without text reflow; covered text is still visible. Original black underline and crossing pen stroke remain, and after is unobstructed lower down."
+        }
+      }
+    },
+    {
+      "file": "ink-highlighter--newimage.docx",
+      "sourceSha256": "C469A57624A93B071778B4B2C889791710FFC1CA62D8C43F23F3CA24A2152CC9",
+      "resavedSha256": "A94D9596CCA31C68446870869A63E928EC7E2476285F5C9A8A02496F59ECC9B1",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-highlighter--newimage.pdf",
+        "sha256": "B741006378475443E762B0F9EDCEB762350810C09A5F7E300D1FAACF269A1907",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ink-highlighter--newimage-page-1.png",
+            "pngSha256": "3DDF38EC9817F7499C7F31D15B2ED735366EE439E4DB565038BB3603CC8A9CBE",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u8fd9\u662f\u4e00\u6bb5\u7528\u4e8e\u89c2\u5bdf\u539f\u751f\u58a8\u8ff9\u7684\u6587\u5b57\u3002\nafter \u540e\u6587",
+            "nonwhitePixels": 14763
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "B741006378475443E762B0F9EDCEB762350810C09A5F7E300D1FAACF269A1907",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF.",
+          "observed": "One portrait page. Yellow highlighter covers the original body sentence, which remains legible. Bright green new picture appears fully at upper right, separate from text. Before/after visible."
+        }
+      }
+    },
+    {
+      "file": "ink-highlighter--newchart.docx",
+      "sourceSha256": "AD79200D2CE5DBAAA66CC96C64BCBD3C4E302731ACB7CA224C006ED86549A060",
+      "resavedSha256": "ECF30484976C46C00CD3D9ED59942B734E1525A880FB60A3C64B29E7E657939B",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-highlighter--newchart.pdf",
+        "sha256": "1C357611F4348FC60255B4FBD1EC7BB1BB37A8F042AE3C0BD8C68A2293265EA0",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ink-highlighter--newchart-page-1.png",
+            "pngSha256": "C6F3E5EF414DFE6B59A1E9562E61B4DC7FDB499744D0BB28E93EF4D22E033DBD",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nrsword \u65b0\u56fe\u8868\n3.5\n3\n2.5\n2\n1.5\n1\n0.5\n0\n\u7532 \u4e59 \u4e19\n\u8fd9\u662f\u4e00\u6bb5\u7528\u4e8e\u89c2\u5bdf\u539f\u751f\u58a8\u8ff9\u7684\u6587\u5b57\u3002\nafter \u540e\u6587",
+            "nonwhitePixels": 28174
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "1C357611F4348FC60255B4FBD1EC7BB1BB37A8F042AE3C0BD8C68A2293265EA0",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF after native chart-data activation.",
+          "observed": "One portrait page. New rsword chart shows three blue columns of heights 3, 1, 2 and Chinese categories. Yellow-highlighted original body sentence sits directly below the chart. Before/after visible."
+        }
+      }
+    },
+    {
+      "file": "ink-highlighter--ink.docx",
+      "sourceSha256": "67D30E9BA70F0E6C1B1EB8B952B30777E0795C5269B2FCC73DDA1491A370C03D",
+      "resavedSha256": "F168F4FD0E0D8663F4458D648190A11834615D904FE38ECE4A39866CDD5EAD34",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-highlighter--ink.pdf",
+        "sha256": "B1B6C0A15B68812660CBF0C69410F7B77D353E0937D7AE6BD4F4DE7FDDDCB708",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ink-highlighter--ink-page-1.png",
+            "pngSha256": "CEB5EA65B06C417D6CA53C25403500939DBB33289EF534B1D3FA62BEB89DDCE6",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u8fd9\u662f\u4e00\u6bb5\u7528\u4e8e\u89c2\u5bdf\u539f\u751f\u58a8\u8ff9\u7684\u6587\u5b57\u3002\nafter \u540e\u6587",
+            "nonwhitePixels": 8698
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "B1B6C0A15B68812660CBF0C69410F7B77D353E0937D7AE6BD4F4DE7FDDDCB708",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF.",
+          "observed": "One portrait page. New green overlay overlaps before and upper body region; original yellow highlight remains beneath the body sentence. Text remains visible through the layered colors; after remains lower down and unobstructed."
+        }
+      }
+    },
+    {
+      "file": "ink-to-shape--newimage.docx",
+      "sourceSha256": "7B4D4E49362C9459CF5596D69459ADA2B336C7B3EF7CCE6F465FA485FE3E22BB",
+      "resavedSha256": "9C67BD12AC12CDA3F6D760C3B9863A1467A291D538E4ED28E367D01B30720F04",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-to-shape--newimage.pdf",
+        "sha256": "65898459B975E3748B5D2BEE16479A4D4AA8842E43EB44ABEC59D523EA8B0A07",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ink-to-shape--newimage-page-1.png",
+            "pngSha256": "FE972A758D4B8A81D2A905D00412E4ECDBE2346B69A628CA7C5D87B566B5E34E",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u8fd9\u662f\u4e00\u6bb5\u7528\u4e8e\u89c2\u5bdf\u539f\u751f\u58a8\u8ff9\u7684\u6587\u5b57\u3002\nafter \u540e\u6587",
+            "nonwhitePixels": 12575
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "65898459B975E3748B5D2BEE16479A4D4AA8842E43EB44ABEC59D523EA8B0A07",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF.",
+          "observed": "One portrait page. Original closed eight-sided black outline appears below body text. New bright green picture is fully visible at upper right. Before/body/after remain readable. This PDF does not establish a native shape conversion; it shows the source outline."
+        }
+      }
+    },
+    {
+      "file": "ink-to-shape--newchart.docx",
+      "sourceSha256": "EE22E49E3875C5DAE3AA5E36C6A711ABBE90FD5E6271CBDB6D4A37551FED09F8",
+      "resavedSha256": "30F73C45CA836D79B795DAB1C7D333D1C8B806357560C9AB7ABA55586E2C85C1",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-to-shape--newchart.pdf",
+        "sha256": "C55AC2B9071CA39A6A07A90A49E40277163D9C475840520CCE51B30EF0C70B9A",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ink-to-shape--newchart-page-1.png",
+            "pngSha256": "290F33CDCC6BBC50E0B234A5A4DCA1A23F620F88155716AD64AB0923A49A8F57",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nrsword \u65b0\u56fe\u8868\n3.5\n3\n2.5\n2\n1.5\n1\n0.5\n0\n\u7532 \u4e59 \u4e19\n\u8fd9\u662f\u4e00\u6bb5\u7528\u4e8e\u89c2\u5bdf\u539f\u751f\u58a8\u8ff9\u7684\u6587\u5b57\u3002\nafter \u540e\u6587",
+            "nonwhitePixels": 25994
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "C55AC2B9071CA39A6A07A90A49E40277163D9C475840520CCE51B30EF0C70B9A",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF after native chart-data activation.",
+          "observed": "One portrait page. New rsword chart has blue columns 3, 1, 2. Original body text and closed eight-sided black outline appear below the chart. Before/after visible, no chart/outline overlap."
+        }
+      }
+    },
+    {
+      "file": "ink-to-shape--ink.docx",
+      "sourceSha256": "683279F4D336B0FC787F8732C8596D9F663406F734EB482FCF5089EEBE0A1ECE",
+      "resavedSha256": "29604D69B759D3A6B37EFFAEE8A2C674DF4D59538EB8E3804ECC9A5F8F60CFCF",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-to-shape--ink.pdf",
+        "sha256": "9D51E967A5A5EE3DF447A356C8C178C21DAEF49FB6741F0F1D5C45CCDF6C7F0F",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ink-to-shape--ink-page-1.png",
+            "pngSha256": "4EDD794A5F5D7BE7F91E3BAF3FFCC52FDB712DAA856A83CCB93CCFA3E73DE075",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u8fd9\u662f\u4e00\u6bb5\u7528\u4e8e\u89c2\u5bdf\u539f\u751f\u58a8\u8ff9\u7684\u6587\u5b57\u3002\nafter \u540e\u6587",
+            "nonwhitePixels": 7666
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "9D51E967A5A5EE3DF447A356C8C178C21DAEF49FB6741F0F1D5C45CCDF6C7F0F",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF.",
+          "observed": "One portrait page. Green overlay crosses the before/body region while text remains visible. Original eight-sided black outline remains fully visible below; after unobstructed."
+        }
+      }
+    },
+    {
+      "file": "chart-no-title--chartdata.docx",
+      "sourceSha256": "29C73209A05CD1C3B911728C3B5522AEFECE1A5A42626B3ACD60CD59F55E710D",
+      "resavedSha256": "F7BE81F9919F5379A3976700CEDDC2393F2CA55A9981F040CBAEC67C7D91C765",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-no-title--chartdata.pdf",
+        "sha256": "7F262F8C2930D8476ABE411ED7D89F0BDF328B21843850A1A388328ECD6FB9E5",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\chart-no-title--chartdata-page-1.png",
+            "pngSha256": "092B5DF47CEF5E3A5877E53DBB59550CA36754C122BFE4A238C1D6C331758EFD",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u6807\u9898\u5df2\u6539 rsword\n40\n35\n30\n25\n20 Series 1\nSeries 2\n15\n10\n5\n0\nCategory 1 Category 2 Category 3\nafter \u540e\u6587",
+            "nonwhitePixels": 34346
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "7F262F8C2930D8476ABE411ED7D89F0BDF328B21843850A1A388328ECD6FB9E5",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF AFTER workbook activation and Word resave; not an initial-input-value observation.",
+          "observed": "One portrait page. Chart title visibly reads the requested Chinese changed-title text plus rsword. Blue Series 1 columns align with 10, 20, 30; orange Series 2 aligns with 15, 25, 35. The series legend has rolled back to Series 1. Before/after visible."
+        }
+      }
+    },
+    {
+      "file": "chart-scatter--chartdata.docx",
+      "sourceSha256": "A36E4B4BA6BB87D7FA2D171BB50192A4BAE6CE28B99284B1A6B250CE45AC2D7E",
+      "resavedSha256": "409C7CDC2C947CA01E1E82F2C5470CB57794A88C19BE12BF4095B8B8D086EF31",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-scatter--chartdata.pdf",
+        "sha256": "B061A4106C50982BC88552321F37510E8993FAC5F152710D08FB46FA7AF6A773",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\chart-scatter--chartdata-page-1.png",
+            "pngSha256": "959225F14D5D53F6C5C7D2C1EE738CB647834E99B4BD11E6DBA47A9677413B80",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u6807\u9898\u5df2\u6539 rsword\n40\n35\n30\n25\n20 Series 1\nSeries 2\n15\n10\n5\n0\n0 0.5 1 1.5 2 2.5 3 3.5\nafter \u540e\u6587",
+            "nonwhitePixels": 12052
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "B061A4106C50982BC88552321F37510E8993FAC5F152710D08FB46FA7AF6A773",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF AFTER workbook activation and Word resave; not an initial-input-value observation.",
+          "observed": "One portrait page. Changed title retained. Blue Series 1 scatter points appear at x=1/2/3, y=10/20/30; orange points y=15/25/35. Legend Series 1/Series 2. Before/after visible."
+        }
+      }
+    },
+    {
+      "file": "chart-scatter-lines--chartdata.docx",
+      "sourceSha256": "961B9ACBA885D67F68B4B410327589CC1E8C57F1D4D8C508DDC08A0DC51FE52D",
+      "resavedSha256": "DFA0A268C2A973BCF9322C9C5D6E75CDC03C352B585AD9BCA0475E64CD91AE1F",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-scatter-lines--chartdata.pdf",
+        "sha256": "7EA3C98EFDC90CED5F539918D4916B9A7C8A9B4D9CF1EFEA7CDCCEE7504CB49D",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\chart-scatter-lines--chartdata-page-1.png",
+            "pngSha256": "D1C5E6D794709EB8EB141F626668AC95AA4784B1E0021233A4285A5F359289D5",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u6807\u9898\u5df2\u6539 rsword\n40\n35\n30\n25\n20 Series 1\nSeries 2\n15\n10\n5\n0\n0 0.5 1 1.5 2 2.5 3 3.5\nafter \u540e\u6587",
+            "nonwhitePixels": 14014
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "7EA3C98EFDC90CED5F539918D4916B9A7C8A9B4D9CF1EFEA7CDCCEE7504CB49D",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF AFTER workbook activation and Word resave; not an initial-input-value observation.",
+          "observed": "One portrait page. Changed title retained. Connected blue Series 1 points at y=10/20/30, orange Series 2 at y=15/25/35, for x=1/2/3. Legend shows original series names. Before/after visible."
+        }
+      }
+    },
+    {
+      "file": "chart-bubble--chartdata.docx",
+      "sourceSha256": "8FB52C0BB1AD50598535585355049E771B242B8AB4E9FE070A43739FCCBCB5BA",
+      "resavedSha256": "E27458032B18E29CBE491E6B321CDC1C77FE1156E9769646999BE3A93CCD4905",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-bubble--chartdata.pdf",
+        "sha256": "E5D2B931B8F10458508D7D8D15F1A7544B05732414F450C72648D65D7FD37D24",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\chart-bubble--chartdata-page-1.png",
+            "pngSha256": "E28548DE4BC9B768572666857C8CFFA86B3FF22A4B9ED81E3F75733E25AD3E0D",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u6807\u9898\u5df2\u6539 rsword\n45\n40\n35\n30\n25\nSeries 1\n20 Series 2\n15\n10\n5\n0\n0 0.5 1 1.5 2 2.5 3 3.5\nafter \u540e\u6587",
+            "nonwhitePixels": 19564
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "E5D2B931B8F10458508D7D8D15F1A7544B05732414F450C72648D65D7FD37D24",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF AFTER workbook activation and Word resave; not an initial-input-value observation.",
+          "observed": "One portrait page. Changed title retained. Blue Series 1 bubble centers align at y=10/20/30, orange Series 2 at y=15/25/35. Bubble sizes grow across x=1/2/3; overlaps preserve transparency. Legend original names. Before/after visible."
+        }
+      }
+    },
+    {
+      "file": "chart-column--insert.docx",
+      "sourceSha256": "A2F803814C4085F8733F26A624B884279E9CE86814A5D3AA6F8B621337597211",
+      "resavedSha256": "8C1DE036126E562664F06D93CB4955833EB1AE996FC5821D44EEE93A5DFF8EFE",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-column--insert.pdf",
+        "sha256": "66F23A70228FF2C3263C623124534AFEBA1FEF78514978D9E98C292752AE5A4F",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\chart-column--insert-page-1.png",
+            "pngSha256": "6A4D1EA247C84BF7ACA2BB369282044FCC8F196529630CFC99D31CB6E628F4C4",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "rsword\u270e before \u524d\u6587\n\u9500\u552e\u7edf\u8ba1\n40\n35\n30\n25\n20 Series 1\nSeries 2\n15\n10\n5\n0\nCategory 1 Category 2 Category 3\nafter \u540e\u6587",
+            "nonwhitePixels": 34252
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "66F23A70228FF2C3263C623124534AFEBA1FEF78514978D9E98C292752AE5A4F",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page. rsword prefix and pen symbol precede before. Original sales column chart, two series, categories and after remain visible and unobstructed."
+        }
+      }
+    },
+    {
+      "file": "smartart-list--insert.docx",
+      "sourceSha256": "A8CAC7F3C45F124489602AA8B3EA2D8B14779E306E8ACDCD012C96E17959E2A8",
+      "resavedSha256": "703B7A8BEB7827FE756F202084BED605C2A9D6BACE83F6AAB2F70F8D4264A9B5",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\smartart-list--insert.pdf",
+        "sha256": "5ED9B61078F497E3820CBDA97BEF28828878A951DE9B547602A9B760A8E52F88",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\smartart-list--insert-page-1.png",
+            "pngSha256": "F1F5F4340D7CE4BABCDF348E3FC02D8B2736D1F081122DD9DC0F9A556A1CF09F",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "rsword\u270e before \u524d\u6587\n\u7b2c\u4e00\u9879 \u7b2c\u4e8c\u9879 \u7b2c\u4e09\u9879\n\u7b2c\u56db\u9879 \u7b2c\u4e94\u9879\nafter \u540e\u6587",
+            "nonwhitePixels": 77757
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "5ED9B61078F497E3820CBDA97BEF28828878A951DE9B547602A9B760A8E52F88",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page. rsword prefix precedes before. Five large blue SmartArt blocks labeled first through fifth item remain arranged in two rows, all text visible; after below."
+        }
+      }
+    },
+    {
+      "file": "math-fraction--insert.docx",
+      "sourceSha256": "E3D67EEC1DC99663C981BA338CBB25987D923F98783E050B77AFEFFF1CD87BDE",
+      "resavedSha256": "C1440B2D9E72BEFCFB1E05E5D03DB43389299DC40709EED3363874AA01E9DD2F",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\math-fraction--insert.pdf",
+        "sha256": "95647C03542BD34D8CD243F866511FE334037A4B742525E3C8F23C00F7E53E2F",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\math-fraction--insert-page-1.png",
+            "pngSha256": "2F5E64CD8CF45D93AA665DC535EFD2D5F4541030A1AAADC48F97527C26A9B209",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "rsword\u270e before \u524d\u6587\n\ud835\udc4e+\ud835\udc4f\n+\ud835\udc652\n2\nafter \u540e\u6587",
+            "nonwhitePixels": 1290
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "95647C03542BD34D8CD243F866511FE334037A4B742525E3C8F23C00F7E53E2F",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page. rsword prefix precedes before. Fraction (a+b)/2 plus x squared renders centrally with proper numerator, denominator and superscript. After visible; no overlap."
+        }
+      }
+    },
+    {
+      "file": "canvas-floating--newimage.docx",
+      "sourceSha256": "A4A5220091CF163D62A7736B1753CE804C31F12AB1280B60AA7A73925B800649",
+      "resavedSha256": "EC2FB05A09E663C223837CDE0B67469A64A5754DDED390B4120D5E74F3F32A95",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\canvas-floating--newimage.pdf",
+        "sha256": "54E635CFD5F4772B8C3121155AB896CDB589080C175B5A41E2D0B8B0B3033AE6",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\canvas-floating--newimage-page-1.png",
+            "pngSha256": "56ABD169C91DB1E3A2454BFBAC13D29BACA3720BAFDE4AC4A508F595717F538C",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nafter \u540e\u6587\n\u753b\u5e03",
+            "nonwhitePixels": 28911
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "54E635CFD5F4772B8C3121155AB896CDB589080C175B5A41E2D0B8B0B3033AE6",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page. Existing blue rectangle, orange ellipse and blue lines/arrows remain. New green image at upper right is visible only as a narrow horizontal strip; most of its lower area is occluded by the existing canvas. Before/after visible. This agrees with the separately recorded canvas occlusion."
+        }
+      }
+    },
+    {
+      "file": "ole-icon-3--newimage.docx",
+      "sourceSha256": "1FBB3D62D9BEE6D61A413BCFEE796678FEDD2208C1579C9E4AA301C4190EE41E",
+      "resavedSha256": "FA88D7A3856A3739C74DA216B6FD3E8EA980DFFEC48B8163CB0E85FD4BA313A6",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ole-icon-3--newimage.pdf",
+        "sha256": "3ABA86F5B71A25662D4421281F69AE6F914CD169FD12F21FC6F9404C0D85A0CE",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ole-icon-3--newimage-page-1.png",
+            "pngSha256": "C852C3EBC2A7F8F6969B6E3C9EDBFC723AB8D178839F7D09851F7A0836560F44",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u793a \u4f8b \u5de5 \u4f5c \u8868\nafter \u540e\u6587",
+            "nonwhitePixels": 11290
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "3ABA86F5B71A25662D4421281F69AE6F914CD169FD12F21FC6F9404C0D85A0CE",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page. Excel icon with Chinese sample-worksheet caption remains at left; green picture fully visible at upper right. Before/after visible without overlap."
+        }
+      }
+    },
+    {
+      "file": "hf-variants--newimage.docx",
+      "sourceSha256": "E2EB93B6EA09418BA99AED3FEA34B4F7270890DE5F55D7F1293DD88FF10280EB",
+      "resavedSha256": "E2310C7F03C0150CEA4586FFCE046A9986FCF2DE36ED6C11BAB12A772338E95D",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\hf-variants--newimage.pdf",
+        "sha256": "440BFC3E7AEDEC1EAD974B1AB7169FE0BC0C130D92E857445A906BF7A2602E42",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\hf-variants--newimage-page-1.png",
+            "pngSha256": "E4B8BA0EF2CF553AE50E5594D474C1502346EB9EE9043AEBE9E8074BDA888CE7",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "\u9996\u9875 \u9875\u7709\nbefore \u524d\u6587\n\u9996\u9875\u6b63\u6587\n\u9996\u9875 \u9875\u811a 1",
+            "nonwhitePixels": 11379
+          },
+          {
+            "page": 2,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\hf-variants--newimage-page-2.png",
+            "pngSha256": "1945150D129ADFC6A095FD7DE1562D09A4F50063ED34246563986AE908DBA413",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "\u5076\u6570\u9875 \u9875\u7709\n\u5947\u5076\u9875\u6b63\u6587\n\u5076\u6570\u9875 \u9875\u811a 2",
+            "nonwhitePixels": 1969
+          },
+          {
+            "page": 3,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\hf-variants--newimage-page-3.png",
+            "pngSha256": "CA8E0C1921815341580175A868336C08A2C618F8181C8DEEC096B1D60DD75BD2",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "\u5947\u6570\u9875 \u9875\u7709\n\u7b2c\u4e09\u9875\u6b63\u6587\nafter \u540e\u6587\n\u5947\u6570\u9875 \u9875\u811a 3",
+            "nonwhitePixels": 7495
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 3,
+        "visualReview": {
+          "pdfSha256": "440BFC3E7AEDEC1EAD974B1AB7169FE0BC0C130D92E857445A906BF7A2602E42",
+          "pageNumbers": [
+            1,
+            2,
+            3
+          ],
+          "method": "Independent visual review of all three rendered PDF pages.",
+          "observed": "Page 1 has first-page header/footer and page number 1, before/body and green image at right. Page 2 has even-page header/footer and number 2 with body text. Page 3 has odd-page header/footer and number 3, after and large diagonal gray CORPUS watermark. All page text and image remain visible."
+        }
+      }
+    },
+    {
+      "file": "fields-toc--newchart.docx",
+      "sourceSha256": "147008442B3FA36D8652CA4C2C28563E2B6D3B7CBE8FD46D5543D4945B47DC52",
+      "resavedSha256": "61EF1BB5C14558D11B6E436CA684D39FA8327601651EF04E39B40C6655B7ADED",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\fields-toc--newchart.pdf",
+        "sha256": "459A69DD87F4222810D8C1CB9E8324880FA533E000887859B89E195CD9BE7833",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\fields-toc--newchart-page-1.png",
+            "pngSha256": "F0E7D26B2C14DC0DD5E60882551FD56067CD998B2D2206B842896C69D7CF7CF1",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nrsword \u65b0\u56fe\u8868\n3.5\n3\n2.5\n2\n1.5\n1\n0.5\n0\n\u7532 \u4e59 \u4e19\n\u76ee\u5f55\n\u4e00\u7ea7\u7ae0\u8282 .................................................................................................................................................................1\n\u4e8c\u7ea7\u7ae0\u8282 .......................................................................................................................................................1\n\u4e09\u7ea7\u7ae0\u8282 ..............................................................................................................................................1\n\u4e00\u7ea7\u7ae0\u8282\n\u4e8c\u7ea7\u7ae0\u8282\n\u4e09\u7ea7\u7ae0\u8282\n\u4ea4\u53c9\u5f15\u7528\uff1a\u4e00\u7ea7\u7ae0\u8282\n\u811a\u6ce8\u4f4d\u7f6e1 \u5c3e\u6ce8\u4f4d\u7f6ei 9/7/2026\nafter \u540e\u6587\ni \u8fd9\u662f\u4e00\u6761\u5c3e\u6ce8\u3002\n1 \u8fd9\u662f\u4e00\u6761\u811a\u6ce8\u3002",
+            "nonwhitePixels": 33369
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "459A69DD87F4222810D8C1CB9E8324880FA533E000887859B89E195CD9BE7833",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review after chart activation.",
+          "observed": "One page. New rsword chart shows 3/1/2. TOC has three entries and page 1 references; three headings, cross-reference, date 9/7/2026, footnote and endnote are visible below. Before/after retained, no content overlap or bookmark-error text."
+        }
+      }
+    },
+    {
+      "file": "image-wrap-square--newchart.docx",
+      "sourceSha256": "4F26B0462C157030241F0945F25E37CAAC184D73F3C3C7E0950D302C9C61549A",
+      "resavedSha256": "AD55D42DE7132389DEE88D825FD9B4F9EA05F2F650739A6FD6530D01EF932650",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\image-wrap-square--newchart.pdf",
+        "sha256": "E148E4239F6ACFBC3D04D916692D6780D9D5772229BD2EA0482BBDE07F9773F5",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\image-wrap-square--newchart-page-1.png",
+            "pngSha256": "74ADFEE4853725367124B1EBFC0C5CE08E368B319BECDFE2F64457D6C4BD6A58",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nrsword \u65b0\u56fe\u8868\n3.5\n3\n2.5\n2\n1.5\n1\n0.5\n0\n\u7532 \u4e59 \u4e19\nafter \u540e\u6587",
+            "nonwhitePixels": 39918
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "E148E4239F6ACFBC3D04D916692D6780D9D5772229BD2EA0482BBDE07F9773F5",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review after chart activation.",
+          "observed": "One page. New rsword chart shows 3/1/2. Original teal/yellow image remains just below the chart at right; their edges meet without content covering. Before/after clear."
+        }
+      }
+    },
+    {
+      "file": "table-styled--newchart.docx",
+      "sourceSha256": "2E5002817D4B949FC6C1055892E567F7DC4153A3FA6DA048969B199FA4F3C4EB",
+      "resavedSha256": "EAD6F5171266E3D56445BC6474C5332CF9BACA27386FB71C7D307AFBE0324CE8",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\table-styled--newchart.pdf",
+        "sha256": "244ACB598CB64EB768E5F77AAD3D042AA1AC48EBE4AE3E9B6F324BCFEE3095D4",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\table-styled--newchart-page-1.png",
+            "pngSha256": "D43FA22EF07C721C9DCFA3311C977D0789DEDAC402DC81EF0425593450ED28D9",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nrsword \u65b0\u56fe\u8868\n3.5\n3\n2.5\n2\n1.5\n1\n0.5\n0\n\u7532 \u4e59 \u4e19\nR1 C1 R1 C3\nR1 C2\nR2 C1 R2 C2 R2 C3\nR3 C1 R3 C2 N11 N12\nN21 N22\nR3 C3\nafter \u540e\u6587",
+            "nonwhitePixels": 56740
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "244ACB598CB64EB768E5F77AAD3D042AA1AC48EBE4AE3E9B6F324BCFEE3095D4",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review after chart activation.",
+          "observed": "One page. New rsword chart shows 3/1/2 above original styled table. Blue header, alternating second row, merged first-row labels and nested table N11/N12/N21/N22 remain visible. Before/after unobstructed."
+        }
+      }
+    },
+    {
+      "file": "math-matrix--ink.docx",
+      "sourceSha256": "5C34C52C54F83C792373D4DD245FE16BCEB47CDF92C78A962E2BB787B9C70B80",
+      "resavedSha256": "157B89F8CB1776F30AF4F1DFB107A05D8A29AE21AB87923182B9EC7EF1835EB2",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\math-matrix--ink.pdf",
+        "sha256": "EA34DAF6DD244D26878141567C58C3FA5EC14B54733045E35EB26E4FE51DEE21",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\math-matrix--ink-page-1.png",
+            "pngSha256": "319BE1A6236CF5755F14631D17BC9FB64F629299EFF90BB454B863C4E7F24C95",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\ud835\udc4e \ud835\udc4f\n[ ]\n\ud835\udc50 \ud835\udc51\nafter \u540e\u6587",
+            "nonwhitePixels": 6634
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "EA34DAF6DD244D26878141567C58C3FA5EC14B54733045E35EB26E4FE51DEE21",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page. Green overlay crosses before at upper left without reflow. Centered 2x2 bracketed a/b/c/d matrix remains clear, after below."
+        }
+      }
+    },
+    {
+      "file": "smartart-floating--ink.docx",
+      "sourceSha256": "E6487DC7D644AF38856249DA7D509EDBFEE3467E927DBEE81D6D0CCD6F5C6460",
+      "resavedSha256": "7F35450AC2B57749F48A737E953175AD5E884C461428FF129296B8EB09FBAF8F",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\smartart-floating--ink.pdf",
+        "sha256": "DD557D863448118D43509DEA23BCF2846CCECD061B60DCAE17210AB2BF1440EA",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\smartart-floating--ink-page-1.png",
+            "pngSha256": "2A6B477A81828EF34700E7F0E6C5003F438DAFDF399B2D12240A493C53C2D29B",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u51c6\u5907 \u6267\u884c \u5b8c\u6210\nafter \u540e\u6587",
+            "nonwhitePixels": 31201
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "DD557D863448118D43509DEA23BCF2846CCECD061B60DCAE17210AB2BF1440EA",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page. Green overlay crosses before. Three blue process blocks and connecting arrows remain visible; separate teal/yellow image at upper right is clear. After below; overlay does not cover SmartArt."
+        }
+      }
+    },
+    {
+      "file": "ole-excel-embedded--ink.docx",
+      "sourceSha256": "DCA96DAF234F43AD8241C870FD5D3F63DBA9BAB21FB047DF4B944C340268DD8C",
+      "resavedSha256": "37ED66017E5B6B16C8AB9B7CA4B5575A42A4DE6EB786E0874D9E14D5254BD3F9",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ole-excel-embedded--ink.pdf",
+        "sha256": "9D29794C2A2DC353818627189CC171019EA7EFEC98FF46712FFF154252B60DED",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ole-excel-embedded--ink-page-1.png",
+            "pngSha256": "572E1EB8B39E642E7CEA29576128D9A85CE9656FAACF4C0DD0BCA8F91C381C99",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n12 34\nafter \u540e\u6587",
+            "nonwhitePixels": 12610
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "9D29794C2A2DC353818627189CC171019EA7EFEC98FF46712FFF154252B60DED",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page. Green overlay crosses before and top edge of the embedded worksheet. Worksheet grid and values 12/34 remain visible through the overlap. After below; no evidence of a missing worksheet."
+        }
+      }
+    },
+    {
+      "file": "chart-floating--deleteblock.docx",
+      "sourceSha256": "D63FFAF6D078818DB7665934B38B0D6E8C490BEBA66F594C5B572CA38733EAC3",
+      "resavedSha256": "D53841A3D85A91D295399643FA20940BDD3841E167BCD870AE94F0120A70DE2D",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-floating--deleteblock.pdf",
+        "sha256": "6F68C289D4441FA5DCBB0E51AD0037B288B71AD7AFA8B4BFD770318D11E1A2E0",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\chart-floating--deleteblock-page-1.png",
+            "pngSha256": "AEC3450066FDC34BE37B9E7CC1D7E0B6E942311233C3F8027B2AF86F57A3E2DA",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nafter \u540e\u6587",
+            "nonwhitePixels": 769
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "6F68C289D4441FA5DCBB0E51AD0037B288B71AD7AFA8B4BFD770318D11E1A2E0",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page containing before and after on consecutive lines; no chart appears. Remaining text is clear."
+        }
+      }
+    },
+    {
+      "file": "canvas-picture--deleteblock.docx",
+      "sourceSha256": "6D7C8A5CF1CD25D72A96A36D11A1300008231D4B716B91811832D946531751A8",
+      "resavedSha256": "D089701C8A0968C74AD25834F5C51E1E069FE188179E1DEBDF3BFAF663947FC1",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\canvas-picture--deleteblock.pdf",
+        "sha256": "A1FB20D10A1292141674014D51DE4B34749DFAE93A5D67F528D5179FDA18DFC0",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\canvas-picture--deleteblock-page-1.png",
+            "pngSha256": "A381583A7497B556F7ED45E78E5614A7DAA57D2FD38DEAE42BBFC8E33DEA7014",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nafter \u540e\u6587",
+            "nonwhitePixels": 879
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "A1FB20D10A1292141674014D51DE4B34749DFAE93A5D67F528D5179FDA18DFC0",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page with before and after and no canvas or picture. Remaining text is clear."
+        }
+      }
+    },
+    {
+      "file": "math-in-table--deleteblock.docx",
+      "sourceSha256": "5B36C840821E58623071F632C6C3954440CEB83F2A4EA62DFBC393C7D5590F53",
+      "resavedSha256": "334D939A38C39DDF61E408973F48696120828DF14CEC5BB8B104D9D9C73968E4",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\math-in-table--deleteblock.pdf",
+        "sha256": "C91B64B7F8D4EFE6CE1C2B6ED9679F6890D959EFE6F0CB03394E88163F1A7E9B",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\math-in-table--deleteblock-page-1.png",
+            "pngSha256": "5AD74503C2B054F70BAE5F3D47094530F6F93A03EC61099E25C483BEFF055370",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nafter \u540e\u6587",
+            "nonwhitePixels": 717
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "C91B64B7F8D4EFE6CE1C2B6ED9679F6890D959EFE6F0CB03394E88163F1A7E9B",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page. Before and after remain on separate lines; the math-containing table is absent. No unexpected residual object visible."
+        }
+      }
+    },
+    {
+      "file": "chart-column--chartdata.docx",
+      "sourceSha256": "5BB3EDD5727E7703E1ABC857BB2957518F05AE91982A4250E5CC064D254D3F3C",
+      "resavedSha256": "5E0BFEFA7EE3B3863DB7B9979AB8857BC514CECD29407980C74694AB904A33B4",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-column--chartdata.pdf",
+        "sha256": "92BA728BCD4886AFA46C920B80BC431AFEBA181A291E40B3993A1E6BCF53E890",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\chart-column--chartdata-page-1.png",
+            "pngSha256": "62515F4CC8EAE33557047935EF9A015B6FD6BFE8BCE81681BAB6BC89A7B5DD79",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u6807\u9898\u5df2\u6539 rsword\n40\n35\n30\n25\n20 Series 1\nSeries 2\n15\n10\n5\n0\nCategory 1 Category 2 Category 3\nafter \u540e\u6587",
+            "nonwhitePixels": 34274
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "92BA728BCD4886AFA46C920B80BC431AFEBA181A291E40B3993A1E6BCF53E890",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review after workbook activation and Word resave.",
+          "observed": "One page. Requested changed title remains. Blue Series 1 columns show 10/20/30, orange Series 2 15/25/35; original series names appear in legend after activation. Before/after clear."
+        }
+      }
+    },
+    {
+      "file": "chart-no-legend--chartdata.docx",
+      "sourceSha256": "1B6C6F6EADE20E0FEC425666336B051090EC6E5E5DC6C7B6A8D853301BA211BA",
+      "resavedSha256": "1448DFA50AAA7A98EC7B31E5E28572BAB193AB6401993A618D6E1BEDECA068A0",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-no-legend--chartdata.pdf",
+        "sha256": "E26A32D8E26ABAFFB06EC80D2C2E36872C957A02D8AEA0AEA29420B3CC4DF9F9",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\chart-no-legend--chartdata-page-1.png",
+            "pngSha256": "EBF1D45EEDF42E8E27542C58BAE553F68807D1FB2A906F26B13875F819A7B247",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u6807\u9898\u5df2\u6539 rsword\n40\n35\n30\n25\n20\n15\n10\n5\n0\nCategory 1 Category 2 Category 3\nafter \u540e\u6587",
+            "nonwhitePixels": 37645
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "E26A32D8E26ABAFFB06EC80D2C2E36872C957A02D8AEA0AEA29420B3CC4DF9F9",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review after workbook activation and Word resave.",
+          "observed": "One page. Requested changed title remains; no legend. Blue columns show 10/20/30 and orange columns 15/25/35 after activation. Before/after visible."
+        }
+      }
+    },
+    {
+      "file": "chart-floating--chartdata.docx",
+      "sourceSha256": "CDE0F6D4CBF41CED91BD1F308671C585FC2CD28ACC2F431BACA326F798853C29",
+      "resavedSha256": "A5629A00D450A908A0FEBFE7D151F839BE709CCD8DBE94C116DE2FCED776DBCF",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-floating--chartdata.pdf",
+        "sha256": "3757EA3ACC2BA02EB6BF6DF69F4759CBDFC9249440079718BB2716D52001DFDA",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\chart-floating--chartdata-page-1.png",
+            "pngSha256": "5C3D96AC2FB1654187B362009DA9EEAB7B815688388CE957AE5E1576BB2FE370",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u6807\u9898\u5df2\u6539 rsword\nafter \u540e\u6587\n40\n35\n30\n25\n20 Series 1\nSeries 2\n15\n10\n5\n0\nCategory 1 Category 2 Category 3",
+            "nonwhitePixels": 22149
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "3757EA3ACC2BA02EB6BF6DF69F4759CBDFC9249440079718BB2716D52001DFDA",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review after workbook activation and Word resave.",
+          "observed": "One page. Floating chart remains to the right of before/after lines. Changed title retained. Blue Series 1 columns show 10/20/30, orange Series 2 15/25/35; legend original names. No text overlap."
+        }
+      }
+    },
+    {
+      "file": "image-cropped--replaceimage.docx",
+      "sourceSha256": "CB40F20C49FFFD21E9A08BC0F217F9D638E3E72690BACC3F996FC6A66C7E48A9",
+      "resavedSha256": "8E6B9DA1A6373C78D58D57A93E8792CC0E8176B95523ABBB84B274EBA078AE88",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\image-cropped--replaceimage.pdf",
+        "sha256": "27F516181A8B92F225C7DF2E691ED54222E6235A59C7C122A252F581B21A8F7F",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\image-cropped--replaceimage-page-1.png",
+            "pngSha256": "76501FCCFA74E80898A78318AA40CA91DF8F048CEE71326EA6441617972C3E75",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nafter \u540e\u6587",
+            "nonwhitePixels": 7377
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "27F516181A8B92F225C7DF2E691ED54222E6235A59C7C122A252F581B21A8F7F",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page. Solid bright green rectangular replacement image appears between before and after in the existing compact frame. All visible and unobstructed. A solid fill alone cannot visually prove original crop metadata retention."
+        }
+      }
+    },
+    {
+      "file": "image-svg--replaceimage.docx",
+      "sourceSha256": "5146F817529F1010C84CFA3931AF8537CEAFD45F25D8B40EF77FA9F2E7BDC8FC",
+      "resavedSha256": "6BDF5D449EA5B9D00C6FBB94D669220DB897AC530F5ABCD96DE5429C2E52DB2E",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\image-svg--replaceimage.pdf",
+        "sha256": "B8CA67AE12E6A63744A0CFB9F98240AFE2CF04A647FB4E1D40E166B6AEDC5633",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\image-svg--replaceimage-page-1.png",
+            "pngSha256": "56FCE0669D2F68ED77624422BB63527327A7934B6D04529E08D38A5FC132B61E",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nafter \u540e\u6587",
+            "nonwhitePixels": 17350
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "B8CA67AE12E6A63744A0CFB9F98240AFE2CF04A647FB4E1D40E166B6AEDC5633",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page. Solid bright green replacement image is visible between before and after. Original SVG appearance is replaced; text remains clear."
+        }
+      }
+    },
+    {
+      "file": "chart-pasted-picture--replaceimage.docx",
+      "sourceSha256": "10F28A8EF398A92ACEE94DE96194C32F9076DBB0C15758FF2A2DD588F27911B3",
+      "resavedSha256": "EDF050F92A3AD0B376CB7E249FF40306FFAD8A302C35574D36CBBF5CB67C75BF",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-pasted-picture--replaceimage.pdf",
+        "sha256": "C868159E2D5D1665D4385EFCF158E5FE1D70527638A9BA915BA9620B1C8A19E7",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\chart-pasted-picture--replaceimage-page-1.png",
+            "pngSha256": "718F3539F33F0804E7BEF0860917CB52C4BE921686E88B03D8A3B7E4DB63B3DD",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nafter \u540e\u6587",
+            "nonwhitePixels": 220499
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "C868159E2D5D1665D4385EFCF158E5FE1D70527638A9BA915BA9620B1C8A19E7",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page. Large solid green rectangle replaces the pasted-chart image; its existing large frame extends close to the right page edge but stays on-page. Before above and after below remain clear."
+        }
+      }
+    },
+    {
+      "file": "chart-in-table--insertrow.docx",
+      "sourceSha256": "F0A5F12489B973BF68ED37D56D5A10D94D342C622271E97A50B262E4E10E3ED8",
+      "resavedSha256": "5C91767C0F5A3833E9744A684E87AADAAEB8FBB2ABC42650176347C86F35EFD2",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chart-in-table--insertrow.pdf",
+        "sha256": "760404E0562B6D84458700775AEC1E69D771DF38D14EE6B7146D88C804587B94",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\chart-in-table--insertrow-page-1.png",
+            "pngSha256": "51559137C5AB000D7640E5053FBE297160F080D33E43728E7C3F63DDE572D30E",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nCell 2\n\u9500\u552e\u7edf\u8ba1\n40\n35\n30\n25\n20 Series 1\n15\nSeries 2\n10\n5\n0\nCategory Category Category\n1 2 3\nCell 3 Cell 4\nafter \u540e\u6587",
+            "nonwhitePixels": 13894
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "760404E0562B6D84458700775AEC1E69D771DF38D14EE6B7146D88C804587B94",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page. Two-column table has original chart/Cell 2 first row, a blank inserted middle row, and Cell 3/Cell 4 last row. Embedded sales chart and labels remain within the first cell. Before/after visible."
+        }
+      }
+    },
+    {
+      "file": "math-in-table--insertrow.docx",
+      "sourceSha256": "D29CCF76B775723CA738D64848551F683AB8DB4A150028B330FEB271B0A80F8A",
+      "resavedSha256": "AEEB2E5870A0A0952949728DD30DB5744A98E66D81B876103387F8D8D87C195A",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\math-in-table--insertrow.pdf",
+        "sha256": "936900E276989AA3115F10D37685CA367F1CABB342BFAFA77FFE041BD4F18380",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\math-in-table--insertrow-page-1.png",
+            "pngSha256": "3F9BEAE8818BBFE731AAE0A6177C0557DF10D53DA4C57BA5F6A69E1E02134CB3",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\ud835\udc4e+\ud835\udc4f \u53f3\u4e0a\n+\ud835\udc652\n2\n\u5de6\u4e0b \u53f3\u4e0b\nafter \u540e\u6587",
+            "nonwhitePixels": 4110
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "936900E276989AA3115F10D37685CA367F1CABB342BFAFA77FFE041BD4F18380",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page. Table shows fraction-plus-superscript formula in top left and Chinese top-right label, blank inserted middle row, and bottom-left/bottom-right labels. Formula and borders are clear; before/after retained."
+        }
+      }
+    },
+    {
+      "file": "ole-in-table--insertrow.docx",
+      "sourceSha256": "43655858CCD66A3B4CFBB319301B4931340935A7A41AEE0CFBB4FA84FB50FE0B",
+      "resavedSha256": "5D925E54A8677C2E8FD247A5945BAA9F41153922536BC84A3D001DA070F64E62",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ole-in-table--insertrow.pdf",
+        "sha256": "1AAC92BC1A997A3141D0F3FAD8F770C69E984904ED2E53075DC78CA5B951D5D8",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ole-in-table--insertrow-page-1.png",
+            "pngSha256": "C8796315BCC65E8DB2EB0E8D40E35D5CE1B07F8F8A3DF9759B84ACB063A4B993",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n1 2 3 4 \u53f3\u4e0a\n\u5de6\u4e0b \u53f3\u4e0b\nafter \u540e\u6587",
+            "nonwhitePixels": 9317
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "1AAC92BC1A997A3141D0F3FAD8F770C69E984904ED2E53075DC78CA5B951D5D8",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page. Embedded worksheet grid with 12/34 remains in top-left table cell; top-right label retained. Blank inserted middle row and labeled bottom row visible. Before/after clear."
+        }
+      }
+    },
+    {
+      "file": "smartart-in-table--mergecells.docx",
+      "sourceSha256": "9587834D6358CCA339887DE9A1CE83DDD15574366094795F1923B58F784BFD20",
+      "resavedSha256": "1D0802E115F2BD2C6B1DE84DEE5727FB6F2062000C5F1A756833AED08248E28F",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\smartart-in-table--mergecells.pdf",
+        "sha256": "448ACD6005DE9C0AA4A6F14EAFEF0FE858CFF0D88D3C8C7F3514FC18DE5EA84F",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\smartart-in-table--mergecells-page-1.png",
+            "pngSha256": "003A5B00BB45CFD7FAC49462A0C8183C8EF7B1B7CF0813A3A21765F398991C9F",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u51c6\u5907 \u6267\u884c \u5b8c\u6210\n\u53f3\u4e0a\n\u5de6\u4e0b \u53f3\u4e0b\nafter \u540e\u6587",
+            "nonwhitePixels": 11668
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "448ACD6005DE9C0AA4A6F14EAFEF0FE858CFF0D88D3C8C7F3514FC18DE5EA84F",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent rendered PDF visual review.",
+          "observed": "One page. First table row spans full table width: three blue SmartArt process blocks remain and former top-right text appears below them within the merged row. Bottom row still has two cells and labels. Before/after visible."
+        }
+      }
+    },
+    {
+      "file": "table-styled--mergecells.docx",
+      "sourceSha256": "2023BEC3588E4B1E71AAD0216A1EF0AA6CCB6F859E4C299F3589E1118CA62C97",
+      "resavedSha256": "87C448AC4B82E371D32A325D4996CA604E94F8955C6D3CCB1CAF4DF4D96F57F3",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\table-styled--mergecells.pdf",
+        "sha256": "CEEFA685AEB965581CC9A4BA82614AEC92D8E961CD62B274FAB1B4A15A9A8990",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\table-styled--mergecells-page-1.png",
+            "pngSha256": "D1AB1F52AF3CCAFDADFD578E15179B27276298C1BD8EEA0D1226FEFC87770DB3",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nR1 C1 R1 C3\nR1 C2\nR2 C1 R2 C3\nR2 C2\nR3 C1 R3 C2 N11 N12\nN21 N22\nR3 C3\nafter \u540e\u6587",
+            "nonwhitePixels": 44882
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "CEEFA685AEB965581CC9A4BA82614AEC92D8E961CD62B274FAB1B4A15A9A8990",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF.",
+          "observed": "One portrait page. Blue first row retains stacked R1 C1/R1 C2 in its earlier merged cell. Second row now merges its first two cells with R2 C1/R2 C2 stacked; R2 C3 remains separate. Third-row nested N11/N12/N21/N22 table remains. Before and after visible."
+        }
+      }
+    },
+    {
+      "file": "ole-in-table--mergecells.docx",
+      "sourceSha256": "F7EF56AB3BE53FF8EDBF068912C0A48ECFD3ABAFA26604DC9D31B2073A77F59A",
+      "resavedSha256": "07A9EAC7FB8ADE6FBE660CBC78CF90B709C8ED22D447D1C40A54371497C20C40",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ole-in-table--mergecells.pdf",
+        "sha256": "76B82672B47B67BD01C04A7EE2943CD0DB2333AB16C8E42A1224F7F28D3206FA",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ole-in-table--mergecells-page-1.png",
+            "pngSha256": "EA659253168369150BF07A82F44851A14F1D43928F6AACECC670F63360D8809D",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n1 2 3 4\n\u53f3\u4e0a\n\u5de6\u4e0b \u53f3\u4e0b\nafter \u540e\u6587",
+            "nonwhitePixels": 8631
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "76B82672B47B67BD01C04A7EE2943CD0DB2333AB16C8E42A1224F7F28D3206FA",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF.",
+          "observed": "One portrait page. First table row spans full width; embedded worksheet values 12 and 34 remain, with former top-right Chinese label below the worksheet in the merged cell. Bottom row remains two labeled cells. Before and after visible."
+        }
+      }
+    },
+    {
+      "file": "hf-variants--header.docx",
+      "sourceSha256": "19A1695E80305A7D3084231938B8C39CDED774163172EE76A53CAC58351AB1C5",
+      "resavedSha256": "4D80FE3FA3F6849910BADF74FF4D8EB87939BC493076C2A79067E43F4830C8B5",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\hf-variants--header.pdf",
+        "sha256": "5C799BF08F49859855F2668E02520E0C751869F81D2A8D7CA7E45E7E7D0C33BC",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\hf-variants--header-page-1.png",
+            "pngSha256": "CA1C8F86711BE4978972313D9E5B36E4B1EC1407A818B1C1D49757B1C45499CE",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "\u9996\u9875 \u9875\u7709\nbefore \u524d\u6587\n\u9996\u9875\u6b63\u6587\n\u9996\u9875 \u9875\u811a 1",
+            "nonwhitePixels": 1995
+          },
+          {
+            "page": 2,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\hf-variants--header-page-2.png",
+            "pngSha256": "1945150D129ADFC6A095FD7DE1562D09A4F50063ED34246563986AE908DBA413",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "\u5076\u6570\u9875 \u9875\u7709\n\u5947\u5076\u9875\u6b63\u6587\n\u5076\u6570\u9875 \u9875\u811a 2",
+            "nonwhitePixels": 1969
+          },
+          {
+            "page": 3,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\hf-variants--header-page-3.png",
+            "pngSha256": "A911D22B84D432C1C65CF6E9DF15E9AD5877425C528D7E036CA104042EE31C73",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "rsword \u9875\u7709\n\u7b2c\u4e09\u9875\u6b63\u6587\nafter \u540e\u6587\n\u5947\u6570\u9875 \u9875\u811a 3",
+            "nonwhitePixels": 1686
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 3,
+        "visualReview": {
+          "pdfSha256": "5C799BF08F49859855F2668E02520E0C751869F81D2A8D7CA7E45E7E7D0C33BC",
+          "pageNumbers": [
+            1,
+            2,
+            3
+          ],
+          "method": "Independent visual inspection of all three rendered Word-exported PDF pages.",
+          "observed": "Page 1 retains first-page header/footer, number 1 and before/body. Page 2 retains even-page header/footer, number 2 and body. Page 3 header is rsword followed by Chinese header text; body and after retained, odd-page footer and number 3 retained. Original diagonal CORPUS watermark is absent, consistent with replacing the default header. No text overlap."
+        }
+      }
+    },
+    {
+      "file": "sections-three--header.docx",
+      "sourceSha256": "D0DE1EA13C478C6D400DC873686AB0181EAE7E1D34DB74CEE99B6DF8D1A3F00F",
+      "resavedSha256": "CC189E29488D1D5FC659ADA9F943DF52C90850F202D35E0942665F8A74549946",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\sections-three--header.pdf",
+        "sha256": "BF396843FB1F141F0915312EF2A00B96D0295451C8D1A6B13AFDB3FCF0897F5F",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\sections-three--header-page-1.png",
+            "pngSha256": "4E50B1DBEF82E6B95A1540D12714426E9752DFFB27AC5D606D71423968C429FA",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "\u7b2c\u4e00\u8282\u9875\u7709\nbefore \u524d\u6587\n\u7b2c\u4e00\u8282\u6b63\u6587",
+            "nonwhitePixels": 1788
+          },
+          {
+            "page": 2,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\sections-three--header-page-2.png",
+            "pngSha256": "9BCC37348C097A297065A5560CA8B3AD089DADC3667B5FA002E1BC137D60840A",
+            "widthPt": 841.92,
+            "heightPt": 595.32,
+            "text": "\u7b2c\u4e8c\u8282\u72ec\u7acb\u9875\u7709\n\u7b2c\u4e8c\u8282\u6b63\u6587",
+            "nonwhitePixels": 1827
+          },
+          {
+            "page": 3,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\sections-three--header-page-3.png",
+            "pngSha256": "DBBF2F1353478DE447A0A3E3091CAF5C1D43C3404EC107987BDA5ADA9623C759",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "rsword \u9875\u7709\n\u7b2c\u4e09\u8282\u6b63\u6587\nafter \u540e\u6587",
+            "nonwhitePixels": 1185
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 3,
+        "visualReview": {
+          "pdfSha256": "BF396843FB1F141F0915312EF2A00B96D0295451C8D1A6B13AFDB3FCF0897F5F",
+          "pageNumbers": [
+            1,
+            2,
+            3
+          ],
+          "method": "Independent visual inspection of all three rendered Word-exported PDF pages.",
+          "observed": "Portrait page 1 retains first-section header and rule, before and first-section body. Landscape page 2 retains independent second-section header and rule plus second-section body. Portrait page 3 shows rsword header, third-section body and after. All three sections remain readable and separate."
+        }
+      }
+    },
+    {
+      "file": "strict-basic-2--header.docx",
+      "sourceSha256": "A4F988CCC62FB6A1EA443750FEB17E04A84294D11F957B167FB5650BE352F958",
+      "resavedSha256": "C5927FC62FE2B55D29284C1110F41FDFF7512B982E240A225D4B9495FAEBC8E2",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\strict-basic-2--header.pdf",
+        "sha256": "5BE3DDDFDF4381EF8663E673C554B23CF2218DEE84985F7F4D954992300B2424",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\strict-basic-2--header-page-1.png",
+            "pngSha256": "7F129B91E563F04E4BB3A9B6FB235AEC708134E3EE1862B2CFD502935E242FAE",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "rsword \u9875\u7709\nbefore \u524d\u6587\n\u4e00\u7ea7\u6807\u9898\n\u4e8c\u7ea7\u6807\u9898\n\u8fd9\u662f\u6b63\u6587 Mixed English and \u4e2d\u6587\u3002\n\u26ab \u9879\u76ee\u7b26\u53f7\u6761\u76ee\n1. \u7f16\u53f7\u4e00\u7ea7\n1.1. \u7f16\u53f7\u4e8c\u7ea7\n1.1.1. \u7f16\u53f7\u4e09\u7ea7\n\u5f69\u8272\u6587\u5b57\n\u7c97\u4f53 \u659c\u4f53 \u4e0b\u5212\u7ebf \u5220\u9664\u7ebf \u4e0a\u6807\nafter \u540e\u6587",
+            "nonwhitePixels": 8788
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "5BE3DDDFDF4381EF8663E673C554B23CF2218DEE84985F7F4D954992300B2424",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF.",
+          "observed": "One portrait page. rsword header is visible above before. Two heading levels, mixed-language body, bullet, three numbering levels, bold/italic/underline/strikethrough/superscript and red text remain visible. After remains below the body. No overlap."
+        }
+      }
+    },
+    {
+      "file": "revisions-comments--comment.docx",
+      "sourceSha256": "261B59482E76353B1E1178BCACD0958E51A7BC8B8C4AC9B680A46CE0B543C5DD",
+      "resavedSha256": "6D9A80F381F61744CBA46BE3B32AFA7A9C4C1158F3C36BA139FEE03CE50B38D1",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\revisions-comments--comment.pdf",
+        "sha256": "4477B153DC756E98CAA2A6FB5C704A8EABD00572346D09012C647A9855F6F6C9",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\revisions-comments--comment-page-1.png",
+            "pngSha256": "2C088E3ED27ED12CF665A982C9CE6A83D3766C12126C9D9D259392ED5062FB4C",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u539f\u59cb\u6b63\u6587\u3002\u65b0\u589e\u53e5\u5b50\u3002\n\u683c\u5f0f\u4fee\u6539\u6587\u5b57\u3002\n\u6279\u6ce8\u4f4d\u7f6e\u4e00\u3002\u6279\u6ce8\u4f4d\u7f6e\u4e8c\u3002\nafter \u540e\u6587",
+            "nonwhitePixels": 3264
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "4477B153DC756E98CAA2A6FB5C704A8EABD00572346D09012C647A9855F6F6C9",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF; comments are not displayed in this PDF export.",
+          "observed": "One portrait page. Original and inserted Chinese sentences, bold formatting-change text, both comment-anchor sentences, before and after are readable. No visible comment balloons in this PDF; comment presence must be assessed from package/UI evidence."
+        }
+      }
+    },
+    {
+      "file": "smartart-in-table--comment.docx",
+      "sourceSha256": "47D9D9420669BBE4C47B76B5C8796BB27F58080E4E25F08D90846DA014751C16",
+      "resavedSha256": "B913B32CE77D3E2FD25514F65E4A370FE0C54EF52C48453B03059DB409E1EDA6",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\smartart-in-table--comment.pdf",
+        "sha256": "5C387E38E236D81C735985FFD870C439302B347B81C3463D6B2FD8942A5AC86D",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\smartart-in-table--comment-page-1.png",
+            "pngSha256": "EFB84F5CC7BD31D55D41AEACF91AB107B3B20C38CA2E342FF60C27D38B51C47C",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u53f3\u4e0a\n\u51c6\u5907 \u6267\u884c \u5b8c\u6210\n\u5de6\u4e0b \u53f3\u4e0b\nafter \u540e\u6587",
+            "nonwhitePixels": 11786
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "5C387E38E236D81C735985FFD870C439302B347B81C3463D6B2FD8942A5AC86D",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF; comments are not displayed in this PDF export.",
+          "observed": "One portrait page. Four-cell table retains three blue SmartArt nodes with connecting arrows in top-left cell, top-right/bottom labels and intact borders. Before and after readable. Comment balloons are absent from the PDF, so it does not independently establish the added comment."
+        }
+      }
+    },
+    {
+      "file": "image-cropped--comment.docx",
+      "sourceSha256": "49A9A410567E7E561308628278C5354F3994B6488E41D0212F36F6BC854C41BF",
+      "resavedSha256": "A7A312891A71DF39103BCA3F410470E92EEEAF704FAFDDEFB9976E03B93C8C54",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\image-cropped--comment.pdf",
+        "sha256": "CE88C8BB4AAD9CA7BBC26376C6EB015C52889B31C98BD8FAC940CE34C6500895",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\image-cropped--comment-page-1.png",
+            "pngSha256": "D8CBFE78259D4D5A02A6A6AF31C42A4249EE31DB56A0DA38618562B03E21C546",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nafter \u540e\u6587",
+            "nonwhitePixels": 7377
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "CE88C8BB4AAD9CA7BBC26376C6EB015C52889B31C98BD8FAC940CE34C6500895",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF; comments are not displayed in this PDF export.",
+          "observed": "One portrait page. Cropped horizontal image retains narrow teal left region and wide yellow right region between before and after. No image/text overlap. Comment balloons are absent from this PDF; added comment is covered by package/UI evidence."
+        }
+      }
+    },
+    {
+      "file": "text-custom-styles--split.docx",
+      "sourceSha256": "3692F3082844A7AE4115E01114C60451CB50E4FCA1FE5EFD7FC41B064DF2D937",
+      "resavedSha256": "F7118680562BA04569C3469515454B609E3793496DB69245E588826888375DA8",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\text-custom-styles--split.pdf",
+        "sha256": "E80FA03D60B51F66A06E9368AFC9E75C4A19CEF4CAFA94E2BAC1654C397ADE31",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\text-custom-styles--split-page-1.png",
+            "pngSha256": "B2135A6AAB705A6685E15491FD729B46E317445781230F33D9AE4C3D0F3F2B8A",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "be\nfore \u524d\u6587\n\u6211\u7684\u6807\u9898\u793a\u4f8b\n\u81ea\u5b9a\u4e49\u6807\u9898\u540e\u7684\u6b63\u6587\nafter \u540e\u6587",
+            "nonwhitePixels": 2648
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "E80FA03D60B51F66A06E9368AFC9E75C4A19CEF4CAFA94E2BAC1654C397ADE31",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF.",
+          "observed": "One portrait page. Before marker is split into be and fore plus Chinese text on consecutive lines. Bold custom heading and its body remain, followed by after. No overlap."
+        }
+      }
+    },
+    {
+      "file": "textbox-shapes-3--split.docx",
+      "sourceSha256": "867FD61C47BC8E3A9C97B45D5504EE06114824A0ED9C977F8138D5F04B4E28C2",
+      "resavedSha256": "A9E590070DFB653DA039827125678726FE73B32A597F36E1E0E42B0CF4FB3A86",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\textbox-shapes-3--split.pdf",
+        "sha256": "64F4BCE8C5322F40B628235E169E9D462226396796DB48D0978C3EC121A5B0B8",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\textbox-shapes-3--split-page-1.png",
+            "pngSha256": "2608EEFE03494E1A265C15CE726270D38C2CF6C55A355072D53D9EE4293AA0AF",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "be\nfore \u524d\u6587\n\u6587\u672c\u6846\u7b2c\u4e00\u6bb5\n\u6587\u672c\u6846\u7b2c\u4e8c\u6bb5\n\u5706\u89d2\u77e9\u5f62\nafter \u540e\u6587",
+            "nonwhitePixels": 35735
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "64F4BCE8C5322F40B628235E169E9D462226396796DB48D0978C3EC121A5B0B8",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF.",
+          "observed": "One portrait page. Before splits into be and fore on separate lines. Two-paragraph bordered textbox, blue rounded rectangle with text, blue rectangle and ellipse all remain. Outlined WordArt is visible across two lines above after. No object/text overlap."
+        }
+      }
+    },
+    {
+      "file": "fields-toc--split.docx",
+      "sourceSha256": "BA14E27602E97A731F1B70E4FED8D95F3A041389468570EEC9FE7E1B4F92A08D",
+      "resavedSha256": "505AD1F968CB9BB7EB6ECAE75E594232653805DB312655A93F2EC0530C7E48EF",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\fields-toc--split.pdf",
+        "sha256": "678CE79C10D3EBC7A6B91F48C166C771B16DBAF805F6365A1399D9A9E00B896C",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\fields-toc--split-page-1.png",
+            "pngSha256": "501BD8EE44DE48731C2E65743A58ED6035A910F2B4C51D5EF72D631DDCBDC2DE",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "be\nfore \u524d\u6587\n\u76ee\u5f55\n\u4e00\u7ea7\u7ae0\u8282 .................................................................................................................................................................1\n\u4e8c\u7ea7\u7ae0\u8282 .......................................................................................................................................................1\n\u4e09\u7ea7\u7ae0\u8282 ..............................................................................................................................................1\n\u4e00\u7ea7\u7ae0\u8282\n\u4e8c\u7ea7\u7ae0\u8282\n\u4e09\u7ea7\u7ae0\u8282\n\u4ea4\u53c9\u5f15\u7528\uff1a\u4e00\u7ea7\u7ae0\u8282\n\u811a\u6ce8\u4f4d\u7f6e1 \u5c3e\u6ce8\u4f4d\u7f6ei 9/7/2026\nafter \u540e\u6587\ni \u8fd9\u662f\u4e00\u6761\u5c3e\u6ce8\u3002\n1 \u8fd9\u662f\u4e00\u6761\u811a\u6ce8\u3002",
+            "nonwhitePixels": 10566
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "678CE79C10D3EBC7A6B91F48C166C771B16DBAF805F6365A1399D9A9E00B896C",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF.",
+          "observed": "One portrait page. Before is split at be/fore. TOC has three indented entries with dot leaders and page 1; all three heading levels remain below. Cross-reference, note anchors and 9/7/2026 are visible, with endnote below body and footnote at page bottom. After retained."
+        }
+      }
+    },
+    {
+      "file": "rev-insert-delete--insert.docx",
+      "sourceSha256": "63E39D5FDB74936FE030DBA9ED379ADA8D35AB06DD75C660E0D67ACF63965ED5",
+      "resavedSha256": "39BDC54B5E38B9F6C3C09C2A7A46614B8F1EB088835345645EEE28208DEEE8F7",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\rev-insert-delete--insert.pdf",
+        "sha256": "5908EB5E5F515C09AAB436A2ADF0F9E99D2E3503E20B7561274C480ECD435FA4",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\rev-insert-delete--insert-page-1.png",
+            "pngSha256": "A139A461CB524FA0A7D6512C91E047E53A44F0CA0B43D0C95F4D010BBED96DFB",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "rsword\u270e before \u524d\u6587\nAuthor A insertion point. Author A inserted this sentence.\nAuthor B insertion point. Author B inserted this sentence.\nafter \u540e\u6587",
+            "nonwhitePixels": 4615
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "5908EB5E5F515C09AAB436A2ADF0F9E99D2E3503E20B7561274C480ECD435FA4",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF in its exported revision display state.",
+          "observed": "One portrait page. Added rsword with pencil symbol precedes before. Author A and Author B insertion-point sentences and their inserted sentences remain visible on separate paragraphs; after retained. Deleted text and revision balloons are not shown by this export."
+        }
+      }
+    },
+    {
+      "file": "image-z-order--newimage.docx",
+      "sourceSha256": "68DC471F64F8A3F17917D32B73379EFEBCC8FCDBD8F407DC31EFD97AFC4326CE",
+      "resavedSha256": "CD6E9C482E0C9869194133B76074B37F09C852E5B2D6CCDAA9866E4419EAAA41",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\image-z-order--newimage.pdf",
+        "sha256": "658EAD66A3CD184B775B4850CA077972318D9B516ADCB8FF547CFBB58FCF6642",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\image-z-order--newimage-page-1.png",
+            "pngSha256": "983CDAEAC523DA70B4F8DCC33E7D8F44326DE578946554A59E9CBBA7488988DE",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nFloating images anchor.\nafter \u540e\u6587",
+            "nonwhitePixels": 26493
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "658EAD66A3CD184B775B4850CA077972318D9B516ADCB8FF547CFBB58FCF6642",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF.",
+          "observed": "One portrait page. Three staggered teal/yellow original images remain overlapped centrally. New bright green image is fully visible at upper right, separate from original image stack. Before, anchor sentence and after readable."
+        }
+      }
+    },
+    {
+      "file": "fields-citations--newchart.docx",
+      "sourceSha256": "607A99A41EECDA6109F57F65CAD50597CE81D009C1B649632DCC69EDF0C63A80",
+      "resavedSha256": "1BC4894B4073F5E244D39BA00D5B9D942FA4C7D8EE376E44A33BB40909F40814",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\fields-citations--newchart.pdf",
+        "sha256": "DD25FA8B52462C6366F1941B566916488A7C4AF89D2C848487EC44E0C841397A",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\fields-citations--newchart-page-1.png",
+            "pngSha256": "E7CFCCEB5441DDFBCD365ABF59DC1E1EA0619DD107761BF5FD22FBFF2D60A58A",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nrsword \u65b0\u56fe\u8868\n3.5\n3\n2.5\n2\n1.5\n1\n0.5\n0\n\u7532 \u4e59 \u4e19\nBook citation: (BookAuthor, 2026)\nJournal citation: (JournalAuthor, 2025)\nBookAuthor, C. (2026). Corpus Book. Test City: Corpus Press.\nJournalAuthor, C. (2025). Corpus Journal Article. Corpus Journal, 7(2), 10-18.\nafter \u540e\u6587",
+            "nonwhitePixels": 29770
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "DD25FA8B52462C6366F1941B566916488A7C4AF89D2C848487EC44E0C841397A",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF after native chart-data activation.",
+          "observed": "One portrait page. New rsword chart displays three blue columns 3, 1, 2. Book and journal in-text citations remain below, followed by both full bibliographic entries. Before and after readable; no chart/text overlap."
+        }
+      }
+    },
+    {
+      "file": "textbox-linked--ink.docx",
+      "sourceSha256": "ECAD5ABEBE90DCF03EB879F8B1EEB120C2D88DEF567D949F52DF8A044BC80025",
+      "resavedSha256": "EF3400B18328444FCF09836BAE54204CCE11E3FD6F08CC28CCF358CC41C7759A",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\textbox-linked--ink.pdf",
+        "sha256": "CFFD2126CBF0B17C6B1C1067AAC42787C1A1A22248433085DC24C3E94DA9FA32",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\textbox-linked--ink-page-1.png",
+            "pngSha256": "5A5C8C5B5AFDB7FA114F3BED37FBFABD2192021A7A046056653645CBC69B842D",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nLinked textboxes anchor.\nLine 01: linked story text. Line 06: linked story text.\nLine 02: linked story text. Line 07: linked story text.\nLine 03: linked story text. Line 08: linked story text.\nLine 04: linked story text. Line 09: linked story text.\nLine 05: linked story text. Line 10: linked story text.\nafter \u540e\u6587",
+            "nonwhitePixels": 15633
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "CFFD2126CBF0B17C6B1C1067AAC42787C1A1A22248433085DC24C3E94DA9FA32",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF.",
+          "observed": "One portrait page. Green overlay crosses before and linked-textboxes anchor sentence while both remain readable. Two side-by-side bordered textboxes retain lines 01-05 at left and 06-10 at right. After remains unobstructed below."
+        }
+      }
+    },
+    {
+      "file": "rev-move--deleteblock.docx",
+      "sourceSha256": "08B77C9525310A363B90C7910D3EE11CEA95B6793128AE41BF64AF77B775DE86",
+      "resavedSha256": "2C52AA25E1A4EEA2C5C31E95076148AF28F333D59B03EF32BD9AC3EC13679503",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\rev-move--deleteblock.pdf",
+        "sha256": "01D35F5556574144E1C7E09409EED31C81F8B918F49EF3192E9BD331D5B8BF06",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\rev-move--deleteblock-page-1.png",
+            "pngSha256": "83B95ECA13EE5A2A24E0178C2CBA37E4B8EB17E6CF6E254AC9EAABA2BA4CD2B6",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nStationary paragraph one remains here.\nStationary paragraph two remains here.\nMove this entire original paragraph with several words to the end of the body.\nafter \u540e\u6587",
+            "nonwhitePixels": 5826
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "01D35F5556574144E1C7E09409EED31C81F8B918F49EF3192E9BD331D5B8BF06",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF in its exported revision display state.",
+          "observed": "One portrait page. Before, stationary paragraphs one and two, moved entire original paragraph at end of body and after are readable in that order. Revision balloons are not shown by this export."
+        }
+      }
+    },
+    {
+      "file": "fields-seq-captions--replaceimage.docx",
+      "sourceSha256": "9CF2666C7E6EF01F7831BCFE878EB83AA49E67F2B9AB7215E70B7B397ADA02CA",
+      "resavedSha256": "6D962CAAA4263571A522010C3271998029A9756805923F5D28FDE77624F70A8E",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\fields-seq-captions--replaceimage.pdf",
+        "sha256": "DE8520A68FD64C0B06463BCAD1D97F1CB23D75ABF54F44BF25F158E48D47B8F6",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\fields-seq-captions--replaceimage-page-1.png",
+            "pngSha256": "56059164745B976EF81996B5AAAEBA21C9657878BF56270367BF4E9E067DE96C",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u56fe 1 sample 1\n\u56fe 2 sample 2\n\u56fe 3 sample 3\nCross-reference: \u56fe 2\nafter \u540e\u6587",
+            "nonwhitePixels": 8260
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "DE8520A68FD64C0B06463BCAD1D97F1CB23D75ABF54F44BF25F158E48D47B8F6",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF.",
+          "observed": "One portrait page. First image is replaced by bright green rectangle. Second and third images retain teal/yellow halves. Captions remain numbered 1, 2, 3, and cross-reference still reads figure 2. Before and after visible."
+        }
+      }
+    },
+    {
+      "file": "rev-table--insertrow.docx",
+      "sourceSha256": "756BC93E11230B0E8832950961D32B1D11BC13317D3EF3E30B3F77B59290DFC8",
+      "resavedSha256": "9D6307AE37598E3930508DB5D9CB70DD9E0877DC1A2DF58D13AF432E9D71ACF1",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\rev-table--insertrow.pdf",
+        "sha256": "3A5ADEF2B91859A5787A475FFC512AAD66DF6695963C4132C92DEACF869F4D75",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\rev-table--insertrow-page-1.png",
+            "pngSha256": "3CFF8CFB5B5AF70B3644DBDD396CA84097DB30D67A5943F94E64025D05EC523C",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nOriginal R1 C1\nOriginal R1 C2\nInserted row left Inserted row right\nafter \u540e\u6587",
+            "nonwhitePixels": 4799
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "3A5ADEF2B91859A5787A475FFC512AAD66DF6695963C4132C92DEACF869F4D75",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF in its exported revision display state.",
+          "observed": "One portrait page. Red-bordered table has original R1 C1/R1 C2 stacked in top merged row, one visibly empty added row below, then separate Inserted row left/right cells. Before and after readable."
+        }
+      }
+    },
+    {
+      "file": "rev-table--mergecells.docx",
+      "sourceSha256": "B51EEB56CEA4152689BCE4B684EC606AB0527E50035484419268BEEA15C1B40E",
+      "resavedSha256": "BC256FBD3190787B13B31DF4EE20939747E07EC14C19F1DBFEE99ECDF68C2EB5",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\rev-table--mergecells.pdf",
+        "sha256": "CB95AB7D54873F4BA0BF254462E09E8089751293FDBBC3A6C1C0CDC57E21C05A",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\rev-table--mergecells-page-1.png",
+            "pngSha256": "3C1A24BE2F1F78916A30524B648C03B7691F7943F728975A9365ABCA97AD1D50",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nOriginal R1 C1\nOriginal R1 C2\nInserted row left\nInserted row right\nafter \u540e\u6587",
+            "nonwhitePixels": 4268
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "CB95AB7D54873F4BA0BF254462E09E8089751293FDBBC3A6C1C0CDC57E21C05A",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF in its exported revision display state.",
+          "observed": "One portrait page. Red-bordered table retains stacked original R1 C1/R1 C2 in top merged row. Lower row now also spans full width with Inserted row left/right on separate lines. Before and after readable."
+        }
+      }
+    },
+    {
+      "file": "sections-breaks-zoo--header.docx",
+      "sourceSha256": "31A99A5AD146710E54AD8D7B6F4A0DC85B2AD999AA9574FD2CFA6D9D7F85D4E5",
+      "resavedSha256": "C464A010C561B5CD76A7C601ED1F78FC01D28AA50C41A1D1DA5942232D99C2BD",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\sections-breaks-zoo--header.pdf",
+        "sha256": "0D487C20DBAB155029C6A4DFB4C3A7A2A41BBFCF357551D948E5CFD9F33239D4",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\sections-breaks-zoo--header-page-1.png",
+            "pngSha256": "283F8359F0282C920C97B7B617F6DEC1D4781A51BF152AD0D54FCD5816154039",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nSection one.",
+            "nonwhitePixels": 1319
+          },
+          {
+            "page": 2,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\sections-breaks-zoo--header-page-2.png",
+            "pngSha256": "4458033B50783B418EC6E15AEC65A4453E3D00DE294D90CC8C2F45DF6B6DB28A",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "Section 2.\nSection 3.",
+            "nonwhitePixels": 1121
+          },
+          {
+            "page": 3,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\sections-breaks-zoo--header-page-3.png",
+            "pngSha256": "07CEFD358F99D3AD7C060B22E17EF2ADE091877D883311BB70B9D0E39D4C35BB",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "",
+            "nonwhitePixels": 0
+          },
+          {
+            "page": 4,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\sections-breaks-zoo--header-page-4.png",
+            "pngSha256": "23CF330BC870A4DF556F39F468202E71DA21C049BF44DAB0DE157A4BC37F5A8E",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "Section 4.",
+            "nonwhitePixels": 826
+          },
+          {
+            "page": 5,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\sections-breaks-zoo--header-page-5.png",
+            "pngSha256": "C6EAE21F2C5770929FABD7809781C737EB8DD5856F2C41679607B7AE39C2FF41",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "rsword \u9875\u7709\nSection 5.\nafter \u540e\u6587",
+            "nonwhitePixels": 1070
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 5,
+        "visualReview": {
+          "pdfSha256": "0D487C20DBAB155029C6A4DFB4C3A7A2A41BBFCF357551D948E5CFD9F33239D4",
+          "pageNumbers": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "method": "Independent visual inspection of all five rendered Word-exported PDF pages.",
+          "observed": "Five portrait pages. Page 1 has header rule, before and Section one. Page 2 has header rule plus Sections 2 and 3. Page 3 is completely blank. Page 4 has header rule and Section 4. Page 5 has rsword header, Section 5 and after. Blank page is explicitly retained as an observed result of the section-break sample."
+        }
+      }
+    },
+    {
+      "file": "rev-comment-threads--comment.docx",
+      "sourceSha256": "939E47F679625A3034EE41A94B1C2FF791D65AC6A993AD1A0A66FBAA0A947E01",
+      "resavedSha256": "9F1631B7DEF2696857C2EEFAA934B6E4E9B06DF63F8CE3A6224EB82597B8BE6F",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\rev-comment-threads--comment.pdf",
+        "sha256": "F3AFE5547DF0593D921E31217C86D9188229A7F48A8F9F666513FA651C2AEF58",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\rev-comment-threads--comment-page-1.png",
+            "pngSha256": "40F11E185FD3F1946AB98DC7688BA0113ED172F545A86C5678F48F431FDDD1C0",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nFirst threaded anchor.\nSecond comment covers this whole paragraph.\nThird comment covers the word target.\nafter \u540e\u6587",
+            "nonwhitePixels": 4185
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "F3AFE5547DF0593D921E31217C86D9188229A7F48A8F9F666513FA651C2AEF58",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF; comments are not displayed in this PDF export.",
+          "observed": "One portrait page. First threaded anchor, second whole-paragraph anchor and third target-word anchor sentences remain, with before and after. No comment balloons appear in this export, so thread/comment state is assessed from package/UI evidence."
+        }
+      }
+    },
+    {
+      "file": "fields-page-in-footer--split.docx",
+      "sourceSha256": "69CEE53EBF9A258A00DD76DCC789CC292DB795C67009920675BDD7FBDD6C36B9",
+      "resavedSha256": "F3314CA4E69C6126BCF74DA05ECF94DCCEC4874A531C768E7D9DE8E181C101A1",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\fields-page-in-footer--split.pdf",
+        "sha256": "ED65B9BC03FA908949ABF58C5A14A5D31ED9EA45B00113E999365486400BA6AD",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\fields-page-in-footer--split-page-1.png",
+            "pngSha256": "525BAC01F7E6B296A1B42758CDCD660C374943AB0B57F4119876981873E86EB0",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "be\nfore \u524d\u6587\nPage one body.\n\u7b2c 1 \u9875 / \u5171 3 \u9875",
+            "nonwhitePixels": 1321
+          },
+          {
+            "page": 2,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\fields-page-in-footer--split-page-2.png",
+            "pngSha256": "7329072E3CFF07E12076DBD78F065641190BB1CBDFCA5D5EF261972E14DA636B",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "Page two body.\n\u7b2c 2 \u9875 / \u5171 3 \u9875",
+            "nonwhitePixels": 897
+          },
+          {
+            "page": 3,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\fields-page-in-footer--split-page-3.png",
+            "pngSha256": "89436699677F896358F1FECB4E9E379DF6112E37E2BEF9AE3D6AD11C46015BC0",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "Page three body.\nafter \u540e\u6587\n\u7b2c 3 \u9875 / \u5171 3 \u9875",
+            "nonwhitePixels": 1292
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 3,
+        "visualReview": {
+          "pdfSha256": "ED65B9BC03FA908949ABF58C5A14A5D31ED9EA45B00113E999365486400BA6AD",
+          "pageNumbers": [
+            1,
+            2,
+            3
+          ],
+          "method": "Independent visual inspection of all three rendered Word-exported PDF pages.",
+          "observed": "Three portrait pages. Page 1 splits before into be and fore on consecutive lines, then Page one body. Page 2 shows Page two body. Page 3 shows Page three body and after. Bottom footers correctly display current pages 1, 2, 3 with total 3 on every page."
+        }
+      }
+    },
+    {
+      "file": "05-ink-insert-resaved-by-word--ink.docx",
+      "sourceSha256": "20C882CE2178E0C212699105BA18FC377086DF540E98F100D018475EB6B0F0CF",
+      "resavedSha256": "921A79FD1B0C0EE0FB1117EB9536847AF091BA0A832B111BD655EC9E2C8687D1",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\05-ink-insert-resaved-by-word--ink.pdf",
+        "sha256": "6617795C02E8A8A7B9CC8E501D36947806A21DC248F878006DDA496EE14D24B6",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\05-ink-insert-resaved-by-word--ink-page-1.png",
+            "pngSha256": "51F9228D949EC7367E6B843BD23C3DA0BD4946D9F1CF78EAB38C7E304AB4802C",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u6211\u7684\u6807\u9898\u793a\u4f8b\n\u81ea\u5b9a\u4e49\u6807\u9898\u540e\u7684\u6b63\u6587\nafter \u540e\u6587",
+            "nonwhitePixels": 8088
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "6617795C02E8A8A7B9CC8E501D36947806A21DC248F878006DDA496EE14D24B6",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF, supplemented separately by source/output overlay replacement audit.",
+          "observed": "One portrait page. One green overlay crosses before while its text remains visible. Custom bold heading, body and after remain unobstructed. This visible single overlay agrees with authoritative replacement of two prior overlays by one new overlay, as established independently in package audit."
+        }
+      }
+    },
+    {
+      "file": "ink-highlighter--ink-resaved-by-word--ink.docx",
+      "sourceSha256": "0553F225CE498C739D183D3339DAA5670F1D695104F6A730F75F40332B74B69C",
+      "resavedSha256": "45425B4850E475C9AEA8B0029EEDFE5EAC8F6D4C8295C66A156310A5D0BABC4F",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-highlighter--ink-resaved-by-word--ink.pdf",
+        "sha256": "00AA84701F5D6AC421CBA531A94F000E56BC3D07B416F6DB55E822D2683C35F4",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ink-highlighter--ink-resaved-by-word--ink-page-1.png",
+            "pngSha256": "CEB5EA65B06C417D6CA53C25403500939DBB33289EF534B1D3FA62BEB89DDCE6",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u8fd9\u662f\u4e00\u6bb5\u7528\u4e8e\u89c2\u5bdf\u539f\u751f\u58a8\u8ff9\u7684\u6587\u5b57\u3002\nafter \u540e\u6587",
+            "nonwhitePixels": 8698
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "00AA84701F5D6AC421CBA531A94F000E56BC3D07B416F6DB55E822D2683C35F4",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF, supplemented separately by authoritative overlay replacement audit.",
+          "observed": "One portrait page. One green overlay spans before and part of native-ink body sentence. Original yellow highlight remains beneath the body sentence. Both texts remain readable through the colors; after is unobstructed lower on page."
+        }
+      }
+    },
+    {
+      "file": "ink-pen--ink-resaved-by-word--ink.docx",
+      "sourceSha256": "FD2B0A0AC974BBE681176EB6D47C886A0E4B53401A2C9E8331B36F7936ED2723",
+      "resavedSha256": "E3A0374C38EB228A9931C5BB03D675C58ACDAB796195B7A19B2F2E90A0EDBF31",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-pen--ink-resaved-by-word--ink.pdf",
+        "sha256": "826215817A114E6C709CEC2021982C2D1D591E06AC7A9DB63ED24048703B06BD",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ink-pen--ink-resaved-by-word--ink-page-1.png",
+            "pngSha256": "AEF6B81ABA1315379AE82C5ACC7CDCA7949166D1925E7957E65874D0D30982C8",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u8fd9\u662f\u4e00\u6bb5\u7528\u4e8e\u89c2\u5bdf\u539f\u751f\u58a8\u8ff9\u7684\u6587\u5b57\u3002\nafter \u540e\u6587",
+            "nonwhitePixels": 7053
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "826215817A114E6C709CEC2021982C2D1D591E06AC7A9DB63ED24048703B06BD",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF, supplemented separately by authoritative overlay replacement audit.",
+          "observed": "One portrait page. One green overlay crosses before/body region. Original black horizontal underline stroke and short diagonal stroke remain visible near the body sentence. Body remains readable; after is unobstructed lower on page."
+        }
+      }
+    },
+    {
+      "file": "ink-to-shape--ink-resaved-by-word--ink.docx",
+      "sourceSha256": "4EEC203F168AAA52AE1859B30FA2C3C5A00B45F621E5F2DBBDBFC90CB06FCA81",
+      "resavedSha256": "7D87AB3EDB65025A65E3F3AB5E171BFEDB4E8BAA1FF55E93C05A67D22DF8301F",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ink-to-shape--ink-resaved-by-word--ink.pdf",
+        "sha256": "58038193126E7FAE0E13A0DC87E66AEC62E7ACAE567D5597FB5623A8F87C2FA8",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ink-to-shape--ink-resaved-by-word--ink-page-1.png",
+            "pngSha256": "4EDD794A5F5D7BE7F91E3BAF3FFCC52FDB712DAA856A83CCB93CCFA3E73DE075",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u8fd9\u662f\u4e00\u6bb5\u7528\u4e8e\u89c2\u5bdf\u539f\u751f\u58a8\u8ff9\u7684\u6587\u5b57\u3002\nafter \u540e\u6587",
+            "nonwhitePixels": 7666
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "58038193126E7FAE0E13A0DC87E66AEC62E7ACAE567D5597FB5623A8F87C2FA8",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF, supplemented separately by authoritative overlay replacement audit.",
+          "observed": "One portrait page. One green overlay crosses readable before/body region. Original closed eight-sided black outline remains below the body. After unobstructed; the PDF does not independently establish a native shape conversion."
+        }
+      }
+    },
+    {
+      "file": "math-matrix--ink-resaved-by-word--ink.docx",
+      "sourceSha256": "260737F195E5B719574B57F898B5CA10AB43B95F93337B5B0BFCBBF0EA26ADC1",
+      "resavedSha256": "5F439A277C3CC785DEB077EAB5EBFB2632141CA033E47FB094056D3D9411943B",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\math-matrix--ink-resaved-by-word--ink.pdf",
+        "sha256": "C328BEA5DC1C19FC25BEE05D351923B2ABC3FFB3D55AF371602025EFB431B0C3",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\math-matrix--ink-resaved-by-word--ink-page-1.png",
+            "pngSha256": "319BE1A6236CF5755F14631D17BC9FB64F629299EFF90BB454B863C4E7F24C95",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\ud835\udc4e \ud835\udc4f\n[ ]\n\ud835\udc50 \ud835\udc51\nafter \u540e\u6587",
+            "nonwhitePixels": 6634
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "C328BEA5DC1C19FC25BEE05D351923B2ABC3FFB3D55AF371602025EFB431B0C3",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF, supplemented separately by authoritative overlay replacement audit.",
+          "observed": "One portrait page. One green overlay crosses before at upper left. Centered two-by-two matrix with a/b above c/d and brackets remains fully visible. After readable and unobstructed below."
+        }
+      }
+    },
+    {
+      "file": "ole-excel-embedded--ink-resaved-by-word--ink.docx",
+      "sourceSha256": "9E4E95A1E516E382C14B92BADC0852263711CFD4F33C32BCB62ED9833B747A20",
+      "resavedSha256": "46C1D861BF3BCBB3A5E2EA9A6D9AFF554E49AD6967469E63F320C1A890292F0D",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\ole-excel-embedded--ink-resaved-by-word--ink.pdf",
+        "sha256": "E0847E01F05F709A3257B94347C5B29E7163591C8C306C4BBF5A77AB1154AAB0",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\ole-excel-embedded--ink-resaved-by-word--ink-page-1.png",
+            "pngSha256": "49839AE951417BC890C3E435A26AE53EFD1CA6BA425B9EF554706EB5D6EE6CFB",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n12 34\nafter \u540e\u6587",
+            "nonwhitePixels": 12753
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "E0847E01F05F709A3257B94347C5B29E7163591C8C306C4BBF5A77AB1154AAB0",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF, supplemented separately by authoritative overlay replacement audit.",
+          "observed": "One portrait page. One green overlay crosses before and top row of embedded worksheet. Worksheet grid remains intact; values 12 and 34 are visible through the overlay. After readable below the worksheet."
+        }
+      }
+    },
+    {
+      "file": "smartart-floating--ink-resaved-by-word--ink.docx",
+      "sourceSha256": "34E66A80286A5CFF255C52C648D39FEA80CEBDDD88C5FA364F08EDBA0528C4ED",
+      "resavedSha256": "E8FF456E6D3FB8EDA39E44D2F30509D3F60E74A81EA35F6C54C57EF0AFBF5821",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\smartart-floating--ink-resaved-by-word--ink.pdf",
+        "sha256": "DA36713C0843E460AF63FF5F4EFF38A254493CE7B5D19F7D070B622FDDF03D58",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\smartart-floating--ink-resaved-by-word--ink-page-1.png",
+            "pngSha256": "2A6B477A81828EF34700E7F0E6C5003F438DAFDF399B2D12240A493C53C2D29B",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\n\u51c6\u5907 \u6267\u884c \u5b8c\u6210\nafter \u540e\u6587",
+            "nonwhitePixels": 31201
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "DA36713C0843E460AF63FF5F4EFF38A254493CE7B5D19F7D070B622FDDF03D58",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF, supplemented separately by authoritative overlay replacement audit.",
+          "observed": "One portrait page. One green overlay crosses readable before at upper left. Original teal/yellow image remains upper right; three blue SmartArt nodes with Chinese labels and connecting arrows remain fully visible below. After unobstructed."
+        }
+      }
+    },
+    {
+      "file": "chartex-waterfall--newchart.docx",
+      "sourceSha256": "70865BD8460C2C8F79D9CE89937632ABBA6557CECACD5759C740434852E04935",
+      "resavedSha256": "7748E7A8EAC75BB4D1F783EA9418EFFB0D223EBC2B4130B938393F836AD76444",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chartex-waterfall--newchart.pdf",
+        "sha256": "E77F4CEE3B017C92F10041E4AFCEAECBBBC3D117A825DD24032B481B0774BEF9",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\chartex-waterfall--newchart-page-1.png",
+            "pngSha256": "D2CDE3B8598EF79FE61A6AAE2871E197B9A95D8B7BBB1BE64216A82AE815DD53",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nrsword \u65b0\u56fe\u8868\n3.5\n3\n2.5\n2\n1.5\n1\n0.5\n0\n\u7532 \u4e59 \u4e19\nafter \u540e\u6587",
+            "nonwhitePixels": 32273
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "E77F4CEE3B017C92F10041E4AFCEAECBBBC3D117A825DD24032B481B0774BEF9",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF after native chart-data activation; original ChartEx is visually assessed without claiming classic COM series support.",
+          "observed": "One portrait page. New rsword chart at top has blue columns 3, 1, 2. Original waterfall remains below with Chinese sales-statistics title and three blue ascending floating columns from 0-10, 10-30 and 30-60, labeled 1/2/3. Both complete chart frames and before/after are visible without overlap. Original ChartEx text is rasterized in the PDF and is therefore not present in ordinary PDF text extraction."
+        }
+      }
+    },
+    {
+      "file": "chartex-treemap--newchart.docx",
+      "sourceSha256": "8B71D001F542A24091ECF9B067C8E5DF672D8223EF8301EE913CCA8C5B17BE6D",
+      "resavedSha256": "8CFB08B036E3C3218F5F2F770EDEDEC45B34D0BF59CB5E364BF9DB82131E4397",
+      "pdf": {
+        "path": "C:\\word\\real-word-round3-20260907\\_previews\\edited3\\chartex-treemap--newchart.pdf",
+        "sha256": "C131EE6A9388FF17DB063F53C19F58DEFA4FB9DA85AB404FEEC4A02F9E031AE1",
+        "pages": [
+          {
+            "page": 1,
+            "png": "C:\\word\\real-word-round3-20260907\\screenshots\\edited3-pdf\\chartex-treemap--newchart-page-1.png",
+            "pngSha256": "D07663374494112C2A938563756F03DA0E0B724A97D4D0BA74ADE55825765BCE",
+            "widthPt": 595.32,
+            "heightPt": 841.92,
+            "text": "before \u524d\u6587\nrsword \u65b0\u56fe\u8868\n3.5\n3\n2.5\n2\n1.5\n1\n0.5\n0\n\u7532 \u4e59 \u4e19\nafter \u540e\u6587",
+            "nonwhitePixels": 156639
+          }
+        ],
+        "visualReviewed": true,
+        "pageCount": 1,
+        "visualReview": {
+          "pdfSha256": "C131EE6A9388FF17DB063F53C19F58DEFA4FB9DA85AB404FEEC4A02F9E031AE1",
+          "pageNumbers": [
+            1
+          ],
+          "method": "Independent visual inspection of rendered Word-exported PDF after native chart-data activation; original ChartEx is visually assessed without claiming classic COM series support.",
+          "observed": "One portrait page. New rsword chart at top has blue columns 3, 1, 2. Original treemap remains below with Chinese sales-statistics title, blue Group A split into Item 2 above Item 1 at left, and orange Group B / Item 3 at right. Both chart frames and before/after visible without overlap. Original ChartEx text is rasterized in the PDF and is therefore not present in ordinary PDF text extraction."
+        }
+      }
+    }
+  ],
+  "summary": {
+    "pdfs": 69,
+    "pages": 81,
+    "visuallyReviewed": 69
+  }
+}

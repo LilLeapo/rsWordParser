@@ -1,0 +1,131 @@
+{
+  "helper": "toggle-read.ps1/v1",
+  "sessionId": "round2-20260907-live",
+  "measuredAt": "2026-09-07T10:39:16.736774+08:00",
+  "file": "toggle-para-and-char.docx",
+  "fullName": "C:\\word\\round2-work-20260907\\real-word-round2-inputs\\fixtures\\toggle-para-and-char.docx",
+  "wordVersion": "16.0",
+  "wordBuild": "16.0.14334",
+  "visible": true,
+  "documentSavedFlag": true,
+  "originalView": {
+    "ShowHiddenText": false,
+    "ShowAll": false
+  },
+  "rows": [
+    {
+      "file": "toggle-para-and-char.docx",
+      "sentence": "para b + char b",
+      "property": "Bold",
+      "declaredStyles": "paragraph PBold + character CBold",
+      "priorWeb": false,
+      "desktopWord": false,
+      "samples": [
+        {
+          "read": 1,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": 0,
+          "value": false,
+          "selectionStart": 2,
+          "selectionEnd": 2,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "same-as-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-para-and-char-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面第一句不加粗。"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 0,
+      "rangeEnd": 15,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:39:15.3226176+08:00",
+      "uiObservation": "页面第一句不加粗。",
+      "readMethod": "Two recorded Selection.Font.Bold readings with collapsed selection inside the sentence, as shown by samples.selectionStart/selectionEnd."
+    },
+    {
+      "file": "toggle-para-and-char.docx",
+      "sentence": "para b only",
+      "property": "Bold",
+      "declaredStyles": "paragraph PBold",
+      "priorWeb": true,
+      "desktopWord": true,
+      "samples": [
+        {
+          "read": 1,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 18,
+          "selectionEnd": 18,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        },
+        {
+          "read": 2,
+          "raw": -1,
+          "value": true,
+          "selectionStart": 18,
+          "selectionEnd": 18,
+          "fontName": "等线",
+          "fontNameAscii": "+西文正文",
+          "fontNameFarEast": "+中文正文",
+          "showHiddenText": false,
+          "showAll": false
+        }
+      ],
+      "consistent": true,
+      "comparison": "same-as-web",
+      "uiVerified": true,
+      "uiEvidence": [
+        {
+          "kind": "screenshot",
+          "path": "screenshots/toggle-para-and-char-0.jpg",
+          "scope": "actual Word page and visible ribbon",
+          "observation": "页面第二句加粗，截图中光标位于第二句时加粗按钮按下。"
+        }
+      ],
+      "uiStatus": "rendering/ribbon checked; key Font dialog evidence only where linked",
+      "rangeStart": 16,
+      "rangeEnd": 27,
+      "storyType": 1,
+      "header": null,
+      "error": null,
+      "observedAt": "2026-09-07T10:39:16.0067156+08:00",
+      "uiObservation": "页面第二句加粗，截图中光标位于第二句时加粗按钮按下。",
+      "readMethod": "Two recorded Selection.Font.Bold readings with collapsed selection inside the sentence, as shown by samples.selectionStart/selectionEnd."
+    }
+  ],
+  "note": "Final report annotations add actual UI evidence to recorded measurements. No document was opened, saved or changed during report preparation. Font-dialog evidence applies only to specifically linked cases.",
+  "uiReview": {
+    "reviewedAt": "2026-09-07T10:47:29.7611241+08:00",
+    "method": "Main operator's actual Word page/ribbon observations and selected Font-dialog inspections, supported by reviewed screenshot files. Two object-model readings are retained per case; not two manual Font-dialog checks for each case.",
+    "compatibilityEvidence": "Title-bar screenshot confirms Compatibility Mode; original helper did not record the numeric value."
+  }
+}

@@ -1,0 +1,251 @@
+﻿{
+    "case":  "chart/chartex-sunburst",
+    "method":  "Word UI Insert Chart, then edit native embedded worksheet without renaming, deleting or replacing source ranges",
+    "hierarchical":  true,
+    "worksheetName":  "Sheet1",
+    "valueColumn":  4,
+    "preservedRange":  "$A$1:$D$17",
+    "originalWorksheet":  [
+                              [
+                                  null,
+                                  null,
+                                  null,
+                                  "系列 1"
+                              ],
+                              [
+                                  "分支 1",
+                                  "茎 1",
+                                  "叶子 1",
+                                  22
+                              ],
+                              [
+                                  "分支 1",
+                                  "茎 1",
+                                  "叶子 2",
+                                  12
+                              ],
+                              [
+                                  "分支 1",
+                                  "茎 1",
+                                  "叶子 3",
+                                  18
+                              ],
+                              [
+                                  "分支 1",
+                                  "茎 2",
+                                  "叶子 4",
+                                  87
+                              ],
+                              [
+                                  "分支 1",
+                                  "茎 2",
+                                  "叶子 5",
+                                  88
+                              ],
+                              [
+                                  "分支 1",
+                                  "叶子 6",
+                                  null,
+                                  17
+                              ],
+                              [
+                                  "分支 1",
+                                  "叶子 7",
+                                  null,
+                                  14
+                              ],
+                              [
+                                  "分支 2",
+                                  "茎 3",
+                                  "叶子 8",
+                                  25
+                              ],
+                              [
+                                  "分支 2",
+                                  "叶子 9",
+                                  null,
+                                  16
+                              ],
+                              [
+                                  "分支 2",
+                                  "茎 4",
+                                  "叶子 10",
+                                  24
+                              ],
+                              [
+                                  "分支 2",
+                                  "茎 4",
+                                  "叶子 11",
+                                  89
+                              ],
+                              [
+                                  "分支 3",
+                                  "茎 5",
+                                  "叶子 12",
+                                  16
+                              ],
+                              [
+                                  "分支 3",
+                                  "茎 5",
+                                  "叶子 13",
+                                  19
+                              ],
+                              [
+                                  "分支 3",
+                                  "茎 6",
+                                  "叶子 14",
+                                  86
+                              ],
+                              [
+                                  "分支 3",
+                                  "茎 6",
+                                  "叶子 15",
+                                  23
+                              ],
+                              [
+                                  "分支 3",
+                                  "叶子 16",
+                                  null,
+                                  21
+                              ]
+                          ],
+    "worksheet":  [
+                      [
+                          "Category",
+                          "Subcategory",
+                          null,
+                          "Value"
+                      ],
+                      [
+                          "Group A",
+                          "Item 1",
+                          null,
+                          10
+                      ],
+                      [
+                          "Group A",
+                          "Item 2",
+                          null,
+                          20
+                      ],
+                      [
+                          "Group B",
+                          "Item 3",
+                          null,
+                          30
+                      ],
+                      [
+                          null,
+                          null,
+                          null,
+                          null
+                      ],
+                      [
+                          null,
+                          null,
+                          null,
+                          null
+                      ],
+                      [
+                          null,
+                          null,
+                          null,
+                          null
+                      ],
+                      [
+                          null,
+                          null,
+                          null,
+                          null
+                      ],
+                      [
+                          null,
+                          null,
+                          null,
+                          null
+                      ],
+                      [
+                          null,
+                          null,
+                          null,
+                          null
+                      ],
+                      [
+                          null,
+                          null,
+                          null,
+                          null
+                      ],
+                      [
+                          null,
+                          null,
+                          null,
+                          null
+                      ],
+                      [
+                          null,
+                          null,
+                          null,
+                          null
+                      ],
+                      [
+                          null,
+                          null,
+                          null,
+                          null
+                      ],
+                      [
+                          null,
+                          null,
+                          null,
+                          null
+                      ],
+                      [
+                          null,
+                          null,
+                          null,
+                          null
+                      ],
+                      [
+                          null,
+                          null,
+                          null,
+                          null
+                      ]
+                  ],
+    "seriesBefore":  [
+                         {
+                             "index":  1,
+                             "Name":  "系列 1",
+                             "Formula":  null,
+                             "FormulaLocal":  null,
+                             "XValues":  null,
+                             "Values":  null
+                         }
+                     ],
+    "seriesAfterWrite":  [
+                             {
+                                 "index":  1,
+                                 "Name":  "系列 1",
+                                 "Formula":  null,
+                                 "FormulaLocal":  null,
+                                 "XValues":  null,
+                                 "Values":  null
+                             }
+                         ],
+    "formulaAttempts":  [
+
+                        ],
+    "title":  "销售统计",
+    "seriesAfterClose":  [
+                             {
+                                 "index":  1,
+                                 "Name":  "Value",
+                                 "Formula":  null,
+                                 "FormulaLocal":  null,
+                                 "XValues":  null,
+                                 "Values":  null
+                             }
+                         ],
+    "chartType":  120
+}

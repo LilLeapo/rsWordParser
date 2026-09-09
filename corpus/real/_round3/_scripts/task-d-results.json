@@ -1,0 +1,66 @@
+[
+  {
+    "case": "ink",
+    "file": "ink2/ink-to-shape-2.docx",
+    "status": "unmet-preserved-native-trial",
+    "sha256": "CFEF5A80050920542270726F418C959C3C7D0F9C72676C334B4B511CEE4233D4",
+    "method": "Native Windows Word Draw tab Ink to Shape was enabled through the UI. Exactly one sky.drag action was performed on the page. The real native ink trial was saved through Word, then saved once at the canonical delivery path. No DOCX XML was synthesized or modified.",
+    "operations": [
+      "Clicked the native Ink to Shape button, enabling the black pen.",
+      "One drag from (817,364) to (994,415) produced a short diagonal black native ink line.",
+      "Observed the settled result; no converted ellipse appeared.",
+      "After interruption of a blocked worker, native F12 saved the working copy at C:/word/round3-work-20260907/ink-to-shape-working.docx.",
+      "Native Word SaveAs2 created ink2/ink-to-shape-2.docx once; its first-save hash is recorded in _readouts/d-ink.json.",
+      "A blocked PDF export was interrupted; a separate native Word export succeeded without resaving the DOCX. The saved document was then closed without saving."
+    ],
+    "actualWordReadout": {"compatibilityMode": 15, "shapeCount": 1, "shapeName": "Ink 1", "shapeType": 23, "autoShapeType": -2},
+    "uiEvidence": [
+      "screenshots/d-ink-conversion-on-0.jpg",
+      "screenshots/d-ink-conversion-on-uia.txt",
+      "screenshots/d-ink-single-drag-trial-0.jpg",
+      "screenshots/d-ink-single-drag-trial-uia.txt",
+      "screenshots/d-ink-trial-settled-0.jpg",
+      "screenshots/d-ink-trial-settled-uia.txt"
+    ],
+    "readout": "_readouts/d-ink.json",
+    "pdf": "_previews/d-ink.pdf",
+    "independentInspection": "_readouts/task-d-inspection.json",
+    "limitation": "The available Windows drawing API accepts only a drag start and end, with no supported continuous curved path or held-pointer sequence. One uninterrupted closed circle was not performed. The retained straight-line trial cannot establish whether this Word version converts a correctly drawn one-stroke circle.",
+    "unmetRequirements": ["One-stroke closed circle", "Converted ellipse or equivalent native preset shape with no w14:contentPart"]
+  },
+  {
+    "case": "comments",
+    "file": "comments2/comment-nesting.docx",
+    "status": "unmet-depth-two-native-ui-result-preserved",
+    "sha256": "531F5FEE471CF1F81BA948D4A8857F1A9A3606675968E2A34C5E13CD7FD0B1E8",
+    "method": "Native Word COM created the body and three root comments only. Both replies and resolving the thread were performed with native Word comment-bubble UI buttons. COM Replies.Add was not used. Word saved the canonical DOCX once, exported PDFs, and closed it without saving again.",
+    "operations": [
+      "Started with Root comment 1, Root comment 2 and Root comment 3 anchored to their corresponding body sentences.",
+      "Clicked the first root comment's Reply button, observed UIA index 9876, and typed Reply 1 to root 1.",
+      "While reply 1 was active, clicked its own Reply button, observed inside the reply group as UIA index 9923, and typed Reply 2 to reply 1 via its Reply button.",
+      "Clicked the first thread's Resolve button, UIA index 9981. The thread turned grey and the native Reopen button became visible.",
+      "Saved comments2/comment-nesting.docx once through native Word SaveAs2. COM readout reports five comments, three roots, two direct replies to root 1, and Done=true for all three members of the first thread.",
+      "A blocked PDF export was interrupted. Separate native Word exports produced a document PDF and a PDF with markup; the canonical DOCX was not resaved. Its hash was checked again after closing."
+    ],
+    "actualWordReadout": {"compatibilityMode": 15, "comments": 5, "roots": 3, "firstRootReplies": 2, "reply1AncestorIndex": 1, "reply2AncestorIndex": 1, "firstThreadAllDone": true, "otherRootsDone": false},
+    "uiEvidence": [
+      "screenshots/d-comments-three-roots-0.jpg",
+      "screenshots/d-comments-three-roots-uia.txt",
+      "screenshots/d-comments-reply1-0.jpg",
+      "screenshots/d-comments-reply1-uia.txt",
+      "screenshots/d-comments-reply-to-reply-click-0.jpg",
+      "screenshots/d-comments-reply-to-reply-click-uia.txt",
+      "screenshots/d-comments-reply2-0.jpg",
+      "screenshots/d-comments-reply2-uia.txt",
+      "screenshots/d-comments-resolved-0.jpg",
+      "screenshots/d-comments-resolved-uia.txt"
+    ],
+    "evidenceCaveat": "A separate desktop application overlaps the lower page in these screenshots. The first thread and the clicked reply/resolve controls remain visible; all three roots are visible in the initial screenshot. Native PDF evidence is unobstructed.",
+    "readout": "_readouts/d-comments.json",
+    "pdf": "_previews/d-comments.pdf",
+    "markupPdf": "_previews/d-comments-markup.pdf",
+    "independentInspection": "_readouts/task-d-inspection.json",
+    "limitation": "The requested Reply-to-Reply UI operation was performed, but this Office LTSC 2021 result flattened both replies under the first root. The requested depth-two parent relationship was not retained. The entire first thread was resolved successfully.",
+    "unmetRequirements": ["Second reply parent points to first reply instead of the root"]
+  }
+]

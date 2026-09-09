@@ -11,17 +11,48 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
+[features]
+default = ["native"]
+native = ["serde"]
+wasm = ["native"]
+serde = []
+# 兼容适配器仅在显式开启测试用 feature 时编译。
+# serde 仍是共享依赖，关闭 feature 暂不承诺免除 serde 依赖。
+compat-ts = ["serde"]
+
 [dependencies]
 zip.workspace = true
 memchr.workspace = true
 thiserror.workspace = true
-# compat_ts 适配器的 ParsedDoc JSON（COMPAT-02）与差分工具
+# 原生协议 JSON（BIND-02/03）与 compat_ts 差分适配器共用。
 serde_json = "1"
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+proc-macro2 = "1"
+serde_json = { version = "1", features = ["unbounded_depth"] }
+jsonschema = "0.55.0"
+# `RES-12` fixture 的 `expected.toml`（任务 5.8）；只在测试里用
+toml = "1.1"
 
 [build-dependencies]
 # 属性表（schema/props/*.toml，PROP-01）的读取；只在构建脚本里用
 toml = "1.1"
 serde = { version = "1", features = ["derive"] }
 
+# 性能记录（`spec/18` 7.9，非门）：不引 bench 框架，自己计时
+[[bench]]
+name = "edit"
+harness = false
+required-features = ["compat-ts"]
+
+[[bench]]
+name = "session"
+harness = false
+
 [lints]
 workspace = true
+
+[[bench]]
+name = "bind"
+harness = false

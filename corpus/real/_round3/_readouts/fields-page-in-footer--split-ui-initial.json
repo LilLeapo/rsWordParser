@@ -1,0 +1,41 @@
+{
+    "file":  "fields-page-in-footer--split.docx",
+    "base":  "fields2/fields-page-in-footer.docx",
+    "op":  "split",
+    "expect":  "第一个够长的段落在第 2 个字符后被拆成两段（第二段继承同样的段落格式）",
+    "timestamp":  "2026-09-07T14:47:18.7069696+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\fields-page-in-footer--split.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  7,
+                    "tables":  0,
+                    "comments":  0,
+                    "inline_shapes":  0,
+                    "shapes":  0,
+                    "first_table_rows":  null,
+                    "first_table_cells":  null,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+
+                       ],
+    "text":  "be\rfore 前文\rPage one body.\r\fPage two body.\r\fPage three body.\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+
+               ],
+    "errors":  [
+
+               ]
+}

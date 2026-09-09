@@ -1,0 +1,20 @@
+﻿{
+    "action":  "Save",
+    "case":  "chart/chartex-treemap",
+    "file":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\chart\\chartex-treemap.docx",
+    "version":  "16.0",
+    "build":  "16.0.14334",
+    "text":  "before 前文\r/\rafter 后文\r\r",
+    "objects":  [
+                    {
+                        "placement":  "floating",
+                        "width":  415.3,
+                        "alt":  "",
+                        "wrap":  7,
+                        "type":  3,
+                        "height":  242.25
+                    }
+                ],
+    "mathCount":  0,
+    "pdf":  "C:\\code\\rsWordParser\\real-word-corpus-20260906\\_previews\\chart\\chartex-treemap.pdf"
+}

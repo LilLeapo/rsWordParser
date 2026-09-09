@@ -9,9 +9,11 @@
 //! M0 任务：0.6 名字表（`XML-05`）、0.7 tokenizer（`XML-01..08`）、0.8 作用域（`XML-11`）、
 //! 0.9 MCE（`XML-09/10`）、0.10 脏状态（`XML-12`）、0.11 序列化（`XML-13/14`）。
 
+pub mod canon;
 pub mod dom;
 pub mod edit;
 pub mod entities;
+pub mod fragment;
 pub mod interner;
 pub mod lex;
 pub mod mce;
@@ -19,8 +21,11 @@ pub mod names;
 pub mod ns;
 pub mod parse;
 pub mod plan;
+pub mod xpath;
 
+pub use canon::{CanonOptions, canonical};
 pub use dom::{Attr, AttrValue, Dom, Element, Mce, MceRole, Node, NodeId, NodeKind, TextValue};
+pub use fragment::{parse_fragment, parse_fragment_dom};
 pub use interner::{Interned, Interner};
 pub use lex::Lex;
 pub use mce::{DEFAULT_UNDERSTOOD, SemanticChildren};
@@ -28,6 +33,7 @@ pub use names::{LocalName, NsId, QName};
 pub use ns::{PrefixUse, Scope};
 pub use parse::{RootInfo, XmlError, sniff_root};
 pub use plan::{NewElement, NewNode, NodeEdit, Target};
+pub use xpath::{XPathError, XValue, eval as xpath_eval, eval_strings as xpath_strings};
 
 /// `XML-08`：迭代解析的深度上限。POI 5000 层嵌套表格必须成功。
 pub const MAX_DEPTH: u32 = 100_000;
@@ -36,6 +42,8 @@ pub const MAX_DEPTH: u32 = 100_000;
 ///
 /// 不变式：非 `Clean` 节点的祖先不为 `Clean`；`Clean` 节点的后代全为 `Clean`。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub enum Dirty {
     /// 自身与后代都未变：整节点拷 `lex.range`。
     #[default]
@@ -50,9 +58,11 @@ pub enum Dirty {
     Deleted,
 }
 
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl Dirty {
     /// 规则 C（`XML-12`）：某后代变为非 `Clean` 时，祖先若为 `Clean` 则变 `DescendantDirty`，
     /// 否则保持不变（传播在此停止）。返回 `true` 表示状态发生了改变、需要继续向上传播。
+    #[doc(hidden)]
     pub fn absorb_descendant_change(&mut self) -> bool {
         if *self == Self::Clean {
             *self = Self::DescendantDirty;

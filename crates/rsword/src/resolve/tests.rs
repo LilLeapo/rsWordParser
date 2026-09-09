@@ -113,7 +113,7 @@ fn res_03_run_cascade_with_provenance() {
     assert_eq!(e2.props.bold, on(true));
     assert_eq!(e2.props.size, Some(Val::Value(32)));
     assert_eq!(e2.source(RunPropsField::Bold), Provenance::CharStyle("H1Char".into()));
-    // RES-04 placeholder：直接 w:b w:val="0" 覆盖样式的 b
+    // RES-04：直接 w:b w:val="0" 压住样式的 b（两条候选规则都这么说，见 resolve::toggle）
     let off = RunProps { bold: on(false), ..Default::default() };
     assert_eq!(r.run(Some("H1"), None, &off).props.bold, on(false));
 }

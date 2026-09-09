@@ -27,6 +27,7 @@ save(session, opts):
 | 所有使用的前缀在其作用域内已绑定（`XML-11`） | 记诊断（输入本就如此） | 同上 |
 | 属性容器子元素顺序符合 `PROP-05`（仅检查 `New/SelfDirty` 节点） | 不适用 | 同上 |
 | 修订 `w:id` 全局唯一 | 记诊断 | 同上 |
+| `New` / 脏 `w:tbl` 的每行网格宽度（`gridBefore + Σ gridSpan + gridAfter`）= `tblGrid` 列数（`SAVE_TABLE_GRID`，M3） | 记诊断，保留（输入本就如此） | 同上 |
 | 段落至少含 `w:pPr` 之外的合法结构（空段允许） | — | — |
 
 来源判定：解析阶段记录的缺陷集合为 `PreExisting`；保存时新出现且不在该集合中的为 `EngineInvariantViolation`。
@@ -66,6 +67,8 @@ save(session, opts):
 `SaveOptions { saved_at: Option<Timestamp> /* core.xml dcterms:modified */, remove_personal_info: Option<bool>, section: …, header/footer: …, page_color: … }` 与 TS `SaveOptions` 对齐；每项都翻译为 `EditOp`/DOM 变更，没有旁路。
 
 `removePersonalInformation`（设置或文档标志为 true 时）：修订与批注的 `w:author` 改为 `Author`、`w:date` 删除；`core.xml` 的 creator/lastModifiedBy 清空；与 TS 行为对齐。
+
+TS 的 `partXml` / `partBinary` 不是 `SaveOptions` 的字段：compat 把它们翻成 `EditOp::ReplacePartXml` / `ReplacePartBytes`（M6 6.6），在 isUnchanged 短路之前应用；被整体替换的 part 保存时整份写出（`Part.replaced`），新建的二进制 part（内嵌工作簿）追加在 zip 末尾（`SAVE-06`）。`prune_orphans: Option<bool>`（缺省开，M6 6.7）是 `Package::save` 之前的最后一步（在事务里）：对本次会话写过的内容 part，TS `DOCUMENT_OWNED_REL_TYPES` 那几种关系（image / chart / chartEx / diagram × 5 / hyperlink / oleObject）里**现在**没人引用（`Deleted` 子树不算）、且写之前有人引用或是本会话新加的 → 删关系；目标 part 在 `word/media|charts|embeddings|diagrams` 下且整个包再无关系指向时，删 part、它的 `.rels`、沿其关系可达的子图（图表 → 工作簿）与 `[Content_Types]` 的 `Override`（`Default` 不动）；原本就是孤儿的 part 一个字节不动（TS 会删，`docs/04` §8）。`inks: Option<Vec<InkSave { para: NodeId, ink: NewInk }>>`（M6 6.8）是墨迹批注的**权威列表**：`Some` → `EditOp::RemoveInks`（删主 part 里全部 `aidocs-ink` run；媒体与关系随 `prune_orphans` 消失）再逐条 `EditOp::InsertInk`（TS `anchoredInkRunXml` 模板追加在段落全部内容之后，`docPr/@id` 按 `EDIT-06`，每条一个媒体 part），`Some(vec![])` 只删，`None` 不动；锚点不是 `w:p` → 跳过 + 诊断，不分配媒体。
 
 ## SAVE-08 不变式验证（实现内自检，调试构建）
 

@@ -1,0 +1,84 @@
+﻿{
+    "case":  "sect-delete",
+    "stage":  "before",
+    "path":  "C:\\word\\real-word-round3-20260907\\revfix\\sect-delete\\before.docx",
+    "sha256":  "FBDCC496F3B9E8BA3F77ADE8DBEA90F9E2D5605AFB5E51247DBAC89AAE2C8128",
+    "sourcePath":  null,
+    "sourceSha256":  null,
+    "operations":  [
+                       "Created required baseline with TrackRevisions=false; saved once."
+                   ],
+    "readout":  {
+                    "text":  "before 前文\r第一节正文。\r\f第二节正文。\rafter 后文\r\r",
+                    "paragraphs":  [
+                                       {
+                                           "text":  "before 前文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "第一节正文。\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\f",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "第二节正文。\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "after 后文\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       },
+                                       {
+                                           "text":  "\r",
+                                           "alignment":  3,
+                                           "firstLineIndent":  0,
+                                           "characterFirstLineIndent":  0
+                                       }
+                                   ],
+                    "revisions":  [
+
+                                  ],
+                    "revisionCount":  0,
+                    "sections":  [
+                                     {
+                                         "index":  1,
+                                         "start":  0,
+                                         "end":  18,
+                                         "orientation":  0,
+                                         "sectionStart":  2
+                                     },
+                                     {
+                                         "index":  2,
+                                         "start":  18,
+                                         "end":  35,
+                                         "orientation":  1,
+                                         "sectionStart":  2
+                                     }
+                                 ],
+                    "shapes":  [
+
+                               ],
+                    "pages":  2,
+                    "compatibility":  15,
+                    "trackMoves":  true,
+                    "trackFormatting":  true,
+                    "trackRevisions":  false
+                },
+    "pdf":  "C:\\word\\real-word-round3-20260907\\_previews\\revfix\\sect-delete\\before.pdf",
+    "date":  "2026-09-07T13:55:05.4026003+08:00",
+    "method":  "Native Windows Word COM; DOCX saved once at this path; PDF export and current-document UI inspection afterward without save back.",
+    "uiPending":  true
+}

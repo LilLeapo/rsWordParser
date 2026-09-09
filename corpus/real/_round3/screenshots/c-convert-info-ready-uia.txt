@@ -1,0 +1,107 @@
+Window: "toggle-other-toggles-conversion-working.docx - 兼容性模式 - Word", App: WINWORD.EXE.
+	0 窗口 toggle-other-toggles-conversion-working.docx - 兼容性模式 - Word Secondary Actions: Raise
+		4064 窗格
+			4065 窗格
+				4066 窗格
+					4067 列表 文件 ID: NavBarMenu
+						4068 列表项 返回 ID: FileTabButton
+						4069 列表项 (selectable) 开始 Description: 开始
+						4070 列表项 (selectable) 新建 Description: 新建
+						4071 列表项 (selectable) 打开 Description: 打开
+						4072 列表项 (selectable) 信息 Description: 信息
+						4073 列表项 保存 Description: 保存
+						4074 列表项 (selectable) 另存为 Description: 另存为
+						4075 列表项 另存为 Adobe PDF Description: 另存为 Adobe PDF
+						4076 列表项 (disabled) 历史记录 Description: 历史记录
+						4077 列表项 (selectable) 打印 Description: 打印
+						4078 列表项 (selectable) 共享 Description: 共享
+						4079 列表项 (selectable) 导出 Description: 导出
+						4080 列表项 关闭 Description: 关闭
+						4081 列表项 (selectable) 帐户 Description: 帐户
+						4082 列表项 (selectable) 反馈 Description: 反馈
+						4083 列表项 选项 Description: 选项
+				4084 标题栏 ‪toggle-other-toggles-conversion-working.docx - 兼容性模式‬ - 已保存到这台电脑 Description: toggle-other-toggles-conversion-working.docx - 兼容性模式
+				4085 菜单项 燚坡 李 Description: 燚坡 李 (liyipo2232372591@hotmail.com) 已登录。请打开并查看有关登录用户的更多详细信息。 ID: MeControlWidget
+					4086 图像 燚坡 李 Description: 表示角色的图片。 ID: PersonaPicture
+				4087 按钮 帮助 Description: 获取关于使用 Microsoft Office 的帮助。
+				4088 按钮 最小化 Description: 移开窗口
+				4089 按钮 最大化 Description: 窗口全屏显示
+				4090 按钮 关闭 Description: 关闭窗口
+				4091 窗格 Backstage 视图 ID: BackstageView
+					4143 组 信息 Description: 信息
+						4144 文本 信息 Description: 信息
+						4145 组 位置信息
+							4146 文本 toggle-other-toggles-conversion-working
+							4147 按钮 C: ‎» word ‎» round3-work-20260907
+						4148 组 位置信息
+							4149 按钮 上传
+							4150 按钮 共享
+							4151 按钮 复制路径
+							4152 按钮 打开文件位置
+						4153 组 兼容模式
+							4154 按钮 转换
+							4155 文本 兼容模式 Description: 兼容模式
+							4156 文本 与旧版本的 Office 一起使用时，某些新功能被禁用，以防止出现问题。转换此文件将启用这些功能，但可能会导致布局更改。
+						4157 组 保护文档
+							4158 菜单项 保护文档
+							4159 文本 保护文档 Description: 保护文档
+							4160 文本 控制其他人可以对此文档所做的更改类型。
+						4161 组 检查文档 Description: 在发布此文件之前，请注意其是否包含
+							4162 菜单项 检查问题
+							4163 文本 检查文档 Description: 检查文档
+							4164 文本 在发布此文件之前，请注意其是否包含
+							4165 文本 文档属性
+							4166 文本 以隐藏文字为格式的字符
+							4167 文本 由于当前的文件类型而无法检查辅助功能问题的内容
+						4168 组 管理文档 Description: 签出文档或恢复未保存的更改。
+							4169 菜单项 管理文档
+							4170 文本 管理文档 Description: 管理文档
+							4171 列表 管理文档
+							4172 文本 没有任何未保存的更改。
+						4173 组 属性
+							4174 菜单项 属性
+							4175 文本 大小
+							4176 编辑框 大小
+							4177 文本 页数
+							4178 编辑框 页数
+							4179 文本 字数
+							4180 编辑框 字数
+							4181 文本 编辑时间总计
+							4182 编辑框 编辑时间总计
+							4183 文本 标题
+							4184 编辑框 标题
+							4185 文本 标记
+							4186 编辑框 标记
+							4187 文本 备注
+							4188 编辑框 备注
+							4189 文本 相关日期
+							4190 文本 上次修改时间
+							4191 文本
+							4192 文本 创建时间
+							4193 文本 今天 14:18
+							4194 文本 上次打印时间
+							4195 文本
+							4196 文本 相关人员
+							4197 组 作者
+								4198 文本 作者
+								4199 组 添加作者
+									4200 编辑框 添加作者
+									4201 按钮 验证名称 Description: 验证所输入的联系人姓名。
+									4202 按钮 浏览通讯薄 Description: 在通讯簿中搜索联系人。
+							4203 组 上次修改者
+								4204 文本 上次修改者
+								4205 组 (disabled) 尚未保存
+									4206 编辑框 (disabled) 尚未保存
+									4207 按钮 (disabled) 验证名称 Description: 验证所输入的联系人姓名。
+									4208 按钮 (disabled) 浏览通讯薄 Description: 在通讯簿中搜索联系人。
+							4209 文本 相关文档
+							4210 超链接 打开文件位置 Description: 打开文件位置
+							4211 按钮 显示所有属性
+		183 标题栏
+			184 菜单栏 系统 ID: MenuBar
+				2790 菜单项目 系统
+			186 按钮 最小化
+			187 按钮 最大化
+			188 按钮 关闭
+
+The focused UI element is 4064 窗格.

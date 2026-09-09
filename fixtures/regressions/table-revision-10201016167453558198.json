@@ -1,0 +1,470 @@
+[
+  [
+    {
+      "op": "setPageColor"
+    },
+    {
+      "trackChanges": null,
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": false
+    }
+  ],
+  [
+    {
+      "op": "insertAtom",
+      "at": {
+        "part": null,
+        "para": 3,
+        "offset": 3
+      },
+      "atom": {
+        "kind": "break",
+        "value": {
+          "kind": "textWrapping",
+          "clear": null
+        }
+      }
+    },
+    {
+      "trackChanges": null,
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "insertSectionBreak",
+      "after": 7,
+      "kind": "nextPage"
+    },
+    {
+      "trackChanges": null,
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "removeBookmark",
+      "name": "bm182"
+    },
+    {
+      "trackChanges": null,
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "deleteSectionBreak",
+      "sect": 11
+    },
+    {
+      "trackChanges": {
+        "author": "乙",
+        "date": "2026-02-02T00:00:00Z"
+      },
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "setParaProps",
+      "para": 3,
+      "patch": {
+        "jc": "center"
+      }
+    },
+    {
+      "trackChanges": null,
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": false
+    }
+  ],
+  [
+    {
+      "op": "insertBlock",
+      "at": {
+        "part": null,
+        "at": {
+          "before": 11
+        }
+      },
+      "block": {
+        "kind": "table",
+        "value": {
+          "rows": 2,
+          "cols": 3,
+          "widths": null,
+          "style": null,
+          "header": false
+        }
+      }
+    },
+    {
+      "trackChanges": {
+        "author": "甲",
+        "date": "2026-01-01T00:00:00Z"
+      },
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "insertBlock",
+      "at": {
+        "part": null,
+        "at": {
+          "after": 11
+        }
+      },
+      "block": {
+        "kind": "paragraph",
+        "value": {
+          "props": null,
+          "inlines": [
+            {
+              "kind": "run",
+              "value": {
+                "text": "新段",
+                "props": null
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trackChanges": {
+        "author": "乙",
+        "date": "2026-02-02T00:00:00Z"
+      },
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": false
+    }
+  ],
+  [
+    {
+      "op": "insertText",
+      "at": {
+        "part": null,
+        "para": 39,
+        "offset": 0
+      },
+      "text": "字"
+    },
+    {
+      "trackChanges": {
+        "author": "甲",
+        "date": "2026-01-01T00:00:00Z"
+      },
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "deleteRange",
+      "from": {
+        "part": null,
+        "para": 3,
+        "offset": 2
+      },
+      "to": {
+        "part": null,
+        "para": 3,
+        "offset": 4
+      }
+    },
+    {
+      "trackChanges": null,
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "insertColumn",
+      "table": 25,
+      "at": 2,
+      "width": 1200
+    },
+    {
+      "trackChanges": {
+        "author": "甲",
+        "date": "2026-01-01T00:00:00Z"
+      },
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": false
+    }
+  ],
+  [
+    {
+      "op": "setPageColor",
+      "color": "EEF3FF"
+    },
+    {
+      "trackChanges": {
+        "author": "甲",
+        "date": "2026-01-01T00:00:00Z"
+      },
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "acceptRevision",
+      "rev": 1
+    },
+    {
+      "trackChanges": {
+        "author": "乙",
+        "date": "2026-02-02T00:00:00Z"
+      },
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "deleteBlock",
+      "node": 7
+    },
+    {
+      "trackChanges": {
+        "author": "甲",
+        "date": "2026-01-01T00:00:00Z"
+      },
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": false
+    }
+  ],
+  [
+    {
+      "op": "setPageColor",
+      "color": "EEF3FF"
+    },
+    {
+      "trackChanges": {
+        "author": "甲",
+        "date": "2026-01-01T00:00:00Z"
+      },
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": false
+    }
+  ],
+  [
+    {
+      "op": "insertBlock",
+      "at": {
+        "part": null,
+        "at": {
+          "after": 11
+        }
+      },
+      "block": {
+        "kind": "paragraph",
+        "value": {
+          "props": null,
+          "inlines": [
+            {
+              "kind": "run",
+              "value": {
+                "text": "新段",
+                "props": null
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trackChanges": {
+        "author": "乙",
+        "date": "2026-02-02T00:00:00Z"
+      },
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": false
+    }
+  ],
+  [
+    {
+      "op": "setParaProps",
+      "para": 3,
+      "patch": {
+        "jc": "center"
+      }
+    },
+    {
+      "trackChanges": {
+        "author": "甲",
+        "date": "2026-01-01T00:00:00Z"
+      },
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "rejectAll",
+      "author": "乙"
+    },
+    {
+      "trackChanges": {
+        "author": "甲",
+        "date": "2026-01-01T00:00:00Z"
+      },
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "deleteRange",
+      "from": {
+        "part": null,
+        "para": 39,
+        "offset": 0
+      },
+      "to": {
+        "part": null,
+        "para": 39,
+        "offset": 0
+      }
+    },
+    {
+      "trackChanges": {
+        "author": "甲",
+        "date": "2026-01-01T00:00:00Z"
+      },
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "mergeWithNext",
+      "para": 62
+    },
+    {
+      "trackChanges": null,
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "deleteColumn",
+      "table": 27,
+      "at": 2
+    },
+    {
+      "trackChanges": null,
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "insertRow",
+      "table": 27,
+      "at": 2
+    },
+    {
+      "trackChanges": {
+        "author": "甲",
+        "date": "2026-01-01T00:00:00Z"
+      },
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "insertColumn",
+      "table": 27,
+      "at": 3,
+      "width": 1200
+    },
+    {
+      "trackChanges": null,
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "insertText",
+      "at": {
+        "part": null,
+        "para": 4,
+        "offset": 5
+      },
+      "text": "  "
+    },
+    {
+      "trackChanges": {
+        "author": "甲",
+        "date": "2026-01-01T00:00:00Z"
+      },
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": false
+    }
+  ],
+  [
+    {
+      "op": "insertColumn",
+      "table": 27,
+      "at": 3,
+      "width": 1200
+    },
+    {
+      "trackChanges": {
+        "author": "甲",
+        "date": "2026-01-01T00:00:00Z"
+      },
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ],
+  [
+    {
+      "op": "rejectRevision",
+      "rev": 12
+    },
+    {
+      "trackChanges": null,
+      "defaultRunProps": null,
+      "keepOrphanComments": false,
+      "markUpdatedFieldsDirty": true
+    }
+  ]
+]

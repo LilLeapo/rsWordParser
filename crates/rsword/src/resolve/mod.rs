@@ -1,9 +1,12 @@
 //! 有效属性只读视图（`spec/07-resolve.md`，`docs/03` §7）。
 //!
 //! 从声明值计算编辑器需要的有效值，带来源（`RES-01`）；不修改规范状态，不做排版。
-//! M1 首版（任务 1.9）：样式链与 linked（`RES-02`）、run 层叠（`RES-03`）、toggle 占位（`RES-04`）、
+//! M1 首版（任务 1.9）：样式链与 linked（`RES-02`）、run 层叠（`RES-03`）、
 //! 主题字体 / 颜色（`RES-05`）、Cs 选择（`RES-06`）、段落层叠的编号缩进（`RES-07`/`RES-09` 级别查找）。
-//! 表格（`RES-08`）、编号标记（`RES-09`）、节（`RES-10`）在 M2+。
+//! 表格（`RES-08`）在 M3，节（`RES-10`）在 M5。
+//!
+//! toggle 属性（`RES-04`）的规则在 [`toggle`] 里参数化，等 `fixtures/resolve/toggle/*` 的
+//! **真实 Word 观察值**校准（任务 5.8）；激活的那条与非 toggle 属性同规则。
 
 use crate::model::block::ListRef;
 use crate::model::decl::{Numbering, Settings, Styles};
@@ -16,10 +19,26 @@ use crate::semantic::props::{
 };
 
 pub mod color;
+pub mod drawingml;
 pub mod fonts;
+pub mod numbering;
+pub mod section;
+pub mod symbol;
+pub mod table;
+pub mod toggle;
 
 pub use color::{resolve_theme_color, rgb_hex};
+pub use drawingml::{ColorBase, ColorTransform, DrawingColor, Rgb};
 pub use fonts::ResolvedFonts;
+pub use symbol::{decode as decode_symbol, decode_pua, is_symbol_font};
+pub use table::{
+    ColumnSource, ColumnView, EffectiveCellProps, TableStyleLayer, TableStyleView, TableView,
+    TblLookFlags, ViewCell,
+};
+pub use toggle::{
+    TOGGLE_FIELDS, ToggleLayers, ToggleRule, active_rule, resolve_toggle, rule_of, set_toggle,
+    toggle_of,
+};
 
 /// 有效值的来源（`RES-01`）。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,9 +52,18 @@ pub enum Provenance {
     },
     TableStyle {
         style: String,
+        /// 命中的条件格式（`None` = 整表层）。
+        cond: Option<crate::semantic::props::TblStyleOverrideType>,
     },
     DocDefaults,
     Theme,
+    /// `RES-04`：toggle 属性由**多个层级异或**得出，没有单一来源。
+    ///
+    /// 两个层级各声明一次 `true` 时有效值是 `false`——那个 `false` 谁都没写过，指向任何一层
+    /// 都是撒谎。`levels` 按最具体到最不具体列出参与异或的那些层，供界面解释"为什么不加粗"。
+    Toggle {
+        levels: Vec<Provenance>,
+    },
     /// 未声明，取 Word 缺省。
     Default,
 }
@@ -60,7 +88,7 @@ pub struct Resolver<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EffectiveRunProps {
     pub props: RunProps,
-    sources: Vec<Option<Provenance>>,
+    pub(crate) sources: Vec<Option<Provenance>>,
     /// `RES-06`：run 的复杂文种状态。
     pub cs: Effective<bool>,
 }
@@ -90,7 +118,7 @@ impl EffectiveRunProps {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EffectiveParaProps {
     pub props: ParaProps,
-    sources: Vec<Option<Provenance>>,
+    pub(crate) sources: Vec<Option<Provenance>>,
 }
 
 impl EffectiveParaProps {
@@ -98,21 +126,6 @@ impl EffectiveParaProps {
         self.sources[field as usize].clone().unwrap_or(Provenance::Default)
     }
 }
-
-/// `RES-04` placeholder：toggle 属性（b/bCs/i/iCs/caps/smallCaps/strike/dstrike/vanish）暂按
-/// "最具体的声明胜出"处理，与非 toggle 属性相同。规范的奇偶叠加规则与 Word 偏差待
-/// `fixtures/resolve/toggle/*` 校准（M5），到时只改这里。
-pub const TOGGLE_FIELDS: &[RunPropsField] = &[
-    RunPropsField::Bold,
-    RunPropsField::BoldCs,
-    RunPropsField::Italic,
-    RunPropsField::ItalicCs,
-    RunPropsField::Caps,
-    RunPropsField::SmallCaps,
-    RunPropsField::Strike,
-    RunPropsField::Dstrike,
-    RunPropsField::Vanish,
-];
 
 impl<'a> Resolver<'a> {
     pub fn new(doc: &'a Document) -> Resolver<'a> {
@@ -199,9 +212,76 @@ impl<'a> Resolver<'a> {
 
     /// run 的有效属性。`para_style` / `char_style` 是 styleId；`direct` 是 run 自身的 `rPr`。
     /// 覆盖顺序：docDefaults → 段落样式链 → 字符样式链（含 linked 补缺）→ 直接；`None` 不覆盖。
-    /// 编号级别 rPr 只用于列表标记（`RES-03` 第 3 条），表格样式在 M2。
+    /// 编号级别 rPr 只用于列表标记（`RES-03` 第 3 条）。表格内的 run 用 [`Resolver::run_in_table`]。
     pub fn run(
         &self,
+        para_style: Option<&str>,
+        char_style: Option<&str>,
+        direct: &RunProps,
+    ) -> EffectiveRunProps {
+        self.run_in_table(None, para_style, char_style, direct)
+    }
+
+    /// `RES-03` 第 4 层：表格样式（整表 + 命中的条件格式，见 [`TableView::cell`] 的 `rpr`）在段落样式链
+    /// 之后、字符样式链之前生效。`table` 为 `None` 时与 [`Resolver::run`] 等价。
+    /// `RES-04` 的来源：直接格式一票定音时就是 `Direct`；只有一个层级参与、且有效值就是它
+    /// 声明的那个值时指那一层；**否则**是 [`Provenance::Toggle`]——异或出来的值谁都没单独写过。
+    ///
+    /// "只有 docDefaults 声明"也落到 `Toggle`：Word 的规则里段落样式层会把 docDefaults 的值
+    /// 再贡献一次（每个段落都有样式，样式链的根是 docDefaults），所以有效值是 `false` 而
+    /// docDefaults 写的是 `true`，指着 docDefaults 同样是撒谎。
+    #[allow(clippy::too_many_arguments)]
+    fn toggle_source(
+        &self,
+        rule: toggle::ToggleRule,
+        l: &toggle::ToggleLayers<'_>,
+        para_chain: &[&Style],
+        char_chain: &[&Style],
+        in_table: bool,
+        value: bool,
+        cascaded: Option<Provenance>,
+    ) -> Provenance {
+        // 叶字符样式的 id：linked 补缺层归它
+        let char_leaf_id = char_chain.first().and_then(|s| s.id()).unwrap_or_default();
+        if l.direct.is_some() {
+            return Provenance::Direct;
+        }
+        // `chain` 可能比 `styles` 长一格：字符样式一侧末尾接了 linked 补缺层，它不在链里，
+        // 归属的是叶字符样式自己（与层叠里 `apply` 标的来源一致）
+        let leaf = |chain: &[Option<bool>],
+                    styles: &[&Style],
+                    fallback: &str,
+                    make: fn(String) -> Provenance| {
+            chain.iter().position(|v| v.is_some()).map(|i| {
+                let id = styles.get(i).and_then(|s| s.id()).unwrap_or(fallback).to_string();
+                (make(id), chain[i].expect("position 找到的就是 Some"))
+            })
+        };
+        // 参与的层级，最具体到最不具体
+        let mut levels: Vec<(Provenance, bool)> = Vec::new();
+        levels.extend(leaf(l.char_chain, char_chain, char_leaf_id, Provenance::CharStyle));
+        if in_table && let Some(v) = l.table {
+            levels.push((Provenance::TableStyle { style: String::new(), cond: None }, v));
+        }
+        levels.extend(leaf(l.para_chain, para_chain, "", Provenance::ParaStyle));
+        // 桌面 Word 的规则（`ToggleRule::WordDesktop`）里 docDefaults 不参与异或：有样式层级声明时它就不在场，
+        // 一层都没声明时它是唯一来源
+        if let Some(v) = l.doc_default
+            && (levels.is_empty() || rule != toggle::ToggleRule::WordDesktop)
+        {
+            levels.push((Provenance::DocDefaults, v));
+        }
+        match levels.as_slice() {
+            [] => cascaded.unwrap_or(Provenance::Default),
+            // 唯一一层，且有效值就是它写的那个 → 指它
+            [(p, v)] if *v == value => p.clone(),
+            _ => Provenance::Toggle { levels: levels.into_iter().map(|(p, _)| p).collect() },
+        }
+    }
+
+    pub fn run_in_table(
+        &self,
+        table: Option<&RunProps>,
         para_style: Option<&str>,
         char_style: Option<&str>,
         direct: &RunProps,
@@ -224,6 +304,10 @@ impl<'a> Resolver<'a> {
                 apply(&mut props, r, Provenance::ParaStyle(s.id().unwrap_or_default().to_string()));
             }
         }
+        if let Some(t) = table {
+            // 具体是哪张表的哪一层由调用方（`TableView::cell`）知道，这里只标"来自表格样式"
+            apply(&mut props, t, Provenance::TableStyle { style: String::new(), cond: None });
+        }
         let char_chain =
             char_style.map(|id| self.chain(id, StyleType::Character)).unwrap_or_default();
         for s in char_chain.iter().rev() {
@@ -232,6 +316,7 @@ impl<'a> Resolver<'a> {
             }
         }
         // linked 补缺：字符样式链没有声明、其 w:link 段落样式链声明了的项
+        let mut linked_fill: Option<RunProps> = None;
         if let (Some(leaf), Some(id)) = (char_chain.first(), char_style)
             && let Some(link) = leaf.link.as_deref()
         {
@@ -247,8 +332,50 @@ impl<'a> Resolver<'a> {
                 copy_field(&mut layer, &fill, f);
             }
             apply(&mut props, &layer, Provenance::CharStyle(id.to_string()));
+            linked_fill = Some(layer);
         }
         apply(&mut props, direct, Provenance::Direct);
+
+        // RES-04：toggle 字段单独合成一遍，规则**按字段**选（`resolve::toggle` 的
+        // `toggle_fields!` 表）。实测发现 Word 对同一类属性并不同待遇：`b` / `i` 按层级异或，
+        // `caps` / `strike` 一族仍是"最具体胜出"。这里只负责把各层的声明按层喂进去。
+        for &f in toggle::TOGGLE_FIELDS {
+            // 字符样式一侧：链自身各层，末尾再接 linked 补缺层（它只带链没声明的字段，
+            // 所以接在后面不影响链内的优先级；漏了它 `H1Char` 这类 linked 壳就丢掉 `b`）
+            let char_layer: Vec<Option<bool>> = char_chain
+                .iter()
+                .map(|st| st.rpr.as_ref().and_then(|r| toggle::toggle_of(r, f)))
+                .chain(linked_fill.as_ref().map(|l| toggle::toggle_of(l, f)))
+                .collect();
+            let para_layer: Vec<Option<bool>> = para_chain
+                .iter()
+                .map(|st| st.rpr.as_ref().and_then(|r| toggle::toggle_of(r, f)))
+                .collect();
+            let layers = toggle::ToggleLayers {
+                direct: toggle::toggle_of(direct, f),
+                char_chain: &char_layer,
+                table: table.and_then(|t| toggle::toggle_of(t, f)),
+                para_chain: &para_layer,
+                doc_default: self
+                    .styles
+                    .and_then(Styles::doc_default_rpr)
+                    .and_then(|dd| toggle::toggle_of(dd, f)),
+            };
+            let value = toggle::resolve_toggle(toggle::active_rule(f), &layers);
+            toggle::set_toggle(&mut props, f, value);
+            // 来源要跟着改：异或出来的值可能哪一层都没写过，继续指着某一层就是撒谎
+            if value.is_some() {
+                sources[f as usize] = Some(self.toggle_source(
+                    toggle::active_rule(f),
+                    &layers,
+                    &para_chain,
+                    &char_chain,
+                    table.is_some(),
+                    value == Some(true),
+                    sources[f as usize].clone(),
+                ));
+            }
+        }
 
         // RES-06：cs = 直接 rtl ?? 字符样式链 rtl ?? 段落样式链 rtl ?? false
         let cs = if let Some(v) = direct.rtl {

@@ -4,6 +4,7 @@
 //! 本层不理解 WordprocessingML 语义。XML part 的 DOM 惰性构建（[`Package::dom`]），主 part 在打开时解析。
 
 pub mod content_types;
+pub mod media;
 pub mod ns_context;
 pub mod rels;
 pub mod uri;
@@ -13,6 +14,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 pub use content_types::ContentTypes;
+pub use media::{Media, MediaId, MediaKind, MediaMiss, MediaRef, MediaStore};
 pub use ns_context::{NamespaceContext, UNDERSTOOD};
 pub use rels::{RelTarget, RelType, Relationship, Rels, parse_rels};
 pub use uri::{PartUri, UriError, resolve};
@@ -23,7 +25,19 @@ use crate::error::{Error, NotOoxml, Result};
 use crate::xml::{Dom, NsId, XmlError, sniff_root};
 
 /// part 在会话内的稳定编号（zip 中非目录条目的顺序）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    ::serde::Serialize,
+    ::serde::Deserialize,
+)]
+#[serde(transparent)]
 pub struct PartId(pub u32);
 
 impl PartId {
@@ -71,12 +85,36 @@ enum PartDom {
     Parsed(Box<Dom>),
     /// 解析失败：保存原字节（`PKG-11`）。
     Opaque(XmlError),
+    /// 本次会话给定的字节：新建的二进制 part（内嵌工作簿、媒体），或被 `ReplacePartBytes` 整体换掉的 part。
+    Bytes(Vec<u8>),
 }
 
-#[derive(Debug)]
+/// 旧事务镜像的保留类型（观察期）；完整会话回滚已不再构造它。
+#[derive(Clone)]
+pub struct PartImage {
+    _private: (),
+}
+
+impl Clone for PartDom {
+    fn clone(&self) -> Self {
+        match self {
+            PartDom::NotXml => PartDom::NotXml,
+            PartDom::Raw(b) => PartDom::Raw(b.clone()),
+            PartDom::Parsed(d) => PartDom::Parsed(d.clone()),
+            PartDom::Opaque(e) => PartDom::Opaque(e.clone()),
+            PartDom::Bytes(b) => PartDom::Bytes(b.clone()),
+        }
+    }
+}
+
+/// 新建 part 的 `zip_index`：原 zip 里没有对应条目（`SAVE-05` / `SAVE-06`：新 part 追加在末尾）。
+pub const NO_ZIP_ENTRY: u32 = u32::MAX;
+
+#[derive(Debug, Clone)]
 pub struct Part {
     pub id: PartId,
     pub uri: PartUri,
+    /// 原 zip 条目下标；本次会话新建的 part 为 [`NO_ZIP_ENTRY`]。
     pub zip_index: u32,
     pub content_type: Option<String>,
     pub is_xml: bool,
@@ -86,12 +124,24 @@ pub struct Part {
     pub rels: Rels,
     /// 承载 `rels` 的 `.rels` part。
     pub rels_part: Option<PartId>,
+    /// 本次会话整体替换过（`ReplacePartXml` / `ReplacePartBytes`）：保存时整份写出，哪怕 DOM 一个节点都不脏。
+    pub replaced: bool,
+    /// 本次会话删掉了（资源回收，`SAVE-07` `prune_orphans`）：保存时不写它的 zip 条目，查找也找不到它。
+    pub deleted: bool,
     dom: PartDom,
 }
 
 impl Part {
     pub fn is_opaque(&self) -> bool {
         matches!(self.dom, PartDom::Opaque(_))
+    }
+
+    /// 本次会话给定的字节（新建的二进制 part / 被整体换掉的 part）；其他形态 → `None`。
+    pub fn owned_bytes(&self) -> Option<&[u8]> {
+        match &self.dom {
+            PartDom::Bytes(b) => Some(b),
+            _ => None,
+        }
     }
 
     pub fn is_parsed(&self) -> bool {
@@ -120,10 +170,15 @@ impl Part {
             _ => None,
         }
     }
+
+    /// 本次会话新建、原 zip 里没有的 part。
+    pub fn is_new(&self) -> bool {
+        self.zip_index == NO_ZIP_ENTRY
+    }
 }
 
 /// 打开的 docx 包：part 表、关系图、flavor、内容类型。
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Package {
     zip: ZipPackage,
     parts: Vec<Part>,
@@ -163,6 +218,8 @@ impl Package {
                 flavor: None,
                 rels: Rels::default(),
                 rels_part: None,
+                replaced: false,
+                deleted: false,
                 dom: PartDom::NotXml,
             });
         }
@@ -350,6 +407,137 @@ impl Package {
         &self.parts[id.idx()]
     }
 
+    /// 可变 part（`EDIT-06` 追加关系后同步内存里的 `Rels`）。
+    pub(crate) fn part_mut(&mut self, id: PartId) -> &mut Part {
+        &mut self.parts[id.idx()]
+    }
+
+    /// 本次会话新建的 part（`SAVE-05`），按创建顺序。
+    pub fn new_parts(&self) -> impl Iterator<Item = PartId> + '_ {
+        self.parts.iter().filter(|p| p.is_new() && !p.deleted).map(|p| p.id)
+    }
+
+    /// `SAVE-05`：登记一个新的 XML part。
+    ///
+    /// `xml` 是整份内容（含 XML 声明）：解析成 DOM 后这个 part 与别的 part 一样可编辑、
+    /// 可按脏节点序列化。**只登记 part 本身**——内容类型 Override 与 `.rels` 里的关系由
+    /// 调用方按同一套 DOM 机制写（`EditSession::add_part`），因此也满足"未变部分原字节"。
+    pub(crate) fn register_new_part(
+        &mut self,
+        uri: PartUri,
+        content_type: &str,
+        xml: &str,
+    ) -> Result<PartId> {
+        if self.by_uri.contains_key(&uri) {
+            return Err(Error::edit(
+                DiagCode::EditPlanInvalid,
+                format!("part {uri} 已存在，不能重复新建"),
+            ));
+        }
+        let id = PartId(u32::try_from(self.parts.len()).expect("part count fits u32"));
+        let dom = Dom::parse(id, xml.as_bytes()).map_err(|e| Error::Malformed {
+            part: uri.to_string(),
+            offset: e.offset,
+            message: e.message,
+        })?;
+        // flavor（`PKG-08`）：按根元素命名空间的族别，与打开时同一条规则
+        let flavor = sniff_root(xml.as_bytes())
+            .ok()
+            .and_then(|info| info.namespace_uri)
+            .and_then(|uri| NsId::from_uri(&uri))
+            .filter(|(ns, _)| ns.has_strict_uri())
+            .map(|(_, fl)| fl);
+        self.parts.push(Part {
+            id,
+            uri: uri.clone(),
+            zip_index: NO_ZIP_ENTRY,
+            content_type: Some(content_type.to_string()),
+            is_xml: true,
+            flavor,
+            rels: Rels::default(),
+            rels_part: None,
+            replaced: false,
+            deleted: false,
+            dom: PartDom::Parsed(Box::new(dom)),
+        });
+        self.by_uri.insert(uri, id);
+        Ok(id)
+    }
+
+    /// `SAVE-05`：登记一个新的二进制 part（内嵌工作簿、媒体）。内容类型由调用方按扩展名的 `Default` 声明。
+    pub(crate) fn register_new_binary_part(
+        &mut self,
+        uri: PartUri,
+        content_type: &str,
+        bytes: Vec<u8>,
+    ) -> Result<PartId> {
+        if self.by_uri.contains_key(&uri) {
+            return Err(Error::edit(
+                DiagCode::EditPlanInvalid,
+                format!("part {uri} 已存在，不能重复新建"),
+            ));
+        }
+        let id = PartId(u32::try_from(self.parts.len()).expect("part count fits u32"));
+        self.parts.push(Part {
+            id,
+            uri: uri.clone(),
+            zip_index: NO_ZIP_ENTRY,
+            content_type: Some(content_type.to_string()),
+            is_xml: false,
+            flavor: None,
+            rels: Rels::default(),
+            rels_part: None,
+            replaced: false,
+            deleted: false,
+            dom: PartDom::Bytes(bytes),
+        });
+        self.by_uri.insert(uri, id);
+        Ok(id)
+    }
+
+    /// 整体替换一个 XML part 的内容（TS `partXml`）：新内容解析成这个 part 的新 DOM（良构校验在这里），
+    /// 关系与内容类型不动。保存时整份写出。
+    pub(crate) fn replace_part_xml(&mut self, id: PartId, xml: &str) -> Result<()> {
+        let uri = self.parts[id.idx()].uri.to_string();
+        let dom = Dom::parse(id, xml.as_bytes()).map_err(|e| Error::Malformed {
+            part: uri,
+            offset: e.offset,
+            message: e.message,
+        })?;
+        let flavor = sniff_root(xml.as_bytes())
+            .ok()
+            .and_then(|info| info.namespace_uri)
+            .and_then(|uri| NsId::from_uri(&uri))
+            .filter(|(ns, _)| ns.has_strict_uri())
+            .map(|(_, fl)| fl);
+        let part = &mut self.parts[id.idx()];
+        part.dom = PartDom::Parsed(Box::new(dom));
+        part.is_xml = true;
+        part.flavor = flavor;
+        part.replaced = true;
+        Ok(())
+    }
+
+    /// 整体替换一个 part 的字节（TS `partBinary`）：之后它是二进制 part，没有 DOM。
+    pub(crate) fn replace_part_bytes(&mut self, id: PartId, bytes: Vec<u8>) {
+        let part = &mut self.parts[id.idx()];
+        part.dom = PartDom::Bytes(bytes);
+        part.is_xml = false;
+        part.flavor = None;
+        part.replaced = true;
+    }
+
+    /// 资源回收（`SAVE-07` `prune_orphans`）：删掉一个 part。zip 条目不再写出，`find` 找不到它；
+    /// `Part` 记录本身留在表里（`PartId` 不重排）。
+    pub(crate) fn remove_part(&mut self, id: PartId) {
+        let part = &mut self.parts[id.idx()];
+        part.deleted = true;
+        let uri = part.uri.clone();
+        if self.by_uri.get(&uri) == Some(&id) {
+            self.by_uri.remove(&uri);
+        }
+    }
+
     pub fn find(&self, uri: &PartUri) -> Option<PartId> {
         self.by_uri.get(uri).copied()
     }
@@ -374,6 +562,10 @@ impl Package {
         })
     }
 
+    pub(crate) fn content_types_mut(&mut self) -> &mut ContentTypes {
+        &mut self.content_types
+    }
+
     pub fn content_types(&self) -> &ContentTypes {
         &self.content_types
     }
@@ -389,6 +581,11 @@ impl Package {
 
     pub fn root_rels_part(&self) -> Option<PartId> {
         self.root_rels_part
+    }
+
+    /// 保存期新增的诊断（`SAVE-02`）。
+    pub(crate) fn push_diagnostics(&mut self, more: impl IntoIterator<Item = Diagnostic>) {
+        self.diagnostics.extend(more);
     }
 
     pub fn diagnostics(&self) -> &[Diagnostic] {
@@ -461,6 +658,7 @@ impl Package {
         match &self.parts[id.idx()].dom {
             PartDom::Raw(b) => Ok(b.clone()),
             PartDom::Parsed(d) => Ok(d.src_bytes().to_vec()),
+            PartDom::Bytes(b) => Ok(b.clone()),
             PartDom::NotXml | PartDom::Opaque(_) => self.zip.read(self.parts[id.idx()].zip_index),
         }
     }

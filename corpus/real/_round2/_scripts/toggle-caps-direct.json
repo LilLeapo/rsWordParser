@@ -1,0 +1,20 @@
+﻿{
+    "rangeText":  "CAPS ONCE",
+    "compat":  12,
+    "samples":  [
+                    {
+                        "selectionStart":  50,
+                        "raw":  -1,
+                        "read":  1,
+                        "value":  true,
+                        "selectionEnd":  50
+                    },
+                    {
+                        "selectionStart":  50,
+                        "raw":  -1,
+                        "read":  2,
+                        "value":  true,
+                        "selectionEnd":  50
+                    }
+                ]
+}

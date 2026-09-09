@@ -1,0 +1,70 @@
+{
+    "file":  "rev-comment-threads--comment.docx",
+    "base":  "revisions2/rev-comment-threads.docx",
+    "op":  "comment",
+    "expect":  "第一个有字的段落开头几个字上有一条作者 rsword 的批注「rsword 批注」",
+    "timestamp":  "2026-09-07T14:47:05.1911517+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\rev-comment-threads--comment.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  6,
+                    "tables":  0,
+                    "comments":  6,
+                    "inline_shapes":  0,
+                    "shapes":  0,
+                    "first_table_rows":  null,
+                    "first_table_cells":  null,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+
+                       ],
+    "text":  "before 前文\rFirst threaded anchor.\rSecond comment covers this whole paragraph.\rThird comment covers the word target.\rafter 后文\r\r",
+    "comments":  [
+                     {
+                         "author":  "rsword",
+                         "text":  "rsword 批注",
+                         "scope":  "befo"
+                     },
+                     {
+                         "author":  "作者甲",
+                         "text":  "Root comment, resolved after two replies.",
+                         "scope":  "First threaded anchor."
+                     },
+                     {
+                         "author":  "作者甲",
+                         "text":  "First reply.",
+                         "scope":  "First threaded anchor."
+                     },
+                     {
+                         "author":  "作者甲",
+                         "text":  "Second-level reply.",
+                         "scope":  "First threaded anchor."
+                     },
+                     {
+                         "author":  "作者甲",
+                         "text":  "Whole paragraph comment.",
+                         "scope":  "Second comment covers this whole paragraph."
+                     },
+                     {
+                         "author":  "作者甲",
+                         "text":  "One-word comment.",
+                         "scope":  "target"
+                     }
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+
+               ],
+    "errors":  [
+
+               ]
+}

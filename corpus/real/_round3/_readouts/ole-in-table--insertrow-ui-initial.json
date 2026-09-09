@@ -1,0 +1,44 @@
+{
+    "file":  "ole-in-table--insertrow.docx",
+    "base":  "ole/ole-in-table.docx",
+    "op":  "insertrow",
+    "expect":  "第一张表格在第 1 行之后多了一行空格子（格式照第 1 行）",
+    "timestamp":  "2026-09-07T14:41:58.6552845+08:00",
+    "method":  "Read from actual active Word window; does not constitute a visual observation.",
+    "active_path":  "C:\\word\\round3-work-20260907\\real-word-round3-inputs\\edited\\ole-in-table--insertrow.docx",
+    "metrics":  {
+                    "compat":  15,
+                    "paragraphs":  13,
+                    "tables":  1,
+                    "comments":  0,
+                    "inline_shapes":  1,
+                    "shapes":  0,
+                    "first_table_rows":  3,
+                    "first_table_cells":  6,
+                    "errors":  [
+
+                               ]
+                },
+    "charts":  [
+
+               ],
+    "shape_geometry":  [
+
+                       ],
+    "text":  "before 前文\r\u0001\r\u0007右上\r\u0007\r\u0007\r\u0007\r\u0007\r\u0007左下\r\u0007右下\r\u0007\r\u0007\rafter 后文\r\r",
+    "comments":  [
+
+                 ],
+    "headers":  [
+
+                ],
+    "tables":  [
+                   {
+                       "text":  "\u0001\r\u0007右上\r\u0007\r\u0007\r\u0007\r\u0007\r\u0007左下\r\u0007右下\r\u0007\r\u0007",
+                       "cells":  6
+                   }
+               ],
+    "errors":  [
+
+               ]
+}

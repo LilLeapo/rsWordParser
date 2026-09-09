@@ -1,0 +1,50 @@
+﻿{
+    "file":  "table-styled--newchart.docx",
+    "compat":  15,
+    "paragraphs":  23,
+    "text":  "before 前文\r/\rR1 C1\rR1 C2\r\u0007R1 C3\r\u0007\r\u0007R2 C1\r\u0007R2 C2\r\u0007R2 C3\r\u0007\r\u0007R3 C1\r\u0007R3 C2\r\u0007N11\r\u0007N12\r\u0007\r\u0007N21\r\u0007N22\r\u0007\r\u0007R3 C3\r\u0007\r\u0007\rafter 后文\r\r",
+    "inlineShapes":  1,
+    "shapes":  0,
+    "charts":  [
+                   {
+                       "title":  "rsword 新图表",
+                       "type":  51,
+                       "series":  [
+                                      {
+                                          "categories":  [
+                                                             "甲",
+                                                             "乙",
+                                                             "丙"
+                                                         ],
+                                          "values":  [
+                                                         3,
+                                                         1,
+                                                         2
+                                                     ],
+                                          "name":  "系列 A"
+                                      }
+                                  ]
+                   }
+               ],
+    "shapeDetails":  [
+
+                     ],
+    "comments":  [
+
+                 ],
+    "headers":  [
+                    {
+                        "even":  "\r",
+                        "primary":  "\r",
+                        "first":  "\r",
+                        "index":  1
+                    }
+                ],
+    "tables":  [
+                   {
+                       "rows":  3,
+                       "text":  "R1 C1\rR1 C2\r\u0007R1 C3\r\u0007\r\u0007R2 C1\r\u0007R2 C2\r\u0007R2 C3\r\u0007\r\u0007R3 C1\r\u0007R3 C2\r\u0007N11\r\u0007N12\r\u0007\r\u0007N21\r\u0007N22\r\u0007\r\u0007R3 C3\r\u0007\r\u0007",
+                       "cells":  8
+                   }
+               ]
+}

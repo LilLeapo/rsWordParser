@@ -78,5 +78,115 @@
     "name": "mixed-flavor.docx",
     "bytes": 2613,
     "expectation": "PackageFlavor::Mixed; each part keeps its own flavor"
+  },
+  {
+    "name": "drawing-deep-groups.docx",
+    "bytes": 4475,
+    "expectation": "parses; group depth > 64 degrades, no stack overflow"
+  },
+  {
+    "name": "drawing-cyclic-group.docx",
+    "bytes": 2348,
+    "expectation": "parses; degenerate group scale and self-referencing ids do not loop"
+  },
+  {
+    "name": "drawing-missing-rels.docx",
+    "bytes": 2332,
+    "expectation": "parses; every dangling r:id degrades to no media, bytes untouched"
+  },
+  {
+    "name": "drawing-bad-style.docx",
+    "bytes": 2340,
+    "expectation": "parses; unparsable style/coordsize/path values are dropped, not guessed"
+  },
+  {
+    "name": "hf-dangling-reference.docx",
+    "bytes": 2138,
+    "expectation": "PKG_REL_MISSING; the slot reads as undeclared and hfParts has no dangling entry"
+  },
+  {
+    "name": "hf-part-binary.docx",
+    "bytes": 2288,
+    "expectation": "PKG_OPAQUE_PART; the header part is Opaque, SetHeaderFooter on it is Err, body still editable"
+  },
+  {
+    "name": "sectpr-bad-values.docx",
+    "bytes": 2064,
+    "expectation": "PROP_BAD_VALUE per bad value; page geometry falls back to defaults; unedited save byte-identical"
+  },
+  {
+    "name": "hf-deep-txbx.docx",
+    "bytes": 4952,
+    "expectation": "MOD_TOO_DEEP; the header projection stays iterative and does not overflow the stack"
+  },
+  {
+    "name": "chart-part-malformed.docx",
+    "bytes": 3032,
+    "expectation": "parses; chart block without chartDisplay; PKG_OPAQUE_PART; unedited save byte-identical"
+  },
+  {
+    "name": "chart-missing-rel.docx",
+    "bytes": 2260,
+    "expectation": "parses; PKG_REL_MISSING; no chartDisplay"
+  },
+  {
+    "name": "diagram-cyclic-cxn.docx",
+    "bytes": 31062,
+    "expectation": "parses without hanging; all texts kept once"
+  },
+  {
+    "name": "canvas-degenerate.docx",
+    "bytes": 2427,
+    "expectation": "parses; MOD_BAD_GEOMETRY; no non-finite numbers in output"
+  },
+  {
+    "name": "omml-deep.docx",
+    "bytes": 2351,
+    "expectation": "parses; MOD_TOO_DEEP; no stack overflow"
+  },
+  {
+    "name": "ink-garbage.docx",
+    "bytes": 2554,
+    "expectation": "parses; inks[0].dataUrl null; payload decoded; offsets 0"
+  },
+  {
+    "name": "table-grid-mismatch.docx",
+    "bytes": 1043,
+    "expectation": "parses; MOD_TABLE_SHAPE + SAVE_TABLE_GRID是PreExisting; column ops Err(EDIT_TABLE_GRID_INCONSISTENT); unedited save byte-identical"
+  },
+  {
+    "name": "table-cell-no-paragraph.docx",
+    "bytes": 987,
+    "expectation": "parses; MOD_TABLE_SHAPE; unedited save byte-identical; InsertBlock in the cell appends a w:p"
+  },
+  {
+    "name": "rev-nested-wrappers.docx",
+    "bytes": 3762,
+    "expectation": "parses; 500 nesting levels get the right depth; iterative walk, no stack overflow; unedited save byte-identical"
+  },
+  {
+    "name": "rev-move-unpaired.docx",
+    "bytes": 2353,
+    "expectation": "parses; REV_UNPAIRED_MOVE for the three unpaired halves; pair = None; AcceptAll / RejectAll succeed"
+  },
+  {
+    "name": "rev-change-empty.docx",
+    "bytes": 2387,
+    "expectation": "parses; empty *PrChange gives an all-default snapshot, multiple inner containers take the first; no EngineInvariantViolation"
+  },
+  {
+    "name": "rev-del-with-t.docx",
+    "bytes": 2311,
+    "expectation": "parses; the mismatched text nodes keep their own kind; unedited save byte-identical"
+  },
+  {
+    "name": "sectpr-in-cell.docx",
+    "bytes": 2267,
+    "expectation": "parses; the cell sectPr does not create a Document section; InsertSectionBreak there is EDIT_BAD_POSITION; unedited save byte-identical"
+  },
+  {
+    "name": "drawing-anchor-no-extent.docx",
+    "bytes": 2511,
+    "expectation": "parses; missing extent and empty positionH degrade to 0; relativeHeight beyond u32 does not overflow; unedited save byte-identical"
   }
 ]
