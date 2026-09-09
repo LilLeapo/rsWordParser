@@ -1,0 +1,55 @@
+# CASE-COMBINED-01 C04 independent XML/package check
+timestamp_utc=2026-09-09T15:53:32Z
+file=evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C04.docx
+sha256=cb93aacb84eec61df540309fca629000758704b3bbc15039c3be86aadce84987
+
+## ZIP integrity
+No errors detected in compressed data of evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C04.docx.
+
+## XML well-formedness
+checked_xml_parts=29
+
+## Structure counts in word/document.xml
+w:ins                  10
+w:del                  2
+w:delText              2
+commentRangeStart      2
+commentRangeEnd        2
+commentReference       2
+w:tab                  32
+w:br                   2
+w:sectPr               3
+w:tbl                  5
+w:drawing              1
+TOC_field              1
+PAGEREF_field          15
+bookmarkStart          16
+hyperlink              16
+REF_field              1
+PAGE_field_in_document 0
+PAGE_field_in_header_footer 2
+
+## Comment persistence
+comments_xml_marker_COMMENT-01 1
+comments_xml_marker_COMMENT-02 1
+commentRangeStart_ids        20,26
+commentRangeEnd_ids          20,26
+comments_xml_ids             20,26
+
+## Required C04 markers in document.xml
+CASE-COMBINED-C04-PARA-01                  1
+CASE-COMBINED-C04-REV-INSERT-01            1
+CASE-COMBINED-C04-REV-INSERT-02            1
+CASE-COMBINED-C04-REV-REPLACED-01          1
+CASE-COMBINED-C04-REV-REPLACED-02          1
+CASE-COMBINED-C04-TOC-ENTRY                1
+CASE-COMBINED-C04-TAB-01                   1
+CASE-COMBINED-C04-BREAK-01                 1
+
+## Retained C03 structures
+CASE_COMBINED_BOOKMARK                     2
+CASE-COMBINED-C03-EXTERNAL-LINK            1
+CASE-COMBINED-C03-CROSS-REFERENCE          1
+CASE-COMBINED-C03-TOC                      1
+header_parts=3 footer_parts=4
+header_markers=3 footer_markers=3
