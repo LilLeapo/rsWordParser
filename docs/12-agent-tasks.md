@@ -137,7 +137,7 @@ fmt 干净，两套 clippy/audit 零告警。八道 `diff-parse --features compa
 
 ## 8. 9.5 写侧支持状态（分母仍为 11）
 
-以下是编译器和 Rust 自动化证据，不是桌面 Word 或真实 Agent 端到端通过率。**11 项均缺本轮桌面 Word 无修复提示证据**，未缩分母。
+以下保留 9.5 的编译器和 Rust 自动化证据，不是桌面 Word 或真实 Agent 端到端通过率；9.8 复核后的 CLI 真实会话补充见 §11。**11 项均缺本轮桌面 Word 无修复提示证据**，未缩分母。
 
 | 任务 | 已支持与自动化证据 | 尚缺 |
 | --- | --- | --- |
@@ -160,8 +160,8 @@ fmt 干净，两套 clippy/audit 零告警。八道 `diff-parse --features compa
 ## 9. 9.8 读侧支持状态与完整分母
 
 当前分母仍为 **R1–R11 + W1–W11，共 22 项**。§2/§3 是任务验收要求，§8 与本节是实现证据，
-两者不能互换。§4/§6/§7 保留 9.0 的历史测量与关口输入；当前预算见 §10。
-9.6/9.7 已补 CLI 与 MCP 的真实进程驱动，**没有**因此补齐 §8 中真实 Agent、桌面 Word 或独立任务 oracle 的缺口。
+两者不能互换。9.8 复核后的真实 CLI 会话另见 §11（W1/W5/W6），不扩大为 MCP 或全部任务验收。§4/§6/§7 保留 9.0 的历史测量与关口输入；当前预算见 §10。
+9.6/9.7 的进程测试本身没有补齐真实 Agent 证据；本次评审者的 CLI 会话补到 §11，桌面 Word 和其他未验证项仍保留。
 W7 仍不支持执行，11 项 W 均仍缺本轮桌面 Word 无修复提示证据。
 
 | 任务 | 当前支持与证据 | 尚缺的任务级验收 |
@@ -182,7 +182,7 @@ W7 仍不支持执行，11 项 W 均仍缺本轮桌面 Word 无修复提示证�
 `crates/rsword/tests/agent_text.rs`、`tools/agent-query/tests/query.rs` / `paging.rs` / `edit.rs`，
 以及 `crates/rsword-cli/tests` / `crates/rsword-mcp/tests`。实际可执行命令见 README、docs/18、docs/19。
 
-## 10. 9.8 当前预算实测
+## 10. 9.8 预算实测（保留当轮口径）
 
 见 docs/05 的最大三份真实件基准表与复现命令。测的是共享 Agent 读接口的**缺省首屏**，
 不是整份文档的总耗时或总体积；完整 JSON 信封（锚点、诊断、游标、usage 等）全部计入。
@@ -208,14 +208,44 @@ W7 仍不支持执行，11 项 W 均仍缺本轮桌面 Word 无修复提示证�
 独立 outline 模型 oracle 复测为 **26 标题 / 5052 UTF-16 / 5415 B / 1354 代理 token，默认分页 2 页**；
 该整份记录信封使用测试快照标识，与上述真实会话首屏的信封不是同一口径。
 
-## 11. 真实 Agent 门 5 记录（由评审者填写）
+## 11. 真实 Agent 会话记录（评审者提供，9.8 复核后）
 
-**尚未提供真实会话记录，不预填通过率。** 以下是待提供的证据字段，不是已执行的会话：
+**CLI 形态实测，MCP 传输未在本轮由真实 Agent 驱动。** 下列数字与结论由评审者实测并提供，
+不是实现者借单元测试重建的会话，也不是 MCP stdio 的门 5 验收。按原话记录，不扩大覆盖：
+**通过的是这三条，其余仍是未验证；22 项分母不变。** 本次未提供桌面 Word 打开记录，不由实现者补写。
+MCP 缺省 result shape 的两形态消费实测仍待办。
 
-- 客户端、模型、MCP result shape 与客户端实际消费情况；text/structured 缺省选择结论。
-- 会话日期、输入文件 SHA-256、所选三项 W 编号；完整 open → 读取 → preview/edit → summary → save/close 日志。
-- 实际预算与游标续读、版本、正向操作审计及附件绑定、BIND_XML_ESCAPE 计数。
-- 保存后 document() 语义断言、未涉及块字节证据、桌面 Word 版本与无修复提示证据。
-- 每项结果及未通过原因；未验证项仍留在 22 项总分母，不能记作跳过后通过。
+### 环境与三条任务（评审者原话）
 
-stdio JSON-RPC 与二进制可驱动性由进程测试验证；这些传输测试不填写本节的真实 Agent 结果。
+> 【环境】`target/release/rsword`（CLI，release）；我作为 Agent 直接驱动，未借助任何单元测试脚手架。
+>
+> 【三条改类任务：全部通过】
+> - **W1**（`real/hf/hf-variants.docx`「正文『页』改『版』，页眉页脚不动」）：正文 页 3→**0**、版 0→**3**；含页眉全域 15→**12**（页眉那 12 处未动）；**21 个 zip 条目里 20 个 CRC 不变，只有 `word/document.xml` 变**。不变式 2 的最强形态成立。
+> - **W5**（`real/text/text-basic.docx` 加批注「需要复核」）：新建 `word/comments.xml`，改动 part 恰为 `[Content_Types].xml` + `word/document.xml` + `word/_rels/document.xml.rels` **三个**，其余原样——加批注的最小正确集合。
+> - **W6**（同上，建 `AgentQuote` 段落样式并应用，缩进 720）：改动 part 恰为 `word/document.xml` + `word/styles.xml`；`styles.xml` 含 `AgentQuote` 与 720；段落引用该样式；**原直接格式 `w:sz w:val="22"` 保留**。
+
+### 三条可用性发现（评审者原话）
+
+> 【三条可用性发现——这才是门 5 的真正产出】
+>
+> 1. **`find` 的分页会静默少数，我第一次就踩了。** `find --limit 2000` 返回 2 条且 `truncated: true`，而 `text()` 里「页」有 3 处（main）/ 15 处（all）。我一度判定为「`find` 漏命中」并准备报缺陷；按 `nextCursor` 续读后是 **main 2 页共 3 处、all 8 页共 15 处**，完全一致——**是我没续读**。
+>    `README` 确实写了「若 truncated 为 true，用 nextCursor 续读」，但**失败形态是「一个错误的数字」而不是一个错误**，Agent 很容易照单全收。
+>    **要改**：`find` 的响应里除 `truncated` 外，应给出**本页命中数与「还有更多」的显式信号**（哪怕不给总数）；工具描述里把「计数是每页的，不是总数」放在第一句。这条比任何文档段落都值钱——我是真被它骗了一次。
+> 2. **`selector.scope` 要 `[ObjectRef]`，而 `outline` 给不出可用的那种。** 这份文档 `outline` 只返 1 个组对象（标题 `before 前文`），拿它作 scope 得到 `AGENT_TARGET_NOT_FOUND`。我最后是从 `find` 命中的锚点里手工拼 `{flow,kind,node,part}` 才成功。
+>    **要改**：`docs/17` 明写「`find` 锚点 → `ObjectRef`」这条通路；或让 `scope` 也接受 `blockRange` / `flow` 形式。现在「先 outline 再下钻」的建议流程对**扁平文档走不通**。
+> 3. **请求形状的摸索花了我 5 次失败**：`occurrence:"all"`（要 u32，实为 `all:true`）、缺 `scope`、`createStyle.indentStartTwips` 未知字段、`paraProps.indent.start` 传 map（要 i32）、`setBlockStyle` 用的是 `target` 而不是 `selector`。
+>    **每次报错都干净具体**（列出了可接受字段），这点很好；但 `docs/17` 只有一行泛例，没有 `addComment.author`、`setBlockStyle.target`、patch 值形状。
+>    **要改**：`docs/17` 每个 action 配**一个完整、可直接复制运行的请求样例**。Agent 每摸索一次就烧一轮 token，而省 token 正是这一层存在的理由。
+>    另外记一条形状不一致：`replaceText` 用 `selector.scope`（数组），`setBlockStyle` 用 `target`（单个）——同一批操作两种寻址风格，值得统一或至少在文档里并排说明。
+
+### 实现跟进（9.9，与上述会话原始结果分开）
+
+- find 新增 `pageHits` / `hasMore`，不声称已知总数；字段在预算选前缀之前计入信封，CLI/MCP 共享响应 schema 和首句工具说明。
+- docs/17 §7 提供 find 源锚点 → paragraph ObjectRef 的完整运行流程，使用 inlinePos.para，不误用文字 node。
+- docs/17 §6 覆盖全部 action 的完整 JSON，由运行器直接提取执行；§7 并排列出现有两种寻址风格。本轮未改变寻址契约。
+- 新增进程测试和文档样例执行是实现回归证据，不计作额外真实 Agent 任务通过。
+
+### MCP / Word 后续证据位置
+
+仍由评审者补充真实 MCP 会话、两种 result shape 的消费结论，以及所选任务的 Word 打开证据。
+不预填结果，不因 CLI 会话完成就修改 MCP 缺省形态裁定或宣告 M9′ 六门全绿。

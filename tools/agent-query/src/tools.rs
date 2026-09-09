@@ -57,7 +57,9 @@ impl Tool {
             Self::Close => "释放会话、报告和游标；重复关闭成功，不要求 expectedVersion。",
             Self::Outline => "读取标题层级、文字和可下钻的块范围，不预读完整正文。",
             Self::Text => "读取可读文本、占位符和双向锚点；呈现锚点不能直接编辑。",
-            Self::Find => "字面/正则定位，支持归一化；返回原文前置条件、锚点与有界上下文。",
+            Self::Find => {
+                "pageHits 只是本页命中数，不是总数；hasMore=true 时必须用 nextCursor 续读后才能统计完整结果。字面/正则定位，支持归一化；返回原文前置条件、锚点与有界上下文。"
+            }
             Self::Context => "以当前会话 anchor 按段落或 UTF-16 取窗口，不越过授权范围。",
             Self::Document => {
                 "有界模型查询，须选择 blockRange/flow 或声明字段；非原生全量 document。"
@@ -208,11 +210,21 @@ impl Tool {
         } else {
             json!({"type":"array","items":{"type":"object"}})
         };
-        json!({"$schema":"https://json-schema.org/draft/2020-12/schema","oneOf":[
+        let mut schema = json!({"$schema":"https://json-schema.org/draft/2020-12/schema","oneOf":[
           {"type":"object","required":["content","snapshot","empty","range","truncated","nextCursor","omitted","anchorCounts","usage"],"properties":{
            "content":content,"anchors":{"type":"object","required":["segments","snapshot","projectionKey"]},"diagnostics":{"type":"array"},"snapshot":{"type":["object","string"]},"empty":{"type":"boolean"},"range":{},"truncated":{"type":"boolean"},"nextCursor":{"type":["string","null"]},"omitted":{"type":"object","required":["page","complete"]},"anchorCounts":{"type":"object","required":["sourceUtf16","presentationUtf16","sourceScalars","presentationScalars"]},"usage":{"type":"object","required":["contentUtf16","responseBytes","estimatedTokens"],"properties":{"contentUtf16":{"type":"integer","minimum":0},"responseBytes":{"type":"integer","minimum":0},"estimatedTokens":{"type":"integer","minimum":0}},"additionalProperties":false}},"additionalProperties":false},
           {"type":"object","required":["code","message","details"],"properties":{"code":{"type":"string","minLength":1},"message":{"type":"string"},"details":{"type":"object"}},"additionalProperties":false}
-        ]})
+        ]});
+        if self == Self::Find {
+            let success = &mut schema["oneOf"][0];
+            success["required"]
+                .as_array_mut()
+                .unwrap()
+                .extend([json!("pageHits"), json!("hasMore")]);
+            success["properties"]["pageHits"] = json!({"type":"integer","minimum":0});
+            success["properties"]["hasMore"] = json!({"type":"boolean"});
+        }
+        schema
     }
 }
 /// 报告、双文件 diff 与 check 也使用 9.4 的文件游标，不增设编码。

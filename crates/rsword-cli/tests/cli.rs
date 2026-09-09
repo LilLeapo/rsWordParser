@@ -586,3 +586,119 @@ fn agent_10_large_error_and_ambiguous_candidates_are_bounded() {
     assert!(!e.details["candidates"].as_array().unwrap().is_empty());
     assert!(serde_json::to_vec(&e).unwrap().len() <= 512);
 }
+
+#[test]
+fn agent_04_find_page_counts_are_explicit_and_complete() {
+    let c = Case::new();
+    let input = common::repo_root().join("corpus/real/hf/hf-variants.docx");
+    for (scope, pattern, expected, pages) in
+        [("main", "页", 3, 2), ("all", "页", 15, 8), ("main", "zzNoSuchText", 0, 1)]
+    {
+        let mut cursor = None;
+        let mut total = 0;
+        let mut count = 0;
+        loop {
+            let mut args = vec![
+                "find",
+                s(&input),
+                "--pattern",
+                pattern,
+                "--scope",
+                scope,
+                "--limit",
+                "2000",
+                "--json",
+            ];
+            if let Some(token) = cursor.as_deref() {
+                args.extend(["--cursor", token]);
+            }
+            let v = c.call(&args, Tool::Find);
+            let hits = v["content"].as_array().unwrap().len();
+            assert_eq!(v["pageHits"], hits);
+            assert_eq!(v["hasMore"], v["truncated"]);
+            assert_eq!(v["hasMore"], v["nextCursor"].is_string());
+            assert_eq!(v["usage"]["responseBytes"], v.to_string().len());
+            total += hits;
+            count += 1;
+            cursor = v["nextCursor"].as_str().map(str::to_owned);
+            if cursor.is_none() {
+                break;
+            }
+            assert!(count <= pages, "游标必须推进");
+        }
+        assert_eq!((total, count), (expected, pages));
+    }
+    assert!(Tool::Find.description().starts_with("find：pageHits 只是本页命中数，不是总数"));
+}
+
+#[test]
+fn agent_07_every_documented_request_runs_in_cli() {
+    use std::collections::BTreeSet;
+    let docs = include_str!("../../../docs/17-agent-edit.md");
+    let names: Vec<_> = docs
+        .lines()
+        .filter_map(|line| {
+            line.strip_prefix("<!-- agent-example ")
+                .map(|tail| tail.split_whitespace().next().unwrap())
+        })
+        .collect();
+    let expected: BTreeSet<_> =
+        rsword_agent_query::edit::Action::COVERAGE.iter().map(|row| row.0).collect();
+    assert_eq!(names.len(), expected.len(), "每个 action 恰有一份完整请求");
+    assert_eq!(names.iter().copied().collect::<BTreeSet<_>>(), expected);
+    for name in names {
+        let out = Command::new("node")
+            .current_dir(common::repo_root())
+            .args(["tools/agent-edit-example.mjs", name, env!("CARGO_BIN_EXE_rsword")])
+            .output()
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "{name}: {} {}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let v: Value = serde_json::from_slice(&out.stdout).unwrap();
+        if name == "updateToc" {
+            assert_eq!(v["code"], "AGENT_UNSUPPORTED_RANGE");
+        } else {
+            assert!(v["content"].is_array());
+        }
+    }
+}
+
+#[test]
+fn agent_07_documented_find_anchor_scope_pipeline_runs() {
+    let c = Case::new();
+    let docs = include_str!("../../../docs/17-agent-edit.md");
+    let section = docs.split("## 7. 从 find 锚点").nth(1).unwrap();
+    let script = section
+        .split("```sh\n")
+        .nth(1)
+        .unwrap()
+        .split("\n```")
+        .next()
+        .unwrap()
+        .replace("./target/debug/rsword", env!("CARGO_BIN_EXE_rsword"))
+        .replace("target/agent-find-scope", s(&c.dir));
+    let out = Command::new("bash")
+        .current_dir(common::repo_root())
+        .args(["-eu", "-c", &script])
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "{} {}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let request: Value =
+        serde_json::from_slice(&fs::read(c.dir.join("request.json")).unwrap()).unwrap();
+    assert_eq!(
+        request["operations"][0]["selector"]["scope"],
+        json!([{"part":2,"flow":0,"kind":"paragraph","node":27}])
+    );
+    let saved = fs::read(c.dir.join("commented.docx")).unwrap();
+    let session = rsword::EditSession::open(&saved).unwrap();
+    assert_eq!(session.document().comments.items.len(), 1);
+}

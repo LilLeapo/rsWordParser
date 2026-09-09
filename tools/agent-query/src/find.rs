@@ -92,13 +92,17 @@ impl Finder {
                     &config,
                     &serde_json::to_value(&next).unwrap(),
                 );
-                let value = budget::envelope(
+                let mut value = budget::envelope(
                     &p.anchors.snapshot,
                     json!(&rows[..end]),
                     json!(ranges),
                     next.is_some(),
                     next.as_ref().map(|_| token.as_str()),
                 );
+                // 明示本页计数；必须在预算选前缀之前计入信封，不能事后追加超预算。
+                value["pageHits"] = json!(end);
+                value["hasMore"] = json!(next.is_some());
+                budget::measure(&mut value);
                 (value, (next, token))
             },
         )?;

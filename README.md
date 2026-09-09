@@ -236,3 +236,8 @@ cargo install --locked --path crates/rsword-mcp --root ./target/agent-tools
 先 open/outline，再按返回的 blockRange 取 text/model；编辑需 expectedVersion，preview 不改原会话，save 才落盘。
 `--limit` 是 UTF-16，`--maxBytes` 是完整响应字节预算；遇 truncated 使用原接口的 nextCursor，不能混传 CLI 文件游标与 MCP 句柄。
 当前 W7（更新 TOC）尚不支持执行；22 项支持状态和真实 Agent 待验证项见 [docs/12](docs/12-agent-tasks.md)。
+
+find 的 `pageHits` 只是**本页**命中数，`hasMore=true` 时必须按 nextCursor 续读，才能得出完整计数。
+无标题文档的 outline group 只用于导航；编辑授权从 find 的源锚点构造 paragraph ObjectRef。
+[完整寻址流程与每个 action 的可运行请求](docs/17-agent-edit.md#6-完整请求样例每个-action-一份常规进程测试执行)包含
+`all:true`、`addComment.author`、`setBlockStyle.target` 与 `paraProps.indent.start:720` 的准确形状。
