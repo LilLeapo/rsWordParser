@@ -672,3 +672,32 @@ fn agent_05_real_table_chart_and_media_details_match_model() {
         assert_eq!(pkg.save().unwrap(), bytes);
     }
 }
+
+#[cfg(unix)]
+#[test]
+fn agent_04_ready_write_cannot_overwrite_request() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = scratch().join("ready-write-race");
+    std::fs::create_dir_all(&dir).unwrap();
+    let script = dir.join("worker.sh");
+    // 保持 ready 的打开描述符，直到父进程提交请求才写入，稳定制造握手写入交错。
+    std::fs::write(
+        &script,
+        br#"#!/bin/sh
+exec 3>"$3"
+while [ ! -f "$1" ]; do :; done
+printf ready >&3
+IFS= read -r packet < "$1"
+case "$packet" in
+  \{*) printf '{"Ok":{"hits":[],"next":null}}' > "$2" ;;
+  *) exit 17 ;;
+esac
+"#,
+    )
+    .unwrap();
+    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let result =
+        search::Worker::start(&script, &dir).unwrap().submit(&request("body", "absent")).unwrap();
+    assert!(result.hits.is_empty());
+    assert!(result.next.is_none());
+}

@@ -1,5 +1,7 @@
 # Agent 大纲、定位与上下文（9.3）
 
+本页保留 9.3 的接口与测量记录。9.4 已统一会话版本、分页预算和游标，并修复 worker 握手暂存竞态，见 [16-agent-budget.md](16-agent-budget.md)。
+
 依据 `spec/22` AGENT-03/04/05，复用 9.2 的规范文本、UTF-16 分段与 ObjectRef。
 实现位于工具侧 workspace 成员 `tools/agent-query`；核心只增加导航索引、空流呈现位置和字段缓存文字的只读访问。
 `regex` 与 Unicode 归一依赖、可终止进程执行器不进入核心 rsword 的运行期依赖。

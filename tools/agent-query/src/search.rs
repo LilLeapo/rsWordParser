@@ -20,7 +20,7 @@ pub enum Mode {
     Regex,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(default, rename_all = "camelCase", deny_unknown_fields)]
 pub struct Options {
     pub mode: Mode,
     pub insensitive: bool,
@@ -268,12 +268,13 @@ pub struct Worker {
     request: PathBuf,
     response: PathBuf,
     ready: PathBuf,
+    pending: PathBuf,
 }
 impl Drop for Worker {
     fn drop(&mut self) {
         let _ = self.child.kill();
         let _ = self.child.wait();
-        for p in [&self.request, &self.response, &self.ready] {
+        for p in [&self.request, &self.response, &self.ready, &self.pending] {
             let _ = std::fs::remove_file(p);
         }
     }
@@ -289,6 +290,7 @@ impl Worker {
         let request = scratch.join(format!("{name}.request"));
         let response = scratch.join(format!("{name}.response"));
         let ready = scratch.join(format!("{name}.ready"));
+        let pending = scratch.join(format!("{name}.pending"));
         let child = Command::new(program)
             .arg(&request)
             .arg(&response)
@@ -298,7 +300,7 @@ impl Worker {
             .stderr(Stdio::null())
             .spawn()
             .map_err(|e| error("AGENT_WORKER_FAILED", e.to_string()))?;
-        let mut worker = Self { child, request, response, ready };
+        let mut worker = Self { child, request, response, ready, pending };
         while !worker.ready.exists() {
             if start.elapsed() >= Duration::from_secs(2) {
                 return Err(error("AGENT_WORKER_FAILED", "worker 初始化超过 2 s；未开始查询"));
@@ -326,10 +328,10 @@ impl Worker {
             return Err(error("BIND_BAD_ARGUMENT", "deadlineMs 应在 1..=2000 内"));
         }
         let deadline = Duration::from_millis(ms);
-        // ready 文件已存在，复用它作为临时文件；rename 后 worker 才看见完整请求。
-        std::fs::write(&self.ready, serde_json::to_vec(request).unwrap())
+        // ready 出现不代表子进程已写完；单独暂存请求，不能把仍打开的握手 inode 改名。
+        std::fs::write(&self.pending, serde_json::to_vec(request).unwrap())
             .map_err(|e| error("AGENT_WORKER_FAILED", e.to_string()))?;
-        std::fs::rename(&self.ready, &self.request)
+        std::fs::rename(&self.pending, &self.request)
             .map_err(|e| error("AGENT_WORKER_FAILED", e.to_string()))?;
         loop {
             if start.elapsed() >= deadline {

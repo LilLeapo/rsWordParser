@@ -19,7 +19,7 @@ const PROTOCOL: &str = "native/0";
 static NEXT_SESSION: AtomicU64 = AtomicU64::new(1);
 
 /// 同进程的会话表。语言外壳持有此表，禁止暴露可写的引擎引用。
-#[derive(Default)]
+#[derive(Default, Clone)]
 #[non_exhaustive]
 #[cfg_attr(rsword_api_docs, deny(missing_docs))]
 pub struct SessionTable {
@@ -50,6 +50,25 @@ pub(super) fn decode<T: serde::de::DeserializeOwned + Default>(
 
 #[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl SessionTable {
+    /// Agent 内部复用 BIND-10 的字段、块范围与深度选择器；不增加协议导出。
+    #[doc(hidden)]
+    pub fn select_model(value: &mut Value, options: &str) -> Result<(), ApiError> {
+        if !value.get("main").is_some_and(Value::is_array) {
+            return Err(bad("模型选择输入必须含 main 数组"));
+        }
+        let options: super::selection::Selection = decode(Some(options))?;
+        options.select(value)
+    }
+    /// Agent 内部只读访问器；不导出为协议工具，不提供会话的可写引用。
+    #[doc(hidden)]
+    pub fn inspect<R>(
+        &self,
+        id: &str,
+        read: impl FnOnce(&EditSession, &MediaStore) -> R,
+    ) -> Result<R, ApiError> {
+        self.require_session(id)?;
+        Ok(read(&self.sessions[id], &self.media[id]))
+    }
     /// `BIND-01/08`：成功解析才分配会话；版本不匹配在打开文件之前拒绝。
     pub fn open(&mut self, bytes: &[u8], options: Option<&str>) -> Result<SessionId, ApiError> {
         let options: OpenOptions = decode(options)?;

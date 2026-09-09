@@ -85,6 +85,9 @@ pub struct Projection {
     /// 内部导航索引；不随 text 响应泄漏全篇载荷。
     #[serde(skip)]
     pub flows: Vec<FlowRange>,
+    /// 内部省略归属；分页只在对象的首个单位登记一次。
+    #[serde(skip)]
+    pub omission_owners: Vec<(Category, ObjectRef)>,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FlowRange {
@@ -222,7 +225,9 @@ impl<'a> Builder<'a> {
         );
     }
     fn count(&mut self, owner: &ObjectRef, c: Category) {
-        self.counts.entry(c).or_default().insert(owner.key());
+        if self.counts.entry(c).or_default().insert(owner.key()) {
+            self.out.omission_owners.push((c, owner.clone()));
+        }
     }
     fn placeholder(&mut self, owner: &ObjectRef, tag: &str, c: Category) {
         let start = self.out.anchors.len();
@@ -797,6 +802,7 @@ pub fn project(pkg: &Package, doc: &Document, scope: Scope, snapshot: &str) -> R
             omitted: Value::Null,
             diagnostics: doc.warnings.iter().map(|d| diagnostic_view(&d.to_json(&cx))).collect(),
             flows: Vec::new(),
+            omission_owners: Vec::new(),
         },
         counts: BTreeMap::new(),
         seen: BTreeSet::new(),

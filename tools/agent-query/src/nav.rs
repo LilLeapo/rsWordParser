@@ -1,9 +1,6 @@
 //! AGENT-03/05：仅从规范投影与模型读取，范围在返回载荷前裁剪。
-use crate::{
-    Result,
-    budget::{self, Budget},
-    error,
-};
+use crate::{Result, budget::Budget, error};
+use crate::{cursor::Registry, paging};
 use rsword::{
     agent::{
         anchors::{Anchor, ObjectRef},
@@ -14,22 +11,10 @@ use rsword::{
     xml::NodeId,
 };
 use serde_json::{Value, json};
-use std::{
-    collections::BTreeMap,
-    ops::Range,
-    sync::atomic::{AtomicU64, Ordering},
-};
-static NEXT_CURSOR: AtomicU64 = AtomicU64::new(1);
-#[derive(Clone)]
-struct Cursor {
-    snapshot: String,
-    config: String,
-    index: usize,
-}
-/// 服务端游标记录；序号本身不携带可修改的范围/配置/版本。
+use std::ops::Range;
 #[derive(Default)]
 pub struct Pages {
-    cursors: BTreeMap<String, Cursor>,
+    registry: Registry,
 }
 impl Pages {
     #[allow(clippy::too_many_arguments)]
@@ -43,68 +28,20 @@ impl Pages {
         cursor: Option<&str>,
         max_rows: usize,
     ) -> Result<Value> {
-        budget.validate()?;
-        let start = match cursor {
-            None => 0,
-            Some(token) => {
-                let c =
-                    self.cursors.get(token).ok_or_else(|| error("AGENT_BAD_CURSOR", "未知游标"))?;
-                if c.snapshot != snapshot {
-                    return Err(error("AGENT_STALE_CURSOR", "会话版本已变化"));
-                }
-                if c.config != config {
-                    return Err(error("AGENT_BAD_CURSOR", "查询配置不一致"));
-                }
-                c.index
-            }
-        };
-        if start > rows.len() {
-            return Err(error("AGENT_BAD_CURSOR", "游标越界"));
-        }
-        // 先试算，成功后才登记句柄；失败与重复读取都不消费原游标。
-        let key = format!("q{:016x}", NEXT_CURSOR.fetch_add(1, Ordering::Relaxed));
-        let mut best = None;
-        for end in start..=rows.len().min(start.saturating_add(max_rows)) {
-            if end == start && end < rows.len() {
-                continue;
-            }
-            let more = end < rows.len();
-            let token = self
-                .cursors
-                .iter()
-                .find(|(_, c)| c.snapshot == snapshot && c.config == config && c.index == end)
-                .map_or(key.as_str(), |(k, _)| k.as_str())
-                .to_owned();
-            let value = budget::envelope(
-                snapshot,
-                json!(&rows[start..end]),
-                range.clone(),
-                more,
-                more.then_some(token.as_str()),
-            );
-            if !budget::fits(&value, budget) {
-                if best.is_none() {
-                    return Err(budget::too_small(
-                        &value,
-                        rows.get(start)
-                            .and_then(|r| r.get("object"))
-                            .cloned()
-                            .unwrap_or(Value::Null),
-                    ));
-                }
-                break;
-            }
-            best = Some((end, value, token));
-        }
-        let (end, value, token) =
-            best.ok_or_else(|| error("BIND_BAD_ARGUMENT", "maxRows 不能为 0"))?;
-        if end < rows.len() {
-            self.cursors.insert(
-                token,
-                Cursor { snapshot: snapshot.into(), config: config.into(), index: end },
-            );
-        }
-        Ok(value)
+        let units: Vec<_> =
+            rows.iter().cloned().enumerate().map(|(i, v)| paging::Unit::record(v, i)).collect();
+        paging::page(
+            &mut self.registry,
+            snapshot,
+            "records",
+            config,
+            &units,
+            false,
+            range,
+            budget,
+            cursor,
+            max_rows,
+        )
     }
 }
 fn object_range(p: &Projection, o: &ObjectRef) -> Result<Range<u32>> {

@@ -43,6 +43,7 @@ pub enum Target {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Anchor {
+    #[serde(with = "snapshot_wire")]
     pub snapshot: String,
     pub projection_key: String,
     pub segment_key: u32,
@@ -50,6 +51,26 @@ pub struct Anchor {
     pub affinity: Affinity,
     #[serde(flatten)]
     pub target: Target,
+}
+mod snapshot_wire {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    pub fn serialize<S: Serializer>(
+        value: &str,
+        serializer: S,
+    ) -> std::result::Result<S::Ok, S::Error> {
+        let snapshot = serde_json::from_str::<serde_json::Value>(value).ok().filter(|v| {
+            let canonical = v.to_string();
+            v["sessionId"].is_string()
+                && v["version"].is_u64()
+                && v["projectionVersion"].is_string()
+                && canonical == value
+        });
+        snapshot.unwrap_or_else(|| serde_json::Value::String(value.into())).serialize(serializer)
+    }
+    pub fn deserialize<'de, D: Deserializer<'de>>(de: D) -> std::result::Result<String, D::Error> {
+        let value = serde_json::Value::deserialize(de)?;
+        Ok(value.as_str().map(str::to_owned).unwrap_or_else(|| value.to_string()))
+    }
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]

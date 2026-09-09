@@ -108,7 +108,7 @@ impl MediaMiss {
 }
 
 /// 媒体表（`docs/03` §3.5）。按 part 去重：同一张图被多处引用只登记一次。
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct MediaStore {
     media: Vec<Media>,
     by_part: HashMap<PartId, MediaId>,

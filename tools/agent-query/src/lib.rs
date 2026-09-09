@@ -1,9 +1,12 @@
 //! AGENT-03/04/05：工具侧共享查询；依赖与可终止工作进程不进入 DOCX 内核。
 pub mod budget;
+pub mod cursor;
 pub mod detail;
 pub mod find;
 pub mod nav;
+pub mod paging;
 pub mod search;
+pub mod session;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -27,3 +30,8 @@ impl std::fmt::Display for QueryError {
     }
 }
 impl std::error::Error for QueryError {}
+impl From<rsword::bind::native::ApiError> for QueryError {
+    fn from(e: rsword::bind::native::ApiError) -> Self {
+        error(&e.code, e.message)
+    }
+}

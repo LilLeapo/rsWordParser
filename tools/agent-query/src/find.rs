@@ -1,30 +1,20 @@
 //! AGENT-04：命中映回原始区间；响应预算只接收完整命中记录。
+use crate::cursor::Registry;
 use crate::{
     Result,
     budget::{self, Budget},
     error,
     nav::Selection,
-    search::{self, Options, Position, Request},
+    search::{self, Options, Request},
 };
 use rsword::agent::{
     anchors::{Affinity, Target},
     text::Projection,
 };
 use serde_json::{Value, json};
-use std::{
-    collections::BTreeMap,
-    sync::atomic::{AtomicU64, Ordering},
-};
-static NEXT: AtomicU64 = AtomicU64::new(1);
-#[derive(Clone)]
-struct Cursor {
-    snapshot: String,
-    config: String,
-    position: Position,
-}
 #[derive(Default)]
 pub struct Finder {
-    cursors: BTreeMap<String, Cursor>,
+    pub(crate) registry: Registry,
 }
 impl Finder {
     #[allow(clippy::too_many_arguments)]
@@ -65,20 +55,13 @@ impl Finder {
             })
             .collect::<Result<Vec<_>>>()?;
         let config=serde_json::to_string(&json!({"projection":p.anchors.projection_key,"scope":ranges,"pattern":pattern,"mode":options.mode,"insensitive":options.insensitive,"width":options.fold_width,"whitespace":options.collapse_whitespace})).unwrap();
-        let position = match cursor {
-            None => Position::default(),
-            Some(key) => {
-                let c =
-                    self.cursors.get(key).ok_or_else(|| error("AGENT_BAD_CURSOR", "未知游标"))?;
-                if c.snapshot != p.anchors.snapshot {
-                    return Err(error("AGENT_STALE_CURSOR", "会话版本已变化"));
-                }
-                if c.config != config {
-                    return Err(error("AGENT_BAD_CURSOR", "查询配置不一致"));
-                }
-                c.position.clone()
-            }
-        };
+        let position = self
+            .registry
+            .resume(&p.anchors.snapshot, "find", &config, cursor)?
+            .map(serde_json::from_value)
+            .transpose()
+            .map_err(|_| error("AGENT_BAD_CURSOR", "搜索位置非法"))?
+            .unwrap_or_default();
         let request = Request { pattern: pattern.into(), options, flows, max_hits, position };
         let batch = worker.submit(&request)?;
         let rows = batch
@@ -92,46 +75,41 @@ impl Finder {
                 record(p, h, &scope.1)
             })
             .collect::<Result<Vec<_>>>()?;
-        let key = format!("f{:016x}", NEXT.fetch_add(1, Ordering::Relaxed));
-        let mut best = None;
-        for end in 0..=rows.len() {
-            if end == 0 && !rows.is_empty() {
-                continue;
-            }
-            let next = if end < rows.len() {
-                Some(batch.hits[end - 1].next.clone())
-            } else {
-                batch.next.clone()
-            };
-            let token = self
-                .cursors
-                .iter()
-                .find(|(_, c)| {
-                    c.snapshot == p.anchors.snapshot
-                        && c.config == config
-                        && Some(&c.position) == next.as_ref()
-                })
-                .map_or(key.as_str(), |(k, _)| k.as_str())
-                .to_owned();
-            let value = budget::envelope(
-                &p.anchors.snapshot,
-                json!(&rows[..end]),
-                json!(ranges),
-                next.is_some(),
-                next.as_ref().map(|_| token.as_str()),
-            );
-            if !budget::fits(&value, budget) {
-                if best.is_none() {
-                    return Err(budget::too_small(&value, Value::Null));
-                }
-                break;
-            }
-            best = Some((value, next, token));
-        }
-        let (value, next, token) = best.unwrap();
+        let (value, (next, token)) = budget::longest_prefix(
+            usize::from(!rows.is_empty()),
+            rows.len(),
+            budget,
+            Value::Null,
+            |end| {
+                let next = if end < rows.len() {
+                    Some(batch.hits[end - 1].next.clone())
+                } else {
+                    batch.next.clone()
+                };
+                let token = self.registry.candidate(
+                    &p.anchors.snapshot,
+                    "find",
+                    &config,
+                    &serde_json::to_value(&next).unwrap(),
+                );
+                let value = budget::envelope(
+                    &p.anchors.snapshot,
+                    json!(&rows[..end]),
+                    json!(ranges),
+                    next.is_some(),
+                    next.as_ref().map(|_| token.as_str()),
+                );
+                (value, (next, token))
+            },
+        )?;
         if let Some(position) = next {
-            self.cursors
-                .insert(token, Cursor { snapshot: p.anchors.snapshot.clone(), config, position });
+            self.registry.commit(
+                token,
+                &p.anchors.snapshot,
+                "find",
+                &config,
+                serde_json::to_value(position).unwrap(),
+            );
         }
         Ok(value)
     }

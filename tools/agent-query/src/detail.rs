@@ -19,7 +19,16 @@ pub struct Details {
 }
 impl Details {
     pub fn build(pkg: &Package, doc: &Document, p: &Projection, media: &MediaStore) -> Self {
-        let cx = ProjCx { pkg, display: true };
+        Self::build_with_display(pkg, doc, p, media, true)
+    }
+    pub fn build_with_display(
+        pkg: &Package,
+        doc: &Document,
+        p: &Projection,
+        media: &MediaStore,
+        display: bool,
+    ) -> Self {
+        let cx = ProjCx { pkg, display };
         let mut entries = BTreeMap::new();
         let mut seen = BTreeSet::new();
         let mut parts = vec![doc.main_part];
