@@ -1,0 +1,9 @@
+document.xml and styles.xml well-formed: PASS
+pStyle1=1
+pStyle2=1
+emoji-surrogate=1
+combining-mark=1
+arabic=1
+hebrew=1
+end-marker=1
+style-map=1

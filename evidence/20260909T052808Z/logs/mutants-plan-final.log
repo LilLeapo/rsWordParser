@@ -1,0 +1,19 @@
+started_at=2026-09-09T16:46:25Z
+scope=edit/plan.rs; tests=lib,reference_model,tracked_ops,atom_ops,para_ops,table_ops
+Found 34 mutants to test
+ok       Unmutated baseline in 56s build + 49s test
+MISSED   crates/rsword/src/edit/plan.rs:76:9: replace MutationPlan::is_empty -> bool with false in 35s build + 125s test
+MISSED   crates/rsword/src/edit/plan.rs:52:16: delete ! in MutationResult::absorb in 172s build + 114s test
+MISSED   crates/rsword/src/edit/plan.rs:56:32: replace |= with &= in MutationResult::absorb in 175s build + 121s test
+MISSED   crates/rsword/src/edit/plan.rs:90:9: replace MutationPlan::validate -> Result<()> with Ok(()) in 19s build + 146s test
+MISSED   crates/rsword/src/edit/plan.rs:91:49: replace < with <= in MutationPlan::validate in 26s build + 124s test
+MISSED   crates/rsword/src/edit/plan.rs:92:42: replace && with || in MutationPlan::validate in 13s build + 124s test
+MISSED   crates/rsword/src/edit/plan.rs:93:46: replace && with || in MutationPlan::validate in 12s build + 124s test
+MISSED   crates/rsword/src/edit/plan.rs:103:31: replace || with && in MutationPlan::validate in 15s build + 142s test
+MISSED   crates/rsword/src/edit/plan.rs:119:35: replace || with && in MutationPlan::validate in 14s build + 153s test
+MISSED   crates/rsword/src/edit/plan.rs:141:36: replace || with && in MutationPlan::validate in 13s build + 137s test
+MISSED   crates/rsword/src/edit/plan.rs:145:28: delete ! in MutationPlan::validate in 23s build + 120s test
+MISSED   crates/rsword/src/edit/plan.rs:159:37: replace || with && in MutationPlan::validate in 15s build + 153s test
+MISSED   crates/rsword/src/edit/plan.rs:172:37: replace || with && in MutationPlan::validate in 29s build + 104s test
+34 mutants tested in 17m: 13 missed, 19 caught, 2 unviable
+finished_at=2026-09-09T17:03:11Z

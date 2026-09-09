@@ -1,0 +1,3 @@
+before_reopen_sha256=28ce5f8a31656287da1980ce00013382c42b617dfb79d276b44659f0e4aec33a
+after_reopen_sha256=28ce5f8a31656287da1980ce00013382c42b617dfb79d276b44659f0e4aec33a
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-REPORT-01/checkpoints/CASE-REPORT-01-C04.docx","marker":"CASE-REPORT-REV-01","no_edit_save_byte_identical":true}

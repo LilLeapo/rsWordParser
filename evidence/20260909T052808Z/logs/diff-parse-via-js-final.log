@@ -1,0 +1,26 @@
+started_at=2026-09-09T16:45:21Z
+## synthetic all via compat wasm
+   Compiling serde_core v1.0.229
+   Compiling serde_json v1.0.151
+   Compiling syn v3.0.4
+   Compiling hashbrown v0.17.1
+   Compiling serde v1.0.229
+   Compiling indexmap v2.14.1
+   Compiling zip v8.6.0
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.20
+   Compiling thiserror v2.0.20
+   Compiling rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+   Compiling diff-parse v0.0.1 (/Users/user/code/rsWordParser/tools/diff-parse)
+    Finished `release` profile [optimized + debuginfo] target(s) in 38.68s
+     Running `target/release/diff-parse --scope all --via-js --js-pkg /tmp/rsword-js-pkg-compat`
+js-parity: 绑定 0.0.1 (git 5b2715f5e6c2, compat/1)
+diff-parse: 799 份文档（scope all），242 处已知差异，0 处未知差异（0 份文档）；范围外 0，无 expected 0，打开失败 0
+exit=0
+## corpus/real all via compat wasm
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.04s
+     Running `target/release/diff-parse --corpus corpus/real --scope all --via-js --js-pkg /tmp/rsword-js-pkg-compat`
+js-parity: 绑定 0.0.1 (git 5b2715f5e6c2, compat/1)
+diff-parse: 266 份文档（scope all），547 处已知差异，0 处未知差异（0 份文档）；范围外 0，无 expected 0，打开失败 0
+exit=0
+finished_at=2026-09-09T16:46:04Z

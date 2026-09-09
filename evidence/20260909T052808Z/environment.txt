@@ -1,0 +1,10 @@
+=== environment discovery ===
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+Darwin userdeMacBook-Pro.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:18:29 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T8122 arm64
+Filesystem      Size    Used   Avail Capacity iused ifree %iused  Mounted on
+/dev/disk3s5   460Gi    65Gi   374Gi    15%    799k  3.9G    0%   /System/Volumes/Data
+Apple M3
+25769803776
+PATH=/Users/user/.local/bin:/Users/user/miniconda3/bin:/Users/user/miniconda3/condabin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Users/user/.codex/tmp/arg0/codex-arg0MJvf0z:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/user/.local/bin:/Users/user/miniconda3/bin:/Users/user/miniconda3/condabin:/Users/user/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources

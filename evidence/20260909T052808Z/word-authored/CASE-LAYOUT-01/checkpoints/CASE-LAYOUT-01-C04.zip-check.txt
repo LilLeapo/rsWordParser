@@ -1,0 +1,23 @@
+Archive:  evidence/20260909T052808Z/word-authored/CASE-LAYOUT-01/checkpoints/CASE-LAYOUT-01-C04.docx
+    testing: [Content_Types].xml      OK
+    testing: _rels/.rels              OK
+    testing: word/document.xml        OK
+    testing: word/_rels/document.xml.rels   OK
+    testing: word/media/image1.png    OK
+    testing: word/media/image2.png    OK
+    testing: word/comments.xml        OK
+    testing: word/theme/theme1.xml    OK
+    testing: word/settings.xml        OK
+    testing: customXml/item1.xml      OK
+    testing: customXml/itemProps1.xml   OK
+    testing: word/styles.xml          OK
+    testing: word/webSettings.xml     OK
+    testing: word/commentsExtended.xml   OK
+    testing: word/commentsIds.xml     OK
+    testing: word/commentsExtensible.xml   OK
+    testing: word/fontTable.xml       OK
+    testing: word/people.xml          OK
+    testing: docProps/core.xml        OK
+    testing: docProps/app.xml         OK
+    testing: customXml/_rels/item1.xml.rels   OK
+No errors detected in compressed data of evidence/20260909T052808Z/word-authored/CASE-LAYOUT-01/checkpoints/CASE-LAYOUT-01-C04.docx.

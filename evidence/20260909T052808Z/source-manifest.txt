@@ -1,0 +1,4 @@
+=== git fingerprint ===
+17acb0e566057ad27df50fb5c3eccc415e3caeab
+docs/codex-test-handoff
+?? evidence/

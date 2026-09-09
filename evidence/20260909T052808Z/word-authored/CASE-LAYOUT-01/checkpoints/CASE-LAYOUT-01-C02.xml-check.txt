@@ -1,0 +1,27 @@
+=== C02 image/caption package ===
+    testing: customXml/itemProps1.xml   OK
+    testing: word/styles.xml          OK
+    testing: word/webSettings.xml     OK
+    testing: word/fontTable.xml       OK
+    testing: docProps/core.xml        OK
+    testing: docProps/app.xml         OK
+    testing: customXml/_rels/item1.xml.rels   OK
+No errors detected in compressed data of evidence/20260909T052808Z/word-authored/CASE-LAYOUT-01/checkpoints/CASE-LAYOUT-01-C02.docx.
+document:OK
+rels:OK
+inline drawings:        1
+anchored drawings:        2
+wrapSquare:        2
+SEQ caption fields:        0
+media image relationships:        2
+=== media parts ===
+    20007  01-01-1980 00:00   word/media/image1.png
+    22272  01-01-1980 00:00   word/media/image2.png
+=== anchors ===
+   1 CASE-LAYOUT-END
+   1 CASE-LAYOUT-FLOAT
+   1 CASE-LAYOUT-INLINE
+=== drawing order in body ===
+<wp:inline
+<wp:anchor
+<wp:anchor

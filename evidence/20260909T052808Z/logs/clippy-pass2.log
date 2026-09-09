@@ -1,0 +1,17 @@
+COMMAND: RUSTFLAGS=-D warnings cargo clippy --workspace --all-targets
+START_UTC: 2026-09-09T05:31:49Z
+    Checking rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+error: unused import: `NodeKind`
+ --> crates/rsword/src/package/content_types.rs:6:34
+  |
+6 | use crate::xml::{Dom, LocalName, NodeKind, NsId, QName};
+  |                                  ^^^^^^^^
+  |
+  = note: `-D unused-imports` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(unused_imports)]`
+
+error: could not compile `rsword` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `rsword` (lib test) due to 1 previous error
+END_UTC: 2026-09-09T05:31:52Z
+EXIT_CODE: 101

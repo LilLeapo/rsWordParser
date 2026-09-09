@@ -1,0 +1,11 @@
+started_at=2026-09-09T16:37:12Z
+save_out=/tmp/rsword-save-js.zIvwNk
+js-parity: 绑定 0.0.1 (git 5b2715f5e6c2, compat/1)
+save_parity: 208 份用例，208 保存、0 被拒
+blank_out=/tmp/rsword-blank-js.ENvNBQ
+js-parity: 绑定 0.0.1 (git 5b2715f5e6c2, compat/1)
+blank_parity: 5 份（none + 4 种字体）
+fresh_out=/tmp/rsword-blank-fresh.0A4r9i/nested
+js-parity: 绑定 0.0.1 (git 5b2715f5e6c2, compat/1)
+blank_parity: 2 份（none + 1 种字体）
+finished_at=2026-09-09T16:37:13Z

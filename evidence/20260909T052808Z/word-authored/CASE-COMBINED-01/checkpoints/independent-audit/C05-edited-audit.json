@@ -1,0 +1,22 @@
+{
+  "after": {
+    "bytes": 56875,
+    "path": "evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/checkpoints/independent-audit/C05-edited.docx",
+    "sha256": "6c61dc960f9a433714253966871cdfac4af2cab427ce132c46ade6217d27dc73"
+  },
+  "before": {
+    "bytes": 59924,
+    "path": "evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C05.docx",
+    "sha256": "459a4016749e178503cfd9d7a6e976ec90c9c9cb98802cd3775669eace406a84"
+  },
+  "changed_parts_allowed": [
+    "word/document.xml"
+  ],
+  "checks": 89,
+  "failures": [],
+  "python": "3.13.11",
+  "status": "PASS",
+  "xml_entries": 29,
+  "zip_entries": 30,
+  "zipfile": "/Users/user/miniconda3/lib/python3.13/zipfile/__init__.py"
+}

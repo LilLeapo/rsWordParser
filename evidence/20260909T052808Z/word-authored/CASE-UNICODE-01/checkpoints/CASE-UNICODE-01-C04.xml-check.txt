@@ -1,0 +1,10 @@
+document.xml and comments.xml well-formed: PASS
+w:ins=2
+w:del=1
+delText-after-manual-break=1
+revision-marker=PASS
+comment-range=1
+comment-marker=1
+emoji-retained=1
+bidi-retained=1
+combining-retained=1

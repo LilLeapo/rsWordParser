@@ -119,3 +119,38 @@
   - `C04`: tracked replacement (2 `w:ins`, 1 `w:del`/`w:delText`) and comment; SHA-256 `0cf70939eb46215c5878e869d629ef8be16049221488549a59ecad339550cea3`.
   - `C05`: close/reopen, Word Find checks for all seven stress anchors, final Save As; SHA-256 `d4e608501ec8e4375ab9ea2ae928f1cb2e5c8f03191fd41789e63712c42ac069`.
   - Final Rust reads end, revision, and emoji anchors; no-edit save remains byte-identical. Comment content remains model projection `NOT_IMPLEMENTED`.
+
+## Cross-cutting automated test batch
+
+- Added independent harnesses under the test tree:
+  - `crates/rsword/tests/reference_model.rs`: test-side UTF-16/text/run/paragraph model, exhaustive 1-4 step sequences, and stateful save/reopen random sequences.
+  - `crates/rsword/tests/structure_variants.rs`: equivalent namespace/prefix/attribute/on-off forms and Strict/Transitional/Mixed package variants.
+  - `crates/rsword/tests/metamorphic.rs`: insert-delete, property idempotence, save/reopen, independent paragraph swap, and opaque-part preservation.
+- Added `crates/rsword/src/bin/rsword_e2e_driver.rs` for Word-authored marker/open/no-edit-save checks.
+- Added standard-library-only independent OOXML/ZIP audit in `tools/independent-ooxml-audit.py` plus mutation self-tests in `tools/test-independent-ooxml-audit.py`.
+- Reference model results:
+  - Exhaustive: 1,554 sequences / 5,910 operations, PASS.
+  - Random baseline: 1,000 seeds x 100 steps = 100,000 operations / 9,828 save-reopen cycles, PASS.
+  - Extended: 10,000 x 100 = 1,000,000 operations / 97,480 save-reopen cycles, PASS.
+  - Extended: 1,000 x 1,000 = 1,000,000 operations / 105,394 save-reopen cycles, PASS.
+- Fuzz: six targets (`xml`, `zip`, `instr`, `bind`, `edit`, `embedded`) each ran 601 seconds with `-timeout=20 -rss_limit_mb=4096`; no crashes. Execution counts are recorded in `logs/fuzz-long-fuzz_*.log`.
+- Mutation: initial `edit/plan.rs` run found 34 mutants (19 caught, 13 missed, 2 unviable). New boundary tests reduced the targeted rerun to 23 caught, 1 unviable, 1 missed; the final missed `delete !` was covered by a deleted-but-parented Replace-old regression and reran 1/1 caught. Logs: `logs/mutants-plan-final.log`, `logs/mutants-plan-survivors-final.log`, `logs/mutants-plan-141-final.log`.
+- Independent audit: self-test 4/4 passed; the C05 Word-authored package had 29/29 XML/relationship parts valid and 0 failures for the edited/no-edit comparisons. Evidence: `word-authored/CASE-COMBINED-01/checkpoints/independent-audit/`.
+- Final gates after the cross-cutting additions:
+  - `cargo fmt --all --check` PASS.
+  - `cargo clippy --workspace --all-targets -- -D warnings` PASS.
+  - `cargo test --workspace --locked` PASS: 981 passed, 0 failed, 13 ignored.
+  - `cargo clippy --workspace --all-targets --features compat-ts -- -D warnings` PASS.
+  - `cargo test --workspace --locked --features compat-ts` PASS: 1100 passed, 0 failed, 13 ignored.
+  - `RUSTFLAGS='-D warnings' cargo check -p rsword --lib` PASS.
+- Final confirmation after the last driver-documentation edit:
+  - `cargo fmt --all --check` PASS.
+  - `cargo clippy --workspace --all-targets -- -D warnings` PASS; log: `logs/final-confirmation-clippy.log`.
+  - `cargo test --workspace --locked` PASS; log: `logs/final-confirmation-tests.log`.
+- Added `capability-matrix.csv` and `report.md` with PASS/NOT_IMPLEMENTED/SKIPPED_WITH_REASON classifications and artifact paths.
+
+## Remaining scope
+
+- Table interiors, comments, text boxes, and parts of fields/headers/footers remain `NOT_IMPLEMENTED` in the current semantic projection; their package/XML preservation is independently verified.
+- Whole-workspace mutation testing was not run; the completed mutation campaign is limited to `crates/rsword/src/edit/plan.rs`.
+- Fuzz results are bounded to the recorded 601-second windows. The 10,000 x 1,000 single-batch random configuration was not run; both 10,000 x 100 and 1,000 x 1,000 were run separately and passed.

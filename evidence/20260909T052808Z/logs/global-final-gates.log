@@ -1,0 +1,1462 @@
+# global final gates 2026-09-09T16:02:36Z
+## cargo fmt --all --check
+## cargo clippy --workspace --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.21s
+## cargo test --workspace --locked
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.19s
+     Running unittests src/main.rs (target/debug/deps/gen_fixtures-4fff747bbd272893)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/rsword-777f334c94bd9310)
+
+running 404 tests
+test agent::diagnostics::agent_01_diagnostic_catalog_branches ... ok
+test agent::diagnostics::tests::agent_01_unknown_diagnostic_preserves_presence ... ok
+test agent::text::agent_01_field ... ok
+test agent::text::agent_01_formatting ... ok
+test agent::text::agent_01_chart ... ok
+test agent::text::agent_01_diagram ... ok
+test agent::text::agent_01_image ... ok
+test agent::text::agent_01_hidden ... ok
+test agent::text::agent_01_drawing ... ok
+test agent::text::agent_01_ink ... ok
+test agent::text::agent_01_range ... ok
+test agent::text::agent_01_ole ... ok
+test agent::text::agent_01_structure ... ok
+test agent::text::agent_01_revision ... ok
+test agent::text::agent_01_table ... ok
+test agent::text::agent_01_unknown ... ok
+test agent::text::agent_01_math ... ok
+test bind::native::edit::fixtures::bind_03_refused_list_matches_written_contract ... ok
+test bind::native::edit::fixtures::bind_03_property_order_refuses_loss ... ok
+test bind::native::edit::fixtures::bind_03_structured_run_forward_roundtrip ... ok
+test bind::native::edit::fixtures::bind_03_recursive_inline_and_field_props_are_contextual ... ok
+test bind::native::edit::ops::bind_03_accept_all_roundtrip ... ok
+test bind::native::edit::ops::bind_03_accept_revision_roundtrip ... ok
+test bind::native::edit::ops::bind_03_add_bookmark_roundtrip ... ok
+test bind::native::edit::ops::bind_03_add_comment_roundtrip ... ok
+test bind::native::edit::fixtures::bind_03_escape_categories_count_conversion_metadata ... ok
+test bind::native::edit::ops::bind_03_delete_block_roundtrip ... ok
+test bind::native::edit::fixtures::bind_03_xml_escape_roundtrip_custom_names ... ok
+test bind::native::edit::ops::bind_03_delete_column_roundtrip ... ok
+test bind::native::edit::ops::bind_03_add_numbering_definition_roundtrip ... ok
+test bind::native::edit::ops::bind_03_delete_range_roundtrip ... ok
+test bind::native::edit::ops::bind_03_delete_row_roundtrip ... ok
+test bind::native::edit::ops::bind_03_delete_section_break_roundtrip ... ok
+test bind::native::edit::ops::bind_03_insert_column_roundtrip ... ok
+test bind::native::edit::ops::bind_03_insert_atom_roundtrip ... ok
+test bind::native::edit::ops::bind_03_insert_field_roundtrip ... ok
+test bind::native::edit::ops::bind_03_insert_row_roundtrip ... ok
+test bind::native::edit::ops::bind_03_insert_ink_roundtrip ... ok
+test bind::native::edit::ops::bind_03_insert_text_roundtrip ... ok
+test bind::native::edit::ops::bind_03_link_header_footer_roundtrip ... ok
+test bind::native::edit::ops::bind_03_insert_section_break_roundtrip ... ok
+test agent::text::agent_01_glossary ... ok
+test bind::native::edit::ops::bind_03_merge_cells_roundtrip ... ok
+test bind::native::edit::ops::bind_03_merge_with_next_roundtrip ... ok
+test bind::native::edit::ops::bind_03_regenerate_block_field_roundtrip ... ok
+test bind::native::edit::ops::bind_03_move_block_roundtrip ... ok
+test bind::native::edit::ops::bind_03_insert_block_roundtrip ... ok
+test bind::native::edit::ops::bind_03_reject_all_roundtrip ... ok
+test bind::native::edit::ops::bind_03_reject_revision_roundtrip ... ok
+test bind::native::edit::ops::bind_03_remove_comment_roundtrip ... ok
+test bind::native::edit::ops::bind_03_remove_bookmark_roundtrip ... ok
+test bind::native::edit::ops::bind_03_remove_inks_roundtrip ... ok
+test bind::native::edit::ops::bind_03_remove_note_roundtrip ... ok
+test bind::native::edit::ops::bind_03_remove_sdt_shell_roundtrip ... ok
+test bind::native::edit::ops::bind_03_replace_image_media_roundtrip ... ok
+test bind::native::edit::ops::bind_03_replace_part_bytes_roundtrip ... ok
+test bind::native::edit::ops::bind_03_replace_part_xml_roundtrip ... ok
+test bind::native::edit::ops::bind_03_restart_numbering_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_comment_text_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_chart_data_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_cell_props_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_drawing_geometry_roundtrip ... ok
+test bind::native::edit::ops::bind_03_replace_para_props_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_drawing_zorder_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_document_settings_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_drawing_wrap_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_form_text_roundtrip ... ok
+test bind::native::edit::ops::bind_03_replace_inlines_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_field_result_props_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_link_target_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_math_tokens_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_page_color_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_para_props_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_run_props_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_row_props_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_note_content_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_shape_style_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_sources_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_table_props_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_section_props_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_header_footer_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_theme_fonts_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_theme_colors_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_watermark_roundtrip ... ok
+test bind::native::edit::ops::bind_03_split_paragraph_roundtrip ... ok
+test bind::native::edit::ops::bind_03_toggle_checkbox_roundtrip ... ok
+test bind::native::edit::ops::bind_03_set_sdt_content_roundtrip ... ok
+test bind::native::edit::ops::bind_03_upsert_style_roundtrip ... ok
+test bind::native::edit::result::bind_03_mutation_result_fields ... ok
+test bind::native::json::block::json_fields_cover_list_ref ... ok
+test bind::native::edit::ops::bind_03_set_textbox_content_roundtrip ... ok
+test bind::native::edit::ops::bind_03_update_block_field_roundtrip ... ok
+test bind::native::edit::fixtures::bind_03_all_refused_variants_have_structured_forward_roundtrips ... ok
+test bind::native::json::block::json_fields_cover_protected_kind ... ok
+test bind::native::json::block::json_fields_cover_protected_block ... ok
+test bind::native::json::block::json_fields_cover_image_block ... ok
+test bind::native::json::block::json_fields_cover_text_kind ... ok
+test bind::native::json::decl::json_fields_cover_compat_facts ... ok
+test bind::native::json::diag::json_fields_cover_diagnostic ... ok
+test bind::native::json::diag::json_fields_cover_validation_origin ... ok
+test bind::native::json::display::json_fields_cover_anchor ... ok
+test bind::native::json::display::json_fields_cover_body_pr ... ok
+test bind::native::json::display::json_fields_cover_anchor_geom ... ok
+test bind::native::json::display::json_fields_cover_canvas_display ... ok
+test bind::native::json::display::json_fields_cover_chart_color ... ok
+test bind::native::json::display::json_fields_cover_chart_ref ... ok
+test bind::native::json::display::json_fields_cover_chart_part ... ok
+test bind::native::json::display::json_fields_cover_chart_display ... ok
+test bind::native::json::block::json_fields_cover_block ... ok
+test bind::native::json::display::json_fields_cover_color_base ... ok
+test bind::native::json::display::json_fields_cover_chart_series ... ok
+test bind::native::edit::fixtures::bind_03_exact_variant_outcomes ... ok
+test bind::native::json::display::json_fields_cover_color_transform ... ok
+test bind::native::json::display::json_fields_cover_diagram_line ... ok
+test bind::native::json::display::json_fields_cover_custom_geom ... ok
+test bind::native::json::display::json_fields_cover_diagram_picture ... ok
+test bind::native::json::display::json_fields_cover_diagram_part ... ok
+test bind::native::json::display::json_fields_cover_diagram_ref ... ok
+test bind::native::json::display::json_fields_cover_doc_pr ... ok
+test bind::native::json::display::json_fields_cover_dist ... ok
+test bind::native::json::display::json_fields_cover_diagram_shape ... ok
+test bind::native::json::block::json_fields_cover_revision ... ok
+test bind::native::json::display::json_fields_cover_extent ... ok
+test bind::native::json::display::json_fields_cover_fill_display ... ok
+test bind::native::json::display::json_fields_cover_fill_kind ... ok
+test bind::native::json::display::json_fields_cover_drawing_color ... ok
+test bind::native::json::display::json_fields_cover_formula_display ... ok
+test bind::native::json::display::json_fields_cover_geom_cmd ... ok
+test bind::native::json::display::json_fields_cover_geom_path ... ok
+test bind::native::json::display::json_fields_cover_line_display ... ok
+test bind::native::json::display::json_fields_cover_image_display ... ok
+test bind::native::json::display::json_fields_cover_ole_info ... ok
+test bind::native::json::display::json_fields_cover_position ... ok
+test bind::native::json::display::json_fields_cover_rect_frac ... ok
+test bind::native::json::display::json_fields_cover_style_ref ... ok
+test bind::native::json::block::json_fields_cover_text_block ... ok
+test bind::native::json::display::json_fields_cover_vml_fill ... ok
+test bind::native::json::facts::json_fields_cover_drawing_facts ... ok
+test bind::native::json::display::json_fields_cover_wrap ... ok
+test bind::native::json::facts::json_fields_cover_math_facts ... ok
+test bind::native::json::facts::json_fields_cover_paragraph_facts ... ok
+test bind::native::json::facts::json_fields_cover_pict_facts ... ok
+test bind::native::json::facts::json_fields_cover_pict_kind ... ok
+test bind::native::json::facts::json_fields_cover_revision_facts ... ok
+test bind::native::json::display::json_fields_cover_vml_display ... ok
+test bind::native::json::inline::json_fields_cover_atom_kind ... ok
+test bind::native::json::ink::json_fields_cover_ink_info ... ok
+test bind::native::json::inline::json_fields_cover_break_kind ... ok
+test bind::native::json::display::json_fields_cover_drawing_display ... ok
+test bind::native::json::display::json_fields_cover_vml_shape ... ok
+test bind::native::json::inline::json_fields_cover_link ... ok
+test bind::native::json::inline::json_fields_cover_link_target ... ok
+test bind::native::json::inline::json_fields_cover_inline_atom ... ok
+test bind::native::json::display::json_fields_cover_shape_display ... ok
+test bind::native::json::display::json_fields_cover_display ... ok
+test bind::native::json::inline::json_fields_cover_segment_kind ... ok
+test bind::native::json::inline::json_fields_cover_revision_ctx ... ok
+test bind::native::json::json_fields_cover_media_entry ... ok
+test bind::native::json::hf::json_fields_cover_hf_part ... ok
+test bind::native::json::json_fields_cover_media_kind ... ok
+test bind::native::json::notes::json_fields_cover_note_kind ... ok
+test bind::native::json::inline::json_fields_cover_inline ... ok
+test bind::native::json::props_gen::json_cover::json_fields_camel_props ... ok
+test bind::native::json::inline::json_fields_cover_segment ... ok
+test bind::native::json::revision::json_fields_cover_rev_owner ... ok
+test bind::native::json::revision::json_fields_cover_revision_entry ... ok
+test bind::native::json::revision::json_fields_cover_revision_meta ... ok
+test bind::native::json::notes::json_fields_cover_comment ... ok
+test bind::native::json::sdt::json_fields_cover_doc_part ... ok
+test bind::native::json::sdt::json_fields_cover_data_binding ... ok
+test bind::native::json::notes::json_fields_cover_note ... ok
+test bind::native::json::sdt::json_fields_cover_sdt_info ... ok
+test bind::native::json::section::json_fields_cover_section_owner ... ok
+test bind::native::json::sources::json_fields_cover_source ... ok
+test bind::native::json::span::json_fields_cover_affinity ... ok
+test bind::native::json::span::json_fields_cover_field_form ... ok
+test bind::native::json::span::json_fields_cover_anchor ... ok
+test bind::native::json::span::json_fields_cover_field_policy ... ok
+test bind::native::json::span::json_fields_cover_instr_token ... ok
+test bind::native::json::span::json_fields_cover_field_span ... ok
+test bind::native::json::span::json_fields_cover_instruction ... ok
+test bind::native::json::span::json_fields_cover_range_kind ... ok
+test bind::native::json::span::json_fields_cover_span_origin ... ok
+test bind::native::json::table::json_fields_cover_grid_col ... ok
+test bind::native::json::span::json_fields_cover_range_span ... ok
+test bind::native::json::theme::json_fields_cover_font_scheme ... ok
+test bind::native::json::inline::json_fields_cover_run ... ok
+test bind::native::json::theme::json_fields_cover_font_slots ... ok
+test bind::native::json::json_fields_cover_document ... ok
+test bind::native::json::theme::json_fields_cover_theme ... ok
+test bind::native::json::section::json_fields_cover_section_info ... ok
+test bind::native::json::table::json_fields_cover_cell ... ok
+test bind::native::json::table::json_fields_cover_row ... ok
+test bind::native::json::table::json_fields_cover_table_block ... ok
+test bind::native::session::bind_01_add_media_no_session ... ok
+test bind::native::query::bind_06_section_geometry_fields ... ok
+test bind::native::session::bind_01_apply_no_session ... ok
+test bind::native::session::bind_01_diagnostics_no_session ... ok
+test bind::native::session::bind_01_document_no_session ... ok
+test bind::native::session::bind_01_media_no_session ... ok
+test bind::native::session::bind_01_node_xml_no_session ... ok
+test bind::native::session::bind_01_part_bytes_no_session ... ok
+test bind::native::session::bind_01_resolve_cells_no_session ... ok
+test bind::native::session::bind_01_resolve_paras_no_session ... ok
+test bind::native::session::bind_01_resolve_runs_no_session ... ok
+test bind::native::session::bind_01_resolve_table_no_session ... ok
+test bind::native::session::bind_01_resolve_sections_no_session ... ok
+test bind::native::session::bind_01_save_no_session ... ok
+test bind::native::session::tests::bind_01_engine_save_failure_is_functional ... ok
+test bind::native::session::tests::bind_01_failed_open_leaves_no_table_entry ... ok
+test bind::native::session::tests::bind_01_failed_apply_preserves_interners_and_escape_count ... ok
+test diag::tests::diag_code_as_str_matches_spec_spelling ... ok
+test diag::tests::diagnostic_display_carries_origin ... ok
+test edit::inline::tests::edit_03_text_segments_fold_control_chars ... ok
+test edit::session::relative_target_tests::pkg_04_relative_targets ... ok
+test edit::session::tests::edit_05_transaction_rolls_back_every_touched_part ... ok
+test edit::session::tests::span_09_engine_broken_range_fails_the_save_in_debug_builds ... ok
+test model::chart::tests::mod_11_chart_kind_table_covers_every_plot_element ... ok
+test model::chart::tests::mod_11_excel_serial_dates ... ok
+test model::chart::tests::mod_11_palette_columns ... ok
+test model::custgeom::tests::mod_11_custgeom_bails_on_formulas_and_arcs ... ok
+test model::custgeom::tests::mod_11_custgeom_fill_and_stroke_flags ... ok
+test model::custgeom::tests::mod_11_custgeom_straight_edges ... ok
+test model::decl::tests::mod_10_numbering_declarations ... ok
+test model::decl::tests::mod_10_settings_compat_facts_and_font_table ... ok
+test model::decl::tests::mod_10_styles_defaults_and_heading_levels ... ok
+test bind::native::session::tests::bind_05_removing_earlier_part_does_not_renumber_media ... ok
+test model::diagram::tests::cycles_self_loops_and_missing_src_ord_terminate ... ok
+test model::diagram::tests::tree_order_then_isolated_points ... ok
+test model::drawing::tests::mod_11_anchor_geometry_defaults_and_values ... ok
+test model::drawing::tests::mod_11_inline_picture_facts ... ok
+test model::drawing::tests::mod_11_picture_crop_rotation_and_border ... ok
+test model::drawing::tests::mod_11_textbox_content_is_not_this_drawings_geometry ... ok
+test model::drawing::tests::mod_11_deep_nesting_terminates ... ok
+test model::ink::tests::lenient_int_follows_parse_int ... ok
+test model::section::tests::prop_09_bad_section_values_fall_back_to_defaults ... ok
+test model::section::tests::mod_10_section_geometry_and_defaults ... ok
+test model::sources::tests::mod_10_custom_xml_item_paths ... ok
+test model::sources::tests::mod_10_publisher_element_per_source_type ... ok
+test model::tests::mod_01_document_without_body_warns ... ok
+test model::tests::mod_04_paragraph_facts ... ok
+test model::tests::mod_03_text_kind_acceptance ... ok
+test model::tests::mod_05_body_rules ... ok
+test model::tests::mod_06_hyperlink_revisions_and_transparent_containers ... ok
+test model::tests::mod_06_coordinate_flow_acceptance ... ok
+test model::tests::mod_06_symbols_atoms_and_run_props ... ok
+test model::theme::tests::mod_10_theme_wrong_root_is_none ... ok
+test model::theme::tests::mod_10_theme_fonts_and_colors ... ok
+test model::units::tests::mod_11_parse_length_units ... ok
+test model::units::tests::mod_11_parse_style_keeps_pairs_verbatim ... ok
+test model::units::tests::mod_11_unit_conversions_round_trip ... ok
+test model::vml::tests::mod_11_vml_color_forms ... ok
+test model::vml::tests::mod_11_vml_horizontal_rule ... ok
+test model::vml::tests::mod_11_vml_group_records_coordsize_and_parent ... ok
+test package::content_types::tests::pkg_04_image_mime_order ... ok
+test model::vml::tests::mod_11_vml_wordart_and_hidden ... ok
+test package::content_types::tests::pkg_04_missing_file_is_empty ... ok
+test package::media::tests::pkg_05_base64_padding ... ok
+test package::content_types::tests::pkg_04_override_beats_default_and_extension_is_case_insensitive ... ok
+test package::media::tests::pkg_05_http_target_is_external ... ok
+test package::media::tests::pkg_05_media_kind_from_mime ... ok
+test package::rels::tests::pkg_05_targets_modes_and_duplicates ... ok
+test package::rels::tests::pkg_06_rels_relative_fallback_and_case_insensitive_match ... ok
+test package::rels::tests::pkg_07_dual_family_rel_types ... ok
+test package::uri::tests::pkg_05_rels_uri_and_source ... ok
+test package::uri::tests::pkg_06_escape_root_and_percent_decoding ... ok
+test package::uri::tests::pkg_06_three_spellings_resolve_to_the_same_part ... ok
+test package::zip::tests::neutralize_is_identity_without_the_field_and_safe_on_garbage ... ok
+test package::zip::tests::open_rejects_non_zip ... ok
+test resolve::drawingml::tests::res_05_gradient_average_rounds_last ... ok
+test resolve::drawingml::tests::res_05_sat_and_hue_go_through_hsl ... ok
+test resolve::drawingml::tests::res_05_scheme_slot_aliases_and_theme_lookup ... ok
+test resolve::drawingml::tests::res_05_scrgb_hsl_alpha_and_iso_percent ... ok
+test resolve::drawingml::tests::res_05_shade_and_tint ... ok
+test resolve::drawingml::tests::res_05_srgb_and_transform_order ... ok
+test resolve::drawingml::tests::res_05_sys_and_preset_colors ... ok
+test resolve::symbol::tests::res_05_decodes_both_spellings ... ok
+test resolve::symbol::tests::res_05_only_pua_text_is_decoded ... ok
+test resolve::symbol::tests::res_05_symbol_font_names ... ok
+test resolve::symbol::tests::res_05_unknown_code_points_stay_undecoded ... ok
+test resolve::tests::res_03_run_cascade_with_provenance ... ok
+test resolve::tests::res_02_chain_cycle_default_and_outline_block ... ok
+test resolve::tests::res_05_doc_default_fonts_ea_backfill ... ok
+test resolve::tests::res_05_theme_fonts_and_colors ... ok
+test resolve::tests::res_06_rtl_reads_cs_twins_only ... ok
+test resolve::toggle::tests::res_04_direct_formatting_always_wins ... ok
+test resolve::toggle::tests::res_04_most_specific_wins_layer_order ... ok
+test resolve::toggle::tests::res_04_odd_parity_counts_style_layers ... ok
+test resolve::toggle::tests::res_04_rule_is_chosen_per_field ... ok
+test resolve::tests::res_07_09_para_cascade_and_numbering_indent ... ok
+test resolve::toggle::tests::res_04_toggle_field_table_reads_and_writes ... ok
+test resolve::toggle::tests::res_04_word_desktop_matches_the_fixtures ... ok
+test resolve::toggle::tests::res_04_word_observed_matches_the_fixtures ... ok
+test save::options::tests::save_07_custom_xml_is_not_scrubbed ... ok
+test save::options::tests::save_07_timestamp_drops_milliseconds ... ok
+test save::serialize::tests::save_03_changed_text_child_makes_container_preserve ... ok
+test save::serialize::tests::save_03_text_containers_get_xml_space_preserve ... ok
+test save::serialize::tests::xml_13_self_closing_parent_gaining_children_is_reopened ... ok
+test save::serialize::tests::xml_13_serialize_subtree_uses_ancestor_scope ... ok
+test save::serialize::tests::xml_13_unbound_namespace_is_an_error ... ok
+test save::serialize::tests::xml_14_attribute_needs_a_real_prefix_even_if_default_namespace_matches ... ok
+test save::serialize::tests::xml_14_default_namespace_and_unprefixed_attrs ... ok
+test save::serialize::tests::xml_14_namespace_context_preference_wins_over_canonical ... ok
+test save::serialize::tests::xml_14_new_subtree_declares_prefix_at_its_root_only ... ok
+test save::serialize::tests::xml_14_prefix_conflict_generates_a_fresh_prefix ... ok
+test save::serialize::tests::xml_14_strict_part_declares_strict_uris ... ok
+test save::validate::tests::save_02_clean_part_has_no_diagnostics_and_plan_apply_keeps_order ... ok
+test save::validate::tests::save_02_misordered_new_child_is_an_engine_violation ... ok
+test save::validate::tests::save_02_unbound_prefix_on_new_node_is_reported ... ok
+test semantic::props::codec::tests::prop_02_hex_color ... ok
+test semantic::props::codec::tests::prop_02_measure_conversions ... ok
+test save::validate::tests::save_03_extension_namespace_declared_at_root_and_listed_in_ignorable ... ok
+test semantic::props::codec::tests::prop_02_on_off_write_by_flavor ... ok
+test semantic::props::codec::tests::prop_02_measure_or_percent ... ok
+test semantic::props::tests::prop_02_enum_api ... ok
+test semantic::props::tests::prop_02_acceptance_rows ... ok
+test semantic::props::tests::prop_02_on_off_variants_and_bad_value ... ok
+test semantic::props::tests::prop_02_indent_legacy_spelling_by_flavor ... ok
+test semantic::props::tests::prop_02_struct_attrs_and_enums ... ok
+test semantic::props::tests::prop_02_tbl_width_measure_and_helpers ... ok
+test semantic::props::tests::prop_04_three_state_on_off_in_ppr ... ok
+test semantic::props::tests::prop_05_hf_references_share_one_order_slot ... ok
+test semantic::props::tests::prop_05_order_index_and_field_info ... ok
+test semantic::props::tests::prop_05_para_order_table ... ok
+test semantic::props::tests::prop_05_table_containers_order_tables ... ok
+test semantic::props::tests::prop_06_diff_and_patch_emit ... ok
+test semantic::props::tests::prop_05_new_element_inserted_before_first_greater_order ... ok
+test semantic::props::tests::prop_06_missing_container_is_created_as_first_child ... ok
+test semantic::props::tests::prop_06_multi_replaces_whole_list_in_place ... ok
+test semantic::props::tests::prop_06_raw_field_set_clones_subtree ... ok
+test semantic::props::tests::prop_06_unmodeled_and_open_tag_bytes_preserved ... ok
+test semantic::props::tests::prop_06_nested_patch_and_sub_container_placement ... ok
+test semantic::props::tests::prop_07_every_cell_props_row_roundtrips_and_plans ... ok
+test semantic::props::tests::prop_07_every_row_props_row_roundtrips_and_plans ... ok
+test semantic::props::tests::prop_07_every_para_props_row_roundtrips ... ok
+test semantic::props::tests::prop_07_every_section_props_row_roundtrips_and_plans ... ok
+test semantic::props::tests::prop_07_plan_apply_every_row_same_value_empty_new_value_commits ... ok
+test semantic::props::tests::prop_07_read_emit_read_roundtrip_and_unmodeled ... ok
+test semantic::props::tests::prop_07_every_table_props_row_roundtrips_and_plans ... ok
+test semantic::props::tests::prop_08_nested_tables_sub_tables_and_multi ... ok
+test semantic::props::tests::prop_08_row_props_read_and_change ... ok
+test semantic::props::tests::prop_08_cell_props_read_emit_and_change ... ok
+test semantic::props::tests::prop_09_hf_reference_type_odd_is_not_a_bad_value ... ok
+test semantic::props::tests::prop_09_jc_weird_kept_verbatim ... ok
+test semantic::props::tests::prop_08_table_props_read_tbl_pr_ex_and_typed_style ... ok
+test span::field::instr::tests::fld_03_nested_placeholder_becomes_a_token ... ok
+test span::field::instr::tests::fld_05_escapes_inside_quotes ... ok
+test span::field::instr::tests::fld_05_formula_keyword_and_general_format ... ok
+test semantic::props::tests::prop_09_raw_values_survive_and_write_back_verbatim ... ok
+test span::field::instr::tests::fld_05_hyperlink_with_quoted_target_and_switch ... ok
+test span::field::instr::tests::fld_05_switch_without_argument_and_merge_format ... ok
+test span::field::instr::tests::fld_05_toc_switches ... ok
+test span::field::instr::tests::fld_05_tokenizer_never_fails ... ok
+test span::field::instr::tests::fld_06_policy_table_and_case_insensitive_keywords ... ok
+test span::tests::span_01_flow_map_body_and_textbox_are_separate_flows ... ok
+test xml::canon::tests::test_05_canonical_ignores_prefixes_attr_order_and_whitespace ... ok
+test xml::edit::tests::xml_12_clone_shares_lex ... ok
+test xml::edit::tests::xml_12_delete_and_detach ... ok
+test xml::edit::tests::xml_12_dirty_propagation ... ok
+test xml::edit::tests::xml_12_move_keeps_clean_when_compatible ... ok
+test xml::edit::tests::xml_12_move_adds_xmlns_when_incompatible ... ok
+test xml::entities::tests::xml_06_bad_entities_kept_verbatim ... ok
+test xml::entities::tests::xml_06_bad_entity_snippet_respects_char_boundaries ... ok
+test xml::edit::tests::xml_12_remove_attr_and_rename ... ok
+test xml::entities::tests::xml_06_decode_once ... ok
+test xml::entities::tests::xml_06_escape_text_and_attr ... ok
+test xml::interner::tests::intern_is_idempotent_and_resolves ... ok
+test xml::mce::tests::xml_09_choice_selected_when_requires_understood ... ok
+test xml::mce::tests::xml_09_fallback_selected_when_requires_unknown ... ok
+test xml::mce::tests::xml_09_ignorable_hidden_but_preserved_and_understood_not_hidden ... ok
+test xml::mce::tests::xml_09_must_understand_is_a_diagnostic_not_an_error ... ok
+test xml::mce::tests::xml_09_process_content_flattens ... ok
+test xml::mce::tests::xml_09_recompute_with_custom_understood_set ... ok
+test xml::mce::tests::xml_10_semantic_children_skips_deleted_and_yields_text ... ok
+test xml::fragment::tests::edit_03_fragment_to_new_element ... ok
+test xml::names::tests::xml_05_strict_and_transitional_same_nsid ... ok
+test xml::names::tests::xml_05_local_names_roundtrip_and_other ... ok
+test xml::names::tests::xml_05_xml_and_xmlns_are_distinct ... ok
+test xml::ns::tests::xml_11_mce_attribute_prefix_lists_count_as_uses ... ok
+test xml::ns::tests::xml_11_compatible_when_same_uri_and_required_decls_otherwise ... ok
+test xml::ns::tests::xml_11_scope_shadowing ... ok
+test xml::parse::tests::xml_01_prolog_epilog_and_bom ... ok
+test xml::parse::tests::xml_01_utf16_is_transcoded_with_diagnostic ... ok
+test xml::parse::tests::xml_03_lex_ranges_and_whitespace_text_nodes ... ok
+test xml::parse::tests::xml_03_opaque_nodes_and_doctype_prolog ... ok
+test xml::parse::tests::xml_04_quotes_gt_and_duplicate_attrs ... ok
+test xml::parse::tests::xml_05_default_namespace_undeclared_and_shadowed ... ok
+test xml::parse::tests::xml_05_prefix_resolution_by_scope ... ok
+test xml::parse::tests::xml_05_sniff_root_namespace ... ok
+test xml::parse::tests::xml_06_entities_decode_once_and_bad_entity_diag ... ok
+test xml::parse::tests::xml_07_text_is_not_trimmed ... ok
+test xml::parse::tests::xml_08_deep_nesting_parses_iteratively ... ok
+test xml::parse::tests::xml_08_malformed_inputs_are_errors ... ok
+test xml::parse::tests::xml_13_owned_text_and_attr_are_escaped_and_dirty_states_serialize ... ok
+test xml::tests::xml_12_rule_a_self_change ... ok
+test xml::tests::xml_12_rule_c_propagation_stops_at_non_clean ... ok
+test xml::xpath::tests::test_05_xpath_subset ... ok
+test agent::text::agent_01_protected ... ok
+test xml::parse::tests::xml_08_depth_limit ... ok
+test bind::native::query::bind_06_section_full_corpus ... ok
+test bind::native::query::bind_06_cell_full_corpus ... ok
+test bind::native::query::bind_06_table_full_corpus ... ok
+test bind::native::query::bind_06_para_full_corpus ... ok
+test bind::native::query::bind_06_run_full_corpus ... ok
+
+test result: ok. 404 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.11s
+
+     Running unittests src/bin/rsword_e2e_driver.rs (target/debug/deps/rsword_e2e_driver-64a72c7682957192)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/agent_text.rs (target/debug/deps/agent_text-2d89025c2ecd2ee1)
+
+running 17 tests
+test agent_01_catalogs_match_written_contract_both_directions ... ok
+test agent_02_empty_projection_has_real_end_owner ... ok
+test agent_01_same_media_two_occurrences_have_distinct_objects ... ok
+test agent_01_presentation_reason_must_be_a_declared_category ... ok
+test agent_01_escaped_literal_hidden_and_revision_text ... ok
+test agent_02_forged_source_must_fail ... ok
+test agent_01_cell_selection_same_range_and_union_dedup ... ok
+test agent_02_affinity_candidates_and_stale_identity ... ok
+test agent_02_missing_synthetic_mapping_must_fail ... ok
+test agent_02_surrogate_midpoint_must_fail ... ok
+test span_01_external_textbox_flows_and_unmapped_diagnostic ... ok
+test agent_02_utf16_example_and_reverse ... ok
+test agent_02_unknown_anchor_fields_rejected ... ok
+test agent_02_wrong_part_must_fail ... ok
+test res_09_list_markers_restart_override_and_legal ... ok
+test span_01_glossary_entries_are_distinct_and_reported ... ok
+test agent_01_02_corpus_determinism_and_complete_anchors ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.28s
+
+     Running tests/api_docs.rs (target/debug/deps/api_docs-d29e383894b8496e)
+
+running 2 tests
+test bind_11_audit_scanner_sees_unannotated_impls_and_macro_templates ... ok
+test bind_11_audit_annotations_match_written_contract ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+
+     Running tests/atom_ops.rs (target/debug/deps/atom_ops-7c211cce6a3afc64)
+
+running 11 tests
+test cross_container_delete_is_refused ... ok
+test edit_03_cross_paragraph_delete ... ok
+test edit_02_symbol_atom ... ok
+test cross_paragraph_delete_collapses_bookmarks ... ok
+test span_10_endpoint_snaps_out_of_the_field_atom ... ok
+test edit_02_break_atom ... ok
+test edit_02_image_atom_is_inline ... ok
+test tracked_atom_goes_into_ins ... ok
+test edit_02_note_ref_atom_creates_the_entry ... ok
+test edit_02_math_atom_from_omml_and_latex ... ok
+test tracked_cross_paragraph_delete_keeps_everything ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/blank.rs (target/debug/deps/blank-d7f290baef10164a)
+
+running 1 test
+test blank_opens_to_one_paragraph_with_the_standard_styles ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/cell_edit.rs (target/debug/deps/cell_edit-2661360cb1670d15)
+
+running 8 tests
+test edit_02_locate_reaches_paragraphs_inside_cells ... ok
+test edit_05_table_props_reject_wrong_targets ... ok
+test prop_05_tr_pr_goes_after_tbl_pr_ex ... ok
+test edit_03_block_ops_keep_the_cell_ending_in_a_paragraph ... ok
+test edit_03_cell_edit_round_trips ... ok
+test edit_03_paragraph_structure_ops_inside_a_cell ... ok
+test edit_03_inline_ops_inside_a_cell ... ok
+test edit_03_table_row_cell_props ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/chart.rs (target/debug/deps/chart-a1d2c457d6b5c2a1)
+
+running 5 tests
+test test_09_hostile_chart_parts_degrade_locally ... ok
+test mod_11_style_via_c14_alternate_content ... ok
+test mod_11_chart_ref_survives_an_undeclared_prefix_and_dangling_rels_are_diagnosed ... ok
+test mod_11_literal_caches_and_auto_title_forms ... ok
+test mod_11_chart_parts_match_ts_across_the_corpus ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+
+     Running tests/chart_ops.rs (target/debug/deps/chart_ops-2253be7079588fd5)
+
+running 4 tests
+test edit_03_set_chart_data_ignores_what_it_cannot_anchor ... ok
+test edit_03_set_chart_data_rejects_chartex_and_rolls_back ... ok
+test edit_03_set_chart_data_creates_a_missing_title_element ... ok
+test edit_03_set_chart_data_patches_y_values_of_scatter_charts ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/compat.rs (target/debug/deps/compat-d3c390ce4931e173)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/compat_table.rs (target/debug/deps/compat_table-68fac7278477b87d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/corpus_layout.rs (target/debug/deps/corpus_layout-fd6178a3a5c7e376)
+
+running 1 test
+test test_01_corpus_layout_exists ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/decl.rs (target/debug/deps/decl-dd3cc5ddf7caa1f7)
+
+running 1 test
+test mod_10_declarations_parse_on_corpus_and_match_ts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.11s
+
+     Running tests/diagram.rs (target/debug/deps/diagram-a0a216f799151a29)
+
+running 1 test
+test mod_11_canvas_and_diagram_blocks_in_the_model ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/drawing.rs (target/debug/deps/drawing-8b40507ebbff95da)
+
+running 2 tests
+test mod_11_vml_and_ole_across_the_corpus ... ok
+test mod_11_drawing_facts_across_the_corpus ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.87s
+
+     Running tests/drawing_ops.rs (target/debug/deps/drawing_ops-0aa2fc5e0633d69d)
+
+running 15 tests
+test drawing_edits_are_not_tracked ... ok
+test normalize_z_order_leaves_sane_documents_alone ... ok
+test set_geometry_resizes_and_keeps_the_graphic_bytes ... ok
+test set_geometry_rotation_updates_effect_extent ... ok
+test set_shape_style ... ok
+test set_wrap_explicit_position_then_back_to_inline ... ok
+test set_wrap_inline_to_anchor_rebuilds_only_the_shell ... ok
+test set_geometry_crop ... ok
+test set_wrap_moves_an_existing_polygon_verbatim ... ok
+test z_order_on_inline_is_refused ... ok
+test set_wrap_keeps_a_hand_edited_polygon_between_tight_and_through ... ok
+test normalize_z_order_rewrites_wild_relative_heights ... ok
+test word_ops_z_order_matches_word ... ok
+test word_ops_move_resize_matches_word ... ok
+test set_wrap_round_trips_on_the_image_wrap_corpus ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+     Running tests/edit.rs (target/debug/deps/edit-d5685a3766be5ec3)
+
+running 10 tests
+test edit_02_locate_offsets_surrogates_and_atoms ... ok
+test edit_03_replace_inlines_keeps_ppr_and_reemits_markers ... ok
+test edit_03_insert_text_next_to_a_field_atom ... ok
+test edit_03_delete_range_truncates_runs_and_keeps_markers ... ok
+test edit_03_set_para_props_creates_or_extends_ppr ... ok
+test edit_03_insert_text_new_run_inherits_and_splits ... ok
+test edit_06_new_external_relationship_is_allocated_in_the_rels_part ... ok
+test edit_05_failed_batch_rolls_back_everything ... ok
+test edit_03_insert_text_in_clean_run_keeps_everything_else ... ok
+test edit_03_set_run_props_splits_and_patches ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/embedded.rs (target/debug/deps/embedded-ad46d84e375c8840)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/embedded_ops.rs (target/debug/deps/embedded_ops-c5152b61234b6b3d)
+
+running 1 test
+test test_07_random_embedded_edit_sequences ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.26s
+
+     Running tests/field.rs (target/debug/deps/field-8b80378a338d0a50)
+
+running 17 tests
+test fld_02_fields_never_pair_across_content_flows ... ok
+test fld_01_simple_field_and_nested_simple ... ok
+test fld_03_del_instr_text_marks_the_field ... ok
+test fld_02_begin_inside_hyperlink_pairs_with_end_outside ... ok
+test fld_02_stray_separate_and_end_are_diagnostics ... ok
+test fld_03_instruction_split_across_runs_is_still_recognized ... ok
+test fld_06_cross_paragraph_field_is_always_block ... ok
+test fld_02_nested_field_in_the_instruction ... ok
+test fld_04_fld_char_carries_lock_dirty_and_ff_data ... ok
+test fld_10_checkbox_state_and_policy_downgrade ... ok
+test fld_06_policies_come_from_the_keyword_table ... ok
+test mod_05_r09_block_field_protects_its_paragraphs ... ok
+test fld_07_hyperlink_field_is_transparent ... ok
+test mod_06_atomic_field_takes_one_coordinate_unit ... ok
+test fld_02_unclosed_field_keeps_its_bytes_and_the_paragraph_stays_editable ... ok
+test fld_13_delete_block_refuses_to_strand_a_field_end ... ok
+test fld_02_every_field_in_the_corpus_is_accounted_for ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+
+     Running tests/fieldgen.rs (target/debug/deps/fieldgen-ceb7fc8d92cac57a)
+
+running 6 tests
+test index_default_collation_is_code_point_order ... ok
+test toc_word_shape_emits_hyperlinks_and_pageref_fields ... ok
+test captions_number_themselves_from_the_preceding_seq_fields ... ok
+test inserting_a_toc_field_generates_one_paragraph_per_heading ... ok
+test regenerating_a_toc_reuses_its_bookmarks_and_writes_pagerefs ... ok
+test regenerating_the_toc_corpus_keeps_every_field_well_formed ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.91s
+
+     Running tests/hf.rs (target/debug/deps/hf-045c2887d5ce0bcb)
+
+running 9 tests
+test span_01_header_part_has_its_own_span_index ... ok
+test mod_01_orphan_header_parts_are_still_parsed ... ok
+test test_09_a_header_part_with_a_wrong_root_degrades_locally ... ok
+test fld_11_page_number_comes_from_the_parts_own_field_index ... ok
+test mod_01_header_content_uses_the_body_pipeline ... ok
+test edit_05_main_part_only_operations_reject_a_foreign_part ... ok
+test test_09_unbalanced_header_part_is_opaque ... ok
+test compat_05_watermark_text_from_the_header_part ... ok
+test test_04_editing_a_header_paragraph_touches_only_that_part ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.03s
+
+     Running tests/hf_ops.rs (target/debug/deps/hf_ops-e31e9eb0783d66eb)
+
+running 11 tests
+test edit_05_watermark_in_a_strict_package_is_refused ... ok
+test edit_03_set_section_props_inserts_in_schema_order ... ok
+test edit_03_link_header_footer_attaches_an_existing_part ... ok
+test test_09_binary_header_part_is_opaque ... ok
+test save_07_page_color_is_the_first_child_of_the_document ... ok
+test edit_03_set_header_footer_rewrites_the_declared_part ... ok
+test test_09_section_properties_with_bad_values ... ok
+test edit_03_block_operations_inside_a_header_part ... ok
+test test_09_dangling_header_reference ... ok
+test save_05_set_header_footer_creates_the_part_and_reference ... ok
+test test_07_random_header_footer_sequences ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.87s
+
+     Running tests/ink.rs (target/debug/deps/ink-c9b7309b9ae84cf5)
+
+running 1 test
+test save_07_non_paragraph_anchor_is_skipped_without_orphans ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/js_binding.rs (target/debug/deps/js_binding-739b4e1175b09ba6)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/math.rs (target/debug/deps/math-b98c5f51a2e3ac09)
+
+running 2 tests
+test mod_11_omml_to_mathml_fixtures ... ok
+test mod_11_omml_to_latex_fixtures ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/math_latex.rs (target/debug/deps/math_latex-455d396a9ae9541d)
+
+running 1 test
+test latex_depth_limit ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/media.rs (target/debug/deps/media-4b3237a65eb4c365)
+
+running 2 tests
+test pkg_05_media_is_interned_per_part ... ok
+test pkg_05_media_resolves_across_the_corpus ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.45s
+
+     Running tests/media_ops.rs (target/debug/deps/media_ops-e61102ea04ab3c84)
+
+running 3 tests
+test edit_06_doc_pr_id_skips_ids_hidden_in_unknown_mce_branches ... ok
+test edit_04_replace_image_edge_cases ... ok
+test edit_03_anchored_images_follow_the_ts_wrap_templates ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/model.rs (target/debug/deps/model-8a9bcb02aff442cd)
+
+running 1 test
+test mod_13_rebuild_is_idempotent_and_text_blocks_match_ts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.28s
+
+     Running tests/model_snapshot.rs (target/debug/deps/model_snapshot-b2bc93e6bb079a65)
+
+running 1 test
+test test_10_full_corpus_model_snapshots_and_no_edit_save_identity ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.06s
+
+     Running tests/native_bind.rs (target/debug/deps/native_bind-235c0b8e6982882f)
+
+running 6 tests
+test bind_02_json_depth_ignores_escaped_strings ... ok
+test bind_02_mod_field_checklist ... ok
+test bind_02_key_checker_rejects_extra_keys ... ok
+test bind_03_patch_keys_are_declared_and_checked ... ok
+test bind_02_corpus_schema_and_stability ... ok
+test bind_02_corpus_display_schema_and_stability ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.69s
+
+     Running tests/native_edit.rs (target/debug/deps/native_edit-d8fb6d722129ee7b)
+
+running 21 tests
+test bind_03_change_keep_is_absent ... ok
+test bind_03_change_unset_is_null ... ok
+test bind_03_change_set_false_is_value ... ok
+test bind_03_table_change_empty_patch_keeps_branch ... ok
+test bind_03_table_change_keep_is_absent ... ok
+test bind_03_escape_commit_and_failed_apply_are_atomic ... ok
+test bind_03_table_change_set_default_keeps_branch ... ok
+test bind_03_table_change_unset_is_null ... ok
+test bind_03_header_escape_uses_target_dom_and_reports_count ... ok
+test bind_03_sources_preserve_unchanged_entry_bytes ... ok
+test bind_03_variants_match_independent_spec_list ... ok
+test bind_03_restart_numbering_twice_is_once ... ok
+test bind_04_native_save_options_exactly_five_keys ... ok
+test bind_03_add_numbering_definition_twice_is_once ... ok
+test bind_04_privacy_flags_require_explicit_native_request ... ok
+test bind_03_xml_input_rejects_unrepresentable_content_without_interning ... ok
+test bind_03_upsert_style_twice_is_once ... ok
+test bind_03_context_defaults_and_result_shape ... ok
+test bind_03_theme_operations_twice_is_once ... ok
+test bind_03_table_change_schema_discriminates_patch ... ok
+test bind_03_protocol_native_bytes_full_synthetic_real ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.04s
+
+     Running tests/native_session.rs (target/debug/deps/native_session-0d81bb06afc5c728)
+
+running 11 tests
+test bind_08_version_negotiation ... ok
+test bind_09_invalid_part_and_arena_are_bounded ... ok
+test bind_01_close_is_idempotent_and_ids_are_process_wide ... ok
+test bind_01_header_footer_out_of_arena_is_atomic_error ... ok
+test bind_06_part_disambiguates_equal_node_ids ... ok
+test bind_01_apply_and_functional_save ... ok
+test bind_05_media_dedup_existing_and_new ... ok
+test bind_07_committed_escape_and_dirty_part_bytes ... ok
+test bind_10_depth_has_schema_valid_protected_placeholders ... ok
+test bind_10_selection_matches_full_schema ... ok
+test bind_05_09_read_only_full_corpus ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.52s
+
+     Running tests/note_sdt_ops.rs (target/debug/deps/note_sdt_ops-62180dca5521dc56)
+
+running 10 tests
+test edit_03_set_note_content ... ok
+test edit_03_remove_sdt_shell ... ok
+test edit_03_set_math_tokens ... ok
+test edit_03_set_sdt_content ... ok
+test edit_03_delete_range_over_note_ref_drops_the_entry ... ok
+test edit_03_sdt_locked_and_bound_are_refused ... ok
+test new_block_math_para ... ok
+test edit_03_remove_note ... ok
+test text_patch_comment_keeps_bold ... ok
+test text_patch_footnote_keeps_bold_and_hyperlink ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/notes.rs (target/debug/deps/notes-6a637d50be6d27b9)
+
+running 10 tests
+test edit_05_failed_add_comment_rolls_back_the_new_part ... ok
+test mod_10_comments_from_corpus ... ok
+test mod_01_note_and_comment_entries_carry_blocks ... ok
+test edit_03_remove_comment_clears_entry_markers_and_reference ... ok
+test edit_03_set_comment_text_and_resolved_state ... ok
+test mod_10_comments_join_extended_and_ids ... ok
+test edit_06_two_comments_get_different_ids ... ok
+test mod_10_notes_skip_structural_entries_and_trim_first_line ... ok
+test mod_01_note_and_comment_blocks_across_the_corpus ... ok
+test mod_10_comments_and_notes_across_the_corpus ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.90s
+
+     Running tests/package.rs (target/debug/deps/package-7ab99d4734b5a57d)
+
+running 10 tests
+test pkg_01_unicode_path_shadow_resolves_by_header_name ... ok
+test pkg_04_missing_content_types_is_a_diagnostic ... ok
+test pkg_09_namespace_context_from_root ... ok
+test pkg_03_non_ooxml_inputs ... ok
+test pkg_03_main_part_via_office_document_relationship ... ok
+test pkg_11_unparseable_parts ... ok
+test pkg_11_entries_keep_zip_order_and_parts_parse ... ok
+test pkg_08_flavor_classification ... ok
+test pkg_02_limits_are_checked_before_decompression ... ok
+test pkg_open_all_synthetic_corpus ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
+
+     Running tests/para_ops.rs (target/debug/deps/para_ops-b98ce176f45c197d)
+
+running 17 tests
+test edit_03_split_across_a_transparent_field_is_refused ... ok
+test edit_03_merge_with_next_needs_a_following_paragraph ... ok
+test edit_03_add_collapsed_bookmark ... ok
+test edit_03_remove_bookmark ... ok
+test edit_06_add_bookmark_allocates_ids_and_refuses_duplicate_names ... ok
+test edit_03_split_paragraph_in_the_middle_of_a_run ... ok
+test edit_03_merge_with_next_keeps_the_first_paragraph_props ... ok
+test edit_03_split_paragraph_at_a_run_boundary ... ok
+test fld_07_set_link_target_only_rewrites_the_instruction ... ok
+test fld_07_set_field_result_props_only_touches_the_result ... ok
+test fld_12_insert_field_emits_the_five_runs_in_order ... ok
+test fld_09_update_block_field_and_lock ... ok
+test fld_07_set_link_target_on_a_hyperlink_element ... ok
+test fld_10_set_form_text ... ok
+test span_06_merge_relocates_anchors_from_the_second_paragraph ... ok
+test span_06_split_moves_anchors_to_the_tail_paragraph ... ok
+test fld_10_toggle_checkbox ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/props.rs (target/debug/deps/props-816880c927a7619b)
+
+running 6 tests
+test prop_07_run_props_roundtrip_on_corpus ... ok
+test prop_07_para_props_roundtrip_on_corpus ... ok
+test prop_07_section_props_roundtrip_on_corpus ... ok
+test prop_07_row_props_roundtrip_on_corpus ... ok
+test prop_07_cell_props_roundtrip_on_corpus ... ok
+test prop_07_table_props_roundtrip_on_corpus ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.52s
+
+     Running tests/public_api.rs (target/debug/deps/public_api-bd0585944ca00434)
+
+running 2 tests
+test bind_11_diagnostic_codes_are_append_only ... ok
+test bind_11_public_protocol_and_core_api_save_identically ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/random_ops.rs (target/debug/deps/random_ops-9a768a81bb9b44c9)
+
+running 9 tests
+test test_07_invariant_gate_reads_package_diagnostics ... ok
+test test_07_settings_projection_survives_rejected_edit ... ok
+test test_07_refused_edit_preserves_warning_projection ... ok
+test test_07_refused_comment_does_not_create_parts ... ok
+test test_07_valid_comment_preserves_boundary_whitespace ... ok
+test test_07_rejected_edit_does_not_consume_revision_ids ... ok
+test test_07_fingerprint_deep_wrappers_keep_both_views ... ok
+test test_07_reject_grid_keeps_later_untracked_column ... ok
+test test_07_random_edit_sequences ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 48.83s
+
+     Running tests/real_edits.rs (target/debug/deps/real_edits-525ed42b6dcc78b7)
+
+running 1 test
+test generate_edited_real_documents ... ignored, 写 corpus/real/_roundtrip/edited/，手动运行
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/resolve.rs (target/debug/deps/resolve-70c8156233417ee0)
+
+running 3 tests
+test res_05_drawingml_colors_resolve_across_the_corpus ... ok
+test res_02_style_display_matches_ts ... ok
+test res_04_toggle_ambiguity_probe ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.21s
+
+     Running tests/resolve_fixtures.rs (target/debug/deps/resolve_fixtures-e372e5a736df34ae)
+
+running 9 tests
+test res_04_direct_off ... ok
+test res_04_docdefaults_and_para_off ... ok
+test res_04_based_on_two_levels ... ok
+test res_04_docdefaults_and_para ... ok
+test res_04_para_and_char ... ok
+test res_12_every_fixture_directory_is_registered ... ok
+test res_10_sections_inherit_default ... ok
+test res_04_table_first_row ... ok
+test res_04_other_toggles ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/resolve_table.rs (target/debug/deps/resolve_table-1a4e02f31a7d8ddb)
+
+running 6 tests
+test res_08_tbl_look_attributes_beat_bits_beat_defaults ... ok
+test res_08_borders_and_margins_fall_back_to_the_style ... ok
+test res_03_table_style_layer_sits_between_para_and_char_styles ... ok
+test res_08_conditional_formats_follow_tbl_look ... ok
+test res_08_column_widths_match_ts_on_the_corpus ... ok
+test res_08_row_height_is_clamped ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.87s
+
+     Running tests/revision_grid.rs (target/debug/deps/revision_grid-3c245c65a0ca8238)
+
+running 2 tests
+test save_02_reject_inconsistent_grid_snapshot_is_atomic ... ok
+test edit_03_reject_insert_preserves_current_column_widths ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/revisions.rs (target/debug/deps/revisions-914e818c48a34b73)
+
+running 23 tests
+test edit_06_max_revision_id_is_package_wide ... ok
+test inner_first_ins_wrapping_del ... ok
+test edit_03_set_track_revisions ... ok
+test mod_09_inner_first_order ... ok
+test accept_one_revision ... ok
+test mod_09_by_author ... ok
+test mod_09_nested_wrappers_depth ... ok
+test mod_09_content_wrappers_accept_reject ... ok
+test accept_all_filters_by_author ... ok
+test mod_09_unpaired_move_diagnostic ... ok
+test mod_09_move_pairs ... ok
+test mod_09_para_marks_accept_reject ... ok
+test mod_13_ids_start_at_zero_without_session ... ok
+test para_mark_delete_accept_merges ... ok
+test mod_09_props_changes_accept_reject ... ok
+test mod_09_run_wrappers_accept_reject ... ok
+test reject_run_props_change_restores_unmodeled_children ... ok
+test mod_13_revision_ids_survive_refresh ... ok
+test test_09_hostile_revision_documents ... ok
+test move_revision_accept_and_reject ... ok
+test mod_09_table_revisions_accept_reject ... ok
+test gate_3_word_accept_reject_fixtures ... ok
+test gate_2_accept_reject_all_corpus ... ok
+
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.50s
+
+     Running tests/roundtrip_samples.rs (target/debug/deps/roundtrip_samples-2a9ce0b81b28582a)
+
+running 1 test
+test generate_roundtrip_samples ... ignored, 写 corpus/real/_roundtrip/，手动运行
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/save.rs (target/debug/deps/save-f2d1b0940f000538)
+
+running 3 tests
+test save_06_untouched_entries_keep_crc_and_compressed_bytes ... ok
+test save_01_no_edit_returns_original_bytes_for_all_corpus ... ok
+test test_04_single_node_edit_roundtrips_on_every_synthetic_doc ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.84s
+
+     Running tests/save_blocks.rs (target/debug/deps/save_blocks-837d12a16ada034f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/save_options.rs (target/debug/deps/save_options-35e62af2b143cf73)
+
+running 19 tests
+test save_07_hf_slots_cover_all_six_variants ... ok
+test save_01_unchanged_document_returns_original_bytes ... ok
+test save_07_flag_written_into_existing_settings ... ok
+test save_07_page_color_also_opts_in_via_settings ... ok
+test save_07_header_option_merges_surgically ... ok
+test save_07_document_flag_and_explicit_false ... ok
+test save_07_personal_info_alone_keeps_dates ... ok
+test save_07_hf_all_sections_propagates_only_new_parts ... ok
+test save_07_protection_options ... ok
+test save_07_saved_at_stamps_core_props_only ... ok
+test save_07_remove_date_and_time_drops_annotation_dates ... ok
+test save_07_section_options_need_an_existing_sect_pr ... ok
+test save_07_section_start_type_page_numbers_and_title_page ... ok
+test save_07_section_settings_rewrite_page_setup ... ok
+test save_07_section_hf_targets_one_section ... ok
+test save_07_style_upserts_replace_or_append ... ok
+test save_07_remove_personal_info_scrubs_the_whole_package ... ok
+test save_07_section_settings_borders_and_columns ... ok
+test save_07_watermark_option_alone_and_with_content ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/save_validate.rs (target/debug/deps/save_validate-748994f23eca78f7)
+
+running 2 tests
+test save_02_misordered_new_child_fails_save_in_debug_builds ... ok
+test save_03_strict_document_stays_strict_after_edit ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/sdt.rs (target/debug/deps/sdt-264a9d47cc6ba41f)
+
+running 6 tests
+test mod_08_acceptance_data_binding_and_content_lock ... ok
+test mod_08_refusing_sdt_walks_ancestors ... ok
+test mod_08_locks_and_defaults ... ok
+test mod_08_control_kinds_ignore_the_prefix ... ok
+test edit_03_locked_and_bound_sdt_refuse_edits_without_touching_state ... ok
+test mod_08_corpus_sdt_reads ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.77s
+
+     Running tests/section.rs (target/debug/deps/section-66eabef3e6096ff9)
+
+running 6 tests
+test mod_10_implicit_section_when_the_document_has_no_sect_pr ... ok
+test res_10_section_of_maps_nodes_to_sections ... ok
+test res_10_second_section_inherits_header_reference ... ok
+test mod_09_sect_props_change_attaches_to_the_section ... ok
+test res_10_variant_for_page_has_no_fallback_to_default ... ok
+test mod_10_section_count_matches_ts_read_sections_on_corpus ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.95s
+
+     Running tests/section_break.rs (target/debug/deps/section_break-349a438de645fc68)
+
+running 8 tests
+test insert_section_break_in_a_cell_is_refused ... ok
+test delete_body_level_section_is_refused ... ok
+test insert_section_break_writes_type_on_the_second_section ... ok
+test edit_03_insert_section_break ... ok
+test delete_section_break_round_trips ... ok
+test insert_section_break_keeps_header_references ... ok
+test xml_12_move_block_across_parts ... ok
+test word_ops_delete_break_matches_word ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/span.rs (target/debug/deps/span-ac15d663067e9567)
+
+running 29 tests
+test span_04_collapsed_bookmark_shares_one_boundary ... ok
+test span_04_cross_flow_pairing_is_refused ... ok
+test span_04_duplicate_start_is_reported_and_nests ... ok
+test span_04_comment_range_picks_up_its_reference_run ... ok
+test span_03_permission_and_move_ranges_carry_their_facts ... ok
+test span_04_bookmark_across_three_paragraphs ... ok
+test span_01_content_sequence_skips_props_and_markers ... ok
+test span_04_reference_only_comment_is_a_collapsed_span_without_markers ... ok
+test span_04_markers_inside_ins_belong_to_the_ins_container ... ok
+test span_04_orphan_end_and_unclosed_start_are_pre_existing_damage ... ok
+test span_05_document_order_across_containers ... ok
+test span_06_deleting_a_paragraph_moves_its_bookmark_out_to_the_body ... ok
+test span_06_inserting_a_block_shifts_body_anchors ... ok
+test span_06_insert_into_an_existing_run_does_not_move_anchors ... ok
+test span_06_replace_inlines_rescans_the_container ... ok
+test span_06_delete_across_the_start_moves_it_to_the_delete_point ... ok
+test span_06_insert_at_the_start_boundary_lands_outside_the_range ... ok
+test span_06_insert_inside_the_range_extends_it ... ok
+test span_06_rollback_restores_the_index ... ok
+test span_07_keep_orphan_comments_collapses_instead ... ok
+test span_08_implicit_comment_never_gets_markers ... ok
+test span_09_hostile_orphan_end_saves_successfully ... ok
+test span_07_whole_range_delete_collapses_a_bookmark_and_removes_a_comment ... ok
+test span_08_marker_reappears_where_the_anchor_moved ... ok
+test span_08_boundary_insert_moves_the_start_marker ... ok
+test span_09_engine_dropped_end_voids_the_range ... ok
+test span_08_unmoved_markers_keep_their_bytes ... ok
+test span_09_pre_existing_damage_keeps_its_bytes ... ok
+test span_04_every_marker_in_the_corpus_is_accounted_for ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s
+
+     Running tests/table.rs (target/debug/deps/table-9d9e521ba4e8a820)
+
+running 8 tests
+test mod_07_table_shape_diagnostics_keep_the_model ... ok
+test mod_09_table_revisions_attach_to_table_row_and_cell ... ok
+test mod_07_sdt_wrapped_rows_and_cells_tbl_pr_ex_and_declared_grid ... ok
+test mod_13_blocks_paragraphs_and_block_path_reach_into_cells ... ok
+test mod_09_corpus_table_revisions ... ok
+test mod_07_sixty_five_levels_the_65th_is_too_deep ... ok
+test test_09_hostile_deep_table_parses_degrades_and_saves_identical ... ok
+test mod_07_corpus_rows_and_cells_match_ts ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+     Running tests/table_ops.rs (target/debug/deps/table_ops-858bb6bf721cc843)
+
+running 13 tests
+test edit_03_delete_row_promotes_the_next_vmerge_continue ... ok
+test edit_03_insert_row_drops_a_vmerge_continue_from_the_template ... ok
+test edit_03_merge_cells_horizontal_only_removes_the_extra_cells ... ok
+test edit_03_delete_column_shrinks_spans_and_removes_cells ... ok
+test edit_03_insert_column_widens_a_spanned_cell_and_moves_bookmarks ... ok
+test save_02_grid_mismatch_is_ours_only ... ok
+test edit_03_insert_new_table ... ok
+test edit_03_insert_row_clones_the_template ... ok
+test test_09_hostile_cell_without_paragraph ... ok
+test edit_03_merge_cells_two_by_two ... ok
+test test_09_hostile_table_grid_mismatch ... ok
+test edit_05_table_ops_reject_bad_geometry_without_touching_state ... ok
+test test_07_random_table_edit_sequences ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.77s
+
+     Running tests/tracked_ops.rs (target/debug/deps/tracked_ops-98c4f2327e9811ee)
+
+running 47 tests
+test edit_03_insert_makes_w_ins ... ok
+test edit_03_tracked_insert_paragraph ... ok
+test edit_03_tracked_delete_table_marks_rows ... ok
+test edit_03_tracked_delete_row ... ok
+test edit_03_tracked_delete_paragraph_keeps_it ... ok
+test edit_03_tracked_delete_keeps_text ... ok
+test edit_03_tracked_insert_column ... ok
+test edit_03_tracked_delete_column ... ok
+test edit_03_tracked_merge_marks_paragraph ... ok
+test edit_03_tracked_insert_table ... ok
+test edit_03_tracked_section_props ... ok
+test edit_03_tracked_insert_row ... ok
+test insert_inside_deleted_is_refused ... ok
+test edit_03_tracked_table_props_changes ... ok
+test oracle_merge_with_next ... ok
+test oracle_set_para_props ... ok
+test oracle_replace_inlines ... ok
+test oracle_delete_range ... ok
+test other_author_insert_splits_outer_ins ... ok
+test other_author_delete_nests_del_in_ins ... ok
+test oracle_split_paragraph ... ok
+test rev_not_tracked_is_recorded_but_the_op_runs ... ok
+test same_author_delete_own_insertion ... ok
+test revision_ids_are_unique ... ok
+test same_author_insert_inside_own_ins ... ok
+test oracle_set_run_props ... ok
+test span_08_caption_pending_bookmark_roundtrip ... ok
+test span_02_new_empty_comment_tracks_both_endpoints ... ok
+test test_07_fingerprint_diff_preserves_multibyte_error_context ... ok
+test span_06_accept_wrapper_keeps_bookmark_identity ... ok
+test test_07_outer_bookmark_cannot_create_a_rejected_paragraph ... ok
+test oracle_insert_text ... ok
+test tracked_move_and_merge_are_refused ... ok
+test tracked_insert_xml_block_wraps_at_block_level ... ok
+test tracked_insert_field_wraps_in_ins ... ok
+test tracked_para_props_records_old ... ok
+test tracked_run_props_records_old ... ok
+test span_06_comments_survive_insertion_near_atomic_field ... ok
+test tracked_replace_inlines_diffs_to_run_boundaries ... ok
+test tracked_set_form_text ... ok
+test tracked_set_header_footer_marks_the_part ... ok
+test tracked_replace_image_media ... ok
+test tracked_set_link_target_marks_instruction ... ok
+test span_08_fingerprint_uses_pending_anchor_positions ... ok
+test oracle_table_and_block_ops ... ok
+test gate_1_oracles_over_table_corpus ... ok
+test gate_1_oracles_over_corpus ... ok
+
+test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 26.70s
+
+     Running tests/twin_sync.rs (target/debug/deps/twin_sync-7957f690192e45c9)
+
+running 11 tests
+test editing_the_fallback_is_refused ... ok
+test new_line_positions_itself_from_two_points ... ok
+test new_shape_writes_the_preset_geometry ... ok
+test geometry_and_style_sync_the_vml_attributes ... ok
+test new_textbox_in_a_strict_package_has_no_vml ... ok
+test new_textbox_emits_a_choice_and_a_vml_twin ... ok
+test edits_outside_the_textbox_leave_the_twin_alone ... ok
+test editing_the_choice_textbox_syncs_the_vml_twin ... ok
+test set_textbox_content_replaces_both_branches ... ok
+test structural_edits_in_a_textbox_sync_the_twin ... ok
+test new_shapes_classify_as_anchored_drawings ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/xml_roundtrip.rs (target/debug/deps/xml_roundtrip-53ae8270a485920f)
+
+running 1 test
+test xml_13_clean_roundtrip_all_corpus ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.76s
+
+     Running unittests src/lib.rs (target/debug/deps/rsword_agent_query-f083e3e3db23a20a)
+
+running 12 tests
+test edit::agent_07_audit_tests::move_blocks ... ok
+test edit::agent_07_audit_tests::insert ... ok
+test edit::agent_07_audit_tests::comment ... ok
+test edit::agent_07_audit_tests::delete ... ok
+test edit::agent_07_audit_tests::image ... ok
+test edit::agent_07_audit_tests::header ... ok
+test edit::agent_07_audit_tests::column ... ok
+test edit::agent_07_audit_tests::replace ... ok
+test output::tests::agent_10_failed_second_publication_restores_first ... ok
+test edit::agent_07_audit_tests::toc ... ok
+test edit::agent_07_audit_tests::style ... ok
+test edit::agent_07_audit_tests::revisions ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running unittests src/worker.rs (target/debug/deps/rsword_query_worker-74dd914184183efc)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/edit.rs (target/debug/deps/edit-57ede606e28feeda)
+
+running 23 tests
+test agent_07_duplicate_keys_are_rejected_before_edit ... ok
+test agent_07_action_table_matches_written_contract_and_fixed_tasks ... ok
+test agent_07_late_failure_restores_created_nodes_and_reports ... ok
+test agent_07_w2_level_two_heading_and_original_block_bytes ... ok
+test agent_07_media_mime_is_verified_before_version_advance ... ok
+test agent_07_compiled_all_uses_distinct_descending_positions ... ok
+test agent_07_presentation_and_normalized_original_guard ... ok
+test agent_07_ambiguity_all_order_and_untouched_bytes ... ok
+test agent_07_w1_body_scope_excludes_matching_headers ... ok
+test agent_07_w11_tracking_reject_view_equals_before ... ok
+test agent_07_zero_length_edit_cannot_cross_authorized_end ... ok
+test agent_07_w3_author_lock_preserves_other_author ... ok
+test agent_09_attachment_roundtrip_and_each_corruption_rejected ... ok
+test agent_08_budget_failure_and_report_expiry ... ok
+test agent_09_fingerprint_distinguishes_source_text ... ok
+test agent_07_w2_w5_w6_structured_operations ... ok
+test agent_07_w4_table_column_and_auxiliary_refusal ... ok
+test agent_07_w9_shared_image_and_external_audit ... ok
+test agent_07_w10_seven_original_blocks_move_intact ... ok
+test agent_07_w8_header_and_failed_batch_full_rollback ... ok
+test agent_08_preview_commit_and_audit_replay ... ok
+test agent_09_report_cursor_survives_edit_and_preview_cache_eviction ... ok
+test agent_09_oversized_report_rolls_back_after_candidate_edit ... ok
+
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.95s
+
+     Running tests/paging.rs (target/debug/deps/paging-ba331b30127dcacd)
+
+running 18 tests
+test agent_06_continuation_concatenates_independent_text_oracle ... ok
+test agent_06_cli_cursor_rejected_by_mcp ... ok
+test agent_06_auxiliary_model_flow_keeps_its_own_indices ... ok
+test agent_06_failed_batch_and_duplicate_media_version_boundary ... ok
+test agent_06_mcp_cursor_rejected_by_cli ... ok
+test agent_06_final_page_without_cursor_can_fit_after_rejected_prefix ... ok
+test agent_06_model_content_fields_cannot_bypass_explicit_scope ... ok
+test agent_06_model_selection_reuses_native_and_hides_outside_indices ... ok
+test agent_06_snapshot_wire_preserves_legacy_strings ... ok
+test agent_06_model_block_field_reference_closure ... ok
+test agent_06_file_two_processes ... ok
+test agent_06_version_changes_only_on_successful_writes ... ok
+test agent_06_file_reopen_fingerprint_and_fresh_anchors ... ok
+test agent_06_every_read_budget_includes_metadata_and_errors ... ok
+test agent_06_file_all_five_tools_share_codec ... ok
+test agent_06_all_readers_share_cursor_and_reject_cross_use ... ok
+test agent_06_preflight_and_indivisible_unit_errors ... ok
+test agent_06_text_pages_equal_full_projection_and_counts ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.87s
+
+     Running tests/query.rs (target/debug/deps/query-3d1dc70a89ad0a94)
+
+running 16 tests
+test agent_04_ready_write_cannot_overwrite_request ... ok
+test agent_04_normalization_source_intervals_and_unsupported_regex ... ok
+test agent_03_empty_groups_skipped_levels_and_duplicate_titles ... ok
+test agent_04_zero_length_and_pagination_keep_full_context ... ok
+test agent_04_find_preconditions_budget_and_authorized_context ... ok
+test agent_04_empty_and_adjacent_flow_end_ownership ... ok
+test agent_05_cell_window_and_surrogate_expansion ... ok
+test agent_05_field_detail_is_read_only_and_scope_bounded ... ok
+test agent_06_record_budget_and_cursor_integrity ... ok
+test agent_04_bad_pattern_precedes_one_ms_search_deadline ... ok
+test agent_04_timeout_kills_started_worker_and_reaps_pid ... ok
+test agent_04_zero_length_middle_and_end_affinities ... ok
+test agent_05_real_table_chart_and_media_details_match_model ... ok
+test agent_04_worker_limits_timeout_and_recovery ... ok
+test agent_03_real_outline_and_budget_measurement ... ok
+test agent_04_corpus_literal_and_regex_independent_oracles ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.66s
+
+     Running tests/transport.rs (target/debug/deps/transport-344f1258809739df)
+
+running 1 test
+test agent_06_shapes_charge_actual_bytes_and_share_minimum ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/rsword-a7df2b8930613dc7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli.rs (target/debug/deps/cli-5a08c3835d42a19b)
+
+running 25 tests
+test agent_10_cli_media ... ok
+test agent_10_cli_find ... ok
+test agent_10_cli_diff ... ok
+test agent_10_cli_context ... ok
+test agent_10_cli_check ... ok
+test agent_10_cli_model ... ok
+test agent_10_cli_outline ... ok
+test agent_10_cli_text ... ok
+test agent_10_cli_version ... ok
+test agent_10_cli_ops ... ok
+test agent_10_json_limits_fail_before_writing ... ok
+test agent_10_cli_preview ... ok
+test agent_10_large_error_and_ambiguous_candidates_are_bounded ... ok
+test agent_10_native_debug_is_audited_and_atomic ... ok
+test agent_10_cli_summary ... ok
+test agent_10_stdout_failure_rolls_back_published_files ... ok
+test agent_07_documented_find_anchor_scope_pipeline_runs ... ok
+test agent_10_tools_match_spec_and_cli_test_rows ... ok
+test agent_10_media_export_and_attachment_binding ... ok
+test agent_10_preview_report_continuation_and_commit_fingerprint ... ok
+test agent_10_write_failures_preserve_input_and_outputs ... ok
+test agent_04_find_page_counts_are_explicit_and_complete ... ok
+test agent_10_paging_cross_process_and_changed_file ... ok
+test agent_07_every_documented_request_runs_in_cli ... ok
+test agent_10_hostile_exact_corpus_and_named_refusals ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.38s
+
+     Running unittests src/lib.rs (target/debug/deps/rsword_js-83fdaf15982b2372)
+
+running 1 test
+test native::bind_01_wasm_shell_native_lifecycle ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running unittests src/lib.rs (target/debug/deps/rsword_mcp-c3c6d64b869fb3da)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/rsword_mcp-94b53d6124591027)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/mcp.rs (target/debug/deps/mcp-d882b590f1d659f9)
+
+running 24 tests
+test agent_10_check_no_session ... ok
+test agent_10_context_no_session ... ok
+test agent_10_diff_no_session ... ok
+test agent_10_edit_no_session ... ok
+test agent_10_add_media_no_session ... ok
+test agent_10_diff_owns_session_cursor_and_rejects_file_cursor ... ok
+test agent_10_integer_parameters_never_fall_back_or_panic ... ok
+test agent_10_find_no_session ... ok
+test agent_06_mcp_cross_shape_cursor_and_between_costs ... ok
+test agent_10_missing_session_test_rows_are_exact ... ok
+test agent_10_invalid_protocol_and_inputs_do_not_break_connection ... ok
+test agent_10_default_session_limit_is_32_and_reads_honor_version ... ok
+test agent_10_mcp_failed_edit_budget_is_atomic_and_cursor_stales_only_on_success ... ok
+test agent_10_model_no_session ... ok
+test agent_10_media_no_session ... ok
+test agent_10_outline_no_session ... ok
+test agent_10_preview_no_session ... ok
+test agent_10_save_no_session ... ok
+test agent_10_summary_no_session ... ok
+test agent_10_text_no_session ... ok
+test agent_10_stdout_failure_restores_saved_file ... ok
+test agent_10_mcp_table_schema_and_all_tools_end_to_end ... ok
+test agent_10_mcp_hostile_exact_named_refusals ... ok
+test agent_10_mcp_idle_limit_and_native_debug_version ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.70s
+
+     Running tests/memory.rs (target/debug/deps/memory-fd1b0bf3895d1b70)
+
+running 1 test
+test agent_10_close_and_idle_expiry_release_real_heap_and_reports ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.81s
+
+     Running unittests src/main.rs (target/debug/deps/xpath_assert-90e06fb54946908a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests rsword
+
+running 11 tests
+test crates/rsword/src/bind/native/json.rs - bind::native::json::model_json (line 609) ... ignored
+test crates/rsword/src/bind/native/json.rs - bind::native::json::set_if (line 555) ... ignored
+test crates/rsword/src/bind/native/json.rs - bind::native::json::set_some (line 539) ... ignored
+test crates/rsword/src/edit/ops.rs - edit::ops::table_props_op (line 1982) ... ignored
+test crates/rsword/src/model/macros.rs - model::macros::named_enum (line 9) ... ignored
+test crates/rsword/src/model/sdt.rs - model::sdt::sdt_enum (line 13) ... ignored
+test crates/rsword/src/resolve/toggle.rs - resolve::toggle::toggle_fields (line 19) ... ignored
+test crates/rsword/src/save/options/hf.rs - save::options::hf::hf_slots (line 31) ... ignored
+test crates/rsword/src/save/options/section.rs - save::options::section::patch_some (line 89) ... ignored
+test crates/rsword/src/save/options/settings.rs - save::options::settings::crypt_attrs (line 31) ... ignored
+test crates/rsword/src/save/options/settings.rs - save::options::settings::settings_flag (line 12) ... ignored
+
+test result: ok. 0 passed; 0 failed; 11 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests rsword_agent_query
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests rsword_js
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests rsword_mcp
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+## RUSTFLAGS=-D warnings cargo check -p rsword --lib
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+    Checking serde_json v1.0.151
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 8.82s
+## all gates passed

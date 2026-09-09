@@ -1,0 +1,19 @@
+=== zip integrity ===
+    testing: customXml/itemProps1.xml   OK
+    testing: customXml/item1.xml      OK
+    testing: customXml/_rels/item1.xml.rels   OK
+    testing: word/webSettings.xml     OK
+    testing: word/commentsExtensible.xml   OK
+No errors detected in compressed data of evidence/20260909T052808Z/word-authored/CASE-REPORT-01/checkpoints/CASE-REPORT-01-C05.docx.
+=== XML well-formedness ===
+document: OK
+comments: OK
+=== persisted markers ===
+TOC \o "1-3" \h \z \u
+<w:sectPr
+<w:sectPr
+CASE-REPORT-APPENDIX
+CASE-REPORT-REV-01
+<w:sectPr
+CASE-REPORT-COMMENT-END
+CASE-REPORT-COMMENT-END

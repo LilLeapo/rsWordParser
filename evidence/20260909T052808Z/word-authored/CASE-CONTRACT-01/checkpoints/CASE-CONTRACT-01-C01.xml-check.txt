@@ -1,0 +1,18 @@
+=== zip integrity ===
+    testing: word/styles.xml          OK
+    testing: word/webSettings.xml     OK
+    testing: word/fontTable.xml       OK
+    testing: docProps/core.xml        OK
+    testing: docProps/app.xml         OK
+No errors detected in compressed data of evidence/20260909T052808Z/word-authored/CASE-CONTRACT-01/checkpoints/CASE-CONTRACT-01-C01.docx.
+=== XML well-formedness ===
+document:OK
+=== paragraph styles ===
+   4 <w:pStyle w:val="1"
+   1 <w:pStyle w:val="2"
+=== anchors ===
+   1 CASE-CONTRACT-00
+   1 CASE-CONTRACT-END
+   1 CASE-CONTRACT-LINK
+   1 CASE-CONTRACT-PARTY-A
+   1 CASE-CONTRACT-XREF

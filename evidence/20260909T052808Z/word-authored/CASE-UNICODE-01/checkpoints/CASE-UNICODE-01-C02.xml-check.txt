@@ -1,0 +1,9 @@
+document.xml well-formed: PASS
+tabs=2
+manual-breaks=1
+nbsp=1
+bold-runs=1
+italic-runs=1
+underline-runs=1
+larger-font=1
+format-anchor=1

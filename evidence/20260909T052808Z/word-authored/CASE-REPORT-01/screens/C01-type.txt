@@ -1,0 +1,1 @@
+typed anchor and heading skeleton; heading text visible in screenshot

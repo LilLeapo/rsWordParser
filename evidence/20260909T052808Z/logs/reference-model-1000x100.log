@@ -1,0 +1,24 @@
+## reference_model exhaustive 4
+    Blocking waiting for file lock on build directory
+   Compiling rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.34s
+     Running tests/reference_model.rs (target/debug/deps/reference_model-6401576bdb327853)
+
+running 1 test
+reference-model exhaustive: 1554 sequences / 5910 operations / max 4 steps
+test test_07_exhaustive_one_to_four_step_sequences ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 2.44s
+
+exhaustive_exit=0
+## reference_model random 1000x100
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running tests/reference_model.rs (target/debug/deps/reference_model-6401576bdb327853)
+
+running 1 test
+reference-model random: 1000 seeds x 100 steps = 100000 operations, 9828 save/reopen cycles
+test test_07_reference_model_random_sequences_with_save_reopen ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 36.69s
+
+random_exit=0

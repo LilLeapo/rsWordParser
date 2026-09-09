@@ -1,0 +1,10 @@
+document.xml well-formed: PASS
+symbol-text=1
+symbol-elements=0
+bidi-text=1
+hebrew-text=1
+emoji-surrogate=1
+combining-mark=1
+tabs=2
+manual-breaks=1
+direct-format-runs=3

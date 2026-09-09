@@ -1,0 +1,10 @@
+document.xml and comments.xml well-formed: PASS
+w:ins=3
+w:del=1
+w:delText=1
+revision-insert-marker=0
+revision-delete-marker=1
+comment-range=1
+comment-marker=1
+txbxContent=4
+oMath=1

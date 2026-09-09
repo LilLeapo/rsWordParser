@@ -1,0 +1,75 @@
+=== zip integrity ===
+Archive:  evidence/20260909T052808Z/word-authored/CASE-REPORT-01/checkpoints/CASE-REPORT-01-C02.docx
+    testing: [Content_Types].xml      OK
+    testing: _rels/.rels              OK
+    testing: word/_rels/document.xml.rels   OK
+    testing: word/document.xml        OK
+    testing: word/footnotes.xml       OK
+    testing: word/endnotes.xml        OK
+    testing: word/header1.xml         OK
+    testing: word/header2.xml         OK
+    testing: word/footer1.xml         OK
+    testing: word/footer2.xml         OK
+    testing: word/header3.xml         OK
+    testing: word/footer3.xml         OK
+    testing: word/theme/theme1.xml    OK
+    testing: word/settings.xml        OK
+    testing: word/glossary/_rels/document.xml.rels   OK
+    testing: word/glossary/settings.xml   OK
+    testing: word/glossary/document.xml   OK
+    testing: word/styles.xml          OK
+    testing: word/glossary/webSettings.xml   OK
+    testing: word/glossary/fontTable.xml   OK
+    testing: word/fontTable.xml       OK
+    testing: docProps/core.xml        OK
+    testing: docProps/app.xml         OK
+    testing: customXml/itemProps1.xml   OK
+    testing: customXml/item1.xml      OK
+    testing: customXml/_rels/item1.xml.rels   OK
+    testing: word/webSettings.xml     OK
+    testing: word/glossary/styles.xml   OK
+No errors detected in compressed data of evidence/20260909T052808Z/word-authored/CASE-REPORT-01/checkpoints/CASE-REPORT-01-C02.docx.
+=== XML well-formedness ===
+word/document.xml: OK
+word/footnotes.xml: OK
+word/header1.xml: OK
+word/footer1.xml: OK
+=== relevant OOXML structure ===
+--- word/document.xml
+TOC \o "1-3" \h \z \u
+PAGEREF _Toc239855940 \h 
+PAGEREF _Toc239855941 \h 
+PAGEREF _Toc239855942 \h 
+PAGEREF _Toc239855943 \h 
+PAGEREF _Toc239855944 \h 
+PAGEREF _Toc239855945 \h 
+--- word/footnotes.xml
+<w:footnote w:type="separator" w:id="-1"
+<w:footnote w:type="continuationSeparator" w:id="0"
+<w:footnote w:id="1"
+CASE-REPORT-FOOTNOTE-END
+--- word/footer1.xml
+--- word/footer2.xml
+PAGE \* MERGEFORMAT 
+--- word/footer3.xml
+=== package parts ===
+     2763  01-01-1980 00:00   word/header3.xml
+     2763  01-01-1980 00:00   word/footer3.xml
+     8398  01-01-1980 00:00   word/theme/theme1.xml
+     3736  01-01-1980 00:00   word/settings.xml
+      685  01-01-1980 00:00   word/glossary/_rels/document.xml.rels
+     3317  01-01-1980 00:00   word/glossary/settings.xml
+     3264  01-01-1980 00:00   word/glossary/document.xml
+    48063  01-01-1980 00:00   word/styles.xml
+     1069  01-01-1980 00:00   word/glossary/webSettings.xml
+     1858  01-01-1980 00:00   word/glossary/fontTable.xml
+     1858  01-01-1980 00:00   word/fontTable.xml
+      747  01-01-1980 00:00   docProps/core.xml
+      715  01-01-1980 00:00   docProps/app.xml
+      341  01-01-1980 00:00   customXml/itemProps1.xml
+      289  01-01-1980 00:00   customXml/item1.xml
+      296  01-01-1980 00:00   customXml/_rels/item1.xml.rels
+     1069  01-01-1980 00:00   word/webSettings.xml
+    30141  01-01-1980 00:00   word/glossary/styles.xml
+---------                     -------
+   151991                     28 files

@@ -1,0 +1,1981 @@
+COMMAND: RUSTFLAGS=-D warnings cargo clippy --workspace --all-targets
+START_UTC: 2026-09-09T05:29:25Z
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.47
+   Compiling serde_core v1.0.229
+   Compiling winnow v1.0.4
+   Compiling serde v1.0.229
+   Compiling zmij v1.0.23
+   Compiling toml_writer v1.1.2+spec-1.1.0
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling crc32fast v1.5.1
+   Compiling serde_json v1.0.151
+    Checking equivalent v1.0.2
+    Checking memchr v2.8.3
+   Compiling thiserror v2.0.20
+    Checking hashbrown v0.17.1
+    Checking zlib-rs v0.6.7
+    Checking cfg-if v1.0.4
+    Checking flate2 v1.1.10
+    Checking indexmap v2.14.1
+    Checking typed-path v0.12.3
+   Compiling serde_spanned v1.1.1
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+    Checking itoa v1.0.18
+   Compiling toml v1.1.5+spec-1.1.0
+   Compiling syn v3.0.4
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.20
+    Checking zip v8.6.0
+   Compiling rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+error: this boolean expression contains a logic bug
+  --> crates/rsword/src/package/content_types.rs:59:35
+   |
+59 |                     debug_assert!(!matches!(dom.node(child).kind, NodeKind::Element(_)) || true);
+   |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: it would look like the following: `true`
+   |
+help: this expression can be optimized out by applying boolean operations to the outer expression
+  --> crates/rsword/src/package/content_types.rs:59:36
+   |
+59 |                     debug_assert!(!matches!(dom.node(child).kind, NodeKind::Element(_)) || true);
+   |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#overly_complex_bool_expr
+   = note: `-D clippy::overly-complex-bool-expr` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::overly_complex_bool_expr)]`
+   = note: this error originates in the macro `matches` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3127:9
+     |
+3127 | ...   true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.is_none() && self.sz.is_none() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.is_none() && self.sz.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+     = note: `-D clippy::nonminimal-bool` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::nonminimal_bool)]`
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3127:9
+     |
+3127 | ...   true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.is_none() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3127:9
+     |
+3127 |         true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3127:9
+     |
+3127 |         true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.color.is_none() && self.theme_color.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3127:9
+     |
+3127 | ...   true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.i...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.color.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3127:9
+     |
+3127 | ...   true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.i...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3191:9
+     |
+3191 |         true && self.val.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3191:9
+     |
+3191 |         true && self.val.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.theme_color.is_none() && self.theme_tint.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3191:9
+     |
+3191 |         true && self.val.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.theme_color.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3191:9
+     |
+3191 |         true && self.val.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3247:9
+     |
+3247 |         true && self.name.is_none() && self.uri.is_none() && self.val.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.name.is_none() && self.uri.is_none() && self.val.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3247:9
+     |
+3247 |         true && self.name.is_none() && self.uri.is_none() && self.val.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.name.is_none() && self.uri.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3247:9
+     |
+3247 |         true && self.name.is_none() && self.uri.is_none() && self.val.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.name.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3391:9
+     |
+3391 | ...   true && self.edit.is_none() && self.formatting.is_none() && self.enforcement.is_none() && self.algorithm_name.is_none() && self.hash_value.is_none() && self.salt_value.is_none() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.edit.is_none() && self.formatting.is_none() && self.enforcement.is_none() && self.algorithm_name.is_none() && self.hash_value.is_none() && self.salt_value.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3391:9
+     |
+3391 | ...   true && self.edit.is_none() && self.formatting.is_none() && self.enforcement.is_none() && self.algorithm_name.is_none() && self.hash_value.is_none() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.edit.is_none() && self.formatting.is_none() && self.enforcement.is_none() && self.algorithm_name.is_none() && self.hash_value.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3391:9
+     |
+3391 |         true && self.edit.is_none() && self.formatting.is_none() && self.enforcement.is_none() && self.algorithm_name.is_none() && self.h...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.edit.is_none() && self.formatting.is_none() && self.enforcement.is_none() && self.algorithm_name.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3391:9
+     |
+3391 |         true && self.edit.is_none() && self.formatting.is_none() && self.enforcement.is_none() && self.algorithm_name.is_none() && self.h...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.edit.is_none() && self.formatting.is_none() && self.enforcement.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3391:9
+     |
+3391 | ...   true && self.edit.is_none() && self.formatting.is_none() && self.enforcement.is_none() && self.algorithm_name.is_none() && self.has...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.edit.is_none() && self.formatting.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3391:9
+     |
+3391 | ...   true && self.edit.is_none() && self.formatting.is_none() && self.enforcement.is_none() && self.algorithm_name.is_none() && self.has...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.edit.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3439:9
+     |
+3439 |         true && self.val.is_none() && self.character_set.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.character_set.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3439:9
+     |
+3439 |         true && self.val.is_none() && self.character_set.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3495:9
+     |
+3495 |         true && self.id.is_none() && self.font_key.is_none() && self.subsetted.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.id.is_none() && self.font_key.is_none() && self.subsetted.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3495:9
+     |
+3495 |         true && self.id.is_none() && self.font_key.is_none() && self.subsetted.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.id.is_none() && self.font_key.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3495:9
+     |
+3495 |         true && self.id.is_none() && self.font_key.is_none() && self.subsetted.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.id.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3575:9
+     |
+3575 | ...   true && self.usb0.is_none() && self.usb1.is_none() && self.usb2.is_none() && self.usb3.is_none() && self.csb0.is_none() && self.csb1.is_none()
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.usb0.is_none() && self.usb1.is_none() && self.usb2.is_none() && self.usb3.is_none() && self.csb0.is_none() && self.csb1.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3575:9
+     |
+3575 |         true && self.usb0.is_none() && self.usb1.is_none() && self.usb2.is_none() && self.usb3.is_none() && self.csb0.is_none() && self.c...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.usb0.is_none() && self.usb1.is_none() && self.usb2.is_none() && self.usb3.is_none() && self.csb0.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3575:9
+     |
+3575 |         true && self.usb0.is_none() && self.usb1.is_none() && self.usb2.is_none() && self.usb3.is_none() && self.csb0.is_none() && self.c...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.usb0.is_none() && self.usb1.is_none() && self.usb2.is_none() && self.usb3.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3575:9
+     |
+3575 |         true && self.usb0.is_none() && self.usb1.is_none() && self.usb2.is_none() && self.usb3.is_none() && self.csb0.is_none() && self.c...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.usb0.is_none() && self.usb1.is_none() && self.usb2.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3575:9
+     |
+3575 | ...   true && self.usb0.is_none() && self.usb1.is_none() && self.usb2.is_none() && self.usb3.is_none() && self.csb0.is_none() && self.csb...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.usb0.is_none() && self.usb1.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3575:9
+     |
+3575 | ...   true && self.usb0.is_none() && self.usb1.is_none() && self.usb2.is_none() && self.usb3.is_none() && self.csb0.is_none() && self.csb...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.usb0.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3679:9
+     |
+3679 | ...   true && self.hint.is_none() && self.ascii.is_none() && self.h_ansi.is_none() && self.east_asia.is_none() && self.cs.is_none() && self.ascii_theme.is_none() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.hint.is_none() && self.ascii.is_none() && self.h_ansi.is_none() && self.east_asia.is_none() && self.cs.is_none() && self.ascii_theme.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3679:9
+     |
+3679 | ...   true && self.hint.is_none() && self.ascii.is_none() && self.h_ansi.is_none() && self.east_asia.is_none() && self.cs.is_none() && se...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.hint.is_none() && self.ascii.is_none() && self.h_ansi.is_none() && self.east_asia.is_none() && self.cs.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3679:9
+     |
+3679 |         true && self.hint.is_none() && self.ascii.is_none() && self.h_ansi.is_none() && self.east_asia.is_none() && self.cs.is_none() && ...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.hint.is_none() && self.ascii.is_none() && self.h_ansi.is_none() && self.east_asia.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3679:9
+     |
+3679 |         true && self.hint.is_none() && self.ascii.is_none() && self.h_ansi.is_none() && self.east_asia.is_none() && self.cs.is_none() && ...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.hint.is_none() && self.ascii.is_none() && self.h_ansi.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3679:9
+     |
+3679 | ...   true && self.hint.is_none() && self.ascii.is_none() && self.h_ansi.is_none() && self.east_asia.is_none() && self.cs.is_none() && se...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.hint.is_none() && self.ascii.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3679:9
+     |
+3679 | ...   true && self.hint.is_none() && self.ascii.is_none() && self.h_ansi.is_none() && self.east_asia.is_none() && self.cs.is_none() && se...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.hint.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3831:9
+     |
+3831 | ...   true && self.drop_cap.is_none() && self.lines.is_none() && self.w.is_none() && self.h.is_none() && self.v_space.is_none() && self.h_space.is_none() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.drop_cap.is_none() && self.lines.is_none() && self.w.is_none() && self.h.is_none() && self.v_space.is_none() && self.h_space.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3831:9
+     |
+3831 |         true && self.drop_cap.is_none() && self.lines.is_none() && self.w.is_none() && self.h.is_none() && self.v_space.is_none() && self...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.drop_cap.is_none() && self.lines.is_none() && self.w.is_none() && self.h.is_none() && self.v_space.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3831:9
+     |
+3831 |         true && self.drop_cap.is_none() && self.lines.is_none() && self.w.is_none() && self.h.is_none() && self.v_space.is_none() && self...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.drop_cap.is_none() && self.lines.is_none() && self.w.is_none() && self.h.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3831:9
+     |
+3831 |         true && self.drop_cap.is_none() && self.lines.is_none() && self.w.is_none() && self.h.is_none() && self.v_space.is_none() && self...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.drop_cap.is_none() && self.lines.is_none() && self.w.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3831:9
+     |
+3831 | ...   true && self.drop_cap.is_none() && self.lines.is_none() && self.w.is_none() && self.h.is_none() && self.v_space.is_none() && self.h...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.drop_cap.is_none() && self.lines.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3831:9
+     |
+3831 | ...   true && self.drop_cap.is_none() && self.lines.is_none() && self.w.is_none() && self.h.is_none() && self.v_space.is_none() && self.h...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.drop_cap.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3927:9
+     |
+3927 | ...   true && self.start.is_none() && self.start_chars.is_none() && self.end.is_none() && self.end_chars.is_none() && self.hanging.is_none() && self.hanging_chars.is_none() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.start.is_none() && self.start_chars.is_none() && self.end.is_none() && self.end_chars.is_none() && self.hanging.is_none() && self.hanging_chars.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3927:9
+     |
+3927 | ...   true && self.start.is_none() && self.start_chars.is_none() && self.end.is_none() && self.end_chars.is_none() && self.hanging.is_none() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.start.is_none() && self.start_chars.is_none() && self.end.is_none() && self.end_chars.is_none() && self.hanging.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3927:9
+     |
+3927 |         true && self.start.is_none() && self.start_chars.is_none() && self.end.is_none() && self.end_chars.is_none() && self.hanging.is_n...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.start.is_none() && self.start_chars.is_none() && self.end.is_none() && self.end_chars.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3927:9
+     |
+3927 |         true && self.start.is_none() && self.start_chars.is_none() && self.end.is_none() && self.end_chars.is_none() && self.hanging.is_n...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.start.is_none() && self.start_chars.is_none() && self.end.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3927:9
+     |
+3927 | ...   true && self.start.is_none() && self.start_chars.is_none() && self.end.is_none() && self.end_chars.is_none() && self.hanging.is_non...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.start.is_none() && self.start_chars.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3927:9
+     |
+3927 | ...   true && self.start.is_none() && self.start_chars.is_none() && self.end.is_none() && self.end_chars.is_none() && self.hanging.is_non...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.start.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3983:9
+     |
+3983 |         true && self.val.is_none() && self.east_asia.is_none() && self.bidi.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.east_asia.is_none() && self.bidi.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3983:9
+     |
+3983 |         true && self.val.is_none() && self.east_asia.is_none() && self.bidi.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.east_asia.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:3983:9
+     |
+3983 |         true && self.val.is_none() && self.east_asia.is_none() && self.bidi.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4039:9
+     |
+4039 |         true && self.legacy.is_none() && self.legacy_space.is_none() && self.legacy_indent.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.legacy.is_none() && self.legacy_space.is_none() && self.legacy_indent.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4039:9
+     |
+4039 |         true && self.legacy.is_none() && self.legacy_space.is_none() && self.legacy_indent.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.legacy.is_none() && self.legacy_space.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4039:9
+     |
+4039 |         true && self.legacy.is_none() && self.legacy_space.is_none() && self.legacy_indent.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.legacy.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4087:9
+     |
+4087 |         true && self.val.is_none() && self.null.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.null.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4087:9
+     |
+4087 |         true && self.val.is_none() && self.null.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4135:9
+     |
+4135 |         true && self.val.is_none() && self.format.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.format.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4135:9
+     |
+4135 |         true && self.val.is_none() && self.format.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4239:9
+     |
+4239 | ...   true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.is_none() && self.fill.is_none() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.is_none() && self.fill.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4239:9
+     |
+4239 | ...   true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.is_none() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4239:9
+     |
+4239 |         true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4239:9
+     |
+4239 |         true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.color.is_none() && self.theme_color.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4239:9
+     |
+4239 | ...   true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.i...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.color.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4239:9
+     |
+4239 | ...   true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.i...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4335:9
+     |
+4335 | ...   true && self.before.is_none() && self.before_lines.is_none() && self.before_autospacing.is_none() && self.after.is_none() && self.after_lines.is_none() && self.after_autospacing.is_none() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.before.is_none() && self.before_lines.is_none() && self.before_autospacing.is_none() && self.after.is_none() && self.after_lines.is_none() && self.after_autospacing.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4335:9
+     |
+4335 | ...   true && self.before.is_none() && self.before_lines.is_none() && self.before_autospacing.is_none() && self.after.is_none() && self.after_lines.is_none() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.before.is_none() && self.before_lines.is_none() && self.before_autospacing.is_none() && self.after.is_none() && self.after_lines.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4335:9
+     |
+4335 |         true && self.before.is_none() && self.before_lines.is_none() && self.before_autospacing.is_none() && self.after.is_none() && self...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.before.is_none() && self.before_lines.is_none() && self.before_autospacing.is_none() && self.after.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4335:9
+     |
+4335 |         true && self.before.is_none() && self.before_lines.is_none() && self.before_autospacing.is_none() && self.after.is_none() && self...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.before.is_none() && self.before_lines.is_none() && self.before_autospacing.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4335:9
+     |
+4335 | ...   true && self.before.is_none() && self.before_lines.is_none() && self.before_autospacing.is_none() && self.after.is_none() && self.a...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.before.is_none() && self.before_lines.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4335:9
+     |
+4335 | ...   true && self.before.is_none() && self.before_lines.is_none() && self.before_autospacing.is_none() && self.after.is_none() && self.a...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.before.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4391:9
+     |
+4391 |         true && self.val.is_none() && self.leader.is_none() && self.pos.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.leader.is_none() && self.pos.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4391:9
+     |
+4391 |         true && self.val.is_none() && self.leader.is_none() && self.pos.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.leader.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4391:9
+     |
+4391 |         true && self.val.is_none() && self.leader.is_none() && self.pos.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4447:9
+     |
+4447 |         true && self.val.is_none() && self.east_asia.is_none() && self.bidi.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.east_asia.is_none() && self.bidi.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4447:9
+     |
+4447 |         true && self.val.is_none() && self.east_asia.is_none() && self.bidi.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.east_asia.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4447:9
+     |
+4447 |         true && self.val.is_none() && self.east_asia.is_none() && self.bidi.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4519:9
+     |
+4519 | ...   true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.is_none()
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4519:9
+     |
+4519 |         true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4519:9
+     |
+4519 |         true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.color.is_none() && self.theme_color.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4519:9
+     |
+4519 | ...   true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.i...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.color.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4519:9
+     |
+4519 | ...   true && self.val.is_none() && self.color.is_none() && self.theme_color.is_none() && self.theme_tint.is_none() && self.theme_shade.i...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4647:9
+     |
+4647 | ...   true && self.recommended.is_none() && self.algorithm_name.is_none() && self.hash_value.is_none() && self.salt_value.is_none() && self.spin_count.is_none() && self.crypt_provider_type.is_none() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.recommended.is_none() && self.algorithm_name.is_none() && self.hash_value.is_none() && self.salt_value.is_none() && self.spin_count.is_none() && self.crypt_provider_type.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4647:9
+     |
+4647 | ...   true && self.recommended.is_none() && self.algorithm_name.is_none() && self.hash_value.is_none() && self.salt_value.is_none() && self.spin_count.is_none() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.recommended.is_none() && self.algorithm_name.is_none() && self.hash_value.is_none() && self.salt_value.is_none() && self.spin_count.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4647:9
+     |
+4647 | ...   true && self.recommended.is_none() && self.algorithm_name.is_none() && self.hash_value.is_none() && self.salt_value.is_none() && se...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.recommended.is_none() && self.algorithm_name.is_none() && self.hash_value.is_none() && self.salt_value.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4647:9
+     |
+4647 |         true && self.recommended.is_none() && self.algorithm_name.is_none() && self.hash_value.is_none() && self.salt_value.is_none() && ...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.recommended.is_none() && self.algorithm_name.is_none() && self.hash_value.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4647:9
+     |
+4647 |         true && self.recommended.is_none() && self.algorithm_name.is_none() && self.hash_value.is_none() && self.salt_value.is_none() && ...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.recommended.is_none() && self.algorithm_name.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4647:9
+     |
+4647 | ...   true && self.recommended.is_none() && self.algorithm_name.is_none() && self.hash_value.is_none() && self.salt_value.is_none() && se...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.recommended.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4695:9
+     |
+4695 |         true && self.val.is_none() && self.percent.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none() && self.percent.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4695:9
+     |
+4695 |         true && self.val.is_none() && self.percent.is_none()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.val.is_none()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4710:9
+     |
+4710 |         true && self.fonts == o.fonts
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.fonts == o.fonts`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4788:9
+     |
+4788 |         true && self.fonts.is_keep()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.fonts.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4918:9
+     |
+4918 | ...   true && self.name == o.name && self.alt_name == o.alt_name && self.panose1 == o.panose1 && self.charset == o.charset && self.family == o.family && self.not_true_type == o.not_true_type &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.name == o.name && self.alt_name == o.alt_name && self.panose1 == o.panose1 && self.charset == o.charset && self.family == o.family && self.not_true_type == o.not_true_type`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4918:9
+     |
+4918 | ...   true && self.name == o.name && self.alt_name == o.alt_name && self.panose1 == o.panose1 && self.charset == o.charset && self.family == o.family &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.name == o.name && self.alt_name == o.alt_name && self.panose1 == o.panose1 && self.charset == o.charset && self.family == o.family`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4918:9
+     |
+4918 |         true && self.name == o.name && self.alt_name == o.alt_name && self.panose1 == o.panose1 && self.charset == o.charset && self.fami...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.name == o.name && self.alt_name == o.alt_name && self.panose1 == o.panose1 && self.charset == o.charset`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4918:9
+     |
+4918 |         true && self.name == o.name && self.alt_name == o.alt_name && self.panose1 == o.panose1 && self.charset == o.charset && self.fami...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.name == o.name && self.alt_name == o.alt_name && self.panose1 == o.panose1`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4918:9
+     |
+4918 | ...   true && self.name == o.name && self.alt_name == o.alt_name && self.panose1 == o.panose1 && self.charset == o.charset && self.family...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.name == o.name && self.alt_name == o.alt_name`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:4918:9
+     |
+4918 | ...   true && self.name == o.name && self.alt_name == o.alt_name && self.panose1 == o.panose1 && self.charset == o.charset && self.family...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.name == o.name`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5114:9
+     |
+5114 | ...   true && self.name.is_keep() && self.alt_name.is_keep() && self.panose1.is_keep() && self.charset.is_keep() && self.family.is_keep() && self.not_true_type.is_keep() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.name.is_keep() && self.alt_name.is_keep() && self.panose1.is_keep() && self.charset.is_keep() && self.family.is_keep() && self.not_true_type.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5114:9
+     |
+5114 | ...   true && self.name.is_keep() && self.alt_name.is_keep() && self.panose1.is_keep() && self.charset.is_keep() && self.family.is_keep() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.name.is_keep() && self.alt_name.is_keep() && self.panose1.is_keep() && self.charset.is_keep() && self.family.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5114:9
+     |
+5114 |         true && self.name.is_keep() && self.alt_name.is_keep() && self.panose1.is_keep() && self.charset.is_keep() && self.family.is_keep...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.name.is_keep() && self.alt_name.is_keep() && self.panose1.is_keep() && self.charset.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5114:9
+     |
+5114 |         true && self.name.is_keep() && self.alt_name.is_keep() && self.panose1.is_keep() && self.charset.is_keep() && self.family.is_keep...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.name.is_keep() && self.alt_name.is_keep() && self.panose1.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5114:9
+     |
+5114 | ...   true && self.name.is_keep() && self.alt_name.is_keep() && self.panose1.is_keep() && self.charset.is_keep() && self.family.is_keep()...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.name.is_keep() && self.alt_name.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5114:9
+     |
+5114 | ...   true && self.name.is_keep() && self.alt_name.is_keep() && self.panose1.is_keep() && self.charset.is_keep() && self.family.is_keep()...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.name.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5329:9
+     |
+5329 |         true && self.abstract_nums == o.abstract_nums && self.nums == o.nums && self.num_id_mac_at_cleanup == o.num_id_mac_at_cleanup
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_nums == o.abstract_nums && self.nums == o.nums && self.num_id_mac_at_cleanup == o.num_id_mac_at_cleanup`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5329:9
+     |
+5329 |         true && self.abstract_nums == o.abstract_nums && self.nums == o.nums && self.num_id_mac_at_cleanup == o.num_id_mac_at_cleanup
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_nums == o.abstract_nums && self.nums == o.nums`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5329:9
+     |
+5329 |         true && self.abstract_nums == o.abstract_nums && self.nums == o.nums && self.num_id_mac_at_cleanup == o.num_id_mac_at_cleanup
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_nums == o.abstract_nums`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5426:9
+     |
+5426 |         true && self.abstract_nums.is_keep() && self.nums.is_keep() && self.num_id_mac_at_cleanup.is_keep()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_nums.is_keep() && self.nums.is_keep() && self.num_id_mac_at_cleanup.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5426:9
+     |
+5426 |         true && self.abstract_nums.is_keep() && self.nums.is_keep() && self.num_id_mac_at_cleanup.is_keep()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_nums.is_keep() && self.nums.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5426:9
+     |
+5426 |         true && self.abstract_nums.is_keep() && self.nums.is_keep() && self.num_id_mac_at_cleanup.is_keep()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_nums.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5562:9
+     |
+5562 | ...   true && self.abstract_num_id == o.abstract_num_id && self.nsid == o.nsid && self.multi_level_type == o.multi_level_type && self.tmpl == o.tmpl && self.name == o.name && self.style_link == o.style_link &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_num_id == o.abstract_num_id && self.nsid == o.nsid && self.multi_level_type == o.multi_level_type && self.tmpl == o.tmpl && self.name == o.name && self.style_link == o.style_link`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5562:9
+     |
+5562 | ...   true && self.abstract_num_id == o.abstract_num_id && self.nsid == o.nsid && self.multi_level_type == o.multi_level_type && self.tmpl == o.tmpl && self.name == o.name &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_num_id == o.abstract_num_id && self.nsid == o.nsid && self.multi_level_type == o.multi_level_type && self.tmpl == o.tmpl && self.name == o.name`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5562:9
+     |
+5562 | ...   true && self.abstract_num_id == o.abstract_num_id && self.nsid == o.nsid && self.multi_level_type == o.multi_level_type && self.tmpl == o.tmpl &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_num_id == o.abstract_num_id && self.nsid == o.nsid && self.multi_level_type == o.multi_level_type && self.tmpl == o.tmpl`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5562:9
+     |
+5562 |         true && self.abstract_num_id == o.abstract_num_id && self.nsid == o.nsid && self.multi_level_type == o.multi_level_type && self.t...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_num_id == o.abstract_num_id && self.nsid == o.nsid && self.multi_level_type == o.multi_level_type`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5562:9
+     |
+5562 |         true && self.abstract_num_id == o.abstract_num_id && self.nsid == o.nsid && self.multi_level_type == o.multi_level_type && self.t...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_num_id == o.abstract_num_id && self.nsid == o.nsid`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5562:9
+     |
+5562 | ...   true && self.abstract_num_id == o.abstract_num_id && self.nsid == o.nsid && self.multi_level_type == o.multi_level_type && self.tmp...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_num_id == o.abstract_num_id`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5710:9
+     |
+5710 | ...   true && self.abstract_num_id.is_keep() && self.nsid.is_keep() && self.multi_level_type.is_keep() && self.tmpl.is_keep() && self.name.is_keep() && self.style_link.is_keep() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_num_id.is_keep() && self.nsid.is_keep() && self.multi_level_type.is_keep() && self.tmpl.is_keep() && self.name.is_keep() && self.style_link.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5710:9
+     |
+5710 | ...   true && self.abstract_num_id.is_keep() && self.nsid.is_keep() && self.multi_level_type.is_keep() && self.tmpl.is_keep() && self.name.is_keep() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_num_id.is_keep() && self.nsid.is_keep() && self.multi_level_type.is_keep() && self.tmpl.is_keep() && self.name.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5710:9
+     |
+5710 |         true && self.abstract_num_id.is_keep() && self.nsid.is_keep() && self.multi_level_type.is_keep() && self.tmpl.is_keep() && self.n...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_num_id.is_keep() && self.nsid.is_keep() && self.multi_level_type.is_keep() && self.tmpl.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5710:9
+     |
+5710 |         true && self.abstract_num_id.is_keep() && self.nsid.is_keep() && self.multi_level_type.is_keep() && self.tmpl.is_keep() && self.n...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_num_id.is_keep() && self.nsid.is_keep() && self.multi_level_type.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5710:9
+     |
+5710 | ...   true && self.abstract_num_id.is_keep() && self.nsid.is_keep() && self.multi_level_type.is_keep() && self.tmpl.is_keep() && self.nam...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_num_id.is_keep() && self.nsid.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5710:9
+     |
+5710 | ...   true && self.abstract_num_id.is_keep() && self.nsid.is_keep() && self.multi_level_type.is_keep() && self.tmpl.is_keep() && self.nam...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.abstract_num_id.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5903:9
+     |
+5903 | ...   true && self.ilvl == o.ilvl && self.tplc == o.tplc && self.tentative == o.tentative && self.start == o.start && self.num_fmt == o.num_fmt && self.lvl_restart == o.lvl_restart &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl == o.ilvl && self.tplc == o.tplc && self.tentative == o.tentative && self.start == o.start && self.num_fmt == o.num_fmt && self.lvl_restart == o.lvl_restart`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5903:9
+     |
+5903 | ...   true && self.ilvl == o.ilvl && self.tplc == o.tplc && self.tentative == o.tentative && self.start == o.start && self.num_fmt == o.num_fmt &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl == o.ilvl && self.tplc == o.tplc && self.tentative == o.tentative && self.start == o.start && self.num_fmt == o.num_fmt`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5903:9
+     |
+5903 |         true && self.ilvl == o.ilvl && self.tplc == o.tplc && self.tentative == o.tentative && self.start == o.start && self.num_fmt == o...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl == o.ilvl && self.tplc == o.tplc && self.tentative == o.tentative && self.start == o.start`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5903:9
+     |
+5903 |         true && self.ilvl == o.ilvl && self.tplc == o.tplc && self.tentative == o.tentative && self.start == o.start && self.num_fmt == o...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl == o.ilvl && self.tplc == o.tplc && self.tentative == o.tentative`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5903:9
+     |
+5903 | ...   true && self.ilvl == o.ilvl && self.tplc == o.tplc && self.tentative == o.tentative && self.start == o.start && self.num_fmt == o.n...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl == o.ilvl && self.tplc == o.tplc`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:5903:9
+     |
+5903 | ...   true && self.ilvl == o.ilvl && self.tplc == o.tplc && self.tentative == o.tentative && self.start == o.start && self.num_fmt == o.n...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl == o.ilvl`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6116:9
+     |
+6116 | ...   true && self.ilvl.is_keep() && self.tplc.is_keep() && self.tentative.is_keep() && self.start.is_keep() && self.num_fmt.is_keep() && self.lvl_restart.is_keep() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl.is_keep() && self.tplc.is_keep() && self.tentative.is_keep() && self.start.is_keep() && self.num_fmt.is_keep() && self.lvl_restart.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6116:9
+     |
+6116 | ...   true && self.ilvl.is_keep() && self.tplc.is_keep() && self.tentative.is_keep() && self.start.is_keep() && self.num_fmt.is_keep() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl.is_keep() && self.tplc.is_keep() && self.tentative.is_keep() && self.start.is_keep() && self.num_fmt.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6116:9
+     |
+6116 |         true && self.ilvl.is_keep() && self.tplc.is_keep() && self.tentative.is_keep() && self.start.is_keep() && self.num_fmt.is_keep() ...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl.is_keep() && self.tplc.is_keep() && self.tentative.is_keep() && self.start.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6116:9
+     |
+6116 |         true && self.ilvl.is_keep() && self.tplc.is_keep() && self.tentative.is_keep() && self.start.is_keep() && self.num_fmt.is_keep() ...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl.is_keep() && self.tplc.is_keep() && self.tentative.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6116:9
+     |
+6116 | ...   true && self.ilvl.is_keep() && self.tplc.is_keep() && self.tentative.is_keep() && self.start.is_keep() && self.num_fmt.is_keep() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl.is_keep() && self.tplc.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6116:9
+     |
+6116 | ...   true && self.ilvl.is_keep() && self.tplc.is_keep() && self.tentative.is_keep() && self.start.is_keep() && self.num_fmt.is_keep() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6365:9
+     |
+6365 |         true && self.num_id == o.num_id && self.abstract_num_id == o.abstract_num_id && self.overrides == o.overrides
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.num_id == o.num_id && self.abstract_num_id == o.abstract_num_id && self.overrides == o.overrides`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6365:9
+     |
+6365 |         true && self.num_id == o.num_id && self.abstract_num_id == o.abstract_num_id && self.overrides == o.overrides
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.num_id == o.num_id && self.abstract_num_id == o.abstract_num_id`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6365:9
+     |
+6365 |         true && self.num_id == o.num_id && self.abstract_num_id == o.abstract_num_id && self.overrides == o.overrides
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.num_id == o.num_id`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6458:9
+     |
+6458 |         true && self.num_id.is_keep() && self.abstract_num_id.is_keep() && self.overrides.is_keep()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.num_id.is_keep() && self.abstract_num_id.is_keep() && self.overrides.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6458:9
+     |
+6458 |         true && self.num_id.is_keep() && self.abstract_num_id.is_keep() && self.overrides.is_keep()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.num_id.is_keep() && self.abstract_num_id.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6458:9
+     |
+6458 |         true && self.num_id.is_keep() && self.abstract_num_id.is_keep() && self.overrides.is_keep()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.num_id.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6592:9
+     |
+6592 |         true && self.ilvl == o.ilvl && self.start_override == o.start_override && self.lvl == o.lvl
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl == o.ilvl && self.start_override == o.start_override && self.lvl == o.lvl`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6592:9
+     |
+6592 |         true && self.ilvl == o.ilvl && self.start_override == o.start_override && self.lvl == o.lvl
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl == o.ilvl && self.start_override == o.start_override`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6592:9
+     |
+6592 |         true && self.ilvl == o.ilvl && self.start_override == o.start_override && self.lvl == o.lvl
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl == o.ilvl`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6689:9
+     |
+6689 |         true && self.ilvl.is_keep() && self.start_override.is_keep() && self.lvl.is_keep()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl.is_keep() && self.start_override.is_keep() && self.lvl.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6689:9
+     |
+6689 |         true && self.ilvl.is_keep() && self.start_override.is_keep() && self.lvl.is_keep()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl.is_keep() && self.start_override.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6689:9
+     |
+6689 |         true && self.ilvl.is_keep() && self.start_override.is_keep() && self.lvl.is_keep()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6864:9
+     |
+6864 | ...   true && self.style == o.style && self.keep_next == o.keep_next && self.keep_lines == o.keep_lines && self.page_break_before == o.page_break_before && self.frame == o.frame && self.widow_control == o.widow_control &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style == o.style && self.keep_next == o.keep_next && self.keep_lines == o.keep_lines && self.page_break_before == o.page_break_before && self.frame == o.frame && self.widow_control == o.widow_control`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6864:9
+     |
+6864 | ...   true && self.style == o.style && self.keep_next == o.keep_next && self.keep_lines == o.keep_lines && self.page_break_before == o.page_break_before && self.frame == o.frame &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style == o.style && self.keep_next == o.keep_next && self.keep_lines == o.keep_lines && self.page_break_before == o.page_break_before && self.frame == o.frame`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6864:9
+     |
+6864 | ...   true && self.style == o.style && self.keep_next == o.keep_next && self.keep_lines == o.keep_lines && self.page_break_before == o.page_break_before &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style == o.style && self.keep_next == o.keep_next && self.keep_lines == o.keep_lines && self.page_break_before == o.page_break_before`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6864:9
+     |
+6864 |         true && self.style == o.style && self.keep_next == o.keep_next && self.keep_lines == o.keep_lines && self.page_break_before == o....
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style == o.style && self.keep_next == o.keep_next && self.keep_lines == o.keep_lines`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6864:9
+     |
+6864 |         true && self.style == o.style && self.keep_next == o.keep_next && self.keep_lines == o.keep_lines && self.page_break_before == o....
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style == o.style && self.keep_next == o.keep_next`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:6864:9
+     |
+6864 | ...   true && self.style == o.style && self.keep_next == o.keep_next && self.keep_lines == o.keep_lines && self.page_break_before == o.pa...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style == o.style`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7200:9
+     |
+7200 | ...   true && self.style.is_keep() && self.keep_next.is_keep() && self.keep_lines.is_keep() && self.page_break_before.is_keep() && self.frame.is_keep() && self.widow_control.is_keep() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style.is_keep() && self.keep_next.is_keep() && self.keep_lines.is_keep() && self.page_break_before.is_keep() && self.frame.is_keep() && self.widow_control.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7200:9
+     |
+7200 | ...   true && self.style.is_keep() && self.keep_next.is_keep() && self.keep_lines.is_keep() && self.page_break_before.is_keep() && self.frame.is_keep() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style.is_keep() && self.keep_next.is_keep() && self.keep_lines.is_keep() && self.page_break_before.is_keep() && self.frame.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7200:9
+     |
+7200 |         true && self.style.is_keep() && self.keep_next.is_keep() && self.keep_lines.is_keep() && self.page_break_before.is_keep() && self...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style.is_keep() && self.keep_next.is_keep() && self.keep_lines.is_keep() && self.page_break_before.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7200:9
+     |
+7200 |         true && self.style.is_keep() && self.keep_next.is_keep() && self.keep_lines.is_keep() && self.page_break_before.is_keep() && self...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style.is_keep() && self.keep_next.is_keep() && self.keep_lines.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7200:9
+     |
+7200 | ...   true && self.style.is_keep() && self.keep_next.is_keep() && self.keep_lines.is_keep() && self.page_break_before.is_keep() && self.f...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style.is_keep() && self.keep_next.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7200:9
+     |
+7200 | ...   true && self.style.is_keep() && self.keep_next.is_keep() && self.keep_lines.is_keep() && self.page_break_before.is_keep() && self.f...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7485:9
+     |
+7485 |         true && self.ilvl == o.ilvl && self.num_id == o.num_id
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl == o.ilvl && self.num_id == o.num_id`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7485:9
+     |
+7485 |         true && self.ilvl == o.ilvl && self.num_id == o.num_id
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl == o.ilvl`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7580:9
+     |
+7580 |         true && self.ilvl.is_keep() && self.num_id.is_keep()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl.is_keep() && self.num_id.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7580:9
+     |
+7580 |         true && self.ilvl.is_keep() && self.num_id.is_keep()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ilvl.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7705:9
+     |
+7705 | ...   true && self.top == o.top && self.left == o.left && self.bottom == o.bottom && self.right == o.right && self.between == o.between && self.bar == o.bar
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.top == o.top && self.left == o.left && self.bottom == o.bottom && self.right == o.right && self.between == o.between && self.bar == o.bar`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7705:9
+     |
+7705 | ...   true && self.top == o.top && self.left == o.left && self.bottom == o.bottom && self.right == o.right && self.between == o.between &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.top == o.top && self.left == o.left && self.bottom == o.bottom && self.right == o.right && self.between == o.between`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7705:9
+     |
+7705 |         true && self.top == o.top && self.left == o.left && self.bottom == o.bottom && self.right == o.right && self.between == o.between...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.top == o.top && self.left == o.left && self.bottom == o.bottom && self.right == o.right`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7705:9
+     |
+7705 |         true && self.top == o.top && self.left == o.left && self.bottom == o.bottom && self.right == o.right && self.between == o.between...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.top == o.top && self.left == o.left && self.bottom == o.bottom`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7705:9
+     |
+7705 | ...   true && self.top == o.top && self.left == o.left && self.bottom == o.bottom && self.right == o.right && self.between == o.between &...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.top == o.top && self.left == o.left`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7705:9
+     |
+7705 | ...   true && self.top == o.top && self.left == o.left && self.bottom == o.bottom && self.right == o.right && self.between == o.between &...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.top == o.top`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7842:9
+     |
+7842 | ...   true && self.top.is_keep() && self.left.is_keep() && self.bottom.is_keep() && self.right.is_keep() && self.between.is_keep() && self.bar.is_keep()
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.top.is_keep() && self.left.is_keep() && self.bottom.is_keep() && self.right.is_keep() && self.between.is_keep() && self.bar.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7842:9
+     |
+7842 | ...   true && self.top.is_keep() && self.left.is_keep() && self.bottom.is_keep() && self.right.is_keep() && self.between.is_keep() && sel...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.top.is_keep() && self.left.is_keep() && self.bottom.is_keep() && self.right.is_keep() && self.between.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7842:9
+     |
+7842 |         true && self.top.is_keep() && self.left.is_keep() && self.bottom.is_keep() && self.right.is_keep() && self.between.is_keep() && s...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.top.is_keep() && self.left.is_keep() && self.bottom.is_keep() && self.right.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7842:9
+     |
+7842 |         true && self.top.is_keep() && self.left.is_keep() && self.bottom.is_keep() && self.right.is_keep() && self.between.is_keep() && s...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.top.is_keep() && self.left.is_keep() && self.bottom.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7842:9
+     |
+7842 | ...   true && self.top.is_keep() && self.left.is_keep() && self.bottom.is_keep() && self.right.is_keep() && self.between.is_keep() && sel...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.top.is_keep() && self.left.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:7842:9
+     |
+7842 | ...   true && self.top.is_keep() && self.left.is_keep() && self.bottom.is_keep() && self.right.is_keep() && self.between.is_keep() && sel...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.top.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:8003:9
+     |
+8003 |         true && self.tab == o.tab
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.tab == o.tab`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:8081:9
+     |
+8081 |         true && self.tab.is_keep()
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.tab.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:8243:9
+     |
+8243 | ...   true && self.style == o.style && self.fonts == o.fonts && self.bold == o.bold && self.bold_cs == o.bold_cs && self.italic == o.italic && self.italic_cs == o.italic_cs &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style == o.style && self.fonts == o.fonts && self.bold == o.bold && self.bold_cs == o.bold_cs && self.italic == o.italic && self.italic_cs == o.italic_cs`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:8243:9
+     |
+8243 | ...   true && self.style == o.style && self.fonts == o.fonts && self.bold == o.bold && self.bold_cs == o.bold_cs && self.italic == o.italic &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style == o.style && self.fonts == o.fonts && self.bold == o.bold && self.bold_cs == o.bold_cs && self.italic == o.italic`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:8243:9
+     |
+8243 |         true && self.style == o.style && self.fonts == o.fonts && self.bold == o.bold && self.bold_cs == o.bold_cs && self.italic == o.it...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style == o.style && self.fonts == o.fonts && self.bold == o.bold && self.bold_cs == o.bold_cs`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:8243:9
+     |
+8243 |         true && self.style == o.style && self.fonts == o.fonts && self.bold == o.bold && self.bold_cs == o.bold_cs && self.italic == o.it...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style == o.style && self.fonts == o.fonts && self.bold == o.bold`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:8243:9
+     |
+8243 | ...   true && self.style == o.style && self.fonts == o.fonts && self.bold == o.bold && self.bold_cs == o.bold_cs && self.italic == o.ital...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style == o.style && self.fonts == o.fonts`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:8243:9
+     |
+8243 | ...   true && self.style == o.style && self.fonts == o.fonts && self.bold == o.bold && self.bold_cs == o.bold_cs && self.italic == o.ital...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style == o.style`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:8659:9
+     |
+8659 | ...   true && self.style.is_keep() && self.fonts.is_keep() && self.bold.is_keep() && self.bold_cs.is_keep() && self.italic.is_keep() && self.italic_cs.is_keep() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style.is_keep() && self.fonts.is_keep() && self.bold.is_keep() && self.bold_cs.is_keep() && self.italic.is_keep() && self.italic_cs.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:8659:9
+     |
+8659 | ...   true && self.style.is_keep() && self.fonts.is_keep() && self.bold.is_keep() && self.bold_cs.is_keep() && self.italic.is_keep() && s...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style.is_keep() && self.fonts.is_keep() && self.bold.is_keep() && self.bold_cs.is_keep() && self.italic.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:8659:9
+     |
+8659 |         true && self.style.is_keep() && self.fonts.is_keep() && self.bold.is_keep() && self.bold_cs.is_keep() && self.italic.is_keep() &&...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style.is_keep() && self.fonts.is_keep() && self.bold.is_keep() && self.bold_cs.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:8659:9
+     |
+8659 |         true && self.style.is_keep() && self.fonts.is_keep() && self.bold.is_keep() && self.bold_cs.is_keep() && self.italic.is_keep() &&...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style.is_keep() && self.fonts.is_keep() && self.bold.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:8659:9
+     |
+8659 | ...   true && self.style.is_keep() && self.fonts.is_keep() && self.bold.is_keep() && self.bold_cs.is_keep() && self.italic.is_keep() && s...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style.is_keep() && self.fonts.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:8659:9
+     |
+8659 | ...   true && self.style.is_keep() && self.fonts.is_keep() && self.bold.is_keep() && self.bold_cs.is_keep() && self.italic.is_keep() && s...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.style.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:9045:9
+     |
+9045 | ...   true && self.write_protection == o.write_...play_background_shape == o.display_background_shape &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^...^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.write_protection == o.write_protection && self.view == o.view && self.zoom == o.zoom && self.remove_personal_information == o.remove_personal_information && self.remove_date_and_time == o.remove_date_and_time && self.display_background_shape == o.display_background_shape`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:9045:9
+     |
+9045 | ...   true && self.write_protection == o.write_protection && self.view == o.view && self.zoom == o.zoom && self.remove_personal_information == o.remove_personal_information && self.remove_date_and_time == o.remove_date_and_time &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.write_protection == o.write_protection && self.view == o.view && self.zoom == o.zoom && self.remove_personal_information == o.remove_personal_information && self.remove_date_and_time == o.remove_date_and_time`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:9045:9
+     |
+9045 | ...   true && self.write_protection == o.write_protection && self.view == o.view && self.zoom == o.zoom && self.remove_personal_information == o.remove_personal_information &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.write_protection == o.write_protection && self.view == o.view && self.zoom == o.zoom && self.remove_personal_information == o.remove_personal_information`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:9045:9
+     |
+9045 |         true && self.write_protection == o.write_protection && self.view == o.view && self.zoom == o.zoom && self.remove_personal_informa...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.write_protection == o.write_protection && self.view == o.view && self.zoom == o.zoom`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:9045:9
+     |
+9045 |         true && self.write_protection == o.write_protection && self.view == o.view && self.zoom == o.zoom && self.remove_personal_informa...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.write_protection == o.write_protection && self.view == o.view`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:9045:9
+     |
+9045 | ...   true && self.write_protection == o.write_protection && self.view == o.view && self.zoom == o.zoom && self.remove_personal_informati...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.write_protection == o.write_protection`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:9577:9
+     |
+9577 | ...   true && self.write_protection.is_keep() && self.view.is_keep() && self.zoom.is_keep() && self.remove_personal_information.is_keep() && self.remove_date_and_time.is_keep() && self.display_background_shape.is_keep() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.write_protection.is_keep() && self.view.is_keep() && self.zoom.is_keep() && self.remove_personal_information.is_keep() && self.remove_date_and_time.is_keep() && self.display_background_shape.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:9577:9
+     |
+9577 | ...   true && self.write_protection.is_keep() && self.view.is_keep() && self.zoom.is_keep() && self.remove_personal_information.is_keep() && self.remove_date_and_time.is_keep() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.write_protection.is_keep() && self.view.is_keep() && self.zoom.is_keep() && self.remove_personal_information.is_keep() && self.remove_date_and_time.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:9577:9
+     |
+9577 | ...   true && self.write_protection.is_keep() && self.view.is_keep() && self.zoom.is_keep() && self.remove_personal_information.is_keep() &&...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.write_protection.is_keep() && self.view.is_keep() && self.zoom.is_keep() && self.remove_personal_information.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:9577:9
+     |
+9577 |         true && self.write_protection.is_keep() && self.view.is_keep() && self.zoom.is_keep() && self.remove_personal_information.is_keep...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.write_protection.is_keep() && self.view.is_keep() && self.zoom.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:9577:9
+     |
+9577 |         true && self.write_protection.is_keep() && self.view.is_keep() && self.zoom.is_keep() && self.remove_personal_information.is_keep...
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.write_protection.is_keep() && self.view.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:9577:9
+     |
+9577 | ...   true && self.write_protection.is_keep() && self.view.is_keep() && self.zoom.is_keep() && self.remove_personal_information.is_keep()...
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.write_protection.is_keep()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+    --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:9964:9
+     |
+9964 |         true && self.settings == o.settings
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.settings == o.settings`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:10107:9
+      |
+10107 |         true && self.settings.is_keep()
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.settings.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:10219:9
+      |
+10219 |         true && self.doc_defaults == o.doc_defaults && self.latent_styles == o.latent_styles && self.styles == o.styles
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.doc_defaults == o.doc_defaults && self.latent_styles == o.latent_styles && self.styles == o.styles`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:10219:9
+      |
+10219 |         true && self.doc_defaults == o.doc_defaults && self.latent_styles == o.latent_styles && self.styles == o.styles
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.doc_defaults == o.doc_defaults && self.latent_styles == o.latent_styles`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:10219:9
+      |
+10219 |         true && self.doc_defaults == o.doc_defaults && self.latent_styles == o.latent_styles && self.styles == o.styles
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.doc_defaults == o.doc_defaults`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:10319:9
+      |
+10319 |         true && self.doc_defaults.is_keep() && self.latent_styles.is_keep() && self.styles.is_keep()
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.doc_defaults.is_keep() && self.latent_styles.is_keep() && self.styles.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:10319:9
+      |
+10319 |         true && self.doc_defaults.is_keep() && self.latent_styles.is_keep() && self.styles.is_keep()
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.doc_defaults.is_keep() && self.latent_styles.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:10319:9
+      |
+10319 |         true && self.doc_defaults.is_keep() && self.latent_styles.is_keep() && self.styles.is_keep()
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.doc_defaults.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:10450:9
+      |
+10450 |         true && self.rpr_default == o.rpr_default && self.ppr_default == o.ppr_default
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.rpr_default == o.rpr_default && self.ppr_default == o.ppr_default`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:10450:9
+      |
+10450 |         true && self.rpr_default == o.rpr_default && self.ppr_default == o.ppr_default
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.rpr_default == o.rpr_default`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:10543:9
+      |
+10543 |         true && self.rpr_default.is_keep() && self.ppr_default.is_keep()
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.rpr_default.is_keep() && self.ppr_default.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:10543:9
+      |
+10543 |         true && self.rpr_default.is_keep() && self.ppr_default.is_keep()
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.rpr_default.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:10664:9
+      |
+10664 |         true && self.rpr == o.rpr
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.rpr == o.rpr`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:10746:9
+      |
+10746 |         true && self.rpr.is_keep()
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.rpr.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:10857:9
+      |
+10857 |         true && self.ppr == o.ppr
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ppr == o.ppr`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:10939:9
+      |
+10939 |         true && self.ppr.is_keep()
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.ppr.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11100:9
+      |
+11100 | ...   true && self.kind == o.kind && self.style_id == o.style_id && self.is_default == o.is_default && self.custom_style == o.custom_style && self.name == o.name && self.aliases == o.aliases &&...
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind == o.kind && self.style_id == o.style_id && self.is_default == o.is_default && self.custom_style == o.custom_style && self.name == o.name && self.aliases == o.aliases`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11100:9
+      |
+11100 | ...   true && self.kind == o.kind && self.style_id == o.style_id && self.is_default == o.is_default && self.custom_style == o.custom_style && self.name == o.name &&...
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind == o.kind && self.style_id == o.style_id && self.is_default == o.is_default && self.custom_style == o.custom_style && self.name == o.name`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11100:9
+      |
+11100 | ...   true && self.kind == o.kind && self.style_id == o.style_id && self.is_default == o.is_default && self.custom_style == o.custom_style &&...
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind == o.kind && self.style_id == o.style_id && self.is_default == o.is_default && self.custom_style == o.custom_style`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11100:9
+      |
+11100 |         true && self.kind == o.kind && self.style_id == o.style_id && self.is_default == o.is_default && self.custom_style == o.custom_st...
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind == o.kind && self.style_id == o.style_id && self.is_default == o.is_default`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11100:9
+      |
+11100 | ...   true && self.kind == o.kind && self.style_id == o.style_id && self.is_default == o.is_default && self.custom_style == o.custom_styl...
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind == o.kind && self.style_id == o.style_id`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11100:9
+      |
+11100 | ...   true && self.kind == o.kind && self.style_id == o.style_id && self.is_default == o.is_default && self.custom_style == o.custom_styl...
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind == o.kind`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11422:9
+      |
+11422 | ...   true && self.kind.is_keep() && self.style_id.is_keep() && self.is_default.is_keep() && self.custom_style.is_keep() && self.name.is_keep() && self.aliases.is_keep() &&...
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind.is_keep() && self.style_id.is_keep() && self.is_default.is_keep() && self.custom_style.is_keep() && self.name.is_keep() && self.aliases.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11422:9
+      |
+11422 | ...   true && self.kind.is_keep() && self.style_id.is_keep() && self.is_default.is_keep() && self.custom_style.is_keep() && self.name.is_keep() &&...
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind.is_keep() && self.style_id.is_keep() && self.is_default.is_keep() && self.custom_style.is_keep() && self.name.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11422:9
+      |
+11422 |         true && self.kind.is_keep() && self.style_id.is_keep() && self.is_default.is_keep() && self.custom_style.is_keep() && self.name.i...
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind.is_keep() && self.style_id.is_keep() && self.is_default.is_keep() && self.custom_style.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11422:9
+      |
+11422 |         true && self.kind.is_keep() && self.style_id.is_keep() && self.is_default.is_keep() && self.custom_style.is_keep() && self.name.i...
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind.is_keep() && self.style_id.is_keep() && self.is_default.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11422:9
+      |
+11422 | ...   true && self.kind.is_keep() && self.style_id.is_keep() && self.is_default.is_keep() && self.custom_style.is_keep() && self.name.is_...
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind.is_keep() && self.style_id.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11422:9
+      |
+11422 | ...   true && self.kind.is_keep() && self.style_id.is_keep() && self.is_default.is_keep() && self.custom_style.is_keep() && self.name.is_...
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: variables can be used directly in the `format!` string
+   --> crates/rsword/src/model/tests.rs:127:5
+    |
+127 |     assert_eq!(tb.text(), format!("\u{F0FC}{o}{o}{o}{o}", o = OBJECT_REPLACEMENT));
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+    = note: `-D clippy::uninlined-format-args` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::uninlined_format_args)]`
+help: change this to
+    |
+127 -     assert_eq!(tb.text(), format!("\u{F0FC}{o}{o}{o}{o}", o = OBJECT_REPLACEMENT));
+127 +     assert_eq!(tb.text(), format!("\u{F0FC}{OBJECT_REPLACEMENT}{OBJECT_REPLACEMENT}{OBJECT_REPLACEMENT}{OBJECT_REPLACEMENT}"));
+    |
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11763:9
+      |
+11763 | ...   true && self.kind == o.kind && self.ppr == o.ppr && self.rpr == o.rpr && self.tbl_pr == o.tbl_pr && self.tr_pr == o.tr_pr && self.tc_pr == o.tc_pr
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind == o.kind && self.ppr == o.ppr && self.rpr == o.rpr && self.tbl_pr == o.tbl_pr && self.tr_pr == o.tr_pr && self.tc_pr == o.tc_pr`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11763:9
+      |
+11763 |         true && self.kind == o.kind && self.ppr == o.ppr && self.rpr == o.rpr && self.tbl_pr == o.tbl_pr && self.tr_pr == o.tr_pr && self...
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind == o.kind && self.ppr == o.ppr && self.rpr == o.rpr && self.tbl_pr == o.tbl_pr && self.tr_pr == o.tr_pr`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11763:9
+      |
+11763 |         true && self.kind == o.kind && self.ppr == o.ppr && self.rpr == o.rpr && self.tbl_pr == o.tbl_pr && self.tr_pr == o.tr_pr && self...
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind == o.kind && self.ppr == o.ppr && self.rpr == o.rpr && self.tbl_pr == o.tbl_pr`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11763:9
+      |
+11763 |         true && self.kind == o.kind && self.ppr == o.ppr && self.rpr == o.rpr && self.tbl_pr == o.tbl_pr && self.tr_pr == o.tr_pr && self...
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind == o.kind && self.ppr == o.ppr && self.rpr == o.rpr`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11763:9
+      |
+11763 | ...   true && self.kind == o.kind && self.ppr == o.ppr && self.rpr == o.rpr && self.tbl_pr == o.tbl_pr && self.tr_pr == o.tr_pr && self.t...
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind == o.kind && self.ppr == o.ppr`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11763:9
+      |
+11763 | ...   true && self.kind == o.kind && self.ppr == o.ppr && self.rpr == o.rpr && self.tbl_pr == o.tbl_pr && self.tr_pr == o.tr_pr && self.t...
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind == o.kind`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11893:9
+      |
+11893 | ...   true && self.kind.is_keep() && self.ppr.is_keep() && self.rpr.is_keep() && self.tbl_pr.is_keep() && self.tr_pr.is_keep() && self.tc_pr.is_keep()
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind.is_keep() && self.ppr.is_keep() && self.rpr.is_keep() && self.tbl_pr.is_keep() && self.tr_pr.is_keep() && self.tc_pr.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11893:9
+      |
+11893 |         true && self.kind.is_keep() && self.ppr.is_keep() && self.rpr.is_keep() && self.tbl_pr.is_keep() && self.tr_pr.is_keep() && self....
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind.is_keep() && self.ppr.is_keep() && self.rpr.is_keep() && self.tbl_pr.is_keep() && self.tr_pr.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11893:9
+      |
+11893 |         true && self.kind.is_keep() && self.ppr.is_keep() && self.rpr.is_keep() && self.tbl_pr.is_keep() && self.tr_pr.is_keep() && self....
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind.is_keep() && self.ppr.is_keep() && self.rpr.is_keep() && self.tbl_pr.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11893:9
+      |
+11893 |         true && self.kind.is_keep() && self.ppr.is_keep() && self.rpr.is_keep() && self.tbl_pr.is_keep() && self.tr_pr.is_keep() && self....
+      |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind.is_keep() && self.ppr.is_keep() && self.rpr.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11893:9
+      |
+11893 | ...   true && self.kind.is_keep() && self.ppr.is_keep() && self.rpr.is_keep() && self.tbl_pr.is_keep() && self.tr_pr.is_keep() && self.tc...
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind.is_keep() && self.ppr.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: this boolean expression can be simplified
+     --> /Users/user/code/rsWordParser/target/debug/build/rsword-12f4901794d0c0b2/out/props.rs:11893:9
+      |
+11893 | ...   true && self.kind.is_keep() && self.ppr.is_keep() && self.rpr.is_keep() && self.tbl_pr.is_keep() && self.tr_pr.is_keep() && self.tc...
+      |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.kind.is_keep()`
+      |
+      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+
+error: could not compile `rsword` (lib) due to 240 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `rsword` (lib test) due to 241 previous errors
+END_UTC: 2026-09-09T05:29:41Z
+EXIT_CODE: 101
