@@ -6213,11 +6213,11 @@ fn nodes(dom: &Dom, n: NodeId) -> Vec<LatexItem> {
 
 /// 矩阵的行：有 `m:mr` 就按行 / 格，否则每个 `m:e` 一行。
 fn matrix_rows(dom: &Dom, node: NodeId) -> Vec<LatexItem> {
-    let mrs = children_named(dom, node, LocalName::Mr);
-    if mrs.is_empty() {
-        children_named(dom, node, LocalName::E).into_iter().map(LatexItem::Seq).collect()
+    let mut mrs = dom.children_named(node, m(LocalName::Mr)).peekable();
+    if mrs.peek().is_none() {
+        dom.children_named(node, m(LocalName::E)).map(LatexItem::Seq).collect()
     } else {
-        mrs.into_iter().map(LatexItem::MatrixRow).collect()
+        mrs.map(LatexItem::MatrixRow).collect()
     }
 }
 
@@ -6228,7 +6228,7 @@ fn expand_latex(
 ) -> std::result::Result<Option<Vec<LatexItem>>, LatexUnsupported> {
     let slot = |n: NodeId, l: LocalName| LatexItem::Slot(n, l);
     Ok(match item {
-        LatexItem::Slot(parent, name) => match child(dom, *parent, *name) {
+        LatexItem::Slot(parent, name) => match dom.children_named(*parent, m(*name)).next() {
             None => {
                 results.push(String::new());
                 None
@@ -6239,7 +6239,7 @@ fn expand_latex(
         LatexItem::Binom(f) => Some(vec![slot(*f, LocalName::Num), slot(*f, LocalName::Den)]),
         LatexItem::Matrix { node, .. } => Some(matrix_rows(dom, *node)),
         LatexItem::MatrixRow(mr) => {
-            Some(children_named(dom, *mr, LocalName::E).into_iter().map(LatexItem::Seq).collect())
+            Some(dom.children_named(*mr, m(LocalName::E)).map(LatexItem::Seq).collect())
         }
         LatexItem::LeftRight { slot, .. } => Some(nodes(dom, *slot)),
         LatexItem::Node(n) => {
@@ -6275,7 +6275,7 @@ fn expand_latex(
                 }
                 LocalName::Rad => {
                     if prop_on(dom, n, LocalName::RadPr, LocalName::DegHide)
-                        || child(dom, n, LocalName::Deg).is_none()
+                        || dom.children_named(n, m(LocalName::Deg)).next().is_none()
                     {
                         vec![slot(n, LocalName::E)]
                     } else {
@@ -6292,7 +6292,8 @@ fn expand_latex(
                     vec![slot(n, LocalName::Sub), slot(n, LocalName::Sup), slot(n, LocalName::E)]
                 }
                 LocalName::Func => {
-                    let name = plain_text_of_runs(dom, child(dom, n, LocalName::FName));
+                    let name =
+                        plain_text_of_runs(dom, dom.children_named(n, m(LocalName::FName)).next());
                     let name = name.trim();
                     if !(LATEX_FUNCTIONS.contains(&name)
                         || name == "lim"
@@ -6303,7 +6304,9 @@ fn expand_latex(
                     vec![slot(n, LocalName::E)]
                 }
                 LocalName::LimLow => {
-                    if plain_text_of_runs(dom, child(dom, n, LocalName::E)).trim() != "lim" {
+                    if plain_text_of_runs(dom, dom.children_named(n, m(LocalName::E)).next()).trim()
+                        != "lim"
+                    {
                         return Err(LatexUnsupported);
                     }
                     vec![slot(n, LocalName::Lim)]
@@ -6386,7 +6389,8 @@ fn finish_latex(
                     format!("\\{command}{sub}{sup} {{{}}}", p(2))
                 }
                 LocalName::Func => {
-                    let name = plain_text_of_runs(dom, child(dom, n, LocalName::FName));
+                    let name =
+                        plain_text_of_runs(dom, dom.children_named(n, m(LocalName::FName)).next());
                     let name = name.trim();
                     let arg = format!("{{{}}}", p(0));
                     if LATEX_FUNCTIONS.contains(&name) || name == "lim" {
@@ -6428,9 +6432,9 @@ fn finish_latex(
 fn delimiter(dom: &Dom, d: NodeId) -> std::result::Result<LatexItem, LatexUnsupported> {
     let beg = prop_val(dom, d, LocalName::DPr, LocalName::BegChr).unwrap_or_else(|| "(".into());
     let end = prop_val(dom, d, LocalName::DPr, LocalName::EndChr).unwrap_or_else(|| ")".into());
-    let slots = children_named(dom, d, LocalName::E);
-    let [slot] = slots.as_slice() else { return Err(LatexUnsupported) };
-    let inner = content_children(dom, *slot);
+    let mut slots = dom.children_named(d, m(LocalName::E));
+    let (Some(slot), None) = (slots.next(), slots.next()) else { return Err(LatexUnsupported) };
+    let inner = content_children(dom, slot);
     if let [only] = inner.as_slice() {
         let only = *only;
         if beg == "("
@@ -6448,7 +6452,7 @@ fn delimiter(dom: &Dom, d: NodeId) -> std::result::Result<LatexItem, LatexUnsupp
     }
     let beg_tok = delim_token(&beg).ok_or(LatexUnsupported)?;
     let end_tok = delim_token(&end).ok_or(LatexUnsupported)?;
-    Ok(LatexItem::LeftRight { beg: beg_tok.to_string(), end: end_tok.to_string(), slot: *slot })
+    Ok(LatexItem::LeftRight { beg: beg_tok.to_string(), end: end_tok.to_string(), slot })
 }
 
 fn run_to_latex(dom: &Dom, run: NodeId) -> std::result::Result<String, LatexUnsupported> {
@@ -7189,7 +7193,7 @@ fn expand_mathml(
         content_children(dom, n).into_iter().map(MathmlItem::Node).collect()
     };
     match item {
-        MathmlItem::Slot(parent, name) => match child(dom, parent, name) {
+        MathmlItem::Slot(parent, name) => match dom.children_named(parent, m(name)).next() {
             None => {
                 results.push("<mrow></mrow>".to_string());
                 None
@@ -7198,7 +7202,7 @@ fn expand_mathml(
         },
         MathmlItem::Row(n) | MathmlItem::Seq(n) => Some(rows(n)),
         MathmlItem::Cells(mr) => {
-            Some(children_named(dom, mr, LocalName::E).into_iter().map(MathmlItem::Row).collect())
+            Some(dom.children_named(mr, m(LocalName::E)).map(MathmlItem::Row).collect())
         }
         MathmlItem::EqRow(e) => Some(vec![MathmlItem::Row(e)]),
         MathmlItem::Node(n) => {
@@ -7227,7 +7231,7 @@ fn expand_mathml(
                 }
                 LocalName::Rad => {
                     if prop_on(dom, n, LocalName::RadPr, LocalName::DegHide)
-                        || child(dom, n, LocalName::Deg).is_none()
+                        || dom.children_named(n, m(LocalName::Deg)).next().is_none()
                     {
                         vec![slot(n, LocalName::E)]
                     } else {
@@ -7235,7 +7239,7 @@ fn expand_mathml(
                     }
                 }
                 LocalName::D => {
-                    children_named(dom, n, LocalName::E).into_iter().map(MathmlItem::Row).collect()
+                    dom.children_named(n, m(LocalName::E)).map(MathmlItem::Row).collect()
                 }
                 LocalName::Nary => {
                     vec![slot(n, LocalName::Sub), slot(n, LocalName::Sup), slot(n, LocalName::E)]
@@ -7247,14 +7251,12 @@ fn expand_mathml(
                 LocalName::Acc | LocalName::Bar | LocalName::GroupChr => {
                     vec![slot(n, LocalName::E)]
                 }
-                LocalName::M => children_named(dom, n, LocalName::Mr)
-                    .into_iter()
-                    .map(MathmlItem::Cells)
-                    .collect(),
-                LocalName::EqArr => children_named(dom, n, LocalName::E)
-                    .into_iter()
-                    .map(MathmlItem::EqRow)
-                    .collect(),
+                LocalName::M => {
+                    dom.children_named(n, m(LocalName::Mr)).map(MathmlItem::Cells).collect()
+                }
+                LocalName::EqArr => {
+                    dom.children_named(n, m(LocalName::E)).map(MathmlItem::EqRow).collect()
+                }
                 LocalName::Box | LocalName::BorderBox | LocalName::Phant => {
                     vec![slot(n, LocalName::E)]
                 }
@@ -7383,9 +7385,8 @@ fn finish_mathml(dom: &Dom, item: MathmlItem, parts: Vec<String>) -> String {
 /// `m:r` → 各 `m:t` 分类后的 token 串（`sty="p"` / `m:nor` 的 run 整段是 `<mi>`）。
 fn run_to_mml(dom: &Dom, run: NodeId) -> String {
     let plain = is_plain_run(dom, run);
-    children_named(dom, run, LocalName::T)
-        .iter()
-        .map(|&t| run_text_to_mml(&omml_text_of(dom, t), plain))
+    dom.children_named(run, m(LocalName::T))
+        .map(|t| run_text_to_mml(&omml_text_of(dom, t), plain))
         .collect()
 }
 
@@ -7445,16 +7446,6 @@ pub(crate) fn m(local: LocalName) -> QName {
     QName::new(NsId::M, local)
 }
 
-/// 第一个名为 `m:<local>` 的语义子节点。
-pub(crate) fn child(dom: &Dom, node: NodeId, local: LocalName) -> Option<NodeId> {
-    dom.semantic_children(node).find(|&c| dom.is(c, m(local)))
-}
-
-/// 全部名为 `m:<local>` 的语义子节点，文档序。
-pub(crate) fn children_named(dom: &Dom, node: NodeId, local: LocalName) -> Vec<NodeId> {
-    dom.semantic_children(node).filter(|&c| dom.is(c, m(local))).collect()
-}
-
 /// 内容子节点：元素，且名字不以 `Pr` 结尾（TS `contentChildren`：属性包不是内容）。
 pub(crate) fn content_children(dom: &Dom, node: NodeId) -> Vec<NodeId> {
     dom.semantic_children(node)
@@ -7465,8 +7456,8 @@ pub(crate) fn content_children(dom: &Dom, node: NodeId) -> Vec<NodeId> {
 
 /// `node/m:<pr>/m:<child>/@m:val`（TS `propVal`）。
 pub(crate) fn prop_val(dom: &Dom, node: NodeId, pr: LocalName, name: LocalName) -> Option<String> {
-    let pr = child(dom, node, pr)?;
-    let c = child(dom, pr, name)?;
+    let pr = dom.children_named(node, m(pr)).next()?;
+    let c = dom.children_named(pr, m(name)).next()?;
     dom.attr_value(c, m(LocalName::Val)).map(|v| v.into_owned())
 }
 
@@ -7489,21 +7480,23 @@ pub(crate) fn omml_text_of(dom: &Dom, node: NodeId) -> String {
 
 /// 一个 `m:r` 的全部 `m:t` 文本拼接。
 pub(crate) fn run_text(dom: &Dom, run: NodeId) -> String {
-    children_named(dom, run, LocalName::T).iter().map(|&t| omml_text_of(dom, t)).collect()
+    dom.children_named(run, m(LocalName::T)).map(|t| omml_text_of(dom, t)).collect()
 }
 
 /// `m:rPr/m:sty = "p"` 或有 `m:rPr/m:nor`：普通文字（不按数学斜体分类）。
 pub(crate) fn is_plain_run(dom: &Dom, run: NodeId) -> bool {
     let sty = prop_val(dom, run, LocalName::RPr, LocalName::Sty);
     sty.as_deref() == Some("p")
-        || child(dom, run, LocalName::RPr)
-            .is_some_and(|pr| child(dom, pr, LocalName::Nor).is_some())
+        || dom
+            .children_named(run, m(LocalName::RPr))
+            .next()
+            .is_some_and(|pr| dom.children_named(pr, m(LocalName::Nor)).next().is_some())
 }
 
 /// 容器下全部 `m:r` 的文字拼接（TS `plainTextOfRuns`：函数名 / `lim`）。
 pub(crate) fn plain_text_of_runs(dom: &Dom, node: Option<NodeId>) -> String {
     let Some(node) = node else { return String::new() };
-    children_named(dom, node, LocalName::R).iter().map(|&r| run_text(dom, r)).collect()
+    dom.children_named(node, m(LocalName::R)).map(|r| run_text(dom, r)).collect()
 }
 
 /// TS `escapeXmlText`：去掉 XML 1.0 不允许的控制字符，转义 `& < >`。
@@ -10519,6 +10512,7 @@ fn pair(v: &str) -> Option<(i64, i64)> {
 
 #[cfg(test)]
 mod test_model {
+
     #[test]
     fn mod_11_chart_kind_table_covers_every_plot_element() {
         // 16 种图（ECMA-376 §21.2.2）都在表里，别的元素不是图

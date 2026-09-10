@@ -13,6 +13,8 @@ use crate::xml::Dirty;
 use crate::xml::entities;
 use crate::xml::interner::Interner;
 use crate::xml::lex::{Lex, urange};
+#[cfg(test)]
+use crate::xml::names::LocalName;
 use crate::xml::names::{NsId, QName};
 
 /// arena 索引，会话内稳定且永不复用；`Deleted` 节点保留在 arena 中。
@@ -151,6 +153,13 @@ pub struct Dom {
 }
 
 impl Dom {
+    /// 同名的语义子节点，保持文档顺序并跳过已删除或未选中的 MCE 分支。
+    /// 迭代器借用此 DOM；仅遍历已有节点，不分配临时节点列表。
+    #[inline]
+    pub fn children_named(&self, node: NodeId, name: QName) -> impl Iterator<Item = NodeId> + '_ {
+        self.semantic_children(node).filter(move |&child| self.is(child, name))
+    }
+
     pub fn part(&self) -> PartId {
         self.part
     }
@@ -322,5 +331,35 @@ impl Iterator for Descendants<'_> {
         let children = self.dom.children(id);
         self.stack.extend(children.iter().rev());
         Some(id)
+    }
+}
+
+#[cfg(test)]
+mod test_model {
+    #[test]
+    fn named_children_preserve_namespace_order_and_mce_selection() {
+        let mut dom = super::Dom::parse(
+            super::PartId(0),
+            br#"<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
+                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">
+                <w:r/><m:r/>
+                <mc:AlternateContent><mc:Choice Requires="unknown"><w:r/></mc:Choice>
+                    <mc:Fallback><w:r/></mc:Fallback></mc:AlternateContent><w:r/>
+            </w:p>"#,
+        )
+        .unwrap();
+        let root = dom.root();
+        let name = super::QName::w(super::LocalName::R);
+        let (first, second, third) = {
+            let mut runs = dom.children_named(root, name);
+            let ids = (runs.next().unwrap(), runs.next().unwrap(), runs.next().unwrap());
+            assert!(runs.next().is_none());
+            ids
+        };
+        assert!(first < second && second < third);
+        dom.node_mut(second).dirty = super::Dirty::Deleted;
+        assert!(dom.children_named(root, name).eq([first, third]));
+        assert_eq!(dom.children_named(root, super::QName::w(super::LocalName::T)).count(), 0);
     }
 }
