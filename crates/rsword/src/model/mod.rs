@@ -11,7 +11,7 @@
 //! | [`TableBlock`] | `TableBlock` / `Row` / `Cell` 与跨表格的块遍历（`MOD-07`） |
 //! | [`SdtInfo`] | `SdtInfo`：内容控件的种类 / 锁 / 数据绑定（`MOD-08`） |
 //! | [`ParagraphFacts`] | `ParagraphFacts`（`MOD-04`） |
-//! | [`classify_paragraph`] | 分类规则表与 `TextKind` 判定（`MOD-05/03`） |
+//! | [`ParagraphFacts::classify`] | 分类规则表与 `TextKind` 判定（`MOD-05/03`） |
 //! | [`Document`] | `Document` 与 `rebuild`（`MOD-01/13`） |
 //! | [`Styles`] / [`Theme`] / [`Notes`] | 声明模型（`MOD-10`）：样式 / 编号 / 主题 / 设置 / 批注 / 注释 |
 
@@ -1158,7 +1158,7 @@ impl<'a> Builder<'a> {
             if dom.is(node, build_w(LocalName::TcPr)) {
                 continue; // 单元格属性：`Cell.props` 已读（`MOD-07`）
             }
-            let (_rule, class) = classify_body_child(dom, node);
+            let (_rule, class) = BodyClass::classify(dom, node);
             match class {
                 BodyClass::SectionProps => out.push(section_props_block(node, sdt, revs)),
                 BodyClass::Table => {
@@ -1256,7 +1256,7 @@ impl<'a> Builder<'a> {
         // `MOD-04`：字段事实来自 `FieldIndex`（`FLD-08` 的块字段覆盖段落 → R09）
         facts.fields = self.fields_by_para.get(&p).cloned().unwrap_or_default();
         facts.inside_field_result = self.block_fields.get(&p).copied();
-        let (_rule, class) = classify_paragraph(&facts);
+        let (_rule, class) = facts.classify();
         let mut revisions = revs.to_vec();
         // 段落标记修订与 pPrChange（MOD-09）
         if let Some(rpr) = &props.rpr {
@@ -1326,7 +1326,7 @@ impl<'a> Builder<'a> {
                 } else {
                     Block::Text(Box::new(TextBlock {
                         node: p,
-                        kind: text_kind(&facts),
+                        kind: facts.text_kind(),
                         style_id: props.style.clone(),
                         props,
                         inlines,
@@ -2035,32 +2035,37 @@ pub enum BodyClass {
     Paragraph,
 }
 
-pub fn classify_body_child(dom: &Dom, node: NodeId) -> (&'static str, BodyClass) {
-    // 文本节点（缩进空白）不产生块
-    let Some(name) = dom.name(node) else { return ("R04", BodyClass::RangeMarker) };
-    if is_range_marker(name) || (name.ns == NsId::W && name.local == LocalName::ProofErr) {
-        return ("R04", BodyClass::RangeMarker);
-    }
-    if name.ns != NsId::W {
-        return ("R07", BodyClass::Unknown(name));
-    }
-    match name.local {
-        LocalName::SectPr => ("R01", BodyClass::SectionProps),
-        LocalName::Tbl => ("R02", BodyClass::Table),
-        LocalName::Sdt => ("R03", BodyClass::Sdt),
-        LocalName::Br => {
-            let page =
-                dom.attr_value(node, QName::w(LocalName::Type)).is_some_and(|t| t.trim() == "page");
-            ("R05", BodyClass::BodyBreak { page })
+impl BodyClass {
+    /// 按 R01–R07 识别正文子节点，返回首个匹配规则及其分类。
+    #[inline]
+    pub fn classify(dom: &Dom, node: NodeId) -> (&'static str, BodyClass) {
+        // 文本节点（缩进空白）不产生块
+        let Some(name) = dom.name(node) else { return ("R04", BodyClass::RangeMarker) };
+        if is_range_marker(name) || (name.ns == NsId::W && name.local == LocalName::ProofErr) {
+            return ("R04", BodyClass::RangeMarker);
         }
-        LocalName::Ins => ("R06", BodyClass::InsertWrap),
-        LocalName::Del => ("R06", BodyClass::DeleteWrap),
-        LocalName::MoveFrom => ("R06", BodyClass::MoveFromWrap),
-        LocalName::MoveTo => ("R06", BodyClass::MoveToWrap),
-        LocalName::CustomXml | LocalName::SmartTag => ("R06", BodyClass::Transparent),
-        LocalName::P => ("R19", BodyClass::Paragraph),
-        _ if is_property_element(name) => ("R07", BodyClass::Unknown(name)),
-        _ => ("R07", BodyClass::Unknown(name)),
+        if name.ns != NsId::W {
+            return ("R07", BodyClass::Unknown(name));
+        }
+        match name.local {
+            LocalName::SectPr => ("R01", BodyClass::SectionProps),
+            LocalName::Tbl => ("R02", BodyClass::Table),
+            LocalName::Sdt => ("R03", BodyClass::Sdt),
+            LocalName::Br => {
+                let page = dom
+                    .attr_value(node, QName::w(LocalName::Type))
+                    .is_some_and(|t| t.trim() == "page");
+                ("R05", BodyClass::BodyBreak { page })
+            }
+            LocalName::Ins => ("R06", BodyClass::InsertWrap),
+            LocalName::Del => ("R06", BodyClass::DeleteWrap),
+            LocalName::MoveFrom => ("R06", BodyClass::MoveFromWrap),
+            LocalName::MoveTo => ("R06", BodyClass::MoveToWrap),
+            LocalName::CustomXml | LocalName::SmartTag => ("R06", BodyClass::Transparent),
+            LocalName::P => ("R19", BodyClass::Paragraph),
+            _ if is_property_element(name) => ("R07", BodyClass::Unknown(name)),
+            _ => ("R07", BodyClass::Unknown(name)),
+        }
     }
 }
 
@@ -2073,129 +2078,160 @@ pub enum ParaClass {
 }
 
 /// 一条段落规则：命中返回结果。
-pub type ParaRule = fn(&ParagraphFacts) -> Option<ParaClass>;
+type ParaRule = fn(&ParagraphFacts) -> Option<ParaClass>;
 
-/// 按优先级排列的段落规则表；`classify_paragraph` 顺序求值，首条命中即结束。
-pub const PARA_RULES: &[(&str, ParaRule)] = &[
-    ("R08", r08_style_vanish),
-    ("R09", r09_field_block_result),
-    ("R10", r10_section_break),
-    ("R11", r11_equation),
-    ("R12", r12_chart),
-    ("R13", r13_smart_art),
-    ("R14", r14_locked_canvas),
-    ("R15", r15_image),
-    ("R16", r16_invisible_shapes),
-    ("R17", r17_rule),
-    ("R18", r18_ole),
-    ("R19", r19_text),
-];
+impl ParagraphFacts {
+    /// 按优先级排列的段落规则表；`ParagraphFacts::classify` 顺序求值，首条命中即结束。
+    const RULES: [(&str, ParaRule); 12] = [
+        ("R08", Self::r08_style_vanish),
+        ("R09", Self::r09_field_block_result),
+        ("R10", Self::r10_section_break),
+        ("R11", Self::r11_equation),
+        ("R12", Self::r12_chart),
+        ("R13", Self::r13_smart_art),
+        ("R14", Self::r14_locked_canvas),
+        ("R15", Self::r15_image),
+        ("R16", Self::r16_invisible_shapes),
+        ("R17", Self::r17_rule),
+        ("R18", Self::r18_ole),
+        ("R19", Self::r19_text),
+    ];
 
-pub fn classify_paragraph(f: &ParagraphFacts) -> (&'static str, ParaClass) {
-    for (id, rule) in PARA_RULES {
-        if let Some(c) = rule(f) {
-            return (id, c);
-        }
-    }
-    ("R19", ParaClass::Text)
-}
-
-pub fn r08_style_vanish(f: &ParagraphFacts) -> Option<ParaClass> {
-    f.style_vanish.then_some(ParaClass::Protected(ProtectedKind::Invisible))
-}
-
-pub fn r09_field_block_result(f: &ParagraphFacts) -> Option<ParaClass> {
-    f.inside_field_result.map(|id| ParaClass::Protected(ProtectedKind::FieldBlockResult(id)))
-}
-
-pub fn r10_section_break(f: &ParagraphFacts) -> Option<ParaClass> {
-    (f.has_sect_pr && !f.visible_text).then_some(ParaClass::Protected(ProtectedKind::SectionBreak))
-}
-
-pub fn r11_equation(f: &ParagraphFacts) -> Option<ParaClass> {
-    (f.math.omath_para || (f.math.count > 0 && !f.visible_text))
-        .then_some(ParaClass::Protected(ProtectedKind::Equation))
-}
-
-pub fn r12_chart(f: &ParagraphFacts) -> Option<ParaClass> {
-    let mut chart = false;
-    for d in &f.drawings {
-        match d.kind {
-            // chartex（旭日图 / 瀑布图 …）配了预渲染的回退图：Word 之外的渲染器画的就是这张图，
-            // 数据模型的降级读法只留给没有回退图的 part。`graphic_display` 取回退图的显示模型。
-            DrawingKind::ChartEx if d.fallback_picture.is_some() => {
-                return Some(ParaClass::Image);
+    /// 按 R08–R19 顺序判定段落，返回首个匹配规则及其分类。
+    #[inline]
+    pub fn classify(&self) -> (&'static str, ParaClass) {
+        for (id, rule) in Self::RULES {
+            if let Some(c) = rule(self) {
+                return (id, c);
             }
-            DrawingKind::Chart | DrawingKind::ChartEx => chart = true,
-            _ => {}
         }
+        ("R19", ParaClass::Text)
     }
-    chart.then_some(ParaClass::Protected(ProtectedKind::Chart))
-}
 
-pub fn r13_smart_art(f: &ParagraphFacts) -> Option<ParaClass> {
-    f.drawings
-        .iter()
-        .any(|d| d.kind == DrawingKind::Diagram)
-        .then_some(ParaClass::Protected(ProtectedKind::SmartArt))
-}
-
-pub fn r14_locked_canvas(f: &ParagraphFacts) -> Option<ParaClass> {
-    f.drawings
-        .iter()
-        .any(|d| d.kind == DrawingKind::LockedCanvas)
-        .then_some(ParaClass::Protected(ProtectedKind::SmartArt))
-}
-
-pub fn r15_image(f: &ParagraphFacts) -> Option<ParaClass> {
-    if f.visible_text || !f.objects.is_empty() || f.math.count != 0 {
-        return None;
+    #[inline]
+    fn r08_style_vanish(&self) -> Option<ParaClass> {
+        self.style_vanish.then_some(ParaClass::Protected(ProtectedKind::Invisible))
     }
-    let single_picture =
-        f.drawings.len() == 1 && f.picts.is_empty() && f.drawings[0].kind == DrawingKind::Picture;
-    let single_imagedata =
-        f.picts.len() == 1 && f.drawings.is_empty() && f.picts[0].kind == PictKind::ImageData;
-    (single_picture || single_imagedata).then_some(ParaClass::Image)
-}
 
-pub fn r16_invisible_shapes(f: &ParagraphFacts) -> Option<ParaClass> {
-    if f.visible_text || f.picts.is_empty() || !f.drawings.is_empty() || !f.objects.is_empty() {
-        return None;
+    #[inline]
+    fn r09_field_block_result(&self) -> Option<ParaClass> {
+        self.inside_field_result.map(|id| ParaClass::Protected(ProtectedKind::FieldBlockResult(id)))
     }
-    f.picts
-        .iter()
-        .all(|p| matches!(p.kind, PictKind::Hidden | PictKind::ShapeTypeOnly))
-        .then_some(ParaClass::Protected(ProtectedKind::Invisible))
-}
 
-pub fn r17_rule(f: &ParagraphFacts) -> Option<ParaClass> {
-    if f.visible_text || f.picts.is_empty() || !f.drawings.is_empty() || !f.objects.is_empty() {
-        return None;
+    #[inline]
+    fn r10_section_break(&self) -> Option<ParaClass> {
+        (self.has_sect_pr && !self.visible_text)
+            .then_some(ParaClass::Protected(ProtectedKind::SectionBreak))
     }
-    f.picts
-        .iter()
-        .all(|p| p.kind == PictKind::Hr)
-        .then_some(ParaClass::Protected(ProtectedKind::Rule))
-}
 
-pub fn r18_ole(f: &ParagraphFacts) -> Option<ParaClass> {
-    (!f.visible_text && !f.objects.is_empty() && f.drawings.is_empty() && f.picts.is_empty())
+    #[inline]
+    fn r11_equation(&self) -> Option<ParaClass> {
+        (self.math.omath_para || (self.math.count > 0 && !self.visible_text))
+            .then_some(ParaClass::Protected(ProtectedKind::Equation))
+    }
+
+    #[inline]
+    fn r12_chart(&self) -> Option<ParaClass> {
+        let mut chart = false;
+        for d in &self.drawings {
+            match d.kind {
+                // chartex（旭日图 / 瀑布图 …）配了预渲染的回退图：Word 之外的渲染器画的就是这张图，
+                // 数据模型的降级读法只留给没有回退图的 part。`graphic_display` 取回退图的显示模型。
+                DrawingKind::ChartEx if d.fallback_picture.is_some() => {
+                    return Some(ParaClass::Image);
+                }
+                DrawingKind::Chart | DrawingKind::ChartEx => chart = true,
+                _ => {}
+            }
+        }
+        chart.then_some(ParaClass::Protected(ProtectedKind::Chart))
+    }
+
+    #[inline]
+    fn r13_smart_art(&self) -> Option<ParaClass> {
+        self.drawings
+            .iter()
+            .any(|d| d.kind == DrawingKind::Diagram)
+            .then_some(ParaClass::Protected(ProtectedKind::SmartArt))
+    }
+
+    #[inline]
+    fn r14_locked_canvas(&self) -> Option<ParaClass> {
+        self.drawings
+            .iter()
+            .any(|d| d.kind == DrawingKind::LockedCanvas)
+            .then_some(ParaClass::Protected(ProtectedKind::SmartArt))
+    }
+
+    #[inline]
+    fn r15_image(&self) -> Option<ParaClass> {
+        if self.visible_text || !self.objects.is_empty() || self.math.count != 0 {
+            return None;
+        }
+        let single_picture = self.drawings.len() == 1
+            && self.picts.is_empty()
+            && self.drawings[0].kind == DrawingKind::Picture;
+        let single_imagedata = self.picts.len() == 1
+            && self.drawings.is_empty()
+            && self.picts[0].kind == PictKind::ImageData;
+        (single_picture || single_imagedata).then_some(ParaClass::Image)
+    }
+
+    #[inline]
+    fn r16_invisible_shapes(&self) -> Option<ParaClass> {
+        if self.visible_text
+            || self.picts.is_empty()
+            || !self.drawings.is_empty()
+            || !self.objects.is_empty()
+        {
+            return None;
+        }
+        self.picts
+            .iter()
+            .all(|p| matches!(p.kind, PictKind::Hidden | PictKind::ShapeTypeOnly))
+            .then_some(ParaClass::Protected(ProtectedKind::Invisible))
+    }
+
+    #[inline]
+    fn r17_rule(&self) -> Option<ParaClass> {
+        if self.visible_text
+            || self.picts.is_empty()
+            || !self.drawings.is_empty()
+            || !self.objects.is_empty()
+        {
+            return None;
+        }
+        self.picts
+            .iter()
+            .all(|p| p.kind == PictKind::Hr)
+            .then_some(ParaClass::Protected(ProtectedKind::Rule))
+    }
+
+    #[inline]
+    fn r18_ole(&self) -> Option<ParaClass> {
+        (!self.visible_text
+            && !self.objects.is_empty()
+            && self.drawings.is_empty()
+            && self.picts.is_empty())
         .then_some(ParaClass::Protected(ProtectedKind::Ole))
-}
-
-pub fn r19_text(_: &ParagraphFacts) -> Option<ParaClass> {
-    Some(ParaClass::Text)
-}
-
-/// `MOD-03`：ListRef 存在 → ListItem；否则 Heading；否则 Paragraph。
-pub fn text_kind(f: &ParagraphFacts) -> TextKind {
-    if let Some(list) = &f.numbering_ref {
-        return TextKind::ListItem { list: list.clone() };
     }
-    if let Some(level) = f.outline_level {
-        return TextKind::Heading { level };
+
+    #[inline]
+    fn r19_text(&self) -> Option<ParaClass> {
+        Some(ParaClass::Text)
     }
-    TextKind::Paragraph
+
+    /// `MOD-03`：ListRef 存在 → ListItem；否则 Heading；否则 Paragraph。
+    #[inline]
+    pub fn text_kind(&self) -> TextKind {
+        if let Some(list) = &self.numbering_ref {
+            return TextKind::ListItem { list: list.clone() };
+        }
+        if let Some(level) = self.outline_level {
+            return TextKind::Heading { level };
+        }
+        TextKind::Paragraph
+    }
 }
 
 // 辅助 part 的内容流（`MOD-01`、`docs/03` §6.7，`spec/16` 任务 5.3）。
@@ -11632,13 +11668,13 @@ mod test_model {
         let f =
             super::ParagraphFacts { has_sect_pr: true, visible_text: false, ..Default::default() };
         assert_eq!(
-            super::classify_paragraph(&f),
+            f.classify(),
             ("R10", super::ParaClass::Protected(super::ProtectedKind::SectionBreak))
         );
         let f =
             super::ParagraphFacts { has_sect_pr: true, visible_text: true, ..Default::default() };
-        assert_eq!(super::classify_paragraph(&f), ("R19", super::ParaClass::Text));
-        let (rule, class) = super::classify_body_child(&d, blocks[1].node());
+        assert_eq!(f.classify(), ("R19", super::ParaClass::Text));
+        let (rule, class) = super::BodyClass::classify(&d, blocks[1].node());
         assert_eq!((rule, class), ("R02", super::BodyClass::Table));
     }
 
