@@ -10,8 +10,8 @@ use std::collections::BTreeMap;
 use serde_json::{Map, Value};
 
 use crate::model::EMU_PER_PX;
-use crate::model::diagram::{DiagramPart, DiagramShape};
 use crate::model::drawing::{DrawingDisplay, RectFrac, Wrap};
+use crate::model::{DiagramPart, DiagramShape};
 use crate::model::{Display, Document, ProtectedBlock};
 use crate::package::Package;
 use crate::resolve::drawingml::{Rgb, average, color_in, hex};
