@@ -2,6 +2,8 @@
 
 投标场景增量：用户提供真实招标文件作为格式参考。请接入 [招投标格式测试任务](14-tender-style-test-tasks.md)，复用新增的 `tender_styles` 自动化夹具，并按来源事实补充 Word UI 场景。
 
+原生能力扩展：[Word 功能覆盖清单](15-word-native-coverage-expansion.md) 按现有代码与测试列出 32 类补测调查，重点增加 Word 中继续编辑、更新对象和再保存的生命周期；按优先级接入，不重复已充分验证的项目。
+
 日期：2026-09-10。执行者：另一台 Mac 上的 Codex + computer use。
 
 ## 0. 直接开始执行
