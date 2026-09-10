@@ -2,7 +2,7 @@
 //! 浮动图片 run 的手绘笔迹，对分类与坐标流不可见（`Run.segments` 里是长度 0 的
 //! `SegmentKind::Ink`），几何与载荷收在 `InkInfo`（`Document.inks`）。
 
-use crate::model::ink::InkInfo;
+use crate::model::InkInfo;
 use crate::xml::NodeId;
 
 use super::model_json;

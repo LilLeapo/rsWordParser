@@ -11,7 +11,7 @@ use crate::edit::media_ops::{NS_R, NS_WP, next_doc_pr_id, prefix_or_decl, px_to_
 use crate::edit::plan::{MutationPlan, MutationResult};
 use crate::error::{Error, Result};
 use crate::model::EMU_PER_PX;
-use crate::model::ink::INK_NAME_PREFIX;
+use crate::model::INK_NAME_PREFIX;
 use crate::package::ns_context::NamespaceContext;
 use crate::xml::plan::{NodeEdit, Target};
 use crate::xml::{LocalName, NodeId, NsId, QName, parse_fragment};
