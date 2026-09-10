@@ -261,6 +261,59 @@ impl Dom {
         self.semantic_children(node).filter(move |&child| self.is(child, name))
     }
 
+    /// 按原始文档顺序遍历未删除的直接子节点；保留 MCE 包装和未选分支。
+    #[inline]
+    pub fn live_children(&self, node: NodeId) -> impl Iterator<Item = NodeId> + '_ {
+        self.children(node)
+            .iter()
+            .copied()
+            .filter(|&child| self.node(child).dirty != Dirty::Deleted)
+    }
+
+    /// 按完整 QName 筛选未删除的原始直接子节点，不展开 MCE，也不分配集合。
+    #[inline]
+    pub fn live_children_named(
+        &self,
+        node: NodeId,
+        name: QName,
+    ) -> impl Iterator<Item = NodeId> + '_ {
+        self.live_children(node).filter(move |&child| self.is(child, name))
+    }
+
+    /// 下一个未删除的原始兄弟节点，包含文本和不透明节点。
+    #[inline]
+    pub fn next_live_sibling(&self, node: NodeId) -> Option<NodeId> {
+        let parent = self.parent(node)?;
+        let children = self.children(parent);
+        let index = children.iter().position(|&child| child == node)?;
+        children[index + 1..]
+            .iter()
+            .copied()
+            .find(|&child| self.node(child).dirty != Dirty::Deleted)
+    }
+
+    /// 下一个未删除的原始元素兄弟，跳过空白文本等非元素节点。
+    #[inline]
+    pub fn next_live_element_sibling(&self, node: NodeId) -> Option<NodeId> {
+        let parent = self.parent(node)?;
+        let children = self.children(parent);
+        let index = children.iter().position(|&child| child == node)?;
+        children[index + 1..].iter().copied().find(|&child| {
+            self.node(child).dirty != Dirty::Deleted && self.element(child).is_some()
+        })
+    }
+
+    /// 唯一未删除子节点为文本时返回它；空元素或其他混合内容返回缺失。
+    #[inline]
+    pub fn sole_live_text_child(&self, node: NodeId) -> Option<NodeId> {
+        let mut children = self.live_children(node);
+        let first = children.next()?;
+        if children.next().is_some() {
+            return None;
+        }
+        matches!(self.node(first).kind, NodeKind::Text(_)).then_some(first)
+    }
+
     pub fn part(&self) -> PartId {
         self.part
     }

@@ -14,7 +14,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::diag::DiagCode;
 use crate::edit::EditSession;
-use crate::edit::plan::MutationPlan;
+use crate::edit::MutationPlan;
 use crate::error::{Error, Result};
 use crate::package::{PartId, RelTarget, RelType};
 use crate::xml::plan::NodeEdit;

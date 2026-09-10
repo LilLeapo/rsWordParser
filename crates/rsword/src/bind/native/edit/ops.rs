@@ -295,7 +295,7 @@ edit_op_json! { (dom)
     SetDrawingWrap {
         drawing: Shared<NodeId> = NodeId(2),
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        wrap: Shared<Option<media_ops::ImageWrap>> = None,
+        wrap: Shared<Option<ImageWrap>> = None,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pos: Shared<Option<AnchorPos>> = None,
         #[serde(default, skip_serializing_if = "Option::is_none")]

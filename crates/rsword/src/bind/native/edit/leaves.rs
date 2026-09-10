@@ -1,5 +1,5 @@
 //! `BIND-03` 无载荷枚举的稳定字串；穷尽匹配防止新增变体漏进线型。
-use crate::edit::chart_ops::NewChartKind;
+use crate::edit::NewChartKind;
 use crate::edit::{ImageWrap, LineKind};
 use crate::model::BreakKind;
 use crate::model::{HfKind, HfVariant};
