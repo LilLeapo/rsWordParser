@@ -43,6 +43,7 @@ use crate::span::field::{FieldForm, FieldIndex, Keyword};
 use crate::span::{
     FieldId, FlowMap, RangeClass, SpanId, SpanIndex, is_property_element, is_range_marker,
 };
+use crate::xml::entities::FragmentText;
 use crate::xml::{Dirty, Dom, LocalName, MceRole, NodeId, NsId, QName};
 
 /// 一条修订的元数据（`w:id` / `w:author` / `w:date`）。定义在 L2（范围标记用同一组属性）。
@@ -6626,7 +6627,7 @@ fn too_deep() -> Error {
 
 /// TS `escapeXmlAttr`。
 fn escape_attr(s: &str) -> String {
-    escape_text(s).replace('"', "&quot;")
+    String::from(FragmentText::from(s)).replace('"', "&quot;")
 }
 
 struct LatexParser<'a> {
@@ -7092,7 +7093,10 @@ fn math_run(text: &str, plain: bool) -> String {
         return String::new();
     }
     let rpr = if plain { r#"<m:rPr><m:sty m:val="p"/></m:rPr>"# } else { "" };
-    format!(r#"<m:r>{rpr}<m:t xml:space="preserve">{}</m:t></m:r>"#, escape_text(text))
+    format!(
+        r#"<m:r>{rpr}<m:t xml:space="preserve">{}</m:t></m:r>"#,
+        String::from(FragmentText::from(text))
+    )
 }
 
 type Stop<'s> = dyn Fn(&LatexParser<'_>) -> bool + 's;
@@ -7181,7 +7185,7 @@ enum MathmlTask {
 }
 
 fn mo(ch: &str, extra: &str) -> String {
-    format!("<mo{extra}>{}</mo>", escape_text(ch))
+    format!("<mo{extra}>{}</mo>", String::from(FragmentText::from(ch)))
 }
 
 fn eval_mathml(dom: &Dom, root: MathmlItem) -> String {
@@ -7435,7 +7439,7 @@ pub(crate) fn run_text_to_mml(text: &str, plain: bool) -> String {
         return if text.is_empty() {
             String::new()
         } else {
-            format!("<mi>{}</mi>", escape_text(text))
+            format!("<mi>{}</mi>", String::from(FragmentText::from(text)))
         };
     }
     let chars: Vec<char> = text.chars().collect();
@@ -7451,7 +7455,10 @@ pub(crate) fn run_text_to_mml(text: &str, plain: bool) -> String {
             }
             out.push_str(&format!("<mn>{num}</mn>"));
         } else if is_letter(ch) {
-            out.push_str(&format!("<mi>{}</mi>", escape_text(&ch.to_string())));
+            out.push_str(&format!(
+                "<mi>{}</mi>",
+                String::from(FragmentText::from(ch.to_string().as_str()))
+            ));
             i += 1;
         } else if ch == ' ' {
             i += 1;
@@ -7465,7 +7472,10 @@ pub(crate) fn run_text_to_mml(text: &str, plain: bool) -> String {
             });
             i += 1;
         } else {
-            out.push_str(&format!("<mtext>{}</mtext>", escape_text(&ch.to_string())));
+            out.push_str(&format!(
+                "<mtext>{}</mtext>",
+                String::from(FragmentText::from(ch.to_string().as_str()))
+            ));
             i += 1;
         }
     }
@@ -7474,21 +7484,6 @@ pub(crate) fn run_text_to_mml(text: &str, plain: bool) -> String {
 
 pub(crate) fn m(local: LocalName) -> QName {
     QName::new(NsId::M, local)
-}
-
-/// TS `escapeXmlText`：去掉 XML 1.0 不允许的控制字符，转义 `& < >`。
-pub(crate) fn escape_text(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    for ch in s.chars() {
-        match ch {
-            '\u{0}'..='\u{8}' | '\u{B}' | '\u{C}' | '\u{E}'..='\u{1F}' => {}
-            '&' => out.push_str("&amp;"),
-            '<' => out.push_str("&lt;"),
-            '>' => out.push_str("&gt;"),
-            c => out.push(c),
-        }
-    }
-    out
 }
 
 /// 一个节点下全部 `m:oMath` 片段，文档序（`m:oMathPara` 展开；`m:oMath` 不嵌套）。

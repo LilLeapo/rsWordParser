@@ -5,6 +5,39 @@
 
 use std::borrow::Cow;
 
+/// Borrowed text for generated formula and chart XML fragments.
+///
+/// Preserves the TS `escapeXmlText` contract: escape `& < >` and discard forbidden
+/// C0 controls. Tabs, line breaks, and U+FFFE/U+FFFF retain their original behavior;
+/// the general XML serializer performs its own stricter character validation.
+#[repr(transparent)]
+#[derive(Debug, Clone, Copy)]
+pub struct FragmentText<'a>(&'a str);
+
+impl<'a> From<&'a str> for FragmentText<'a> {
+    #[inline]
+    fn from(value: &'a str) -> Self {
+        Self(value)
+    }
+}
+
+impl From<FragmentText<'_>> for String {
+    #[inline]
+    fn from(value: FragmentText<'_>) -> Self {
+        let mut out = String::with_capacity(value.0.len());
+        for ch in value.0.chars() {
+            match ch {
+                '\u{0}'..='\u{8}' | '\u{B}' | '\u{C}' | '\u{E}'..='\u{1F}' => {}
+                '&' => out.push_str("&amp;"),
+                '<' => out.push_str("&lt;"),
+                '>' => out.push_str("&gt;"),
+                c => out.push(c),
+            }
+        }
+        out
+    }
+}
+
 /// 解码失败的位置（相对输入串的字节偏移）与原因；原文保留。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BadEntity {
@@ -188,6 +221,19 @@ mod tests {
         assert!(s.is_char_boundary(bad.raw.len()));
         assert!(first_bad("&😀😀😀😀😀😀😀😀").is_some());
         assert_eq!(decode("&😀"), "&😀");
+    }
+
+    /// Generated fragments preserve their established C0-only filtering contract.
+    #[test]
+    fn fragment_text_preserves_character_and_entity_contract() {
+        let input = String::from("α<&>\"'\0\u{8}\u{b}\u{c}\u{e}\u{1f}\t\n\r\u{fffe}\u{ffff}");
+        assert_eq!(
+            String::from(super::FragmentText::from(input.as_str())),
+            "α&lt;&amp;&gt;\"'\t\n\r\u{fffe}\u{ffff}"
+        );
+        assert_eq!(String::from(super::FragmentText::from("&amp;")), "&amp;amp;");
+        assert_eq!(String::from(super::FragmentText::from("")), "");
+        assert_eq!(super::escaped_text("\u{fffe}\u{ffff}"), "");
     }
 
     #[test]
