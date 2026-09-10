@@ -70,8 +70,7 @@ pub fn apply_edit_json(
                 "not a section properties element",
             ));
         }
-        let part =
-            crate::edit::section_ops::ensure_hf_part(&mut candidate, *sect, *kind, *variant)?;
+        let part = crate::edit::ensure_hf_part(&mut candidate, *sect, *kind, *variant)?;
         candidate.rebuild()?;
         part
     } else {
