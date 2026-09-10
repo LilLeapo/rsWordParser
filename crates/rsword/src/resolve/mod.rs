@@ -9,10 +9,10 @@
 //! **真实 Word 观察值**校准（任务 5.8）；激活的那条与非 toggle 属性同规则。
 
 use crate::model::block::ListRef;
-use crate::model::decl::{Numbering, Settings, Styles};
 use crate::model::facts::heading_level_of_chain;
 use crate::model::theme::{ColorScheme, Theme};
 use crate::model::{Document, Level, Style};
+use crate::model::{Numbering, Settings, Styles};
 use crate::semantic::props::{
     Color, ParaProps, ParaPropsField, RunProps, RunPropsField, StyleType, merge_para_props,
     merge_run_props,

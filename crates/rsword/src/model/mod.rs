@@ -13,7 +13,7 @@
 //! | [`facts`] | `ParagraphFacts`（`MOD-04`） |
 //! | [`classify_paragraph`] | 分类规则表与 `TextKind` 判定（`MOD-05/03`） |
 //! | [`build`] | `Document` 与 `rebuild`（`MOD-01/13`） |
-//! | [`decl`] / [`theme`] / [`Notes`] | 声明模型（`MOD-10`）：样式 / 编号 / 主题 / 设置 / 批注 / 注释 |
+//! | [`Styles`] / [`theme`] / [`Notes`] | 声明模型（`MOD-10`）：样式 / 编号 / 主题 / 设置 / 批注 / 注释 |
 
 pub mod block {
     //! 块模型（`MOD-02`、`MOD-03`、`MOD-08`、`MOD-09`，`docs/03` §6.3）。
@@ -274,7 +274,6 @@ pub mod build {
         Block, ImageBlock, ListRef, ProtectedBlock, ProtectedKind, Revision, SdtInfo, TextBlock,
     };
     use crate::model::chart::ChartPart;
-    use crate::model::decl::{FontTable, Numbering, Settings, Styles};
     use crate::model::diagram::DiagramPart;
     use crate::model::drawing::{Display, drawing_display};
     use crate::model::facts::ParagraphFacts;
@@ -285,6 +284,7 @@ pub mod build {
     use crate::model::vml::vml_display;
     use crate::model::{BodyClass, ParaClass, classify_body_child, classify_paragraph, text_kind};
     use crate::model::{Comments, Notes};
+    use crate::model::{FontTable, Numbering, Settings, Styles};
     use crate::package::{Package, PartId, RelTarget, RelType, Rels};
     use crate::semantic::props::{
         ParaProps, RunProps, read_para_props, read_run_props, read_run_props_change,
@@ -3118,258 +3118,253 @@ fn custgeom_num(dom: &Dom, node: NodeId, local: LocalName) -> Option<i64> {
     custgeom_attr(dom, node, local)?.parse().ok()
 }
 
-pub mod decl {
-    //! 声明模型（`MOD-10`，任务 1.4）：styles / numbering / settings / fontTable 的入口与查找辅助。
-    //!
-    //! 类型本身由属性表生成（`schema/props/{styles,numbering,settings,font_table}.toml`），
-    //! 这里只加"从 part 读取"和只读查找；样式链、编号覆盖合并等解释在 `resolve`。
+// 声明模型（`MOD-10`，任务 1.4）：styles / numbering / settings / fontTable 的入口与查找辅助。
+//
+// 类型本身由属性表生成（`schema/props/{styles,numbering,settings,font_table}.toml`），
+// 这里只加"从 part 读取"和只读查找；样式链、编号覆盖合并等解释在 `resolve`。
 
-    use crate::diag::Diagnostic;
-    pub use crate::semantic::props::{
-        AbstractNum, Compat, CompatSetting, DocDefaults, Font, FontTable, Level, LevelOverride,
-        Num, Numbering, ParaProps, RunProps, Settings, Style, StyleType, TableStylePr,
-        TblStyleOverrideType,
-    };
-    use crate::semantic::props::{
-        Val, codec::OnOff, read_font_table, read_numbering, read_settings, read_styles,
-    };
-    use crate::xml::{Dom, LocalName, NodeId, QName};
+pub use crate::semantic::props::{
+    AbstractNum, Compat, CompatSetting, DocDefaults, Font, FontTable, Level, LevelOverride, Num,
+    Numbering, ParaProps, RunProps, Settings, Style, StyleType, TableStylePr, TblStyleOverrideType,
+};
+use crate::semantic::props::{
+    Val, codec::OnOff, read_font_table, read_numbering, read_settings, read_styles,
+};
 
-    fn root_if(dom: &Dom, name: QName) -> Option<NodeId> {
-        let root = dom.root();
-        dom.is(root, name).then_some(root)
-    }
-
-    fn val_i32(v: &Option<Val<i32>>) -> Option<i32> {
-        v.as_ref().and_then(|x| x.value().copied())
-    }
-
-    // ---- Styles -------------------------------------------------------------------------------------
-
-    impl Styles {
-        /// 根须是 `w:styles`，否则 `None`。
-        pub fn from_dom(dom: &Dom, diags: &mut Vec<Diagnostic>) -> Option<Styles> {
-            let root = root_if(dom, QName::w(LocalName::Styles))?;
-            Some(read_styles(dom, Some(root), diags))
-        }
-
-        /// 按 `styleId` 查找。重复的 styleId（语料里有）取**最后一个**声明，与 TS 的 `Map` 语义一致。
-        pub fn get(&self, id: &str) -> Option<&Style> {
-            self.styles.iter().rfind(|s| s.id() == Some(id))
-        }
-
-        /// 某类型的默认样式：该类型最后一个 `w:default="1|true"`；没有声明的 → 该类型中 styleId 或
-        /// name 为 `Normal`（不分大小写）的第一个；再没有 → `None`（只剩 docDefaults）。
-        ///
-        /// 与 `RES-02` 引用的 ECMA-376 §17.7.4.17 "取该类型第一个样式"不同：Word 实测不用
-        /// first-of-type 规则（TS `parseStyles` 注释与差分语料），这里按 Word 行为。
-        pub fn default_for(&self, kind: StyleType) -> Option<&Style> {
-            let of_kind = || self.styles.iter().filter(move |s| s.kind() == Some(kind));
-            of_kind().rfind(|s| s.is_default == Some(true)).or_else(|| {
-                of_kind().find(|s| {
-                    s.id().is_some_and(|i| i.eq_ignore_ascii_case("normal"))
-                        || s.name.as_deref().is_some_and(|n| n.eq_ignore_ascii_case("normal"))
-                })
-            })
-        }
-
-        pub fn doc_default_rpr(&self) -> Option<&RunProps> {
-            self.doc_defaults.as_ref()?.rpr_default.as_ref()?.rpr.as_ref()
-        }
-
-        pub fn doc_default_ppr(&self) -> Option<&ParaProps> {
-            self.doc_defaults.as_ref()?.ppr_default.as_ref()?.ppr.as_ref()
-        }
-
-        /// 段落样式自身给出的标题级别；不沿 basedOn 继承（`RES-02` 做继承）。
-        pub fn own_heading_level(style: &Style) -> OwnHeadingLevel {
-            if let Some(l) = style.name.as_deref().and_then(heading_level_of_name) {
-                return OwnHeadingLevel::Level(l);
-            }
-            if let Some(l) = style.id().and_then(heading_level_of_id) {
-                return OwnHeadingLevel::Level(l);
-            }
-            match style.ppr.as_ref().and_then(|p| val_i32(&p.outline_lvl)) {
-                Some(l @ 0..=8) => OwnHeadingLevel::Level(l as u8 + 1),
-                Some(_) => OwnHeadingLevel::Blocked,
-                None => OwnHeadingLevel::Inherit,
-            }
-        }
-    }
-
-    /// [`Styles::own_heading_level`] 的结果（`RES-02` heading_level）。
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub enum OwnHeadingLevel {
-        /// 名字 / id 匹配 `heading N`，或 `outlineLvl` 0–8。
-        Level(u8),
-        /// `outlineLvl == 9`：正文级，阻断 basedOn 继承（`TOCHeading basedOn Heading1`）。
-        Blocked,
-        /// 未指定，沿 basedOn 继承。
-        Inherit,
-    }
-
-    /// `/^heading\s*([1-9])$/i`
-    pub(super) fn heading_level_of_name(name: &str) -> Option<u8> {
-        let rest =
-            name.get(..7).filter(|p| p.eq_ignore_ascii_case("heading")).map(|_| &name[7..])?;
-        let rest = rest.trim_start();
-        let mut it = rest.chars();
-        let d = it.next()?;
-        if it.next().is_some() || !('1'..='9').contains(&d) {
-            return None;
-        }
-        Some(d as u8 - b'0')
-    }
-
-    /// `/^Heading([1-9])$/`
-    pub(super) fn heading_level_of_id(id: &str) -> Option<u8> {
-        let rest = id.strip_prefix("Heading")?;
-        let mut it = rest.chars();
-        let d = it.next()?;
-        if it.next().is_some() || !('1'..='9').contains(&d) {
-            return None;
-        }
-        Some(d as u8 - b'0')
-    }
-
-    impl Style {
-        pub fn id(&self) -> Option<&str> {
-            self.style_id.as_deref()
-        }
-
-        pub fn kind(&self) -> Option<StyleType> {
-            self.kind.as_ref().and_then(|v| v.value().copied())
-        }
-
-        /// 显示名；缺省用 styleId（TS 行为）。
-        pub fn display_name(&self) -> Option<&str> {
-            self.name.as_deref().or(self.id())
-        }
-
-        pub fn is_default_flag(&self) -> bool {
-            self.is_default == Some(true)
-        }
-    }
-
-    // ---- Numbering ----------------------------------------------------------------------------------
-
-    impl Numbering {
-        pub fn from_dom(dom: &Dom, diags: &mut Vec<Diagnostic>) -> Option<Numbering> {
-            let root = root_if(dom, QName::w(LocalName::Numbering))?;
-            Some(read_numbering(dom, Some(root), diags))
-        }
-
-        pub fn abstract_num(&self, id: i32) -> Option<&AbstractNum> {
-            self.abstract_nums.iter().find(|a| val_i32(&a.abstract_num_id) == Some(id))
-        }
-
-        pub fn num(&self, num_id: i32) -> Option<&Num> {
-            self.nums.iter().find(|n| val_i32(&n.num_id) == Some(num_id))
-        }
-    }
-
-    impl AbstractNum {
-        pub fn id(&self) -> Option<i32> {
-            val_i32(&self.abstract_num_id)
-        }
-
-        pub fn level(&self, ilvl: i32) -> Option<&Level> {
-            self.levels.iter().find(|l| l.ilvl() == Some(ilvl))
-        }
-    }
-
-    impl Level {
-        pub fn ilvl(&self) -> Option<i32> {
-            val_i32(&self.ilvl)
-        }
-
-        /// `w:start`；缺省 0（ECMA-376 §17.9.25；Word 显示 "0."）。
-        pub fn start_or_default(&self) -> i32 {
-            val_i32(&self.start).unwrap_or(0)
-        }
-    }
-
-    impl Num {
-        pub fn id(&self) -> Option<i32> {
-            val_i32(&self.num_id)
-        }
-
-        pub fn abstract_id(&self) -> Option<i32> {
-            val_i32(&self.abstract_num_id)
-        }
-
-        pub fn override_for(&self, ilvl: i32) -> Option<&LevelOverride> {
-            self.overrides.iter().find(|o| val_i32(&o.ilvl) == Some(ilvl))
-        }
-    }
-
-    // ---- Settings -----------------------------------------------------------------------------------
-
-    /// 兼容事实（`docs/03` §6.5）：只记录，`resolve` 与布局层解释。
-    #[derive(Debug, Clone, Default, PartialEq, Eq)]
-    pub struct CompatFacts {
-        /// `compatSetting[name=compatibilityMode]/@val`。
-        pub mode: Option<u32>,
-        pub settings: Vec<CompatSetting>,
-        /// `w:compat` 下值为真的布尔子元素。
-        pub flags: Vec<QName>,
-    }
-
-    impl Settings {
-        pub fn from_dom(dom: &Dom, diags: &mut Vec<Diagnostic>) -> Option<Settings> {
-            let root = root_if(dom, QName::w(LocalName::Settings))?;
-            Some(read_settings(dom, Some(root), diags))
-        }
-
-        pub fn compat_facts(&self, dom: &Dom) -> CompatFacts {
-            let Some(compat) = &self.compat else { return CompatFacts::default() };
-            let settings = compat.settings.clone();
-            let mode = settings
-                .iter()
-                .find(|s| s.name.as_deref() == Some("compatibilityMode"))
-                .and_then(|s| s.val.as_deref()?.trim().parse().ok());
-            let mut flags = Vec::new();
-            let mut sink = Vec::new();
-            let mut ctx = crate::semantic::props::Ctx::new(dom, &mut sink);
-            for &n in &compat.raw_unmodeled {
-                let Some(name) = dom.name(n) else { continue };
-                ctx.enter(n);
-                let on = match dom.attr_value(n, QName::w(LocalName::Val)) {
-                    Some(v) => <OnOff as crate::semantic::props::Codec>::parse(&v, &mut ctx),
-                    None => true,
-                };
-                if on {
-                    flags.push(name);
-                }
-            }
-            CompatFacts { mode, settings, flags }
-        }
-
-        pub fn compatibility_mode(&self, dom: &Dom) -> Option<u32> {
-            self.compat_facts(dom).mode
-        }
-
-        /// `w:defaultTabStop`，twip；缺省 720（Word）。
-        pub fn default_tab_stop_or_default(&self) -> i32 {
-            val_i32(&self.default_tab_stop).unwrap_or(720)
-        }
-    }
-
-    // ---- FontTable ----------------------------------------------------------------------------------
-
-    impl FontTable {
-        pub fn from_dom(dom: &Dom, diags: &mut Vec<Diagnostic>) -> Option<FontTable> {
-            let root = root_if(dom, QName::w(LocalName::Fonts))?;
-            Some(read_font_table(dom, Some(root), diags))
-        }
-
-        pub fn get(&self, name: &str) -> Option<&Font> {
-            self.fonts.iter().find(|f| f.name.as_deref() == Some(name))
-        }
-    }
-
-    pub use crate::semantic::props::Styles;
+fn root_if(dom: &Dom, name: QName) -> Option<NodeId> {
+    let root = dom.root();
+    dom.is(root, name).then_some(root)
 }
+
+fn val_i32(v: &Option<Val<i32>>) -> Option<i32> {
+    v.as_ref().and_then(|x| x.value().copied())
+}
+
+// ---- Styles -------------------------------------------------------------------------------------
+
+impl Styles {
+    /// 根须是 `w:styles`，否则 `None`。
+    pub fn from_dom(dom: &Dom, diags: &mut Vec<Diagnostic>) -> Option<Styles> {
+        let root = root_if(dom, QName::w(LocalName::Styles))?;
+        Some(read_styles(dom, Some(root), diags))
+    }
+
+    /// 按 `styleId` 查找。重复的 styleId（语料里有）取**最后一个**声明，与 TS 的 `Map` 语义一致。
+    pub fn get(&self, id: &str) -> Option<&Style> {
+        self.styles.iter().rfind(|s| s.id() == Some(id))
+    }
+
+    /// 某类型的默认样式：该类型最后一个 `w:default="1|true"`；没有声明的 → 该类型中 styleId 或
+    /// name 为 `Normal`（不分大小写）的第一个；再没有 → `None`（只剩 docDefaults）。
+    ///
+    /// 与 `RES-02` 引用的 ECMA-376 §17.7.4.17 "取该类型第一个样式"不同：Word 实测不用
+    /// first-of-type 规则（TS `parseStyles` 注释与差分语料），这里按 Word 行为。
+    pub fn default_for(&self, kind: StyleType) -> Option<&Style> {
+        let of_kind = || self.styles.iter().filter(move |s| s.kind() == Some(kind));
+        of_kind().rfind(|s| s.is_default == Some(true)).or_else(|| {
+            of_kind().find(|s| {
+                s.id().is_some_and(|i| i.eq_ignore_ascii_case("normal"))
+                    || s.name.as_deref().is_some_and(|n| n.eq_ignore_ascii_case("normal"))
+            })
+        })
+    }
+
+    pub fn doc_default_rpr(&self) -> Option<&RunProps> {
+        self.doc_defaults.as_ref()?.rpr_default.as_ref()?.rpr.as_ref()
+    }
+
+    pub fn doc_default_ppr(&self) -> Option<&ParaProps> {
+        self.doc_defaults.as_ref()?.ppr_default.as_ref()?.ppr.as_ref()
+    }
+
+    /// 段落样式自身给出的标题级别；不沿 basedOn 继承（`RES-02` 做继承）。
+    pub fn own_heading_level(style: &Style) -> OwnHeadingLevel {
+        if let Some(l) = style.name.as_deref().and_then(heading_level_of_name) {
+            return OwnHeadingLevel::Level(l);
+        }
+        if let Some(l) = style.id().and_then(heading_level_of_id) {
+            return OwnHeadingLevel::Level(l);
+        }
+        match style.ppr.as_ref().and_then(|p| val_i32(&p.outline_lvl)) {
+            Some(l @ 0..=8) => OwnHeadingLevel::Level(l as u8 + 1),
+            Some(_) => OwnHeadingLevel::Blocked,
+            None => OwnHeadingLevel::Inherit,
+        }
+    }
+}
+
+/// [`Styles::own_heading_level`] 的结果（`RES-02` heading_level）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OwnHeadingLevel {
+    /// 名字 / id 匹配 `heading N`，或 `outlineLvl` 0–8。
+    Level(u8),
+    /// `outlineLvl == 9`：正文级，阻断 basedOn 继承（`TOCHeading basedOn Heading1`）。
+    Blocked,
+    /// 未指定，沿 basedOn 继承。
+    Inherit,
+}
+
+/// `/^heading\s*([1-9])$/i`
+pub(in crate::model) fn heading_level_of_name(name: &str) -> Option<u8> {
+    let rest = name.get(..7).filter(|p| p.eq_ignore_ascii_case("heading")).map(|_| &name[7..])?;
+    let rest = rest.trim_start();
+    let mut it = rest.chars();
+    let d = it.next()?;
+    if it.next().is_some() || !('1'..='9').contains(&d) {
+        return None;
+    }
+    Some(d as u8 - b'0')
+}
+
+/// `/^Heading([1-9])$/`
+pub(in crate::model) fn heading_level_of_id(id: &str) -> Option<u8> {
+    let rest = id.strip_prefix("Heading")?;
+    let mut it = rest.chars();
+    let d = it.next()?;
+    if it.next().is_some() || !('1'..='9').contains(&d) {
+        return None;
+    }
+    Some(d as u8 - b'0')
+}
+
+impl Style {
+    pub fn id(&self) -> Option<&str> {
+        self.style_id.as_deref()
+    }
+
+    pub fn kind(&self) -> Option<StyleType> {
+        self.kind.as_ref().and_then(|v| v.value().copied())
+    }
+
+    /// 显示名；缺省用 styleId（TS 行为）。
+    pub fn display_name(&self) -> Option<&str> {
+        self.name.as_deref().or(self.id())
+    }
+
+    pub fn is_default_flag(&self) -> bool {
+        self.is_default == Some(true)
+    }
+}
+
+// ---- Numbering ----------------------------------------------------------------------------------
+
+impl Numbering {
+    pub fn from_dom(dom: &Dom, diags: &mut Vec<Diagnostic>) -> Option<Numbering> {
+        let root = root_if(dom, QName::w(LocalName::Numbering))?;
+        Some(read_numbering(dom, Some(root), diags))
+    }
+
+    pub fn abstract_num(&self, id: i32) -> Option<&AbstractNum> {
+        self.abstract_nums.iter().find(|a| val_i32(&a.abstract_num_id) == Some(id))
+    }
+
+    pub fn num(&self, num_id: i32) -> Option<&Num> {
+        self.nums.iter().find(|n| val_i32(&n.num_id) == Some(num_id))
+    }
+}
+
+impl AbstractNum {
+    pub fn id(&self) -> Option<i32> {
+        val_i32(&self.abstract_num_id)
+    }
+
+    pub fn level(&self, ilvl: i32) -> Option<&Level> {
+        self.levels.iter().find(|l| l.ilvl() == Some(ilvl))
+    }
+}
+
+impl Level {
+    pub fn ilvl(&self) -> Option<i32> {
+        val_i32(&self.ilvl)
+    }
+
+    /// `w:start`；缺省 0（ECMA-376 §17.9.25；Word 显示 "0."）。
+    pub fn start_or_default(&self) -> i32 {
+        val_i32(&self.start).unwrap_or(0)
+    }
+}
+
+impl Num {
+    pub fn id(&self) -> Option<i32> {
+        val_i32(&self.num_id)
+    }
+
+    pub fn abstract_id(&self) -> Option<i32> {
+        val_i32(&self.abstract_num_id)
+    }
+
+    pub fn override_for(&self, ilvl: i32) -> Option<&LevelOverride> {
+        self.overrides.iter().find(|o| val_i32(&o.ilvl) == Some(ilvl))
+    }
+}
+
+// ---- Settings -----------------------------------------------------------------------------------
+
+/// 兼容事实（`docs/03` §6.5）：只记录，`resolve` 与布局层解释。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct CompatFacts {
+    /// `compatSetting[name=compatibilityMode]/@val`。
+    pub mode: Option<u32>,
+    pub settings: Vec<CompatSetting>,
+    /// `w:compat` 下值为真的布尔子元素。
+    pub flags: Vec<QName>,
+}
+
+impl Settings {
+    pub fn from_dom(dom: &Dom, diags: &mut Vec<Diagnostic>) -> Option<Settings> {
+        let root = root_if(dom, QName::w(LocalName::Settings))?;
+        Some(read_settings(dom, Some(root), diags))
+    }
+
+    pub fn compat_facts(&self, dom: &Dom) -> CompatFacts {
+        let Some(compat) = &self.compat else { return CompatFacts::default() };
+        let settings = compat.settings.clone();
+        let mode = settings
+            .iter()
+            .find(|s| s.name.as_deref() == Some("compatibilityMode"))
+            .and_then(|s| s.val.as_deref()?.trim().parse().ok());
+        let mut flags = Vec::new();
+        let mut sink = Vec::new();
+        let mut ctx = crate::semantic::props::Ctx::new(dom, &mut sink);
+        for &n in &compat.raw_unmodeled {
+            let Some(name) = dom.name(n) else { continue };
+            ctx.enter(n);
+            let on = match dom.attr_value(n, QName::w(LocalName::Val)) {
+                Some(v) => <OnOff as crate::semantic::props::Codec>::parse(&v, &mut ctx),
+                None => true,
+            };
+            if on {
+                flags.push(name);
+            }
+        }
+        CompatFacts { mode, settings, flags }
+    }
+
+    pub fn compatibility_mode(&self, dom: &Dom) -> Option<u32> {
+        self.compat_facts(dom).mode
+    }
+
+    /// `w:defaultTabStop`，twip；缺省 720（Word）。
+    pub fn default_tab_stop_or_default(&self) -> i32 {
+        val_i32(&self.default_tab_stop).unwrap_or(720)
+    }
+}
+
+// ---- FontTable ----------------------------------------------------------------------------------
+
+impl FontTable {
+    pub fn from_dom(dom: &Dom, diags: &mut Vec<Diagnostic>) -> Option<FontTable> {
+        let root = root_if(dom, QName::w(LocalName::Fonts))?;
+        Some(read_font_table(dom, Some(root), diags))
+    }
+
+    pub fn get(&self, name: &str) -> Option<&Font> {
+        self.fonts.iter().find(|f| f.name.as_deref() == Some(name))
+    }
+}
+
+pub use crate::semantic::props::Styles;
+
 pub mod diagram {
     //! SmartArt 与绘图画布的模型（`MOD-11`，`spec/17` 任务 6.3）。
     //!
@@ -4640,8 +4635,8 @@ pub mod facts {
     //! （种类按 `graphicData/@uri` 与 VML 子元素判定）。字段事实（`fields` / `inside_field_result`）在 M2。
 
     use crate::model::block::{ListRef, SdtInfo};
-    use crate::model::decl::{OwnHeadingLevel, Styles};
     use crate::model::named_enum;
+    use crate::model::{OwnHeadingLevel, Styles};
     use crate::semantic::props::{ParaProps, Style, StyleType, Val};
     use crate::span::FieldId;
     use crate::xml::{Dom, LocalName, MceRole, NodeId, NsId, QName};
@@ -5497,7 +5492,6 @@ fn scan_subtree(dom: &Dom, root: NodeId, out: &mut Vec<InkInfo>) {
 
 use std::ops::Range;
 
-use crate::semantic::props::RunProps;
 use crate::span::{FieldId, SpanId};
 use crate::xml::{NodeId, QName};
 
@@ -10820,11 +10814,6 @@ pub use chart::{
     ChartColor, ChartDisplay, ChartGrouping, ChartKind, ChartPart, ChartSeries, LegendPos,
 };
 
-pub use decl::{
-    AbstractNum, Compat, CompatFacts, CompatSetting, DocDefaults, Font, FontTable, Level,
-    LevelOverride, Num, Numbering, OwnHeadingLevel, Settings, Style, StyleType, Styles,
-    TableStylePr,
-};
 pub use diagram::{CanvasDisplay, DiagramLine, DiagramPart, DiagramPicture, DiagramShape};
 pub use drawing::{
     AnchorGeom, ChartRef, DiagramRef, Display, Dist, DocPr, DrawingDisplay, Extent, ImageDisplay,
@@ -10850,13 +10839,13 @@ pub use vml::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};
 mod test_model {
     use super::chart::{PLOT_ELEMENTS, chartex_kind, palette, plot_kind, serial_date_text};
     use super::custom_geom;
-    use super::decl::{heading_level_of_id, heading_level_of_name};
     use super::diagram::diagram_text;
     use super::drawing::drawing_display;
     use super::lenient_int;
     use super::section::{DEFAULT_MARGIN, DEFAULT_PAGE_HEIGHT, DEFAULT_PAGE_WIDTH};
     use super::vml::{vml_color, vml_display};
     use super::*;
+    use super::{heading_level_of_id, heading_level_of_name};
     use super::{is_custom_xml_item, publisher_element};
     use crate::resolve::drawingml::Rgb;
     use crate::semantic::props::{TblStyleOverrideType, ThemeColor};
