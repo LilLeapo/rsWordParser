@@ -5592,10 +5592,8 @@ pub fn utf16_len(s: &str) -> u32 {
 // 公式与 ruby 的模型（`MOD-11`，`spec/17` 任务 6.5）。
 //
 // 公式段落（R11：`m:oMathPara` 或没有可见正文的公式段）挂 [`FormulaDisplay`]：片段节点、可编辑的 token、
-// MathML 与 LaTeX（转换器在 [`crate::model::omml`]）。文字夹公式的段落（R19）里每个 `m:oMath` 是一个
+// MathML 与 LaTeX（转换器在 [`to_latex`] / [`to_mathml`]）。文字夹公式的段落（R19）里每个 `m:oMath` 是一个
 // `Inline::Atom(Math)`，投影时按需算 token。原字节（TS 的 `omml`）在投影层按 `lex.range` 切，与 `rawRPr` 同一做法。
-
-use crate::model::omml::{latex, mathml};
 
 /// 一个公式段落的显示模型（TS `FormulaDisplay`）。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -5613,8 +5611,9 @@ pub struct FormulaDisplay {
 
 /// 一个段落的公式显示模型。`visible_text`：段落有可见正文（`ParagraphFacts::visible_text`）。
 pub fn formula_display(dom: &Dom, para: NodeId, visible_text: bool) -> FormulaDisplay {
-    let fragments = omml::fragments(dom, para);
-    let tokens: Vec<String> = fragments.iter().flat_map(|&f| omml::tokens(dom, f)).collect();
+    let fragments = crate::model::fragments(dom, para);
+    let tokens: Vec<String> =
+        fragments.iter().flat_map(|&f| crate::model::tokens(dom, f)).collect();
     let mathml = (!visible_text)
         .then(|| fragments.iter().map(|&f| mathml::to_mathml(dom, f)).collect::<String>())
         .filter(|s| !s.is_empty());
@@ -5627,7 +5626,7 @@ pub fn formula_display(dom: &Dom, para: NodeId, visible_text: bool) -> FormulaDi
 
 /// 一个 `m:oMath` 原子的 token（R19 的公式 run：`text` = token 拼接）。
 pub fn math_tokens(dom: &Dom, omath: NodeId) -> Vec<String> {
-    omml::tokens(dom, omath)
+    crate::model::tokens(dom, omath)
 }
 
 /// `w:ruby` 的一半（`w:rt` / `w:rubyBase`）的文字：直接 `w:r` 子节点的直接 `w:t` 子节点拼接（TS `rubyPartText`）。
@@ -5638,7 +5637,7 @@ pub fn ruby_part_text(dom: &Dom, ruby: NodeId, part: LocalName) -> String {
     let mut out = String::new();
     for r in dom.semantic_children(part).filter(|&r| dom.is(r, QName::w(LocalName::R))) {
         for t in dom.semantic_children(r).filter(|&t| dom.is(t, QName::w(LocalName::T))) {
-            out.push_str(&omml::text_of(dom, t));
+            out.push_str(&crate::model::omml_text_of(dom, t));
         }
     }
     out
@@ -6010,417 +6009,408 @@ fn is_ref_mark_run(dom: &Dom, run: NodeId) -> bool {
     })
 }
 
-pub mod omml {
-    //! OMML（Office Math，`m:` 命名空间）的读法与两个转换器（`spec/17` 任务 6.5）。
+// OMML（Office Math，`m:` 命名空间）的读法与两个转换器（`spec/17` 任务 6.5）。
+//
+// [`mathml`] 与 [`latex`] 是 TS `math.ts` 的 `ommlToMathML` / `ommlToLatex` 的逐字移植——差分按字符串比较，
+// `mn / mi / mo` 分类、运算符集、函数名表、转义规则都必须一样。两个转换器都是**迭代**实现（显式任务栈 +
+// 结果栈）：语料 `corpus/hostile/omml-deep.docx` 有 3,000 层嵌套，递归会把测试线程的栈吃光。
+// 这里放两者共用的小工具：语义子节点查找、属性包读取、run 文字、XML 转义。
+
+pub mod latex {
+    //! OMML → LaTeX 子集（TS `ommlToLatex`，`math.ts` 502–723 的逐字移植）。
     //!
-    //! [`mathml`] 与 [`latex`] 是 TS `math.ts` 的 `ommlToMathML` / `ommlToLatex` 的逐字移植——差分按字符串比较，
-    //! `mn / mi / mo` 分类、运算符集、函数名表、转义规则都必须一样。两个转换器都是**迭代**实现（显式任务栈 +
-    //! 结果栈）：语料 `corpus/hostile/omml-deep.docx` 有 3,000 层嵌套，递归会把测试线程的栈吃光。
-    //! 这里放两者共用的小工具：语义子节点查找、属性包读取、run 文字、XML 转义。
+    //! 子集之外的结构（`m:sPre`、`m:limUpp`、认不出的 n 元运算符 / 重音 / 定界符、`\` 与换行）→ `None`，
+    //! 调用方只保留 token 级编辑。与 [`super::mathml`] 同一套迭代求值骨架，错误一路短路。
 
-    pub mod latex {
-        //! OMML → LaTeX 子集（TS `ommlToLatex`，`math.ts` 502–723 的逐字移植）。
-        //!
-        //! 子集之外的结构（`m:sPre`、`m:limUpp`、认不出的 n 元运算符 / 重音 / 定界符、`\` 与换行）→ `None`，
-        //! 调用方只保留 token 级编辑。与 [`super::mathml`] 同一套迭代求值骨架，错误一路短路。
+    use super::{
+        child, children_named, content_children, is_plain_run, omml_text_of, plain_text_of_runs,
+        prop_on, prop_val, run_text,
+    };
+    use crate::xml::{Dom, LocalName, NodeId, NsId};
 
-        use super::{
-            child, children_named, content_children, is_plain_run, plain_text_of_runs, prop_on,
-            prop_val, run_text, text_of,
-        };
-        use crate::xml::{Dom, LocalName, NodeId, NsId};
+    struct Unsupported;
 
-        struct Unsupported;
-
-        /// 一个 `m:oMath` → LaTeX；子集之外 → `None`。结果 trim 并把连续空白压成一个空格。
-        pub fn to_latex(dom: &Dom, omath: NodeId) -> Option<String> {
-            let raw = eval(dom, Item::Seq(omath)).ok()?;
-            let mut out = String::with_capacity(raw.len());
-            let mut ws = 0usize;
-            for ch in raw.trim().chars() {
-                if ch.is_whitespace() {
-                    ws += 1;
-                    if ws == 1 {
-                        out.push(ch);
-                    } else if ws == 2 {
-                        out.pop();
-                        out.push(' ');
-                    }
-                } else {
-                    ws = 0;
+    /// 一个 `m:oMath` → LaTeX；子集之外 → `None`。结果 trim 并把连续空白压成一个空格。
+    pub fn to_latex(dom: &Dom, omath: NodeId) -> Option<String> {
+        let raw = eval(dom, Item::Seq(omath)).ok()?;
+        let mut out = String::with_capacity(raw.len());
+        let mut ws = 0usize;
+        for ch in raw.trim().chars() {
+            if ch.is_whitespace() {
+                ws += 1;
+                if ws == 1 {
                     out.push(ch);
+                } else if ws == 2 {
+                    out.pop();
+                    out.push(' ');
                 }
-            }
-            Some(out)
-        }
-
-        #[derive(Clone)]
-        enum Item {
-            Node(NodeId),
-            /// `parent/m:<name>` 的内容（缺失 → `""`）。
-            Slot(NodeId, LocalName),
-            /// 内容子节点直接拼接。
-            Seq(NodeId),
-            /// `\binom{num}{den}`（`(` `)` 包着的单个 noBar 分式）。
-            Binom(NodeId),
-            /// `m:m` / `m:eqArr` 的行体；`env` 是环境名（`matrix` / `pmatrix` / … / `cases`）。
-            Matrix {
-                node: NodeId,
-                env: String,
-            },
-            /// 一行 `m:mr`：各格 ` & ` 连接。
-            MatrixRow(NodeId),
-            /// `\left<beg> … \right<end>`。
-            LeftRight {
-                beg: String,
-                end: String,
-                slot: NodeId,
-            },
-        }
-
-        enum Task {
-            Eval(Item),
-            Finish(Item, usize),
-        }
-
-        fn eval(dom: &Dom, root: Item) -> Result<String, Unsupported> {
-            let mut tasks = vec![Task::Eval(root)];
-            let mut results: Vec<String> = Vec::new();
-            while let Some(task) = tasks.pop() {
-                match task {
-                    Task::Eval(item) => {
-                        if let Some(subs) = expand(dom, &item, &mut results)? {
-                            tasks.push(Task::Finish(item, subs.len()));
-                            tasks.extend(subs.into_iter().rev().map(Task::Eval));
-                        }
-                    }
-                    Task::Finish(item, arity) => {
-                        let at = results.len() - arity;
-                        let parts: Vec<String> = results.drain(at..).collect();
-                        results.push(finish(dom, &item, parts)?);
-                    }
-                }
-            }
-            Ok(results.pop().unwrap_or_default())
-        }
-
-        fn nodes(dom: &Dom, n: NodeId) -> Vec<Item> {
-            content_children(dom, n).into_iter().map(Item::Node).collect()
-        }
-
-        /// 矩阵的行：有 `m:mr` 就按行 / 格，否则每个 `m:e` 一行。
-        fn matrix_rows(dom: &Dom, node: NodeId) -> Vec<Item> {
-            let mrs = children_named(dom, node, LocalName::Mr);
-            if mrs.is_empty() {
-                children_named(dom, node, LocalName::E).into_iter().map(Item::Seq).collect()
             } else {
-                mrs.into_iter().map(Item::MatrixRow).collect()
+                ws = 0;
+                out.push(ch);
             }
         }
+        Some(out)
+    }
 
-        fn expand(
-            dom: &Dom,
-            item: &Item,
-            results: &mut Vec<String>,
-        ) -> Result<Option<Vec<Item>>, Unsupported> {
-            let slot = |n: NodeId, l: LocalName| Item::Slot(n, l);
-            Ok(match item {
-                Item::Slot(parent, name) => match child(dom, *parent, *name) {
-                    None => {
-                        results.push(String::new());
-                        None
-                    }
-                    Some(s) => Some(nodes(dom, s)),
-                },
-                Item::Seq(n) => Some(nodes(dom, *n)),
-                Item::Binom(f) => Some(vec![slot(*f, LocalName::Num), slot(*f, LocalName::Den)]),
-                Item::Matrix { node, .. } => Some(matrix_rows(dom, *node)),
-                Item::MatrixRow(mr) => Some(
-                    children_named(dom, *mr, LocalName::E).into_iter().map(Item::Seq).collect(),
-                ),
-                Item::LeftRight { slot, .. } => Some(nodes(dom, *slot)),
-                Item::Node(n) => {
-                    let n = *n;
-                    let Some(name) = dom.name(n) else {
-                        results.push(String::new());
-                        return Ok(None);
-                    };
-                    if name.ns != NsId::M {
-                        return Err(Unsupported);
-                    }
-                    Some(match name.local {
-                        LocalName::R => {
-                            results.push(run_to_latex(dom, n)?);
-                            return Ok(None);
-                        }
-                        LocalName::T => {
-                            results.push(chars_to_latex(&text_of(dom, n))?);
-                            return Ok(None);
-                        }
-                        LocalName::F => {
-                            // 裸的 noBar 分式只出现在 \binom 的 m:d 包里（那边处理）；别的分式样式在子集之外
-                            if prop_val(dom, n, LocalName::FPr, LocalName::Type)
-                                .is_some_and(|t| t != "bar")
-                            {
-                                return Err(Unsupported);
-                            }
-                            vec![slot(n, LocalName::Num), slot(n, LocalName::Den)]
-                        }
-                        LocalName::SSup => vec![slot(n, LocalName::E), slot(n, LocalName::Sup)],
-                        LocalName::SSub => vec![slot(n, LocalName::E), slot(n, LocalName::Sub)],
-                        LocalName::SSubSup => {
-                            vec![
-                                slot(n, LocalName::E),
-                                slot(n, LocalName::Sub),
-                                slot(n, LocalName::Sup),
-                            ]
-                        }
-                        LocalName::Rad => {
-                            if prop_on(dom, n, LocalName::RadPr, LocalName::DegHide)
-                                || child(dom, n, LocalName::Deg).is_none()
-                            {
-                                vec![slot(n, LocalName::E)]
-                            } else {
-                                vec![slot(n, LocalName::Deg), slot(n, LocalName::E)]
-                            }
-                        }
-                        LocalName::D => return delimiter(dom, n).map(|it| Some(vec![it])),
-                        LocalName::Nary => {
-                            let chr = prop_val(dom, n, LocalName::NaryPr, LocalName::Chr)
-                                .unwrap_or_else(|| "∫".into());
-                            if nary_command(&chr).is_none() {
-                                return Err(Unsupported);
-                            }
-                            vec![
-                                slot(n, LocalName::Sub),
-                                slot(n, LocalName::Sup),
-                                slot(n, LocalName::E),
-                            ]
-                        }
-                        LocalName::Func => {
-                            let name = plain_text_of_runs(dom, child(dom, n, LocalName::FName));
-                            let name = name.trim();
-                            if !(LATEX_FUNCTIONS.contains(&name)
-                                || name == "lim"
-                                || (!name.is_empty()
-                                    && name.chars().all(|c| c.is_ascii_alphabetic())))
-                            {
-                                return Err(Unsupported);
-                            }
-                            vec![slot(n, LocalName::E)]
-                        }
-                        LocalName::LimLow => {
-                            if plain_text_of_runs(dom, child(dom, n, LocalName::E)).trim() != "lim"
-                            {
-                                return Err(Unsupported);
-                            }
-                            vec![slot(n, LocalName::Lim)]
-                        }
-                        LocalName::Acc => {
-                            let chr = prop_val(dom, n, LocalName::AccPr, LocalName::Chr)
-                                .unwrap_or_else(|| "\u{0302}".into());
-                            if accent_command(&chr).is_none() {
-                                return Err(Unsupported);
-                            }
-                            vec![slot(n, LocalName::E)]
-                        }
-                        LocalName::Bar => vec![slot(n, LocalName::E)],
-                        LocalName::GroupChr => {
-                            let chr = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Chr)
-                                .unwrap_or_else(|| "\u{23DF}".into());
-                            if chr != "\u{23DF}" && chr != "\u{23DE}" {
-                                return Err(Unsupported);
-                            }
-                            vec![slot(n, LocalName::E)]
-                        }
-                        LocalName::M => {
-                            return Ok(Some(vec![Item::Matrix { node: n, env: "matrix".into() }]));
-                        }
-                        LocalName::Box | LocalName::BorderBox | LocalName::Phant => {
-                            vec![slot(n, LocalName::E)]
-                        }
-                        _ => return Err(Unsupported),
-                    })
-                }
-            })
-        }
+    #[derive(Clone)]
+    enum Item {
+        Node(NodeId),
+        /// `parent/m:<name>` 的内容（缺失 → `""`）。
+        Slot(NodeId, LocalName),
+        /// 内容子节点直接拼接。
+        Seq(NodeId),
+        /// `\binom{num}{den}`（`(` `)` 包着的单个 noBar 分式）。
+        Binom(NodeId),
+        /// `m:m` / `m:eqArr` 的行体；`env` 是环境名（`matrix` / `pmatrix` / … / `cases`）。
+        Matrix {
+            node: NodeId,
+            env: String,
+        },
+        /// 一行 `m:mr`：各格 ` & ` 连接。
+        MatrixRow(NodeId),
+        /// `\left<beg> … \right<end>`。
+        LeftRight {
+            beg: String,
+            end: String,
+            slot: NodeId,
+        },
+    }
 
-        fn finish(dom: &Dom, item: &Item, parts: Vec<String>) -> Result<String, Unsupported> {
-            let p = |i: usize| parts.get(i).map(String::as_str).unwrap_or("");
-            Ok(match item {
-                Item::Slot(..) | Item::Seq(_) => parts.concat(),
-                Item::Binom(_) => format!("\\binom{{{}}}{{{}}}", p(0), p(1)),
-                Item::Matrix { env, .. } => {
-                    format!("\\begin{{{env}}} {} \\end{{{env}}}", parts.join(" \\\\ "))
-                }
-                Item::MatrixRow(_) => parts.join(" & "),
-                Item::LeftRight { beg, end, .. } => {
-                    format!("\\left{beg} {} \\right{end}", parts.concat())
-                }
-                Item::Node(n) => {
-                    let n = *n;
-                    let Some(name) = dom.name(n) else { return Ok(String::new()) };
-                    match name.local {
-                        LocalName::F => format!("\\frac{{{}}}{{{}}}", p(0), p(1)),
-                        LocalName::SSup => format!("{{{}}}^{{{}}}", p(0), p(1)),
-                        LocalName::SSub => format!("{{{}}}_{{{}}}", p(0), p(1)),
-                        LocalName::SSubSup => format!("{{{}}}_{{{}}}^{{{}}}", p(0), p(1), p(2)),
-                        LocalName::Rad => {
-                            if parts.len() == 1 {
-                                format!("\\sqrt{{{}}}", p(0))
-                            } else {
-                                format!("\\sqrt[{}]{{{}}}", p(0), p(1))
-                            }
-                        }
-                        LocalName::D => parts.concat(),
-                        LocalName::Nary => {
-                            let chr = prop_val(dom, n, LocalName::NaryPr, LocalName::Chr)
-                                .unwrap_or_else(|| "∫".into());
-                            let command = nary_command(&chr).ok_or(Unsupported)?;
-                            let sub = if prop_on(dom, n, LocalName::NaryPr, LocalName::SubHide) {
-                                String::new()
-                            } else {
-                                format!("_{{{}}}", p(0))
-                            };
-                            let sup = if prop_on(dom, n, LocalName::NaryPr, LocalName::SupHide) {
-                                String::new()
-                            } else {
-                                format!("^{{{}}}", p(1))
-                            };
-                            format!("\\{command}{sub}{sup} {{{}}}", p(2))
-                        }
-                        LocalName::Func => {
-                            let name = plain_text_of_runs(dom, child(dom, n, LocalName::FName));
-                            let name = name.trim();
-                            let arg = format!("{{{}}}", p(0));
-                            if LATEX_FUNCTIONS.contains(&name) || name == "lim" {
-                                format!("\\{name} {arg}")
-                            } else {
-                                format!("\\operatorname{{{name}}} {arg}")
-                            }
-                        }
-                        LocalName::LimLow => format!("\\lim_{{{}}}", p(0)),
-                        LocalName::Acc => {
-                            let chr = prop_val(dom, n, LocalName::AccPr, LocalName::Chr)
-                                .unwrap_or_else(|| "\u{0302}".into());
-                            format!("\\{}{{{}}}", accent_command(&chr).ok_or(Unsupported)?, p(0))
-                        }
-                        LocalName::Bar => {
-                            let top = prop_val(dom, n, LocalName::BarPr, LocalName::Pos).as_deref()
-                                == Some("top");
-                            format!("\\{}{{{}}}", if top { "overline" } else { "underline" }, p(0))
-                        }
-                        LocalName::GroupChr => {
-                            let chr = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Chr)
-                                .unwrap_or_else(|| "\u{23DF}".into());
-                            format!(
-                                "\\{}{{{}}}",
-                                if chr == "\u{23DE}" { "overbrace" } else { "underbrace" },
-                                p(0)
-                            )
-                        }
-                        LocalName::Box | LocalName::BorderBox | LocalName::Phant => {
-                            p(0).to_string()
-                        }
-                        // `m:m` 展开成一个 `Matrix` 项，结果就是它
-                        LocalName::M => p(0).to_string(),
-                        _ => return Err(Unsupported),
+    enum Task {
+        Eval(Item),
+        Finish(Item, usize),
+    }
+
+    fn eval(dom: &Dom, root: Item) -> Result<String, Unsupported> {
+        let mut tasks = vec![Task::Eval(root)];
+        let mut results: Vec<String> = Vec::new();
+        while let Some(task) = tasks.pop() {
+            match task {
+                Task::Eval(item) => {
+                    if let Some(subs) = expand(dom, &item, &mut results)? {
+                        tasks.push(Task::Finish(item, subs.len()));
+                        tasks.extend(subs.into_iter().rev().map(Task::Eval));
                     }
                 }
-            })
-        }
-
-        /// `m:d`（TS `delimiterToLatex`）：`\binom`、矩阵环境、`\left … \right` 三种形态之一。
-        fn delimiter(dom: &Dom, d: NodeId) -> Result<Item, Unsupported> {
-            let beg =
-                prop_val(dom, d, LocalName::DPr, LocalName::BegChr).unwrap_or_else(|| "(".into());
-            let end =
-                prop_val(dom, d, LocalName::DPr, LocalName::EndChr).unwrap_or_else(|| ")".into());
-            let slots = children_named(dom, d, LocalName::E);
-            let [slot] = slots.as_slice() else { return Err(Unsupported) };
-            let inner = content_children(dom, *slot);
-            if let [only] = inner.as_slice() {
-                let only = *only;
-                if beg == "("
-                    && end == ")"
-                    && dom.is(only, super::m(LocalName::F))
-                    && prop_val(dom, only, LocalName::FPr, LocalName::Type).as_deref()
-                        == Some("noBar")
-                {
-                    return Ok(Item::Binom(only));
-                }
-                if (dom.is(only, super::m(LocalName::M))
-                    || dom.is(only, super::m(LocalName::EqArr)))
-                    && let Some(env) = matrix_env(&beg, &end)
-                {
-                    return Ok(Item::Matrix { node: only, env: env.to_string() });
+                Task::Finish(item, arity) => {
+                    let at = results.len() - arity;
+                    let parts: Vec<String> = results.drain(at..).collect();
+                    results.push(finish(dom, &item, parts)?);
                 }
             }
-            let beg_tok = delim_token(&beg).ok_or(Unsupported)?;
-            let end_tok = delim_token(&end).ok_or(Unsupported)?;
-            Ok(Item::LeftRight { beg: beg_tok.to_string(), end: end_tok.to_string(), slot: *slot })
         }
+        Ok(results.pop().unwrap_or_default())
+    }
 
-        fn run_to_latex(dom: &Dom, run: NodeId) -> Result<String, Unsupported> {
-            let text = run_text(dom, run);
-            if !is_plain_run(dom, run) {
-                return chars_to_latex(&text);
-            }
-            let trimmed = text.trim();
-            if trimmed.is_empty() {
-                return Ok(" ".into());
-            }
-            if LATEX_FUNCTIONS.contains(&trimmed) {
-                return Ok(format!("\\{trimmed} "));
-            }
-            if trimmed == "lim" {
-                return Ok("\\lim ".into());
-            }
-            if text.contains(['{', '}', '\\']) {
-                return Err(Unsupported);
-            }
-            Ok(format!("\\text{{{text}}}"))
+    fn nodes(dom: &Dom, n: NodeId) -> Vec<Item> {
+        content_children(dom, n).into_iter().map(Item::Node).collect()
+    }
+
+    /// 矩阵的行：有 `m:mr` 就按行 / 格，否则每个 `m:e` 一行。
+    fn matrix_rows(dom: &Dom, node: NodeId) -> Vec<Item> {
+        let mrs = children_named(dom, node, LocalName::Mr);
+        if mrs.is_empty() {
+            children_named(dom, node, LocalName::E).into_iter().map(Item::Seq).collect()
+        } else {
+            mrs.into_iter().map(Item::MatrixRow).collect()
         }
+    }
 
-        /// 普通数学文字：解析器的特殊字符转义，符号换成 `\命令 `（TS `charsToLatex`）。
-        fn chars_to_latex(text: &str) -> Result<String, Unsupported> {
-            let mut out = String::new();
-            for ch in text.chars() {
-                if ch == '\\' || ch == '\n' {
+    fn expand(
+        dom: &Dom,
+        item: &Item,
+        results: &mut Vec<String>,
+    ) -> Result<Option<Vec<Item>>, Unsupported> {
+        let slot = |n: NodeId, l: LocalName| Item::Slot(n, l);
+        Ok(match item {
+            Item::Slot(parent, name) => match child(dom, *parent, *name) {
+                None => {
+                    results.push(String::new());
+                    None
+                }
+                Some(s) => Some(nodes(dom, s)),
+            },
+            Item::Seq(n) => Some(nodes(dom, *n)),
+            Item::Binom(f) => Some(vec![slot(*f, LocalName::Num), slot(*f, LocalName::Den)]),
+            Item::Matrix { node, .. } => Some(matrix_rows(dom, *node)),
+            Item::MatrixRow(mr) => {
+                Some(children_named(dom, *mr, LocalName::E).into_iter().map(Item::Seq).collect())
+            }
+            Item::LeftRight { slot, .. } => Some(nodes(dom, *slot)),
+            Item::Node(n) => {
+                let n = *n;
+                let Some(name) = dom.name(n) else {
+                    results.push(String::new());
+                    return Ok(None);
+                };
+                if name.ns != NsId::M {
                     return Err(Unsupported);
                 }
-                if let Some(esc) = char_escape(ch) {
-                    out.push_str(esc);
-                    continue;
-                }
-                match symbol_command(ch) {
-                    Some(cmd) => {
-                        out.push('\\');
-                        out.push_str(cmd);
-                        out.push(' ');
+                Some(match name.local {
+                    LocalName::R => {
+                        results.push(run_to_latex(dom, n)?);
+                        return Ok(None);
                     }
-                    None => out.push(ch),
+                    LocalName::T => {
+                        results.push(chars_to_latex(&omml_text_of(dom, n))?);
+                        return Ok(None);
+                    }
+                    LocalName::F => {
+                        // 裸的 noBar 分式只出现在 \binom 的 m:d 包里（那边处理）；别的分式样式在子集之外
+                        if prop_val(dom, n, LocalName::FPr, LocalName::Type)
+                            .is_some_and(|t| t != "bar")
+                        {
+                            return Err(Unsupported);
+                        }
+                        vec![slot(n, LocalName::Num), slot(n, LocalName::Den)]
+                    }
+                    LocalName::SSup => vec![slot(n, LocalName::E), slot(n, LocalName::Sup)],
+                    LocalName::SSub => vec![slot(n, LocalName::E), slot(n, LocalName::Sub)],
+                    LocalName::SSubSup => {
+                        vec![
+                            slot(n, LocalName::E),
+                            slot(n, LocalName::Sub),
+                            slot(n, LocalName::Sup),
+                        ]
+                    }
+                    LocalName::Rad => {
+                        if prop_on(dom, n, LocalName::RadPr, LocalName::DegHide)
+                            || child(dom, n, LocalName::Deg).is_none()
+                        {
+                            vec![slot(n, LocalName::E)]
+                        } else {
+                            vec![slot(n, LocalName::Deg), slot(n, LocalName::E)]
+                        }
+                    }
+                    LocalName::D => return delimiter(dom, n).map(|it| Some(vec![it])),
+                    LocalName::Nary => {
+                        let chr = prop_val(dom, n, LocalName::NaryPr, LocalName::Chr)
+                            .unwrap_or_else(|| "∫".into());
+                        if nary_command(&chr).is_none() {
+                            return Err(Unsupported);
+                        }
+                        vec![
+                            slot(n, LocalName::Sub),
+                            slot(n, LocalName::Sup),
+                            slot(n, LocalName::E),
+                        ]
+                    }
+                    LocalName::Func => {
+                        let name = plain_text_of_runs(dom, child(dom, n, LocalName::FName));
+                        let name = name.trim();
+                        if !(LATEX_FUNCTIONS.contains(&name)
+                            || name == "lim"
+                            || (!name.is_empty() && name.chars().all(|c| c.is_ascii_alphabetic())))
+                        {
+                            return Err(Unsupported);
+                        }
+                        vec![slot(n, LocalName::E)]
+                    }
+                    LocalName::LimLow => {
+                        if plain_text_of_runs(dom, child(dom, n, LocalName::E)).trim() != "lim" {
+                            return Err(Unsupported);
+                        }
+                        vec![slot(n, LocalName::Lim)]
+                    }
+                    LocalName::Acc => {
+                        let chr = prop_val(dom, n, LocalName::AccPr, LocalName::Chr)
+                            .unwrap_or_else(|| "\u{0302}".into());
+                        if accent_command(&chr).is_none() {
+                            return Err(Unsupported);
+                        }
+                        vec![slot(n, LocalName::E)]
+                    }
+                    LocalName::Bar => vec![slot(n, LocalName::E)],
+                    LocalName::GroupChr => {
+                        let chr = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Chr)
+                            .unwrap_or_else(|| "\u{23DF}".into());
+                        if chr != "\u{23DF}" && chr != "\u{23DE}" {
+                            return Err(Unsupported);
+                        }
+                        vec![slot(n, LocalName::E)]
+                    }
+                    LocalName::M => {
+                        return Ok(Some(vec![Item::Matrix { node: n, env: "matrix".into() }]));
+                    }
+                    LocalName::Box | LocalName::BorderBox | LocalName::Phant => {
+                        vec![slot(n, LocalName::E)]
+                    }
+                    _ => return Err(Unsupported),
+                })
+            }
+        })
+    }
+
+    fn finish(dom: &Dom, item: &Item, parts: Vec<String>) -> Result<String, Unsupported> {
+        let p = |i: usize| parts.get(i).map(String::as_str).unwrap_or("");
+        Ok(match item {
+            Item::Slot(..) | Item::Seq(_) => parts.concat(),
+            Item::Binom(_) => format!("\\binom{{{}}}{{{}}}", p(0), p(1)),
+            Item::Matrix { env, .. } => {
+                format!("\\begin{{{env}}} {} \\end{{{env}}}", parts.join(" \\\\ "))
+            }
+            Item::MatrixRow(_) => parts.join(" & "),
+            Item::LeftRight { beg, end, .. } => {
+                format!("\\left{beg} {} \\right{end}", parts.concat())
+            }
+            Item::Node(n) => {
+                let n = *n;
+                let Some(name) = dom.name(n) else { return Ok(String::new()) };
+                match name.local {
+                    LocalName::F => format!("\\frac{{{}}}{{{}}}", p(0), p(1)),
+                    LocalName::SSup => format!("{{{}}}^{{{}}}", p(0), p(1)),
+                    LocalName::SSub => format!("{{{}}}_{{{}}}", p(0), p(1)),
+                    LocalName::SSubSup => format!("{{{}}}_{{{}}}^{{{}}}", p(0), p(1), p(2)),
+                    LocalName::Rad => {
+                        if parts.len() == 1 {
+                            format!("\\sqrt{{{}}}", p(0))
+                        } else {
+                            format!("\\sqrt[{}]{{{}}}", p(0), p(1))
+                        }
+                    }
+                    LocalName::D => parts.concat(),
+                    LocalName::Nary => {
+                        let chr = prop_val(dom, n, LocalName::NaryPr, LocalName::Chr)
+                            .unwrap_or_else(|| "∫".into());
+                        let command = nary_command(&chr).ok_or(Unsupported)?;
+                        let sub = if prop_on(dom, n, LocalName::NaryPr, LocalName::SubHide) {
+                            String::new()
+                        } else {
+                            format!("_{{{}}}", p(0))
+                        };
+                        let sup = if prop_on(dom, n, LocalName::NaryPr, LocalName::SupHide) {
+                            String::new()
+                        } else {
+                            format!("^{{{}}}", p(1))
+                        };
+                        format!("\\{command}{sub}{sup} {{{}}}", p(2))
+                    }
+                    LocalName::Func => {
+                        let name = plain_text_of_runs(dom, child(dom, n, LocalName::FName));
+                        let name = name.trim();
+                        let arg = format!("{{{}}}", p(0));
+                        if LATEX_FUNCTIONS.contains(&name) || name == "lim" {
+                            format!("\\{name} {arg}")
+                        } else {
+                            format!("\\operatorname{{{name}}} {arg}")
+                        }
+                    }
+                    LocalName::LimLow => format!("\\lim_{{{}}}", p(0)),
+                    LocalName::Acc => {
+                        let chr = prop_val(dom, n, LocalName::AccPr, LocalName::Chr)
+                            .unwrap_or_else(|| "\u{0302}".into());
+                        format!("\\{}{{{}}}", accent_command(&chr).ok_or(Unsupported)?, p(0))
+                    }
+                    LocalName::Bar => {
+                        let top = prop_val(dom, n, LocalName::BarPr, LocalName::Pos).as_deref()
+                            == Some("top");
+                        format!("\\{}{{{}}}", if top { "overline" } else { "underline" }, p(0))
+                    }
+                    LocalName::GroupChr => {
+                        let chr = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Chr)
+                            .unwrap_or_else(|| "\u{23DF}".into());
+                        format!(
+                            "\\{}{{{}}}",
+                            if chr == "\u{23DE}" { "overbrace" } else { "underbrace" },
+                            p(0)
+                        )
+                    }
+                    LocalName::Box | LocalName::BorderBox | LocalName::Phant => p(0).to_string(),
+                    // `m:m` 展开成一个 `Matrix` 项，结果就是它
+                    LocalName::M => p(0).to_string(),
+                    _ => return Err(Unsupported),
                 }
             }
-            Ok(out)
-        }
+        })
+    }
 
-        fn char_escape(ch: char) -> Option<&'static str> {
-            Some(match ch {
-                '{' => "\\{ ",
-                '}' => "\\} ",
-                '_' => "\\_ ",
-                '^' => "\\^ ",
-                '&' => "\\& ",
-                '%' => "\\% ",
-                '$' => "\\$ ",
-                '#' => "\\# ",
-                _ => return None,
-            })
+    /// `m:d`（TS `delimiterToLatex`）：`\binom`、矩阵环境、`\left … \right` 三种形态之一。
+    fn delimiter(dom: &Dom, d: NodeId) -> Result<Item, Unsupported> {
+        let beg = prop_val(dom, d, LocalName::DPr, LocalName::BegChr).unwrap_or_else(|| "(".into());
+        let end = prop_val(dom, d, LocalName::DPr, LocalName::EndChr).unwrap_or_else(|| ")".into());
+        let slots = children_named(dom, d, LocalName::E);
+        let [slot] = slots.as_slice() else { return Err(Unsupported) };
+        let inner = content_children(dom, *slot);
+        if let [only] = inner.as_slice() {
+            let only = *only;
+            if beg == "("
+                && end == ")"
+                && dom.is(only, super::m(LocalName::F))
+                && prop_val(dom, only, LocalName::FPr, LocalName::Type).as_deref() == Some("noBar")
+            {
+                return Ok(Item::Binom(only));
+            }
+            if (dom.is(only, super::m(LocalName::M)) || dom.is(only, super::m(LocalName::EqArr)))
+                && let Some(env) = matrix_env(&beg, &end)
+            {
+                return Ok(Item::Matrix { node: only, env: env.to_string() });
+            }
         }
+        let beg_tok = delim_token(&beg).ok_or(Unsupported)?;
+        let end_tok = delim_token(&end).ok_or(Unsupported)?;
+        Ok(Item::LeftRight { beg: beg_tok.to_string(), end: end_tok.to_string(), slot: *slot })
+    }
 
-        /// 三张 TS 表的反查：符号 / n 元运算符 / 重音 → 命令名（同一字符有多个名字时**第一个**赢）。
-        macro_rules! latex_symbols {
+    fn run_to_latex(dom: &Dom, run: NodeId) -> Result<String, Unsupported> {
+        let text = run_text(dom, run);
+        if !is_plain_run(dom, run) {
+            return chars_to_latex(&text);
+        }
+        let trimmed = text.trim();
+        if trimmed.is_empty() {
+            return Ok(" ".into());
+        }
+        if LATEX_FUNCTIONS.contains(&trimmed) {
+            return Ok(format!("\\{trimmed} "));
+        }
+        if trimmed == "lim" {
+            return Ok("\\lim ".into());
+        }
+        if text.contains(['{', '}', '\\']) {
+            return Err(Unsupported);
+        }
+        Ok(format!("\\text{{{text}}}"))
+    }
+
+    /// 普通数学文字：解析器的特殊字符转义，符号换成 `\命令 `（TS `charsToLatex`）。
+    fn chars_to_latex(text: &str) -> Result<String, Unsupported> {
+        let mut out = String::new();
+        for ch in text.chars() {
+            if ch == '\\' || ch == '\n' {
+                return Err(Unsupported);
+            }
+            if let Some(esc) = char_escape(ch) {
+                out.push_str(esc);
+                continue;
+            }
+            match symbol_command(ch) {
+                Some(cmd) => {
+                    out.push('\\');
+                    out.push_str(cmd);
+                    out.push(' ');
+                }
+                None => out.push(ch),
+            }
+        }
+        Ok(out)
+    }
+
+    fn char_escape(ch: char) -> Option<&'static str> {
+        Some(match ch {
+            '{' => "\\{ ",
+            '}' => "\\} ",
+            '_' => "\\_ ",
+            '^' => "\\^ ",
+            '&' => "\\& ",
+            '%' => "\\% ",
+            '$' => "\\$ ",
+            '#' => "\\# ",
+            _ => return None,
+        })
+    }
+
+    /// 三张 TS 表的反查：符号 / n 元运算符 / 重音 → 命令名（同一字符有多个名字时**第一个**赢）。
+    macro_rules! latex_symbols {
             ($fn:ident / $rev:ident: $($name:literal => $ch:literal),+ $(,)?) => {
                 /// 字符 → `\命令`（表序，别名取第一个）。
                 fn $fn(ch: char) -> Option<&'static str> {
@@ -6436,1090 +6426,1066 @@ pub mod omml {
             };
         }
 
-        latex_symbols! { symbol_command / symbol_char:
-            "alpha" => 'α', "beta" => 'β', "gamma" => 'γ', "delta" => 'δ', "epsilon" => 'ε', "zeta" => 'ζ',
-            "eta" => 'η', "theta" => 'θ', "vartheta" => 'ϑ', "iota" => 'ι', "kappa" => 'κ', "lambda" => 'λ',
-            "mu" => 'μ', "nu" => 'ν', "xi" => 'ξ', "pi" => 'π', "rho" => 'ρ', "sigma" => 'σ', "tau" => 'τ',
-            "upsilon" => 'υ', "phi" => 'φ', "varphi" => 'ϕ', "chi" => 'χ', "psi" => 'ψ', "omega" => 'ω',
-            "Gamma" => 'Γ', "Delta" => 'Δ', "Theta" => 'Θ', "Lambda" => 'Λ', "Xi" => 'Ξ', "Pi" => 'Π',
-            "Sigma" => 'Σ', "Upsilon" => 'Υ', "Phi" => 'Φ', "Psi" => 'Ψ', "Omega" => 'Ω',
-            "infty" => '∞', "pm" => '±', "mp" => '∓', "times" => '×', "div" => '÷', "cdot" => '⋅', "ast" => '*',
-            "le" => '≤', "ge" => '≥', "ne" => '≠', "approx" => '≈', "equiv" => '≡', "sim" => '∼', "propto" => '∝',
-            "to" => '→', "leftarrow" => '←', "leftrightarrow" => '↔', "Rightarrow" => '⇒', "Leftarrow" => '⇐',
-            "Leftrightarrow" => '⇔', "partial" => '∂', "nabla" => '∇', "in" => '∈', "notin" => '∉',
-            "subset" => '⊂', "supset" => '⊃', "subseteq" => '⊆', "supseteq" => '⊇', "cup" => '∪', "cap" => '∩',
-            "forall" => '∀', "exists" => '∃', "wedge" => '∧', "vee" => '∨', "neg" => '¬', "angle" => '∠',
-            "perp" => '⊥', "parallel" => '∥', "ldots" => '…', "cdots" => '⋯', "vdots" => '⋮', "ddots" => '⋱',
-            "prime" => '′', "circ" => '∘', "degree" => '°', "bullet" => '∙', "star" => '⋆', "emptyset" => '∅',
-            "hbar" => 'ℏ', "ell" => 'ℓ', "Re" => 'ℜ', "Im" => 'ℑ', "aleph" => 'ℵ', "therefore" => '∴', "because" => '∵',
+    latex_symbols! { symbol_command / symbol_char:
+        "alpha" => 'α', "beta" => 'β', "gamma" => 'γ', "delta" => 'δ', "epsilon" => 'ε', "zeta" => 'ζ',
+        "eta" => 'η', "theta" => 'θ', "vartheta" => 'ϑ', "iota" => 'ι', "kappa" => 'κ', "lambda" => 'λ',
+        "mu" => 'μ', "nu" => 'ν', "xi" => 'ξ', "pi" => 'π', "rho" => 'ρ', "sigma" => 'σ', "tau" => 'τ',
+        "upsilon" => 'υ', "phi" => 'φ', "varphi" => 'ϕ', "chi" => 'χ', "psi" => 'ψ', "omega" => 'ω',
+        "Gamma" => 'Γ', "Delta" => 'Δ', "Theta" => 'Θ', "Lambda" => 'Λ', "Xi" => 'Ξ', "Pi" => 'Π',
+        "Sigma" => 'Σ', "Upsilon" => 'Υ', "Phi" => 'Φ', "Psi" => 'Ψ', "Omega" => 'Ω',
+        "infty" => '∞', "pm" => '±', "mp" => '∓', "times" => '×', "div" => '÷', "cdot" => '⋅', "ast" => '*',
+        "le" => '≤', "ge" => '≥', "ne" => '≠', "approx" => '≈', "equiv" => '≡', "sim" => '∼', "propto" => '∝',
+        "to" => '→', "leftarrow" => '←', "leftrightarrow" => '↔', "Rightarrow" => '⇒', "Leftarrow" => '⇐',
+        "Leftrightarrow" => '⇔', "partial" => '∂', "nabla" => '∇', "in" => '∈', "notin" => '∉',
+        "subset" => '⊂', "supset" => '⊃', "subseteq" => '⊆', "supseteq" => '⊇', "cup" => '∪', "cap" => '∩',
+        "forall" => '∀', "exists" => '∃', "wedge" => '∧', "vee" => '∨', "neg" => '¬', "angle" => '∠',
+        "perp" => '⊥', "parallel" => '∥', "ldots" => '…', "cdots" => '⋯', "vdots" => '⋮', "ddots" => '⋱',
+        "prime" => '′', "circ" => '∘', "degree" => '°', "bullet" => '∙', "star" => '⋆', "emptyset" => '∅',
+        "hbar" => 'ℏ', "ell" => 'ℓ', "Re" => 'ℜ', "Im" => 'ℑ', "aleph" => 'ℵ', "therefore" => '∴', "because" => '∵',
+    }
+
+    latex_symbols! { accent_char_command / accent_char:
+        "hat" => '\u{0302}', "bar" => '\u{0304}', "vec" => '\u{20D7}', "dot" => '\u{0307}', "ddot" => '\u{0308}',
+        "tilde" => '\u{0303}', "check" => '\u{030C}', "breve" => '\u{0306}',
+    }
+
+    latex_symbols! { nary_char_command / nary_char:
+        "sum" => '∑', "prod" => '∏', "coprod" => '∐', "bigcup" => '⋃', "bigcap" => '⋂', "int" => '∫',
+        "iint" => '∬', "iiint" => '∭', "oint" => '∮',
+    }
+
+    fn single(s: &str) -> Option<char> {
+        let mut it = s.chars();
+        let c = it.next()?;
+        it.next().is_none().then_some(c)
+    }
+
+    fn nary_command(chr: &str) -> Option<&'static str> {
+        single(chr).and_then(nary_char_command)
+    }
+
+    fn accent_command(chr: &str) -> Option<&'static str> {
+        single(chr).and_then(accent_char_command)
+    }
+
+    /// TS `LATEX_FUNCTIONS.has(name)`（`latex_to_omml` 用）。
+    pub(super) fn is_latex_function(name: &str) -> bool {
+        LATEX_FUNCTIONS.contains(&name)
+    }
+
+    /// TS `LATEX_FUNCTIONS`。
+    const LATEX_FUNCTIONS: &[&str] = &[
+        "sin", "cos", "tan", "cot", "sec", "csc", "sinh", "cosh", "tanh", "coth", "arcsin",
+        "arccos", "arctan", "ln", "log", "exp", "max", "min", "sup", "inf", "arg", "det", "gcd",
+        "deg", "dim", "ker", "mod",
+    ];
+
+    /// 定界字符 → `\left` / `\right` 后面的 token（TS `LEFT_RIGHT_CHARS` 的反查；`""` → `.`）。
+    fn delim_token(ch: &str) -> Option<&'static str> {
+        Some(match ch {
+            "" => ".",
+            "(" => "(",
+            ")" => ")",
+            "[" => "[",
+            "]" => "]",
+            "|" => "|",
+            "{" => "\\{",
+            "}" => "\\}",
+            "‖" => "\\|",
+            "⟨" => "\\langle",
+            "⟩" => "\\rangle",
+            "⌊" => "\\lfloor",
+            "⌋" => "\\rfloor",
+            "⌈" => "\\lceil",
+            "⌉" => "\\rceil",
+            _ => return None,
+        })
+    }
+
+    /// 定界符对 → 矩阵环境（TS `MATRIX_DELIMS`；`cases` 是 `{` 配空的右侧）。
+    fn matrix_env(beg: &str, end: &str) -> Option<&'static str> {
+        Some(match (beg, end) {
+            ("(", ")") => "pmatrix",
+            ("[", "]") => "bmatrix",
+            ("{", "}") => "Bmatrix",
+            ("|", "|") => "vmatrix",
+            ("‖", "‖") => "Vmatrix",
+            ("{", "") => "cases",
+            _ => return None,
+        })
+    }
+}
+pub mod latex_to_omml {
+    //! LaTeX → OMML（TS `math.ts` 的 `latexToOmml`，`spec/18` 7.5 逐字移植）。
+    //!
+    //! 输出与 TS **逐字相等**（`fixtures/fieldgen/` 是对照件）：同样的元素顺序、同样的属性顺序、
+    //! 同样的转义。这是**用户输入**的解析器，不是文档遍历，所以按 `spec/18` 的约定用递归下降 +
+    //! 深度上限（256），超限 `Err(EDIT_MATH_TOO_DEEP)` 而不是写显式栈。
+
+    use crate::diag::DiagCode;
+    use crate::error::{Error, Result};
+
+    use super::escape_text;
+
+    /// 递归深度上限（用户输入，不是文档；`spec/18` 风险 11）。
+    const MAX_DEPTH: usize = 256;
+
+    fn err(msg: impl Into<String>) -> Error {
+        Error::edit(DiagCode::EditMathBadLatex, msg)
+    }
+
+    fn too_deep() -> Error {
+        Error::edit(DiagCode::EditMathTooDeep, "LaTeX 嵌套超过 256 层")
+    }
+
+    /// TS `escapeXmlAttr`。
+    fn escape_attr(s: &str) -> String {
+        escape_text(s).replace('"', "&quot;")
+    }
+
+    struct P<'a> {
+        src: &'a [char],
+        pos: usize,
+        depth: usize,
+    }
+
+    impl P<'_> {
+        fn peek(&self) -> char {
+            self.src.get(self.pos).copied().unwrap_or('\0')
         }
 
-        latex_symbols! { accent_char_command / accent_char:
-            "hat" => '\u{0302}', "bar" => '\u{0304}', "vec" => '\u{20D7}', "dot" => '\u{0307}', "ddot" => '\u{0308}',
-            "tilde" => '\u{0303}', "check" => '\u{030C}', "breve" => '\u{0306}',
+        fn rest_starts_with(&self, pat: &str) -> bool {
+            let p: Vec<char> = pat.chars().collect();
+            self.src.len() >= self.pos + p.len() && self.src[self.pos..self.pos + p.len()] == p[..]
         }
 
-        latex_symbols! { nary_char_command / nary_char:
-            "sum" => '∑', "prod" => '∏', "coprod" => '∐', "bigcup" => '⋃', "bigcap" => '⋂', "int" => '∫',
-            "iint" => '∬', "iiint" => '∭', "oint" => '∮',
+        fn skip_spaces(&mut self) {
+            while self.peek().is_whitespace() {
+                self.pos += 1;
+            }
         }
 
-        fn single(s: &str) -> Option<char> {
-            let mut it = s.chars();
-            let c = it.next()?;
-            it.next().is_none().then_some(c)
+        fn slice(&self, from: usize, to: usize) -> String {
+            self.src[from.min(self.src.len())..to.min(self.src.len())].iter().collect()
         }
 
-        fn nary_command(chr: &str) -> Option<&'static str> {
-            single(chr).and_then(nary_char_command)
-        }
-
-        fn accent_command(chr: &str) -> Option<&'static str> {
-            single(chr).and_then(accent_char_command)
-        }
-
-        /// TS `LATEX_FUNCTIONS.has(name)`（`latex_to_omml` 用）。
-        pub(super) fn is_latex_function(name: &str) -> bool {
-            LATEX_FUNCTIONS.contains(&name)
-        }
-
-        /// TS `LATEX_FUNCTIONS`。
-        const LATEX_FUNCTIONS: &[&str] = &[
-            "sin", "cos", "tan", "cot", "sec", "csc", "sinh", "cosh", "tanh", "coth", "arcsin",
-            "arccos", "arctan", "ln", "log", "exp", "max", "min", "sup", "inf", "arg", "det",
-            "gcd", "deg", "dim", "ker", "mod",
-        ];
-
-        /// 定界字符 → `\left` / `\right` 后面的 token（TS `LEFT_RIGHT_CHARS` 的反查；`""` → `.`）。
-        fn delim_token(ch: &str) -> Option<&'static str> {
-            Some(match ch {
-                "" => ".",
-                "(" => "(",
-                ")" => ")",
-                "[" => "[",
-                "]" => "]",
-                "|" => "|",
-                "{" => "\\{",
-                "}" => "\\}",
-                "‖" => "\\|",
-                "⟨" => "\\langle",
-                "⟩" => "\\rangle",
-                "⌊" => "\\lfloor",
-                "⌋" => "\\rfloor",
-                "⌈" => "\\lceil",
-                "⌉" => "\\rceil",
-                _ => return None,
-            })
-        }
-
-        /// 定界符对 → 矩阵环境（TS `MATRIX_DELIMS`；`cases` 是 `{` 配空的右侧）。
-        fn matrix_env(beg: &str, end: &str) -> Option<&'static str> {
-            Some(match (beg, end) {
-                ("(", ")") => "pmatrix",
-                ("[", "]") => "bmatrix",
-                ("{", "}") => "Bmatrix",
-                ("|", "|") => "vmatrix",
-                ("‖", "‖") => "Vmatrix",
-                ("{", "") => "cases",
-                _ => return None,
-            })
+        fn deeper(&mut self) -> Result<()> {
+            self.depth += 1;
+            if self.depth > MAX_DEPTH { Err(too_deep()) } else { Ok(()) }
         }
     }
-    pub mod latex_to_omml {
-        //! LaTeX → OMML（TS `math.ts` 的 `latexToOmml`，`spec/18` 7.5 逐字移植）。
-        //!
-        //! 输出与 TS **逐字相等**（`fixtures/fieldgen/` 是对照件）：同样的元素顺序、同样的属性顺序、
-        //! 同样的转义。这是**用户输入**的解析器，不是文档遍历，所以按 `spec/18` 的约定用递归下降 +
-        //! 深度上限（256），超限 `Err(EDIT_MATH_TOO_DEEP)` 而不是写显式栈。
 
-        use crate::diag::DiagCode;
-        use crate::error::{Error, Result};
-
-        use super::escape_text;
-
-        /// 递归深度上限（用户输入，不是文档；`spec/18` 风险 11）。
-        const MAX_DEPTH: usize = 256;
-
-        fn err(msg: impl Into<String>) -> Error {
-            Error::edit(DiagCode::EditMathBadLatex, msg)
+    /// TS `latexToOmml`：整串 LaTeX → `m:oMath` 的**内容**（不含 `m:oMath` 本身）。
+    pub fn latex_to_omml(latex: &str) -> Result<String> {
+        let chars: Vec<char> = latex.chars().collect();
+        let mut p = P { src: &chars, pos: 0, depth: 0 };
+        let out = parse_sequence(&mut p, &|p: &P<'_>| p.pos >= p.src.len())?;
+        if p.pos < p.src.len() {
+            return Err(err(format!("Cannot parse: \"{}\"", p.slice(p.pos, p.pos + 12))));
         }
+        Ok(out)
+    }
 
-        fn too_deep() -> Error {
-            Error::edit(DiagCode::EditMathTooDeep, "LaTeX 嵌套超过 256 层")
+    /// TS `mathParagraphXml`：编辑器新建的独立公式段。
+    pub fn math_paragraph_xml(omml: &str, align: &str) -> String {
+        let jc = if align == "center" {
+            String::new()
+        } else {
+            format!(r#"<w:pPr><w:jc w:val="{}"/></w:pPr>"#, escape_attr(align))
+        };
+        format!(
+            concat!(
+                r#"<w:p>{jc}<m:oMathPara><m:oMathParaPr><m:jc m:val="{align}"/></m:oMathParaPr>"#,
+                r#"<m:oMath>{omml}</m:oMath></m:oMathPara></w:p>"#
+            ),
+            jc = jc,
+            align = escape_attr(align),
+            omml = omml,
+        )
+    }
+
+    /// TS `mathRun`。
+    fn math_run(text: &str, plain: bool) -> String {
+        if text.is_empty() {
+            return String::new();
         }
+        let rpr = if plain { r#"<m:rPr><m:sty m:val="p"/></m:rPr>"# } else { "" };
+        format!(r#"<m:r>{rpr}<m:t xml:space="preserve">{}</m:t></m:r>"#, escape_text(text))
+    }
 
-        /// TS `escapeXmlAttr`。
-        fn escape_attr(s: &str) -> String {
-            escape_text(s).replace('"', "&quot;")
+    /// TS `readControlName`：反斜杠之后的命令名（字母串，否则单个字符）。
+    fn read_control_name(p: &mut P<'_>) -> String {
+        let start = p.pos;
+        while p.src.get(p.pos).is_some_and(|c| c.is_ascii_alphabetic()) {
+            p.pos += 1;
         }
-
-        struct P<'a> {
-            src: &'a [char],
-            pos: usize,
-            depth: usize,
+        if p.pos > start {
+            return p.slice(start, p.pos);
         }
+        let ch = p.peek();
+        p.pos += 1;
+        if ch == '\0' { String::new() } else { ch.to_string() }
+    }
 
-        impl P<'_> {
-            fn peek(&self) -> char {
-                self.src.get(self.pos).copied().unwrap_or('\0')
+    /// TS `parseGroup`：必需的 `{...}`，或者按 LaTeX 语义的**一个** token。
+    fn parse_group(p: &mut P<'_>) -> Result<String> {
+        p.skip_spaces();
+        if p.peek() == '{' {
+            p.pos += 1;
+            p.deeper()?;
+            let out = parse_sequence(p, &|p: &P<'_>| p.peek() == '}')?;
+            p.depth -= 1;
+            if p.peek() != '}' {
+                return Err(err("Missing matching }"));
             }
+            p.pos += 1;
+            return Ok(out);
+        }
+        if p.peek() == '\\' {
+            p.pos += 1;
+            p.deeper()?;
+            let out = parse_control(p)?;
+            p.depth -= 1;
+            return Ok(out);
+        }
+        let ch = p.peek();
+        if ch == '\0' || "{}^_&".contains(ch) {
+            return Err(err("An argument is required here"));
+        }
+        p.pos += 1;
+        Ok(math_run(&ch.to_string(), false))
+    }
 
-            fn rest_starts_with(&self, pat: &str) -> bool {
-                let p: Vec<char> = pat.chars().collect();
-                self.src.len() >= self.pos + p.len()
-                    && self.src[self.pos..self.pos + p.len()] == p[..]
-            }
-
-            fn skip_spaces(&mut self) {
-                while self.peek().is_whitespace() {
-                    self.pos += 1;
+    /// TS `readBraceText`：`{...}` 的原文（`\text` / `\begin` 的名字）。
+    fn read_brace_text(p: &mut P<'_>) -> Result<String> {
+        p.skip_spaces();
+        if p.peek() != '{' {
+            return Err(err("Expected { here"));
+        }
+        p.pos += 1;
+        let mut depth = 1usize;
+        let mut out = String::new();
+        while p.pos < p.src.len() {
+            let ch = p.src[p.pos];
+            p.pos += 1;
+            if ch == '{' {
+                depth += 1;
+            } else if ch == '}' {
+                depth -= 1;
+                if depth == 0 {
+                    return Ok(out);
                 }
             }
-
-            fn slice(&self, from: usize, to: usize) -> String {
-                self.src[from.min(self.src.len())..to.min(self.src.len())].iter().collect()
-            }
-
-            fn deeper(&mut self) -> Result<()> {
-                self.depth += 1;
-                if self.depth > MAX_DEPTH { Err(too_deep()) } else { Ok(()) }
+            if depth > 0 {
+                out.push(ch);
             }
         }
+        Err(err("Missing matching }"))
+    }
 
-        /// TS `latexToOmml`：整串 LaTeX → `m:oMath` 的**内容**（不含 `m:oMath` 本身）。
-        pub fn latex_to_omml(latex: &str) -> Result<String> {
-            let chars: Vec<char> = latex.chars().collect();
-            let mut p = P { src: &chars, pos: 0, depth: 0 };
-            let out = parse_sequence(&mut p, &|p: &P<'_>| p.pos >= p.src.len())?;
-            if p.pos < p.src.len() {
-                return Err(err(format!("Cannot parse: \"{}\"", p.slice(p.pos, p.pos + 12))));
-            }
-            Ok(out)
-        }
+    type Stop<'s> = dyn Fn(&P<'_>) -> bool + 's;
 
-        /// TS `mathParagraphXml`：编辑器新建的独立公式段。
-        pub fn math_paragraph_xml(omml: &str, align: &str) -> String {
-            let jc = if align == "center" {
-                String::new()
-            } else {
-                format!(r#"<w:pPr><w:jc w:val="{}"/></w:pPr>"#, escape_attr(align))
-            };
-            format!(
-                concat!(
-                    r#"<w:p>{jc}<m:oMathPara><m:oMathParaPr><m:jc m:val="{align}"/></m:oMathParaPr>"#,
-                    r#"<m:oMath>{omml}</m:oMath></m:oMathPara></w:p>"#
-                ),
-                jc = jc,
-                align = escape_attr(align),
-                omml = omml,
-            )
-        }
-
-        /// TS `mathRun`。
-        fn math_run(text: &str, plain: bool) -> String {
-            if text.is_empty() {
-                return String::new();
-            }
-            let rpr = if plain { r#"<m:rPr><m:sty m:val="p"/></m:rPr>"# } else { "" };
-            format!(r#"<m:r>{rpr}<m:t xml:space="preserve">{}</m:t></m:r>"#, escape_text(text))
-        }
-
-        /// TS `readControlName`：反斜杠之后的命令名（字母串，否则单个字符）。
-        fn read_control_name(p: &mut P<'_>) -> String {
-            let start = p.pos;
-            while p.src.get(p.pos).is_some_and(|c| c.is_ascii_alphabetic()) {
-                p.pos += 1;
-            }
-            if p.pos > start {
-                return p.slice(start, p.pos);
+    /// TS `parseSequence`：一串原子，`^` / `_` 作用在前一个原子上。
+    fn parse_sequence(p: &mut P<'_>, stop: &Stop<'_>) -> Result<String> {
+        let mut atoms: Vec<String> = Vec::new();
+        loop {
+            p.skip_spaces();
+            if p.pos >= p.src.len() || stop(p) {
+                break;
             }
             let ch = p.peek();
-            p.pos += 1;
-            if ch == '\0' { String::new() } else { ch.to_string() }
-        }
-
-        /// TS `parseGroup`：必需的 `{...}`，或者按 LaTeX 语义的**一个** token。
-        fn parse_group(p: &mut P<'_>) -> Result<String> {
-            p.skip_spaces();
-            if p.peek() == '{' {
+            if ch == '^' || ch == '_' {
                 p.pos += 1;
-                p.deeper()?;
-                let out = parse_sequence(p, &|p: &P<'_>| p.peek() == '}')?;
-                p.depth -= 1;
-                if p.peek() != '}' {
-                    return Err(err("Missing matching }"));
-                }
-                p.pos += 1;
-                return Ok(out);
-            }
-            if p.peek() == '\\' {
-                p.pos += 1;
-                p.deeper()?;
-                let out = parse_control(p)?;
-                p.depth -= 1;
-                return Ok(out);
-            }
-            let ch = p.peek();
-            if ch == '\0' || "{}^_&".contains(ch) {
-                return Err(err("An argument is required here"));
-            }
-            p.pos += 1;
-            Ok(math_run(&ch.to_string(), false))
-        }
-
-        /// TS `readBraceText`：`{...}` 的原文（`\text` / `\begin` 的名字）。
-        fn read_brace_text(p: &mut P<'_>) -> Result<String> {
-            p.skip_spaces();
-            if p.peek() != '{' {
-                return Err(err("Expected { here"));
-            }
-            p.pos += 1;
-            let mut depth = 1usize;
-            let mut out = String::new();
-            while p.pos < p.src.len() {
-                let ch = p.src[p.pos];
-                p.pos += 1;
-                if ch == '{' {
-                    depth += 1;
-                } else if ch == '}' {
-                    depth -= 1;
-                    if depth == 0 {
-                        return Ok(out);
-                    }
-                }
-                if depth > 0 {
-                    out.push(ch);
-                }
-            }
-            Err(err("Missing matching }"))
-        }
-
-        type Stop<'s> = dyn Fn(&P<'_>) -> bool + 's;
-
-        /// TS `parseSequence`：一串原子，`^` / `_` 作用在前一个原子上。
-        fn parse_sequence(p: &mut P<'_>, stop: &Stop<'_>) -> Result<String> {
-            let mut atoms: Vec<String> = Vec::new();
-            loop {
-                p.skip_spaces();
-                if p.pos >= p.src.len() || stop(p) {
-                    break;
-                }
-                let ch = p.peek();
-                if ch == '^' || ch == '_' {
+                let script = parse_group(p)?;
+                let other = p.peek();
+                let base = atoms.pop().unwrap_or_else(|| math_run("", false));
+                if (other == '^' || other == '_') && other != ch {
                     p.pos += 1;
-                    let script = parse_group(p)?;
-                    let other = p.peek();
-                    let base = atoms.pop().unwrap_or_else(|| math_run("", false));
-                    if (other == '^' || other == '_') && other != ch {
-                        p.pos += 1;
-                        let second = parse_group(p)?;
-                        let (sub, sup) =
-                            if ch == '_' { (script, second) } else { (second, script) };
-                        atoms.push(format!(
+                    let second = parse_group(p)?;
+                    let (sub, sup) = if ch == '_' { (script, second) } else { (second, script) };
+                    atoms.push(format!(
                             "<m:sSubSup><m:e>{base}</m:e><m:sub>{sub}</m:sub><m:sup>{sup}</m:sup></m:sSubSup>"
                         ));
-                    } else if ch == '^' {
-                        atoms.push(format!(
-                            "<m:sSup><m:e>{base}</m:e><m:sup>{script}</m:sup></m:sSup>"
-                        ));
-                    } else {
-                        atoms.push(format!(
-                            "<m:sSub><m:e>{base}</m:e><m:sub>{script}</m:sub></m:sSub>"
-                        ));
-                    }
-                    continue;
+                } else if ch == '^' {
+                    atoms
+                        .push(format!("<m:sSup><m:e>{base}</m:e><m:sup>{script}</m:sup></m:sSup>"));
+                } else {
+                    atoms
+                        .push(format!("<m:sSub><m:e>{base}</m:e><m:sub>{script}</m:sub></m:sSub>"));
                 }
-                atoms.push(parse_atom(p)?);
+                continue;
             }
-            Ok(atoms.concat())
+            atoms.push(parse_atom(p)?);
         }
+        Ok(atoms.concat())
+    }
 
-        /// TS `parseAtom`。
-        fn parse_atom(p: &mut P<'_>) -> Result<String> {
+    /// TS `parseAtom`。
+    fn parse_atom(p: &mut P<'_>) -> Result<String> {
+        p.skip_spaces();
+        let ch = p.peek();
+        if ch == '\0' {
+            return Ok(String::new());
+        }
+        if ch == '{' {
+            return parse_group(p);
+        }
+        if ch == '}' {
+            return Err(err("Unexpected }"));
+        }
+        if ch == '\\' {
+            p.pos += 1;
+            p.deeper()?;
+            let out = parse_control(p)?;
+            p.depth -= 1;
+            return Ok(out);
+        }
+        let start = p.pos;
+        while p.pos < p.src.len() {
+            let c = p.src[p.pos];
+            if "\\{}^_&".contains(c) || c == '\n' {
+                break;
+            }
+            p.pos += 1;
+        }
+        let text = p.slice(start, p.pos);
+        if text.is_empty() {
+            return Err(err(format!("Cannot parse: \"{ch}\"")));
+        }
+        // 紧跟的上下标只作用在**最后一个字符**上（"ab^2" = a·b²）：退回去让它自成一个原子
+        let chars: Vec<char> = text.chars().collect();
+        if (p.peek() == '^' || p.peek() == '_') && chars.len() > 1 {
+            p.pos -= 1;
+            return Ok(math_run(&chars[..chars.len() - 1].iter().collect::<String>(), false));
+        }
+        Ok(math_run(&text, false))
+    }
+
+    /// TS `naryOmml`。
+    fn nary_omml(p: &mut P<'_>, chr: &str, lim_loc: &str) -> Result<String> {
+        let (mut sub, mut sup) = (String::new(), String::new());
+        for _ in 0..2 {
             p.skip_spaces();
             let ch = p.peek();
-            if ch == '\0' {
-                return Ok(String::new());
-            }
-            if ch == '{' {
-                return parse_group(p);
-            }
-            if ch == '}' {
-                return Err(err("Unexpected }"));
-            }
-            if ch == '\\' {
+            if ch == '_' && sub.is_empty() {
                 p.pos += 1;
-                p.deeper()?;
-                let out = parse_control(p)?;
-                p.depth -= 1;
-                return Ok(out);
+                sub = parse_group(p)?;
+            } else if ch == '^' && sup.is_empty() {
+                p.pos += 1;
+                sup = parse_group(p)?;
+            } else {
+                break;
             }
+        }
+        p.skip_spaces();
+        let operand = if p.peek() == '{' { parse_group(p)? } else { String::new() };
+        let pr = format!(
+            r#"<m:naryPr><m:chr m:val="{}"/><m:limLoc m:val="{lim_loc}"/>{}{}</m:naryPr>"#,
+            escape_attr(chr),
+            if sub.is_empty() { r#"<m:subHide m:val="1"/>"# } else { "" },
+            if sup.is_empty() { r#"<m:supHide m:val="1"/>"# } else { "" },
+        );
+        Ok(format!(
+            "<m:nary>{pr}{}{}<m:e>{operand}</m:e></m:nary>",
+            if sub.is_empty() { String::new() } else { format!("<m:sub>{sub}</m:sub>") },
+            if sup.is_empty() { String::new() } else { format!("<m:sup>{sup}</m:sup>") },
+        ))
+    }
+
+    /// TS `matrixOmml`。
+    fn matrix_omml(p: &mut P<'_>, env: &str) -> Result<String> {
+        let delims = matrix_delims(env).expect("caller checked the environment");
+        let mut rows: Vec<Vec<String>> = vec![Vec::new()];
+        loop {
+            let cell = parse_sequence(p, &|p: &P<'_>| {
+                p.peek() == '&' || p.rest_starts_with("\\\\") || p.rest_starts_with("\\end")
+            })?;
+            rows.last_mut().expect("never empty").push(cell);
+            if p.peek() == '&' {
+                p.pos += 1;
+            } else if p.rest_starts_with("\\\\") {
+                p.pos += 2;
+                rows.push(Vec::new());
+            } else if p.rest_starts_with("\\end") {
+                p.pos += 4;
+                let closing = read_brace_text(p)?;
+                if closing != env {
+                    return Err(err(format!("\\end{{{closing}}} does not match \\begin{{{env}}}")));
+                }
+                break;
+            } else {
+                return Err(err(format!("\\begin{{{env}}} is missing \\end{{{env}}}")));
+            }
+        }
+        let body: String = rows
+            .iter()
+            .filter(|row| row.len() > 1 || row.first().is_some_and(|c| !c.is_empty()))
+            .map(|row| {
+                let cells: String = row.iter().map(|c| format!("<m:e>{c}</m:e>")).collect();
+                format!("<m:mr>{cells}</m:mr>")
+            })
+            .collect();
+        let matrix = format!("<m:m>{body}</m:m>");
+        let Some((beg, end)) = delims else { return Ok(matrix) };
+        Ok(format!(
+            concat!(
+                r#"<m:d><m:dPr><m:begChr m:val="{beg}"/><m:endChr m:val="{end}"/>"#,
+                "</m:dPr><m:e>{matrix}</m:e></m:d>"
+            ),
+            beg = escape_attr(beg),
+            end = escape_attr(end),
+            matrix = matrix,
+        ))
+    }
+
+    /// TS `readDelimiter`。
+    fn read_delimiter(p: &mut P<'_>) -> Result<String> {
+        p.skip_spaces();
+        if p.peek() == '\\' {
             let start = p.pos;
-            while p.pos < p.src.len() {
-                let c = p.src[p.pos];
-                if "\\{}^_&".contains(c) || c == '\n' {
-                    break;
-                }
-                p.pos += 1;
-            }
-            let text = p.slice(start, p.pos);
-            if text.is_empty() {
-                return Err(err(format!("Cannot parse: \"{ch}\"")));
-            }
-            // 紧跟的上下标只作用在**最后一个字符**上（"ab^2" = a·b²）：退回去让它自成一个原子
-            let chars: Vec<char> = text.chars().collect();
-            if (p.peek() == '^' || p.peek() == '_') && chars.len() > 1 {
-                p.pos -= 1;
-                return Ok(math_run(&chars[..chars.len() - 1].iter().collect::<String>(), false));
-            }
-            Ok(math_run(&text, false))
-        }
-
-        /// TS `naryOmml`。
-        fn nary_omml(p: &mut P<'_>, chr: &str, lim_loc: &str) -> Result<String> {
-            let (mut sub, mut sup) = (String::new(), String::new());
-            for _ in 0..2 {
-                p.skip_spaces();
-                let ch = p.peek();
-                if ch == '_' && sub.is_empty() {
-                    p.pos += 1;
-                    sub = parse_group(p)?;
-                } else if ch == '^' && sup.is_empty() {
-                    p.pos += 1;
-                    sup = parse_group(p)?;
-                } else {
-                    break;
-                }
-            }
-            p.skip_spaces();
-            let operand = if p.peek() == '{' { parse_group(p)? } else { String::new() };
-            let pr = format!(
-                r#"<m:naryPr><m:chr m:val="{}"/><m:limLoc m:val="{lim_loc}"/>{}{}</m:naryPr>"#,
-                escape_attr(chr),
-                if sub.is_empty() { r#"<m:subHide m:val="1"/>"# } else { "" },
-                if sup.is_empty() { r#"<m:supHide m:val="1"/>"# } else { "" },
-            );
-            Ok(format!(
-                "<m:nary>{pr}{}{}<m:e>{operand}</m:e></m:nary>",
-                if sub.is_empty() { String::new() } else { format!("<m:sub>{sub}</m:sub>") },
-                if sup.is_empty() { String::new() } else { format!("<m:sup>{sup}</m:sup>") },
-            ))
-        }
-
-        /// TS `matrixOmml`。
-        fn matrix_omml(p: &mut P<'_>, env: &str) -> Result<String> {
-            let delims = matrix_delims(env).expect("caller checked the environment");
-            let mut rows: Vec<Vec<String>> = vec![Vec::new()];
-            loop {
-                let cell = parse_sequence(p, &|p: &P<'_>| {
-                    p.peek() == '&' || p.rest_starts_with("\\\\") || p.rest_starts_with("\\end")
-                })?;
-                rows.last_mut().expect("never empty").push(cell);
-                if p.peek() == '&' {
-                    p.pos += 1;
-                } else if p.rest_starts_with("\\\\") {
-                    p.pos += 2;
-                    rows.push(Vec::new());
-                } else if p.rest_starts_with("\\end") {
-                    p.pos += 4;
-                    let closing = read_brace_text(p)?;
-                    if closing != env {
-                        return Err(err(format!(
-                            "\\end{{{closing}}} does not match \\begin{{{env}}}"
-                        )));
-                    }
-                    break;
-                } else {
-                    return Err(err(format!("\\begin{{{env}}} is missing \\end{{{env}}}")));
-                }
-            }
-            let body: String = rows
-                .iter()
-                .filter(|row| row.len() > 1 || row.first().is_some_and(|c| !c.is_empty()))
-                .map(|row| {
-                    let cells: String = row.iter().map(|c| format!("<m:e>{c}</m:e>")).collect();
-                    format!("<m:mr>{cells}</m:mr>")
-                })
-                .collect();
-            let matrix = format!("<m:m>{body}</m:m>");
-            let Some((beg, end)) = delims else { return Ok(matrix) };
-            Ok(format!(
-                concat!(
-                    r#"<m:d><m:dPr><m:begChr m:val="{beg}"/><m:endChr m:val="{end}"/>"#,
-                    "</m:dPr><m:e>{matrix}</m:e></m:d>"
-                ),
-                beg = escape_attr(beg),
-                end = escape_attr(end),
-                matrix = matrix,
-            ))
-        }
-
-        /// TS `readDelimiter`。
-        fn read_delimiter(p: &mut P<'_>) -> Result<String> {
-            p.skip_spaces();
-            if p.peek() == '\\' {
-                let start = p.pos;
-                p.pos += 1;
-                let name = read_control_name(p);
-                if let Some(ch) = left_right_char(&format!("\\{name}")) {
-                    return Ok(ch.to_string());
-                }
-                p.pos = start;
-                return Err(err(format!("Unsupported delimiter: \\{name}")));
-            }
-            let ch = p.peek();
-            if let Some(mapped) = left_right_char(&ch.to_string()) {
-                p.pos += 1;
-                return Ok(mapped.to_string());
-            }
-            Err(err(format!("Unsupported delimiter: \"{ch}\"")))
-        }
-
-        /// TS `parseControl`。
-        fn parse_control(p: &mut P<'_>) -> Result<String> {
+            p.pos += 1;
             let name = read_control_name(p);
-            if let Some(ch) = super::latex::symbol_char(&name) {
-                return Ok(math_run(&ch.to_string(), false));
+            if let Some(ch) = left_right_char(&format!("\\{name}")) {
+                return Ok(ch.to_string());
             }
-            if let Some((chr, lim_loc)) = nary_op(&name) {
-                return nary_omml(p, &chr.to_string(), lim_loc);
+            p.pos = start;
+            return Err(err(format!("Unsupported delimiter: \\{name}")));
+        }
+        let ch = p.peek();
+        if let Some(mapped) = left_right_char(&ch.to_string()) {
+            p.pos += 1;
+            return Ok(mapped.to_string());
+        }
+        Err(err(format!("Unsupported delimiter: \"{ch}\"")))
+    }
+
+    /// TS `parseControl`。
+    fn parse_control(p: &mut P<'_>) -> Result<String> {
+        let name = read_control_name(p);
+        if let Some(ch) = super::latex::symbol_char(&name) {
+            return Ok(math_run(&ch.to_string(), false));
+        }
+        if let Some((chr, lim_loc)) = nary_op(&name) {
+            return nary_omml(p, &chr.to_string(), lim_loc);
+        }
+        if let Some(ch) = super::latex::accent_char(&name) {
+            let base = parse_group(p)?;
+            return Ok(format!(
+                r#"<m:acc><m:accPr><m:chr m:val="{}"/></m:accPr><m:e>{base}</m:e></m:acc>"#,
+                escape_attr(&ch.to_string())
+            ));
+        }
+        if super::latex::is_latex_function(&name) {
+            return Ok(math_run(&name, true));
+        }
+        match name.as_str() {
+            "frac" | "dfrac" | "tfrac" => {
+                let num = parse_group(p)?;
+                let den = parse_group(p)?;
+                Ok(format!("<m:f><m:num>{num}</m:num><m:den>{den}</m:den></m:f>"))
             }
-            if let Some(ch) = super::latex::accent_char(&name) {
-                let base = parse_group(p)?;
-                return Ok(format!(
-                    r#"<m:acc><m:accPr><m:chr m:val="{}"/></m:accPr><m:e>{base}</m:e></m:acc>"#,
-                    escape_attr(&ch.to_string())
-                ));
-            }
-            if super::latex::is_latex_function(&name) {
-                return Ok(math_run(&name, true));
-            }
-            match name.as_str() {
-                "frac" | "dfrac" | "tfrac" => {
-                    let num = parse_group(p)?;
-                    let den = parse_group(p)?;
-                    Ok(format!("<m:f><m:num>{num}</m:num><m:den>{den}</m:den></m:f>"))
-                }
-                "binom" => {
-                    let top = parse_group(p)?;
-                    let bottom = parse_group(p)?;
-                    Ok(format!(
-                        concat!(
-                            r#"<m:d><m:e><m:f><m:fPr><m:type m:val="noBar"/></m:fPr>"#,
-                            "<m:num>{top}</m:num><m:den>{bottom}</m:den></m:f></m:e></m:d>"
-                        ),
-                        top = top,
-                        bottom = bottom
-                    ))
-                }
-                "sqrt" => {
-                    p.skip_spaces();
-                    let mut deg = String::new();
-                    if p.peek() == '[' {
-                        // 普通字符串不会在 ']' 停下：把次数的源码单独切出来当一段解析
-                        p.pos += 1;
-                        let close = (p.pos..p.src.len()).find(|&i| p.src[i] == ']');
-                        let Some(close) = close else { return Err(err("Missing matching ]")) };
-                        let inner: Vec<char> = p.src[p.pos..close].to_vec();
-                        let mut sub = P { src: &inner, pos: 0, depth: p.depth };
-                        deg = parse_sequence(&mut sub, &|q: &P<'_>| q.pos >= q.src.len())?;
-                        p.pos = close + 1;
-                    }
-                    let inner = parse_group(p)?;
-                    if deg.is_empty() {
-                        return Ok(format!(
-                            r#"<m:rad><m:radPr><m:degHide m:val="1"/></m:radPr><m:deg/><m:e>{inner}</m:e></m:rad>"#
-                        ));
-                    }
-                    Ok(format!("<m:rad><m:deg>{deg}</m:deg><m:e>{inner}</m:e></m:rad>"))
-                }
-                "overline" => Ok(format!(
-                    r#"<m:bar><m:barPr><m:pos m:val="top"/></m:barPr><m:e>{}</m:e></m:bar>"#,
-                    parse_group(p)?
-                )),
-                "underline" => Ok(format!(
-                    r#"<m:bar><m:barPr><m:pos m:val="bot"/></m:barPr><m:e>{}</m:e></m:bar>"#,
-                    parse_group(p)?
-                )),
-                "underbrace" => Ok(format!(
+            "binom" => {
+                let top = parse_group(p)?;
+                let bottom = parse_group(p)?;
+                Ok(format!(
                     concat!(
-                        r#"<m:groupChr><m:groupChrPr><m:chr m:val="⏟"/><m:pos m:val="bot"/></m:groupChrPr>"#,
-                        "<m:e>{}</m:e></m:groupChr>"
+                        r#"<m:d><m:e><m:f><m:fPr><m:type m:val="noBar"/></m:fPr>"#,
+                        "<m:num>{top}</m:num><m:den>{bottom}</m:den></m:f></m:e></m:d>"
                     ),
-                    parse_group(p)?
-                )),
-                "overbrace" => Ok(format!(
-                    concat!(
-                        r#"<m:groupChr><m:groupChrPr><m:chr m:val="⏞"/><m:pos m:val="top"/></m:groupChrPr>"#,
-                        "<m:e>{}</m:e></m:groupChr>"
-                    ),
-                    parse_group(p)?
-                )),
-                "text" | "mathrm" | "operatorname" => {
-                    let t = read_brace_text(p)?;
-                    Ok(math_run(&t, true))
-                }
-                "lim" => {
-                    p.skip_spaces();
-                    if p.peek() == '_' {
-                        p.pos += 1;
-                        let lim = parse_group(p)?;
-                        return Ok(format!(
-                            "<m:limLow><m:e>{}</m:e><m:lim>{lim}</m:lim></m:limLow>",
-                            math_run("lim", true)
-                        ));
-                    }
-                    Ok(math_run("lim", true))
-                }
-                "left" => {
-                    let beg = read_delimiter(p)?;
-                    p.deeper()?;
-                    let body = parse_sequence(p, &|p: &P<'_>| p.rest_starts_with("\\right"))?;
-                    p.depth -= 1;
-                    if !p.rest_starts_with("\\right") {
-                        return Err(err("\\left is missing a matching \\right"));
-                    }
-                    p.pos += "\\right".chars().count();
-                    let end = read_delimiter(p)?;
-                    Ok(format!(
-                        concat!(
-                            r#"<m:d><m:dPr><m:begChr m:val="{beg}"/><m:endChr m:val="{end}"/>"#,
-                            "</m:dPr><m:e>{body}</m:e></m:d>"
-                        ),
-                        beg = escape_attr(&beg),
-                        end = escape_attr(&end),
-                        body = body,
-                    ))
-                }
-                "begin" => {
-                    let env = read_brace_text(p)?;
-                    if matrix_delims(&env).is_none() {
-                        return Err(err(format!("Unsupported environment: \\begin{{{env}}}")));
-                    }
-                    p.deeper()?;
-                    let out = matrix_omml(p, &env)?;
-                    p.depth -= 1;
-                    Ok(out)
-                }
-                "," | ";" | " " | "quad" | "qquad" => Ok(math_run(" ", false)),
-                "\\" => Err(err("\\\\ is only allowed inside matrix environments")),
-                "{" => Ok(math_run("{", false)),
-                "}" => Ok(math_run("}", false)),
-                "%" | "&" | "$" | "#" | "_" | "^" => Ok(math_run(&name, false)),
-                other => Err(err(format!("Unsupported command: \\{other}"))),
+                    top = top,
+                    bottom = bottom
+                ))
             }
-        }
-
-        /// TS `NARY_OPS`：符号取自 `latex.rs` 的同一张表（`nary_char`），这里只补 `limLoc`。
-        fn nary_op(name: &str) -> Option<(char, &'static str)> {
-            let chr = super::latex::nary_char(name)?;
-            let lim_loc = match name {
-                "int" | "iint" | "iiint" | "oint" => "subSup",
-                _ => "undOvr",
-            };
-            Some((chr, lim_loc))
-        }
-
-        /// TS `MATRIX_DELIMS`：外层 `None` = 不是矩阵环境，内层 `None` = 没有定界符。
-        fn matrix_delims(env: &str) -> Option<Option<(&'static str, &'static str)>> {
-            Some(match env {
-                "matrix" => None,
-                "pmatrix" => Some(("(", ")")),
-                "bmatrix" => Some(("[", "]")),
-                "Bmatrix" => Some(("{", "}")),
-                "vmatrix" => Some(("|", "|")),
-                "Vmatrix" => Some(("‖", "‖")),
-                "cases" => Some(("{", "")),
-                _ => return None,
-            })
-        }
-
-        /// TS `LEFT_RIGHT_CHARS`。
-        fn left_right_char(key: &str) -> Option<&'static str> {
-            Some(match key {
-                "(" => "(",
-                ")" => ")",
-                "[" => "[",
-                "]" => "]",
-                "|" => "|",
-                "." => "",
-                "\\{" => "{",
-                "\\}" => "}",
-                "\\|" => "‖",
-                "\\langle" => "⟨",
-                "\\rangle" => "⟩",
-                "\\lfloor" => "⌊",
-                "\\rfloor" => "⌋",
-                "\\lceil" => "⌈",
-                "\\rceil" => "⌉",
-                _ => return None,
-            })
+            "sqrt" => {
+                p.skip_spaces();
+                let mut deg = String::new();
+                if p.peek() == '[' {
+                    // 普通字符串不会在 ']' 停下：把次数的源码单独切出来当一段解析
+                    p.pos += 1;
+                    let close = (p.pos..p.src.len()).find(|&i| p.src[i] == ']');
+                    let Some(close) = close else { return Err(err("Missing matching ]")) };
+                    let inner: Vec<char> = p.src[p.pos..close].to_vec();
+                    let mut sub = P { src: &inner, pos: 0, depth: p.depth };
+                    deg = parse_sequence(&mut sub, &|q: &P<'_>| q.pos >= q.src.len())?;
+                    p.pos = close + 1;
+                }
+                let inner = parse_group(p)?;
+                if deg.is_empty() {
+                    return Ok(format!(
+                        r#"<m:rad><m:radPr><m:degHide m:val="1"/></m:radPr><m:deg/><m:e>{inner}</m:e></m:rad>"#
+                    ));
+                }
+                Ok(format!("<m:rad><m:deg>{deg}</m:deg><m:e>{inner}</m:e></m:rad>"))
+            }
+            "overline" => Ok(format!(
+                r#"<m:bar><m:barPr><m:pos m:val="top"/></m:barPr><m:e>{}</m:e></m:bar>"#,
+                parse_group(p)?
+            )),
+            "underline" => Ok(format!(
+                r#"<m:bar><m:barPr><m:pos m:val="bot"/></m:barPr><m:e>{}</m:e></m:bar>"#,
+                parse_group(p)?
+            )),
+            "underbrace" => Ok(format!(
+                concat!(
+                    r#"<m:groupChr><m:groupChrPr><m:chr m:val="⏟"/><m:pos m:val="bot"/></m:groupChrPr>"#,
+                    "<m:e>{}</m:e></m:groupChr>"
+                ),
+                parse_group(p)?
+            )),
+            "overbrace" => Ok(format!(
+                concat!(
+                    r#"<m:groupChr><m:groupChrPr><m:chr m:val="⏞"/><m:pos m:val="top"/></m:groupChrPr>"#,
+                    "<m:e>{}</m:e></m:groupChr>"
+                ),
+                parse_group(p)?
+            )),
+            "text" | "mathrm" | "operatorname" => {
+                let t = read_brace_text(p)?;
+                Ok(math_run(&t, true))
+            }
+            "lim" => {
+                p.skip_spaces();
+                if p.peek() == '_' {
+                    p.pos += 1;
+                    let lim = parse_group(p)?;
+                    return Ok(format!(
+                        "<m:limLow><m:e>{}</m:e><m:lim>{lim}</m:lim></m:limLow>",
+                        math_run("lim", true)
+                    ));
+                }
+                Ok(math_run("lim", true))
+            }
+            "left" => {
+                let beg = read_delimiter(p)?;
+                p.deeper()?;
+                let body = parse_sequence(p, &|p: &P<'_>| p.rest_starts_with("\\right"))?;
+                p.depth -= 1;
+                if !p.rest_starts_with("\\right") {
+                    return Err(err("\\left is missing a matching \\right"));
+                }
+                p.pos += "\\right".chars().count();
+                let end = read_delimiter(p)?;
+                Ok(format!(
+                    concat!(
+                        r#"<m:d><m:dPr><m:begChr m:val="{beg}"/><m:endChr m:val="{end}"/>"#,
+                        "</m:dPr><m:e>{body}</m:e></m:d>"
+                    ),
+                    beg = escape_attr(&beg),
+                    end = escape_attr(&end),
+                    body = body,
+                ))
+            }
+            "begin" => {
+                let env = read_brace_text(p)?;
+                if matrix_delims(&env).is_none() {
+                    return Err(err(format!("Unsupported environment: \\begin{{{env}}}")));
+                }
+                p.deeper()?;
+                let out = matrix_omml(p, &env)?;
+                p.depth -= 1;
+                Ok(out)
+            }
+            "," | ";" | " " | "quad" | "qquad" => Ok(math_run(" ", false)),
+            "\\" => Err(err("\\\\ is only allowed inside matrix environments")),
+            "{" => Ok(math_run("{", false)),
+            "}" => Ok(math_run("}", false)),
+            "%" | "&" | "$" | "#" | "_" | "^" => Ok(math_run(&name, false)),
+            other => Err(err(format!("Unsupported command: \\{other}"))),
         }
     }
-    pub mod mathml {
-        //! OMML → MathML Core（TS `ommlToMathML`，`math.ts` 55–376 的逐字移植）。
-        //!
-        //! 迭代求值：`Item` 是一个待求值的项（元素 / 槽位 / 行 …），任务栈里 `Eval(item)` 展开出子项与一个
-        //! `Finish(item, arity)`；`Finish` 从结果栈取回 `arity` 个子结果拼成自己的字串。一个 3,000 层的公式
-        //! 只是一个长一点的栈。
 
-        use super::{
-            child, children_named, content_children, escape_text, is_plain_run, prop_on, prop_val,
-            text_of,
+    /// TS `NARY_OPS`：符号取自 `latex.rs` 的同一张表（`nary_char`），这里只补 `limLoc`。
+    fn nary_op(name: &str) -> Option<(char, &'static str)> {
+        let chr = super::latex::nary_char(name)?;
+        let lim_loc = match name {
+            "int" | "iint" | "iiint" | "oint" => "subSup",
+            _ => "undOvr",
         };
-        use crate::xml::{Dom, LocalName, NodeId, NsId};
+        Some((chr, lim_loc))
+    }
 
-        /// 一个 `m:oMath` → `<math display="block"><mrow>…</mrow></math>`；一个内容都没有 → `""`。
-        pub fn to_mathml(dom: &Dom, omath: NodeId) -> String {
-            let body = eval(dom, Item::Seq(omath));
-            if body.is_empty() {
-                String::new()
-            } else {
-                format!("<math display=\"block\"><mrow>{body}</mrow></math>")
-            }
+    /// TS `MATRIX_DELIMS`：外层 `None` = 不是矩阵环境，内层 `None` = 没有定界符。
+    fn matrix_delims(env: &str) -> Option<Option<(&'static str, &'static str)>> {
+        Some(match env {
+            "matrix" => None,
+            "pmatrix" => Some(("(", ")")),
+            "bmatrix" => Some(("[", "]")),
+            "Bmatrix" => Some(("{", "}")),
+            "vmatrix" => Some(("|", "|")),
+            "Vmatrix" => Some(("‖", "‖")),
+            "cases" => Some(("{", "")),
+            _ => return None,
+        })
+    }
+
+    /// TS `LEFT_RIGHT_CHARS`。
+    fn left_right_char(key: &str) -> Option<&'static str> {
+        Some(match key {
+            "(" => "(",
+            ")" => ")",
+            "[" => "[",
+            "]" => "]",
+            "|" => "|",
+            "." => "",
+            "\\{" => "{",
+            "\\}" => "}",
+            "\\|" => "‖",
+            "\\langle" => "⟨",
+            "\\rangle" => "⟩",
+            "\\lfloor" => "⌊",
+            "\\rfloor" => "⌋",
+            "\\lceil" => "⌈",
+            "\\rceil" => "⌉",
+            _ => return None,
+        })
+    }
+}
+pub mod mathml {
+    //! OMML → MathML Core（TS `ommlToMathML`，`math.ts` 55–376 的逐字移植）。
+    //!
+    //! 迭代求值：`Item` 是一个待求值的项（元素 / 槽位 / 行 …），任务栈里 `Eval(item)` 展开出子项与一个
+    //! `Finish(item, arity)`；`Finish` 从结果栈取回 `arity` 个子结果拼成自己的字串。一个 3,000 层的公式
+    //! 只是一个长一点的栈。
+
+    use super::{
+        child, children_named, content_children, escape_text, is_plain_run, omml_text_of, prop_on,
+        prop_val,
+    };
+    use crate::xml::{Dom, LocalName, NodeId, NsId};
+
+    /// 一个 `m:oMath` → `<math display="block"><mrow>…</mrow></math>`；一个内容都没有 → `""`。
+    pub fn to_mathml(dom: &Dom, omath: NodeId) -> String {
+        let body = eval(dom, Item::Seq(omath));
+        if body.is_empty() {
+            String::new()
+        } else {
+            format!("<math display=\"block\"><mrow>{body}</mrow></math>")
         }
+    }
 
-        #[derive(Clone, Copy)]
-        enum Item {
-            /// 一个 OMML 元素。
-            Node(NodeId),
-            /// `parent/m:<name>` 槽位 → `<mrow>内容</mrow>`；缺失 → `<mrow></mrow>`。
-            Slot(NodeId, LocalName),
-            /// 某元素的内容子节点包成 `<mrow>`（`m:d` / `m:m` 的 `m:e`）。
-            Row(NodeId),
-            /// `m:mr` → `<mtr><mtd>…</mtd>…</mtr>`。
-            Cells(NodeId),
-            /// `m:eqArr/m:e` → `<mtr><mtd><mrow>…</mrow></mtd></mtr>`。
-            EqRow(NodeId),
-            /// 内容子节点直接拼接，不包。
-            Seq(NodeId),
-        }
+    #[derive(Clone, Copy)]
+    enum Item {
+        /// 一个 OMML 元素。
+        Node(NodeId),
+        /// `parent/m:<name>` 槽位 → `<mrow>内容</mrow>`；缺失 → `<mrow></mrow>`。
+        Slot(NodeId, LocalName),
+        /// 某元素的内容子节点包成 `<mrow>`（`m:d` / `m:m` 的 `m:e`）。
+        Row(NodeId),
+        /// `m:mr` → `<mtr><mtd>…</mtd>…</mtr>`。
+        Cells(NodeId),
+        /// `m:eqArr/m:e` → `<mtr><mtd><mrow>…</mrow></mtd></mtr>`。
+        EqRow(NodeId),
+        /// 内容子节点直接拼接，不包。
+        Seq(NodeId),
+    }
 
-        enum Task {
-            Eval(Item),
-            Finish(Item, usize),
-        }
+    enum Task {
+        Eval(Item),
+        Finish(Item, usize),
+    }
 
-        fn mo(ch: &str, extra: &str) -> String {
-            format!("<mo{extra}>{}</mo>", escape_text(ch))
-        }
+    fn mo(ch: &str, extra: &str) -> String {
+        format!("<mo{extra}>{}</mo>", escape_text(ch))
+    }
 
-        fn eval(dom: &Dom, root: Item) -> String {
-            let mut tasks = vec![Task::Eval(root)];
-            let mut results: Vec<String> = Vec::new();
-            while let Some(task) = tasks.pop() {
-                match task {
-                    Task::Eval(item) => {
-                        let subs = expand(dom, item, &mut results);
-                        if let Some(subs) = subs {
-                            tasks.push(Task::Finish(item, subs.len()));
-                            tasks.extend(subs.into_iter().rev().map(Task::Eval));
-                        }
-                    }
-                    Task::Finish(item, arity) => {
-                        let at = results.len() - arity;
-                        let parts: Vec<String> = results.drain(at..).collect();
-                        results.push(finish(dom, item, parts));
+    fn eval(dom: &Dom, root: Item) -> String {
+        let mut tasks = vec![Task::Eval(root)];
+        let mut results: Vec<String> = Vec::new();
+        while let Some(task) = tasks.pop() {
+            match task {
+                Task::Eval(item) => {
+                    let subs = expand(dom, item, &mut results);
+                    if let Some(subs) = subs {
+                        tasks.push(Task::Finish(item, subs.len()));
+                        tasks.extend(subs.into_iter().rev().map(Task::Eval));
                     }
                 }
-            }
-            results.pop().unwrap_or_default()
-        }
-
-        /// 展开一个项：叶子直接把结果压栈并返回 `None`；否则返回子项。
-        fn expand(dom: &Dom, item: Item, results: &mut Vec<String>) -> Option<Vec<Item>> {
-            let slot = |n: NodeId, l: LocalName| Item::Slot(n, l);
-            let rows = |n: NodeId| -> Vec<Item> {
-                content_children(dom, n).into_iter().map(Item::Node).collect()
-            };
-            match item {
-                Item::Slot(parent, name) => match child(dom, parent, name) {
-                    None => {
-                        results.push("<mrow></mrow>".to_string());
-                        None
-                    }
-                    Some(s) => Some(rows(s)),
-                },
-                Item::Row(n) | Item::Seq(n) => Some(rows(n)),
-                Item::Cells(mr) => {
-                    Some(children_named(dom, mr, LocalName::E).into_iter().map(Item::Row).collect())
+                Task::Finish(item, arity) => {
+                    let at = results.len() - arity;
+                    let parts: Vec<String> = results.drain(at..).collect();
+                    results.push(finish(dom, item, parts));
                 }
-                Item::EqRow(e) => Some(vec![Item::Row(e)]),
-                Item::Node(n) => {
-                    let Some(name) = dom.name(n) else {
-                        results.push(String::new());
+            }
+        }
+        results.pop().unwrap_or_default()
+    }
+
+    /// 展开一个项：叶子直接把结果压栈并返回 `None`；否则返回子项。
+    fn expand(dom: &Dom, item: Item, results: &mut Vec<String>) -> Option<Vec<Item>> {
+        let slot = |n: NodeId, l: LocalName| Item::Slot(n, l);
+        let rows = |n: NodeId| -> Vec<Item> {
+            content_children(dom, n).into_iter().map(Item::Node).collect()
+        };
+        match item {
+            Item::Slot(parent, name) => match child(dom, parent, name) {
+                None => {
+                    results.push("<mrow></mrow>".to_string());
+                    None
+                }
+                Some(s) => Some(rows(s)),
+            },
+            Item::Row(n) | Item::Seq(n) => Some(rows(n)),
+            Item::Cells(mr) => {
+                Some(children_named(dom, mr, LocalName::E).into_iter().map(Item::Row).collect())
+            }
+            Item::EqRow(e) => Some(vec![Item::Row(e)]),
+            Item::Node(n) => {
+                let Some(name) = dom.name(n) else {
+                    results.push(String::new());
+                    return None;
+                };
+                if name.ns != NsId::M {
+                    // 不认识的结构：渲染它的内容子节点，别让东西凭空消失
+                    return Some(rows(n));
+                }
+                Some(match name.local {
+                    LocalName::R => {
+                        results.push(run_to_mml(dom, n));
                         return None;
-                    };
-                    if name.ns != NsId::M {
-                        // 不认识的结构：渲染它的内容子节点，别让东西凭空消失
-                        return Some(rows(n));
                     }
-                    Some(match name.local {
-                        LocalName::R => {
-                            results.push(run_to_mml(dom, n));
-                            return None;
-                        }
-                        LocalName::T => {
-                            results.push(run_text_to_mml(&text_of(dom, n), false));
-                            return None;
-                        }
-                        LocalName::F => vec![slot(n, LocalName::Num), slot(n, LocalName::Den)],
-                        LocalName::SSup => vec![slot(n, LocalName::E), slot(n, LocalName::Sup)],
-                        LocalName::SSub => vec![slot(n, LocalName::E), slot(n, LocalName::Sub)],
-                        LocalName::SSubSup | LocalName::SPre => {
-                            vec![
-                                slot(n, LocalName::E),
-                                slot(n, LocalName::Sub),
-                                slot(n, LocalName::Sup),
-                            ]
-                        }
-                        LocalName::Rad => {
-                            if prop_on(dom, n, LocalName::RadPr, LocalName::DegHide)
-                                || child(dom, n, LocalName::Deg).is_none()
-                            {
-                                vec![slot(n, LocalName::E)]
-                            } else {
-                                vec![slot(n, LocalName::E), slot(n, LocalName::Deg)]
-                            }
-                        }
-                        LocalName::D => children_named(dom, n, LocalName::E)
-                            .into_iter()
-                            .map(Item::Row)
-                            .collect(),
-                        LocalName::Nary => {
-                            vec![
-                                slot(n, LocalName::Sub),
-                                slot(n, LocalName::Sup),
-                                slot(n, LocalName::E),
-                            ]
-                        }
-                        LocalName::Func => vec![slot(n, LocalName::FName), slot(n, LocalName::E)],
-                        LocalName::LimLow | LocalName::LimUpp => {
-                            vec![slot(n, LocalName::E), slot(n, LocalName::Lim)]
-                        }
-                        LocalName::Acc | LocalName::Bar | LocalName::GroupChr => {
+                    LocalName::T => {
+                        results.push(run_text_to_mml(&omml_text_of(dom, n), false));
+                        return None;
+                    }
+                    LocalName::F => vec![slot(n, LocalName::Num), slot(n, LocalName::Den)],
+                    LocalName::SSup => vec![slot(n, LocalName::E), slot(n, LocalName::Sup)],
+                    LocalName::SSub => vec![slot(n, LocalName::E), slot(n, LocalName::Sub)],
+                    LocalName::SSubSup | LocalName::SPre => {
+                        vec![
+                            slot(n, LocalName::E),
+                            slot(n, LocalName::Sub),
+                            slot(n, LocalName::Sup),
+                        ]
+                    }
+                    LocalName::Rad => {
+                        if prop_on(dom, n, LocalName::RadPr, LocalName::DegHide)
+                            || child(dom, n, LocalName::Deg).is_none()
+                        {
                             vec![slot(n, LocalName::E)]
+                        } else {
+                            vec![slot(n, LocalName::E), slot(n, LocalName::Deg)]
                         }
-                        LocalName::M => children_named(dom, n, LocalName::Mr)
-                            .into_iter()
-                            .map(Item::Cells)
-                            .collect(),
-                        LocalName::EqArr => children_named(dom, n, LocalName::E)
-                            .into_iter()
-                            .map(Item::EqRow)
-                            .collect(),
-                        LocalName::Box | LocalName::BorderBox | LocalName::Phant => {
-                            vec![slot(n, LocalName::E)]
-                        }
-                        _ => rows(n),
-                    })
-                }
+                    }
+                    LocalName::D => {
+                        children_named(dom, n, LocalName::E).into_iter().map(Item::Row).collect()
+                    }
+                    LocalName::Nary => {
+                        vec![
+                            slot(n, LocalName::Sub),
+                            slot(n, LocalName::Sup),
+                            slot(n, LocalName::E),
+                        ]
+                    }
+                    LocalName::Func => vec![slot(n, LocalName::FName), slot(n, LocalName::E)],
+                    LocalName::LimLow | LocalName::LimUpp => {
+                        vec![slot(n, LocalName::E), slot(n, LocalName::Lim)]
+                    }
+                    LocalName::Acc | LocalName::Bar | LocalName::GroupChr => {
+                        vec![slot(n, LocalName::E)]
+                    }
+                    LocalName::M => {
+                        children_named(dom, n, LocalName::Mr).into_iter().map(Item::Cells).collect()
+                    }
+                    LocalName::EqArr => {
+                        children_named(dom, n, LocalName::E).into_iter().map(Item::EqRow).collect()
+                    }
+                    LocalName::Box | LocalName::BorderBox | LocalName::Phant => {
+                        vec![slot(n, LocalName::E)]
+                    }
+                    _ => rows(n),
+                })
             }
         }
+    }
 
-        fn finish(dom: &Dom, item: Item, parts: Vec<String>) -> String {
-            let joined = || parts.concat();
-            let p = |i: usize| parts.get(i).map(String::as_str).unwrap_or("");
-            match item {
-                Item::Slot(..) | Item::Row(_) => format!("<mrow>{}</mrow>", joined()),
-                Item::Seq(_) => joined(),
-                Item::Cells(_) => {
-                    let cells: String = parts.iter().map(|c| format!("<mtd>{c}</mtd>")).collect();
-                    format!("<mtr>{cells}</mtr>")
+    fn finish(dom: &Dom, item: Item, parts: Vec<String>) -> String {
+        let joined = || parts.concat();
+        let p = |i: usize| parts.get(i).map(String::as_str).unwrap_or("");
+        match item {
+            Item::Slot(..) | Item::Row(_) => format!("<mrow>{}</mrow>", joined()),
+            Item::Seq(_) => joined(),
+            Item::Cells(_) => {
+                let cells: String = parts.iter().map(|c| format!("<mtd>{c}</mtd>")).collect();
+                format!("<mtr>{cells}</mtr>")
+            }
+            Item::EqRow(_) => format!("<mtr><mtd>{}</mtd></mtr>", p(0)),
+            Item::Node(n) => {
+                let Some(name) = dom.name(n) else { return String::new() };
+                if name.ns != NsId::M {
+                    return joined();
                 }
-                Item::EqRow(_) => format!("<mtr><mtd>{}</mtd></mtr>", p(0)),
-                Item::Node(n) => {
-                    let Some(name) = dom.name(n) else { return String::new() };
-                    if name.ns != NsId::M {
-                        return joined();
-                    }
-                    match name.local {
-                        LocalName::F => {
-                            let attrs = match prop_val(dom, n, LocalName::FPr, LocalName::Type)
-                                .as_deref()
-                            {
+                match name.local {
+                    LocalName::F => {
+                        let attrs =
+                            match prop_val(dom, n, LocalName::FPr, LocalName::Type).as_deref() {
                                 Some("noBar") => " linethickness=\"0\"",
                                 Some("lin" | "skw") => " bevelled=\"true\"",
                                 _ => "",
                             };
-                            format!("<mfrac{attrs}>{}{}</mfrac>", p(0), p(1))
+                        format!("<mfrac{attrs}>{}{}</mfrac>", p(0), p(1))
+                    }
+                    LocalName::SSup => format!("<msup>{}{}</msup>", p(0), p(1)),
+                    LocalName::SSub => format!("<msub>{}{}</msub>", p(0), p(1)),
+                    LocalName::SSubSup => {
+                        format!("<msubsup>{}{}{}</msubsup>", p(0), p(1), p(2))
+                    }
+                    LocalName::SPre => {
+                        format!(
+                            "<mmultiscripts>{}<mprescripts/>{}{}</mmultiscripts>",
+                            p(0),
+                            p(1),
+                            p(2)
+                        )
+                    }
+                    LocalName::Rad => {
+                        if parts.len() == 1 {
+                            format!("<msqrt>{}</msqrt>", p(0))
+                        } else {
+                            format!("<mroot>{}{}</mroot>", p(0), p(1))
                         }
-                        LocalName::SSup => format!("<msup>{}{}</msup>", p(0), p(1)),
-                        LocalName::SSub => format!("<msub>{}{}</msub>", p(0), p(1)),
-                        LocalName::SSubSup => {
-                            format!("<msubsup>{}{}{}</msubsup>", p(0), p(1), p(2))
-                        }
-                        LocalName::SPre => {
-                            format!(
-                                "<mmultiscripts>{}<mprescripts/>{}{}</mmultiscripts>",
-                                p(0),
-                                p(1),
-                                p(2)
-                            )
-                        }
-                        LocalName::Rad => {
-                            if parts.len() == 1 {
-                                format!("<msqrt>{}</msqrt>", p(0))
-                            } else {
-                                format!("<mroot>{}{}</mroot>", p(0), p(1))
+                    }
+                    LocalName::D => {
+                        let beg = prop_val(dom, n, LocalName::DPr, LocalName::BegChr)
+                            .unwrap_or_else(|| "(".into());
+                        let end = prop_val(dom, n, LocalName::DPr, LocalName::EndChr)
+                            .unwrap_or_else(|| ")".into());
+                        let sep = prop_val(dom, n, LocalName::DPr, LocalName::SepChr)
+                            .unwrap_or_else(|| "|".into());
+                        let sep_mo = if sep.is_empty() { String::new() } else { mo(&sep, "") };
+                        let body = parts.join(&sep_mo);
+                        let open = if beg.is_empty() {
+                            String::new()
+                        } else {
+                            mo(&beg, " stretchy=\"true\"")
+                        };
+                        let close = if end.is_empty() {
+                            String::new()
+                        } else {
+                            mo(&end, " stretchy=\"true\"")
+                        };
+                        format!("<mrow>{open}{body}{close}</mrow>")
+                    }
+                    LocalName::Nary => {
+                        let chr = prop_val(dom, n, LocalName::NaryPr, LocalName::Chr)
+                            .unwrap_or_else(|| "\u{222B}".into());
+                        let lim_loc = prop_val(dom, n, LocalName::NaryPr, LocalName::LimLoc)
+                            .unwrap_or_else(|| {
+                                if chr == "\u{222B}" { "subSup".into() } else { "undOvr".into() }
+                            });
+                        let sub_hide = prop_on(dom, n, LocalName::NaryPr, LocalName::SubHide);
+                        let sup_hide = prop_on(dom, n, LocalName::NaryPr, LocalName::SupHide);
+                        let op = mo(&chr, " stretchy=\"false\"");
+                        let und_ovr = lim_loc == "undOvr";
+                        let scripted = match (sub_hide, sup_hide) {
+                            (false, false) => {
+                                let tag = if und_ovr { "munderover" } else { "msubsup" };
+                                format!("<{tag}>{op}{}{}</{tag}>", p(0), p(1))
                             }
-                        }
-                        LocalName::D => {
-                            let beg = prop_val(dom, n, LocalName::DPr, LocalName::BegChr)
-                                .unwrap_or_else(|| "(".into());
-                            let end = prop_val(dom, n, LocalName::DPr, LocalName::EndChr)
-                                .unwrap_or_else(|| ")".into());
-                            let sep = prop_val(dom, n, LocalName::DPr, LocalName::SepChr)
-                                .unwrap_or_else(|| "|".into());
-                            let sep_mo = if sep.is_empty() { String::new() } else { mo(&sep, "") };
-                            let body = parts.join(&sep_mo);
-                            let open = if beg.is_empty() {
-                                String::new()
-                            } else {
-                                mo(&beg, " stretchy=\"true\"")
-                            };
-                            let close = if end.is_empty() {
-                                String::new()
-                            } else {
-                                mo(&end, " stretchy=\"true\"")
-                            };
-                            format!("<mrow>{open}{body}{close}</mrow>")
-                        }
-                        LocalName::Nary => {
-                            let chr = prop_val(dom, n, LocalName::NaryPr, LocalName::Chr)
-                                .unwrap_or_else(|| "\u{222B}".into());
-                            let lim_loc = prop_val(dom, n, LocalName::NaryPr, LocalName::LimLoc)
-                                .unwrap_or_else(|| {
-                                    if chr == "\u{222B}" {
-                                        "subSup".into()
-                                    } else {
-                                        "undOvr".into()
-                                    }
-                                });
-                            let sub_hide = prop_on(dom, n, LocalName::NaryPr, LocalName::SubHide);
-                            let sup_hide = prop_on(dom, n, LocalName::NaryPr, LocalName::SupHide);
-                            let op = mo(&chr, " stretchy=\"false\"");
-                            let und_ovr = lim_loc == "undOvr";
-                            let scripted = match (sub_hide, sup_hide) {
-                                (false, false) => {
-                                    let tag = if und_ovr { "munderover" } else { "msubsup" };
-                                    format!("<{tag}>{op}{}{}</{tag}>", p(0), p(1))
-                                }
-                                (false, true) => {
-                                    let tag = if und_ovr { "munder" } else { "msub" };
-                                    format!("<{tag}>{op}{}</{tag}>", p(0))
-                                }
-                                (true, false) => {
-                                    let tag = if und_ovr { "mover" } else { "msup" };
-                                    format!("<{tag}>{op}{}</{tag}>", p(1))
-                                }
-                                (true, true) => op,
-                            };
-                            format!("<mrow>{scripted}{}</mrow>", p(2))
-                        }
-                        LocalName::Func => {
-                            format!("<mrow>{}<mo>\u{2061}</mo>{}</mrow>", p(0), p(1))
-                        }
-                        LocalName::LimLow => format!("<munder>{}{}</munder>", p(0), p(1)),
-                        LocalName::LimUpp => format!("<mover>{}{}</mover>", p(0), p(1)),
-                        LocalName::Acc => {
-                            let chr = prop_val(dom, n, LocalName::AccPr, LocalName::Chr)
-                                .unwrap_or_else(|| "\u{0302}".into());
-                            format!("<mover accent=\"true\">{}{}</mover>", p(0), mo(&chr, ""))
-                        }
-                        LocalName::Bar => {
-                            let top = prop_val(dom, n, LocalName::BarPr, LocalName::Pos).as_deref()
-                                == Some("top");
-                            let (tag, line) =
-                                if top { ("mover", "\u{00AF}") } else { ("munder", "\u{005F}") };
-                            format!("<{tag}>{}{}</{tag}>", p(0), mo(line, " stretchy=\"true\""))
-                        }
-                        LocalName::GroupChr => {
-                            let chr = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Chr)
-                                .unwrap_or_else(|| "\u{23DF}".into());
-                            let top = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Pos)
-                                .as_deref()
-                                == Some("top");
-                            let tag = if top { "mover" } else { "munder" };
-                            format!("<{tag}>{}{}</{tag}>", p(0), mo(&chr, " stretchy=\"true\""))
-                        }
-                        LocalName::M | LocalName::EqArr => format!("<mtable>{}</mtable>", joined()),
-                        LocalName::Box | LocalName::BorderBox | LocalName::Phant => {
-                            p(0).to_string()
-                        }
-                        _ => joined(),
+                            (false, true) => {
+                                let tag = if und_ovr { "munder" } else { "msub" };
+                                format!("<{tag}>{op}{}</{tag}>", p(0))
+                            }
+                            (true, false) => {
+                                let tag = if und_ovr { "mover" } else { "msup" };
+                                format!("<{tag}>{op}{}</{tag}>", p(1))
+                            }
+                            (true, true) => op,
+                        };
+                        format!("<mrow>{scripted}{}</mrow>", p(2))
                     }
+                    LocalName::Func => {
+                        format!("<mrow>{}<mo>\u{2061}</mo>{}</mrow>", p(0), p(1))
+                    }
+                    LocalName::LimLow => format!("<munder>{}{}</munder>", p(0), p(1)),
+                    LocalName::LimUpp => format!("<mover>{}{}</mover>", p(0), p(1)),
+                    LocalName::Acc => {
+                        let chr = prop_val(dom, n, LocalName::AccPr, LocalName::Chr)
+                            .unwrap_or_else(|| "\u{0302}".into());
+                        format!("<mover accent=\"true\">{}{}</mover>", p(0), mo(&chr, ""))
+                    }
+                    LocalName::Bar => {
+                        let top = prop_val(dom, n, LocalName::BarPr, LocalName::Pos).as_deref()
+                            == Some("top");
+                        let (tag, line) =
+                            if top { ("mover", "\u{00AF}") } else { ("munder", "\u{005F}") };
+                        format!("<{tag}>{}{}</{tag}>", p(0), mo(line, " stretchy=\"true\""))
+                    }
+                    LocalName::GroupChr => {
+                        let chr = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Chr)
+                            .unwrap_or_else(|| "\u{23DF}".into());
+                        let top = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Pos)
+                            .as_deref()
+                            == Some("top");
+                        let tag = if top { "mover" } else { "munder" };
+                        format!("<{tag}>{}{}</{tag}>", p(0), mo(&chr, " stretchy=\"true\""))
+                    }
+                    LocalName::M | LocalName::EqArr => format!("<mtable>{}</mtable>", joined()),
+                    LocalName::Box | LocalName::BorderBox | LocalName::Phant => p(0).to_string(),
+                    _ => joined(),
                 }
             }
         }
-
-        /// `m:r` → 各 `m:t` 分类后的 token 串（`sty="p"` / `m:nor` 的 run 整段是 `<mi>`）。
-        fn run_to_mml(dom: &Dom, run: NodeId) -> String {
-            let plain = is_plain_run(dom, run);
-            children_named(dom, run, LocalName::T)
-                .iter()
-                .map(|&t| run_text_to_mml(&text_of(dom, t), plain))
-                .collect()
-        }
-
-        /// TS `OPERATOR_CHARS`。
-        const OPERATOR_CHARS: &str = "+-−=<>±∓×÷·⋅∙*/!%&|,;:()[]{}′″∞→←↔⇒⇐⇔∈∉⊂⊃∪∩∀∃∧∨¬≤≥≠≈≡∼∝⊥∥°∂∇";
-
-        fn is_letter(ch: char) -> bool {
-            ch.is_ascii_alphabetic()
-                || ('\u{0370}'..='\u{03FF}').contains(&ch)
-                || ('\u{1D400}'..='\u{1D7FF}').contains(&ch)
-        }
-
-        /// 一段 run 文字 → `mn / mi / mo / mtext`（TS `runTextToMml`）。
-        pub(crate) fn run_text_to_mml(text: &str, plain: bool) -> String {
-            if plain {
-                return if text.is_empty() {
-                    String::new()
-                } else {
-                    format!("<mi>{}</mi>", escape_text(text))
-                };
-            }
-            let chars: Vec<char> = text.chars().collect();
-            let mut out = String::new();
-            let mut i = 0;
-            while i < chars.len() {
-                let ch = chars[i];
-                if ch.is_ascii_digit() || ch == '.' {
-                    let mut num = String::new();
-                    while i < chars.len() && (chars[i].is_ascii_digit() || chars[i] == '.') {
-                        num.push(chars[i]);
-                        i += 1;
-                    }
-                    out.push_str(&format!("<mn>{num}</mn>"));
-                } else if is_letter(ch) {
-                    out.push_str(&format!("<mi>{}</mi>", escape_text(&ch.to_string())));
-                    i += 1;
-                } else if ch == ' ' {
-                    i += 1;
-                } else if OPERATOR_CHARS.contains(ch) {
-                    // 普通 run 里的括号是字面字符，只有 m:d 包的定界符才可伸缩
-                    let s = ch.to_string();
-                    out.push_str(&if "()[]{}|".contains(ch) {
-                        mo(&s, " stretchy=\"false\"")
-                    } else {
-                        mo(&s, "")
-                    });
-                    i += 1;
-                } else {
-                    out.push_str(&format!("<mtext>{}</mtext>", escape_text(&ch.to_string())));
-                    i += 1;
-                }
-            }
-            out
-        }
     }
 
-    use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
-
-    pub(crate) fn m(local: LocalName) -> QName {
-        QName::new(NsId::M, local)
-    }
-
-    /// 第一个名为 `m:<local>` 的语义子节点。
-    pub(crate) fn child(dom: &Dom, node: NodeId, local: LocalName) -> Option<NodeId> {
-        dom.semantic_children(node).find(|&c| dom.is(c, m(local)))
-    }
-
-    /// 全部名为 `m:<local>` 的语义子节点，文档序。
-    pub(crate) fn children_named(dom: &Dom, node: NodeId, local: LocalName) -> Vec<NodeId> {
-        dom.semantic_children(node).filter(|&c| dom.is(c, m(local))).collect()
-    }
-
-    /// 内容子节点：元素，且名字不以 `Pr` 结尾（TS `contentChildren`：属性包不是内容）。
-    pub(crate) fn content_children(dom: &Dom, node: NodeId) -> Vec<NodeId> {
-        dom.semantic_children(node)
-            .filter(|&c| dom.name(c).is_some())
-            .filter(|&c| !dom.lex_name(c).is_some_and(|q| q.ends_with("Pr")))
+    /// `m:r` → 各 `m:t` 分类后的 token 串（`sty="p"` / `m:nor` 的 run 整段是 `<mi>`）。
+    fn run_to_mml(dom: &Dom, run: NodeId) -> String {
+        let plain = is_plain_run(dom, run);
+        children_named(dom, run, LocalName::T)
+            .iter()
+            .map(|&t| run_text_to_mml(&omml_text_of(dom, t), plain))
             .collect()
     }
 
-    /// `node/m:<pr>/m:<child>/@m:val`（TS `propVal`）。
-    pub(crate) fn prop_val(
-        dom: &Dom,
-        node: NodeId,
-        pr: LocalName,
-        name: LocalName,
-    ) -> Option<String> {
-        let pr = child(dom, node, pr)?;
-        let c = child(dom, pr, name)?;
-        dom.attr_value(c, m(LocalName::Val)).map(|v| v.into_owned())
+    /// TS `OPERATOR_CHARS`。
+    const OPERATOR_CHARS: &str = "+-−=<>±∓×÷·⋅∙*/!%&|,;:()[]{}′″∞→←↔⇒⇐⇔∈∉⊂⊃∪∩∀∃∧∨¬≤≥≠≈≡∼∝⊥∥°∂∇";
+
+    fn is_letter(ch: char) -> bool {
+        ch.is_ascii_alphabetic()
+            || ('\u{0370}'..='\u{03FF}').contains(&ch)
+            || ('\u{1D400}'..='\u{1D7FF}').contains(&ch)
     }
 
-    /// 属性存在且不是 `0` / `false` / `off`（TS `propOn`）。
-    pub(crate) fn prop_on(dom: &Dom, node: NodeId, pr: LocalName, name: LocalName) -> bool {
-        prop_val(dom, node, pr, name)
-            .is_some_and(|v| !matches!(v.to_ascii_lowercase().as_str(), "0" | "false" | "off"))
-    }
-
-    /// 一个 `m:t` 的文本（实体已解码）。
-    pub(crate) fn text_of(dom: &Dom, node: NodeId) -> String {
-        let mut s = String::new();
-        for c in dom.semantic_children(node) {
-            if let Some(t) = dom.text(c) {
-                s.push_str(&t);
-            }
+    /// 一段 run 文字 → `mn / mi / mo / mtext`（TS `runTextToMml`）。
+    pub(crate) fn run_text_to_mml(text: &str, plain: bool) -> String {
+        if plain {
+            return if text.is_empty() {
+                String::new()
+            } else {
+                format!("<mi>{}</mi>", escape_text(text))
+            };
         }
-        s
-    }
-
-    /// 一个 `m:r` 的全部 `m:t` 文本拼接。
-    pub(crate) fn run_text(dom: &Dom, run: NodeId) -> String {
-        children_named(dom, run, LocalName::T).iter().map(|&t| text_of(dom, t)).collect()
-    }
-
-    /// `m:rPr/m:sty = "p"` 或有 `m:rPr/m:nor`：普通文字（不按数学斜体分类）。
-    pub(crate) fn is_plain_run(dom: &Dom, run: NodeId) -> bool {
-        let sty = prop_val(dom, run, LocalName::RPr, LocalName::Sty);
-        sty.as_deref() == Some("p")
-            || child(dom, run, LocalName::RPr)
-                .is_some_and(|pr| child(dom, pr, LocalName::Nor).is_some())
-    }
-
-    /// 容器下全部 `m:r` 的文字拼接（TS `plainTextOfRuns`：函数名 / `lim`）。
-    pub(crate) fn plain_text_of_runs(dom: &Dom, node: Option<NodeId>) -> String {
-        let Some(node) = node else { return String::new() };
-        children_named(dom, node, LocalName::R).iter().map(|&r| run_text(dom, r)).collect()
-    }
-
-    /// TS `escapeXmlText`：去掉 XML 1.0 不允许的控制字符，转义 `& < >`。
-    pub(crate) fn escape_text(s: &str) -> String {
-        let mut out = String::with_capacity(s.len());
-        for ch in s.chars() {
-            match ch {
-                '\u{0}'..='\u{8}' | '\u{B}' | '\u{C}' | '\u{E}'..='\u{1F}' => {}
-                '&' => out.push_str("&amp;"),
-                '<' => out.push_str("&lt;"),
-                '>' => out.push_str("&gt;"),
-                c => out.push(c),
+        let chars: Vec<char> = text.chars().collect();
+        let mut out = String::new();
+        let mut i = 0;
+        while i < chars.len() {
+            let ch = chars[i];
+            if ch.is_ascii_digit() || ch == '.' {
+                let mut num = String::new();
+                while i < chars.len() && (chars[i].is_ascii_digit() || chars[i] == '.') {
+                    num.push(chars[i]);
+                    i += 1;
+                }
+                out.push_str(&format!("<mn>{num}</mn>"));
+            } else if is_letter(ch) {
+                out.push_str(&format!("<mi>{}</mi>", escape_text(&ch.to_string())));
+                i += 1;
+            } else if ch == ' ' {
+                i += 1;
+            } else if OPERATOR_CHARS.contains(ch) {
+                // 普通 run 里的括号是字面字符，只有 m:d 包的定界符才可伸缩
+                let s = ch.to_string();
+                out.push_str(&if "()[]{}|".contains(ch) {
+                    mo(&s, " stretchy=\"false\"")
+                } else {
+                    mo(&s, "")
+                });
+                i += 1;
+            } else {
+                out.push_str(&format!("<mtext>{}</mtext>", escape_text(&ch.to_string())));
+                i += 1;
             }
         }
         out
     }
-
-    /// 一个节点下全部 `m:oMath` 片段，文档序（`m:oMathPara` 展开；`m:oMath` 不嵌套）。
-    pub fn fragments(dom: &Dom, node: NodeId) -> Vec<NodeId> {
-        dom.semantic_descendants(node).filter(|&n| dom.is(n, m(LocalName::OMath))).collect()
-    }
-
-    /// 片段里全部 `m:t` 的文本，文档序（TS `mathTokens`：可编辑的公式 token）。
-    pub fn tokens(dom: &Dom, omath: NodeId) -> Vec<String> {
-        dom.semantic_descendants(omath)
-            .filter(|&n| dom.is(n, m(LocalName::T)))
-            .map(|t| text_of(dom, t))
-            .collect()
-    }
-
-    pub use latex_to_omml::{latex_to_omml, math_paragraph_xml};
-
-    /// OMML 的命名空间 URI（Transitional 与 Strict 相同）。
-    pub const NS_M: &str = "http://schemas.openxmlformats.org/officeDocument/2006/math";
 }
+
+pub(crate) fn m(local: LocalName) -> QName {
+    QName::new(NsId::M, local)
+}
+
+/// 第一个名为 `m:<local>` 的语义子节点。
+pub(crate) fn child(dom: &Dom, node: NodeId, local: LocalName) -> Option<NodeId> {
+    dom.semantic_children(node).find(|&c| dom.is(c, m(local)))
+}
+
+/// 全部名为 `m:<local>` 的语义子节点，文档序。
+pub(crate) fn children_named(dom: &Dom, node: NodeId, local: LocalName) -> Vec<NodeId> {
+    dom.semantic_children(node).filter(|&c| dom.is(c, m(local))).collect()
+}
+
+/// 内容子节点：元素，且名字不以 `Pr` 结尾（TS `contentChildren`：属性包不是内容）。
+pub(crate) fn content_children(dom: &Dom, node: NodeId) -> Vec<NodeId> {
+    dom.semantic_children(node)
+        .filter(|&c| dom.name(c).is_some())
+        .filter(|&c| !dom.lex_name(c).is_some_and(|q| q.ends_with("Pr")))
+        .collect()
+}
+
+/// `node/m:<pr>/m:<child>/@m:val`（TS `propVal`）。
+pub(crate) fn prop_val(dom: &Dom, node: NodeId, pr: LocalName, name: LocalName) -> Option<String> {
+    let pr = child(dom, node, pr)?;
+    let c = child(dom, pr, name)?;
+    dom.attr_value(c, m(LocalName::Val)).map(|v| v.into_owned())
+}
+
+/// 属性存在且不是 `0` / `false` / `off`（TS `propOn`）。
+pub(crate) fn prop_on(dom: &Dom, node: NodeId, pr: LocalName, name: LocalName) -> bool {
+    prop_val(dom, node, pr, name)
+        .is_some_and(|v| !matches!(v.to_ascii_lowercase().as_str(), "0" | "false" | "off"))
+}
+
+/// 一个 `m:t` 的文本（实体已解码）。
+pub(crate) fn omml_text_of(dom: &Dom, node: NodeId) -> String {
+    let mut s = String::new();
+    for c in dom.semantic_children(node) {
+        if let Some(t) = dom.text(c) {
+            s.push_str(&t);
+        }
+    }
+    s
+}
+
+/// 一个 `m:r` 的全部 `m:t` 文本拼接。
+pub(crate) fn run_text(dom: &Dom, run: NodeId) -> String {
+    children_named(dom, run, LocalName::T).iter().map(|&t| omml_text_of(dom, t)).collect()
+}
+
+/// `m:rPr/m:sty = "p"` 或有 `m:rPr/m:nor`：普通文字（不按数学斜体分类）。
+pub(crate) fn is_plain_run(dom: &Dom, run: NodeId) -> bool {
+    let sty = prop_val(dom, run, LocalName::RPr, LocalName::Sty);
+    sty.as_deref() == Some("p")
+        || child(dom, run, LocalName::RPr)
+            .is_some_and(|pr| child(dom, pr, LocalName::Nor).is_some())
+}
+
+/// 容器下全部 `m:r` 的文字拼接（TS `plainTextOfRuns`：函数名 / `lim`）。
+pub(crate) fn plain_text_of_runs(dom: &Dom, node: Option<NodeId>) -> String {
+    let Some(node) = node else { return String::new() };
+    children_named(dom, node, LocalName::R).iter().map(|&r| run_text(dom, r)).collect()
+}
+
+/// TS `escapeXmlText`：去掉 XML 1.0 不允许的控制字符，转义 `& < >`。
+pub(crate) fn escape_text(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for ch in s.chars() {
+        match ch {
+            '\u{0}'..='\u{8}' | '\u{B}' | '\u{C}' | '\u{E}'..='\u{1F}' => {}
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+/// 一个节点下全部 `m:oMath` 片段，文档序（`m:oMathPara` 展开；`m:oMath` 不嵌套）。
+pub fn fragments(dom: &Dom, node: NodeId) -> Vec<NodeId> {
+    dom.semantic_descendants(node).filter(|&n| dom.is(n, m(LocalName::OMath))).collect()
+}
+
+/// 片段里全部 `m:t` 的文本，文档序（TS `mathTokens`：可编辑的公式 token）。
+pub fn tokens(dom: &Dom, omath: NodeId) -> Vec<String> {
+    dom.semantic_descendants(omath)
+        .filter(|&n| dom.is(n, m(LocalName::T)))
+        .map(|t| omml_text_of(dom, t))
+        .collect()
+}
+
+pub use latex_to_omml::{latex_to_omml, math_paragraph_xml};
+
+/// OMML 的命名空间 URI（Transitional 与 Strict 相同）。
+pub const NS_M: &str = "http://schemas.openxmlformats.org/officeDocument/2006/math";
 
 // 跨 part 的修订索引（`MOD-09`、`EDIT-06`；`spec/18` 7.1）。
 //
@@ -10603,10 +10569,9 @@ fn pair(v: &str) -> Option<(i64, i64)> {
     Some((a.trim().parse().ok()?, b.trim().parse().ok()?))
 }
 
-pub use omml::fragments;
-pub use omml::latex::to_latex;
-pub use omml::latex_to_omml::{latex_to_omml, math_paragraph_xml};
-pub use omml::mathml::to_mathml;
+pub use crate::model::latex::to_latex;
+
+pub use crate::model::mathml::to_mathml;
 
 #[cfg(test)]
 mod test_model {

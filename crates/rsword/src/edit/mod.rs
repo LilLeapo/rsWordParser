@@ -216,7 +216,7 @@ pub enum NewAtom {
 pub enum NewMath {
     /// 现成的 OMML（可以是 `<m:oMath>…</m:oMath>`，也可以只给里面的内容）。
     Omml(String),
-    /// LaTeX 源码，由 `model::omml::latex_to_omml` 转成 OMML。
+    /// LaTeX 源码，由 `model::latex_to_omml` 转成 OMML。
     Latex(String),
 }
 

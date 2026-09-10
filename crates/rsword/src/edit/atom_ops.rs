@@ -159,7 +159,7 @@ fn note_ref_element(endnote: bool, id: &str) -> NewElement {
 fn math_element(s: &mut EditSession, m: &NewMath) -> Result<NewElement> {
     let omml = match m {
         NewMath::Omml(x) => x.clone(),
-        NewMath::Latex(tex) => crate::model::omml::latex_to_omml(tex)?,
+        NewMath::Latex(tex) => crate::model::latex_to_omml(tex)?,
     };
     let main = s.part_or_main(None);
     let dom = s
@@ -169,7 +169,7 @@ fn math_element(s: &mut EditSession, m: &NewMath) -> Result<NewElement> {
     let xml = if omml.trim_start().starts_with("<m:oMath") {
         omml
     } else {
-        format!(r#"<m:oMath xmlns:m="{}">{omml}</m:oMath>"#, crate::model::omml::NS_M)
+        format!(r#"<m:oMath xmlns:m="{}">{omml}</m:oMath>"#, crate::model::NS_M)
     };
     let mut frags = crate::xml::parse_fragment(dom, &xml)
         .map_err(|e| Error::edit(DiagCode::EditPlanInvalid, format!("OMML 解析失败: {e}")))?;

@@ -14,8 +14,8 @@ use rsword::bind::compat_ts::{
 #[cfg(feature = "compat-ts")]
 use rsword::edit::{EditContext, EditOp, EditSession, InlinePos};
 use rsword::model::fragments;
-use rsword::model::omml::latex;
-use rsword::model::omml::mathml;
+use rsword::model::latex;
+use rsword::model::mathml;
 #[cfg(feature = "compat-ts")]
 use rsword::package::Package;
 use rsword::xml::Dom;
