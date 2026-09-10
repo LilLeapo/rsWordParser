@@ -136,15 +136,16 @@ fn bind_11_audit_annotations_match_written_contract() {
     let mut checked_ancestors = BTreeSet::new();
     for item in items(&std::fs::read_to_string(root.join("src/lib.rs")).unwrap()) {
         if item.kind == "mod" && ancestors.contains(&item.name) {
-            assert_eq!(
-                item.attrs,
-                [
-                    "cfg_attr(not(rsword_api_docs),doc(hidden))",
-                    "cfg_attr(rsword_api_docs,allow(missing_docs))",
-                ],
-                "祖先 {} 的审计可见性漂移",
-                item.name
-            );
+            // model 的声明宏供后续兄弟模块使用；宏作用域属性不改变文档可见性。
+            let mut expected = Vec::new();
+            if item.name == "model" {
+                expected.push("macro_use");
+            }
+            expected.extend([
+                "cfg_attr(not(rsword_api_docs),doc(hidden))",
+                "cfg_attr(rsword_api_docs,allow(missing_docs))",
+            ]);
+            assert_eq!(item.attrs, expected, "祖先 {} 的审计可见性漂移", item.name);
             checked_ancestors.insert(item.name);
         }
     }

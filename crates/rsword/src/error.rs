@@ -13,7 +13,7 @@ macro_rules! declare_error {
     (
         @error($error:path)
         $(#[$type_attr:meta])*
-        $vis:vis enum Error {
+        $vis:vis enum $name:ident {
             $(
                 $(#[doc = $group_doc:literal])*
                 @group $group:ident { $($variants:tt)* }
@@ -26,7 +26,7 @@ macro_rules! declare_error {
             $(#[doc = $group_doc])*
         )+
         #[derive(Debug, $error)]
-        $vis enum Error {
+        $vis enum $name {
             $($($variants)*)+
         }
     };
