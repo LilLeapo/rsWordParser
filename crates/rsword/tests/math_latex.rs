@@ -66,3 +66,24 @@ fn latex_depth_limit() {
     let ok = format!("{}x{}", "\\frac{".repeat(100), "}{1}".repeat(100));
     assert!(latex_to_omml(&ok).is_ok());
 }
+
+/// 多字节字符的上下标边界与根次数子解析器保持字符语义。
+#[test]
+fn latex_borrowed_unicode_boundaries() {
+    let prefix = latex_to_omml("α").unwrap();
+    let suffix = latex_to_omml("𝑥^2").unwrap();
+    assert_eq!(latex_to_omml("α𝑥^2").unwrap(), format!("{prefix}{suffix}"));
+    assert_eq!(
+        latex_to_omml("α𝑥_2").unwrap(),
+        format!("{prefix}{}", latex_to_omml("𝑥_2").unwrap())
+    );
+    let degree = latex_to_omml("α^2").unwrap();
+    let body = latex_to_omml("𝑥").unwrap();
+    assert_eq!(
+        latex_to_omml(r"\sqrt[α^2]{𝑥}").unwrap(),
+        format!("<m:rad><m:deg>{degree}</m:deg><m:e>{body}</m:e></m:rad>")
+    );
+    assert!(latex_to_omml(r"\sqrt[α").is_err());
+    assert!(latex_to_omml(r"\left(α\righ").is_err());
+    assert!(latex_to_omml(r"\left(α\right)").is_ok());
+}

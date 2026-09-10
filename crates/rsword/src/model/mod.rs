@@ -6643,8 +6643,9 @@ impl LatexParser<'_> {
 
     #[inline]
     fn rest_starts_with(&self, pat: &str) -> bool {
-        let p: Vec<char> = pat.chars().collect();
-        self.src.len() >= self.pos + p.len() && self.src[self.pos..self.pos + p.len()] == p[..]
+        let Some(rest) = self.src.get(self.pos..) else { return false };
+        let mut chars = rest.iter();
+        pat.chars().all(|ch| chars.next() == Some(&ch))
     }
 
     #[inline]
@@ -6808,10 +6809,11 @@ impl LatexParser<'_> {
             return Err(err(format!("Cannot parse: \"{ch}\"")));
         }
         // 紧跟的上下标只作用在**最后一个字符**上（"ab^2" = a·b²）：退回去让它自成一个原子
-        let chars: Vec<char> = text.chars().collect();
-        if (self.peek() == '^' || self.peek() == '_') && chars.len() > 1 {
+        if (self.peek() == '^' || self.peek() == '_')
+            && let Some((last, _)) = text.char_indices().next_back().filter(|&(index, _)| index > 0)
+        {
             self.pos -= 1;
-            return Ok(math_run(&chars[..chars.len() - 1].iter().collect::<String>(), false));
+            return Ok(math_run(&text[..last], false));
         }
         Ok(math_run(&text, false))
     }
@@ -6963,8 +6965,8 @@ impl LatexParser<'_> {
                     self.pos += 1;
                     let close = (self.pos..self.src.len()).find(|&i| self.src[i] == ']');
                     let Some(close) = close else { return Err(err("Missing matching ]")) };
-                    let inner: Vec<char> = self.src[self.pos..close].to_vec();
-                    let mut sub = LatexParser { src: &inner, pos: 0, depth: self.depth };
+                    let mut sub =
+                        LatexParser { src: &self.src[self.pos..close], pos: 0, depth: self.depth };
                     deg = sub.parse_sequence(&|q: &LatexParser<'_>| q.pos >= q.src.len())?;
                     self.pos = close + 1;
                 }
