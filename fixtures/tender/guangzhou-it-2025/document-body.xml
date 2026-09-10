@@ -1,0 +1,8 @@
+<w:p><w:pPr><w:pStyle w:val="null3"/><w:ind w:firstLine="480"/></w:pPr><w:r><w:rPr><w:sz w:val="24"/></w:rPr><w:t>TENDER-BODY Service response.</w:t></w:r></w:p>
+<w:p><w:pPr><w:pStyle w:val="null3"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="48"/></w:rPr><w:t>TENDER-TITLE</w:t></w:r></w:p>
+<w:p><w:pPr><w:pStyle w:val="null3"/></w:pPr><w:r><w:rPr><w:u w:val="single"/></w:rPr><w:t xml:space="preserve">TENDER-SIGNATURE ____</w:t></w:r></w:p>
+<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/></w:tblPr><w:tblGrid><w:gridCol w:w="2000"/><w:gridCol w:w="2000"/><w:gridCol w:w="2000"/></w:tblGrid>
+<w:tr><w:tc><w:tcPr><w:tcW w:w="4000" w:type="dxa"/><w:gridSpan w:val="2"/></w:tcPr><w:p><w:r><w:t>TENDER-MERGED</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="2000" w:type="dxa"/></w:tcPr><w:p/></w:tc></w:tr>
+<w:tr><w:tc><w:tcPr><w:tcW w:w="2000" w:type="dxa"/><w:vMerge w:val="restart"/></w:tcPr><w:p><w:r><w:t>TENDER-VERTICAL</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>TENDER-CELL</w:t></w:r></w:p></w:tc><w:tc><w:p/></w:tc></w:tr>
+<w:tr><w:tc><w:tcPr><w:tcW w:w="2000" w:type="dxa"/><w:vMerge/></w:tcPr><w:p/></w:tc><w:tc><w:p/></w:tc><w:tc><w:p/></w:tc></w:tr></w:tbl>
+<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1800" w:bottom="1440" w:left="1800" w:header="851" w:footer="992" w:gutter="0"/><w:docGrid w:type="lines" w:linePitch="312" w:charSpace="0"/></w:sectPr>

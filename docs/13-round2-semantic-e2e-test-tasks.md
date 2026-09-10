@@ -1,5 +1,7 @@
 # 第二轮：真实 Word 文档的语义读取与公开 API 验收
 
+投标场景增量：用户提供真实招标文件作为格式参考。请接入 [招投标格式测试任务](14-tender-style-test-tasks.md)，复用新增的 `tender_styles` 自动化夹具，并按来源事实补充 Word UI 场景。
+
 日期：2026-09-10。执行者：另一台 Mac 上的 Codex + computer use。
 
 ## 0. 直接开始执行
