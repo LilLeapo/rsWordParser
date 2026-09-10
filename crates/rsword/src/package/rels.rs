@@ -207,13 +207,13 @@ impl Rels {
     }
 
     /// 追加一条关系（`.rels` DOM 已经写过之后同步内存视图）。
-    pub(crate) fn push(&mut self, rel: Relationship) {
+    pub fn push(&mut self, rel: Relationship) {
         self.by_id.insert(rel.id.clone(), self.list.len());
         self.list.push(rel);
     }
 
     /// 删掉一条关系（`.rels` DOM 里的节点已经 `Deleted` 之后同步内存视图）。
-    pub(crate) fn remove(&mut self, id: &str) -> Option<Relationship> {
+    pub fn remove(&mut self, id: &str) -> Option<Relationship> {
         let i = self.by_id.remove(id)?;
         let rel = self.list.remove(i);
         self.by_id = self.list.iter().enumerate().map(|(i, r)| (r.id.clone(), i)).collect();

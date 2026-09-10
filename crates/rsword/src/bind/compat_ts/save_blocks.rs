@@ -1449,7 +1449,7 @@ fn image_block(v: &Value) -> Result<NewBlock> {
     let wrap = match s_of(v, "wrap") {
         None => None,
         Some(w) => {
-            Some(ImageWrap::parse(w).ok_or_else(|| unsupported(format!("image.wrap {w:?}")))?)
+            Some(w.parse::<ImageWrap>().map_err(|_| unsupported(format!("image.wrap {w:?}")))?)
         }
     };
     let pos_offset_emu = v.get("posOffsetEmu").filter(|p| p.is_object()).map(|p| PosOffset {

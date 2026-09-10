@@ -395,7 +395,7 @@ impl Package {
         &self.zip
     }
 
-    pub(crate) fn zip_mut(&mut self) -> &mut ZipPackage {
+    pub fn zip_mut(&mut self) -> &mut ZipPackage {
         &mut self.zip
     }
 
@@ -408,7 +408,7 @@ impl Package {
     }
 
     /// 可变 part（`EDIT-06` 追加关系后同步内存里的 `Rels`）。
-    pub(crate) fn part_mut(&mut self, id: PartId) -> &mut Part {
+    pub fn part_mut(&mut self, id: PartId) -> &mut Part {
         &mut self.parts[id.idx()]
     }
 
@@ -422,7 +422,7 @@ impl Package {
     /// `xml` 是整份内容（含 XML 声明）：解析成 DOM 后这个 part 与别的 part 一样可编辑、
     /// 可按脏节点序列化。**只登记 part 本身**——内容类型 Override 与 `.rels` 里的关系由
     /// 调用方按同一套 DOM 机制写（`EditSession::add_part`），因此也满足"未变部分原字节"。
-    pub(crate) fn register_new_part(
+    pub fn register_new_part(
         &mut self,
         uri: PartUri,
         content_type: &str,
@@ -465,7 +465,7 @@ impl Package {
     }
 
     /// `SAVE-05`：登记一个新的二进制 part（内嵌工作簿、媒体）。内容类型由调用方按扩展名的 `Default` 声明。
-    pub(crate) fn register_new_binary_part(
+    pub fn register_new_binary_part(
         &mut self,
         uri: PartUri,
         content_type: &str,
@@ -497,7 +497,7 @@ impl Package {
 
     /// 整体替换一个 XML part 的内容（TS `partXml`）：新内容解析成这个 part 的新 DOM（良构校验在这里），
     /// 关系与内容类型不动。保存时整份写出。
-    pub(crate) fn replace_part_xml(&mut self, id: PartId, xml: &str) -> Result<()> {
+    pub fn replace_part_xml(&mut self, id: PartId, xml: &str) -> Result<()> {
         let uri = self.parts[id.idx()].uri.to_string();
         let dom = Dom::parse(id, xml.as_bytes()).map_err(|e| Error::Malformed {
             part: uri,
@@ -519,7 +519,7 @@ impl Package {
     }
 
     /// 整体替换一个 part 的字节（TS `partBinary`）：之后它是二进制 part，没有 DOM。
-    pub(crate) fn replace_part_bytes(&mut self, id: PartId, bytes: Vec<u8>) {
+    pub fn replace_part_bytes(&mut self, id: PartId, bytes: Vec<u8>) {
         let part = &mut self.parts[id.idx()];
         part.dom = PartDom::Bytes(bytes);
         part.is_xml = false;
@@ -529,7 +529,7 @@ impl Package {
 
     /// 资源回收（`SAVE-07` `prune_orphans`）：删掉一个 part。zip 条目不再写出，`find` 找不到它；
     /// `Part` 记录本身留在表里（`PartId` 不重排）。
-    pub(crate) fn remove_part(&mut self, id: PartId) {
+    pub fn remove_part(&mut self, id: PartId) {
         let part = &mut self.parts[id.idx()];
         part.deleted = true;
         let uri = part.uri.clone();
@@ -562,7 +562,7 @@ impl Package {
         })
     }
 
-    pub(crate) fn content_types_mut(&mut self) -> &mut ContentTypes {
+    pub fn content_types_mut(&mut self) -> &mut ContentTypes {
         &mut self.content_types
     }
 
@@ -584,7 +584,7 @@ impl Package {
     }
 
     /// 保存期新增的诊断（`SAVE-02`）。
-    pub(crate) fn push_diagnostics(&mut self, more: impl IntoIterator<Item = Diagnostic>) {
+    pub fn push_diagnostics(&mut self, more: impl IntoIterator<Item = Diagnostic>) {
         self.diagnostics.extend(more);
     }
 

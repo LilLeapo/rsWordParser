@@ -815,7 +815,7 @@ impl Document {
 
     /// 重扫全包的修订表（`MOD-09`）。part 顺序 = 主 part → 页眉页脚 → 脚注 → 尾注 → 批注 →
     /// 外部文本框，各自内部前序，合起来就是文档序。
-    pub(crate) fn rebuild_revisions(&mut self, pkg: &Package) {
+    pub fn rebuild_revisions(&mut self, pkg: &Package) {
         let mut parts: Vec<RevPart<'_>> = Vec::new();
         if let Some(d) = pkg.part(self.main_part).dom() {
             parts.push(RevPart { part: self.main_part, dom: d, fields: Some(&self.fields) });
@@ -2280,7 +2280,7 @@ pub struct ExtTxbxPart<'a> {
 pub type ExtTxbxMap<'a> = std::collections::BTreeMap<String, ExtTxbxPart<'a>>;
 
 /// 空表（没有外部文本框 part 的文档，以及 `build_main` 之类的入口）。
-pub(crate) fn empty_ext_txbx() -> &'static ExtTxbxMap<'static> {
+pub fn empty_ext_txbx() -> &'static ExtTxbxMap<'static> {
     static EMPTY: std::sync::LazyLock<ExtTxbxMap<'static>> =
         std::sync::LazyLock::new(ExtTxbxMap::new);
     &EMPTY
@@ -4360,7 +4360,7 @@ fn body_pr(dom: &Dom, node: NodeId) -> BodyPr {
     }
 }
 
-pub(crate) fn xy(dom: &Dom, node: NodeId) -> Option<(i64, i64)> {
+pub fn xy(dom: &Dom, node: NodeId) -> Option<(i64, i64)> {
     Some((num(dom, node, LocalName::X)?, num(dom, node, LocalName::Y)?))
 }
 
@@ -4511,11 +4511,11 @@ fn doc_pr(dom: &Dom, node: NodeId) -> DocPr {
     }
 }
 
-pub(crate) fn extent_of(dom: &Dom, node: NodeId) -> Option<Extent> {
+pub fn extent_of(dom: &Dom, node: NodeId) -> Option<Extent> {
     Some(Extent { cx: num(dom, node, LocalName::Cx)?, cy: num(dom, node, LocalName::Cy)? })
 }
 
-pub(crate) fn rect_frac(dom: &Dom, node: NodeId) -> RectFrac {
+pub fn rect_frac(dom: &Dom, node: NodeId) -> RectFrac {
     let side = |l: LocalName| num(dom, node, l).unwrap_or(0);
     RectFrac {
         l: side(LocalName::L),
@@ -4525,11 +4525,11 @@ pub(crate) fn rect_frac(dom: &Dom, node: NodeId) -> RectFrac {
     }
 }
 
-pub(crate) fn attr(dom: &Dom, node: NodeId, ns: NsId, local: LocalName) -> Option<String> {
+pub fn attr(dom: &Dom, node: NodeId, ns: NsId, local: LocalName) -> Option<String> {
     dom.attr_value(node, QName::new(ns, local)).map(|s| s.trim().to_string())
 }
 
-pub(crate) fn num(dom: &Dom, node: NodeId, local: LocalName) -> Option<i64> {
+pub fn num(dom: &Dom, node: NodeId, local: LocalName) -> Option<i64> {
     attr(dom, node, NsId::None, local)?.parse().ok()
 }
 
@@ -4542,7 +4542,7 @@ fn drawing_flag(dom: &Dom, node: NodeId, local: LocalName) -> Option<bool> {
     }
 }
 
-pub(crate) fn text_of(dom: &Dom, node: NodeId) -> Option<String> {
+pub fn text_of(dom: &Dom, node: NodeId) -> Option<String> {
     let mut s = String::new();
     for c in dom.semantic_children(node) {
         if let Some(t) = dom.text(c) {
@@ -4991,7 +4991,7 @@ pub fn heading_level_of_chain(chain: &[&Style], style_id: Option<&str>) -> Optio
 ///
 /// 后一类（`TableofFigures` / `TableofAuthorities`，Word 的"图表目录""引文目录"）也是目录行，
 /// TS 同样给它们 `TOC entry` + `tocLine`（语料 `field-display__010`）。
-pub(crate) fn toc_level_of_id(id: &str) -> Option<u8> {
+pub fn toc_level_of_id(id: &str) -> Option<u8> {
     let squashed: String = id.chars().filter(|c| !c.is_whitespace()).collect();
     if squashed.eq_ignore_ascii_case("TableofFigures")
         || squashed.eq_ignore_ascii_case("TableofAuthorities")
@@ -5074,7 +5074,7 @@ fn fallback_picture(dom: &Dom, drawing: NodeId) -> Option<NodeId> {
 }
 
 /// `a:graphicData` 的种类：`@uri` 优先，缺失或不认识时看第一个子元素的命名空间。
-pub(crate) fn graphic_data_kind(dom: &Dom, graphic_data: NodeId) -> DrawingKind {
+pub fn graphic_data_kind(dom: &Dom, graphic_data: NodeId) -> DrawingKind {
     if let Some(uri) = facts_attr(dom, graphic_data, NsId::None, LocalName::Uri) {
         let kind = DrawingKind::from_uri(&uri);
         if kind != DrawingKind::Unknown {
@@ -6386,7 +6386,7 @@ fn is_letter(ch: char) -> bool {
 }
 
 /// 一段 run 文字 → `mn / mi / mo / mtext`（TS `runTextToMml`）。
-pub(crate) fn run_text_to_mml(text: &str, plain: bool) -> String {
+pub fn run_text_to_mml(text: &str, plain: bool) -> String {
     if plain {
         return if text.is_empty() {
             String::new()
@@ -6434,7 +6434,7 @@ pub(crate) fn run_text_to_mml(text: &str, plain: bool) -> String {
     out
 }
 
-pub(crate) fn m(local: LocalName) -> QName {
+pub fn m(local: LocalName) -> QName {
     QName::new(NsId::M, local)
 }
 
@@ -6721,7 +6721,7 @@ impl RevisionIndex {
     }
 
     /// 会话内稳定编号（`MOD-13`）：仍然存在的承载节点复用旧 id，新节点从 `next` 取号。
-    pub(crate) fn stabilize(
+    pub fn stabilize(
         &mut self,
         known: &mut BTreeMap<(PartId, NodeId), RevisionId>,
         next: &mut u32,
@@ -6756,7 +6756,7 @@ impl RevisionIndex {
 // ---- 构建 --------------------------------------------------------------------------------------
 
 /// 一个 part 的输入：DOM 与（有的话）它的字段索引。
-pub(crate) struct RevPart<'a> {
+pub struct RevPart<'a> {
     pub part: PartId,
     pub dom: &'a Dom,
     pub fields: Option<&'a FieldIndex>,
@@ -6783,7 +6783,7 @@ struct Ctx {
 
 impl RevisionIndex {
     /// 扫一批 part，按给定顺序拼成文档序的索引。
-    pub(crate) fn build(parts: &[RevPart<'_>], warnings: &mut Vec<Diagnostic>) -> RevisionIndex {
+    pub fn build(parts: &[RevPart<'_>], warnings: &mut Vec<Diagnostic>) -> RevisionIndex {
         let mut idx = RevisionIndex::default();
         for p in parts {
             let base = idx.entries.len() as u32;
@@ -9071,7 +9071,7 @@ const VML_MAX_DEPTH: u32 = 64;
 /// 嵌套层数是 O(n²)；语料里框套框最多 2 层（`textbox-edit__012`），Word 的界面根本做不出更深的。
 /// 超过这个数的层不进表（内容仍在 DOM 里，`too_deep` 记 `MOD_TOO_DEEP`），
 /// 这样 `corpus/hostile/hf-deep-txbx.docx` 那种 3000 层套娃不会把投影拖死。
-pub(crate) const MAX_BOX_NESTING: u32 = 8;
+pub const MAX_BOX_NESTING: u32 = 8;
 
 /// 一个 `w:pict` / `w:object` 的 VML 内容。
 #[derive(Debug, Clone, PartialEq, Eq)]
