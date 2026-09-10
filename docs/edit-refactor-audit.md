@@ -98,3 +98,12 @@ inline 方法；`clone_row_props_without_revisions` → MutationPlan 的私有 i
 重复属性容器需要复用同一修订标记，marker.clone 保留，未更改修订 ID 分配顺序。
 check、fmt、diff 检查、库测试 425 项和三组修订回归通过。
 一次库测试编译受到 SIGTERM 中断，随后原命令重跑通过；中断不计成功。
+
+## 计划写入与宏生成项
+
+`empty_paragraph`、`move_cell_content`、`rename_text` 归入 MutationPlan 私有 inline
+方法；删除 Tracker 中仅转发文本改名的两个入口，调用直接写入计划。
+`table_props_op!` 生成 EditSession 方法；`accept_reject!` 生成 Act::actions 方法。
+通过 cargo expand 的实际输出再用 syn 扫描，确认这两个宏不再生成自由函数。
+其余已识别自由函数继续逐个迁移，尚未通过最终“零自由函数”验收。
+check、fmt、库测试 425 项及 edit / revisions / tracked_ops 回归通过。

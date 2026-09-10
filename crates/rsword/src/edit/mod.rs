@@ -113,87 +113,95 @@ macro_rules! context_option {
 macro_rules! table_props_op {
     ($name:ident, $patch:ty, $owner:ident, $container:ident, $change:ident, $skip:expr,
      $plan_apply:path, $what:literal) => {
-        fn $name(
-            s: &mut EditSession,
-            node: NodeId,
-            patch: &$patch,
-            ctx: &EditContext,
-        ) -> Result<MutationResult> {
-            let dom = s.dom();
-            if (node.0 as usize) >= dom.node_count()
-                || dom.node(node).dirty == Dirty::Deleted
-                || !dom.is(node, QName::w(LocalName::$owner))
-            {
-                return Err(Error::edit(DiagCode::EditBadPosition, concat!("目标不是", $what)));
-            }
-            let mut result = MutationResult::default();
-            // 追踪：先把旧值快照成 `w:*PrChange`（两个阶段，理由同 `SetRunProps`）
-            if let Some(mut t) = Tracker::new(s.document(), ctx) {
+        impl EditSession {
+            #[inline]
+            fn $name(
+                &mut self,
+                node: NodeId,
+                patch: &$patch,
+                ctx: &EditContext,
+            ) -> Result<MutationResult> {
+                let s = self;
+                let dom = s.dom();
+                if (node.0 as usize) >= dom.node_count()
+                    || dom.node(node).dirty == Dirty::Deleted
+                    || !dom.is(node, QName::w(LocalName::$owner))
+                {
+                    return Err(Error::edit(DiagCode::EditBadPosition, concat!("目标不是", $what)));
+                }
+                let mut result = MutationResult::default();
+                // 追踪：先把旧值快照成 `w:*PrChange`（两个阶段，理由同 `SetRunProps`）
+                if let Some(mut t) = Tracker::new(s.document(), ctx) {
+                    let (container, before) =
+                        MutationPlan::props_site(dom, node, LocalName::$container);
+                    let mut plan = MutationPlan::new(s.main_part());
+                    if let Some(tbl) = MutationPlan::owning_table(dom, node) {
+                        plan.touch(tbl);
+                    }
+                    match container {
+                        Some(c) => {
+                            t.snapshot(
+                                &mut plan,
+                                dom,
+                                c,
+                                LocalName::$change,
+                                LocalName::$container,
+                                $skip,
+                            );
+                        }
+                        None => {
+                            // 容器不存在：旧值全是默认，快照是一个空容器
+                            let k = plan.node_edits.len();
+                            plan.node_edits.push(NodeEdit::Insert {
+                                parent: Target::Node(node),
+                                before,
+                                node: NewElement::new(QName::w(LocalName::$container)),
+                            });
+                            let change = t
+                                .marker(LocalName::$change)
+                                .with_child(NewElement::new(QName::w(LocalName::$container)));
+                            plan.node_edits.push(NodeEdit::Insert {
+                                parent: Target::New(k),
+                                before: None,
+                                node: change,
+                            });
+                        }
+                    }
+                    if !plan.is_empty() {
+                        result.absorb(s.commit_plan(plan)?);
+                    }
+                }
+                let dom = s.dom();
                 let (container, before) =
                     MutationPlan::props_site(dom, node, LocalName::$container);
                 let mut plan = MutationPlan::new(s.main_part());
+                $plan_apply(
+                    dom,
+                    Target::Node(node),
+                    container,
+                    before,
+                    patch,
+                    s.flavor(),
+                    &mut plan.node_edits,
+                );
                 if let Some(tbl) = MutationPlan::owning_table(dom, node) {
                     plan.touch(tbl);
                 }
-                match container {
-                    Some(c) => {
-                        t.snapshot(
-                            &mut plan,
-                            dom,
-                            c,
-                            LocalName::$change,
-                            LocalName::$container,
-                            $skip,
-                        );
-                    }
-                    None => {
-                        // 容器不存在：旧值全是默认，快照是一个空容器
-                        let k = plan.node_edits.len();
-                        plan.node_edits.push(NodeEdit::Insert {
-                            parent: Target::Node(node),
-                            before,
-                            node: NewElement::new(QName::w(LocalName::$container)),
-                        });
-                        let change = t
-                            .marker(LocalName::$change)
-                            .with_child(NewElement::new(QName::w(LocalName::$container)));
-                        plan.node_edits.push(NodeEdit::Insert {
-                            parent: Target::New(k),
-                            before: None,
-                            node: change,
-                        });
-                    }
-                }
-                if !plan.is_empty() {
-                    result.absorb(s.commit_plan(plan)?);
-                }
+                result.absorb(s.commit_plan(plan)?);
+                Ok(result)
             }
-            let dom = s.dom();
-            let (container, before) = MutationPlan::props_site(dom, node, LocalName::$container);
-            let mut plan = MutationPlan::new(s.main_part());
-            $plan_apply(
-                dom,
-                Target::Node(node),
-                container,
-                before,
-                patch,
-                s.flavor(),
-                &mut plan.node_edits,
-            );
-            if let Some(tbl) = MutationPlan::owning_table(dom, node) {
-                plan.touch(tbl);
-            }
-            result.absorb(s.commit_plan(plan)?);
-            Ok(result)
         }
     };
 }
 macro_rules! accept_reject {
     ($($kind:ident => $accept:expr, $reject:expr;)+) => {
+        impl Act {
+        #[inline]
         fn actions(kind: RevKind) -> (Act, Act) {
             match kind {
                 $(RevKind::$kind => ($accept, $reject),)+
             }
+        }
         }
     };
 }
@@ -3947,21 +3955,25 @@ impl EditSession {
 }
 
 /// 空 `w:p`；`clone_ppr` 是要克隆 `w:pPr` 的来源段落。
-fn empty_paragraph(dom: &Dom, plan: &mut MutationPlan, parent: Target, clone_ppr: Option<NodeId>) {
-    let k = plan.node_edits.len();
-    plan.node_edits.push(NodeEdit::Insert {
-        parent,
-        before: None,
-        node: NewElement::new(QName::w(LocalName::P)),
-    });
-    if let Some(src) =
-        clone_ppr.and_then(|p| Dom::live_children_named(dom, p, QName::w(LocalName::PPr)).next())
-    {
-        plan.node_edits.push(NodeEdit::InsertClone {
-            parent: Target::New(k),
+impl MutationPlan {
+    #[inline]
+    fn empty_paragraph(&mut self, dom: &Dom, parent: Target, clone_ppr: Option<NodeId>) {
+        let plan = self;
+        let k = plan.node_edits.len();
+        plan.node_edits.push(NodeEdit::Insert {
+            parent,
             before: None,
-            source: src,
+            node: NewElement::new(QName::w(LocalName::P)),
         });
+        if let Some(src) = clone_ppr
+            .and_then(|p| Dom::live_children_named(dom, p, QName::w(LocalName::PPr)).next())
+        {
+            plan.node_edits.push(NodeEdit::InsertClone {
+                parent: Target::New(k),
+                before: None,
+                source: src,
+            });
+        }
     }
 }
 // ---- InsertRow / DeleteRow ---------------------------------------------------------------------
@@ -4117,7 +4129,7 @@ impl EditSession {
                 (VMergeFix::Keep, None) => {}
             }
             let _ = cell_node;
-            empty_paragraph(dom, &mut plan, Target::New(cell_k), first_para);
+            plan.empty_paragraph(dom, Target::New(cell_k), first_para);
         }
         plan.touch(table);
         s.commit_plan(plan)
@@ -4498,7 +4510,7 @@ impl EditSession {
                         Dom::live_element_children(dom, tpl)
                             .find(|&c| dom.is(c, QName::w(LocalName::P)))
                     });
-                    empty_paragraph(dom, &mut plan, Target::New(cell_k), para);
+                    plan.empty_paragraph(dom, Target::New(cell_k), para);
                 }
             }
         }
@@ -4775,14 +4787,14 @@ impl EditSession {
                 if j == 0 && node == target {
                     continue;
                 }
-                move_cell_content(dom, node, target, &mut plan);
+                plan.move_cell_content(dom, node, target);
                 if j > 0 {
                     plan.node_edits.push(NodeEdit::Delete(node));
                 }
             }
             // ③ 被搬空的 continue 格留一个空段落
             if vertical && idx > 0 {
-                empty_paragraph(dom, &mut plan, Target::Node(keeper), None);
+                plan.empty_paragraph(dom, Target::Node(keeper), None);
             }
         }
         plan.touch(table);
@@ -4790,20 +4802,24 @@ impl EditSession {
     }
 }
 /// 把 `from` 格里的内容块（`w:tcPr` 之外的元素）按文档序搬到 `into` 格末尾。
-fn move_cell_content(dom: &Dom, from: NodeId, into: NodeId, plan: &mut MutationPlan) {
-    for child in Dom::live_element_children(dom, from) {
-        if dom.is(child, QName::w(LocalName::TcPr)) {
-            continue;
+impl MutationPlan {
+    #[inline]
+    fn move_cell_content(&mut self, dom: &Dom, from: NodeId, into: NodeId) {
+        let plan = self;
+        for child in Dom::live_element_children(dom, from) {
+            if dom.is(child, QName::w(LocalName::TcPr)) {
+                continue;
+            }
+            // 末尾的空段落不搬（Word 合并后不会留下一串空行）
+            if dom.is(child, QName::w(LocalName::P)) && crate::span::content_len(dom, child) == 0 {
+                continue;
+            }
+            plan.node_edits.push(NodeEdit::Move {
+                node: child,
+                parent: Target::Node(into),
+                before: None,
+            });
         }
-        // 末尾的空段落不搬（Word 合并后不会留下一串空行）
-        if dom.is(child, QName::w(LocalName::P)) && crate::span::content_len(dom, child) == 0 {
-            continue;
-        }
-        plan.node_edits.push(NodeEdit::Move {
-            node: child,
-            parent: Target::Node(into),
-            before: None,
-        });
     }
 }
 // ---- NewBlock::Table 生成器 ---------------------------------------------------------------------
@@ -5198,37 +5214,33 @@ impl Tracker {
         }
         Some(k)
     }
-
-    /// `w:delText → w:t`、`w:delInstrText → w:instrText`（拒绝删除修订时改回去，7.4）。
-    pub fn rename_to_live(plan: &mut MutationPlan, dom: &Dom, root: NodeId) {
-        rename_text(plan, dom, root, false);
-    }
-
-    /// `w:t → w:delText`、`w:instrText → w:delInstrText`（run 进 `w:del` 之后必须改名，
-    /// 否则 Word 会把删除的文字当正文显示）。反方向（拒绝修订）用同一张表。
-    pub fn rename_to_deleted(plan: &mut MutationPlan, dom: &Dom, root: NodeId) {
-        rename_text(plan, dom, root, true);
-    }
 }
-fn rename_text(plan: &mut MutationPlan, dom: &Dom, root: NodeId, to_deleted: bool) {
-    // 反方向（`w:delText → w:t`）由 7.4 的拒绝修订使用，同一张表
-    let table: [(LocalName, LocalName); 2] = if to_deleted {
-        [(LocalName::T, LocalName::DelText), (LocalName::InstrText, LocalName::DelInstrText)]
-    } else {
-        [(LocalName::DelText, LocalName::T), (LocalName::DelInstrText, LocalName::InstrText)]
-    };
-    let mut stack = vec![root];
-    while let Some(n) = stack.pop() {
-        if dom.node(n).dirty == Dirty::Deleted {
-            continue;
-        }
-        let Some(e) = dom.element(n) else { continue };
-        stack.extend(e.children.iter().rev());
-        if e.name.ns != NsId::W {
-            continue;
-        }
-        if let Some(&(_, to)) = table.iter().find(|(from, _)| *from == e.name.local) {
-            plan.node_edits.push(NodeEdit::Rename { node: n, name: track_w(to) });
+impl MutationPlan {
+    #[inline]
+    /// `w:t` / `w:instrText` 与删除文本名称互换，方向共用一张表。
+    /// run 进入删除修订时必须改名，否则 Word 会把它当作正文；拒绝修订时改回。
+    fn rename_text(&mut self, dom: &Dom, root: NodeId, to_deleted: bool) {
+        let plan = self;
+
+        // 反方向（`w:delText → w:t`）由 7.4 的拒绝修订使用，同一张表
+        let table: [(LocalName, LocalName); 2] = if to_deleted {
+            [(LocalName::T, LocalName::DelText), (LocalName::InstrText, LocalName::DelInstrText)]
+        } else {
+            [(LocalName::DelText, LocalName::T), (LocalName::DelInstrText, LocalName::InstrText)]
+        };
+        let mut stack = vec![root];
+        while let Some(n) = stack.pop() {
+            if dom.node(n).dirty == Dirty::Deleted {
+                continue;
+            }
+            let Some(e) = dom.element(n) else { continue };
+            stack.extend(e.children.iter().rev());
+            if e.name.ns != NsId::W {
+                continue;
+            }
+            if let Some(&(_, to)) = table.iter().find(|(from, _)| *from == e.name.local) {
+                plan.node_edits.push(NodeEdit::Rename { node: n, name: track_w(to) });
+            }
         }
     }
 }
@@ -8355,7 +8367,7 @@ impl EditSession {
         let s = self;
         let (a, r) = match (Job::row_actions(job.kind), job.owner) {
             (Some(row), RevOwner::Row(_)) => row,
-            _ => actions(job.kind),
+            _ => Act::actions(job.kind),
         };
         let act = if accept { a } else { r };
         // 行级的 `Drop` 动的是整行，不是标记本身
@@ -8381,7 +8393,7 @@ impl EditSession {
             }
             Act::Unwrap | Act::UnwrapLive => {
                 if act == Act::UnwrapLive {
-                    Tracker::rename_to_live(&mut plan, dom, target);
+                    plan.rename_text(dom, target, false);
                 }
                 MutationPlan::unwrap(&mut plan, dom, target);
             }
@@ -9316,9 +9328,9 @@ impl EditSession {
             EditOp::MergeCells { table, from, to } => {
                 EditSession::merge_cells(s, table, from, to, ctx)
             }
-            EditOp::SetTableProps { table, patch } => set_table_props(s, table, &patch, ctx),
-            EditOp::SetRowProps { row, patch } => set_row_props(s, row, &patch, ctx),
-            EditOp::SetCellProps { cell, patch } => set_cell_props(s, cell, &patch, ctx),
+            EditOp::SetTableProps { table, patch } => s.set_table_props(table, &patch, ctx),
+            EditOp::SetRowProps { row, patch } => s.set_row_props(row, &patch, ctx),
+            EditOp::SetCellProps { cell, patch } => s.set_cell_props(cell, &patch, ctx),
             EditOp::InsertBlock { at, block } => EditSession::insert_block(s, at, block, ctx),
             EditOp::DeleteBlock { part, node } => EditSession::delete_block(s, part, node, ctx),
             EditOp::MoveBlock { from, node, to } => EditSession::move_block(s, from, node, to, ctx),
@@ -10470,7 +10482,7 @@ impl EditSession {
                 continue;
             }
             t.wrap_item(&mut plan, dom, node, LocalName::Del);
-            Tracker::rename_to_deleted(&mut plan, dom, node);
+            plan.rename_text(dom, node, true);
         }
         for ins in empty_wrappers {
             plan.node_edits.push(NodeEdit::Delete(ins));
@@ -10831,7 +10843,7 @@ impl EditSession {
                         Step::Delete(n) => {
                             for &node in &old_nodes[oi..oi + n] {
                                 t.wrap_item(&mut plan, dom, node, LocalName::Del);
-                                Tracker::rename_to_deleted(&mut plan, dom, node);
+                                plan.rename_text(dom, node, true);
                             }
                             oi += n;
                         }
@@ -10859,7 +10871,7 @@ impl EditSession {
                 for &node in &old_nodes {
                     if dom.parent(node) == Some(para) {
                         t.wrap_item(&mut plan, dom, node, LocalName::Del);
-                        Tracker::rename_to_deleted(&mut plan, dom, node);
+                        plan.rename_text(dom, node, true);
                     }
                 }
                 let k = plan.node_edits.len();
@@ -11133,7 +11145,7 @@ impl MutationPlan {
                     continue;
                 }
                 t.wrap_item(plan, dom, c, LocalName::Del);
-                Tracker::rename_to_deleted(plan, dom, c);
+                plan.rename_text(dom, c, true);
             }
         } else if dom.is(node, QName::w(LocalName::Tbl)) {
             plan.structure_changed = true;
@@ -12614,7 +12626,7 @@ impl EditSession {
             });
             for &r in &instr_nodes {
                 t.wrap_item(&mut plan, dom, r, LocalName::Del);
-                Tracker::rename_to_deleted(&mut plan, dom, r);
+                plan.rename_text(dom, r, true);
             }
             return s.commit_plan(plan);
         }
@@ -12745,7 +12757,7 @@ impl EditSession {
                 });
                 for &old in &results {
                     t.wrap_item(&mut plan, dom, old, LocalName::Del);
-                    Tracker::rename_to_deleted(&mut plan, dom, old);
+                    plan.rename_text(dom, old, true);
                 }
             }
         }
@@ -12950,7 +12962,7 @@ impl EditSession {
                 }
                 Some(t) => {
                     t.wrap_item(&mut plan, dom, v, LocalName::Del);
-                    Tracker::rename_to_deleted(&mut plan, dom, v);
+                    plan.rename_text(dom, v, true);
                 }
                 None => plan.node_edits.push(NodeEdit::Delete(v)),
             }
