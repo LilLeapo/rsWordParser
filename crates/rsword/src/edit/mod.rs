@@ -1989,10 +1989,6 @@ pub fn px_to_emu(px: f64) -> i64 {
 
 // ---- 小工具 ----------------------------------------------------------------------------------
 
-pub(super) fn unsupported(msg: &str) -> Error {
-    Error::edit(DiagCode::EditUnsupported, msg)
-}
-
 // ---- 拆分 run ---------------------------------------------------------------------------------
 
 // ---- InsertText -------------------------------------------------------------------------------
@@ -3854,9 +3850,6 @@ pub fn set_textbox_content(
 // 任一行的宽度与列数不符时，列操作与 `MergeCells` 直接 `Err(EDIT_TABLE_GRID_INCONSISTENT)`——**不**
 // 偷偷修网格，修不修由调用方决定（`spec/14` 风险 3）。折叠、校正一律不做：那是 `resolve` 的视图。
 
-fn geometry_error(msg: impl Into<String>) -> Error {
-    Error::edit(DiagCode::EditTableGeometry, msg)
-}
 /// 合并区里某一行涉及的格：(`w:tc` 节点, 起始列, 跨度)。
 type RegionCells = Vec<(NodeId, u32, u32)>;
 /// 一行在声明网格上的布局。
@@ -3991,7 +3984,10 @@ impl EditSession {
         let t = EditSession::table_of(s, table)?;
         let rows: Vec<NodeId> = t.rows.iter().map(|r| r.node).collect();
         if at as usize > rows.len() {
-            return Err(geometry_error(format!("行号 {at} 超出 {} 行", rows.len())));
+            return Err(Error::edit(
+                DiagCode::EditTableGeometry,
+                format!("行号 {at} 超出 {} 行", rows.len()),
+            ));
         }
         // 模板：给定的行，否则 at 的前一行（at == 0 时取第一行）
         let tpl_idx = match template {
@@ -4000,7 +3996,7 @@ impl EditSession {
                 .position(|&r| r == n)
                 .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, "模板行不属于这张表"))?,
             None if rows.is_empty() => {
-                return Err(geometry_error("空表格没有可用的模板行"));
+                return Err(Error::edit(DiagCode::EditTableGeometry, "空表格没有可用的模板行"));
             }
             None => (at as usize).saturating_sub(1).min(rows.len() - 1),
         };
@@ -4149,10 +4145,9 @@ impl EditSession {
         let s = self;
 
         let t = EditSession::table_of(s, table)?;
-        let row = t
-            .rows
-            .get(at as usize)
-            .ok_or_else(|| geometry_error(format!("行号 {at} 超出 {} 行", t.rows.len())))?;
+        let row = t.rows.get(at as usize).ok_or_else(|| {
+            Error::edit(DiagCode::EditTableGeometry, format!("行号 {at} 超出 {} 行", t.rows.len()))
+        })?;
         let geo = geometry(t);
         let node = row.node;
         // 追踪：**行留着**，只加 `trPr/w:del`（`spec/08`）。vMerge 的提升不做——内容一点没变
@@ -4350,7 +4345,10 @@ impl EditSession {
         let geo = geometry(t);
         geo.require_consistent()?;
         if at > geo.cols {
-            return Err(geometry_error(format!("列号 {at} 超出 {} 列", geo.cols)));
+            return Err(Error::edit(
+                DiagCode::EditTableGeometry,
+                format!("列号 {at} 超出 {} 列", geo.cols),
+            ));
         }
         // 每行的落点：拿到需要克隆的模板（左邻格，行首取右邻）
         enum Where {
@@ -4425,7 +4423,7 @@ impl EditSession {
                     node: col,
                 });
             }
-            None => return Err(geometry_error("表格没有 tblGrid")),
+            None => return Err(Error::edit(DiagCode::EditTableGeometry, "表格没有 tblGrid")),
         }
         for (ri, place) in plans {
             let row = &geo.rows[ri];
@@ -4537,7 +4535,10 @@ impl EditSession {
         let geo = geometry(t);
         geo.require_consistent()?;
         if at >= geo.cols {
-            return Err(geometry_error(format!("列号 {at} 超出 {} 列", geo.cols)));
+            return Err(Error::edit(
+                DiagCode::EditTableGeometry,
+                format!("列号 {at} 超出 {} 列", geo.cols),
+            ));
         }
         // 追踪：**格与网格都留着**，只给这一列的格加 `tcPr/w:cellDel`（`spec/08`）。
         // 网格不动，所以**不发** `w:tblGridChange`——收缩发生在接受修订时（7.4），
@@ -4567,7 +4568,8 @@ impl EditSession {
                 && let Some(i) = row.cell_at(at)
                 && row.cells[i].2 == 1
             {
-                return Err(geometry_error(
+                return Err(Error::edit(
+                    DiagCode::EditTableGeometry,
                     "删掉这一列会让某一行没有单元格；请改用 DeleteBlock 删整表",
                 ));
             }
@@ -4696,7 +4698,10 @@ impl EditSession {
         let (r0, c0) = from;
         let (r1, c1) = to;
         if r0 > r1 || c0 > c1 || r1 as usize >= geo.rows.len() || c1 >= geo.cols {
-            return Err(geometry_error(format!("合并区 {from:?}..={to:?} 越界或方向反了")));
+            return Err(Error::edit(
+                DiagCode::EditTableGeometry,
+                format!("合并区 {from:?}..={to:?} 越界或方向反了"),
+            ));
         }
         if r0 == r1 && c0 == c1 {
             return s.commit_plan(MutationPlan::new(s.main_part())); // 单格，无事可做
@@ -4712,15 +4717,21 @@ impl EditSession {
                 .filter(|&(_, start, span)| start + span > c0 && start < c1 + 1)
                 .collect();
             let Some(&(_, first_start, _)) = inside.first() else {
-                return Err(geometry_error(format!("第 {r} 行在合并区里没有单元格")));
+                return Err(Error::edit(
+                    DiagCode::EditTableGeometry,
+                    format!("第 {r} 行在合并区里没有单元格"),
+                ));
             };
             let (_, last_start, last_span) = *inside.last().expect("non-empty");
             if first_start != c0 || last_start + last_span != c1 + 1 {
-                return Err(geometry_error(format!(
-                    "第 {r} 行的单元格边界与合并区不齐（{first_start}..{} vs {c0}..{}）",
-                    last_start + last_span,
-                    c1 + 1
-                )));
+                return Err(Error::edit(
+                    DiagCode::EditTableGeometry,
+                    format!(
+                        "第 {r} 行的单元格边界与合并区不齐（{first_start}..{} vs {c0}..{}）",
+                        last_start + last_span,
+                        c1 + 1
+                    ),
+                ));
             }
             // 区内的格不能是别的合并区的延续
             for (i, &(node, _, _)) in inside.iter().enumerate() {
@@ -4730,7 +4741,10 @@ impl EditSession {
                     .find(|c| c.node == node)
                     .expect("geometry 与模型同源");
                 if cell.is_vmerge_continue() && !(r > r0 && i == 0) {
-                    return Err(geometry_error("合并区与既有的纵向合并交叠"));
+                    return Err(Error::edit(
+                        DiagCode::EditTableGeometry,
+                        "合并区与既有的纵向合并交叠",
+                    ));
                 }
             }
             regions.push((r as usize, inside));
@@ -4988,10 +5002,6 @@ pub fn track_site_of(dom: &Dom, node: NodeId, stop: NodeId, author: &str) -> Tra
         x = dom.parent(n);
     }
     TrackSite::Clean
-}
-/// 落在删除区里不能再打字（Word 的规则）。
-pub fn err_in_deleted() -> Error {
-    Error::edit(DiagCode::EditInDeleted, "位置落在已删除的文字里，追踪时不能插入")
 }
 /// 计划阶段的修订生成器。
 #[derive(Debug, Clone)]
@@ -5979,7 +5989,7 @@ impl EditSession {
         let note_ref = match atom {
             NewAtom::NoteRef { endnote, content } => {
                 if at.part.is_some() {
-                    return Err(unsupported("注释引用只能插在主 part"));
+                    return Err(Error::edit(DiagCode::EditUnsupported, "注释引用只能插在主 part"));
                 }
                 let id = EditSession::next_note_id(s, *endnote).to_string();
                 result.absorb(EditSession::upsert_note_entry(s, *endnote, &id, content)?);
@@ -7275,7 +7285,10 @@ impl EditSession {
         let dom = s.dom();
         let shell = DrawingGeometry::shell(dom, drawing)?;
         if !dom.is(shell, DrawingGeometry::wp(LocalName::Anchor)) {
-            return Err(unsupported("随文图片没有 z-order；先用 SetDrawingWrap 改成锚定"));
+            return Err(Error::edit(
+                DiagCode::EditUnsupported,
+                "随文图片没有 z-order；先用 SetDrawingWrap 改成锚定",
+            ));
         }
         let mut plan = MutationPlan::new(part);
         if let Some(p) = dom.ancestors(drawing).find(|&x| dom.is(x, QName::w(LocalName::P))) {
@@ -7674,7 +7687,10 @@ impl EditSession {
                     ..IndexOptions::from_instruction(&instr)
                 })),
                 ref k => {
-                    return Err(unsupported(&format!("{k:?} 没有生成器；能重算的是 TOC 与 INDEX")));
+                    return Err(Error::edit(
+                        DiagCode::EditUnsupported,
+                        &format!("{k:?} 没有生成器；能重算的是 TOC 与 INDEX"),
+                    ));
                 }
             },
         };
@@ -8719,7 +8735,10 @@ impl EditSession {
             .semantic_children(content)
             .any(|c| dom.is(c, QName::w(LocalName::P)) || dom.is(c, QName::w(LocalName::Tbl)))
         {
-            return Err(unsupported("这个内容控件装的是块级内容；请对里面的段落用 ReplaceInlines"));
+            return Err(Error::edit(
+                DiagCode::EditUnsupported,
+                "这个内容控件装的是块级内容；请对里面的段落用 ReplaceInlines",
+            ));
         }
         let para = dom
             .ancestors(content)
@@ -9705,13 +9724,17 @@ impl MutationPlan {
             (Target::New(k), None)
         };
         match track_site_of(dom, parent, para, &t.author) {
-            TrackSite::Deleted(_) => Err(err_in_deleted()),
+            TrackSite::Deleted(_) => {
+                Err(Error::edit(DiagCode::EditInDeleted, "位置落在已删除的文字里，追踪时不能插入"))
+            }
             TrackSite::OwnIns(_) => Ok((Target::Node(parent), before)),
             // 位置嵌在别人 `w:ins` 内更深的容器里（超链接、smartTag …）：拆不动外层，
             // 退化成内层再套一个 `w:ins`（形态合法，接受 / 拒绝都正确，只是按作者拒绝外层会连带）
             TrackSite::OtherIns(ins) if ins != parent => Ok(wrap(plan, t, parent, before)),
             TrackSite::OtherIns(ins) => {
-                let gp = dom.parent(ins).ok_or_else(|| unsupported("w:ins 没有父节点"))?;
+                let gp = dom
+                    .parent(ins)
+                    .ok_or_else(|| Error::edit(DiagCode::EditUnsupported, "w:ins 没有父节点"))?;
                 let kids: Vec<NodeId> = Dom::live_children(dom, ins).collect();
                 let cut = before.and_then(|b| kids.iter().position(|&k| k == b));
                 match cut {
@@ -9870,7 +9893,10 @@ impl EditSession {
         if !in_deleted
             && (Tracker::in_deleted_run(run) || run.segments[segment].kind == SegmentKind::DelText)
         {
-            return Err(unsupported("位置在已删除文本内（不追踪时不能在删除区里编辑）"));
+            return Err(Error::edit(
+                DiagCode::EditUnsupported,
+                "位置在已删除文本内（不追踪时不能在删除区里编辑）",
+            ));
         }
         let run_node = run.node;
         let plan = EditSession::split_run(s, at.part, para, run, segment, byte);
@@ -9897,21 +9923,23 @@ impl EditSession {
             return Ok(n);
         }
         let Inline::Field { id, .. } = i else {
-            return Err(unsupported("inline 没有对应节点"));
+            return Err(Error::edit(DiagCode::EditUnsupported, "inline 没有对应节点"));
         };
         // 字段索引是**按 part** 的（`FLD-02`）：页眉里的字段在那个 part 自己的索引里
-        let f = s
-            .document()
-            .fields_in(s.part_or_main(part))
-            .and_then(|idx| idx.get(*id))
-            .ok_or_else(|| unsupported("字段不在索引里（投影过期）"))?;
+        let f =
+            s.document().fields_in(s.part_or_main(part)).and_then(|idx| idx.get(*id)).ok_or_else(
+                || Error::edit(DiagCode::EditUnsupported, "字段不在索引里（投影过期）"),
+            )?;
         let n = match side {
             Side::Left => f.form.tail(),
             Side::Right => f.form.head(),
         };
         // 跨段字段（`FLD-06` 的 `Block`）另一端在别的段落里，结果段落只读
         if !s.dom_in(part)?.ancestors(n).any(|a| a == tb.node) {
-            return Err(unsupported("跨段字段的边界（Block 字段的结果段落只读）"));
+            return Err(Error::edit(
+                DiagCode::EditUnsupported,
+                "跨段字段的边界（Block 字段的结果段落只读）",
+            ));
         }
         Ok(n)
     }
@@ -9984,7 +10012,10 @@ impl EditSession {
                 }
             };
             if matches!(track_site_of(dom0, probe, at.para, &t.author), TrackSite::Deleted(_)) {
-                return Err(err_in_deleted());
+                return Err(Error::edit(
+                    DiagCode::EditInDeleted,
+                    "位置落在已删除的文字里，追踪时不能插入",
+                ));
             }
         }
         // 路径 1：紧邻 / 落在 Text 段 → 直接写该 w:t 的文本节点。
@@ -10407,8 +10438,10 @@ impl EditSession {
         let tb = EditSession::require_text_block(s, from.part, from.para)?;
         let spans = InlinePos::inline_spans(tb);
         let dom = s.dom_in(from.part)?;
-        let fields =
-            s.document().fields_in(part).ok_or_else(|| unsupported("这个 part 没有字段索引"))?;
+        let fields = s
+            .document()
+            .fields_in(part)
+            .ok_or_else(|| Error::edit(DiagCode::EditUnsupported, "这个 part 没有字段索引"))?;
         let mut plan = MutationPlan::new(part);
         plan.span.keep_orphan_comments = ctx.keep_orphan_comments;
         plan.touch(from.para);
@@ -11544,7 +11577,10 @@ impl EditSession {
                     None => Ok(len),
                 }
             }
-            _ => Err(unsupported("批注端点没落在 inline 边界上（内部错误）")),
+            _ => Err(Error::edit(
+                DiagCode::EditUnsupported,
+                "批注端点没落在 inline 边界上（内部错误）",
+            )),
         }
     }
     #[inline]
@@ -11665,9 +11701,10 @@ impl EditSession {
         });
         let r = s.commit_plan(plan)?;
         let (start_marker, end_marker, ref_run) = (
-            r.created[0].ok_or_else(|| unsupported("范围起点没创建"))?,
-            r.created[1].ok_or_else(|| unsupported("范围终点没创建"))?,
-            r.created[2].ok_or_else(|| unsupported("reference run 没创建"))?,
+            r.created[0].ok_or_else(|| Error::edit(DiagCode::EditUnsupported, "范围起点没创建"))?,
+            r.created[1].ok_or_else(|| Error::edit(DiagCode::EditUnsupported, "范围终点没创建"))?,
+            r.created[2]
+                .ok_or_else(|| Error::edit(DiagCode::EditUnsupported, "reference run 没创建"))?,
         );
         result.absorb(r);
 
@@ -11851,7 +11888,9 @@ impl EditSession {
             (c.node, c.para_id.clone(), rpr)
         };
         let comments_part =
-            s.document().comments.part.ok_or_else(|| unsupported("批注条目在的 part 找不到"))?;
+            s.document().comments.part.ok_or_else(|| {
+                Error::edit(DiagCode::EditUnsupported, "批注条目在的 part 找不到")
+            })?;
         let para_id = para_id.unwrap_or_else(|| EditSession::fresh_para_id(s, 1));
         let dom = s.package().part(comments_part).dom().expect("comments part is parsed");
         let mut plan = MutationPlan::new(comments_part);
@@ -12095,7 +12134,10 @@ impl EditSession {
     fn refuse_block_field_result(&self, para: NodeId) -> Result<()> {
         let s = self;
         if s.document().fields.block_result_paragraphs(s.dom()).contains_key(&para) {
-            return Err(unsupported("Block 字段（TOC 等）的结果段落只读"));
+            return Err(Error::edit(
+                DiagCode::EditUnsupported,
+                "Block 字段（TOC 等）的结果段落只读",
+            ));
         }
         Ok(())
     }
@@ -12123,7 +12165,9 @@ impl EditSession {
             ));
         }
         let dom = s.dom_in(at.part)?;
-        let parent = dom.parent(at.para).ok_or_else(|| unsupported("段落没有父节点"))?;
+        let parent = dom
+            .parent(at.para)
+            .ok_or_else(|| Error::edit(DiagCode::EditUnsupported, "段落没有父节点"))?;
         let ppr = MutationPlan::ppr_of(dom, at.para);
         let after = Dom::next_live_sibling(dom, at.para);
         // 阶段 1：建新段落（`pPr` 字节克隆，`XML-12` 规则 F），插在原段之后
@@ -12142,7 +12186,8 @@ impl EditSession {
             });
         }
         let r = s.commit_plan(plan)?;
-        let tail = r.created[0].ok_or_else(|| unsupported("新段落没创建"))?;
+        let tail =
+            r.created[0].ok_or_else(|| Error::edit(DiagCode::EditUnsupported, "新段落没创建"))?;
         result.absorb(r);
 
         // 阶段 2：把边界之后的内容项与范围标记搬进新段落（`SPAN-06` 拆分规则由 `SpanPolicy` 表达）
@@ -12358,8 +12403,8 @@ impl EditSession {
         });
         let r = s.commit_plan(plan)?;
         let (start_marker, end_marker) = (
-            r.created[0].ok_or_else(|| unsupported("书签起点没创建"))?,
-            r.created[1].ok_or_else(|| unsupported("书签终点没创建"))?,
+            r.created[0].ok_or_else(|| Error::edit(DiagCode::EditUnsupported, "书签起点没创建"))?,
+            r.created[1].ok_or_else(|| Error::edit(DiagCode::EditUnsupported, "书签终点没创建"))?,
         );
         result.absorb(r);
         let dom = s.dom();
@@ -12559,13 +12604,19 @@ impl EditSession {
         let part = s.main_part();
         let f = EditSession::field_of(s, id)?;
         if *f.keyword() != crate::span::field::Keyword::Hyperlink {
-            return Err(unsupported("SetLinkTarget 只用于 HYPERLINK 字段"));
+            return Err(Error::edit(
+                DiagCode::EditUnsupported,
+                "SetLinkTarget 只用于 HYPERLINK 字段",
+            ));
         }
         let crate::span::FieldForm::Complex { instr_nodes, .. } = &f.form else {
-            return Err(unsupported("SetLinkTarget 暂不支持 w:fldSimple（改 @w:instr 属性）"));
+            return Err(Error::edit(
+                DiagCode::EditUnsupported,
+                "SetLinkTarget 暂不支持 w:fldSimple（改 @w:instr 属性）",
+            ));
         };
         if instr_nodes.is_empty() {
-            return Err(unsupported("字段没有指令 run"));
+            return Err(Error::edit(DiagCode::EditUnsupported, "字段没有指令 run"));
         }
         let instr_nodes = instr_nodes.clone();
         let raw = f.instr.raw.clone();
@@ -12577,7 +12628,10 @@ impl EditSession {
             // 文内链接：Word 写 `HYPERLINK \l "bookmark"`
             LinkDest::Anchor(name) => format!("HYPERLINK \\l \"{name}\""),
             LinkDest::Rel(_) => {
-                return Err(unsupported("字段形式的链接没有关系 id（用 LinkDest::Url）"));
+                return Err(Error::edit(
+                    DiagCode::EditUnsupported,
+                    "字段形式的链接没有关系 id（用 LinkDest::Url）",
+                ));
             }
         };
         let rest = if matches!(target, LinkDest::Anchor(_)) {
@@ -12598,10 +12652,12 @@ impl EditSession {
                 dom.semantic_children(r).any(|c| dom.is(c, QName::w(LocalName::InstrText)))
             });
             if !has_instr {
-                return Err(unsupported("字段没有 w:instrText 可改"));
+                return Err(Error::edit(DiagCode::EditUnsupported, "字段没有 w:instrText 可改"));
             }
             let last = *instr_nodes.last().expect("checked above");
-            let parent = dom.parent(last).ok_or_else(|| unsupported("指令 run 没有父节点"))?;
+            let parent = dom
+                .parent(last)
+                .ok_or_else(|| Error::edit(DiagCode::EditUnsupported, "指令 run 没有父节点"))?;
             let k = plan.node_edits.len();
             plan.node_edits.push(NodeEdit::Insert {
                 parent: Target::Node(parent),
@@ -12643,7 +12699,7 @@ impl EditSession {
             }
         }
         if first {
-            return Err(unsupported("字段没有 w:instrText 可改"));
+            return Err(Error::edit(DiagCode::EditUnsupported, "字段没有 w:instrText 可改"));
         }
         s.commit_plan(plan)
     }
@@ -12654,10 +12710,11 @@ impl EditSession {
         let part = s.main_part();
         let f = EditSession::field_of(s, id)?;
         let dom = s.dom();
-        let data = crate::span::field::read_form_data(dom, f.ff_data)
-            .ok_or_else(|| unsupported("字段没有 w:ffData 表单定义（FLD-10）"))?;
+        let data = crate::span::field::read_form_data(dom, f.ff_data).ok_or_else(|| {
+            Error::edit(DiagCode::EditUnsupported, "字段没有 w:ffData 表单定义（FLD-10）")
+        })?;
         let crate::span::FormData::CheckBox { node, checked, .. } = data else {
-            return Err(unsupported("这个字段不是复选框"));
+            return Err(Error::edit(DiagCode::EditUnsupported, "这个字段不是复选框"));
         };
         let want = !checked;
         let existing =
@@ -12777,7 +12834,7 @@ impl EditSession {
         let results: Vec<NodeId> = f.form.result_nodes().to_vec();
         let head = f.form.head();
         if results.is_empty() {
-            return Err(unsupported("字段没有结果区可改格式"));
+            return Err(Error::edit(DiagCode::EditUnsupported, "字段没有结果区可改格式"));
         }
         let mut result = MutationResult::default();
         // 追踪：与 `SetRunProps` 同规则，先快照 `w:rPrChange`（两个阶段，理由同上）
@@ -12833,10 +12890,16 @@ impl EditSession {
         }
         let crate::span::FieldForm::Complex { separate, end, result_nodes, begin, .. } = &f.form
         else {
-            return Err(unsupported("w:fldSimple 没有 separate..end 区间"));
+            return Err(Error::edit(
+                DiagCode::EditUnsupported,
+                "w:fldSimple 没有 separate..end 区间",
+            ));
         };
         if separate.is_none() {
-            return Err(unsupported("字段没有 separate，无法定位结果区"));
+            return Err(Error::edit(
+                DiagCode::EditUnsupported,
+                "字段没有 separate，无法定位结果区",
+            ));
         }
         let (end, begin) = (*end, *begin);
         let old: Vec<NodeId> = result_nodes.clone();
@@ -12844,8 +12907,10 @@ impl EditSession {
         let para_of = |n: NodeId| {
             std::iter::once(n).chain(dom.ancestors(n)).find(|&a| dom.is(a, QName::w(LocalName::P)))
         };
-        let end_para = para_of(end).ok_or_else(|| unsupported("字段 end 不在段落里"))?;
-        let begin_para = para_of(begin).ok_or_else(|| unsupported("字段 begin 不在段落里"))?;
+        let end_para = para_of(end)
+            .ok_or_else(|| Error::edit(DiagCode::EditUnsupported, "字段 end 不在段落里"))?;
+        let begin_para = para_of(begin)
+            .ok_or_else(|| Error::edit(DiagCode::EditUnsupported, "字段 begin 不在段落里"))?;
         let cross = end_para != begin_para;
         let mut tracker = Tracker::new(s.document(), ctx);
         let mut plan = MutationPlan::new(part);
@@ -12854,7 +12919,9 @@ impl EditSession {
         plan.touch(end_para);
         if cross {
             // 段落级：新块插在 end 所在段落之前
-            let parent = dom.parent(end_para).ok_or_else(|| unsupported("段落没有父节点"))?;
+            let parent = dom
+                .parent(end_para)
+                .ok_or_else(|| Error::edit(DiagCode::EditUnsupported, "段落没有父节点"))?;
             for b in blocks {
                 let opaque = matches!(b, NewBlock::Xml(_) | NewBlock::Wrapped { .. });
                 let node = MutationPlan::new_block_element(dom, b);
@@ -12871,7 +12938,9 @@ impl EditSession {
             }
         } else {
             // 同段：新块的 inline 直接插在 end run 之前（段落里不能塞段落）
-            let parent = dom.parent(end).ok_or_else(|| unsupported("字段 end 没有父节点"))?;
+            let parent = dom
+                .parent(end)
+                .ok_or_else(|| Error::edit(DiagCode::EditUnsupported, "字段 end 没有父节点"))?;
             for b in blocks {
                 // 段落的 inline 直接内联；生成器给的是整段 `w:p`，取它 `pPr` 之外的子元素
                 let nodes: Vec<NewElement> = match b {
@@ -12891,7 +12960,8 @@ impl EditSession {
                         })
                         .collect(),
                     _ => {
-                        return Err(unsupported(
+                        return Err(Error::edit(
+                            DiagCode::EditUnsupported,
                             "同段块字段的新内容只能是段落（它的 inline 会内联进去）",
                         ));
                     }

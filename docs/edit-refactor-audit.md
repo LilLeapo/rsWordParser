@@ -107,3 +107,10 @@ check、fmt、diff 检查、库测试 425 项和三组修订回归通过。
 通过 cargo expand 的实际输出再用 syn 扫描，确认这两个宏不再生成自由函数。
 其余已识别自由函数继续逐个迁移，尚未通过最终“零自由函数”验收。
 check、fmt、库测试 425 项及 edit / revisions / tracked_ops 回归通过。
+
+## 编辑错误构造调用
+
+删除 `unsupported`、`geometry_error`、`err_in_deleted` 自由转发函数；各调用点
+使用 error.rs 已有的 Error::edit，保留原 DiagCode 与消息，不增加公开转发方法。
+check、fmt、diff 检查、425 项库测试及 edit / revision_grid 回归通过。
+此单元仅清理编辑错误构造；全 crate 错误定义归并仍未完成。
