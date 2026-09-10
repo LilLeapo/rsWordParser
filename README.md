@@ -216,3 +216,19 @@ cargo run -p diff-parse --features compat-ts -- --corpus corpus/real
 引擎侧（解析、编辑、保存、差分门）稳定；**Agent 任务的真实验收仍有缺口**：`docs/12` 的 22 项只过 3 项，
 `updateToc` 尚不支持执行，多项写类操作缺桌面 Word 的"无修复提示"证据。别把"门全绿"当成"已验收"——
 当前口径见 [docs/05](docs/05-status.md) 与 [docs/12](docs/12-agent-tasks.md)。
+
+## 许可
+
+双许可，任选其一：
+
+- **Apache License 2.0** —— [LICENSE-APACHE](LICENSE-APACHE)（含明确的专利授权）
+- **MIT** —— [LICENSE-MIT](LICENSE-MIT)
+
+`corpus/`、`fixtures/`、`evidence/` 下的文档与产物均为本项目自行制作，同样按上述许可发布。
+
+除你另有明确声明外，你有意提交并纳入本项目的任何贡献（按 Apache-2.0 的定义），均按上述双许可发布，
+不附加其他条款。贡献方式与 sign-off 要求见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+<sub>Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the
+work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
+additional terms or conditions.</sub>
