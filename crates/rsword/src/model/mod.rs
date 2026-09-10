@@ -5753,7 +5753,7 @@ pub fn ruby_part_text(dom: &Dom, ruby: NodeId, part: LocalName) -> String {
     let mut out = String::new();
     for r in dom.semantic_children(part).filter(|&r| dom.is(r, QName::w(LocalName::R))) {
         for t in dom.semantic_children(r).filter(|&t| dom.is(t, QName::w(LocalName::T))) {
-            out.push_str(&crate::model::omml_text_of(dom, t));
+            out.push_str(&dom.omml_text_of(t));
         }
     }
     out
@@ -6206,7 +6206,7 @@ fn eval_latex(dom: &Dom, root: LatexItem) -> Result<String> {
 }
 
 fn nodes(dom: &Dom, n: NodeId) -> Vec<LatexItem> {
-    content_children(dom, n).into_iter().map(LatexItem::Node).collect()
+    dom.content_children(n).map(LatexItem::Node).collect()
 }
 
 /// 矩阵的行：有 `m:mr` 就按行 / 格，否则每个 `m:e` 一行。
@@ -6255,12 +6255,12 @@ fn expand_latex(
                     return Ok(None);
                 }
                 LocalName::T => {
-                    results.push(chars_to_latex(&omml_text_of(dom, n))?);
+                    results.push(chars_to_latex(&dom.omml_text_of(n))?);
                     return Ok(None);
                 }
                 LocalName::F => {
                     // 裸的 noBar 分式只出现在 \binom 的 m:d 包里（那边处理）；别的分式样式在子集之外
-                    if prop_val(dom, n, LocalName::FPr, LocalName::Type).is_some_and(|t| t != "bar")
+                    if dom.prop_val(n, LocalName::FPr, LocalName::Type).is_some_and(|t| t != "bar")
                     {
                         return Err(Error::LatexUnsupported);
                     }
@@ -6272,7 +6272,7 @@ fn expand_latex(
                     vec![slot(n, LocalName::E), slot(n, LocalName::Sub), slot(n, LocalName::Sup)]
                 }
                 LocalName::Rad => {
-                    if prop_on(dom, n, LocalName::RadPr, LocalName::DegHide)
+                    if dom.prop_on(n, LocalName::RadPr, LocalName::DegHide)
                         || dom.children_named(n, m(LocalName::Deg)).next().is_none()
                     {
                         vec![slot(n, LocalName::E)]
@@ -6282,7 +6282,8 @@ fn expand_latex(
                 }
                 LocalName::D => return delimiter(dom, n).map(|it| Some(vec![it])),
                 LocalName::Nary => {
-                    let chr = prop_val(dom, n, LocalName::NaryPr, LocalName::Chr)
+                    let chr = dom
+                        .prop_val(n, LocalName::NaryPr, LocalName::Chr)
                         .unwrap_or_else(|| "∫".into());
                     if nary_command(&chr).is_none() {
                         return Err(Error::LatexUnsupported);
@@ -6291,7 +6292,7 @@ fn expand_latex(
                 }
                 LocalName::Func => {
                     let name =
-                        plain_text_of_runs(dom, dom.children_named(n, m(LocalName::FName)).next());
+                        dom.plain_text_of_runs(dom.children_named(n, m(LocalName::FName)).next());
                     let name = name.trim();
                     if !(LATEX_FUNCTIONS.contains(&name)
                         || name == "lim"
@@ -6302,7 +6303,7 @@ fn expand_latex(
                     vec![slot(n, LocalName::E)]
                 }
                 LocalName::LimLow => {
-                    if plain_text_of_runs(dom, dom.children_named(n, m(LocalName::E)).next()).trim()
+                    if dom.plain_text_of_runs(dom.children_named(n, m(LocalName::E)).next()).trim()
                         != "lim"
                     {
                         return Err(Error::LatexUnsupported);
@@ -6310,7 +6311,8 @@ fn expand_latex(
                     vec![slot(n, LocalName::Lim)]
                 }
                 LocalName::Acc => {
-                    let chr = prop_val(dom, n, LocalName::AccPr, LocalName::Chr)
+                    let chr = dom
+                        .prop_val(n, LocalName::AccPr, LocalName::Chr)
                         .unwrap_or_else(|| "\u{0302}".into());
                     if accent_command(&chr).is_none() {
                         return Err(Error::LatexUnsupported);
@@ -6319,7 +6321,8 @@ fn expand_latex(
                 }
                 LocalName::Bar => vec![slot(n, LocalName::E)],
                 LocalName::GroupChr => {
-                    let chr = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Chr)
+                    let chr = dom
+                        .prop_val(n, LocalName::GroupChrPr, LocalName::Chr)
                         .unwrap_or_else(|| "\u{23DF}".into());
                     if chr != "\u{23DF}" && chr != "\u{23DE}" {
                         return Err(Error::LatexUnsupported);
@@ -6367,15 +6370,16 @@ fn finish_latex(dom: &Dom, item: &LatexItem, parts: Vec<String>) -> Result<Strin
                 }
                 LocalName::D => parts.concat(),
                 LocalName::Nary => {
-                    let chr = prop_val(dom, n, LocalName::NaryPr, LocalName::Chr)
+                    let chr = dom
+                        .prop_val(n, LocalName::NaryPr, LocalName::Chr)
                         .unwrap_or_else(|| "∫".into());
                     let command = nary_command(&chr).ok_or(Error::LatexUnsupported)?;
-                    let sub = if prop_on(dom, n, LocalName::NaryPr, LocalName::SubHide) {
+                    let sub = if dom.prop_on(n, LocalName::NaryPr, LocalName::SubHide) {
                         String::new()
                     } else {
                         format!("_{{{}}}", p(0))
                     };
-                    let sup = if prop_on(dom, n, LocalName::NaryPr, LocalName::SupHide) {
+                    let sup = if dom.prop_on(n, LocalName::NaryPr, LocalName::SupHide) {
                         String::new()
                     } else {
                         format!("^{{{}}}", p(1))
@@ -6384,7 +6388,7 @@ fn finish_latex(dom: &Dom, item: &LatexItem, parts: Vec<String>) -> Result<Strin
                 }
                 LocalName::Func => {
                     let name =
-                        plain_text_of_runs(dom, dom.children_named(n, m(LocalName::FName)).next());
+                        dom.plain_text_of_runs(dom.children_named(n, m(LocalName::FName)).next());
                     let name = name.trim();
                     let arg = format!("{{{}}}", p(0));
                     if LATEX_FUNCTIONS.contains(&name) || name == "lim" {
@@ -6395,7 +6399,8 @@ fn finish_latex(dom: &Dom, item: &LatexItem, parts: Vec<String>) -> Result<Strin
                 }
                 LocalName::LimLow => format!("\\lim_{{{}}}", p(0)),
                 LocalName::Acc => {
-                    let chr = prop_val(dom, n, LocalName::AccPr, LocalName::Chr)
+                    let chr = dom
+                        .prop_val(n, LocalName::AccPr, LocalName::Chr)
                         .unwrap_or_else(|| "\u{0302}".into());
                     format!(
                         "\\{}{{{}}}",
@@ -6404,12 +6409,13 @@ fn finish_latex(dom: &Dom, item: &LatexItem, parts: Vec<String>) -> Result<Strin
                     )
                 }
                 LocalName::Bar => {
-                    let top = prop_val(dom, n, LocalName::BarPr, LocalName::Pos).as_deref()
-                        == Some("top");
+                    let top =
+                        dom.prop_val(n, LocalName::BarPr, LocalName::Pos).as_deref() == Some("top");
                     format!("\\{}{{{}}}", if top { "overline" } else { "underline" }, p(0))
                 }
                 LocalName::GroupChr => {
-                    let chr = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Chr)
+                    let chr = dom
+                        .prop_val(n, LocalName::GroupChrPr, LocalName::Chr)
                         .unwrap_or_else(|| "\u{23DF}".into());
                     format!(
                         "\\{}{{{}}}",
@@ -6428,19 +6434,18 @@ fn finish_latex(dom: &Dom, item: &LatexItem, parts: Vec<String>) -> Result<Strin
 
 /// `m:d`（TS `delimiterToLatex`）：`\binom`、矩阵环境、`\left … \right` 三种形态之一。
 fn delimiter(dom: &Dom, d: NodeId) -> Result<LatexItem> {
-    let beg = prop_val(dom, d, LocalName::DPr, LocalName::BegChr).unwrap_or_else(|| "(".into());
-    let end = prop_val(dom, d, LocalName::DPr, LocalName::EndChr).unwrap_or_else(|| ")".into());
+    let beg = dom.prop_val(d, LocalName::DPr, LocalName::BegChr).unwrap_or_else(|| "(".into());
+    let end = dom.prop_val(d, LocalName::DPr, LocalName::EndChr).unwrap_or_else(|| ")".into());
     let mut slots = dom.children_named(d, m(LocalName::E));
     let (Some(slot), None) = (slots.next(), slots.next()) else {
         return Err(Error::LatexUnsupported);
     };
-    let inner = content_children(dom, slot);
-    if let [only] = inner.as_slice() {
-        let only = *only;
+    let mut inner = dom.content_children(slot);
+    if let (Some(only), None) = (inner.next(), inner.next()) {
         if beg == "("
             && end == ")"
             && dom.is(only, m(LocalName::F))
-            && prop_val(dom, only, LocalName::FPr, LocalName::Type).as_deref() == Some("noBar")
+            && dom.prop_val(only, LocalName::FPr, LocalName::Type).as_deref() == Some("noBar")
         {
             return Ok(LatexItem::Binom(only));
         }
@@ -6456,8 +6461,8 @@ fn delimiter(dom: &Dom, d: NodeId) -> Result<LatexItem> {
 }
 
 fn run_to_latex(dom: &Dom, run: NodeId) -> Result<String> {
-    let text = run_text(dom, run);
-    if !is_plain_run(dom, run) {
+    let text = dom.run_text(run);
+    if !dom.is_plain_run(run) {
         return chars_to_latex(&text);
     }
     let trimmed = text.trim();
@@ -7189,9 +7194,8 @@ fn expand_mathml(
     results: &mut Vec<String>,
 ) -> Option<Vec<MathmlItem>> {
     let slot = |n: NodeId, l: LocalName| MathmlItem::Slot(n, l);
-    let rows = |n: NodeId| -> Vec<MathmlItem> {
-        content_children(dom, n).into_iter().map(MathmlItem::Node).collect()
-    };
+    let rows =
+        |n: NodeId| -> Vec<MathmlItem> { dom.content_children(n).map(MathmlItem::Node).collect() };
     match item {
         MathmlItem::Slot(parent, name) => match dom.children_named(parent, m(name)).next() {
             None => {
@@ -7220,7 +7224,7 @@ fn expand_mathml(
                     return None;
                 }
                 LocalName::T => {
-                    results.push(run_text_to_mml(&omml_text_of(dom, n), false));
+                    results.push(run_text_to_mml(&dom.omml_text_of(n), false));
                     return None;
                 }
                 LocalName::F => vec![slot(n, LocalName::Num), slot(n, LocalName::Den)],
@@ -7230,7 +7234,7 @@ fn expand_mathml(
                     vec![slot(n, LocalName::E), slot(n, LocalName::Sub), slot(n, LocalName::Sup)]
                 }
                 LocalName::Rad => {
-                    if prop_on(dom, n, LocalName::RadPr, LocalName::DegHide)
+                    if dom.prop_on(n, LocalName::RadPr, LocalName::DegHide)
                         || dom.children_named(n, m(LocalName::Deg)).next().is_none()
                     {
                         vec![slot(n, LocalName::E)]
@@ -7284,7 +7288,7 @@ fn finish_mathml(dom: &Dom, item: MathmlItem, parts: Vec<String>) -> String {
             }
             match name.local {
                 LocalName::F => {
-                    let attrs = match prop_val(dom, n, LocalName::FPr, LocalName::Type).as_deref() {
+                    let attrs = match dom.prop_val(n, LocalName::FPr, LocalName::Type).as_deref() {
                         Some("noBar") => " linethickness=\"0\"",
                         Some("lin" | "skw") => " bevelled=\"true\"",
                         _ => "",
@@ -7307,11 +7311,14 @@ fn finish_mathml(dom: &Dom, item: MathmlItem, parts: Vec<String>) -> String {
                     }
                 }
                 LocalName::D => {
-                    let beg = prop_val(dom, n, LocalName::DPr, LocalName::BegChr)
+                    let beg = dom
+                        .prop_val(n, LocalName::DPr, LocalName::BegChr)
                         .unwrap_or_else(|| "(".into());
-                    let end = prop_val(dom, n, LocalName::DPr, LocalName::EndChr)
+                    let end = dom
+                        .prop_val(n, LocalName::DPr, LocalName::EndChr)
                         .unwrap_or_else(|| ")".into());
-                    let sep = prop_val(dom, n, LocalName::DPr, LocalName::SepChr)
+                    let sep = dom
+                        .prop_val(n, LocalName::DPr, LocalName::SepChr)
                         .unwrap_or_else(|| "|".into());
                     let sep_mo = if sep.is_empty() { String::new() } else { mo(&sep, "") };
                     let body = parts.join(&sep_mo);
@@ -7322,14 +7329,16 @@ fn finish_mathml(dom: &Dom, item: MathmlItem, parts: Vec<String>) -> String {
                     format!("<mrow>{open}{body}{close}</mrow>")
                 }
                 LocalName::Nary => {
-                    let chr = prop_val(dom, n, LocalName::NaryPr, LocalName::Chr)
+                    let chr = dom
+                        .prop_val(n, LocalName::NaryPr, LocalName::Chr)
                         .unwrap_or_else(|| "\u{222B}".into());
-                    let lim_loc = prop_val(dom, n, LocalName::NaryPr, LocalName::LimLoc)
+                    let lim_loc = dom
+                        .prop_val(n, LocalName::NaryPr, LocalName::LimLoc)
                         .unwrap_or_else(|| {
                             if chr == "\u{222B}" { "subSup".into() } else { "undOvr".into() }
                         });
-                    let sub_hide = prop_on(dom, n, LocalName::NaryPr, LocalName::SubHide);
-                    let sup_hide = prop_on(dom, n, LocalName::NaryPr, LocalName::SupHide);
+                    let sub_hide = dom.prop_on(n, LocalName::NaryPr, LocalName::SubHide);
+                    let sup_hide = dom.prop_on(n, LocalName::NaryPr, LocalName::SupHide);
                     let op = mo(&chr, " stretchy=\"false\"");
                     let und_ovr = lim_loc == "undOvr";
                     let scripted = match (sub_hide, sup_hide) {
@@ -7355,21 +7364,23 @@ fn finish_mathml(dom: &Dom, item: MathmlItem, parts: Vec<String>) -> String {
                 LocalName::LimLow => format!("<munder>{}{}</munder>", p(0), p(1)),
                 LocalName::LimUpp => format!("<mover>{}{}</mover>", p(0), p(1)),
                 LocalName::Acc => {
-                    let chr = prop_val(dom, n, LocalName::AccPr, LocalName::Chr)
+                    let chr = dom
+                        .prop_val(n, LocalName::AccPr, LocalName::Chr)
                         .unwrap_or_else(|| "\u{0302}".into());
                     format!("<mover accent=\"true\">{}{}</mover>", p(0), mo(&chr, ""))
                 }
                 LocalName::Bar => {
-                    let top = prop_val(dom, n, LocalName::BarPr, LocalName::Pos).as_deref()
-                        == Some("top");
+                    let top =
+                        dom.prop_val(n, LocalName::BarPr, LocalName::Pos).as_deref() == Some("top");
                     let (tag, line) =
                         if top { ("mover", "\u{00AF}") } else { ("munder", "\u{005F}") };
                     format!("<{tag}>{}{}</{tag}>", p(0), mo(line, " stretchy=\"true\""))
                 }
                 LocalName::GroupChr => {
-                    let chr = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Chr)
+                    let chr = dom
+                        .prop_val(n, LocalName::GroupChrPr, LocalName::Chr)
                         .unwrap_or_else(|| "\u{23DF}".into());
-                    let top = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Pos).as_deref()
+                    let top = dom.prop_val(n, LocalName::GroupChrPr, LocalName::Pos).as_deref()
                         == Some("top");
                     let tag = if top { "mover" } else { "munder" };
                     format!("<{tag}>{}{}</{tag}>", p(0), mo(&chr, " stretchy=\"true\""))
@@ -7384,9 +7395,9 @@ fn finish_mathml(dom: &Dom, item: MathmlItem, parts: Vec<String>) -> String {
 
 /// `m:r` → 各 `m:t` 分类后的 token 串（`sty="p"` / `m:nor` 的 run 整段是 `<mi>`）。
 fn run_to_mml(dom: &Dom, run: NodeId) -> String {
-    let plain = is_plain_run(dom, run);
+    let plain = dom.is_plain_run(run);
     dom.children_named(run, m(LocalName::T))
-        .map(|t| run_text_to_mml(&omml_text_of(dom, t), plain))
+        .map(|t| run_text_to_mml(&dom.omml_text_of(t), plain))
         .collect()
 }
 
@@ -7446,59 +7457,6 @@ pub(crate) fn m(local: LocalName) -> QName {
     QName::new(NsId::M, local)
 }
 
-/// 内容子节点：元素，且名字不以 `Pr` 结尾（TS `contentChildren`：属性包不是内容）。
-pub(crate) fn content_children(dom: &Dom, node: NodeId) -> Vec<NodeId> {
-    dom.semantic_children(node)
-        .filter(|&c| dom.name(c).is_some())
-        .filter(|&c| !dom.lex_name(c).is_some_and(|q| q.ends_with("Pr")))
-        .collect()
-}
-
-/// `node/m:<pr>/m:<child>/@m:val`（TS `propVal`）。
-pub(crate) fn prop_val(dom: &Dom, node: NodeId, pr: LocalName, name: LocalName) -> Option<String> {
-    let pr = dom.children_named(node, m(pr)).next()?;
-    let c = dom.children_named(pr, m(name)).next()?;
-    dom.attr_value(c, m(LocalName::Val)).map(|v| v.into_owned())
-}
-
-/// 属性存在且不是 `0` / `false` / `off`（TS `propOn`）。
-pub(crate) fn prop_on(dom: &Dom, node: NodeId, pr: LocalName, name: LocalName) -> bool {
-    prop_val(dom, node, pr, name)
-        .is_some_and(|v| !matches!(v.to_ascii_lowercase().as_str(), "0" | "false" | "off"))
-}
-
-/// 一个 `m:t` 的文本（实体已解码）。
-pub(crate) fn omml_text_of(dom: &Dom, node: NodeId) -> String {
-    let mut s = String::new();
-    for c in dom.semantic_children(node) {
-        if let Some(t) = dom.text(c) {
-            s.push_str(&t);
-        }
-    }
-    s
-}
-
-/// 一个 `m:r` 的全部 `m:t` 文本拼接。
-pub(crate) fn run_text(dom: &Dom, run: NodeId) -> String {
-    dom.children_named(run, m(LocalName::T)).map(|t| omml_text_of(dom, t)).collect()
-}
-
-/// `m:rPr/m:sty = "p"` 或有 `m:rPr/m:nor`：普通文字（不按数学斜体分类）。
-pub(crate) fn is_plain_run(dom: &Dom, run: NodeId) -> bool {
-    let sty = prop_val(dom, run, LocalName::RPr, LocalName::Sty);
-    sty.as_deref() == Some("p")
-        || dom
-            .children_named(run, m(LocalName::RPr))
-            .next()
-            .is_some_and(|pr| dom.children_named(pr, m(LocalName::Nor)).next().is_some())
-}
-
-/// 容器下全部 `m:r` 的文字拼接（TS `plainTextOfRuns`：函数名 / `lim`）。
-pub(crate) fn plain_text_of_runs(dom: &Dom, node: Option<NodeId>) -> String {
-    let Some(node) = node else { return String::new() };
-    dom.children_named(node, m(LocalName::R)).map(|r| run_text(dom, r)).collect()
-}
-
 /// TS `escapeXmlText`：去掉 XML 1.0 不允许的控制字符，转义 `& < >`。
 pub(crate) fn escape_text(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -7523,7 +7481,7 @@ pub fn fragments(dom: &Dom, node: NodeId) -> Vec<NodeId> {
 pub fn tokens(dom: &Dom, omath: NodeId) -> Vec<String> {
     dom.semantic_descendants(omath)
         .filter(|&n| dom.is(n, m(LocalName::T)))
-        .map(|t| omml_text_of(dom, t))
+        .map(|t| dom.omml_text_of(t))
         .collect()
 }
 

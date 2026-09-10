@@ -13,9 +13,7 @@ use crate::xml::Dirty;
 use crate::xml::entities;
 use crate::xml::interner::Interner;
 use crate::xml::lex::{Lex, urange};
-#[cfg(test)]
-use crate::xml::names::LocalName;
-use crate::xml::names::{NsId, QName};
+use crate::xml::names::{LocalName, NsId, QName};
 
 /// arena 索引，会话内稳定且永不复用；`Deleted` 节点保留在 arena 中。
 #[derive(
@@ -153,6 +151,69 @@ pub struct Dom {
 }
 
 impl Dom {
+    /// 内容子节点：元素，且名字不以 `Pr` 结尾（TS `contentChildren`：属性包不是内容）。
+    #[inline]
+    pub fn content_children(&self, node: NodeId) -> impl Iterator<Item = NodeId> + '_ {
+        self.semantic_children(node)
+            .filter(|&c| self.name(c).is_some())
+            .filter(|&c| !self.lex_name(c).is_some_and(|q| q.ends_with("Pr")))
+    }
+
+    /// `node/m:<pr>/m:<child>/@m:val`（TS `propVal`）。
+    #[inline]
+    pub fn prop_val(&self, node: NodeId, pr: LocalName, name: LocalName) -> Option<Cow<'_, str>> {
+        let pr = self.children_named(node, QName::new(NsId::M, pr)).next()?;
+        let c = self.children_named(pr, QName::new(NsId::M, name)).next()?;
+        self.attr_value(c, QName::new(NsId::M, LocalName::Val))
+    }
+
+    /// 属性存在且不是 `0` / `false` / `off`（TS `propOn`）。
+    #[inline]
+    pub fn prop_on(&self, node: NodeId, pr: LocalName, name: LocalName) -> bool {
+        self.prop_val(node, pr, name).is_some_and(|v| {
+            v != "0" && !v.eq_ignore_ascii_case("false") && !v.eq_ignore_ascii_case("off")
+        })
+    }
+
+    /// 一个 `m:t` 的文本（实体已解码）。
+    #[inline]
+    pub fn omml_text_of(&self, node: NodeId) -> String {
+        let mut s = String::new();
+        for c in self.semantic_children(node) {
+            if let Some(t) = self.text(c) {
+                s.push_str(&t);
+            }
+        }
+        s
+    }
+
+    /// 一个 `m:r` 的全部 `m:t` 文本拼接。
+    #[inline]
+    pub fn run_text(&self, run: NodeId) -> String {
+        self.children_named(run, QName::new(NsId::M, LocalName::T))
+            .map(|t| self.omml_text_of(t))
+            .collect()
+    }
+
+    /// `m:rPr/m:sty = "p"` 或有 `m:rPr/m:nor`：普通文字（不按数学斜体分类）。
+    #[inline]
+    pub fn is_plain_run(&self, run: NodeId) -> bool {
+        let sty = self.prop_val(run, LocalName::RPr, LocalName::Sty);
+        sty.as_deref() == Some("p")
+            || self.children_named(run, QName::new(NsId::M, LocalName::RPr)).next().is_some_and(
+                |pr| self.children_named(pr, QName::new(NsId::M, LocalName::Nor)).next().is_some(),
+            )
+    }
+
+    /// 容器下全部 `m:r` 的文字拼接（TS `plainTextOfRuns`：函数名 / `lim`）。
+    #[inline]
+    pub fn plain_text_of_runs(&self, node: Option<NodeId>) -> String {
+        let Some(node) = node else { return String::new() };
+        self.children_named(node, QName::new(NsId::M, LocalName::R))
+            .map(|r| self.run_text(r))
+            .collect()
+    }
+
     /// 同名的语义子节点，保持文档顺序并跳过已删除或未选中的 MCE 分支。
     /// 迭代器借用此 DOM；仅遍历已有节点，不分配临时节点列表。
     #[inline]
@@ -336,6 +397,37 @@ impl Iterator for Descendants<'_> {
 
 #[cfg(test)]
 mod test_model {
+    #[test]
+    fn omml_properties_preserve_missing_empty_and_case_semantics() {
+        for (value, enabled) in [
+            ("0", false),
+            ("false", false),
+            ("FaLsE", false),
+            ("OFF", false),
+            ("", true),
+            (" false ", true),
+            ("1", true),
+        ] {
+            let xml = format!(
+                r#"<m:d xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">
+                    <m:dPr><m:begChr m:val="&lt;"/><m:endChr m:val="{value}"/></m:dPr>
+                    <m:e/><m:e/></m:d>"#
+            );
+            let dom = super::Dom::parse(super::PartId(0), xml.as_bytes()).unwrap();
+            let root = dom.root();
+            let pr = super::LocalName::DPr;
+            assert_eq!(dom.content_children(root).count(), 2);
+            assert_eq!(dom.prop_val(root, pr, super::LocalName::BegChr).as_deref(), Some("<"));
+            assert!(matches!(
+                dom.prop_val(root, pr, super::LocalName::EndChr),
+                Some(super::Cow::Borrowed(_))
+            ));
+            assert_eq!(dom.prop_on(root, pr, super::LocalName::EndChr), enabled);
+            assert_eq!(dom.prop_val(root, pr, super::LocalName::SepChr), None);
+            assert!(!dom.prop_on(root, pr, super::LocalName::SepChr));
+        }
+    }
+
     #[test]
     fn named_children_preserve_namespace_order_and_mce_selection() {
         let mut dom = super::Dom::parse(
