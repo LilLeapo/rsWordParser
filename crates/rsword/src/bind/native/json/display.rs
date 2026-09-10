@@ -11,6 +11,7 @@
 use serde_json::Value;
 
 use crate::model::FormulaDisplay;
+use crate::model::ThemeSlot;
 use crate::model::block::Block;
 use crate::model::chart::{
     ChartColor, ChartDisplay, ChartGrouping, ChartKind, ChartPart, ChartSeries, LegendPos,
@@ -24,7 +25,6 @@ use crate::model::drawing::{
     Wrap,
 };
 use crate::model::facts::DrawingKind;
-use crate::model::theme::ThemeSlot;
 use crate::model::vml::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};
 use crate::model::{CustomGeom, GeomCmd, GeomPath};
 use crate::package::PartId;

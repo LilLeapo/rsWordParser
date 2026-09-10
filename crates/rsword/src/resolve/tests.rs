@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::model::Styles;
-use crate::model::theme::Theme;
+use crate::model::Theme;
 use crate::package::PartId;
 use crate::semantic::props::{Color, Fonts, HexColorOrAuto, StyleType, ThemeColor, ThemeFont, Val};
 use crate::xml::Dom;

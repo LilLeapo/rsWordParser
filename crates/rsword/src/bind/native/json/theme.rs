@@ -5,7 +5,7 @@
 
 use serde_json::{Map, Value};
 
-use crate::model::theme::{ColorScheme, FontScheme, FontSlots, Theme, ThemeSlot};
+use crate::model::{ColorScheme, FontScheme, FontSlots, Theme, ThemeSlot};
 use crate::xml::NodeId;
 
 use super::{as_str_json, model_json, set, set_some};

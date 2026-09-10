@@ -10,7 +10,7 @@
 
 use crate::model::block::ListRef;
 use crate::model::facts::heading_level_of_chain;
-use crate::model::theme::{ColorScheme, Theme};
+use crate::model::{ColorScheme, Theme};
 use crate::model::{Document, Level, Style};
 use crate::model::{Numbering, Settings, Styles};
 use crate::semantic::props::{

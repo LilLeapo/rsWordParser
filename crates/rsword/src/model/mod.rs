@@ -13,7 +13,7 @@
 //! | [`facts`] | `ParagraphFacts`（`MOD-04`） |
 //! | [`classify_paragraph`] | 分类规则表与 `TextKind` 判定（`MOD-05/03`） |
 //! | [`build`] | `Document` 与 `rebuild`（`MOD-01/13`） |
-//! | [`Styles`] / [`theme`] / [`Notes`] | 声明模型（`MOD-10`）：样式 / 编号 / 主题 / 设置 / 批注 / 注释 |
+//! | [`Styles`] / [`Theme`] / [`Notes`] | 声明模型（`MOD-10`）：样式 / 编号 / 主题 / 设置 / 批注 / 注释 |
 
 pub mod block {
     //! 块模型（`MOD-02`、`MOD-03`、`MOD-08`、`MOD-09`，`docs/03` §6.3）。
@@ -270,6 +270,7 @@ pub mod build {
     use crate::model::Run;
     use crate::model::Segment;
     use crate::model::SegmentKind;
+    use crate::model::Theme;
     use crate::model::block::{
         Block, ImageBlock, ListRef, ProtectedBlock, ProtectedKind, Revision, SdtInfo, TextBlock,
     };
@@ -279,7 +280,6 @@ pub mod build {
     use crate::model::facts::ParagraphFacts;
     use crate::model::section::{HfKind, SectionInfo};
     use crate::model::table::{BlockStep, Blocks, block_at_mut_in};
-    use crate::model::theme::Theme;
     use crate::model::utf16_len;
     use crate::model::vml::vml_display;
     use crate::model::{BodyClass, ParaClass, classify_body_child, classify_paragraph, text_kind};
@@ -516,7 +516,7 @@ pub mod build {
             let scheme = theme
                 .as_ref()
                 .and_then(|t| t.colors.clone())
-                .unwrap_or_else(crate::model::theme::ColorScheme::office_default);
+                .unwrap_or_else(crate::model::ColorScheme::office_default);
             let mut chart_parts = BTreeMap::new();
             let mut chart_by_rel = BTreeMap::new();
             for (rel_id, id) in chart_rels {
@@ -2231,7 +2231,7 @@ pub mod chart {
 
     use crate::diag::{DiagCode, Diagnostic};
     use crate::model::named_enum;
-    use crate::model::theme::{ColorScheme, ThemeSlot};
+    use crate::model::{ColorScheme, ThemeSlot};
     use crate::package::PartId;
     use crate::resolve::drawingml::{DrawingColor, Rgb, color_in};
     use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
@@ -9984,314 +9984,306 @@ pub mod table {
         }
     }
 }
-pub mod theme {
-    //! 主题声明值（`MOD-10`）：`a:theme/a:themeElements` 的字体方案与颜色方案。
-    //! 只记录声明；主题字体 / 颜色的解析规则（槽位映射、tint/shade、空 EA 槽）在 `RES-05`。
 
-    use crate::semantic::props::{HexColorOrAuto, ThemeColor};
-    use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
+// 主题声明值（`MOD-10`）：`a:theme/a:themeElements` 的字体方案与颜色方案。
+// 只记录声明；主题字体 / 颜色的解析规则（槽位映射、tint/shade、空 EA 槽）在 `RES-05`。
 
-    /// 颜色方案的 12 个槽位（`a:clrScheme` 子元素名）。
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-    pub enum ThemeSlot {
-        Dk1,
-        Lt1,
-        Dk2,
-        Lt2,
-        Accent1,
-        Accent2,
-        Accent3,
-        Accent4,
-        Accent5,
-        Accent6,
-        Hlink,
-        FolHlink,
-    }
+use crate::semantic::props::{HexColorOrAuto, ThemeColor};
 
-    impl ThemeSlot {
-        pub const ALL: [ThemeSlot; 12] = [
-            ThemeSlot::Dk1,
-            ThemeSlot::Lt1,
-            ThemeSlot::Dk2,
-            ThemeSlot::Lt2,
-            ThemeSlot::Accent1,
-            ThemeSlot::Accent2,
-            ThemeSlot::Accent3,
-            ThemeSlot::Accent4,
-            ThemeSlot::Accent5,
-            ThemeSlot::Accent6,
-            ThemeSlot::Hlink,
-            ThemeSlot::FolHlink,
-        ];
+/// 颜色方案的 12 个槽位（`a:clrScheme` 子元素名）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum ThemeSlot {
+    Dk1,
+    Lt1,
+    Dk2,
+    Lt2,
+    Accent1,
+    Accent2,
+    Accent3,
+    Accent4,
+    Accent5,
+    Accent6,
+    Hlink,
+    FolHlink,
+}
 
-        /// `a:clrScheme` 里的元素局部名。
-        pub const fn local(self) -> LocalName {
-            match self {
-                ThemeSlot::Dk1 => LocalName::Dk1,
-                ThemeSlot::Lt1 => LocalName::Lt1,
-                ThemeSlot::Dk2 => LocalName::Dk2,
-                ThemeSlot::Lt2 => LocalName::Lt2,
-                ThemeSlot::Accent1 => LocalName::Accent1,
-                ThemeSlot::Accent2 => LocalName::Accent2,
-                ThemeSlot::Accent3 => LocalName::Accent3,
-                ThemeSlot::Accent4 => LocalName::Accent4,
-                ThemeSlot::Accent5 => LocalName::Accent5,
-                ThemeSlot::Accent6 => LocalName::Accent6,
-                ThemeSlot::Hlink => LocalName::Hlink,
-                ThemeSlot::FolHlink => LocalName::FolHlink,
-            }
-        }
-
-        pub const fn as_str(self) -> &'static str {
-            match self {
-                ThemeSlot::Dk1 => "dk1",
-                ThemeSlot::Lt1 => "lt1",
-                ThemeSlot::Dk2 => "dk2",
-                ThemeSlot::Lt2 => "lt2",
-                ThemeSlot::Accent1 => "accent1",
-                ThemeSlot::Accent2 => "accent2",
-                ThemeSlot::Accent3 => "accent3",
-                ThemeSlot::Accent4 => "accent4",
-                ThemeSlot::Accent5 => "accent5",
-                ThemeSlot::Accent6 => "accent6",
-                ThemeSlot::Hlink => "hlink",
-                ThemeSlot::FolHlink => "folHlink",
-            }
-        }
-
-        /// `w:themeColor` 的槽位映射（`RES-05`）：`dark1/text1 → dk1` 等；`none` 无槽位。
-        pub const fn from_theme_color(c: ThemeColor) -> Option<ThemeSlot> {
-            Some(match c {
-                ThemeColor::Dark1 | ThemeColor::Text1 => ThemeSlot::Dk1,
-                ThemeColor::Light1 | ThemeColor::Background1 => ThemeSlot::Lt1,
-                ThemeColor::Dark2 | ThemeColor::Text2 => ThemeSlot::Dk2,
-                ThemeColor::Light2 | ThemeColor::Background2 => ThemeSlot::Lt2,
-                ThemeColor::Accent1 => ThemeSlot::Accent1,
-                ThemeColor::Accent2 => ThemeSlot::Accent2,
-                ThemeColor::Accent3 => ThemeSlot::Accent3,
-                ThemeColor::Accent4 => ThemeSlot::Accent4,
-                ThemeColor::Accent5 => ThemeSlot::Accent5,
-                ThemeColor::Accent6 => ThemeSlot::Accent6,
-                ThemeColor::Hyperlink => ThemeSlot::Hlink,
-                ThemeColor::FollowedHyperlink => ThemeSlot::FolHlink,
-                ThemeColor::None => return None,
-            })
-        }
-
-        /// DrawingML `a:schemeClr/@val` 的名字（含别名 `tx1→dk1, bg1→lt1, tx2→dk2, bg2→lt2`）。
-        pub fn from_scheme_name(s: &str) -> Option<ThemeSlot> {
-            Some(match s {
-                "dk1" | "tx1" => ThemeSlot::Dk1,
-                "lt1" | "bg1" => ThemeSlot::Lt1,
-                "dk2" | "tx2" => ThemeSlot::Dk2,
-                "lt2" | "bg2" => ThemeSlot::Lt2,
-                "accent1" => ThemeSlot::Accent1,
-                "accent2" => ThemeSlot::Accent2,
-                "accent3" => ThemeSlot::Accent3,
-                "accent4" => ThemeSlot::Accent4,
-                "accent5" => ThemeSlot::Accent5,
-                "accent6" => ThemeSlot::Accent6,
-                "hlink" => ThemeSlot::Hlink,
-                "folHlink" => ThemeSlot::FolHlink,
-                _ => return None,
-            })
-        }
-    }
-
-    /// 一组字体（`a:majorFont` / `a:minorFont`）：三个脚本槽位与 `a:font script→typeface` 表。空串视为无。
-    #[derive(Debug, Clone, Default, PartialEq, Eq)]
-    pub struct FontSlots {
-        pub node: Option<NodeId>,
-        pub latin: Option<String>,
-        pub ea: Option<String>,
-        pub cs: Option<String>,
-        /// `(script, typeface)`，按出现顺序（`Jpan`、`Hang`、`Hans`、`Hant`……）。
-        pub scripts: Vec<(String, String)>,
-    }
-
-    impl FontSlots {
-        pub fn script(&self, script: &str) -> Option<&str> {
-            self.scripts.iter().find(|(s, _)| s == script).map(|(_, t)| t.as_str())
-        }
-
-        fn read(dom: &Dom, node: NodeId) -> FontSlots {
-            let mut out = FontSlots { node: Some(node), ..Default::default() };
-            for child in dom.semantic_children(node) {
-                let Some(name) = dom.name(child) else { continue };
-                if name.ns != NsId::A {
-                    continue;
-                }
-                let typeface = dom
-                    .attr_value(child, QName::new(NsId::None, LocalName::Typeface))
-                    .map(|s| s.into_owned())
-                    .filter(|s| !s.is_empty());
-                match name.local {
-                    LocalName::Latin => out.latin = typeface,
-                    LocalName::Ea => out.ea = typeface,
-                    LocalName::Cs => out.cs = typeface,
-                    LocalName::Font => {
-                        if let (Some(script), Some(t)) = (
-                            dom.attr_value(child, QName::new(NsId::None, LocalName::Script)),
-                            typeface,
-                        ) {
-                            out.scripts.push((script.into_owned(), t));
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            out
-        }
-    }
-
-    /// `a:fontScheme`。
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct FontScheme {
-        pub node: NodeId,
-        pub name: Option<String>,
-        pub major: FontSlots,
-        pub minor: FontSlots,
-    }
-
-    /// `a:clrScheme`：12 个槽位的 sRGB（`a:srgbClr/@val`，或 `a:sysClr/@lastClr`）。
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct ColorScheme {
-        /// 内建调色板（[`ColorScheme::office_default`]）没有节点。
-        pub node: Option<NodeId>,
-        pub name: Option<String>,
-        colors: [Option<[u8; 3]>; 12],
-    }
-
-    /// Word 内建 Office 调色板：文档没有 theme part 时，`schemeClr` / `themeColor` 仍按它解析
-    /// （`RES-05`；TS `DEFAULT_THEME_COLORS`）。顺序同 [`ThemeSlot::ALL`]。
-    pub const OFFICE_DEFAULT_COLORS: [[u8; 3]; 12] = [
-        [0x00, 0x00, 0x00],
-        [0xFF, 0xFF, 0xFF],
-        [0x44, 0x54, 0x6A],
-        [0xE7, 0xE6, 0xE6],
-        [0x44, 0x72, 0xC4],
-        [0xED, 0x7D, 0x31],
-        [0xA5, 0xA5, 0xA5],
-        [0xFF, 0xC0, 0x00],
-        [0x5B, 0x9B, 0xD5],
-        [0x70, 0xAD, 0x47],
-        [0x05, 0x63, 0xC1],
-        [0x95, 0x4F, 0x72],
+impl ThemeSlot {
+    pub const ALL: [ThemeSlot; 12] = [
+        ThemeSlot::Dk1,
+        ThemeSlot::Lt1,
+        ThemeSlot::Dk2,
+        ThemeSlot::Lt2,
+        ThemeSlot::Accent1,
+        ThemeSlot::Accent2,
+        ThemeSlot::Accent3,
+        ThemeSlot::Accent4,
+        ThemeSlot::Accent5,
+        ThemeSlot::Accent6,
+        ThemeSlot::Hlink,
+        ThemeSlot::FolHlink,
     ];
 
-    impl ColorScheme {
-        /// 内建 Office 调色板。
-        pub fn office_default() -> ColorScheme {
-            ColorScheme {
-                node: None,
-                name: Some("Office".into()),
-                colors: OFFICE_DEFAULT_COLORS.map(Some),
-            }
-        }
-
-        pub fn get(&self, slot: ThemeSlot) -> Option<[u8; 3]> {
-            self.colors[slot as usize]
-        }
-
-        /// 缺省值：`dk1 → 000000`、`lt1 → FFFFFF`（`RES-05`），其余槽位无缺省。
-        pub fn get_or_default(&self, slot: ThemeSlot) -> Option<[u8; 3]> {
-            self.get(slot).or(match slot {
-                ThemeSlot::Dk1 => Some([0, 0, 0]),
-                ThemeSlot::Lt1 => Some([0xFF, 0xFF, 0xFF]),
-                _ => None,
-            })
-        }
-
-        fn read(dom: &Dom, node: NodeId) -> ColorScheme {
-            let mut colors = [None; 12];
-            for child in dom.semantic_children(node) {
-                let Some(name) = dom.name(child) else { continue };
-                if name.ns != NsId::A {
-                    continue;
-                }
-                let Some(slot) = ThemeSlot::ALL.iter().copied().find(|s| s.local() == name.local)
-                else {
-                    continue;
-                };
-                colors[slot as usize] = read_color(dom, child);
-            }
-            ColorScheme { node: Some(node), name: attr_name(dom, node), colors }
+    /// `a:clrScheme` 里的元素局部名。
+    pub const fn local(self) -> LocalName {
+        match self {
+            ThemeSlot::Dk1 => LocalName::Dk1,
+            ThemeSlot::Lt1 => LocalName::Lt1,
+            ThemeSlot::Dk2 => LocalName::Dk2,
+            ThemeSlot::Lt2 => LocalName::Lt2,
+            ThemeSlot::Accent1 => LocalName::Accent1,
+            ThemeSlot::Accent2 => LocalName::Accent2,
+            ThemeSlot::Accent3 => LocalName::Accent3,
+            ThemeSlot::Accent4 => LocalName::Accent4,
+            ThemeSlot::Accent5 => LocalName::Accent5,
+            ThemeSlot::Accent6 => LocalName::Accent6,
+            ThemeSlot::Hlink => LocalName::Hlink,
+            ThemeSlot::FolHlink => LocalName::FolHlink,
         }
     }
 
-    /// 颜色槽位下第一个 `a:srgbClr`（取 `val`）或 `a:sysClr`（取 `lastClr`）。
-    fn read_color(dom: &Dom, slot: NodeId) -> Option<[u8; 3]> {
-        for c in dom.semantic_children(slot) {
-            let Some(name) = dom.name(c) else { continue };
-            let attr = match (name.ns, name.local) {
-                (NsId::A, LocalName::SrgbClr) => LocalName::Val,
-                (NsId::A, LocalName::SysClr) => LocalName::LastClr,
-                _ => continue,
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            ThemeSlot::Dk1 => "dk1",
+            ThemeSlot::Lt1 => "lt1",
+            ThemeSlot::Dk2 => "dk2",
+            ThemeSlot::Lt2 => "lt2",
+            ThemeSlot::Accent1 => "accent1",
+            ThemeSlot::Accent2 => "accent2",
+            ThemeSlot::Accent3 => "accent3",
+            ThemeSlot::Accent4 => "accent4",
+            ThemeSlot::Accent5 => "accent5",
+            ThemeSlot::Accent6 => "accent6",
+            ThemeSlot::Hlink => "hlink",
+            ThemeSlot::FolHlink => "folHlink",
+        }
+    }
+
+    /// `w:themeColor` 的槽位映射（`RES-05`）：`dark1/text1 → dk1` 等；`none` 无槽位。
+    pub const fn from_theme_color(c: ThemeColor) -> Option<ThemeSlot> {
+        Some(match c {
+            ThemeColor::Dark1 | ThemeColor::Text1 => ThemeSlot::Dk1,
+            ThemeColor::Light1 | ThemeColor::Background1 => ThemeSlot::Lt1,
+            ThemeColor::Dark2 | ThemeColor::Text2 => ThemeSlot::Dk2,
+            ThemeColor::Light2 | ThemeColor::Background2 => ThemeSlot::Lt2,
+            ThemeColor::Accent1 => ThemeSlot::Accent1,
+            ThemeColor::Accent2 => ThemeSlot::Accent2,
+            ThemeColor::Accent3 => ThemeSlot::Accent3,
+            ThemeColor::Accent4 => ThemeSlot::Accent4,
+            ThemeColor::Accent5 => ThemeSlot::Accent5,
+            ThemeColor::Accent6 => ThemeSlot::Accent6,
+            ThemeColor::Hyperlink => ThemeSlot::Hlink,
+            ThemeColor::FollowedHyperlink => ThemeSlot::FolHlink,
+            ThemeColor::None => return None,
+        })
+    }
+
+    /// DrawingML `a:schemeClr/@val` 的名字（含别名 `tx1→dk1, bg1→lt1, tx2→dk2, bg2→lt2`）。
+    pub fn from_scheme_name(s: &str) -> Option<ThemeSlot> {
+        Some(match s {
+            "dk1" | "tx1" => ThemeSlot::Dk1,
+            "lt1" | "bg1" => ThemeSlot::Lt1,
+            "dk2" | "tx2" => ThemeSlot::Dk2,
+            "lt2" | "bg2" => ThemeSlot::Lt2,
+            "accent1" => ThemeSlot::Accent1,
+            "accent2" => ThemeSlot::Accent2,
+            "accent3" => ThemeSlot::Accent3,
+            "accent4" => ThemeSlot::Accent4,
+            "accent5" => ThemeSlot::Accent5,
+            "accent6" => ThemeSlot::Accent6,
+            "hlink" => ThemeSlot::Hlink,
+            "folHlink" => ThemeSlot::FolHlink,
+            _ => return None,
+        })
+    }
+}
+
+/// 一组字体（`a:majorFont` / `a:minorFont`）：三个脚本槽位与 `a:font script→typeface` 表。空串视为无。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct FontSlots {
+    pub node: Option<NodeId>,
+    pub latin: Option<String>,
+    pub ea: Option<String>,
+    pub cs: Option<String>,
+    /// `(script, typeface)`，按出现顺序（`Jpan`、`Hang`、`Hans`、`Hant`……）。
+    pub scripts: Vec<(String, String)>,
+}
+
+impl FontSlots {
+    pub fn script(&self, script: &str) -> Option<&str> {
+        self.scripts.iter().find(|(s, _)| s == script).map(|(_, t)| t.as_str())
+    }
+
+    fn read(dom: &Dom, node: NodeId) -> FontSlots {
+        let mut out = FontSlots { node: Some(node), ..Default::default() };
+        for child in dom.semantic_children(node) {
+            let Some(name) = dom.name(child) else { continue };
+            if name.ns != NsId::A {
+                continue;
+            }
+            let typeface = dom
+                .attr_value(child, QName::new(NsId::None, LocalName::Typeface))
+                .map(|s| s.into_owned())
+                .filter(|s| !s.is_empty());
+            match name.local {
+                LocalName::Latin => out.latin = typeface,
+                LocalName::Ea => out.ea = typeface,
+                LocalName::Cs => out.cs = typeface,
+                LocalName::Font => {
+                    if let (Some(script), Some(t)) =
+                        (dom.attr_value(child, QName::new(NsId::None, LocalName::Script)), typeface)
+                    {
+                        out.scripts.push((script.into_owned(), t));
+                    }
+                }
+                _ => {}
+            }
+        }
+        out
+    }
+}
+
+/// `a:fontScheme`。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FontScheme {
+    pub node: NodeId,
+    pub name: Option<String>,
+    pub major: FontSlots,
+    pub minor: FontSlots,
+}
+
+/// `a:clrScheme`：12 个槽位的 sRGB（`a:srgbClr/@val`，或 `a:sysClr/@lastClr`）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ColorScheme {
+    /// 内建调色板（[`ColorScheme::office_default`]）没有节点。
+    pub node: Option<NodeId>,
+    pub name: Option<String>,
+    colors: [Option<[u8; 3]>; 12],
+}
+
+/// Word 内建 Office 调色板：文档没有 theme part 时，`schemeClr` / `themeColor` 仍按它解析
+/// （`RES-05`；TS `DEFAULT_THEME_COLORS`）。顺序同 [`ThemeSlot::ALL`]。
+pub const OFFICE_DEFAULT_COLORS: [[u8; 3]; 12] = [
+    [0x00, 0x00, 0x00],
+    [0xFF, 0xFF, 0xFF],
+    [0x44, 0x54, 0x6A],
+    [0xE7, 0xE6, 0xE6],
+    [0x44, 0x72, 0xC4],
+    [0xED, 0x7D, 0x31],
+    [0xA5, 0xA5, 0xA5],
+    [0xFF, 0xC0, 0x00],
+    [0x5B, 0x9B, 0xD5],
+    [0x70, 0xAD, 0x47],
+    [0x05, 0x63, 0xC1],
+    [0x95, 0x4F, 0x72],
+];
+
+impl ColorScheme {
+    /// 内建 Office 调色板。
+    pub fn office_default() -> ColorScheme {
+        ColorScheme {
+            node: None,
+            name: Some("Office".into()),
+            colors: OFFICE_DEFAULT_COLORS.map(Some),
+        }
+    }
+
+    pub fn get(&self, slot: ThemeSlot) -> Option<[u8; 3]> {
+        self.colors[slot as usize]
+    }
+
+    /// 缺省值：`dk1 → 000000`、`lt1 → FFFFFF`（`RES-05`），其余槽位无缺省。
+    pub fn get_or_default(&self, slot: ThemeSlot) -> Option<[u8; 3]> {
+        self.get(slot).or(match slot {
+            ThemeSlot::Dk1 => Some([0, 0, 0]),
+            ThemeSlot::Lt1 => Some([0xFF, 0xFF, 0xFF]),
+            _ => None,
+        })
+    }
+
+    fn read(dom: &Dom, node: NodeId) -> ColorScheme {
+        let mut colors = [None; 12];
+        for child in dom.semantic_children(node) {
+            let Some(name) = dom.name(child) else { continue };
+            if name.ns != NsId::A {
+                continue;
+            }
+            let Some(slot) = ThemeSlot::ALL.iter().copied().find(|s| s.local() == name.local)
+            else {
+                continue;
             };
-            let text = dom.attr_value(c, QName::new(NsId::None, attr))?;
-            return HexColorOrAuto::parse(&text).and_then(HexColorOrAuto::rgb);
+            colors[slot as usize] = read_color(dom, child);
         }
-        None
+        ColorScheme { node: Some(node), name: attr_name(dom, node), colors }
     }
+}
 
-    fn attr_name(dom: &Dom, node: NodeId) -> Option<String> {
-        dom.attr_value(node, QName::new(NsId::None, LocalName::Name)).map(|s| s.into_owned())
+/// 颜色槽位下第一个 `a:srgbClr`（取 `val`）或 `a:sysClr`（取 `lastClr`）。
+fn read_color(dom: &Dom, slot: NodeId) -> Option<[u8; 3]> {
+    for c in dom.semantic_children(slot) {
+        let Some(name) = dom.name(c) else { continue };
+        let attr = match (name.ns, name.local) {
+            (NsId::A, LocalName::SrgbClr) => LocalName::Val,
+            (NsId::A, LocalName::SysClr) => LocalName::LastClr,
+            _ => continue,
+        };
+        let text = dom.attr_value(c, QName::new(NsId::None, attr))?;
+        return HexColorOrAuto::parse(&text).and_then(HexColorOrAuto::rgb);
     }
+    None
+}
 
-    /// `a:theme` 的声明值。
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct Theme {
-        pub node: NodeId,
-        pub name: Option<String>,
-        pub fonts: Option<FontScheme>,
-        pub colors: Option<ColorScheme>,
-    }
+fn attr_name(dom: &Dom, node: NodeId) -> Option<String> {
+    dom.attr_value(node, QName::new(NsId::None, LocalName::Name)).map(|s| s.into_owned())
+}
 
-    impl Theme {
-        /// 根须是 `a:theme`，否则 `None`。缺 `a:themeElements` 时两个方案都为 `None`。
-        pub fn from_dom(dom: &Dom) -> Option<Theme> {
-            let root = dom.root();
-            if !dom.is(root, QName::new(NsId::A, LocalName::Theme)) {
-                return None;
-            }
-            let mut theme =
-                Theme { node: root, name: attr_name(dom, root), fonts: None, colors: None };
-            let elements = dom
-                .semantic_children(root)
-                .find(|&n| dom.is(n, QName::new(NsId::A, LocalName::ThemeElements)));
-            let Some(elements) = elements else { return Some(theme) };
-            for child in dom.semantic_children(elements) {
-                let Some(name) = dom.name(child) else { continue };
-                match (name.ns, name.local) {
-                    (NsId::A, LocalName::ClrScheme) if theme.colors.is_none() => {
-                        theme.colors = Some(ColorScheme::read(dom, child));
-                    }
-                    (NsId::A, LocalName::FontScheme) if theme.fonts.is_none() => {
-                        let mut major = FontSlots::default();
-                        let mut minor = FontSlots::default();
-                        for g in dom.semantic_children(child) {
-                            match dom.name(g).map(|q| (q.ns, q.local)) {
-                                Some((NsId::A, LocalName::MajorFont)) => {
-                                    major = FontSlots::read(dom, g)
-                                }
-                                Some((NsId::A, LocalName::MinorFont)) => {
-                                    minor = FontSlots::read(dom, g)
-                                }
-                                _ => {}
-                            }
-                        }
-                        theme.fonts = Some(FontScheme {
-                            node: child,
-                            name: attr_name(dom, child),
-                            major,
-                            minor,
-                        });
-                    }
-                    _ => {}
+/// `a:theme` 的声明值。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Theme {
+    pub node: NodeId,
+    pub name: Option<String>,
+    pub fonts: Option<FontScheme>,
+    pub colors: Option<ColorScheme>,
+}
+
+impl Theme {
+    /// 根须是 `a:theme`，否则 `None`。缺 `a:themeElements` 时两个方案都为 `None`。
+    pub fn from_dom(dom: &Dom) -> Option<Theme> {
+        let root = dom.root();
+        if !dom.is(root, QName::new(NsId::A, LocalName::Theme)) {
+            return None;
+        }
+        let mut theme = Theme { node: root, name: attr_name(dom, root), fonts: None, colors: None };
+        let elements = dom
+            .semantic_children(root)
+            .find(|&n| dom.is(n, QName::new(NsId::A, LocalName::ThemeElements)));
+        let Some(elements) = elements else { return Some(theme) };
+        for child in dom.semantic_children(elements) {
+            let Some(name) = dom.name(child) else { continue };
+            match (name.ns, name.local) {
+                (NsId::A, LocalName::ClrScheme) if theme.colors.is_none() => {
+                    theme.colors = Some(ColorScheme::read(dom, child));
                 }
+                (NsId::A, LocalName::FontScheme) if theme.fonts.is_none() => {
+                    let mut major = FontSlots::default();
+                    let mut minor = FontSlots::default();
+                    for g in dom.semantic_children(child) {
+                        match dom.name(g).map(|q| (q.ns, q.local)) {
+                            Some((NsId::A, LocalName::MajorFont)) => {
+                                major = FontSlots::read(dom, g)
+                            }
+                            Some((NsId::A, LocalName::MinorFont)) => {
+                                minor = FontSlots::read(dom, g)
+                            }
+                            _ => {}
+                        }
+                    }
+                    theme.fonts =
+                        Some(FontScheme { node: child, name: attr_name(dom, child), major, minor });
+                }
+                _ => {}
             }
-            Some(theme)
         }
+        Some(theme)
     }
 }
 
@@ -10832,7 +10824,7 @@ pub use revision::{RevKind, RevOwner, RevisionEntry, RevisionId, RevisionIndex};
 pub use section::{HfKind, HfVariant, SectionGeom, SectionInfo, SectionOwner, Sections};
 
 pub use table::{BlockStep, Blocks, Cell, GridCol, Row, box_flows, glossary_flows};
-pub use theme::{ColorScheme, FontScheme, FontSlots, Theme, ThemeSlot};
+
 pub use vml::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};
 
 #[cfg(test)]
