@@ -73,3 +73,16 @@ check、fmt、diff --check、库测试 425 项以及 edit / cell_edit / revision
 它是早期主正文专用定位实现，当前定位已支持 part 与段内边界；其唯一测试的
 `A😀B` 六个边界断言在 `position_utf16_text_conversion_preserves_boundaries_and_errors`
 中完整保留，并区分代理对与越界的现行诊断。不恢复重复类型或过时调用路径。
+
+## 通用 DOM 查询归属
+
+- `element_children` → XML 层 `Dom::live_element_children`：借用迭代器，
+  维持原始顺序、元素筛选和 Deleted 过滤，不改变为 MCE 语义展开。
+- `direct_child` → `Dom::direct_child_containing`，保留包装锚点查找行为。
+- `table_ops_child_named` 删除，调用方传完整 QName 给既有
+  `Dom::live_children_named(...).next()`；`table_ops_w` 删除，使用 QName::w。
+- 移除首项查询的临时集合；计划生成继续只读 DOM。新断言检查原始节点顺序、
+  删除过滤、后代包装与不属于容器的节点。check、fmt、diff 检查、425 项库测试和
+  edit / cell_edit / revision_grid 回归通过。
+- `cargo check --workspace` 在表格方法单元后通过。基础层源码扫描未发现对编辑类型
+  的实现依赖，仍有旧文档链接待统一更新；save 双向编排依赖仍待处理。

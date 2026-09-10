@@ -3845,9 +3845,7 @@ pub fn set_textbox_content(
 // **几何以声明网格为准**：列数 = `tblGrid/gridCol` 个数，行宽 = `gridBefore + Σ gridSpan + gridAfter`。
 // 任一行的宽度与列数不符时，列操作与 `MergeCells` 直接 `Err(EDIT_TABLE_GRID_INCONSISTENT)`——**不**
 // 偷偷修网格，修不修由调用方决定（`spec/14` 风险 3）。折叠、校正一律不做：那是 `resolve` 的视图。
-fn table_ops_w(local: LocalName) -> QName {
-    QName::w(local)
-}
+
 fn geometry_error(msg: impl Into<String>) -> Error {
     Error::edit(DiagCode::EditTableGeometry, msg)
 }
@@ -3947,37 +3945,18 @@ impl EditSession {
             .ok_or_else(|| Error::edit(DiagCode::EditBadPosition, "目标不是表格"))
     }
 }
-/// 元素子节点（跳过缩进空白与已删除的）。
-fn element_children(dom: &Dom, node: NodeId) -> Vec<NodeId> {
-    dom.children(node)
-        .iter()
-        .copied()
-        .filter(|&c| dom.element(c).is_some() && dom.node(c).dirty != Dirty::Deleted)
-        .collect()
-}
-/// `node` 所在的、`parent` 的那个直接子节点（行 / 格可能被 `w:sdt` 包着，插入锚点要用外层的）。
-fn direct_child(dom: &Dom, parent: NodeId, node: NodeId) -> Option<NodeId> {
-    let mut x = node;
-    loop {
-        let p = dom.parent(x)?;
-        if p == parent {
-            return Some(x);
-        }
-        x = p;
-    }
-}
-fn table_ops_child_named(dom: &Dom, parent: NodeId, local: LocalName) -> Option<NodeId> {
-    element_children(dom, parent).into_iter().find(|&c| dom.is(c, table_ops_w(local)))
-}
+
 /// 空 `w:p`；`clone_ppr` 是要克隆 `w:pPr` 的来源段落。
 fn empty_paragraph(dom: &Dom, plan: &mut MutationPlan, parent: Target, clone_ppr: Option<NodeId>) {
     let k = plan.node_edits.len();
     plan.node_edits.push(NodeEdit::Insert {
         parent,
         before: None,
-        node: NewElement::new(table_ops_w(LocalName::P)),
+        node: NewElement::new(QName::w(LocalName::P)),
     });
-    if let Some(src) = clone_ppr.and_then(|p| table_ops_child_named(dom, p, LocalName::PPr)) {
+    if let Some(src) =
+        clone_ppr.and_then(|p| Dom::live_children_named(dom, p, QName::w(LocalName::PPr)).next())
+    {
         plan.node_edits.push(NodeEdit::InsertClone {
             parent: Target::New(k),
             before: None,
@@ -4034,18 +4013,20 @@ impl EditSession {
                     VMergeFix::Keep
                 };
                 let dom = s.dom();
-                let tc_pr = table_ops_child_named(dom, c.node, LocalName::TcPr);
+                let tc_pr = Dom::live_children_named(dom, c.node, QName::w(LocalName::TcPr)).next();
                 let first_para = c
                     .blocks
                     .first()
                     .map(|b| b.node())
-                    .filter(|&n| dom.is(n, table_ops_w(LocalName::P)));
+                    .filter(|&n| dom.is(n, QName::w(LocalName::P)));
                 (c.node, tc_pr, first_para, fix)
             })
             .collect();
-        let tr_pr = table_ops_child_named(s.dom(), tpl.node, LocalName::TrPr);
-        let tbl_pr_ex = table_ops_child_named(s.dom(), tpl.node, LocalName::TblPrEx);
-        let before = rows.get(at as usize).and_then(|&r| direct_child(s.dom(), table, r));
+        let tr_pr = Dom::live_children_named(s.dom(), tpl.node, QName::w(LocalName::TrPr)).next();
+        let tbl_pr_ex =
+            Dom::live_children_named(s.dom(), tpl.node, QName::w(LocalName::TblPrEx)).next();
+        let before =
+            rows.get(at as usize).and_then(|&r| Dom::direct_child_containing(s.dom(), table, r));
 
         let mut tracker = Tracker::new(s.document(), ctx);
         let mut plan = MutationPlan::new(s.main_part());
@@ -4054,7 +4035,7 @@ impl EditSession {
         plan.node_edits.push(NodeEdit::Insert {
             parent: Target::Node(table),
             before,
-            node: NewElement::new(table_ops_w(LocalName::Tr)),
+            node: NewElement::new(QName::w(LocalName::Tr)),
         });
         if let Some(src) = tbl_pr_ex {
             plan.node_edits.push(NodeEdit::InsertClone {
@@ -4100,7 +4081,7 @@ impl EditSession {
                 plan.node_edits.push(NodeEdit::Insert {
                     parent: Target::New(row_k),
                     before: None,
-                    node: NewElement::new(table_ops_w(LocalName::TrPr)).with_child(marker),
+                    node: NewElement::new(QName::w(LocalName::TrPr)).with_child(marker),
                 });
             }
         }
@@ -4110,7 +4091,7 @@ impl EditSession {
             plan.node_edits.push(NodeEdit::Insert {
                 parent: Target::New(row_k),
                 before: None,
-                node: NewElement::new(table_ops_w(LocalName::Tc)),
+                node: NewElement::new(QName::w(LocalName::Tc)),
             });
             match (fix, tc_pr) {
                 // 需要改 vMerge 时按模型重新生成 tcPr（克隆的子树没法就地改）
@@ -4167,9 +4148,8 @@ impl EditSession {
             let dom = s.dom();
             let mut plan = MutationPlan::new(s.main_part());
             plan.touch(table);
-            let before = element_children(dom, node)
-                .into_iter()
-                .find(|&c| !dom.is(c, table_ops_w(LocalName::TblPrEx)));
+            let before = Dom::live_element_children(dom, node)
+                .find(|&c| !dom.is(c, QName::w(LocalName::TblPrEx)));
             t.container_mark(
                 &mut plan,
                 dom,
@@ -4200,10 +4180,10 @@ impl EditSession {
         plan.structure_changed = true;
         plan.node_edits.push(NodeEdit::Delete(node));
         for tc in promote {
-            let tc_pr = table_ops_child_named(dom, tc, LocalName::TcPr);
+            let tc_pr = Dom::live_children_named(dom, tc, QName::w(LocalName::TcPr)).next();
             let patch =
                 CellPropsPatch { v_merge: Change::Set(Merge::restart()), ..Default::default() };
-            let before = element_children(dom, tc).first().copied();
+            let before = dom.live_element_children(tc).next();
             plan_apply_cell_props_at(
                 dom,
                 Target::Node(tc),
@@ -4241,10 +4221,9 @@ impl EditSession {
             }),
             ..Default::default()
         };
-        let tr_pr = table_ops_child_named(dom, row.node, LocalName::TrPr);
-        let anchor = element_children(dom, row.node)
-            .into_iter()
-            .find(|&c| !dom.is(c, table_ops_w(LocalName::TblPrEx)));
+        let tr_pr = Dom::live_children_named(dom, row.node, QName::w(LocalName::TrPr)).next();
+        let anchor = Dom::live_element_children(dom, row.node)
+            .find(|&c| !dom.is(c, QName::w(LocalName::TblPrEx)));
         plan_apply_row_props_at(
             dom,
             Target::Node(row.node),
@@ -4269,7 +4248,7 @@ impl EditSession {
         let s = self;
 
         let dom = s.dom();
-        let tc_pr = table_ops_child_named(dom, cell, LocalName::TcPr);
+        let tc_pr = Dom::live_children_named(dom, cell, QName::w(LocalName::TcPr)).next();
         let current = crate::semantic::props::read_cell_props(dom, tc_pr, &mut Vec::new());
         let mut patch = CellPropsPatch::default();
         if let Some(span) = span {
@@ -4281,7 +4260,7 @@ impl EditSession {
         {
             patch.width = Change::Set(TblWidth::dxa((old + width_delta).max(0)));
         }
-        let before = element_children(dom, cell).first().copied();
+        let before = dom.live_element_children(cell).next();
         plan_apply_cell_props_at(
             dom,
             Target::Node(cell),
@@ -4337,7 +4316,7 @@ impl EditSession {
             if let Some(v) = value {
                 plan.node_edits.push(NodeEdit::SetAttr {
                     node: Target::Node(node),
-                    name: table_ops_w(name),
+                    name: QName::w(name),
                     value: v.to_string(),
                 });
             }
@@ -4388,12 +4367,15 @@ impl EditSession {
                             None => row.cells.last(),
                         };
                         Where::NewCell {
-                            before: idx.and_then(|i| direct_child(dom, row.node, row.cells[i].0)),
+                            before: idx.and_then(|i| {
+                                Dom::direct_child_containing(dom, row.node, row.cells[i].0)
+                            }),
                             template: template_idx.map(|&(n, _, _)| {
-                                let tc_pr = table_ops_child_named(dom, n, LocalName::TcPr);
-                                let para = element_children(dom, n)
-                                    .into_iter()
-                                    .find(|&c| dom.is(c, table_ops_w(LocalName::P)));
+                                let tc_pr =
+                                    Dom::live_children_named(dom, n, QName::w(LocalName::TcPr))
+                                        .next();
+                                let para = Dom::live_element_children(dom, n)
+                                    .find(|&c| dom.is(c, QName::w(LocalName::P)));
                                 (n, para.and(tc_pr))
                             }),
                         }
@@ -4407,7 +4389,7 @@ impl EditSession {
         let mut plan = MutationPlan::new(s.main_part());
         plan.structure_changed = true;
         // tblGrid
-        let grid_parent = table_ops_child_named(dom, table, LocalName::TblGrid);
+        let grid_parent = Dom::live_children_named(dom, table, QName::w(LocalName::TblGrid)).next();
         match grid_parent {
             Some(g) => {
                 // 追踪：网格要变，先把**旧**网格快照进 `w:tblGridChange`（这两条编辑排在新
@@ -4423,8 +4405,8 @@ impl EditSession {
                     );
                 }
                 let before = geo.grid.get(at as usize).map(|&(n, _)| n);
-                let mut col = NewElement::new(table_ops_w(LocalName::GridCol));
-                col.push_attr(table_ops_w(LocalName::W), width.to_string());
+                let mut col = NewElement::new(QName::w(LocalName::GridCol));
+                col.push_attr(QName::w(LocalName::W), width.to_string());
                 plan.node_edits.push(NodeEdit::Insert {
                     parent: Target::Node(g),
                     before,
@@ -4439,7 +4421,9 @@ impl EditSession {
                 Where::Gap { before, after } => {
                     // 追踪：`gridBefore` / `gridAfter` 是行属性 → 旧值进 `w:trPrChange`
                     if let Some(t) = &mut tracker
-                        && let Some(trpr) = table_ops_child_named(dom, row.node, LocalName::TrPr)
+                        && let Some(trpr) =
+                            Dom::live_children_named(dom, row.node, QName::w(LocalName::TrPr))
+                                .next()
                     {
                         t.snapshot(
                             &mut plan,
@@ -4455,7 +4439,8 @@ impl EditSession {
                 Where::Widen(cell, span) => {
                     // 追踪：加宽跨列格改的是 `gridSpan` / `tcW` → 旧值进 `w:tcPrChange`
                     if let Some(t) = &mut tracker
-                        && let Some(tcpr) = table_ops_child_named(dom, cell, LocalName::TcPr)
+                        && let Some(tcpr) =
+                            Dom::live_children_named(dom, cell, QName::w(LocalName::TcPr)).next()
                     {
                         t.snapshot(
                             &mut plan,
@@ -4473,7 +4458,7 @@ impl EditSession {
                     plan.node_edits.push(NodeEdit::Insert {
                         parent: Target::Node(row.node),
                         before,
-                        node: NewElement::new(table_ops_w(LocalName::Tc)),
+                        node: NewElement::new(QName::w(LocalName::Tc)),
                     });
                     // 新格的 tcPr：克隆模板但去掉 gridSpan / vMerge，宽度换成新列宽
                     // 新格的 `tcPr`：克隆模板但去掉 gridSpan / vMerge，宽度换成新列宽。
@@ -4494,7 +4479,7 @@ impl EditSession {
                     if want_container {
                         let mut node = match &props {
                             Some(p) => crate::semantic::props::emit_cell_props(p, s.flavor()),
-                            None => NewElement::new(table_ops_w(LocalName::TcPr)),
+                            None => NewElement::new(QName::w(LocalName::TcPr)),
                         };
                         if let Some(t) = &mut tracker {
                             insert_ordered(
@@ -4510,9 +4495,8 @@ impl EditSession {
                         });
                     }
                     let para = template.and_then(|(tpl, _)| {
-                        element_children(dom, tpl)
-                            .into_iter()
-                            .find(|&c| dom.is(c, table_ops_w(LocalName::P)))
+                        Dom::live_element_children(dom, tpl)
+                            .find(|&c| dom.is(c, QName::w(LocalName::P)))
                     });
                     empty_paragraph(dom, &mut plan, Target::New(cell_k), para);
                 }
@@ -4553,7 +4537,7 @@ impl EditSession {
             for row in &geo.rows {
                 let Some(i) = row.cell_at(at) else { continue };
                 let cell = row.cells[i].0;
-                let before = element_children(dom, cell).first().copied();
+                let before = dom.live_element_children(cell).next();
                 tr.container_mark(
                     &mut plan,
                     dom,
@@ -4630,7 +4614,7 @@ impl EditSession {
         let Some(&(neighbour, _, nspan)) = pick else { return };
         let width = {
             let dom = s.dom();
-            let tc_pr = table_ops_child_named(dom, cell, LocalName::TcPr);
+            let tc_pr = Dom::live_children_named(dom, cell, QName::w(LocalName::TcPr)).next();
             crate::semantic::props::read_cell_props(dom, tc_pr, &mut Vec::new())
                 .width
                 .as_ref()
@@ -4757,7 +4741,7 @@ impl EditSession {
                 let widths: Option<i32> = inside
                     .iter()
                     .map(|&(n, _, _)| {
-                        let pr = table_ops_child_named(dom, n, LocalName::TcPr);
+                        let pr = Dom::live_children_named(dom, n, QName::w(LocalName::TcPr)).next();
                         crate::semantic::props::read_cell_props(dom, pr, &mut Vec::new())
                             .width
                             .as_ref()
@@ -4773,8 +4757,8 @@ impl EditSession {
                     Change::Set(if idx == 0 { Merge::restart() } else { Merge::cont() });
             }
             if patch != CellPropsPatch::default() {
-                let tc_pr = table_ops_child_named(dom, keeper, LocalName::TcPr);
-                let before = element_children(dom, keeper).first().copied();
+                let tc_pr = Dom::live_children_named(dom, keeper, QName::w(LocalName::TcPr)).next();
+                let before = dom.live_element_children(keeper).next();
                 plan_apply_cell_props_at(
                     dom,
                     Target::Node(keeper),
@@ -4807,12 +4791,12 @@ impl EditSession {
 }
 /// 把 `from` 格里的内容块（`w:tcPr` 之外的元素）按文档序搬到 `into` 格末尾。
 fn move_cell_content(dom: &Dom, from: NodeId, into: NodeId, plan: &mut MutationPlan) {
-    for child in element_children(dom, from) {
-        if dom.is(child, table_ops_w(LocalName::TcPr)) {
+    for child in Dom::live_element_children(dom, from) {
+        if dom.is(child, QName::w(LocalName::TcPr)) {
             continue;
         }
         // 末尾的空段落不搬（Word 合并后不会留下一串空行）
-        if dom.is(child, table_ops_w(LocalName::P)) && crate::span::content_len(dom, child) == 0 {
+        if dom.is(child, QName::w(LocalName::P)) && crate::span::content_len(dom, child) == 0 {
             continue;
         }
         plan.node_edits.push(NodeEdit::Move {
@@ -4837,20 +4821,20 @@ pub fn new_table(
     let widths = widths
         .filter(|v| v.len() == cols as usize)
         .unwrap_or_else(|| vec![BODY_WIDTH / cols as i32; cols as usize]);
-    let mut tbl = NewElement::new(table_ops_w(LocalName::Tbl));
+    let mut tbl = NewElement::new(QName::w(LocalName::Tbl));
 
-    let mut tbl_pr = NewElement::new(table_ops_w(LocalName::TblPr));
+    let mut tbl_pr = NewElement::new(QName::w(LocalName::TblPr));
     if let Some(id) = style {
-        let mut e = NewElement::new(table_ops_w(LocalName::TblStyle));
-        e.push_attr(table_ops_w(LocalName::Val), id);
+        let mut e = NewElement::new(QName::w(LocalName::TblStyle));
+        e.push_attr(QName::w(LocalName::Val), id);
         tbl_pr.push_child(e);
     }
-    let mut tbl_w = NewElement::new(table_ops_w(LocalName::TblW));
-    tbl_w.push_attr(table_ops_w(LocalName::W), "0".to_string());
-    tbl_w.push_attr(table_ops_w(LocalName::UType), "auto".to_string());
+    let mut tbl_w = NewElement::new(QName::w(LocalName::TblW));
+    tbl_w.push_attr(QName::w(LocalName::W), "0".to_string());
+    tbl_w.push_attr(QName::w(LocalName::UType), "auto".to_string());
     tbl_pr.push_child(tbl_w);
-    let mut look = NewElement::new(table_ops_w(LocalName::TblLook));
-    look.push_attr(table_ops_w(LocalName::Val), "04A0".to_string());
+    let mut look = NewElement::new(QName::w(LocalName::TblLook));
+    look.push_attr(QName::w(LocalName::Val), "04A0".to_string());
     for (name, on) in [
         (LocalName::FirstRow, "1"),
         (LocalName::LastRow, "0"),
@@ -4859,35 +4843,35 @@ pub fn new_table(
         (LocalName::NoHBand, "0"),
         (LocalName::NoVBand, "1"),
     ] {
-        look.push_attr(table_ops_w(name), on.to_string());
+        look.push_attr(QName::w(name), on.to_string());
     }
     tbl_pr.push_child(look);
     tbl.push_child(tbl_pr);
 
-    let mut grid = NewElement::new(table_ops_w(LocalName::TblGrid));
+    let mut grid = NewElement::new(QName::w(LocalName::TblGrid));
     for &width in &widths {
-        let mut col = NewElement::new(table_ops_w(LocalName::GridCol));
-        col.push_attr(table_ops_w(LocalName::W), width.max(1).to_string());
+        let mut col = NewElement::new(QName::w(LocalName::GridCol));
+        col.push_attr(QName::w(LocalName::W), width.max(1).to_string());
         grid.push_child(col);
     }
     tbl.push_child(grid);
 
     for r in 0..rows {
-        let mut tr = NewElement::new(table_ops_w(LocalName::Tr));
+        let mut tr = NewElement::new(QName::w(LocalName::Tr));
         if header && r == 0 {
-            let mut tr_pr = NewElement::new(table_ops_w(LocalName::TrPr));
-            tr_pr.push_child(NewElement::new(table_ops_w(LocalName::TblHeader)));
+            let mut tr_pr = NewElement::new(QName::w(LocalName::TrPr));
+            tr_pr.push_child(NewElement::new(QName::w(LocalName::TblHeader)));
             tr.push_child(tr_pr);
         }
         for &width in &widths {
-            let mut tc = NewElement::new(table_ops_w(LocalName::Tc));
-            let mut tc_pr = NewElement::new(table_ops_w(LocalName::TcPr));
-            let mut tc_w = NewElement::new(table_ops_w(LocalName::TcW));
-            tc_w.push_attr(table_ops_w(LocalName::W), width.max(1).to_string());
-            tc_w.push_attr(table_ops_w(LocalName::UType), "dxa".to_string());
+            let mut tc = NewElement::new(QName::w(LocalName::Tc));
+            let mut tc_pr = NewElement::new(QName::w(LocalName::TcPr));
+            let mut tc_w = NewElement::new(QName::w(LocalName::TcW));
+            tc_w.push_attr(QName::w(LocalName::W), width.max(1).to_string());
+            tc_w.push_attr(QName::w(LocalName::UType), "dxa".to_string());
             tc_pr.push_child(tc_w);
             tc.push_child(tc_pr);
-            tc.push_child(NewElement::new(table_ops_w(LocalName::P)));
+            tc.push_child(NewElement::new(QName::w(LocalName::P)));
             tr.push_child(tc);
         }
         tbl.push_child(tr);
@@ -4896,10 +4880,10 @@ pub fn new_table(
 }
 /// 行属性里的修订标记（`trPr/w:ins` / `w:del` / `w:trPrChange`）。
 fn row_revision_marks(dom: &Dom, tr_pr: NodeId) -> impl Iterator<Item = NodeId> + '_ {
-    element_children(dom, tr_pr).into_iter().filter(move |&c| {
+    Dom::live_element_children(dom, tr_pr).filter(move |&c| {
         [LocalName::Ins, LocalName::Del, LocalName::TrPrChange]
             .iter()
-            .any(|&l| dom.is(c, table_ops_w(l)))
+            .any(|&l| dom.is(c, QName::w(l)))
     })
 }
 /// 把模板行的 `trPr` 逐个子元素克隆过去，**跳过修订标记**。子元素各自还是字节克隆
@@ -4914,10 +4898,10 @@ fn clone_row_props_without_revisions(
     plan.node_edits.push(NodeEdit::Insert {
         parent: Target::New(row_k),
         before: None,
-        node: NewElement::new(table_ops_w(LocalName::TrPr)),
+        node: NewElement::new(QName::w(LocalName::TrPr)),
     });
     let revs: Vec<NodeId> = row_revision_marks(dom, src).collect();
-    for c in element_children(dom, src) {
+    for c in Dom::live_element_children(dom, src) {
         if revs.contains(&c) {
             continue;
         }
@@ -13078,12 +13062,18 @@ mod test_edit {
         let last = dom.children(root)[3];
         let name = super::QName::w(super::LocalName::T);
         assert!(dom.live_children_named(root, name).eq([first, second]));
+        assert!(dom.live_element_children(root).eq([first, second, last]));
+        assert_eq!(dom.direct_child_containing(root, dom.children(first)[0]), Some(first));
+        assert_eq!(dom.direct_child_containing(root, first), Some(first));
+        assert_eq!(dom.direct_child_containing(first, last), None);
+        assert_eq!(dom.direct_child_containing(root, root), None);
         assert_eq!(dom.next_live_sibling(first), Some(space));
         assert_eq!(dom.next_live_element_sibling(first), Some(second));
         assert_eq!(dom.sole_live_text_child(first), Some(dom.children(first)[0]));
         assert_eq!(dom.sole_live_text_child(root), None);
         assert_eq!(dom.sole_live_text_child(last), None);
         dom.delete(second);
+        assert!(dom.live_element_children(root).eq([first, last]));
         assert!(dom.live_children(root).eq([first, space, last]));
         assert!(dom.live_children_named(root, name).eq([first]));
         assert_eq!(dom.next_live_element_sibling(first), Some(last));

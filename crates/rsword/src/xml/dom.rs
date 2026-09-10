@@ -270,6 +270,26 @@ impl Dom {
             .filter(|&child| self.node(child).dirty != Dirty::Deleted)
     }
 
+    /// 按原始顺序遍历未删除的直接元素子节点，跳过文本和不透明节点。
+    /// 保留 MCE 包装及未选分支；需要语义展开时使用 `children_named`。
+    #[inline]
+    pub fn live_element_children(&self, node: NodeId) -> impl Iterator<Item = NodeId> + '_ {
+        self.live_children(node).filter(|&child| self.element(child).is_some())
+    }
+
+    /// 找出 `parent` 下包含 `node` 的直接子节点，不展开包装元素。
+    /// `node` 不在该容器内或等于容器本身时返回 None。
+    #[inline]
+    pub fn direct_child_containing(&self, parent: NodeId, mut node: NodeId) -> Option<NodeId> {
+        loop {
+            let ancestor = self.parent(node)?;
+            if ancestor == parent {
+                return Some(node);
+            }
+            node = ancestor;
+        }
+    }
+
     /// 按完整 QName 筛选未删除的原始直接子节点，不展开 MCE，也不分配集合。
     #[inline]
     pub fn live_children_named(
