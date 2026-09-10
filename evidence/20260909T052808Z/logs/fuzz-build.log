@@ -1,0 +1,129 @@
+started_at=2026-09-09T16:17:44Z
+warning: binary `fuzz_bind` should have a kebab-case name
+   |
+ 1 | /Users/user/code/rsWordParser/fuzz/target/.../fuzz_bind
+   |                                               ^^^^^^^^^
+   |
+   = note: `cargo::non_kebab_case_bins` is set to `warn` by default
+help: to change the binary name to `fuzz-bind`, convert `bin.name`
+  --> Cargo.toml:58:8
+   |
+58 - name = "fuzz_bind"
+58 + name = "fuzz-bind"
+   |
+warning: binary `fuzz_edit` should have a kebab-case name
+   |
+ 1 | /Users/user/code/rsWordParser/fuzz/target/.../fuzz_edit
+   |                                               ^^^^^^^^^
+   |
+help: to change the binary name to `fuzz-edit`, convert `bin.name`
+  --> Cargo.toml:51:8
+   |
+51 - name = "fuzz_edit"
+51 + name = "fuzz-edit"
+   |
+warning: binary `fuzz_embedded` should have a kebab-case name
+   |
+ 1 | /Users/user/code/rsWordParser/fuzz/target/.../fuzz_embedded
+   |                                               ^^^^^^^^^^^^^
+   |
+help: to change the binary name to `fuzz-embedded`, convert `bin.name`
+  --> Cargo.toml:44:8
+   |
+44 - name = "fuzz_embedded"
+44 + name = "fuzz-embedded"
+   |
+warning: binary `fuzz_instr` should have a kebab-case name
+   |
+ 1 | /Users/user/code/rsWordParser/fuzz/target/.../fuzz_instr
+   |                                               ^^^^^^^^^^
+   |
+help: to change the binary name to `fuzz-instr`, convert `bin.name`
+  --> Cargo.toml:37:8
+   |
+37 - name = "fuzz_instr"
+37 + name = "fuzz-instr"
+   |
+warning: binary `fuzz_xml` should have a kebab-case name
+   |
+ 1 | /Users/user/code/rsWordParser/fuzz/target/.../fuzz_xml
+   |                                               ^^^^^^^^
+   |
+help: to change the binary name to `fuzz-xml`, convert `bin.name`
+  --> Cargo.toml:23:8
+   |
+23 - name = "fuzz_xml"
+23 + name = "fuzz-xml"
+   |
+warning: binary `fuzz_zip` should have a kebab-case name
+   |
+ 1 | /Users/user/code/rsWordParser/fuzz/target/.../fuzz_zip
+   |                                               ^^^^^^^^
+   |
+help: to change the binary name to `fuzz-zip`, convert `bin.name`
+  --> Cargo.toml:30:8
+   |
+30 - name = "fuzz_zip"
+30 + name = "fuzz-zip"
+   |
+warning: `rsword-fuzz` (manifest) generated 6 warnings
+warning: binary `rsword_e2e_driver` should have a kebab-case name
+  |
+1 | /Users/user/code/rsWordParser/fuzz/target/.../rsword_e2e_driver
+  |                                               ^^^^^^^^^^^^^^^^^
+  |
+  = note: `cargo::non_kebab_case_bins` is set to `warn` by default
+help: to change the binary name to `rsword-e2e-driver`, convert the file stem
+  |
+1 - src/bin/rsword_e2e_driver.rs
+1 + src/bin/rsword-e2e-driver.rs
+  |
+warning: `rsword` (manifest) generated 1 warning
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded cc v1.4.4
+  Downloaded derive_arbitrary v1.4.2
+  Downloaded find-msvc-tools v0.1.11
+  Downloaded libfuzzer-sys v0.4.13
+  Downloaded arbitrary v1.4.2
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.24
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling libc v0.2.189
+   Compiling winnow v1.0.4
+   Compiling zmij v1.0.23
+   Compiling crc32fast v1.5.1
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling toml_writer v1.1.2+spec-1.1.0
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.11
+   Compiling hashbrown v0.17.1
+   Compiling equivalent v1.0.2
+   Compiling serde_json v1.0.151
+   Compiling zlib-rs v0.6.7
+   Compiling cfg-if v1.0.4
+   Compiling memchr v2.8.3
+   Compiling thiserror v2.0.20
+   Compiling syn v3.0.4
+   Compiling syn v2.0.119
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling serde_spanned v1.1.1
+   Compiling toml v1.1.5+spec-1.1.0
+   Compiling jobserver v0.1.35
+   Compiling serde_derive v1.0.229
+   Compiling cc v1.4.4
+   Compiling thiserror-impl v2.0.20
+   Compiling derive_arbitrary v1.4.2
+   Compiling flate2 v1.1.10
+   Compiling indexmap v2.14.1
+   Compiling itoa v1.0.18
+   Compiling libfuzzer-sys v0.4.13
+   Compiling typed-path v0.12.3
+   Compiling arbitrary v1.4.2
+   Compiling zip v8.6.0
+   Compiling rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+   Compiling rsword-fuzz v0.0.0 (/Users/user/code/rsWordParser/fuzz)
+    Finished `release` profile [optimized + debuginfo] target(s) in 3m 15s
+finished_at=2026-09-09T16:20:59Z

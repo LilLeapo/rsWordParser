@@ -1,0 +1,7 @@
+started_at=2026-09-09T17:09:56Z
+scope=edit/plan.rs; only prior survivor lines; tests=lib (new branch tests included)
+Found 25 mutants to test
+ok       Unmutated baseline in 75s build + 14s test
+MISSED   crates/rsword/src/edit/plan.rs:141:24: delete ! in MutationPlan::validate in 41s build + 42s test
+25 mutants tested in 12m: 1 missed, 23 caught, 1 unviable
+finished_at=2026-09-09T17:22:17Z

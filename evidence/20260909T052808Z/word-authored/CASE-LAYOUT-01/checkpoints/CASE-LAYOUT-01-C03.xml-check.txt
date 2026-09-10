@@ -1,0 +1,9 @@
+document.xml well-formed: PASS
+txbxContent=4
+textbox-marker=2
+oMath=1
+oMathText=1
+inline-drawing=1
+anchor-drawing=3
+wrapSquare=2
+END-marker=1

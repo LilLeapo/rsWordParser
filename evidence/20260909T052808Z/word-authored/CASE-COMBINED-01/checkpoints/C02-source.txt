@@ -1,0 +1,12 @@
+CASE-COMBINED-LIST-01 alpha level
+CASE-COMBINED-LIST-02 beta child
+CASE-COMBINED-LIST-03 gamma grandchild
+CASE-COMBINED-LIST-BREAK ordinary paragraph interruption
+CASE-COMBINED-LIST-04 delta after interruption
+CASE-COMBINED-UNICODE-01 中文 mixed English 20260909 😀 é अrabic עברית tab	end nbsp © ✓
+CASE-COMBINED-RUN-01 plain bold italic underline clear
+CASE-COMBINED-TABLE-01 basic anchor
+CASE-COMBINED-TABLE-02 merged anchor
+CASE-COMBINED-TABLE-03 incell image anchor
+CASE-COMBINED-TABLE-04 repeated header anchor
+CASE-COMBINED-TABLE-05 wide anchor

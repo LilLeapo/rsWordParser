@@ -524,8 +524,7 @@ impl EditSession {
             format!("{dir}/_rels/{}.rels", uri.file_name())
         };
         let xml = format!(
-            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="{}"/>"#,
-            RELS_NS
+            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="{RELS_NS}"/>"#
         );
         let rels_part = self.pkg.register_new_part(
             PartUri::from_entry_name(&path),

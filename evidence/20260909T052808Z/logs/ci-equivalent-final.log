@@ -1,0 +1,32 @@
+started_at=2026-09-09T16:44:50Z
+command=RUSTFLAGS='--cfg rsword_api_docs -D warnings' cargo check -p rsword --lib
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.05s
+command=RUSTDOCFLAGS='-D warnings' cargo doc --no-deps
+ Documenting rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.58s
+   Generated /Users/user/code/rsWordParser/target/doc/gen_fixtures/index.html and 7 other files
+command=tools/ci/check-native-default.sh
+BIND-11: default lifecycle passed; compat_ts E0432 and TocOptions.ts_shape E0560 verified
+command=cargo build -p rsword-cli -p rsword-mcp
+   Compiling serde v1.0.229
+   Compiling ref-cast-impl v1.0.27
+   Compiling once_cell v1.21.4
+   Compiling smallvec v1.16.0
+   Compiling strum v0.28.0
+   Compiling parking_lot_core v0.9.12
+   Compiling ref-cast v1.0.27
+   Compiling parking_lot v0.12.5
+   Compiling ahash v0.8.12
+   Compiling email_address v0.2.9
+   Compiling rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+   Compiling jsonschema-value v0.55.0
+   Compiling fluent-uri v0.4.1
+   Compiling referencing v0.55.0
+   Compiling jsonschema v0.55.0
+   Compiling rsword-agent-query v0.0.1 (/Users/user/code/rsWordParser/tools/agent-query)
+   Compiling rsword-mcp v0.0.1 (/Users/user/code/rsWordParser/crates/rsword-mcp)
+   Compiling rsword-cli v0.0.1 (/Users/user/code/rsWordParser/crates/rsword-cli)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 17.24s
+command=node tools/ci/check-agent-transports.mjs target/debug/rsword target/debug/rsword-mcp
+AGENT-06/10: CLI/MCP business and continuation parity; 2 pages; both wrong-transport cursors rejected
+finished_at=2026-09-09T16:45:13Z

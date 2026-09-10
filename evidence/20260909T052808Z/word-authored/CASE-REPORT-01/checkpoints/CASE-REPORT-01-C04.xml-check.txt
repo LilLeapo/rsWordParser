@@ -1,0 +1,21 @@
+=== zip integrity ===
+    testing: docProps/core.xml        OK
+    testing: docProps/app.xml         OK
+    testing: customXml/itemProps1.xml   OK
+    testing: customXml/item1.xml      OK
+    testing: customXml/_rels/item1.xml.rels   OK
+    testing: word/webSettings.xml     OK
+    testing: word/commentsExtensible.xml   OK
+No errors detected in compressed data of evidence/20260909T052808Z/word-authored/CASE-REPORT-01/checkpoints/CASE-REPORT-01-C04.docx.
+=== XML well-formedness ===
+word/document.xml: OK
+word/comments.xml: OK
+word/footnotes.xml: OK
+=== revision and comment markers ===
+w:ins count:        2
+commentRangeStart count:        1
+   1 CASE-REPORT-REV-01
+comments.xml markers:
+<w:comment w:id="5" w:author="燚坡 李" w:date="2026-09-09T14:40:00Z" w:initials="燚李"
+CASE-REPORT-COMMENT-END
+CASE-REPORT-COMMENT-END

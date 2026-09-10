@@ -1,0 +1,27 @@
+started_at=2026-09-09T17:30:30Z
+batch=10000x100
+   Compiling rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.01s
+     Running tests/reference_model.rs (target/debug/deps/reference_model-6401576bdb327853)
+
+running 1 test
+test test_07_reference_model_random_sequences_with_save_reopen has been running for over 60 seconds
+reference-model random: 10000 seeds x 100 steps = 1000000 operations, 97480 save/reopen cycles
+test test_07_reference_model_random_sequences_with_save_reopen ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 355.68s
+
+batch_exit=0
+batch=1000x1000
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running tests/reference_model.rs (target/debug/deps/reference_model-6401576bdb327853)
+
+running 1 test
+test test_07_reference_model_random_sequences_with_save_reopen has been running for over 60 seconds
+reference-model random: 1000 seeds x 1000 steps = 1000000 operations, 105394 save/reopen cycles
+test test_07_reference_model_random_sequences_with_save_reopen ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 368.07s
+
+batch_exit=0
+finished_at=2026-09-09T17:42:38Z

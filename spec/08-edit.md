@@ -21,6 +21,7 @@ session.save(opts) -> Result<Vec<u8>>
 - 定位算法 `locate(pos) -> Loc`：顺序累加 inlines 的 utf16 长度；落在 `Text/DelText` 段内部 → `Loc::InText{run, segment, byte_offset}`（**禁止**落在代理对中间：偏移指向低代理位时向前调整并返回 `Err(EDIT_SPLIT_SURROGATE)`）；落在两个 inline 之间 → `Loc::Boundary{index}`；原子（长度 1 的 `U+FFFC`）只能在其前或后，`offset` 指向其内部不可能（长度 1）。
 - `BlockPos = Start(container) | After(block_node) | End(container)`。`container` 可为 `w:body`、`w:tc`、`w:sdtContent`、`w:txbxContent`、注释 / 批注条目——任何 `SPAN-01` 列出的块容器；`End(body)` 落在尾部 `sectPr` 之前，`End(tc)` 之后仍须以 `w:p` 结尾（`EDIT-03` 表格通则）。
 - 位置在 `apply` 前解析；`MutationResult` 之后旧位置失效，调用方按 `MutationResult.offset_delta` 或重新查询。
+- 实现错误码：`para` 不是会话中的可编辑文本段落、offset 越界或指向非文本原子内部 → `Err(EDIT_INVALID_POSITION)`；偏移落在代理对中间 → `Err(EDIT_SPLIT_SURROGATE)`。
 
 ## EDIT-03 操作语义
 
@@ -136,7 +137,7 @@ session.commit(plan) -> MutationResult           // 机械写入，不可失败
 document.refresh(&result)
 ```
 
-- `apply_all` 把多个操作的 plan 逐个 validate 到一个临时会话视图上（或顺序 plan/commit 并在失败时回滚快照）；任一失败 → 整批不生效。
+- `apply_all` 把多个操作的 plan 逐个 validate 到一个临时会话视图上（或顺序 plan/commit 并在失败时回滚快照）；任一失败 → 整批不生效。计划引用不存在的 part / 节点 / `Target::New`，或 `before` 不是目标父节点的子节点 → `Err(EDIT_INVALID_PLAN)`，且在任一写入前返回。
 - 所有 id 分配在 plan 阶段完成（`EDIT-06`）。
 - `MutationResult.offset_delta: Vec<(NodeId /*para*/, Utf16Offset /*from*/, i32 /*delta*/)>` 供调用方修正光标。
 

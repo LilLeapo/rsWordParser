@@ -1,0 +1,27 @@
+started_at=2026-09-09T16:44:16Z
+command=RSWORD_JS_SAVE_DIR=/tmp/rsword-save-js.zIvwNk RSWORD_JS_PARITY_REQUIRED=1 cargo test --locked --features compat-ts -p rsword --test save_blocks js_binding_save_bytes_parity
+   Compiling rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 18.00s
+     Running tests/save_blocks.rs (target/debug/deps/save_blocks-95fa87f544e1ae2e)
+
+running 1 test
+test js_binding_save_bytes_parity ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.90s
+
+command=RSWORD_JS_BLANK_DIR=/tmp/rsword-blank-js.ENvNBQ RSWORD_JS_PARITY_REQUIRED=1 cargo test --locked --features compat-ts -p rsword --test js_binding
+   Compiling rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.52s
+     Running tests/js_binding.rs (target/debug/deps/js_binding-a006aa90b60cc955)
+
+running 6 tests
+test blank_east_asia_font_only_touches_styles ... ok
+test errors_carry_a_stable_code ... ok
+test js_binding_blank_bytes_parity ... ok
+test blank_version_and_default_arguments ... ok
+test compat_08_js_save_matches_the_native_path ... ok
+test compat_02_js_parse_matches_the_native_projection ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.90s
+
+finished_at=2026-09-09T16:44:47Z

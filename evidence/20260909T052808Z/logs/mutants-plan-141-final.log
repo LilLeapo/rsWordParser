@@ -1,0 +1,6 @@
+started_at=2026-09-09T17:23:03Z
+scope=edit/plan.rs:141:24 delete !; regression test added
+Found 1 mutant to test
+ok       Unmutated baseline in 64s build + 14s test
+1 mutant tested in 2m: 1 caught
+finished_at=2026-09-09T17:24:52Z

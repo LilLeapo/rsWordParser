@@ -1,0 +1,22 @@
+=== zip integrity ===
+    testing: word/fontTable.xml       OK
+    testing: word/people.xml          OK
+    testing: docProps/core.xml        OK
+    testing: docProps/app.xml         OK
+    testing: customXml/_rels/item1.xml.rels   OK
+No errors detected in compressed data of evidence/20260909T052808Z/word-authored/CASE-BID-01/checkpoints/CASE-BID-01-C04.docx.
+=== XML well-formedness ===
+document: OK
+comments: OK
+=== structure counts ===
+sectPr:        2
+landscape:        1
+tables:        3
+w:ins:        2
+commentRangeStart:        1
+=== markers ===
+   1 CASE-BID-LANDSCAPE-SECTION
+   1 CASE-BID-LANDSCAPE-TABLE
+   1 CASE-BID-REV-01
+comment markers:
+   1 CASE-BID-COMMENT-END

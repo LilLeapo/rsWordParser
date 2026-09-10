@@ -1,0 +1,61 @@
+started_at=2026-09-09T16:35:26Z
+### build default wasm
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.47
+   Compiling wasm-bindgen-shared v0.2.128
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling rustversion v1.0.23
+   Compiling winnow v1.0.4
+   Compiling cfg-if v1.0.4
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling bumpalo v3.20.3
+   Compiling zmij v1.0.23
+   Compiling crc32fast v1.5.1
+   Compiling toml_writer v1.1.2+spec-1.1.0
+   Compiling memchr v2.8.3
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling serde_spanned v1.1.1
+   Compiling hashbrown v0.17.1
+   Compiling toml v1.1.5+spec-1.1.0
+   Compiling serde_json v1.0.151
+   Compiling equivalent v1.0.2
+   Compiling thiserror v2.0.20
+   Compiling zlib-rs v0.6.7
+   Compiling syn v3.0.4
+   Compiling indexmap v2.14.1
+   Compiling flate2 v1.1.10
+   Compiling wasm-bindgen v0.2.128
+   Compiling futures-core v0.3.34
+   Compiling slab v0.4.12
+   Compiling once_cell v1.21.4
+   Compiling pin-project-lite v0.2.17
+   Compiling typed-path v0.12.3
+   Compiling wasm-bindgen-macro-support v0.2.128
+   Compiling itoa v1.0.18
+   Compiling futures-task v0.3.34
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.20
+   Compiling futures-util v0.3.34
+   Compiling zip v8.6.0
+   Compiling rsword-js v0.0.1 (/Users/user/code/rsWordParser/crates/rsword-js)
+   Compiling wasm-bindgen-macro v0.2.128
+   Compiling rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+   Compiling js-sys v0.3.105
+    Finished `wasm-release` profile [optimized] target(s) in 47.31s
+build-js: 未装 wasm-opt（binaryen），跳过 -Oz（可选，见 TOOLS.md）
+build-js: 5b2715f5e6c2 -> crates/rsword-js/pkg (3.6M)
+### native parity default
+js-parity: 绑定 0.0.1 (git 5b2715f5e6c2, native/0)
+native_parity: 13 missing-session exports; lifecycle, atomic apply/save, media, queries and read-only outlets passed
+### build compat-ts wasm
+   Compiling rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+   Compiling rsword-js v0.0.1 (/Users/user/code/rsWordParser/crates/rsword-js)
+    Finished `wasm-release` profile [optimized] target(s) in 40.84s
+build-js: 未装 wasm-opt（binaryen），跳过 -Oz（可选，见 TOOLS.md）
+build-js: 5b2715f5e6c2 -> crates/rsword-js/pkg (4.1M)
+### native parity compat-ts
+js-parity: 绑定 0.0.1 (git 5b2715f5e6c2, native/0)
+native_parity: 13 missing-session exports; lifecycle, atomic apply/save, media, queries and read-only outlets passed
+finished_at=2026-09-09T16:36:55Z

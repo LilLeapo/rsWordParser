@@ -1,0 +1,11 @@
+started_at=2026-09-09T16:45:53Z
+test_malformed_changed_xml_is_rejected (__main__.AuditMutationTests.test_malformed_changed_xml_is_rejected) ... ok
+test_reordered_duplicate_paragraphs_are_rejected (__main__.AuditMutationTests.test_reordered_duplicate_paragraphs_are_rejected) ... ok
+test_untouched_adjacent_paragraph_deletion_is_rejected (__main__.AuditMutationTests.test_untouched_adjacent_paragraph_deletion_is_rejected) ... ok
+test_untouched_styles_rewrite_is_rejected (__main__.AuditMutationTests.test_untouched_styles_rewrite_is_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.305s
+
+OK
+finished_at=2026-09-09T16:45:54Z

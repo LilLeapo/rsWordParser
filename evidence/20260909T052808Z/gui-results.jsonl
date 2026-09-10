@@ -1,0 +1,25 @@
+{"case_id":"word-basics__001","artifact":"gui-inputs/word-basics__001.edited.docx","status":"PASS","oracle":"Word AX content equals marker"}
+{"case_id":"character-styles__001","artifact":"gui-inputs/character-styles__001.edited.docx","status":"PASS","oracle":"Word AX content equals marker"}
+{"case_id":"tabs__001","artifact":"gui-inputs/tabs__001.edited.docx","status":"PASS","oracle":"Word AX content equals marker"}
+{"case_id":"header-footer-rich__001","artifact":"gui-inputs/header-footer-rich__001.edited.docx","status":"PASS","oracle":"Word AX content equals marker"}
+{"case_id":"field-display__001","artifact":"gui-inputs/field-display__001.edited.docx","status":"PASS","oracle":"Word AX contains marker and unchanged TOC field text"}
+{"case_id":"extra__strict-minimal","artifact":"gui-inputs/extra__strict-minimal.edited.docx","status":"PASS","oracle":"Word AX contains marker; visible bold run"}
+{"case_id":"extra__mixed-flavor","artifact":"gui-inputs/extra__mixed-flavor.edited.docx","status":"PASS","oracle":"Word AX contains marker and transitional header text"}
+{"case_id":"numbering-defs__001","artifact":"gui-inputs/numbering-defs__001.edited.docx","status":"PASS","oracle":"Word AX content equals marker"}
+{"case_id":"run-vanish__001","artifact":"gui-inputs/run-vanish__001.edited.docx","status":"PASS","oracle":"Word AX content equals marker"}
+{"case_id":"rfonts-dual-slot__001","artifact":"gui-inputs/rfonts-dual-slot__001.edited.docx","status":"PASS","oracle":"Word AX content equals marker"}
+{"case_id":"char-unit-indents__001","artifact":"gui-inputs/char-unit-indents__001.edited.docx","status":"PASS","oracle":"Word AX content equals marker"}
+{"case_id":"bidi__001","artifact":"gui-inputs/bidi__001.edited.docx","status":"PASS","oracle":"Word AX content equals marker"}
+{"case_id":"bookmarks-crossref__001","artifact":"gui-inputs/bookmarks-crossref__001.edited.docx","status":"PASS","oracle":"Word AX content equals marker"}
+{"case_id":"dropcap__001","artifact":"gui-inputs/dropcap__001.edited.docx","status":"PASS","oracle":"Word AX content equals marker"}
+{"case_id":"entity-decoding__001","artifact":"gui-inputs/entity-decoding__001.edited.docx","status":"PASS","oracle":"Word AX content equals marker"}
+{"case_id":"entity-decoding__001-word-resaved","artifact":"gui-inputs/entity-decoding__001.edited.word-resaved.docx","status":"PASS","oracle":"Word Save As reopened with marker; rsword_e2e_driver --check reports contains_marker=true"}
+{"case_id":"inline-image-mixed__001","artifact":"gui-inputs/inline-image-mixed__001.edited.docx","status":"FAIL","oracle":"Word open error dialog; original corpus/synthetic/inline-image-mixed__001.docx also fails"}
+{"case_id":"hf-images__001","artifact":"gui-inputs/hf-images__001.edited.docx","status":"FAIL","oracle":"Word open error dialog; original corpus/synthetic/hf-images__001.docx also fails"}
+{"case_id":"comments__001","artifact":"gui-inputs/comments__001.edited.docx","status":"FAIL","oracle":"Word reports unreadable content and offers repair; original corpus/synthetic/comments__001.docx has the same prompt"}
+{"case_id":"decorated-paragraphs__001","artifact":"gui-inputs/decorated-paragraphs__001.edited.docx","status":"FAIL","oracle":"Word reports unreadable content and offers repair; original corpus/synthetic/decorated-paragraphs__001.docx has the same prompt"}
+{"case_id":"table-edit__001","artifact":"gui-inputs/table-edit__001.edited.docx","status":"SKIPPED_WITH_REASON","reason":"driver oracle used Document.text_blocks, which does not expose table paragraphs in M1"}
+{"case_id":"deep-nested-table__001","artifact":"gui-inputs/deep-nested-table__001.edited.docx","status":"SKIPPED_WITH_REASON","reason":"driver oracle used Document.text_blocks, which does not expose nested table paragraphs in M1"}
+{"case_id":"sections__001","artifact":null,"status":"SKIPPED_WITH_REASON","reason":"requested source file does not exist in corpus/synthetic"}
+{"case_id":"image-wrap__001","artifact":null,"status":"NOT_IMPLEMENTED","reason":"source has no first non-empty body w:t for the driver's low-level edit"}
+{"case_id":"symbol-fonts__002","artifact":null,"status":"NOT_IMPLEMENTED","reason":"source has no first non-empty body w:t for the driver's low-level edit"}

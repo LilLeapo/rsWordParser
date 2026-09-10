@@ -1,0 +1,9 @@
+=== C03 direct format ===
+document:OK
+bold tags:        2
+bookmark:        1
+REF field:        1
+XREF anchor:        1
+=== heading styles ===
+   4 <w:pStyle w:val="1"
+   1 <w:pStyle w:val="2"

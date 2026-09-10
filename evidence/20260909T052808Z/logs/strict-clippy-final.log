@@ -1,0 +1,12 @@
+started_at=2026-09-09T16:27:44Z
+    Checking rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.52s
+    Checking rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+    Checking rsword-agent-query v0.0.1 (/Users/user/code/rsWordParser/tools/agent-query)
+    Checking rsword-mcp v0.0.1 (/Users/user/code/rsWordParser/crates/rsword-mcp)
+    Checking rsword-js v0.0.1 (/Users/user/code/rsWordParser/crates/rsword-js)
+    Checking rsword-cli v0.0.1 (/Users/user/code/rsWordParser/crates/rsword-cli)
+    Checking xpath-assert v0.0.1 (/Users/user/code/rsWordParser/tools/xpath-assert)
+    Checking diff-parse v0.0.1 (/Users/user/code/rsWordParser/tools/diff-parse)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.37s
+finished_at=2026-09-09T16:27:52Z

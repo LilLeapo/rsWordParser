@@ -1,0 +1,222 @@
+   Compiling rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.70s
+     Running unittests src/lib.rs (target/debug/deps/rsword-f207b5d684e80fea)
+
+running 117 tests
+test diag::tests::diag_code_as_str_matches_spec_spelling ... ok
+test diag::tests::diagnostic_display_carries_origin ... ok
+test edit::locate::tests::utf16_to_byte_handles_surrogate_boundaries ... ok
+test bind::compat_ts::diff::tests::compat_09_tolerant_diff ... ok
+test edit::tests::edit_02_diagnostics_keep_validation_origin_constants ... ok
+test edit::tests::edit_02_utf16_offsets_and_surrogate_boundaries ... ok
+test edit::tests::edit_02_atomic_inline_occupies_one_utf16_unit ... ok
+test edit::tests::edit_01_unsupported_ops_do_not_touch_the_document ... ok
+test edit::tests::edit_01_open_save_no_edit_is_byte_identical ... ok
+test model::tests::mod_01_document_without_body_warns ... ok
+test bind::compat_ts::utf16::tests::compat_06_utf16_index_matches_encode_utf16 ... ok
+test model::decl::tests::mod_10_numbering_declarations ... ok
+test edit::tests::edit_05_commit_plans_apply_rebuild_and_report_offset_delta ... ok
+test model::decl::tests::mod_10_settings_compat_facts_and_font_table ... ok
+test model::tests::mod_04_paragraph_facts ... ok
+test model::tests::mod_03_text_kind_acceptance ... ok
+test model::tests::mod_06_hyperlink_revisions_and_transparent_containers ... ok
+test model::tests::mod_06_coordinate_flow_acceptance ... ok
+test model::tests::mod_06_symbols_atoms_and_run_props ... ok
+test model::decl::tests::mod_10_styles_defaults_and_heading_levels ... ok
+test model::theme::tests::mod_10_theme_wrong_root_is_none ... ok
+test package::content_types::tests::pkg_04_image_mime_order ... ok
+test package::content_types::tests::pkg_04_missing_file_is_empty ... ok
+test package::content_types::tests::pkg_04_override_beats_default_and_extension_is_case_insensitive ... ok
+test model::theme::tests::mod_10_theme_fonts_and_colors ... ok
+test package::uri::tests::pkg_05_rels_uri_and_source ... ok
+test package::uri::tests::pkg_06_escape_root_and_percent_decoding ... ok
+test package::uri::tests::pkg_06_three_spellings_resolve_to_the_same_part ... ok
+test package::zip::tests::neutralize_is_identity_without_the_field_and_safe_on_garbage ... ok
+test package::rels::tests::pkg_07_dual_family_rel_types ... ok
+test package::rels::tests::pkg_06_rels_relative_fallback_and_case_insensitive_match ... ok
+test package::zip::tests::open_rejects_non_zip ... ok
+test model::tests::mod_05_body_rules ... ok
+test package::rels::tests::pkg_05_targets_modes_and_duplicates ... ok
+test edit::tests::edit_02_rejects_non_text_paragraph_and_out_of_range_offset ... ok
+test resolve::tests::res_05_doc_default_fonts_ea_backfill ... ok
+test resolve::tests::res_06_rtl_reads_cs_twins_only ... ok
+test save::serialize::tests::save_03_text_containers_get_xml_space_preserve ... ok
+test resolve::tests::res_05_theme_fonts_and_colors ... ok
+test save::serialize::tests::xml_13_self_closing_parent_gaining_children_is_reopened ... ok
+test resolve::tests::res_07_09_para_cascade_and_numbering_indent ... ok
+test resolve::tests::res_03_run_cascade_with_provenance ... ok
+test edit::tests::edit_05_failed_batch_validates_all_before_any_commit ... ok
+test save::serialize::tests::xml_13_serialize_subtree_uses_ancestor_scope ... ok
+test save::serialize::tests::xml_14_attribute_needs_a_real_prefix_even_if_default_namespace_matches ... ok
+test save::serialize::tests::xml_13_unbound_namespace_is_an_error ... ok
+test save::serialize::tests::xml_14_default_namespace_and_unprefixed_attrs ... ok
+test save::serialize::tests::xml_14_namespace_context_preference_wins_over_canonical ... ok
+test save::serialize::tests::xml_14_new_subtree_declares_prefix_at_its_root_only ... ok
+test semantic::props::codec::tests::prop_02_measure_conversions ... ok
+test save::serialize::tests::xml_14_prefix_conflict_generates_a_fresh_prefix ... ok
+test semantic::props::codec::tests::prop_02_on_off_write_by_flavor ... ok
+test semantic::props::codec::tests::prop_02_hex_color ... ok
+test save::serialize::tests::xml_14_strict_part_declares_strict_uris ... ok
+test resolve::tests::res_02_chain_cycle_default_and_outline_block ... ok
+test semantic::props::tests::prop_02_enum_api ... ok
+test semantic::props::tests::prop_04_three_state_on_off_in_ppr ... ok
+test semantic::props::tests::prop_05_para_order_table ... ok
+test semantic::props::tests::prop_05_order_index_and_field_info ... ok
+test semantic::props::tests::prop_02_indent_legacy_spelling_by_flavor ... ok
+test semantic::props::tests::prop_02_on_off_variants_and_bad_value ... ok
+test semantic::props::tests::prop_05_new_element_inserted_before_first_greater_order ... ok
+test semantic::props::tests::prop_06_missing_container_is_created_as_first_child ... ok
+test semantic::props::tests::prop_06_multi_replaces_whole_list_in_place ... ok
+test semantic::props::tests::prop_02_acceptance_rows ... ok
+test semantic::props::tests::prop_06_raw_field_set_clones_subtree ... ok
+test semantic::props::tests::prop_06_diff_and_patch_emit ... ok
+test semantic::props::tests::prop_06_unmodeled_and_open_tag_bytes_preserved ... ok
+test semantic::props::tests::prop_02_struct_attrs_and_enums ... ok
+test semantic::props::tests::prop_06_nested_patch_and_sub_container_placement ... ok
+test semantic::props::tests::prop_09_jc_weird_kept_verbatim ... ok
+test semantic::props::tests::prop_08_nested_tables_sub_tables_and_multi ... ok
+test semantic::props::tests::prop_07_read_emit_read_roundtrip_and_unmodeled ... ok
+test xml::edit::tests::xml_12_delete_and_detach ... ok
+test semantic::props::tests::prop_09_raw_values_survive_and_write_back_verbatim ... ok
+test xml::edit::tests::xml_12_dirty_propagation ... ok
+test span::tests::span_01_flow_map_body_and_textbox_are_separate_flows ... ok
+test xml::edit::tests::xml_12_clone_shares_lex ... ok
+test xml::entities::tests::xml_06_bad_entities_kept_verbatim ... ok
+test xml::entities::tests::xml_06_bad_entity_snippet_respects_char_boundaries ... ok
+test xml::edit::tests::xml_12_remove_attr_and_rename ... ok
+test xml::edit::tests::xml_12_move_adds_xmlns_when_incompatible ... ok
+test xml::entities::tests::xml_06_decode_once ... ok
+test xml::edit::tests::xml_12_move_keeps_clean_when_compatible ... ok
+test xml::entities::tests::xml_06_escape_text_and_attr ... ok
+test xml::interner::tests::intern_is_idempotent_and_resolves ... ok
+test xml::mce::tests::xml_09_choice_selected_when_requires_understood ... ok
+test xml::mce::tests::xml_09_must_understand_is_a_diagnostic_not_an_error ... ok
+test xml::mce::tests::xml_09_recompute_with_custom_understood_set ... ok
+test xml::mce::tests::xml_10_semantic_children_skips_deleted_and_yields_text ... ok
+test xml::names::tests::xml_05_local_names_roundtrip_and_other ... ok
+test xml::names::tests::xml_05_strict_and_transitional_same_nsid ... ok
+test xml::ns::tests::xml_11_mce_attribute_prefix_lists_count_as_uses ... ok
+test xml::mce::tests::xml_09_process_content_flattens ... ok
+test xml::names::tests::xml_05_xml_and_xmlns_are_distinct ... ok
+test xml::mce::tests::xml_09_fallback_selected_when_requires_unknown ... ok
+test xml::mce::tests::xml_09_ignorable_hidden_but_preserved_and_understood_not_hidden ... ok
+test xml::parse::tests::xml_01_prolog_epilog_and_bom ... ok
+test xml::parse::tests::xml_03_opaque_nodes_and_doctype_prolog ... ok
+test xml::ns::tests::xml_11_compatible_when_same_uri_and_required_decls_otherwise ... ok
+test xml::ns::tests::xml_11_scope_shadowing ... ok
+test xml::parse::tests::xml_04_quotes_gt_and_duplicate_attrs ... ok
+test semantic::props::tests::prop_07_plan_apply_every_row_same_value_empty_new_value_commits ... ok
+test xml::parse::tests::xml_03_lex_ranges_and_whitespace_text_nodes ... ok
+test semantic::props::tests::prop_07_every_para_props_row_roundtrips ... ok
+test xml::parse::tests::xml_01_utf16_is_transcoded_with_diagnostic ... ok
+test xml::parse::tests::xml_05_sniff_root_namespace ... ok
+test xml::parse::tests::xml_05_prefix_resolution_by_scope ... ok
+test xml::parse::tests::xml_05_default_namespace_undeclared_and_shadowed ... ok
+test xml::parse::tests::xml_06_entities_decode_once_and_bad_entity_diag ... ok
+test xml::parse::tests::xml_07_text_is_not_trimmed ... ok
+test xml::parse::tests::xml_08_malformed_inputs_are_errors ... ok
+test xml::tests::xml_12_rule_a_self_change ... ok
+test xml::tests::xml_12_rule_c_propagation_stops_at_non_clean ... ok
+test xml::parse::tests::xml_13_owned_text_and_attr_are_escaped_and_dirty_states_serialize ... ok
+test xml::parse::tests::xml_08_deep_nesting_parses_iteratively ... ok
+test xml::parse::tests::xml_08_depth_limit ... ok
+
+test result: ok. 117 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s
+
+     Running unittests src/bin/rsword_e2e_driver.rs (target/debug/deps/rsword_e2e_driver-a46fc79a88ef20f3)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/compat.rs (target/debug/deps/compat-80375b3baf1dbb02)
+
+running 2 tests
+test compat_04_06_sdt_split_and_utf16_indices ... ok
+test compat_02_text_cases_match_ts_parsed_doc ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+     Running tests/corpus_layout.rs (target/debug/deps/corpus_layout-51fc58f792e0f2a2)
+
+running 1 test
+test test_01_corpus_layout_exists ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/decl.rs (target/debug/deps/decl-282146eddad1f7c7)
+
+running 1 test
+test mod_10_declarations_parse_on_corpus_and_match_ts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+
+     Running tests/edit.rs (target/debug/deps/edit-13650b5118bb4222)
+
+running 3 tests
+test edit_02_locate_first_text_block_coordinate_boundaries ... ok
+test edit_05_public_low_level_plan_goes_through_validate_commit_and_save ... ok
+test edit_01_session_no_edit_save_is_byte_identical_on_all_openable_corpus ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.67s
+
+     Running tests/model.rs (target/debug/deps/model-06a835dab311ddae)
+
+running 1 test
+test mod_13_rebuild_is_idempotent_and_text_blocks_match_ts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s
+
+     Running tests/package.rs (target/debug/deps/package-f774052cff880557)
+
+running 10 tests
+test pkg_01_unicode_path_shadow_resolves_by_header_name ... ok
+test pkg_04_missing_content_types_is_a_diagnostic ... ok
+test pkg_03_non_ooxml_inputs ... ok
+test pkg_09_namespace_context_from_root ... ok
+test pkg_03_main_part_via_office_document_relationship ... ok
+test pkg_11_unparseable_parts ... ok
+test pkg_11_entries_keep_zip_order_and_parts_parse ... ok
+test pkg_08_flavor_classification ... ok
+test pkg_02_limits_are_checked_before_decompression ... ok
+test pkg_open_all_synthetic_corpus ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+
+     Running tests/props.rs (target/debug/deps/props-c1613502939e4e6c)
+
+running 2 tests
+test prop_07_para_props_roundtrip_on_corpus ... ok
+test prop_07_run_props_roundtrip_on_corpus ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+
+     Running tests/resolve.rs (target/debug/deps/resolve-c2bc976e02376891)
+
+running 1 test
+test res_02_style_display_matches_ts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+
+     Running tests/save.rs (target/debug/deps/save-ca4b6b4ef8fbef2c)
+
+running 3 tests
+test save_06_untouched_entries_keep_crc_and_compressed_bytes ... ok
+test save_01_no_edit_returns_original_bytes_for_all_corpus ... ok
+test test_04_single_node_edit_roundtrips_on_every_synthetic_doc ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.27s
+
+     Running tests/xml_roundtrip.rs (target/debug/deps/xml_roundtrip-97629e768c4f859a)
+
+running 1 test
+test xml_13_clean_roundtrip_all_corpus ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+
+   Doc-tests rsword
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

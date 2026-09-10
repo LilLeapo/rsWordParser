@@ -1,0 +1,12 @@
+# CASE-COMBINED-01 C04 Rust driver checks
+timestamp_utc=2026-09-09T15:53:41Z
+file=evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C04.docx
+sha256=cb93aacb84eec61df540309fca629000758704b3bbc15039c3be86aadce84987
+
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C04.docx","marker":"CASE-COMBINED-C04-PARA-01","no_edit_save_byte_identical":true}
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C04.docx","marker":"CASE-COMBINED-C04-REV-INSERT-01","no_edit_save_byte_identical":true}
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C04.docx","marker":"CASE-COMBINED-C04-REV-INSERT-02","no_edit_save_byte_identical":true}
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C04.docx","marker":"CASE-COMBINED-C04-REV-REPLACED-01","no_edit_save_byte_identical":true}
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C04.docx","marker":"CASE-COMBINED-C04-REV-REPLACED-02","no_edit_save_byte_identical":true}
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C04.docx","marker":"CASE-COMBINED-C04-TOC-ENTRY","no_edit_save_byte_identical":true}
+{"contains_marker":true,"file":"evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C04.docx","marker":"CASE-COMBINED-C04-BREAK-01","no_edit_save_byte_identical":true}

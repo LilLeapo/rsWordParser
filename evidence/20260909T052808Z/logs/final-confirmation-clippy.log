@@ -1,0 +1,6 @@
+command=cargo clippy --workspace --all-targets -- -D warnings
+started_at=2026-09-09T17:50:44Z
+    Checking rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.32s
+clippy_exit=0
+finished_at=2026-09-09T17:50:45Z

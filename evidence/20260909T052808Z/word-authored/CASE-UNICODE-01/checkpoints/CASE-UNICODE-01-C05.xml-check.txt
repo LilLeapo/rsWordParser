@@ -1,0 +1,18 @@
+document.xml and comments.xml well-formed: PASS
+headings=2
+tabs=2
+manual-breaks=1
+nbsp=1
+direct-format-runs=3
+emoji-surrogate=PASS
+combining-mark=PASS
+arabic=PASS
+hebrew=PASS
+copyright-symbol=PASS
+w:ins=2
+w:del=1
+w:delText=1
+comment-range=1
+comment-marker=1
+end-marker=PASS
+revision-marker=PASS

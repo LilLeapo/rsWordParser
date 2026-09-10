@@ -1,0 +1,17 @@
+document.xml and comments.xml well-formed: PASS
+final flattened body contains CASE-LAYOUT-REV-INSERT: PASS
+final flattened body contains CASE-LAYOUT-REV-DELETE: PASS
+END marker: PASS
+inline-drawing=1
+anchor-drawing=3
+wrapSquare=2
+txbxContent=4
+textbox-marker=2
+oMath=1
+oMathText=1
+w:ins=3
+w:del=1
+w:delText=1
+comment-range=1
+comment-marker=1
+media-parts=2

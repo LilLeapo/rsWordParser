@@ -1,0 +1,216 @@
+{
+  "cases": [
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "底纹段落",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/word-basics__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/word-basics__001.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "x",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/character-styles__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/character-styles__001.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "A\tB\tC",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/tabs__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/tabs__001.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "正文",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/header-footer-rich__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/header-footer-rich__001.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "第一章 概述",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/field-display__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/field-display__001.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "COVER TITLE",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/inline-image-mixed__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/inline-image-mixed__001.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "Body",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/hf-images__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/hf-images__001.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "before ",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/comments__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/comments__001.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "strict",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/extra__strict-minimal.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/extra__strict-minimal.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "hello",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/extra__mixed-flavor.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/extra__mixed-flavor.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "x",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/numbering-defs__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/numbering-defs__001.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "Mandatory Story Header Format",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/decorated-paragraphs__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/decorated-paragraphs__001.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "shown",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/run-vanish__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/run-vanish__001.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "合同 Contract",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/rfonts-dual-slot__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/rfonts-dual-slot__001.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "body",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/char-unit-indents__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/char-unit-indents__001.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "כותרת",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/bidi__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/bidi__001.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "2025 年市场规模达到 1200 亿。",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/bookmarks-crossref__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/bookmarks-crossref__001.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "Lorem ipsum dolor sit amet.",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/dropcap__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/dropcap__001.docx"
+    },
+    {
+      "dirty_parts": 1,
+      "new_text": "RSWORD-E2E 中文 😀 &<>",
+      "no_edit_save_byte_identical": true,
+      "old_text": "Escape &amp; as &lt;b&gt; ok",
+      "operation": "Dom::set_text",
+      "output": "evidence/20260909T052808Z/gui-inputs/entity-decoding__001.edited.docx",
+      "reopen_model_contains_marker": true,
+      "source": "/Users/user/code/rsWordParser/corpus/synthetic/entity-decoding__001.docx"
+    }
+  ],
+  "failures": [
+    {
+      "error": "/Users/user/code/rsWordParser/corpus/synthetic/table-edit__001.docx: marker not visible after reopen",
+      "source": "corpus/synthetic/table-edit__001.docx"
+    },
+    {
+      "error": "corpus/synthetic/sections__001.docx: No such file or directory (os error 2)",
+      "source": "corpus/synthetic/sections__001.docx"
+    },
+    {
+      "error": "/Users/user/code/rsWordParser/corpus/synthetic/image-wrap__001.docx: no editable first w:t text",
+      "source": "corpus/synthetic/image-wrap__001.docx"
+    },
+    {
+      "error": "/Users/user/code/rsWordParser/corpus/synthetic/deep-nested-table__001.docx: marker not visible after reopen",
+      "source": "corpus/synthetic/deep-nested-table__001.docx"
+    },
+    {
+      "error": "/Users/user/code/rsWordParser/corpus/synthetic/symbol-fonts__002.docx: no editable first w:t text",
+      "source": "corpus/synthetic/symbol-fonts__002.docx"
+    }
+  ]
+}

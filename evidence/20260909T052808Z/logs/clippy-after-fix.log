@@ -1,0 +1,39 @@
+COMMAND: RUSTFLAGS=-D warnings cargo clippy --workspace --all-targets (after generated-code fix)
+START_UTC: 2026-09-09T05:31:02Z
+   Compiling rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+error: this boolean expression contains a logic bug
+  --> crates/rsword/src/package/content_types.rs:59:35
+   |
+59 |                     debug_assert!(!matches!(dom.node(child).kind, NodeKind::Element(_)) || true);
+   |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: it would look like the following: `true`
+   |
+help: this expression can be optimized out by applying boolean operations to the outer expression
+  --> crates/rsword/src/package/content_types.rs:59:36
+   |
+59 |                     debug_assert!(!matches!(dom.node(child).kind, NodeKind::Element(_)) || true);
+   |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#overly_complex_bool_expr
+   = note: `-D clippy::overly-complex-bool-expr` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::overly_complex_bool_expr)]`
+   = note: this error originates in the macro `matches` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: variables can be used directly in the `format!` string
+   --> crates/rsword/src/model/tests.rs:127:5
+    |
+127 |     assert_eq!(tb.text(), format!("\u{F0FC}{o}{o}{o}{o}", o = OBJECT_REPLACEMENT));
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+    = note: `-D clippy::uninlined-format-args` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::uninlined_format_args)]`
+help: change this to
+    |
+127 -     assert_eq!(tb.text(), format!("\u{F0FC}{o}{o}{o}{o}", o = OBJECT_REPLACEMENT));
+127 +     assert_eq!(tb.text(), format!("\u{F0FC}{OBJECT_REPLACEMENT}{OBJECT_REPLACEMENT}{OBJECT_REPLACEMENT}{OBJECT_REPLACEMENT}"));
+    |
+
+error: could not compile `rsword` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `rsword` (lib test) due to 2 previous errors
+END_UTC: 2026-09-09T05:31:08Z
+EXIT_CODE: 101

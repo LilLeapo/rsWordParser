@@ -1,0 +1,107 @@
+# CASE-COMBINED-01 C05 independent XML/package check
+timestamp_utc=2026-09-09T16:01:05Z
+file=evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C05.docx
+size_bytes=59924
+sha256=459a4016749e178503cfd9d7a6e976ec90c9c9cb98802cd3775669eace406a84
+
+## ZIP integrity
+No errors detected in compressed data of evidence/20260909T052808Z/word-authored/CASE-COMBINED-01/CASE-COMBINED-01-C05.docx.
+
+## XML well-formedness
+checked_xml_parts=29
+failed_xml_parts=0
+
+## Structure counts in word/document.xml
+w:ins                          42
+w:del                          32
+w:delText                      32
+commentRangeStart              2
+commentRangeEnd                2
+commentReference               2
+w:tab                          66
+w:br                           2
+w:sectPr                       3
+w:tbl                          5
+w:drawing                      1
+TOC_field                      1
+PAGEREF_field                  16
+bookmarkStart                  17
+hyperlink                      1
+REF_field                      1
+PAGE_field_in_document         0
+PAGE_field_in_header_footer    2
+
+## TOC update persistence
+TOC_cache_marker_C04_TOC_ENTRY 2
+TOC_cache_marker_C04_TAB_01 2
+TOC_cache_marker_C04_BREAK_01 2
+PAGEREF_delta_from_C04 1
+Note: TOC update was performed with Track Changes enabled; the larger revision and tab counts are expected Word field-rewrite changes, not assumed-identical C04 counts.
+
+## Comment persistence
+commentRangeStart_ids 20,27
+comments_xml_ids 20,27
+comments_xml_marker_COMMENT-01 1
+comments_xml_marker_COMMENT-02 1
+
+## Required C04 markers in document.xml
+CASE-COMBINED-C04-PARA-01                  1
+CASE-COMBINED-C04-REV-INSERT-01            1
+CASE-COMBINED-C04-REV-INSERT-02            1
+CASE-COMBINED-C04-REV-REPLACED-01          1
+CASE-COMBINED-C04-REV-REPLACED-02          1
+CASE-COMBINED-C04-TOC-ENTRY                2
+CASE-COMBINED-C04-TAB-01                   2
+CASE-COMBINED-C04-BREAK-01                 2
+
+## Retained C03 structures
+CASE_COMBINED_BOOKMARK                     2
+CASE-COMBINED-C03-EXTERNAL-LINK            1
+CASE-COMBINED-C03-CROSS-REFERENCE          1
+CASE-COMBINED-C03-TOC                      1
+CASE-COMBINED-C03-HEADER-S1                1
+CASE-COMBINED-C03-HEADER-S2                1
+CASE-COMBINED-C03-HEADER-S3                1
+CASE-COMBINED-C03-FOOTER-S1                1
+CASE-COMBINED-C03-FOOTER-S2                1
+CASE-COMBINED-C03-FOOTER-S3                1
+external_hyperlink_relationships 1
+external_hyperlink_target https://example.com/rswordparser
+landscape_sections 1
+default_header_references 3
+default_footer_references 3
+header_markers 3
+footer_markers 3
+
+## Assertions
+PASS: failed_xml_parts=0
+PASS: TOC_field=1
+PASS: PAGEREF_field=16
+PASS: TOC_cache_C04_TOC_ENTRY=2
+PASS: commentRangeStart=2
+PASS: commentRangeEnd=2
+PASS: commentReference=2
+PASS: commentRangeStart_ids=20,27
+PASS: comments_xml_ids=20,27
+PASS: comments_xml_COMMENT_01=1
+PASS: comments_xml_COMMENT_02=1
+PASS: revisions_w_ins>=10 (actual=42)
+PASS: revisions_w_del>=2 (actual=32)
+PASS: revisions_w_delText>=2 (actual=32)
+PASS: sections=3
+PASS: landscape_sections=1
+PASS: tables=5
+PASS: drawings=1
+PASS: manual_breaks=2
+PASS: default_header_references=3
+PASS: default_footer_references=3
+PASS: header_markers=3
+PASS: footer_markers=3
+PASS: PAGE_field_in_header_footer=2
+PASS: REF_field=1
+PASS: bookmark_target=2
+PASS: external_hyperlink_relationships=1
+PASS: external_hyperlink_target=https://example.com/rswordparser
+PASS: TOC_cache_C04_TAB_01=2
+PASS: TOC_cache_C04_BREAK_01=2
+assertion_failures=0

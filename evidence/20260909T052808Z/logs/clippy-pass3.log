@@ -1,0 +1,6 @@
+COMMAND: RUSTFLAGS=-D warnings cargo clippy --workspace --all-targets
+START_UTC: 2026-09-09T05:32:01Z
+    Checking rsword v0.0.1 (/Users/user/code/rsWordParser/crates/rsword)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.22s
+END_UTC: 2026-09-09T05:32:04Z
+EXIT_CODE: 0

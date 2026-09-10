@@ -1,0 +1,104 @@
+## diff-parse --scope text
+warning: leading irrefutable pattern in let chain
+    --> crates/rsword/src/bind/compat_ts/save_blocks.rs:1332:8
+     |
+1332 |     if let (font, ascii) = (s_old("font"), s_old("fontAscii"))
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this pattern will always match
+     = help: consider moving it outside of the construct
+     = note: `#[warn(irrefutable_let_patterns)]` on by default
+
+diff-parse: 256 份文档（scope text），156 处已知差异，0 处未知差异（0 份文档）；范围外 543，无 expected 0，打开失败 0
+exit=0
+## diff-parse --scope fields
+warning: leading irrefutable pattern in let chain
+    --> crates/rsword/src/bind/compat_ts/save_blocks.rs:1332:8
+     |
+1332 |     if let (font, ascii) = (s_old("font"), s_old("fontAscii"))
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this pattern will always match
+     = help: consider moving it outside of the construct
+     = note: `#[warn(irrefutable_let_patterns)]` on by default
+
+diff-parse: 283 份文档（scope fields），156 处已知差异，0 处未知差异（0 份文档）；范围外 516，无 expected 0，打开失败 0
+exit=0
+## diff-parse --scope tables
+warning: leading irrefutable pattern in let chain
+    --> crates/rsword/src/bind/compat_ts/save_blocks.rs:1332:8
+     |
+1332 |     if let (font, ascii) = (s_old("font"), s_old("fontAscii"))
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this pattern will always match
+     = help: consider moving it outside of the construct
+     = note: `#[warn(irrefutable_let_patterns)]` on by default
+
+diff-parse: 352 份文档（scope tables），181 处已知差异，0 处未知差异（0 份文档）；范围外 447，无 expected 0，打开失败 0
+exit=0
+## diff-parse --scope drawing
+warning: leading irrefutable pattern in let chain
+    --> crates/rsword/src/bind/compat_ts/save_blocks.rs:1332:8
+     |
+1332 |     if let (font, ascii) = (s_old("font"), s_old("fontAscii"))
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this pattern will always match
+     = help: consider moving it outside of the construct
+     = note: `#[warn(irrefutable_let_patterns)]` on by default
+
+diff-parse: 799 份文档（scope drawing），242 处已知差异，0 处未知差异（0 份文档）；范围外 0，无 expected 0，打开失败 0
+exit=0
+## diff-parse --scope hf
+warning: leading irrefutable pattern in let chain
+    --> crates/rsword/src/bind/compat_ts/save_blocks.rs:1332:8
+     |
+1332 |     if let (font, ascii) = (s_old("font"), s_old("fontAscii"))
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this pattern will always match
+     = help: consider moving it outside of the construct
+     = note: `#[warn(irrefutable_let_patterns)]` on by default
+
+diff-parse: 799 份文档（scope hf），242 处已知差异，0 处未知差异（0 份文档）；范围外 0，无 expected 0，打开失败 0
+exit=0
+## diff-parse --scope embedded
+warning: leading irrefutable pattern in let chain
+    --> crates/rsword/src/bind/compat_ts/save_blocks.rs:1332:8
+     |
+1332 |     if let (font, ascii) = (s_old("font"), s_old("fontAscii"))
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this pattern will always match
+     = help: consider moving it outside of the construct
+     = note: `#[warn(irrefutable_let_patterns)]` on by default
+
+diff-parse: 799 份文档（scope embedded），242 处已知差异，0 处未知差异（0 份文档）；范围外 0，无 expected 0，打开失败 0
+exit=0
+## diff-parse --scope all
+warning: leading irrefutable pattern in let chain
+    --> crates/rsword/src/bind/compat_ts/save_blocks.rs:1332:8
+     |
+1332 |     if let (font, ascii) = (s_old("font"), s_old("fontAscii"))
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this pattern will always match
+     = help: consider moving it outside of the construct
+     = note: `#[warn(irrefutable_let_patterns)]` on by default
+
+diff-parse: 799 份文档（scope all），242 处已知差异，0 处未知差异（0 份文档）；范围外 0，无 expected 0，打开失败 0
+exit=0
+## diff-parse --corpus corpus/real
+warning: leading irrefutable pattern in let chain
+    --> crates/rsword/src/bind/compat_ts/save_blocks.rs:1332:8
+     |
+1332 |     if let (font, ascii) = (s_old("font"), s_old("fontAscii"))
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this pattern will always match
+     = help: consider moving it outside of the construct
+     = note: `#[warn(irrefutable_let_patterns)]` on by default
+
+diff-parse: 266 份文档（scope all），547 处已知差异，0 处未知差异（0 份文档）；范围外 0，无 expected 0，打开失败 0
+exit=0
