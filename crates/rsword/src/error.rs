@@ -56,6 +56,11 @@ declare_error! {
     /// 包打开、编辑或保存的具名错误。枚举允许增加变体，调用方匹配时须保留兜底分支。
     #[cfg_attr(rsword_api_docs, deny(missing_docs))]
     pub enum Error {
+        @group formula {
+            /// OMML 超出 LaTeX 投影子集；读取器局部回退到 token 编辑。
+            #[error("OMML cannot be represented by the supported LaTeX subset")]
+            LatexUnsupported,
+        }
         @group operation {
             /// 输入不是 OOXML 文字处理文档。
             #[error(transparent)]

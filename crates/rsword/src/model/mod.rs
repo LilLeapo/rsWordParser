@@ -6133,8 +6133,6 @@ fn is_ref_mark_run(dom: &Dom, run: NodeId) -> bool {
 // 子集之外的结构（`m:sPre`、`m:limUpp`、认不出的 n 元运算符 / 重音 / 定界符、`\` 与换行）→ `None`，
 // 调用方只保留 token 级编辑。与 [`to_mathml`] 同一套迭代求值骨架，错误一路短路。
 
-struct LatexUnsupported;
-
 /// 一个 `m:oMath` → LaTeX；子集之外 → `None`。结果 trim 并把连续空白压成一个空格。
 pub fn to_latex(dom: &Dom, omath: NodeId) -> Option<String> {
     let raw = eval_latex(dom, LatexItem::Seq(omath)).ok()?;
@@ -6186,7 +6184,7 @@ enum LatexTask {
     Finish(LatexItem, usize),
 }
 
-fn eval_latex(dom: &Dom, root: LatexItem) -> std::result::Result<String, LatexUnsupported> {
+fn eval_latex(dom: &Dom, root: LatexItem) -> Result<String> {
     let mut tasks = vec![LatexTask::Eval(root)];
     let mut results: Vec<String> = Vec::new();
     while let Some(task) = tasks.pop() {
@@ -6225,7 +6223,7 @@ fn expand_latex(
     dom: &Dom,
     item: &LatexItem,
     results: &mut Vec<String>,
-) -> std::result::Result<Option<Vec<LatexItem>>, LatexUnsupported> {
+) -> Result<Option<Vec<LatexItem>>> {
     let slot = |n: NodeId, l: LocalName| LatexItem::Slot(n, l);
     Ok(match item {
         LatexItem::Slot(parent, name) => match dom.children_named(*parent, m(*name)).next() {
@@ -6249,7 +6247,7 @@ fn expand_latex(
                 return Ok(None);
             };
             if name.ns != NsId::M {
-                return Err(LatexUnsupported);
+                return Err(Error::LatexUnsupported);
             }
             Some(match name.local {
                 LocalName::R => {
@@ -6264,7 +6262,7 @@ fn expand_latex(
                     // 裸的 noBar 分式只出现在 \binom 的 m:d 包里（那边处理）；别的分式样式在子集之外
                     if prop_val(dom, n, LocalName::FPr, LocalName::Type).is_some_and(|t| t != "bar")
                     {
-                        return Err(LatexUnsupported);
+                        return Err(Error::LatexUnsupported);
                     }
                     vec![slot(n, LocalName::Num), slot(n, LocalName::Den)]
                 }
@@ -6287,7 +6285,7 @@ fn expand_latex(
                     let chr = prop_val(dom, n, LocalName::NaryPr, LocalName::Chr)
                         .unwrap_or_else(|| "∫".into());
                     if nary_command(&chr).is_none() {
-                        return Err(LatexUnsupported);
+                        return Err(Error::LatexUnsupported);
                     }
                     vec![slot(n, LocalName::Sub), slot(n, LocalName::Sup), slot(n, LocalName::E)]
                 }
@@ -6299,7 +6297,7 @@ fn expand_latex(
                         || name == "lim"
                         || (!name.is_empty() && name.chars().all(|c| c.is_ascii_alphabetic())))
                     {
-                        return Err(LatexUnsupported);
+                        return Err(Error::LatexUnsupported);
                     }
                     vec![slot(n, LocalName::E)]
                 }
@@ -6307,7 +6305,7 @@ fn expand_latex(
                     if plain_text_of_runs(dom, dom.children_named(n, m(LocalName::E)).next()).trim()
                         != "lim"
                     {
-                        return Err(LatexUnsupported);
+                        return Err(Error::LatexUnsupported);
                     }
                     vec![slot(n, LocalName::Lim)]
                 }
@@ -6315,7 +6313,7 @@ fn expand_latex(
                     let chr = prop_val(dom, n, LocalName::AccPr, LocalName::Chr)
                         .unwrap_or_else(|| "\u{0302}".into());
                     if accent_command(&chr).is_none() {
-                        return Err(LatexUnsupported);
+                        return Err(Error::LatexUnsupported);
                     }
                     vec![slot(n, LocalName::E)]
                 }
@@ -6324,7 +6322,7 @@ fn expand_latex(
                     let chr = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Chr)
                         .unwrap_or_else(|| "\u{23DF}".into());
                     if chr != "\u{23DF}" && chr != "\u{23DE}" {
-                        return Err(LatexUnsupported);
+                        return Err(Error::LatexUnsupported);
                     }
                     vec![slot(n, LocalName::E)]
                 }
@@ -6334,17 +6332,13 @@ fn expand_latex(
                 LocalName::Box | LocalName::BorderBox | LocalName::Phant => {
                     vec![slot(n, LocalName::E)]
                 }
-                _ => return Err(LatexUnsupported),
+                _ => return Err(Error::LatexUnsupported),
             })
         }
     })
 }
 
-fn finish_latex(
-    dom: &Dom,
-    item: &LatexItem,
-    parts: Vec<String>,
-) -> std::result::Result<String, LatexUnsupported> {
+fn finish_latex(dom: &Dom, item: &LatexItem, parts: Vec<String>) -> Result<String> {
     let p = |i: usize| parts.get(i).map(String::as_str).unwrap_or("");
     Ok(match item {
         LatexItem::Slot(..) | LatexItem::Seq(_) => parts.concat(),
@@ -6375,7 +6369,7 @@ fn finish_latex(
                 LocalName::Nary => {
                     let chr = prop_val(dom, n, LocalName::NaryPr, LocalName::Chr)
                         .unwrap_or_else(|| "∫".into());
-                    let command = nary_command(&chr).ok_or(LatexUnsupported)?;
+                    let command = nary_command(&chr).ok_or(Error::LatexUnsupported)?;
                     let sub = if prop_on(dom, n, LocalName::NaryPr, LocalName::SubHide) {
                         String::new()
                     } else {
@@ -6403,7 +6397,11 @@ fn finish_latex(
                 LocalName::Acc => {
                     let chr = prop_val(dom, n, LocalName::AccPr, LocalName::Chr)
                         .unwrap_or_else(|| "\u{0302}".into());
-                    format!("\\{}{{{}}}", accent_command(&chr).ok_or(LatexUnsupported)?, p(0))
+                    format!(
+                        "\\{}{{{}}}",
+                        accent_command(&chr).ok_or(Error::LatexUnsupported)?,
+                        p(0)
+                    )
                 }
                 LocalName::Bar => {
                     let top = prop_val(dom, n, LocalName::BarPr, LocalName::Pos).as_deref()
@@ -6422,18 +6420,20 @@ fn finish_latex(
                 LocalName::Box | LocalName::BorderBox | LocalName::Phant => p(0).to_string(),
                 // `m:m` 展开成一个 `Matrix` 项，结果就是它
                 LocalName::M => p(0).to_string(),
-                _ => return Err(LatexUnsupported),
+                _ => return Err(Error::LatexUnsupported),
             }
         }
     })
 }
 
 /// `m:d`（TS `delimiterToLatex`）：`\binom`、矩阵环境、`\left … \right` 三种形态之一。
-fn delimiter(dom: &Dom, d: NodeId) -> std::result::Result<LatexItem, LatexUnsupported> {
+fn delimiter(dom: &Dom, d: NodeId) -> Result<LatexItem> {
     let beg = prop_val(dom, d, LocalName::DPr, LocalName::BegChr).unwrap_or_else(|| "(".into());
     let end = prop_val(dom, d, LocalName::DPr, LocalName::EndChr).unwrap_or_else(|| ")".into());
     let mut slots = dom.children_named(d, m(LocalName::E));
-    let (Some(slot), None) = (slots.next(), slots.next()) else { return Err(LatexUnsupported) };
+    let (Some(slot), None) = (slots.next(), slots.next()) else {
+        return Err(Error::LatexUnsupported);
+    };
     let inner = content_children(dom, slot);
     if let [only] = inner.as_slice() {
         let only = *only;
@@ -6450,12 +6450,12 @@ fn delimiter(dom: &Dom, d: NodeId) -> std::result::Result<LatexItem, LatexUnsupp
             return Ok(LatexItem::Matrix { node: only, env: env.to_string() });
         }
     }
-    let beg_tok = delim_token(&beg).ok_or(LatexUnsupported)?;
-    let end_tok = delim_token(&end).ok_or(LatexUnsupported)?;
+    let beg_tok = delim_token(&beg).ok_or(Error::LatexUnsupported)?;
+    let end_tok = delim_token(&end).ok_or(Error::LatexUnsupported)?;
     Ok(LatexItem::LeftRight { beg: beg_tok.to_string(), end: end_tok.to_string(), slot })
 }
 
-fn run_to_latex(dom: &Dom, run: NodeId) -> std::result::Result<String, LatexUnsupported> {
+fn run_to_latex(dom: &Dom, run: NodeId) -> Result<String> {
     let text = run_text(dom, run);
     if !is_plain_run(dom, run) {
         return chars_to_latex(&text);
@@ -6471,17 +6471,17 @@ fn run_to_latex(dom: &Dom, run: NodeId) -> std::result::Result<String, LatexUnsu
         return Ok("\\lim ".into());
     }
     if text.contains(['{', '}', '\\']) {
-        return Err(LatexUnsupported);
+        return Err(Error::LatexUnsupported);
     }
     Ok(format!("\\text{{{text}}}"))
 }
 
 /// 普通数学文字：解析器的特殊字符转义，符号换成 `\命令 `（TS `charsToLatex`）。
-fn chars_to_latex(text: &str) -> std::result::Result<String, LatexUnsupported> {
+fn chars_to_latex(text: &str) -> Result<String> {
     let mut out = String::new();
     for ch in text.chars() {
         if ch == '\\' || ch == '\n' {
-            return Err(LatexUnsupported);
+            return Err(Error::LatexUnsupported);
         }
         if let Some(esc) = char_escape(ch) {
             out.push_str(esc);

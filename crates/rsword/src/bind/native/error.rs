@@ -23,6 +23,7 @@ impl ApiError {
 impl From<Error> for ApiError {
     fn from(e: Error) -> Self {
         let code = match &e {
+            Error::LatexUnsupported => "LATEX_UNSUPPORTED",
             Error::NotOoxml(_) => "NOT_OOXML",
             Error::Limit { code, .. } | Error::Edit { code, .. } | Error::EditPlan { code, .. } => {
                 code.as_str()
