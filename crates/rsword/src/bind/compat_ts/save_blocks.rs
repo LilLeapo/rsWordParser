@@ -26,12 +26,11 @@ use serde_json::Value;
 
 use crate::bind::compat_ts::{MediaSet, blocks, parsed_doc_of};
 use crate::diag::DiagCode;
-use crate::edit::ops;
-use crate::edit::ops::ppr_of;
 use crate::edit::{
-    BlockPos, EditContext, EditOp, EditSession, ImageWrap, InkSave, NewBlock, NewChart,
-    NewChartKind, NewChartSeries, NewComment, NewImage, NewInk, NewInline, NewLinkTarget,
-    NewMarker, NewRevision, NewRun, ParaSpacing, PosOffset,
+    BlockPos, EditContext, EditOp, EditSession, EntryParas, EntryReconciliation, ImageExtentEmu,
+    ImageExtentPx, ImageWrap, InkSave, NewBlock, NewChart, NewChartKind, NewChartSeries,
+    NewComment, NewImage, NewInk, NewInline, NewLinkTarget, NewMarker, NewRevision, NewRun,
+    ParaSpacing, PosOffset,
 };
 use crate::error::{Error, Result};
 use crate::model::{HfKind, HfVariant};
@@ -359,9 +358,9 @@ fn rich_run_props(r: &Value) -> Option<NewElement> {
 }
 
 /// `{text, richParas?}` → 条目段落。`richParas` 在就照它的 run 与格式发，否则按 `\n` 分段。
-fn entry_paras_of(entry: &Value) -> ops::EntryParas {
+fn entry_paras_of(entry: &Value) -> EntryParas {
     if let Some(paras) = entry.get("richParas").and_then(Value::as_array) {
-        let out: ops::EntryParas = paras
+        let out: EntryParas = paras
             .iter()
             .map(|line| {
                 line.as_array()
@@ -384,66 +383,48 @@ fn entry_paras_of(entry: &Value) -> ops::EntryParas {
             return out;
         }
     }
-    ops::text_entry_paras(entry.get("text").and_then(Value::as_str).unwrap_or_default(), None)
+    entry
+        .get("text")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .split('\n')
+        .map(|line| vec![NewRun { text: line.to_owned(), props: None }])
+        .collect()
 }
 
-/// 应用权威条目列表：先删列表外的（批注连正文标记一起），再按列表改 / 建。返回操作数。
-fn apply_entry_lists(session: &mut EditSession, lists: &EntryLists) -> Result<usize> {
-    let mut ops_count = 0usize;
-    if let Some(list) = &lists.comments {
-        let keep: Vec<String> = list
-            .iter()
-            .filter_map(|c| c.get("id").and_then(Value::as_str).map(str::to_string))
-            .collect();
-        let gone: Vec<String> = session
-            .document()
-            .comments
-            .items
-            .iter()
-            .map(|c| c.id.clone())
-            .filter(|id| !keep.contains(id))
-            .collect();
-        for id in gone {
-            session.apply(EditOp::RemoveComment { id }, &EditContext::default())?;
-            ops_count += 1;
-        }
-        for c in list {
-            let Some(id) = c.get("id").and_then(Value::as_str) else { continue };
-            let paras = entry_paras_of(c);
-            let meta = NewComment {
-                author: c.get("author").and_then(Value::as_str).unwrap_or_default().to_string(),
-                initials: c.get("initials").and_then(Value::as_str).map(str::to_string),
-                date: c.get("date").and_then(Value::as_str).map(str::to_string),
-                text: String::new(), // 正文用 `paras`（`richParas` 可能带格式）
-                parent_id: c.get("parentId").and_then(Value::as_str).map(str::to_string),
-                done: c.get("done").and_then(Value::as_bool).unwrap_or(false),
-            };
-            ops::upsert_comment_entry(session, id, &meta, &paras)?;
-            ops_count += 1;
-        }
+impl From<&EntryLists> for EntryReconciliation {
+    #[inline]
+    fn from(lists: &EntryLists) -> Self {
+        let comments = lists.comments.as_ref().map(|list| {
+            list.iter()
+                .filter_map(|c| {
+                    let id = c.get("id").and_then(Value::as_str)?;
+                    let paras = entry_paras_of(c);
+                    let meta = NewComment {
+                        author: c
+                            .get("author")
+                            .and_then(Value::as_str)
+                            .unwrap_or_default()
+                            .to_string(),
+                        initials: c.get("initials").and_then(Value::as_str).map(str::to_string),
+                        date: c.get("date").and_then(Value::as_str).map(str::to_string),
+                        text: String::new(), // 正文用 `paras`（`richParas` 可能带格式）
+                        parent_id: c.get("parentId").and_then(Value::as_str).map(str::to_string),
+                        done: c.get("done").and_then(Value::as_bool).unwrap_or(false),
+                    };
+                    Some((id.to_owned(), meta, paras))
+                })
+                .collect()
+        });
+        let notes = |list: &Option<Vec<Value>>| {
+            list.as_ref().map(|list| {
+                list.iter()
+                    .filter_map(|n| Some((n.get("id")?.as_str()?.to_owned(), entry_paras_of(n))))
+                    .collect()
+            })
+        };
+        Self { comments, footnotes: notes(&lists.footnotes), endnotes: notes(&lists.endnotes) }
     }
-    for (list, endnote) in [(&lists.footnotes, false), (&lists.endnotes, true)] {
-        let Some(list) = list else { continue };
-        let keep: Vec<String> = list
-            .iter()
-            .filter_map(|n| n.get("id").and_then(Value::as_str).map(str::to_string))
-            .collect();
-        let notes =
-            if endnote { &session.document().endnotes } else { &session.document().footnotes };
-        let gone: Vec<String> =
-            notes.normal().map(|n| n.id.clone()).filter(|id| !keep.contains(id)).collect();
-        for id in gone {
-            ops::remove_note_entry(session, endnote, &id)?;
-            ops_count += 1;
-        }
-        for n in list {
-            let Some(id) = n.get("id").and_then(Value::as_str) else { continue };
-            let paras = entry_paras_of(n);
-            ops::upsert_note_entry(session, endnote, id, &paras)?;
-            ops_count += 1;
-        }
-    }
-    Ok(ops_count)
 }
 
 /// 把 TS `SaveBlock[]`（`finalBlocks`）与 `SaveOptions` 应用到会话；任一块不受支持则不改任何状态。
@@ -568,7 +549,8 @@ pub fn apply_save_blocks(
         && items.iter().zip(&visible).all(|(it, &v)| matches!(it, Item::Original(d) if *d == v));
     if all_original_in_order {
         // 块没动，但权威条目列表可能要删 / 改条目，整 part 替换也照样做（TS 的 isUnchanged 也看它们）
-        let extra = apply_entry_lists(session, &lists)? + apply_part_replacements(session, &lists)?;
+        let extra = session.reconcile_entries(EntryReconciliation::from(&lists))?
+            + apply_part_replacements(session, &lists)?;
         save_options.section_hf = resolve_section_hf(session, pending_section_hf)?;
         save_options.inks = resolve_inks(session, lists.inks.as_deref())?;
         let unchanged = extra == 0 && !save_options.forces_save();
@@ -626,7 +608,8 @@ pub fn apply_save_blocks(
         session.apply_all(extra_ops, &EditContext::default())?;
     }
     // 条目列表在块之后应用：删掉的批注要连"块重发出来的"标记一起清掉
-    let extra = apply_entry_lists(session, &lists)? + apply_part_replacements(session, &lists)?;
+    let extra = session.reconcile_entries(EntryReconciliation::from(&lists))?
+        + apply_part_replacements(session, &lists)?;
     save_options.section_hf = resolve_section_hf(session, pending_section_hf)?;
     save_options.inks = resolve_inks(session, lists.inks.as_deref())?;
     Ok(SaveBlocksOutcome { unchanged: false, ops: n + extra, save_options })
@@ -883,7 +866,7 @@ impl Planner<'_> {
         blk: &Value,
         ops: &mut Vec<EditOp>,
     ) -> Result<()> {
-        let current = ppr_of(self.dom, para);
+        let current = self.dom.live_children_named(para, QName::w(LocalName::PPr)).next();
         let (props, inlines) = self.generated_paragraph(blk)?;
         let same_raw = match (s_of(blk, "rawPPr"), current) {
             (Some(raw), Some(c)) => {
@@ -1466,7 +1449,10 @@ fn image_block(v: &Value) -> Result<NewBlock> {
     Ok(NewBlock::Image(NewImage {
         bytes,
         mime,
-        extent_emu: (crate::edit::media_ops::px_to_emu(w), crate::edit::media_ops::px_to_emu(h)),
+        extent_emu: (
+            i64::from(ImageExtentEmu::from(ImageExtentPx(w))),
+            i64::from(ImageExtentEmu::from(ImageExtentPx(h))),
+        ),
         align: s_of(v, "align").map(str::to_string),
         wrap,
         pos_offset_emu,

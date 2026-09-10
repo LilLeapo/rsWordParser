@@ -114,3 +114,29 @@ check、fmt、库测试 425 项及 edit / revisions / tracked_ops 回归通过�
 使用 error.rs 已有的 Error::edit，保留原 DiagCode 与消息，不增加公开转发方法。
 check、fmt、diff 检查、425 项库测试及 edit / revision_grid 回归通过。
 此单元仅清理编辑错误构造；全 crate 错误定义归并仍未完成。
+
+## CI compat-ts 修复
+
+GitHub Actions run 34437434219 的 compat-ts 在 Clippy 阶段因旧 edit::ops /
+edit::media_ops 路径以及合并遗留的游离文档注释失败；默认矩阵被连带取消。
+兼容保存改为 EditSession::reconcile_entries 批量行为入口，具体批注与注释
+upsert 仍为私有 inline 方法；DOM pPr 查询直接使用 XML 的 QName 查询迭代器。
+权威列表保留缺省与空列表差别、输入顺序、特殊注释条目与返回操作数。
+输入段落是待提交的拥有型数据；删除前保存 ID 序列，避免修改过程中重查目标。
+新增入口使用既有事务机制，回归覆盖嵌套回滚。
+
+px_to_emu 自由函数移除，ImageExtentPx → ImageExtentEmu → i64 使用 From。
+两个 newtype 采用 repr(transparent)，与 f64 / i64 具有相同大小和对齐；
+保留原 round、饱和转换及至少 1 EMU 的行为，测试包括 NaN 和正负无穷。
+EntryReconciliation 含可选拥有型集合，采用 repr(C)，不采用 packed，避免
+容器字段非对齐借用；这些 Option 的 None 表示不修改，不能消除。
+
+完整测试进一步发现 API 文档清单仍指向被删除的 edit 子文件；迁移清单到
+mod.rs 并补齐所有 EditSession impl（含宏模板）的文档审计属性。
+未删除或放宽 api_docs 测试，新增类型继续受 missing_docs 约束。
+
+本单元已验证：两种 feature 的严格 workspace/all-targets Clippy（无警告）、
+rsword_api_docs check、compat-ts 的 rsword-js wasm32 check、默认库 427 项、
+compat 库 442 项、save_blocks 两项及修正后的 api_docs 两项通过。
+完整 workspace 测试的初次执行被上述 API 清单失败阻断，修正后正在重跑；
+release 回归仍在运行，尚不声明完整 CI 或整体重构完成。

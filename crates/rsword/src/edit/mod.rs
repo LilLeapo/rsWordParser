@@ -109,10 +109,10 @@ macro_rules! context_option {
 /// ```ignore
 /// table_props_op!(set_cell_props, CellPropsPatch, Tc, TcPr, plan_apply_cell_props_at, "单元格");
 /// ```
-
 macro_rules! table_props_op {
     ($name:ident, $patch:ty, $owner:ident, $container:ident, $change:ident, $skip:expr,
      $plan_apply:path, $what:literal) => {
+        #[cfg_attr(rsword_api_docs, deny(missing_docs))]
         impl EditSession {
             #[inline]
             fn $name(
@@ -1241,19 +1241,11 @@ pub const DEFAULT_EXTENT_EMU: (i64, i64) = (5_486_400, 3_200_400);
 //
 // 新旧两侧的 `w:rPr` 都化成 [`NewElement`] 再比——比较**保守**（属性顺序不同会判成不等），
 // 而保守只会让 diff 变粗，不会把不相等的东西判成相等。
-/// 坐标流里的一个 token。
+// token 数超过限制时放弃 Myers，调用方整体替换；段内 run 通常只有几十个。
+// 相应类型与算法见 InlineDiff、Tok 和 Step。
 
-/// diff 脚本的一段。
-
-/// token 数超过这个数就不做 Myers（退化成整体替换）——一段里的 run 数正常是几十个。
-
-/// 旧 → 新的编辑脚本。返回 `None` 表示放弃（太大），调用方整体替换。
-
-/// 相邻的同类合并。
-
-/// Myers O(ND)：记录每一轮的 `v`，走完再回溯出脚本。`d` 超过两侧长度之和就放弃。
-
-/// 从 `trace` 反推脚本（Myers 的标准回溯，倒着生成再反转）。
+// Myers O(ND) 保存每轮的 v 后回溯，倒序生成脚本再反转，并合并相邻同类步骤。
+// d 超过两侧长度之和就放弃。
 
 // 原 drawing_ops.rs
 // 既有绘图的编辑（`EDIT-03`，`spec/18` 7.7）：尺寸 / 旋转 / 翻转 / 裁剪、z-order、形状样式。
@@ -1451,7 +1443,10 @@ impl EditSession {
         let ctx = NamespaceContext::from_dom(dom, flavor);
         let (wp, wp_decl) = NewImage::media_ops_prefix_or_decl(&ctx, NsId::Wp, "wp", NS_WP);
         let (r, r_decl) = NewImage::media_ops_prefix_or_decl(&ctx, NsId::R, "r", NS_R);
-        let (cx, cy) = (px_to_emu(ink.width_px), px_to_emu(ink.height_px));
+        let (cx, cy) = (
+            i64::from(ImageExtentEmu::from(ImageExtentPx(ink.width_px))),
+            i64::from(ImageExtentEmu::from(ImageExtentPx(ink.height_px))),
+        );
         let x = (ink.offset_x_px * EMU_PER_PX).round() as i64;
         let y = (ink.offset_y_px * EMU_PER_PX).round() as i64;
         let name = format!("{INK_NAME_PREFIX} {id}");
@@ -1970,9 +1965,36 @@ impl EditSession {
     }
 }
 
-/// px → EMU（TS `Math.round(px * 9525)`，至少 1）。
-pub fn px_to_emu(px: f64) -> i64 {
-    ((px * EMU_PER_PX).round() as i64).max(1)
+/// 图片尺寸的像素输入；转换为 EMU 时沿用饱和数值转换与最小尺寸规则。
+#[repr(transparent)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
+pub struct ImageExtentPx(
+    /// 像素数，保留输入的浮点语义。
+    pub f64,
+);
+
+/// 图片尺寸的 EMU 值；此类型不用于可能为负的定位偏移。
+#[repr(transparent)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
+pub struct ImageExtentEmu(
+    /// 换算后的 EMU 尺寸。
+    pub i64,
+);
+
+impl From<ImageExtentPx> for ImageExtentEmu {
+    #[inline]
+    fn from(px: ImageExtentPx) -> Self {
+        Self(((px.0 * EMU_PER_PX).round() as i64).max(1))
+    }
+}
+
+impl From<ImageExtentEmu> for i64 {
+    #[inline]
+    fn from(emu: ImageExtentEmu) -> Self {
+        emu.0
+    }
 }
 
 // 原 note_ops.rs
@@ -2047,6 +2069,73 @@ table_props_op!(
 
 /// 条目段落：每段一串 run（`NewRun.props` 是整份 `w:rPr`）。
 pub type EntryParas = Vec<Vec<NewRun>>;
+
+/// 批注、脚注与尾注的权威条目列表；None 保留原列表，Some 空列表删除全部普通条目。
+/// 每个元组依次保存原有条目 ID、批注元数据（仅批注）和富文本段落。
+#[repr(C)]
+#[derive(Debug, Default)]
+#[non_exhaustive]
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
+pub struct EntryReconciliation {
+    /// 批注条目；删除时同时清理正文范围标记。
+    pub comments: Option<Vec<(String, NewComment, EntryParas)>>,
+    /// 普通脚注；分隔符条目始终保留。
+    pub footnotes: Option<Vec<(String, EntryParas)>>,
+    /// 普通尾注；分隔符条目始终保留。
+    pub endnotes: Option<Vec<(String, EntryParas)>>,
+}
+
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
+impl EditSession {
+    /// 原子地应用权威注释列表：先移除缺席条目，再按输入顺序更新或新建。
+    /// 返回处理条目数；失败恢复条目、关系、正文标记及全部会话状态。
+    pub fn reconcile_entries(&mut self, lists: EntryReconciliation) -> Result<usize> {
+        self.transaction(|session| session.reconcile_entry_lists(lists))
+    }
+
+    #[inline]
+    fn reconcile_entry_lists(&mut self, lists: EntryReconciliation) -> Result<usize> {
+        let session = self;
+        let mut count = 0;
+        if let Some(list) = lists.comments {
+            let gone: Vec<String> = session
+                .document()
+                .comments
+                .items
+                .iter()
+                .filter(|item| !list.iter().any(|(id, _, _)| *id == item.id))
+                .map(|item| item.id.clone())
+                .collect();
+            for id in gone {
+                session.apply(EditOp::RemoveComment { id }, &EditContext::default())?;
+                count += 1;
+            }
+            for (id, meta, paras) in list {
+                session.upsert_comment_entry(&id, &meta, &paras)?;
+                count += 1;
+            }
+        }
+        for (list, endnote) in [(lists.footnotes, false), (lists.endnotes, true)] {
+            let Some(list) = list else { continue };
+            let notes =
+                if endnote { &session.document().endnotes } else { &session.document().footnotes };
+            let gone: Vec<String> = notes
+                .normal()
+                .filter(|item| !list.iter().any(|(id, _)| *id == item.id))
+                .map(|item| item.id.clone())
+                .collect();
+            for id in gone {
+                session.remove_note_entry(endnote, &id)?;
+                count += 1;
+            }
+            for (id, paras) in list {
+                session.upsert_note_entry(endnote, &id, &paras)?;
+                count += 1;
+            }
+        }
+        Ok(count)
+    }
+}
 
 // ---- 段落拆分与合并（`EDIT-03`，任务 2.9）------------------------------------------------------
 
@@ -2280,9 +2369,6 @@ enum Act {
     /// 这个方向不支持。
     Unsupported,
 }
-/// `RevKind` → （接受动作, 拒绝动作）。一张表同时给出两个方向，
-/// `tests/revisions.rs` 的用例列表按同一张表写。
-
 /// `in_change = false` 的字段不在快照里，还原时不能动它们。
 /// 策略按值保存，不借用全局字段表；单字节标签无需 packed 或堆分配。
 #[repr(u8)]
@@ -3934,6 +4020,7 @@ impl Geometry {
         ))
     }
 }
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl EditSession {
     #[inline]
     /// 会话里的表格块（含嵌套表）。
@@ -3970,6 +4057,7 @@ impl MutationPlan {
     }
 }
 // ---- InsertRow / DeleteRow ---------------------------------------------------------------------
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl EditSession {
     #[inline]
     fn insert_row(
@@ -4139,6 +4227,7 @@ enum VMergeFix {
     /// 新行插进了合并区中间：该格是 continue。
     Continue,
 }
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl EditSession {
     #[inline]
     fn delete_row(&mut self, table: NodeId, at: u32, ctx: &EditContext) -> Result<MutationResult> {
@@ -4206,6 +4295,7 @@ impl EditSession {
     }
 }
 // ---- InsertColumn / DeleteColumn ----------------------------------------------------------------
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl EditSession {
     #[inline]
     /// 行属性里的 `gridBefore` / `gridAfter` 增减。
@@ -4242,6 +4332,7 @@ impl EditSession {
         );
     }
 }
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl EditSession {
     #[inline]
     /// 一个格的 `gridSpan` / `tcW` 调整。
@@ -4279,6 +4370,7 @@ impl EditSession {
         );
     }
 }
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl EditSession {
     #[inline]
     /// 书签 / 权限范围的 `w:colFirst` / `w:colLast` 随列增删移动（`SPAN-03`）。
@@ -4330,6 +4422,7 @@ impl EditSession {
         }
     }
 }
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl EditSession {
     #[inline]
     fn insert_column(
@@ -4521,6 +4614,7 @@ fn props_is_empty(p: &crate::semantic::props::CellProps) -> bool {
     crate::semantic::props::diff_cell_props(&Default::default(), p)
         == crate::semantic::props::CellPropsPatch::default()
 }
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl EditSession {
     #[inline]
     fn delete_column(
@@ -4601,6 +4695,7 @@ impl EditSession {
         s.commit_plan(plan)
     }
 }
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 /// 一个 `w:tc` 在网格里的 `(起始列, 跨度)`（7.4 的格接受 / 拒绝用）。
 impl EditSession {
     #[inline]
@@ -4672,6 +4767,7 @@ impl RowGeometry {
     }
 }
 // ---- MergeCells ---------------------------------------------------------------------------------
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl EditSession {
     #[inline]
     fn merge_cells(
@@ -7689,7 +7785,7 @@ impl EditSession {
                 ref k => {
                     return Err(Error::edit(
                         DiagCode::EditUnsupported,
-                        &format!("{k:?} 没有生成器；能重算的是 TOC 与 INDEX"),
+                        format!("{k:?} 没有生成器；能重算的是 TOC 与 INDEX"),
                     ));
                 }
             },
@@ -8570,10 +8666,10 @@ impl EditSession {
             for (_, c) in s.column_cells(table, col) {
                 plan.node_edits.push(NodeEdit::Delete(c));
             }
-            if span == 1 {
-                if let Some(g) = s.grid_cols(table).nth(col as usize) {
-                    plan.node_edits.push(NodeEdit::Delete(g));
-                }
+            if span == 1
+                && let Some(g) = s.grid_cols(table).nth(col as usize)
+            {
+                plan.node_edits.push(NodeEdit::Delete(g));
             }
         } else {
             // 只这一行少一个格：把它的宽度并进邻格，行的网格宽度才还对得上 `tblGrid`
@@ -11924,11 +12020,10 @@ impl EditSession {
         Ok(result)
     }
     #[inline]
-    /// compat 的权威列表路径用的批注条目 upsert（`COMPAT-04` 的 `SaveOptions.comments`）。
+    /// 权威列表路径用的批注条目 upsert（包括 `COMPAT-04` 的 `SaveOptions.comments`）。
     ///
     /// 条目在就改（正文重写、属性按需改），不在就新建；**不动正文里的范围标记**——标记的位置由
     /// 块的 `commentStarts` / `commentEnds` / `commentIds` 决定。
-    #[cfg(feature = "compat-ts")]
     fn upsert_comment_entry(
         &mut self,
         id: &str,
@@ -13117,6 +13212,68 @@ impl MutationPlan {
 #[cfg(test)]
 mod test_edit {
     #[test]
+    fn image_extent_conversion_preserves_rounding_and_non_finite_values() {
+        for (pixels, expected) in [
+            (1.0, 9525),
+            (0.0, 1),
+            (-1.0, 1),
+            (0.5, 4763),
+            (f64::NAN, 1),
+            (f64::INFINITY, i64::MAX),
+            (f64::NEG_INFINITY, 1),
+        ] {
+            assert_eq!(
+                i64::from(super::ImageExtentEmu::from(super::ImageExtentPx(pixels))),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn entry_reconciliation_preserves_absence_empty_and_nested_rollback() {
+        let bytes = SessionTestsFixture::docx();
+        let mut session = super::EditSession::open(&bytes).unwrap();
+        let count = session
+            .reconcile_entries(super::EntryReconciliation {
+                footnotes: Some(vec![(
+                    "1".into(),
+                    vec![vec![super::NewRun { text: "note".into(), props: None }]],
+                )]),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(count, 1);
+        assert!(session.document().footnotes.get("1").is_some());
+        assert_eq!(session.reconcile_entries(Default::default()).unwrap(), 0);
+        assert!(session.document().footnotes.get("1").is_some());
+        let result: super::Result<()> = session.transaction(|s| {
+            assert_eq!(
+                s.reconcile_entries(super::EntryReconciliation {
+                    footnotes: Some(vec![]),
+                    ..Default::default()
+                })?,
+                1
+            );
+            Err(super::Error::edit(
+                super::DiagCode::EditPlanInvalid,
+                "rollback after reconciliation",
+            ))
+        });
+        assert!(result.is_err());
+        assert!(session.document().footnotes.get("1").is_some());
+        assert_eq!(
+            session
+                .reconcile_entries(super::EntryReconciliation {
+                    footnotes: Some(vec![]),
+                    ..Default::default()
+                })
+                .unwrap(),
+            1
+        );
+        assert!(session.document().footnotes.get("1").is_none());
+    }
+
+    #[test]
     fn enum_traits_preserve_wire_spelling_and_unknown_value_errors() {
         for (value, text) in [
             (super::ImageWrap::SquareLeft, "square-left"),
@@ -13601,17 +13758,15 @@ mod test_edit {
     #[repr(C)]
     struct PlanTestsFixture;
     const W: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
-    /// 两个 XML part 的最小 docx（主 part + settings）。
-
     impl SessionTestsFixture {
+        /// 两个 XML part 的最小 docx（主 part + settings）。
         #[inline]
         fn docx() -> Vec<u8> {
             SessionTestsFixture::docx_with(r#"<w:p><w:r><w:t>x</w:t></w:r></w:p>"#)
         }
     }
-    /// 同上，正文由调用方给。
-
     impl SessionTestsFixture {
+        /// 同上，正文由调用方给。
         #[inline]
         fn docx_with(body: &str) -> Vec<u8> {
             let ct = concat!(
@@ -13691,13 +13846,9 @@ mod test_edit {
         assert_eq!(s.document().text_blocks().next().unwrap().text(), "x", "投影也回滚");
     }
     /// `SPAN-09` / `SAVE-02`：引擎自己弄丢一端的范围在调试构建下让保存失败，发布构建只记诊断。
-
     ///
-
     /// 索引没有对外的可变入口，破坏只能从 crate 内部注入——这条自检就是为了让"变换弄丢锚点"
-
     /// 这类缺陷在 CI 里当场暴露，而不是悄悄写出一份半开的范围。
-
     #[test]
     fn span_09_engine_broken_range_fails_the_save_in_debug_builds() {
         let bytes = SessionTestsFixture::docx_with(
