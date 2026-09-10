@@ -168,7 +168,7 @@ pub(super) fn drawing_block(
     // 未编辑时字节不变）。有文字的框、以及提取出框的 wps 段落是例外。
     if !stray.trim().is_empty()
         && !boxes.iter().any(BoxInfo::has_text)
-        && !(has_wsp && !boxes.is_empty())
+        && (!has_wsp || boxes.is_empty())
     {
         return None;
     }
@@ -425,7 +425,7 @@ fn boxes_of(
     let has_line_shapes = wrap_square && drawings.iter().any(|d| d.shapes.iter().any(is_line_prst));
     // 每个 `w:txbxContent` 占一个保存路径序号，不管框最后留没留下来。
     let mut ordinal = 0usize;
-    // 管辖这一段的节：页面 / 页边距对齐的锚定位置要用它解（`model::section`）。
+    // 管辖这一段的节：页面 / 页边距对齐的锚定位置要用它解（`model::SectionGeom`）。
     let sect = ctx.section_at(para_node);
     let actx = box_json::AnchorCtx::new(drawings, sect, first_page);
     let no_anchor = drawings.iter().all(|d| d.anchor.is_none());
@@ -807,7 +807,7 @@ fn keeps_box(
         if s.prst.is_none() && !s.cust_geom {
             return false;
         }
-        if s.prst.as_deref() == Some("rect") && !s.ext.is_some_and(|e| e.cy > THIN_RULE_EMU) {
+        if s.prst.as_deref() == Some("rect") && s.ext.is_none_or(|e| e.cy <= THIN_RULE_EMU) {
             return false;
         }
         // 无字预设形状：几何得有可见的墨才留

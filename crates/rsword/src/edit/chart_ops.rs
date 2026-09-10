@@ -12,10 +12,10 @@ use crate::diag::DiagCode;
 use crate::edit::plan::{MutationPlan, MutationResult};
 use crate::edit::{EditSession, NewBlock};
 use crate::error::{Error, Result};
-use crate::model::escape_text;
-use crate::model::named_enum;
 use crate::package::ns_context::NamespaceContext;
 use crate::package::{PartId, RelType};
+use crate::xml::dom::{Latex, Omml};
+use crate::xml::entities::FragmentText;
 use crate::xml::plan::{NewElement, NodeEdit, Target};
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName, parse_fragment};
 
@@ -104,11 +104,11 @@ pub(crate) fn materialize_at(
         NewBlock::Image(img) => NewBlock::Xml(super::media_ops::image_paragraph(s, &img)?),
         // 独立公式段：先把 LaTeX 转成 OMML，再按 TS `mathParagraphXml` 生成整段
         NewBlock::MathPara { omml, align } => {
-            let body = match &omml {
-                crate::edit::NewMath::Omml(x) => x.clone(),
-                crate::edit::NewMath::Latex(t) => crate::model::latex_to_omml(t)?,
+            let body = match omml {
+                crate::edit::NewMath::Omml(x) => Omml::from(x),
+                crate::edit::NewMath::Latex(t) => Omml::try_from(Latex::from(t.as_str()))?,
             };
-            let xml = crate::model::math_paragraph_xml(&body, &align);
+            let xml = body.paragraph(&align);
             let main = s.main_part();
             let w_uri = NsId::W.uri(s.flavor()).expect("w 有两族 URI");
             let m_uri = crate::model::NS_M;
@@ -269,11 +269,16 @@ fn str_cache(values: &[String], f: &str) -> String {
     let pts: String = values
         .iter()
         .enumerate()
-        .map(|(i, v)| format!(r#"<c:pt idx="{i}"><c:v>{}</c:v></c:pt>"#, escape_text(v)))
+        .map(|(i, v)| {
+            format!(
+                r#"<c:pt idx="{i}"><c:v>{}</c:v></c:pt>"#,
+                String::from(FragmentText::from(v.as_str()))
+            )
+        })
         .collect();
     format!(
         r#"<c:strRef><c:f>{}</c:f><c:strCache><c:ptCount val="{}"/>{pts}</c:strCache></c:strRef>"#,
-        escape_text(f),
+        String::from(FragmentText::from(f)),
         values.len()
     )
 }
@@ -286,7 +291,7 @@ fn num_cache(values: &[Option<f64>], f: &str) -> String {
         .collect();
     format!(
         r#"<c:numRef><c:f>{}</c:f><c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="{}"/>{pts}</c:numCache></c:numRef>"#,
-        escape_text(f),
+        String::from(FragmentText::from(f)),
         values.len()
     )
 }
@@ -337,7 +342,7 @@ pub fn chart_part_xml(chart: &NewChart, external_data_rid: Option<&str>) -> Stri
     let title = chart.title.as_deref().map_or(String::new(), |t| {
         format!(
             r#"<c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>{}</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title><c:autoTitleDeleted val="0"/>"#,
-            escape_text(t)
+            String::from(FragmentText::from(t))
         )
     });
     let external = external_data_rid.map_or(String::new(), |rid| {
@@ -400,8 +405,10 @@ pub fn workbook_xlsx(categories: &[String], series: &[NewChartSeries]) -> Vec<u8
     let sheet = format!(
         r#"{DECL}<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1">{header}</row>{rows}</sheetData></worksheet>"#
     );
-    let sst: String =
-        strings.iter().map(|s| format!("<si><t>{}</t></si>", escape_text(s))).collect();
+    let sst: String = strings
+        .iter()
+        .map(|s| format!("<si><t>{}</t></si>", String::from(FragmentText::from(s.as_str()))))
+        .collect();
     let shared = format!(
         r#"{DECL}<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="{n}" uniqueCount="{n}">{sst}</sst>"#,
         n = strings.len()

@@ -1004,7 +1004,7 @@ fn para_align_of(dom: &Dom, node: NodeId) -> Option<&'static str> {
 /// 合成**一张 SVG** 当作图片。这是显示层的合成，只出现在适配器里（`COMPAT-01`）。
 ///
 /// 任何一处表达不出来就整张不给（返回 `None`）：有文字、有旋转 / 翻转、缺尺寸、没有实心填充、
-/// 几何用了公式或圆弧（`model::custgeom` 给不出路径）。宁可不画，也不能画一张缺了形状的图。
+/// 几何用了公式或圆弧（`model::custom_geom` 给不出路径）。宁可不画，也不能画一张缺了形状的图。
 fn shape_drawing_svg(ctx: &Ctx<'_>, d: &crate::model::DrawingDisplay) -> Option<String> {
     let ext = d.extent.filter(|e| e.cx > 0 && e.cy > 0)?;
     if d.shapes.is_empty() || d.shapes.iter().any(|s| !s.content.is_empty()) {

@@ -1,6 +1,6 @@
 //! TEST-08 `fuzz_embedded`（M6 6.9）：任意字节当作一个 XML part 喂给嵌入对象的三个解析入口——
 //! 图表 part（`ChartPart::build`）、SmartArt 数据 / 绘图 part（`diagram_text` / `diagram_shapes`）、
-//! OMML（`tokens` / `to_mathml` / `to_latex`）以及画布（`canvas_display`）。不 panic、不死循环、不爆栈。
+//! OMML（`Dom::math_tokens` / `to_mathml` / `Dom::latex`）以及画布（`canvas_display`）。不 panic、不死循环、不爆栈。
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
@@ -9,9 +9,7 @@ use rsword::model::ColorScheme;
 use rsword::model::canvas_display;
 use rsword::model::diagram_shapes;
 use rsword::model::diagram_text;
-use rsword::model::to_latex;
 use rsword::model::to_mathml;
-use rsword::model::tokens;
 use rsword::package::PartId;
 use rsword::xml::{Dom, LocalName, NsId, QName};
 
@@ -27,9 +25,9 @@ fuzz_target!(|data: &[u8]| {
     // 公式与画布：文档里每一处
     for n in dom.descendants(dom.root()) {
         if dom.is(n, QName::new(NsId::M, LocalName::OMath)) {
-            let _ = tokens(&dom, n).len();
+            let _ = dom.math_tokens(n).count();
             let _ = to_mathml(&dom, n).len();
-            let _ = to_latex(&dom, n).map(|s| s.len());
+            let _ = dom.latex(n).map(|s| s.len());
         } else if dom.is(n, QName::new(NsId::Lc, LocalName::LockedCanvas)) {
             let _ = canvas_display(&dom, n).shapes.len();
         }

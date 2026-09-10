@@ -11,13 +11,191 @@
 //! | [`TableBlock`] | `TableBlock` / `Row` / `Cell` 与跨表格的块遍历（`MOD-07`） |
 //! | [`SdtInfo`] | `SdtInfo`：内容控件的种类 / 锁 / 数据绑定（`MOD-08`） |
 //! | [`ParagraphFacts`] | `ParagraphFacts`（`MOD-04`） |
-//! | [`classify_paragraph`] | 分类规则表与 `TextKind` 判定（`MOD-05/03`） |
+//! | [`ParagraphFacts::classify`] | 分类规则表与 `TextKind` 判定（`MOD-05/03`） |
 //! | [`Document`] | `Document` 与 `rebuild`（`MOD-01/13`） |
 //! | [`Styles`] / [`Theme`] / [`Notes`] | 声明模型（`MOD-10`）：样式 / 编号 / 主题 / 设置 / 批注 / 注释 |
 
-// 块模型（`MOD-02`、`MOD-03`、`MOD-08`、`MOD-09`，`docs/03` §6.3）。
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::ops::Range;
 
-use crate::semantic::props::{CellProps, RowProps, TableProps};
+use crate::diag::{DiagCode, Diagnostic};
+use crate::error::Result;
+use crate::package::{Package, PartId, RelTarget, RelType, Rels};
+use crate::resolve::drawingml::{DrawingColor, Rgb, color_in};
+use crate::semantic::props::codec::{OnOff, Twips};
+pub use crate::semantic::props::{
+    AbstractNum, Compat, CompatSetting, DocDefaults, Font, FontTable, Level, LevelOverride, Num,
+    Numbering, ParaProps, RunProps, Settings, Style, StyleType, Styles, TableStylePr,
+    TblStyleOverrideType,
+};
+use crate::semantic::props::{
+    CellProps, HdrFtrType, HexColorOrAuto, RowProps, SectType, SectionProps, TableProps,
+    ThemeColor, Val, read_attr, read_cell_props, read_cell_props_change, read_font_table,
+    read_numbering, read_para_props, read_row_props, read_row_props_change, read_run_props,
+    read_run_props_change, read_section_props, read_section_props_change, read_settings,
+    read_styles, read_table_props, read_table_props_change,
+};
+#[cfg(test)]
+use crate::semantic::props::{
+    CharacterSpacing, DocProtect, FontFamily, FontPitch, Jc, MultiLevelType, NumberFormat,
+};
+use crate::span::field::{FieldForm, FieldIndex, Keyword};
+use crate::span::{
+    FieldId, FlowMap, RangeClass, SpanId, SpanIndex, is_property_element, is_range_marker,
+};
+use crate::xml::entities::FragmentText;
+use crate::xml::{Dirty, Dom, LocalName, MceRole, NodeId, NsId, QName};
+
+/// 一条修订的元数据（`w:id` / `w:author` / `w:date`）。定义在 L2（范围标记用同一组属性）。
+pub use crate::span::RevisionMeta;
+
+// 模型层的声明宏。
+//
+// 显示模型里有一批「无字段枚举 + 一个稳定短名字」的类型：种类、绕排、填充方式……名字用在
+// 诊断、语料普查的输出、以后的 i18n key 上。枚举写一遍、名字表再写一遍，迟早对不上——尤其是
+// 加变体的时候编译器不会提醒你去补名字表。宏把两者绑在同一处声明里。
+
+/// 声明一个无字段枚举，并生成 `as_str`（名字表跟着变体走，漏了编译不过）。
+///
+/// ```ignore
+/// named_enum! {
+///     /// VML 元素种类。
+///     pub enum VmlKind {
+///         /// `v:shape`
+///         Shape = "shape",
+///         Group = "group",
+///     }
+/// }
+/// ```
+macro_rules! named_enum {
+        (
+            $(#[$meta:meta])*
+            $vis:vis enum $name:ident {
+                $($(#[$vmeta:meta])* $variant:ident = $text:literal),+ $(,)?
+            }
+        ) => {
+            $(#[$meta])*
+            #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+            $vis enum $name {
+                $($(#[$vmeta])* $variant,)+
+            }
+
+            impl $name {
+                /// 稳定的短名字。
+                pub const fn as_str(self) -> &'static str {
+                    match self {
+                        $(Self::$variant => $text,)+
+                    }
+                }
+            }
+
+            impl ::core::fmt::Display for $name {
+                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                    f.write_str(self.as_str())
+                }
+            }
+        };
+    }
+
+/// 图表 part 元素名 → 种类。一张表同时给出「哪些元素算绘图区里的图」（`plot_kind` 有值）与「归并到哪一类」；
+/// ECMA-376 §21.2.2 的 16 种图全部在表里，认不出的种类明说是 `Other`，别的元素（`c:catAx` 等）不是图。
+macro_rules! chart_kinds {
+        ($($local:ident => $kind:ident),+ $(,)?) => {
+            /// 绘图区子元素 → 图表种类；不是图表元素 → `None`。
+            pub fn plot_kind(local: LocalName) -> Option<ChartKind> {
+                match local {
+                    $(LocalName::$local => Some(ChartKind::$kind),)+
+                    _ => None,
+                }
+            }
+
+            /// 表里全部图表元素（测试用：每一种都要被认出来）。
+            pub const PLOT_ELEMENTS: &[LocalName] = &[$(LocalName::$local,)+];
+        };
+    }
+
+// 内容控件（`MOD-08`，任务 3.3）：`w:sdt` 的 `sdtPr` 读成 [`SdtInfo`]。
+//
+// 块级与 run 级 sdt 用同一个读取器。控件种类按 `sdtPr` 里第一个可识别的控件元素判定，**只看局部名**
+// ——复选框在 `w14`、重复节在 `w15`，Word 各版本的前缀不一样（TS 也是这么认的）。
+// 编辑策略在 `EDIT-03`：[`refusing_sdt`] 给出拒绝理由，`ContentLocked` / `SdtContentLocked` 只读，
+// 有 `data_binding` 的第一阶段也只读（显示文字只是绑定数据的缓存，Word 重开会从 customXml 刷回）。
+
+/// 无字段枚举 + `as_str` + `parse`：把「变体 ↔ XML 字面」的名字表写成一张表，
+/// 免得枚举、匹配、测试各抄一遍（通用枚举宏见 `named_enum!`，这里只服务 sdt）。
+///
+/// ```ignore
+/// sdt_enum! {
+///     /// 文档注释
+///     pub enum SdtLock { Unlocked => "unlocked", SdtLocked => "sdtLocked" }
+/// }
+/// ```
+macro_rules! sdt_enum {
+        ($(#[$m:meta])* pub enum $name:ident { $($(#[$vm:meta])* $variant:ident => $text:literal),+ $(,)? }) => {
+            $(#[$m])*
+            #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+            pub enum $name {
+                $($(#[$vm])* $variant,)+
+            }
+
+            impl $name {
+                /// 全部变体，声明顺序。
+                pub const ALL: &[$name] = &[$($name::$variant,)+];
+
+                /// XML 字面。
+                pub const fn as_str(self) -> &'static str {
+                    match self {
+                        $($name::$variant => $text,)+
+                    }
+                }
+
+                /// 精确匹配 XML 字面。
+                pub fn parse(s: &str) -> Option<$name> {
+                    match s {
+                        $($text => Some($name::$variant),)+
+                        _ => None,
+                    }
+                }
+            }
+
+            impl std::fmt::Display for $name {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    f.write_str(self.as_str())
+                }
+            }
+        };
+    }
+
+/// 读容器属性并装箱。**必须**是独立且不内联的函数：`TableProps` 2.1 KB、`CellProps` 2.4 KB，
+/// 快照元组同样大；留在 `build_table` / `build_row` / `build_cell` 的栈帧里，它们会一直活到递归
+/// 返回（debug 构建按帧分配临时值），64 层嵌套就把 2 MiB 的测试线程栈撑爆。装进 `Box` 之后每层
+/// 只留一个指针，2000 层的语料与 5000 层的 hostile 文档都能在默认栈上跑完。
+macro_rules! boxed_reader {
+        ($(#[$m:meta])* $name:ident, $read:path, $props:ty) => {
+            $(#[$m])*
+            #[inline(never)]
+            fn $name(dom: &Dom, container: Option<NodeId>, diags: &mut Vec<Diagnostic>) -> Box<$props> {
+                Box::new($read(dom, container, diags))
+            }
+        };
+    }
+
+/// 同上，读 `*PrChange` 的旧值快照。
+macro_rules! boxed_change_reader {
+        ($(#[$m:meta])* $name:ident, $read:path, $props:ty) => {
+            $(#[$m])*
+            #[inline(never)]
+            fn $name(
+                dom: &Dom,
+                container: Option<NodeId>,
+                diags: &mut Vec<Diagnostic>,
+            ) -> Option<(NodeId, Box<$props>)> {
+                $read(dom, container, diags).map(|(n, v)| (n, Box::new(v)))
+            }
+        };
+    }
+
+// 块模型（`MOD-02`、`MOD-03`、`MOD-08`、`MOD-09`，`docs/03` §6.3）。
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Block {
@@ -239,15 +417,7 @@ pub enum Revision {
 }
 
 // `Document` 与 `Document::rebuild`（`MOD-01`、`MOD-13`，任务 1.5–1.8）：从规范状态（DOM）
-// 完整构建投影。M1 只建正文流：段落 → inlines → run 坐标流；表格 / 图片块占位；
-// `refresh` 在 M2 随编辑引擎加入。
-
-use crate::error::Result;
-
-use crate::package::{RelTarget, RelType};
-use crate::semantic::props::{read_para_props, read_run_props_change};
-use crate::span::RangeClass;
-use crate::span::field::FieldForm;
+// 完整构建正文与辅助内容流的投影，并在编辑后刷新受影响的块。
 
 /// 文档模型（`MOD-01`）：DOM + Span 的语义投影。
 #[derive(Debug, Clone, PartialEq)]
@@ -646,7 +816,6 @@ impl Document {
     /// 重扫全包的修订表（`MOD-09`）。part 顺序 = 主 part → 页眉页脚 → 脚注 → 尾注 → 批注 →
     /// 外部文本框，各自内部前序，合起来就是文档序。
     pub(crate) fn rebuild_revisions(&mut self, pkg: &Package) {
-        use crate::model::{RevPart, RevisionIndex};
         let mut parts: Vec<RevPart<'_>> = Vec::new();
         if let Some(d) = pkg.part(self.main_part).dom() {
             parts.push(RevPart { part: self.main_part, dom: d, fields: Some(&self.fields) });
@@ -973,7 +1142,7 @@ impl<'a> Builder<'a> {
             if dom.is(node, build_w(LocalName::TcPr)) {
                 continue; // 单元格属性：`Cell.props` 已读（`MOD-07`）
             }
-            let (_rule, class) = classify_body_child(dom, node);
+            let (_rule, class) = BodyClass::classify(dom, node);
             match class {
                 BodyClass::SectionProps => out.push(section_props_block(node, sdt, revs)),
                 BodyClass::Table => {
@@ -1071,7 +1240,7 @@ impl<'a> Builder<'a> {
         // `MOD-04`：字段事实来自 `FieldIndex`（`FLD-08` 的块字段覆盖段落 → R09）
         facts.fields = self.fields_by_para.get(&p).cloned().unwrap_or_default();
         facts.inside_field_result = self.block_fields.get(&p).copied();
-        let (_rule, class) = classify_paragraph(&facts);
+        let (_rule, class) = facts.classify();
         let mut revisions = revs.to_vec();
         // 段落标记修订与 pPrChange（MOD-09）
         if let Some(rpr) = &props.rpr {
@@ -1141,7 +1310,7 @@ impl<'a> Builder<'a> {
                 } else {
                     Block::Text(Box::new(TextBlock {
                         node: p,
-                        kind: text_kind(&facts),
+                        kind: facts.text_kind(),
                         style_id: props.style.clone(),
                         props,
                         inlines,
@@ -1822,8 +1991,6 @@ fn field_identities(idx: &FieldIndex) -> Vec<(u32, NodeId)> {
 // 与 TS 的 `buildBlock` 决策树不同处标 △（见 spec）。M1 只需 R01/R02(占位)/R07/R08/R10/R19，
 // 其余规则已按 facts 写出，但 M1 的 facts 里字段事实为空，R09 不会命中。
 
-use crate::span::{is_property_element, is_range_marker};
-
 /// body（或 sdtContent / 修订包裹）直接子节点的分类（R01–R07）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BodyClass {
@@ -1852,32 +2019,37 @@ pub enum BodyClass {
     Paragraph,
 }
 
-pub fn classify_body_child(dom: &Dom, node: NodeId) -> (&'static str, BodyClass) {
-    // 文本节点（缩进空白）不产生块
-    let Some(name) = dom.name(node) else { return ("R04", BodyClass::RangeMarker) };
-    if is_range_marker(name) || (name.ns == NsId::W && name.local == LocalName::ProofErr) {
-        return ("R04", BodyClass::RangeMarker);
-    }
-    if name.ns != NsId::W {
-        return ("R07", BodyClass::Unknown(name));
-    }
-    match name.local {
-        LocalName::SectPr => ("R01", BodyClass::SectionProps),
-        LocalName::Tbl => ("R02", BodyClass::Table),
-        LocalName::Sdt => ("R03", BodyClass::Sdt),
-        LocalName::Br => {
-            let page =
-                dom.attr_value(node, QName::w(LocalName::Type)).is_some_and(|t| t.trim() == "page");
-            ("R05", BodyClass::BodyBreak { page })
+impl BodyClass {
+    /// 按 R01–R07 识别正文子节点，返回首个匹配规则及其分类。
+    #[inline]
+    pub fn classify(dom: &Dom, node: NodeId) -> (&'static str, BodyClass) {
+        // 文本节点（缩进空白）不产生块
+        let Some(name) = dom.name(node) else { return ("R04", BodyClass::RangeMarker) };
+        if is_range_marker(name) || (name.ns == NsId::W && name.local == LocalName::ProofErr) {
+            return ("R04", BodyClass::RangeMarker);
         }
-        LocalName::Ins => ("R06", BodyClass::InsertWrap),
-        LocalName::Del => ("R06", BodyClass::DeleteWrap),
-        LocalName::MoveFrom => ("R06", BodyClass::MoveFromWrap),
-        LocalName::MoveTo => ("R06", BodyClass::MoveToWrap),
-        LocalName::CustomXml | LocalName::SmartTag => ("R06", BodyClass::Transparent),
-        LocalName::P => ("R19", BodyClass::Paragraph),
-        _ if is_property_element(name) => ("R07", BodyClass::Unknown(name)),
-        _ => ("R07", BodyClass::Unknown(name)),
+        if name.ns != NsId::W {
+            return ("R07", BodyClass::Unknown(name));
+        }
+        match name.local {
+            LocalName::SectPr => ("R01", BodyClass::SectionProps),
+            LocalName::Tbl => ("R02", BodyClass::Table),
+            LocalName::Sdt => ("R03", BodyClass::Sdt),
+            LocalName::Br => {
+                let page = dom
+                    .attr_value(node, QName::w(LocalName::Type))
+                    .is_some_and(|t| t.trim() == "page");
+                ("R05", BodyClass::BodyBreak { page })
+            }
+            LocalName::Ins => ("R06", BodyClass::InsertWrap),
+            LocalName::Del => ("R06", BodyClass::DeleteWrap),
+            LocalName::MoveFrom => ("R06", BodyClass::MoveFromWrap),
+            LocalName::MoveTo => ("R06", BodyClass::MoveToWrap),
+            LocalName::CustomXml | LocalName::SmartTag => ("R06", BodyClass::Transparent),
+            LocalName::P => ("R19", BodyClass::Paragraph),
+            _ if is_property_element(name) => ("R07", BodyClass::Unknown(name)),
+            _ => ("R07", BodyClass::Unknown(name)),
+        }
     }
 }
 
@@ -1890,180 +2062,161 @@ pub enum ParaClass {
 }
 
 /// 一条段落规则：命中返回结果。
-pub type ParaRule = fn(&ParagraphFacts) -> Option<ParaClass>;
+type ParaRule = fn(&ParagraphFacts) -> Option<ParaClass>;
 
-/// 按优先级排列的段落规则表；`classify_paragraph` 顺序求值，首条命中即结束。
-pub const PARA_RULES: &[(&str, ParaRule)] = &[
-    ("R08", r08_style_vanish),
-    ("R09", r09_field_block_result),
-    ("R10", r10_section_break),
-    ("R11", r11_equation),
-    ("R12", r12_chart),
-    ("R13", r13_smart_art),
-    ("R14", r14_locked_canvas),
-    ("R15", r15_image),
-    ("R16", r16_invisible_shapes),
-    ("R17", r17_rule),
-    ("R18", r18_ole),
-    ("R19", r19_text),
-];
+impl ParagraphFacts {
+    /// 按优先级排列的段落规则表；`ParagraphFacts::classify` 顺序求值，首条命中即结束。
+    const RULES: [(&str, ParaRule); 12] = [
+        ("R08", Self::r08_style_vanish),
+        ("R09", Self::r09_field_block_result),
+        ("R10", Self::r10_section_break),
+        ("R11", Self::r11_equation),
+        ("R12", Self::r12_chart),
+        ("R13", Self::r13_smart_art),
+        ("R14", Self::r14_locked_canvas),
+        ("R15", Self::r15_image),
+        ("R16", Self::r16_invisible_shapes),
+        ("R17", Self::r17_rule),
+        ("R18", Self::r18_ole),
+        ("R19", Self::r19_text),
+    ];
 
-pub fn classify_paragraph(f: &ParagraphFacts) -> (&'static str, ParaClass) {
-    for (id, rule) in PARA_RULES {
-        if let Some(c) = rule(f) {
-            return (id, c);
-        }
-    }
-    ("R19", ParaClass::Text)
-}
-
-pub fn r08_style_vanish(f: &ParagraphFacts) -> Option<ParaClass> {
-    f.style_vanish.then_some(ParaClass::Protected(ProtectedKind::Invisible))
-}
-
-pub fn r09_field_block_result(f: &ParagraphFacts) -> Option<ParaClass> {
-    f.inside_field_result.map(|id| ParaClass::Protected(ProtectedKind::FieldBlockResult(id)))
-}
-
-pub fn r10_section_break(f: &ParagraphFacts) -> Option<ParaClass> {
-    (f.has_sect_pr && !f.visible_text).then_some(ParaClass::Protected(ProtectedKind::SectionBreak))
-}
-
-pub fn r11_equation(f: &ParagraphFacts) -> Option<ParaClass> {
-    (f.math.omath_para || (f.math.count > 0 && !f.visible_text))
-        .then_some(ParaClass::Protected(ProtectedKind::Equation))
-}
-
-pub fn r12_chart(f: &ParagraphFacts) -> Option<ParaClass> {
-    let mut chart = false;
-    for d in &f.drawings {
-        match d.kind {
-            // chartex（旭日图 / 瀑布图 …）配了预渲染的回退图：Word 之外的渲染器画的就是这张图，
-            // 数据模型的降级读法只留给没有回退图的 part。`graphic_display` 取回退图的显示模型。
-            DrawingKind::ChartEx if d.fallback_picture.is_some() => {
-                return Some(ParaClass::Image);
+    /// 按 R08–R19 顺序判定段落，返回首个匹配规则及其分类。
+    #[inline]
+    pub fn classify(&self) -> (&'static str, ParaClass) {
+        for (id, rule) in Self::RULES {
+            if let Some(c) = rule(self) {
+                return (id, c);
             }
-            DrawingKind::Chart | DrawingKind::ChartEx => chart = true,
-            _ => {}
         }
+        ("R19", ParaClass::Text)
     }
-    chart.then_some(ParaClass::Protected(ProtectedKind::Chart))
-}
 
-pub fn r13_smart_art(f: &ParagraphFacts) -> Option<ParaClass> {
-    f.drawings
-        .iter()
-        .any(|d| d.kind == DrawingKind::Diagram)
-        .then_some(ParaClass::Protected(ProtectedKind::SmartArt))
-}
-
-pub fn r14_locked_canvas(f: &ParagraphFacts) -> Option<ParaClass> {
-    f.drawings
-        .iter()
-        .any(|d| d.kind == DrawingKind::LockedCanvas)
-        .then_some(ParaClass::Protected(ProtectedKind::SmartArt))
-}
-
-pub fn r15_image(f: &ParagraphFacts) -> Option<ParaClass> {
-    if f.visible_text || !f.objects.is_empty() || f.math.count != 0 {
-        return None;
+    #[inline]
+    fn r08_style_vanish(&self) -> Option<ParaClass> {
+        self.style_vanish.then_some(ParaClass::Protected(ProtectedKind::Invisible))
     }
-    let single_picture =
-        f.drawings.len() == 1 && f.picts.is_empty() && f.drawings[0].kind == DrawingKind::Picture;
-    let single_imagedata =
-        f.picts.len() == 1 && f.drawings.is_empty() && f.picts[0].kind == PictKind::ImageData;
-    (single_picture || single_imagedata).then_some(ParaClass::Image)
-}
 
-pub fn r16_invisible_shapes(f: &ParagraphFacts) -> Option<ParaClass> {
-    if f.visible_text || f.picts.is_empty() || !f.drawings.is_empty() || !f.objects.is_empty() {
-        return None;
+    #[inline]
+    fn r09_field_block_result(&self) -> Option<ParaClass> {
+        self.inside_field_result.map(|id| ParaClass::Protected(ProtectedKind::FieldBlockResult(id)))
     }
-    f.picts
-        .iter()
-        .all(|p| matches!(p.kind, PictKind::Hidden | PictKind::ShapeTypeOnly))
-        .then_some(ParaClass::Protected(ProtectedKind::Invisible))
-}
 
-pub fn r17_rule(f: &ParagraphFacts) -> Option<ParaClass> {
-    if f.visible_text || f.picts.is_empty() || !f.drawings.is_empty() || !f.objects.is_empty() {
-        return None;
+    #[inline]
+    fn r10_section_break(&self) -> Option<ParaClass> {
+        (self.has_sect_pr && !self.visible_text)
+            .then_some(ParaClass::Protected(ProtectedKind::SectionBreak))
     }
-    f.picts
-        .iter()
-        .all(|p| p.kind == PictKind::Hr)
-        .then_some(ParaClass::Protected(ProtectedKind::Rule))
-}
 
-pub fn r18_ole(f: &ParagraphFacts) -> Option<ParaClass> {
-    (!f.visible_text && !f.objects.is_empty() && f.drawings.is_empty() && f.picts.is_empty())
+    #[inline]
+    fn r11_equation(&self) -> Option<ParaClass> {
+        (self.math.omath_para || (self.math.count > 0 && !self.visible_text))
+            .then_some(ParaClass::Protected(ProtectedKind::Equation))
+    }
+
+    #[inline]
+    fn r12_chart(&self) -> Option<ParaClass> {
+        let mut chart = false;
+        for d in &self.drawings {
+            match d.kind {
+                // chartex（旭日图 / 瀑布图 …）配了预渲染的回退图：Word 之外的渲染器画的就是这张图，
+                // 数据模型的降级读法只留给没有回退图的 part。`graphic_display` 取回退图的显示模型。
+                DrawingKind::ChartEx if d.fallback_picture.is_some() => {
+                    return Some(ParaClass::Image);
+                }
+                DrawingKind::Chart | DrawingKind::ChartEx => chart = true,
+                _ => {}
+            }
+        }
+        chart.then_some(ParaClass::Protected(ProtectedKind::Chart))
+    }
+
+    #[inline]
+    fn r13_smart_art(&self) -> Option<ParaClass> {
+        self.drawings
+            .iter()
+            .any(|d| d.kind == DrawingKind::Diagram)
+            .then_some(ParaClass::Protected(ProtectedKind::SmartArt))
+    }
+
+    #[inline]
+    fn r14_locked_canvas(&self) -> Option<ParaClass> {
+        self.drawings
+            .iter()
+            .any(|d| d.kind == DrawingKind::LockedCanvas)
+            .then_some(ParaClass::Protected(ProtectedKind::SmartArt))
+    }
+
+    #[inline]
+    fn r15_image(&self) -> Option<ParaClass> {
+        if self.visible_text || !self.objects.is_empty() || self.math.count != 0 {
+            return None;
+        }
+        let single_picture = self.drawings.len() == 1
+            && self.picts.is_empty()
+            && self.drawings[0].kind == DrawingKind::Picture;
+        let single_imagedata = self.picts.len() == 1
+            && self.drawings.is_empty()
+            && self.picts[0].kind == PictKind::ImageData;
+        (single_picture || single_imagedata).then_some(ParaClass::Image)
+    }
+
+    #[inline]
+    fn r16_invisible_shapes(&self) -> Option<ParaClass> {
+        if self.visible_text
+            || self.picts.is_empty()
+            || !self.drawings.is_empty()
+            || !self.objects.is_empty()
+        {
+            return None;
+        }
+        self.picts
+            .iter()
+            .all(|p| matches!(p.kind, PictKind::Hidden | PictKind::ShapeTypeOnly))
+            .then_some(ParaClass::Protected(ProtectedKind::Invisible))
+    }
+
+    #[inline]
+    fn r17_rule(&self) -> Option<ParaClass> {
+        if self.visible_text
+            || self.picts.is_empty()
+            || !self.drawings.is_empty()
+            || !self.objects.is_empty()
+        {
+            return None;
+        }
+        self.picts
+            .iter()
+            .all(|p| p.kind == PictKind::Hr)
+            .then_some(ParaClass::Protected(ProtectedKind::Rule))
+    }
+
+    #[inline]
+    fn r18_ole(&self) -> Option<ParaClass> {
+        (!self.visible_text
+            && !self.objects.is_empty()
+            && self.drawings.is_empty()
+            && self.picts.is_empty())
         .then_some(ParaClass::Protected(ProtectedKind::Ole))
-}
-
-pub fn r19_text(_: &ParagraphFacts) -> Option<ParaClass> {
-    Some(ParaClass::Text)
-}
-
-/// `MOD-03`：ListRef 存在 → ListItem；否则 Heading；否则 Paragraph。
-pub fn text_kind(f: &ParagraphFacts) -> TextKind {
-    if let Some(list) = &f.numbering_ref {
-        return TextKind::ListItem { list: list.clone() };
-    }
-    if let Some(level) = f.outline_level {
-        return TextKind::Heading { level };
-    }
-    TextKind::Paragraph
-}
-
-// 模型层的声明宏。
-//
-// 显示模型里有一批「无字段枚举 + 一个稳定短名字」的类型：种类、绕排、填充方式……名字用在
-// 诊断、语料普查的输出、以后的 i18n key 上。枚举写一遍、名字表再写一遍，迟早对不上——尤其是
-// 加变体的时候编译器不会提醒你去补名字表。宏把两者绑在同一处声明里。
-
-/// 声明一个无字段枚举，并生成 `as_str`（名字表跟着变体走，漏了编译不过）。
-///
-/// ```ignore
-/// named_enum! {
-///     /// VML 元素种类。
-///     pub enum VmlKind {
-///         /// `v:shape`
-///         Shape = "shape",
-///         Group = "group",
-///     }
-/// }
-/// ```
-macro_rules! named_enum {
-        (
-            $(#[$meta:meta])*
-            $vis:vis enum $name:ident {
-                $($(#[$vmeta:meta])* $variant:ident = $text:literal),+ $(,)?
-            }
-        ) => {
-            $(#[$meta])*
-            #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-            $vis enum $name {
-                $($(#[$vmeta])* $variant,)+
-            }
-
-            impl $name {
-                /// 稳定的短名字。
-                pub const fn as_str(self) -> &'static str {
-                    match self {
-                        $(Self::$variant => $text,)+
-                    }
-                }
-            }
-
-            impl ::core::fmt::Display for $name {
-                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                    f.write_str(self.as_str())
-                }
-            }
-        };
     }
 
-pub(crate) use named_enum;
+    #[inline]
+    fn r19_text(&self) -> Option<ParaClass> {
+        Some(ParaClass::Text)
+    }
+
+    /// `MOD-03`：ListRef 存在 → ListItem；否则 Heading；否则 Paragraph。
+    #[inline]
+    pub fn text_kind(&self) -> TextKind {
+        if let Some(list) = &self.numbering_ref {
+            return TextKind::ListItem { list: list.clone() };
+        }
+        if let Some(level) = self.outline_level {
+            return TextKind::Heading { level };
+        }
+        TextKind::Paragraph
+    }
+}
 
 // 辅助 part 的内容流（`MOD-01`、`docs/03` §6.7，`spec/16` 任务 5.3）。
 //
@@ -2073,13 +2226,6 @@ pub(crate) use named_enum;
 // `FlowMap` / `FieldIndex` / `SpanIndex` 按 **part** 建一次（`SPAN-01`：`w:hdr` / `w:ftr` /
 // 每个 `w:footnote` / `w:endnote` / `w:comment` 条目各是一个独立内容流，`FlowId` 只在 part 内有
 // 意义），块按**容器**建（注释 part 里一个条目一个容器，页眉 part 整个根就是一个容器）。
-
-use crate::diag::Diagnostic;
-
-use crate::package::{PartId, Rels};
-use crate::span::field::FieldIndex;
-use crate::span::{FlowMap, SpanIndex};
-use crate::xml::Dom;
 
 /// 一个辅助 XML part 的内容流索引。
 #[derive(Debug, Clone, PartialEq)]
@@ -2154,8 +2300,6 @@ pub(crate) fn empty_ext_txbx() -> &'static ExtTxbxMap<'static> {
 // chartex（`cx:chartSpace`，旭日 / 树状 / 瀑布 / 箱形 / 漏斗 / 帕累托）按 TS 的降级读：数据维度与系列名进同一个
 // [`ChartDisplay`]，`kind` 取最近的经典种类；它的 part 不可编辑（`chartex: true`）。
 
-use crate::resolve::drawingml::{DrawingColor, Rgb, color_in};
-
 named_enum! {
     /// 图表种类（TS `ChartDisplay.kind`）。三维与环形归并到平面同类；认不出的 `*Chart` 元素是 `Other`。
     pub enum ChartKind {
@@ -2187,23 +2331,6 @@ named_enum! {
         TopRight = "tr",
     }
 }
-
-/// 图表 part 元素名 → 种类。一张表同时给出「哪些元素算绘图区里的图」（`plot_kind` 有值）与「归并到哪一类」；
-/// ECMA-376 §21.2.2 的 16 种图全部在表里，认不出的种类明说是 `Other`，别的元素（`c:catAx` 等）不是图。
-macro_rules! chart_kinds {
-        ($($local:ident => $kind:ident),+ $(,)?) => {
-            /// 绘图区子元素 → 图表种类；不是图表元素 → `None`。
-            pub fn plot_kind(local: LocalName) -> Option<ChartKind> {
-                match local {
-                    $(LocalName::$local => Some(ChartKind::$kind),)+
-                    _ => None,
-                }
-            }
-
-            /// 表里全部图表元素（测试用：每一种都要被认出来）。
-            pub const PLOT_ELEMENTS: &[LocalName] = &[$(LocalName::$local,)+];
-        };
-    }
 
 chart_kinds! {
     BarChart => Bar,
@@ -3039,14 +3166,6 @@ fn custgeom_num(dom: &Dom, node: NodeId, local: LocalName) -> Option<i64> {
 // 类型本身由属性表生成（`schema/props/{styles,numbering,settings,font_table}.toml`），
 // 这里只加"从 part 读取"和只读查找；样式链、编号覆盖合并等解释在 `resolve`。
 
-pub use crate::semantic::props::{
-    AbstractNum, Compat, CompatSetting, DocDefaults, Font, FontTable, Level, LevelOverride, Num,
-    Numbering, ParaProps, RunProps, Settings, Style, StyleType, TableStylePr, TblStyleOverrideType,
-};
-use crate::semantic::props::{
-    Val, codec::OnOff, read_font_table, read_numbering, read_settings, read_styles,
-};
-
 fn root_if(dom: &Dom, name: QName) -> Option<NodeId> {
     let root = dom.root();
     dom.is(root, name).then_some(root)
@@ -3279,8 +3398,6 @@ impl FontTable {
     }
 }
 
-pub use crate::semantic::props::Styles;
-
 // SmartArt 与绘图画布的模型（`MOD-11`，`spec/17` 任务 6.3）。
 //
 // SmartArt 有两个 part：**数据 part**（`dgm:dataModel`，主 part 里 `dgm:relIds/@r:dm` 指向）给节点文字，
@@ -3288,8 +3405,6 @@ pub use crate::semantic::props::Styles;
 // 这里只读**事实**：EMU、1/60000 度、颜色的原始定义；px 换算、画布缩放与排版启发式全在
 // `bind/compat_ts/diagram.rs`。画布（`lc:lockedCanvas`，R14）在主 part 里，形状用同一个
 // [`DiagramShape`]，外加子坐标系（[`CanvasDisplay`]）。
-
-use std::collections::HashSet;
 
 /// 一个形状：绘图 part 的 `dsp:sp`，或画布里的 `a:sp` / `a:pic`。几何是原值（EMU、1/60000 度）；
 /// 画布形状的几何在**子坐标系**里（[`CanvasDisplay::ch_off`] / `ch_ext`），缩放在投影层。
@@ -3666,7 +3781,7 @@ pub enum Display {
     Drawing(Box<DrawingDisplay>),
     /// `w:pict` / `w:object`（含 OLE 信息）
     Vml(Box<VmlDisplay>),
-    /// 公式段落（R11）的 `m:oMath` 片段、token、MathML / LaTeX（M6 6.5，`model::math`）。
+    /// 公式段落（R11）的 `m:oMath` 片段、token、MathML / LaTeX（M6 6.5，[`FormulaDisplay`]）。
     Formula(Box<FormulaDisplay>),
 }
 
@@ -3715,7 +3830,7 @@ pub struct DrawingDisplay {
     /// `dgm:relIds`：SmartArt 两个 part 的引用（M6 6.3）。part 在 `Document.diagram_parts`，
     /// 按 `rel_id`（`@r:dm`）经 `Document.diagram_by_rel` 找。
     pub diagram: Option<DiagramRef>,
-    /// `lc:lockedCanvas`：绘图画布的子坐标系与形状（M6 6.3；`model::diagram`）。
+    /// `lc:lockedCanvas`：绘图画布的子坐标系与形状（M6 6.3；[`CanvasDisplay`]）。
     pub canvas: Option<Box<CanvasDisplay>>,
 }
 
@@ -3749,7 +3864,7 @@ pub struct ShapeDisplay {
     pub prst: Option<String>,
     /// 有 `a:custGeom`：自定义路径几何。
     pub cust_geom: bool,
-    /// `a:custGeom` 的路径；用到公式或圆弧时为 `None`（`model::custgeom`）。
+    /// `a:custGeom` 的路径；用到公式或圆弧时为 `None`（[`custom_geom`]）。
     pub geom: Option<CustomGeom>,
     /// `a:xfrm/a:ext`（EMU）。
     pub ext: Option<Extent>,
@@ -4500,8 +4615,6 @@ fn is_own_flow(dom: &Dom, node: NodeId) -> bool {
 // M1 范围：文本、sectPr、样式、编号、outline、公式与修订计数、绘图 / VML 的粗事实
 // （种类按 `graphicData/@uri` 与 VML 子元素判定）。字段事实（`fields` / `inside_field_result`）在 M2。
 
-use crate::xml::MceRole;
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ParagraphFacts {
     pub has_sect_pr: bool,
@@ -5091,11 +5204,6 @@ impl Styles {
 // `PAGE` / `NUMPAGES` 是原子字段，渲染器看到 `Keyword::Page` 自己替换页码
 // （`docs/03` §5.4 末段——所以模型里没有 `PAGE_MARK` 这类占位符，那只存在于 `compat_ts`）。
 
-use crate::diag::DiagCode;
-
-use crate::span::field::Keyword;
-use crate::xml::{LocalName, NsId};
-
 /// 一个页眉或页脚 part。
 #[derive(Debug, Clone, PartialEq)]
 pub struct HfPart {
@@ -5346,11 +5454,6 @@ fn scan_subtree(dom: &Dom, root: NodeId, out: &mut Vec<InkInfo>) {
 // 给出坐标流中的文本偏移到子节点的映射。偏移单位对外是 UTF-16 code unit，
 // 内部字符串是 UTF-8，`utf16_len` 缓存每段长度。
 
-use std::ops::Range;
-
-use crate::span::{FieldId, SpanId};
-use crate::xml::{NodeId, QName};
-
 /// 坐标流里代表一个原子（图片、字段、公式、分页符……）的字符，占 1 个 UTF-16 单位。
 pub const OBJECT_REPLACEMENT: char = '\u{FFFC}';
 
@@ -5559,9 +5662,6 @@ pub enum LinkTarget {
     Unresolved,
 }
 
-/// 一条修订的元数据（`w:id` / `w:author` / `w:date`）。定义在 L2（范围标记用同一组属性）。
-pub use crate::span::RevisionMeta;
-
 /// run 的修订上下文（`MOD-06`）：`w:moveFrom` 同时计入 `del`，`w:moveTo` 同时计入 `ins`（TS 语义），
 /// `move_*` 保留精确信息。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -5592,7 +5692,7 @@ pub fn utf16_len(s: &str) -> u32 {
 // 公式与 ruby 的模型（`MOD-11`，`spec/17` 任务 6.5）。
 //
 // 公式段落（R11：`m:oMathPara` 或没有可见正文的公式段）挂 [`FormulaDisplay`]：片段节点、可编辑的 token、
-// MathML 与 LaTeX（转换器在 [`to_latex`] / [`to_mathml`]）。文字夹公式的段落（R19）里每个 `m:oMath` 是一个
+// MathML 与 LaTeX（转换器在 [`Dom::latex`] / [`to_mathml`]）。文字夹公式的段落（R19）里每个 `m:oMath` 是一个
 // `Inline::Atom(Math)`，投影时按需算 token。原字节（TS 的 `omml`）在投影层按 `lex.range` 切，与 `rawRPr` 同一做法。
 
 /// 一个公式段落的显示模型（TS `FormulaDisplay`）。
@@ -5611,22 +5711,16 @@ pub struct FormulaDisplay {
 
 /// 一个段落的公式显示模型。`visible_text`：段落有可见正文（`ParagraphFacts::visible_text`）。
 pub fn formula_display(dom: &Dom, para: NodeId, visible_text: bool) -> FormulaDisplay {
-    let fragments = crate::model::fragments(dom, para);
-    let tokens: Vec<String> =
-        fragments.iter().flat_map(|&f| crate::model::tokens(dom, f)).collect();
+    let fragments: Vec<NodeId> = dom.math_fragments(para).collect();
+    let tokens: Vec<String> = fragments.iter().flat_map(|&f| dom.math_tokens(f)).collect();
     let mathml = (!visible_text)
         .then(|| fragments.iter().map(|&f| to_mathml(dom, f)).collect::<String>())
         .filter(|s| !s.is_empty());
     let latex = match fragments.as_slice() {
-        [only] => to_latex(dom, *only).filter(|s| !s.is_empty()),
+        [only] => dom.latex(*only).filter(|s| !s.is_empty()),
         _ => None,
     };
     FormulaDisplay { fragments, tokens, mathml, latex }
-}
-
-/// 一个 `m:oMath` 原子的 token（R19 的公式 run：`text` = token 拼接）。
-pub fn math_tokens(dom: &Dom, omath: NodeId) -> Vec<String> {
-    crate::model::tokens(dom, omath)
 }
 
 /// `w:ruby` 的一半（`w:rt` / `w:rubyBase`）的文字：直接 `w:r` 子节点的直接 `w:t` 子节点拼接（TS `rubyPartText`）。
@@ -5637,7 +5731,7 @@ pub fn ruby_part_text(dom: &Dom, ruby: NodeId, part: LocalName) -> String {
     let mut out = String::new();
     for r in dom.semantic_children(part).filter(|&r| dom.is(r, QName::w(LocalName::R))) {
         for t in dom.semantic_children(r).filter(|&t| dom.is(t, QName::w(LocalName::T))) {
-            out.push_str(&crate::model::omml_text_of(dom, t));
+            out.push_str(&dom.omml_text_of(t));
         }
     }
     out
@@ -5653,10 +5747,6 @@ pub fn ruby_part_text(dom: &Dom, ruby: NodeId, part: LocalName) -> String {
 // 声明值（文字、格式、节点位置）与**内容块**（`Note.blocks` / `Comment.blocks`）都在这里：
 // 条目的内容与页眉页脚、正文同一个构建器（`docs/03` §6.7，任务 5.3）。`text` / `rich` 是 TS 形态的
 // 投影（`COMPAT-02` 的 `footnotes[].richParas`），与 `blocks` 并存——它们随 `compat_ts` 在 M9 一起删。
-
-use std::collections::HashMap;
-
-use crate::semantic::props::read_run_props;
 
 fn notes_w(l: LocalName) -> QName {
     QName::new(NsId::W, l)
@@ -6009,1019 +6099,6 @@ fn is_ref_mark_run(dom: &Dom, run: NodeId) -> bool {
     })
 }
 
-// OMML（Office Math，`m:` 命名空间）的读法与两个转换器（`spec/17` 任务 6.5）。
-//
-// [`to_mathml`] 与 [`to_latex`] 是 TS `math.ts` 的 `ommlToMathML` / `ommlToLatex` 的逐字移植——差分按字符串比较，
-// `mn / mi / mo` 分类、运算符集、函数名表、转义规则都必须一样。两个转换器都是**迭代**实现（显式任务栈 +
-// 结果栈）：语料 `corpus/hostile/omml-deep.docx` 有 3,000 层嵌套，递归会把测试线程的栈吃光。
-// 这里放两者共用的小工具：语义子节点查找、属性包读取、run 文字、XML 转义。
-
-// OMML → LaTeX 子集（TS `ommlToLatex`，`math.ts` 502–723 的逐字移植）。
-//
-// 子集之外的结构（`m:sPre`、`m:limUpp`、认不出的 n 元运算符 / 重音 / 定界符、`\` 与换行）→ `None`，
-// 调用方只保留 token 级编辑。与 [`to_mathml`] 同一套迭代求值骨架，错误一路短路。
-
-struct LatexUnsupported;
-
-/// 一个 `m:oMath` → LaTeX；子集之外 → `None`。结果 trim 并把连续空白压成一个空格。
-pub fn to_latex(dom: &Dom, omath: NodeId) -> Option<String> {
-    let raw = eval_latex(dom, LatexItem::Seq(omath)).ok()?;
-    let mut out = String::with_capacity(raw.len());
-    let mut ws = 0usize;
-    for ch in raw.trim().chars() {
-        if ch.is_whitespace() {
-            ws += 1;
-            if ws == 1 {
-                out.push(ch);
-            } else if ws == 2 {
-                out.pop();
-                out.push(' ');
-            }
-        } else {
-            ws = 0;
-            out.push(ch);
-        }
-    }
-    Some(out)
-}
-
-#[derive(Clone)]
-enum LatexItem {
-    Node(NodeId),
-    /// `parent/m:<name>` 的内容（缺失 → `""`）。
-    Slot(NodeId, LocalName),
-    /// 内容子节点直接拼接。
-    Seq(NodeId),
-    /// `\binom{num}{den}`（`(` `)` 包着的单个 noBar 分式）。
-    Binom(NodeId),
-    /// `m:m` / `m:eqArr` 的行体；`env` 是环境名（`matrix` / `pmatrix` / … / `cases`）。
-    Matrix {
-        node: NodeId,
-        env: String,
-    },
-    /// 一行 `m:mr`：各格 ` & ` 连接。
-    MatrixRow(NodeId),
-    /// `\left<beg> … \right<end>`。
-    LeftRight {
-        beg: String,
-        end: String,
-        slot: NodeId,
-    },
-}
-
-enum LatexTask {
-    Eval(LatexItem),
-    Finish(LatexItem, usize),
-}
-
-fn eval_latex(dom: &Dom, root: LatexItem) -> std::result::Result<String, LatexUnsupported> {
-    let mut tasks = vec![LatexTask::Eval(root)];
-    let mut results: Vec<String> = Vec::new();
-    while let Some(task) = tasks.pop() {
-        match task {
-            LatexTask::Eval(item) => {
-                if let Some(subs) = expand_latex(dom, &item, &mut results)? {
-                    tasks.push(LatexTask::Finish(item, subs.len()));
-                    tasks.extend(subs.into_iter().rev().map(LatexTask::Eval));
-                }
-            }
-            LatexTask::Finish(item, arity) => {
-                let at = results.len() - arity;
-                let parts: Vec<String> = results.drain(at..).collect();
-                results.push(finish_latex(dom, &item, parts)?);
-            }
-        }
-    }
-    Ok(results.pop().unwrap_or_default())
-}
-
-fn nodes(dom: &Dom, n: NodeId) -> Vec<LatexItem> {
-    content_children(dom, n).into_iter().map(LatexItem::Node).collect()
-}
-
-/// 矩阵的行：有 `m:mr` 就按行 / 格，否则每个 `m:e` 一行。
-fn matrix_rows(dom: &Dom, node: NodeId) -> Vec<LatexItem> {
-    let mrs = children_named(dom, node, LocalName::Mr);
-    if mrs.is_empty() {
-        children_named(dom, node, LocalName::E).into_iter().map(LatexItem::Seq).collect()
-    } else {
-        mrs.into_iter().map(LatexItem::MatrixRow).collect()
-    }
-}
-
-fn expand_latex(
-    dom: &Dom,
-    item: &LatexItem,
-    results: &mut Vec<String>,
-) -> std::result::Result<Option<Vec<LatexItem>>, LatexUnsupported> {
-    let slot = |n: NodeId, l: LocalName| LatexItem::Slot(n, l);
-    Ok(match item {
-        LatexItem::Slot(parent, name) => match child(dom, *parent, *name) {
-            None => {
-                results.push(String::new());
-                None
-            }
-            Some(s) => Some(nodes(dom, s)),
-        },
-        LatexItem::Seq(n) => Some(nodes(dom, *n)),
-        LatexItem::Binom(f) => Some(vec![slot(*f, LocalName::Num), slot(*f, LocalName::Den)]),
-        LatexItem::Matrix { node, .. } => Some(matrix_rows(dom, *node)),
-        LatexItem::MatrixRow(mr) => {
-            Some(children_named(dom, *mr, LocalName::E).into_iter().map(LatexItem::Seq).collect())
-        }
-        LatexItem::LeftRight { slot, .. } => Some(nodes(dom, *slot)),
-        LatexItem::Node(n) => {
-            let n = *n;
-            let Some(name) = dom.name(n) else {
-                results.push(String::new());
-                return Ok(None);
-            };
-            if name.ns != NsId::M {
-                return Err(LatexUnsupported);
-            }
-            Some(match name.local {
-                LocalName::R => {
-                    results.push(run_to_latex(dom, n)?);
-                    return Ok(None);
-                }
-                LocalName::T => {
-                    results.push(chars_to_latex(&omml_text_of(dom, n))?);
-                    return Ok(None);
-                }
-                LocalName::F => {
-                    // 裸的 noBar 分式只出现在 \binom 的 m:d 包里（那边处理）；别的分式样式在子集之外
-                    if prop_val(dom, n, LocalName::FPr, LocalName::Type).is_some_and(|t| t != "bar")
-                    {
-                        return Err(LatexUnsupported);
-                    }
-                    vec![slot(n, LocalName::Num), slot(n, LocalName::Den)]
-                }
-                LocalName::SSup => vec![slot(n, LocalName::E), slot(n, LocalName::Sup)],
-                LocalName::SSub => vec![slot(n, LocalName::E), slot(n, LocalName::Sub)],
-                LocalName::SSubSup => {
-                    vec![slot(n, LocalName::E), slot(n, LocalName::Sub), slot(n, LocalName::Sup)]
-                }
-                LocalName::Rad => {
-                    if prop_on(dom, n, LocalName::RadPr, LocalName::DegHide)
-                        || child(dom, n, LocalName::Deg).is_none()
-                    {
-                        vec![slot(n, LocalName::E)]
-                    } else {
-                        vec![slot(n, LocalName::Deg), slot(n, LocalName::E)]
-                    }
-                }
-                LocalName::D => return delimiter(dom, n).map(|it| Some(vec![it])),
-                LocalName::Nary => {
-                    let chr = prop_val(dom, n, LocalName::NaryPr, LocalName::Chr)
-                        .unwrap_or_else(|| "∫".into());
-                    if nary_command(&chr).is_none() {
-                        return Err(LatexUnsupported);
-                    }
-                    vec![slot(n, LocalName::Sub), slot(n, LocalName::Sup), slot(n, LocalName::E)]
-                }
-                LocalName::Func => {
-                    let name = plain_text_of_runs(dom, child(dom, n, LocalName::FName));
-                    let name = name.trim();
-                    if !(LATEX_FUNCTIONS.contains(&name)
-                        || name == "lim"
-                        || (!name.is_empty() && name.chars().all(|c| c.is_ascii_alphabetic())))
-                    {
-                        return Err(LatexUnsupported);
-                    }
-                    vec![slot(n, LocalName::E)]
-                }
-                LocalName::LimLow => {
-                    if plain_text_of_runs(dom, child(dom, n, LocalName::E)).trim() != "lim" {
-                        return Err(LatexUnsupported);
-                    }
-                    vec![slot(n, LocalName::Lim)]
-                }
-                LocalName::Acc => {
-                    let chr = prop_val(dom, n, LocalName::AccPr, LocalName::Chr)
-                        .unwrap_or_else(|| "\u{0302}".into());
-                    if accent_command(&chr).is_none() {
-                        return Err(LatexUnsupported);
-                    }
-                    vec![slot(n, LocalName::E)]
-                }
-                LocalName::Bar => vec![slot(n, LocalName::E)],
-                LocalName::GroupChr => {
-                    let chr = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Chr)
-                        .unwrap_or_else(|| "\u{23DF}".into());
-                    if chr != "\u{23DF}" && chr != "\u{23DE}" {
-                        return Err(LatexUnsupported);
-                    }
-                    vec![slot(n, LocalName::E)]
-                }
-                LocalName::M => {
-                    return Ok(Some(vec![LatexItem::Matrix { node: n, env: "matrix".into() }]));
-                }
-                LocalName::Box | LocalName::BorderBox | LocalName::Phant => {
-                    vec![slot(n, LocalName::E)]
-                }
-                _ => return Err(LatexUnsupported),
-            })
-        }
-    })
-}
-
-fn finish_latex(
-    dom: &Dom,
-    item: &LatexItem,
-    parts: Vec<String>,
-) -> std::result::Result<String, LatexUnsupported> {
-    let p = |i: usize| parts.get(i).map(String::as_str).unwrap_or("");
-    Ok(match item {
-        LatexItem::Slot(..) | LatexItem::Seq(_) => parts.concat(),
-        LatexItem::Binom(_) => format!("\\binom{{{}}}{{{}}}", p(0), p(1)),
-        LatexItem::Matrix { env, .. } => {
-            format!("\\begin{{{env}}} {} \\end{{{env}}}", parts.join(" \\\\ "))
-        }
-        LatexItem::MatrixRow(_) => parts.join(" & "),
-        LatexItem::LeftRight { beg, end, .. } => {
-            format!("\\left{beg} {} \\right{end}", parts.concat())
-        }
-        LatexItem::Node(n) => {
-            let n = *n;
-            let Some(name) = dom.name(n) else { return Ok(String::new()) };
-            match name.local {
-                LocalName::F => format!("\\frac{{{}}}{{{}}}", p(0), p(1)),
-                LocalName::SSup => format!("{{{}}}^{{{}}}", p(0), p(1)),
-                LocalName::SSub => format!("{{{}}}_{{{}}}", p(0), p(1)),
-                LocalName::SSubSup => format!("{{{}}}_{{{}}}^{{{}}}", p(0), p(1), p(2)),
-                LocalName::Rad => {
-                    if parts.len() == 1 {
-                        format!("\\sqrt{{{}}}", p(0))
-                    } else {
-                        format!("\\sqrt[{}]{{{}}}", p(0), p(1))
-                    }
-                }
-                LocalName::D => parts.concat(),
-                LocalName::Nary => {
-                    let chr = prop_val(dom, n, LocalName::NaryPr, LocalName::Chr)
-                        .unwrap_or_else(|| "∫".into());
-                    let command = nary_command(&chr).ok_or(LatexUnsupported)?;
-                    let sub = if prop_on(dom, n, LocalName::NaryPr, LocalName::SubHide) {
-                        String::new()
-                    } else {
-                        format!("_{{{}}}", p(0))
-                    };
-                    let sup = if prop_on(dom, n, LocalName::NaryPr, LocalName::SupHide) {
-                        String::new()
-                    } else {
-                        format!("^{{{}}}", p(1))
-                    };
-                    format!("\\{command}{sub}{sup} {{{}}}", p(2))
-                }
-                LocalName::Func => {
-                    let name = plain_text_of_runs(dom, child(dom, n, LocalName::FName));
-                    let name = name.trim();
-                    let arg = format!("{{{}}}", p(0));
-                    if LATEX_FUNCTIONS.contains(&name) || name == "lim" {
-                        format!("\\{name} {arg}")
-                    } else {
-                        format!("\\operatorname{{{name}}} {arg}")
-                    }
-                }
-                LocalName::LimLow => format!("\\lim_{{{}}}", p(0)),
-                LocalName::Acc => {
-                    let chr = prop_val(dom, n, LocalName::AccPr, LocalName::Chr)
-                        .unwrap_or_else(|| "\u{0302}".into());
-                    format!("\\{}{{{}}}", accent_command(&chr).ok_or(LatexUnsupported)?, p(0))
-                }
-                LocalName::Bar => {
-                    let top = prop_val(dom, n, LocalName::BarPr, LocalName::Pos).as_deref()
-                        == Some("top");
-                    format!("\\{}{{{}}}", if top { "overline" } else { "underline" }, p(0))
-                }
-                LocalName::GroupChr => {
-                    let chr = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Chr)
-                        .unwrap_or_else(|| "\u{23DF}".into());
-                    format!(
-                        "\\{}{{{}}}",
-                        if chr == "\u{23DE}" { "overbrace" } else { "underbrace" },
-                        p(0)
-                    )
-                }
-                LocalName::Box | LocalName::BorderBox | LocalName::Phant => p(0).to_string(),
-                // `m:m` 展开成一个 `Matrix` 项，结果就是它
-                LocalName::M => p(0).to_string(),
-                _ => return Err(LatexUnsupported),
-            }
-        }
-    })
-}
-
-/// `m:d`（TS `delimiterToLatex`）：`\binom`、矩阵环境、`\left … \right` 三种形态之一。
-fn delimiter(dom: &Dom, d: NodeId) -> std::result::Result<LatexItem, LatexUnsupported> {
-    let beg = prop_val(dom, d, LocalName::DPr, LocalName::BegChr).unwrap_or_else(|| "(".into());
-    let end = prop_val(dom, d, LocalName::DPr, LocalName::EndChr).unwrap_or_else(|| ")".into());
-    let slots = children_named(dom, d, LocalName::E);
-    let [slot] = slots.as_slice() else { return Err(LatexUnsupported) };
-    let inner = content_children(dom, *slot);
-    if let [only] = inner.as_slice() {
-        let only = *only;
-        if beg == "("
-            && end == ")"
-            && dom.is(only, m(LocalName::F))
-            && prop_val(dom, only, LocalName::FPr, LocalName::Type).as_deref() == Some("noBar")
-        {
-            return Ok(LatexItem::Binom(only));
-        }
-        if (dom.is(only, m(LocalName::M)) || dom.is(only, m(LocalName::EqArr)))
-            && let Some(env) = matrix_env(&beg, &end)
-        {
-            return Ok(LatexItem::Matrix { node: only, env: env.to_string() });
-        }
-    }
-    let beg_tok = delim_token(&beg).ok_or(LatexUnsupported)?;
-    let end_tok = delim_token(&end).ok_or(LatexUnsupported)?;
-    Ok(LatexItem::LeftRight { beg: beg_tok.to_string(), end: end_tok.to_string(), slot: *slot })
-}
-
-fn run_to_latex(dom: &Dom, run: NodeId) -> std::result::Result<String, LatexUnsupported> {
-    let text = run_text(dom, run);
-    if !is_plain_run(dom, run) {
-        return chars_to_latex(&text);
-    }
-    let trimmed = text.trim();
-    if trimmed.is_empty() {
-        return Ok(" ".into());
-    }
-    if LATEX_FUNCTIONS.contains(&trimmed) {
-        return Ok(format!("\\{trimmed} "));
-    }
-    if trimmed == "lim" {
-        return Ok("\\lim ".into());
-    }
-    if text.contains(['{', '}', '\\']) {
-        return Err(LatexUnsupported);
-    }
-    Ok(format!("\\text{{{text}}}"))
-}
-
-/// 普通数学文字：解析器的特殊字符转义，符号换成 `\命令 `（TS `charsToLatex`）。
-fn chars_to_latex(text: &str) -> std::result::Result<String, LatexUnsupported> {
-    let mut out = String::new();
-    for ch in text.chars() {
-        if ch == '\\' || ch == '\n' {
-            return Err(LatexUnsupported);
-        }
-        if let Some(esc) = char_escape(ch) {
-            out.push_str(esc);
-            continue;
-        }
-        match symbol_command(ch) {
-            Some(cmd) => {
-                out.push('\\');
-                out.push_str(cmd);
-                out.push(' ');
-            }
-            None => out.push(ch),
-        }
-    }
-    Ok(out)
-}
-
-fn char_escape(ch: char) -> Option<&'static str> {
-    Some(match ch {
-        '{' => "\\{ ",
-        '}' => "\\} ",
-        '_' => "\\_ ",
-        '^' => "\\^ ",
-        '&' => "\\& ",
-        '%' => "\\% ",
-        '$' => "\\$ ",
-        '#' => "\\# ",
-        _ => return None,
-    })
-}
-
-/// 三张 TS 表的反查：符号 / n 元运算符 / 重音 → 命令名（同一字符有多个名字时**第一个**赢）。
-macro_rules! latex_symbols {
-            ($fn:ident / $rev:ident: $($name:literal => $ch:literal),+ $(,)?) => {
-                /// 字符 → `\命令`（表序，别名取第一个）。
-                fn $fn(ch: char) -> Option<&'static str> {
-                    $( if ch == $ch { return Some($name); } )+
-                    None
-                }
-
-                /// `\命令` → 字符（同一张表的反方向，`latex_to_omml` 用）。
-                pub(in crate::model) fn $rev(name: &str) -> Option<char> {
-                    $( if name == $name { return Some($ch); } )+
-                    None
-                }
-            };
-        }
-
-latex_symbols! { symbol_command / symbol_char:
-    "alpha" => 'α', "beta" => 'β', "gamma" => 'γ', "delta" => 'δ', "epsilon" => 'ε', "zeta" => 'ζ',
-    "eta" => 'η', "theta" => 'θ', "vartheta" => 'ϑ', "iota" => 'ι', "kappa" => 'κ', "lambda" => 'λ',
-    "mu" => 'μ', "nu" => 'ν', "xi" => 'ξ', "pi" => 'π', "rho" => 'ρ', "sigma" => 'σ', "tau" => 'τ',
-    "upsilon" => 'υ', "phi" => 'φ', "varphi" => 'ϕ', "chi" => 'χ', "psi" => 'ψ', "omega" => 'ω',
-    "Gamma" => 'Γ', "Delta" => 'Δ', "Theta" => 'Θ', "Lambda" => 'Λ', "Xi" => 'Ξ', "Pi" => 'Π',
-    "Sigma" => 'Σ', "Upsilon" => 'Υ', "Phi" => 'Φ', "Psi" => 'Ψ', "Omega" => 'Ω',
-    "infty" => '∞', "pm" => '±', "mp" => '∓', "times" => '×', "div" => '÷', "cdot" => '⋅', "ast" => '*',
-    "le" => '≤', "ge" => '≥', "ne" => '≠', "approx" => '≈', "equiv" => '≡', "sim" => '∼', "propto" => '∝',
-    "to" => '→', "leftarrow" => '←', "leftrightarrow" => '↔', "Rightarrow" => '⇒', "Leftarrow" => '⇐',
-    "Leftrightarrow" => '⇔', "partial" => '∂', "nabla" => '∇', "in" => '∈', "notin" => '∉',
-    "subset" => '⊂', "supset" => '⊃', "subseteq" => '⊆', "supseteq" => '⊇', "cup" => '∪', "cap" => '∩',
-    "forall" => '∀', "exists" => '∃', "wedge" => '∧', "vee" => '∨', "neg" => '¬', "angle" => '∠',
-    "perp" => '⊥', "parallel" => '∥', "ldots" => '…', "cdots" => '⋯', "vdots" => '⋮', "ddots" => '⋱',
-    "prime" => '′', "circ" => '∘', "degree" => '°', "bullet" => '∙', "star" => '⋆', "emptyset" => '∅',
-    "hbar" => 'ℏ', "ell" => 'ℓ', "Re" => 'ℜ', "Im" => 'ℑ', "aleph" => 'ℵ', "therefore" => '∴', "because" => '∵',
-}
-
-latex_symbols! { accent_char_command / accent_char:
-    "hat" => '\u{0302}', "bar" => '\u{0304}', "vec" => '\u{20D7}', "dot" => '\u{0307}', "ddot" => '\u{0308}',
-    "tilde" => '\u{0303}', "check" => '\u{030C}', "breve" => '\u{0306}',
-}
-
-latex_symbols! { nary_char_command / nary_char:
-    "sum" => '∑', "prod" => '∏', "coprod" => '∐', "bigcup" => '⋃', "bigcap" => '⋂', "int" => '∫',
-    "iint" => '∬', "iiint" => '∭', "oint" => '∮',
-}
-
-fn single(s: &str) -> Option<char> {
-    let mut it = s.chars();
-    let c = it.next()?;
-    it.next().is_none().then_some(c)
-}
-
-fn nary_command(chr: &str) -> Option<&'static str> {
-    single(chr).and_then(nary_char_command)
-}
-
-fn accent_command(chr: &str) -> Option<&'static str> {
-    single(chr).and_then(accent_char_command)
-}
-
-/// TS `LATEX_FUNCTIONS.has(name)`（`latex_to_omml` 用）。
-pub(in crate::model) fn is_latex_function(name: &str) -> bool {
-    LATEX_FUNCTIONS.contains(&name)
-}
-
-/// TS `LATEX_FUNCTIONS`。
-const LATEX_FUNCTIONS: &[&str] = &[
-    "sin", "cos", "tan", "cot", "sec", "csc", "sinh", "cosh", "tanh", "coth", "arcsin", "arccos",
-    "arctan", "ln", "log", "exp", "max", "min", "sup", "inf", "arg", "det", "gcd", "deg", "dim",
-    "ker", "mod",
-];
-
-/// 定界字符 → `\left` / `\right` 后面的 token（TS `LEFT_RIGHT_CHARS` 的反查；`""` → `.`）。
-fn delim_token(ch: &str) -> Option<&'static str> {
-    Some(match ch {
-        "" => ".",
-        "(" => "(",
-        ")" => ")",
-        "[" => "[",
-        "]" => "]",
-        "|" => "|",
-        "{" => "\\{",
-        "}" => "\\}",
-        "‖" => "\\|",
-        "⟨" => "\\langle",
-        "⟩" => "\\rangle",
-        "⌊" => "\\lfloor",
-        "⌋" => "\\rfloor",
-        "⌈" => "\\lceil",
-        "⌉" => "\\rceil",
-        _ => return None,
-    })
-}
-
-/// 定界符对 → 矩阵环境（TS `MATRIX_DELIMS`；`cases` 是 `{` 配空的右侧）。
-fn matrix_env(beg: &str, end: &str) -> Option<&'static str> {
-    Some(match (beg, end) {
-        ("(", ")") => "pmatrix",
-        ("[", "]") => "bmatrix",
-        ("{", "}") => "Bmatrix",
-        ("|", "|") => "vmatrix",
-        ("‖", "‖") => "Vmatrix",
-        ("{", "") => "cases",
-        _ => return None,
-    })
-}
-
-// LaTeX → OMML（TS `math.ts` 的 `latexToOmml`，`spec/18` 7.5 逐字移植）。
-//
-// 输出与 TS **逐字相等**（`fixtures/fieldgen/` 是对照件）：同样的元素顺序、同样的属性顺序、
-// 同样的转义。这是**用户输入**的解析器，不是文档遍历，所以按 `spec/18` 的约定用递归下降 +
-// 深度上限（256），超限 `Err(EDIT_MATH_TOO_DEEP)` 而不是写显式栈。
-
-use crate::error::Error;
-
-/// 递归深度上限（用户输入，不是文档；`spec/18` 风险 11）。
-const LATEX_MAX_DEPTH: usize = 256;
-
-fn err(msg: impl Into<String>) -> Error {
-    Error::edit(DiagCode::EditMathBadLatex, msg)
-}
-
-fn too_deep() -> Error {
-    Error::edit(DiagCode::EditMathTooDeep, "LaTeX 嵌套超过 256 层")
-}
-
-/// TS `escapeXmlAttr`。
-fn escape_attr(s: &str) -> String {
-    escape_text(s).replace('"', "&quot;")
-}
-
-struct P<'a> {
-    src: &'a [char],
-    pos: usize,
-    depth: usize,
-}
-
-impl P<'_> {
-    fn peek(&self) -> char {
-        self.src.get(self.pos).copied().unwrap_or('\0')
-    }
-
-    fn rest_starts_with(&self, pat: &str) -> bool {
-        let p: Vec<char> = pat.chars().collect();
-        self.src.len() >= self.pos + p.len() && self.src[self.pos..self.pos + p.len()] == p[..]
-    }
-
-    fn skip_spaces(&mut self) {
-        while self.peek().is_whitespace() {
-            self.pos += 1;
-        }
-    }
-
-    fn slice(&self, from: usize, to: usize) -> String {
-        self.src[from.min(self.src.len())..to.min(self.src.len())].iter().collect()
-    }
-
-    fn deeper(&mut self) -> Result<()> {
-        self.depth += 1;
-        if self.depth > LATEX_MAX_DEPTH { Err(too_deep()) } else { Ok(()) }
-    }
-}
-
-/// TS `latexToOmml`：整串 LaTeX → `m:oMath` 的**内容**（不含 `m:oMath` 本身）。
-pub fn latex_to_omml(latex: &str) -> Result<String> {
-    let chars: Vec<char> = latex.chars().collect();
-    let mut p = P { src: &chars, pos: 0, depth: 0 };
-    let out = parse_sequence(&mut p, &|p: &P<'_>| p.pos >= p.src.len())?;
-    if p.pos < p.src.len() {
-        return Err(err(format!("Cannot parse: \"{}\"", p.slice(p.pos, p.pos + 12))));
-    }
-    Ok(out)
-}
-
-/// TS `mathParagraphXml`：编辑器新建的独立公式段。
-pub fn math_paragraph_xml(omml: &str, align: &str) -> String {
-    let jc = if align == "center" {
-        String::new()
-    } else {
-        format!(r#"<w:pPr><w:jc w:val="{}"/></w:pPr>"#, escape_attr(align))
-    };
-    format!(
-        concat!(
-            r#"<w:p>{jc}<m:oMathPara><m:oMathParaPr><m:jc m:val="{align}"/></m:oMathParaPr>"#,
-            r#"<m:oMath>{omml}</m:oMath></m:oMathPara></w:p>"#
-        ),
-        jc = jc,
-        align = escape_attr(align),
-        omml = omml,
-    )
-}
-
-/// TS `mathRun`。
-fn math_run(text: &str, plain: bool) -> String {
-    if text.is_empty() {
-        return String::new();
-    }
-    let rpr = if plain { r#"<m:rPr><m:sty m:val="p"/></m:rPr>"# } else { "" };
-    format!(r#"<m:r>{rpr}<m:t xml:space="preserve">{}</m:t></m:r>"#, escape_text(text))
-}
-
-/// TS `readControlName`：反斜杠之后的命令名（字母串，否则单个字符）。
-fn read_control_name(p: &mut P<'_>) -> String {
-    let start = p.pos;
-    while p.src.get(p.pos).is_some_and(|c| c.is_ascii_alphabetic()) {
-        p.pos += 1;
-    }
-    if p.pos > start {
-        return p.slice(start, p.pos);
-    }
-    let ch = p.peek();
-    p.pos += 1;
-    if ch == '\0' { String::new() } else { ch.to_string() }
-}
-
-/// TS `parseGroup`：必需的 `{...}`，或者按 LaTeX 语义的**一个** token。
-fn parse_group(p: &mut P<'_>) -> Result<String> {
-    p.skip_spaces();
-    if p.peek() == '{' {
-        p.pos += 1;
-        p.deeper()?;
-        let out = parse_sequence(p, &|p: &P<'_>| p.peek() == '}')?;
-        p.depth -= 1;
-        if p.peek() != '}' {
-            return Err(err("Missing matching }"));
-        }
-        p.pos += 1;
-        return Ok(out);
-    }
-    if p.peek() == '\\' {
-        p.pos += 1;
-        p.deeper()?;
-        let out = parse_control(p)?;
-        p.depth -= 1;
-        return Ok(out);
-    }
-    let ch = p.peek();
-    if ch == '\0' || "{}^_&".contains(ch) {
-        return Err(err("An argument is required here"));
-    }
-    p.pos += 1;
-    Ok(math_run(&ch.to_string(), false))
-}
-
-/// TS `readBraceText`：`{...}` 的原文（`\text` / `\begin` 的名字）。
-fn read_brace_text(p: &mut P<'_>) -> Result<String> {
-    p.skip_spaces();
-    if p.peek() != '{' {
-        return Err(err("Expected { here"));
-    }
-    p.pos += 1;
-    let mut depth = 1usize;
-    let mut out = String::new();
-    while p.pos < p.src.len() {
-        let ch = p.src[p.pos];
-        p.pos += 1;
-        if ch == '{' {
-            depth += 1;
-        } else if ch == '}' {
-            depth -= 1;
-            if depth == 0 {
-                return Ok(out);
-            }
-        }
-        if depth > 0 {
-            out.push(ch);
-        }
-    }
-    Err(err("Missing matching }"))
-}
-
-type Stop<'s> = dyn Fn(&P<'_>) -> bool + 's;
-
-/// TS `parseSequence`：一串原子，`^` / `_` 作用在前一个原子上。
-fn parse_sequence(p: &mut P<'_>, stop: &Stop<'_>) -> Result<String> {
-    let mut atoms: Vec<String> = Vec::new();
-    loop {
-        p.skip_spaces();
-        if p.pos >= p.src.len() || stop(p) {
-            break;
-        }
-        let ch = p.peek();
-        if ch == '^' || ch == '_' {
-            p.pos += 1;
-            let script = parse_group(p)?;
-            let other = p.peek();
-            let base = atoms.pop().unwrap_or_else(|| math_run("", false));
-            if (other == '^' || other == '_') && other != ch {
-                p.pos += 1;
-                let second = parse_group(p)?;
-                let (sub, sup) = if ch == '_' { (script, second) } else { (second, script) };
-                atoms.push(format!(
-                            "<m:sSubSup><m:e>{base}</m:e><m:sub>{sub}</m:sub><m:sup>{sup}</m:sup></m:sSubSup>"
-                        ));
-            } else if ch == '^' {
-                atoms.push(format!("<m:sSup><m:e>{base}</m:e><m:sup>{script}</m:sup></m:sSup>"));
-            } else {
-                atoms.push(format!("<m:sSub><m:e>{base}</m:e><m:sub>{script}</m:sub></m:sSub>"));
-            }
-            continue;
-        }
-        atoms.push(parse_atom(p)?);
-    }
-    Ok(atoms.concat())
-}
-
-/// TS `parseAtom`。
-fn parse_atom(p: &mut P<'_>) -> Result<String> {
-    p.skip_spaces();
-    let ch = p.peek();
-    if ch == '\0' {
-        return Ok(String::new());
-    }
-    if ch == '{' {
-        return parse_group(p);
-    }
-    if ch == '}' {
-        return Err(err("Unexpected }"));
-    }
-    if ch == '\\' {
-        p.pos += 1;
-        p.deeper()?;
-        let out = parse_control(p)?;
-        p.depth -= 1;
-        return Ok(out);
-    }
-    let start = p.pos;
-    while p.pos < p.src.len() {
-        let c = p.src[p.pos];
-        if "\\{}^_&".contains(c) || c == '\n' {
-            break;
-        }
-        p.pos += 1;
-    }
-    let text = p.slice(start, p.pos);
-    if text.is_empty() {
-        return Err(err(format!("Cannot parse: \"{ch}\"")));
-    }
-    // 紧跟的上下标只作用在**最后一个字符**上（"ab^2" = a·b²）：退回去让它自成一个原子
-    let chars: Vec<char> = text.chars().collect();
-    if (p.peek() == '^' || p.peek() == '_') && chars.len() > 1 {
-        p.pos -= 1;
-        return Ok(math_run(&chars[..chars.len() - 1].iter().collect::<String>(), false));
-    }
-    Ok(math_run(&text, false))
-}
-
-/// TS `naryOmml`。
-fn nary_omml(p: &mut P<'_>, chr: &str, lim_loc: &str) -> Result<String> {
-    let (mut sub, mut sup) = (String::new(), String::new());
-    for _ in 0..2 {
-        p.skip_spaces();
-        let ch = p.peek();
-        if ch == '_' && sub.is_empty() {
-            p.pos += 1;
-            sub = parse_group(p)?;
-        } else if ch == '^' && sup.is_empty() {
-            p.pos += 1;
-            sup = parse_group(p)?;
-        } else {
-            break;
-        }
-    }
-    p.skip_spaces();
-    let operand = if p.peek() == '{' { parse_group(p)? } else { String::new() };
-    let pr = format!(
-        r#"<m:naryPr><m:chr m:val="{}"/><m:limLoc m:val="{lim_loc}"/>{}{}</m:naryPr>"#,
-        escape_attr(chr),
-        if sub.is_empty() { r#"<m:subHide m:val="1"/>"# } else { "" },
-        if sup.is_empty() { r#"<m:supHide m:val="1"/>"# } else { "" },
-    );
-    Ok(format!(
-        "<m:nary>{pr}{}{}<m:e>{operand}</m:e></m:nary>",
-        if sub.is_empty() { String::new() } else { format!("<m:sub>{sub}</m:sub>") },
-        if sup.is_empty() { String::new() } else { format!("<m:sup>{sup}</m:sup>") },
-    ))
-}
-
-/// TS `matrixOmml`。
-fn matrix_omml(p: &mut P<'_>, env: &str) -> Result<String> {
-    let delims = matrix_delims(env).expect("caller checked the environment");
-    let mut rows: Vec<Vec<String>> = vec![Vec::new()];
-    loop {
-        let cell = parse_sequence(p, &|p: &P<'_>| {
-            p.peek() == '&' || p.rest_starts_with("\\\\") || p.rest_starts_with("\\end")
-        })?;
-        rows.last_mut().expect("never empty").push(cell);
-        if p.peek() == '&' {
-            p.pos += 1;
-        } else if p.rest_starts_with("\\\\") {
-            p.pos += 2;
-            rows.push(Vec::new());
-        } else if p.rest_starts_with("\\end") {
-            p.pos += 4;
-            let closing = read_brace_text(p)?;
-            if closing != env {
-                return Err(err(format!("\\end{{{closing}}} does not match \\begin{{{env}}}")));
-            }
-            break;
-        } else {
-            return Err(err(format!("\\begin{{{env}}} is missing \\end{{{env}}}")));
-        }
-    }
-    let body: String = rows
-        .iter()
-        .filter(|row| row.len() > 1 || row.first().is_some_and(|c| !c.is_empty()))
-        .map(|row| {
-            let cells: String = row.iter().map(|c| format!("<m:e>{c}</m:e>")).collect();
-            format!("<m:mr>{cells}</m:mr>")
-        })
-        .collect();
-    let matrix = format!("<m:m>{body}</m:m>");
-    let Some((beg, end)) = delims else { return Ok(matrix) };
-    Ok(format!(
-        concat!(
-            r#"<m:d><m:dPr><m:begChr m:val="{beg}"/><m:endChr m:val="{end}"/>"#,
-            "</m:dPr><m:e>{matrix}</m:e></m:d>"
-        ),
-        beg = escape_attr(beg),
-        end = escape_attr(end),
-        matrix = matrix,
-    ))
-}
-
-/// TS `readDelimiter`。
-fn read_delimiter(p: &mut P<'_>) -> Result<String> {
-    p.skip_spaces();
-    if p.peek() == '\\' {
-        let start = p.pos;
-        p.pos += 1;
-        let name = read_control_name(p);
-        if let Some(ch) = left_right_char(&format!("\\{name}")) {
-            return Ok(ch.to_string());
-        }
-        p.pos = start;
-        return Err(err(format!("Unsupported delimiter: \\{name}")));
-    }
-    let ch = p.peek();
-    if let Some(mapped) = left_right_char(&ch.to_string()) {
-        p.pos += 1;
-        return Ok(mapped.to_string());
-    }
-    Err(err(format!("Unsupported delimiter: \"{ch}\"")))
-}
-
-/// TS `parseControl`。
-fn parse_control(p: &mut P<'_>) -> Result<String> {
-    let name = read_control_name(p);
-    if let Some(ch) = symbol_char(&name) {
-        return Ok(math_run(&ch.to_string(), false));
-    }
-    if let Some((chr, lim_loc)) = nary_op(&name) {
-        return nary_omml(p, &chr.to_string(), lim_loc);
-    }
-    if let Some(ch) = accent_char(&name) {
-        let base = parse_group(p)?;
-        return Ok(format!(
-            r#"<m:acc><m:accPr><m:chr m:val="{}"/></m:accPr><m:e>{base}</m:e></m:acc>"#,
-            escape_attr(&ch.to_string())
-        ));
-    }
-    if is_latex_function(&name) {
-        return Ok(math_run(&name, true));
-    }
-    match name.as_str() {
-        "frac" | "dfrac" | "tfrac" => {
-            let num = parse_group(p)?;
-            let den = parse_group(p)?;
-            Ok(format!("<m:f><m:num>{num}</m:num><m:den>{den}</m:den></m:f>"))
-        }
-        "binom" => {
-            let top = parse_group(p)?;
-            let bottom = parse_group(p)?;
-            Ok(format!(
-                concat!(
-                    r#"<m:d><m:e><m:f><m:fPr><m:type m:val="noBar"/></m:fPr>"#,
-                    "<m:num>{top}</m:num><m:den>{bottom}</m:den></m:f></m:e></m:d>"
-                ),
-                top = top,
-                bottom = bottom
-            ))
-        }
-        "sqrt" => {
-            p.skip_spaces();
-            let mut deg = String::new();
-            if p.peek() == '[' {
-                // 普通字符串不会在 ']' 停下：把次数的源码单独切出来当一段解析
-                p.pos += 1;
-                let close = (p.pos..p.src.len()).find(|&i| p.src[i] == ']');
-                let Some(close) = close else { return Err(err("Missing matching ]")) };
-                let inner: Vec<char> = p.src[p.pos..close].to_vec();
-                let mut sub = P { src: &inner, pos: 0, depth: p.depth };
-                deg = parse_sequence(&mut sub, &|q: &P<'_>| q.pos >= q.src.len())?;
-                p.pos = close + 1;
-            }
-            let inner = parse_group(p)?;
-            if deg.is_empty() {
-                return Ok(format!(
-                    r#"<m:rad><m:radPr><m:degHide m:val="1"/></m:radPr><m:deg/><m:e>{inner}</m:e></m:rad>"#
-                ));
-            }
-            Ok(format!("<m:rad><m:deg>{deg}</m:deg><m:e>{inner}</m:e></m:rad>"))
-        }
-        "overline" => Ok(format!(
-            r#"<m:bar><m:barPr><m:pos m:val="top"/></m:barPr><m:e>{}</m:e></m:bar>"#,
-            parse_group(p)?
-        )),
-        "underline" => Ok(format!(
-            r#"<m:bar><m:barPr><m:pos m:val="bot"/></m:barPr><m:e>{}</m:e></m:bar>"#,
-            parse_group(p)?
-        )),
-        "underbrace" => Ok(format!(
-            concat!(
-                r#"<m:groupChr><m:groupChrPr><m:chr m:val="⏟"/><m:pos m:val="bot"/></m:groupChrPr>"#,
-                "<m:e>{}</m:e></m:groupChr>"
-            ),
-            parse_group(p)?
-        )),
-        "overbrace" => Ok(format!(
-            concat!(
-                r#"<m:groupChr><m:groupChrPr><m:chr m:val="⏞"/><m:pos m:val="top"/></m:groupChrPr>"#,
-                "<m:e>{}</m:e></m:groupChr>"
-            ),
-            parse_group(p)?
-        )),
-        "text" | "mathrm" | "operatorname" => {
-            let t = read_brace_text(p)?;
-            Ok(math_run(&t, true))
-        }
-        "lim" => {
-            p.skip_spaces();
-            if p.peek() == '_' {
-                p.pos += 1;
-                let lim = parse_group(p)?;
-                return Ok(format!(
-                    "<m:limLow><m:e>{}</m:e><m:lim>{lim}</m:lim></m:limLow>",
-                    math_run("lim", true)
-                ));
-            }
-            Ok(math_run("lim", true))
-        }
-        "left" => {
-            let beg = read_delimiter(p)?;
-            p.deeper()?;
-            let body = parse_sequence(p, &|p: &P<'_>| p.rest_starts_with("\\right"))?;
-            p.depth -= 1;
-            if !p.rest_starts_with("\\right") {
-                return Err(err("\\left is missing a matching \\right"));
-            }
-            p.pos += "\\right".chars().count();
-            let end = read_delimiter(p)?;
-            Ok(format!(
-                concat!(
-                    r#"<m:d><m:dPr><m:begChr m:val="{beg}"/><m:endChr m:val="{end}"/>"#,
-                    "</m:dPr><m:e>{body}</m:e></m:d>"
-                ),
-                beg = escape_attr(&beg),
-                end = escape_attr(&end),
-                body = body,
-            ))
-        }
-        "begin" => {
-            let env = read_brace_text(p)?;
-            if matrix_delims(&env).is_none() {
-                return Err(err(format!("Unsupported environment: \\begin{{{env}}}")));
-            }
-            p.deeper()?;
-            let out = matrix_omml(p, &env)?;
-            p.depth -= 1;
-            Ok(out)
-        }
-        "," | ";" | " " | "quad" | "qquad" => Ok(math_run(" ", false)),
-        "\\" => Err(err("\\\\ is only allowed inside matrix environments")),
-        "{" => Ok(math_run("{", false)),
-        "}" => Ok(math_run("}", false)),
-        "%" | "&" | "$" | "#" | "_" | "^" => Ok(math_run(&name, false)),
-        other => Err(err(format!("Unsupported command: \\{other}"))),
-    }
-}
-
-/// TS `NARY_OPS`：符号取自同一张 LaTeX 符号表（`nary_char`），这里只补 `limLoc`。
-fn nary_op(name: &str) -> Option<(char, &'static str)> {
-    let chr = nary_char(name)?;
-    let lim_loc = match name {
-        "int" | "iint" | "iiint" | "oint" => "subSup",
-        _ => "undOvr",
-    };
-    Some((chr, lim_loc))
-}
-
-/// TS `MATRIX_DELIMS`：外层 `None` = 不是矩阵环境，内层 `None` = 没有定界符。
-fn matrix_delims(env: &str) -> Option<Option<(&'static str, &'static str)>> {
-    Some(match env {
-        "matrix" => None,
-        "pmatrix" => Some(("(", ")")),
-        "bmatrix" => Some(("[", "]")),
-        "Bmatrix" => Some(("{", "}")),
-        "vmatrix" => Some(("|", "|")),
-        "Vmatrix" => Some(("‖", "‖")),
-        "cases" => Some(("{", "")),
-        _ => return None,
-    })
-}
-
-/// TS `LEFT_RIGHT_CHARS`。
-fn left_right_char(key: &str) -> Option<&'static str> {
-    Some(match key {
-        "(" => "(",
-        ")" => ")",
-        "[" => "[",
-        "]" => "]",
-        "|" => "|",
-        "." => "",
-        "\\{" => "{",
-        "\\}" => "}",
-        "\\|" => "‖",
-        "\\langle" => "⟨",
-        "\\rangle" => "⟩",
-        "\\lfloor" => "⌊",
-        "\\rfloor" => "⌋",
-        "\\lceil" => "⌈",
-        "\\rceil" => "⌉",
-        _ => return None,
-    })
-}
-
 // OMML → MathML Core（TS `ommlToMathML`，`math.ts` 55–376 的逐字移植）。
 //
 // 迭代求值：`MathmlItem` 是一个待求值的项（元素 / 槽位 / 行 …），任务栈里 `Eval(item)` 展开出子项与一个
@@ -7060,7 +6137,7 @@ enum MathmlTask {
 }
 
 fn mo(ch: &str, extra: &str) -> String {
-    format!("<mo{extra}>{}</mo>", escape_text(ch))
+    format!("<mo{extra}>{}</mo>", String::from(FragmentText::from(ch)))
 }
 
 fn eval_mathml(dom: &Dom, root: MathmlItem) -> String {
@@ -7092,11 +6169,10 @@ fn expand_mathml(
     results: &mut Vec<String>,
 ) -> Option<Vec<MathmlItem>> {
     let slot = |n: NodeId, l: LocalName| MathmlItem::Slot(n, l);
-    let rows = |n: NodeId| -> Vec<MathmlItem> {
-        content_children(dom, n).into_iter().map(MathmlItem::Node).collect()
-    };
+    let rows =
+        |n: NodeId| -> Vec<MathmlItem> { dom.content_children(n).map(MathmlItem::Node).collect() };
     match item {
-        MathmlItem::Slot(parent, name) => match child(dom, parent, name) {
+        MathmlItem::Slot(parent, name) => match dom.children_named(parent, m(name)).next() {
             None => {
                 results.push("<mrow></mrow>".to_string());
                 None
@@ -7105,7 +6181,7 @@ fn expand_mathml(
         },
         MathmlItem::Row(n) | MathmlItem::Seq(n) => Some(rows(n)),
         MathmlItem::Cells(mr) => {
-            Some(children_named(dom, mr, LocalName::E).into_iter().map(MathmlItem::Row).collect())
+            Some(dom.children_named(mr, m(LocalName::E)).map(MathmlItem::Row).collect())
         }
         MathmlItem::EqRow(e) => Some(vec![MathmlItem::Row(e)]),
         MathmlItem::Node(n) => {
@@ -7123,7 +6199,7 @@ fn expand_mathml(
                     return None;
                 }
                 LocalName::T => {
-                    results.push(run_text_to_mml(&omml_text_of(dom, n), false));
+                    results.push(run_text_to_mml(&dom.omml_text_of(n), false));
                     return None;
                 }
                 LocalName::F => vec![slot(n, LocalName::Num), slot(n, LocalName::Den)],
@@ -7133,8 +6209,8 @@ fn expand_mathml(
                     vec![slot(n, LocalName::E), slot(n, LocalName::Sub), slot(n, LocalName::Sup)]
                 }
                 LocalName::Rad => {
-                    if prop_on(dom, n, LocalName::RadPr, LocalName::DegHide)
-                        || child(dom, n, LocalName::Deg).is_none()
+                    if dom.prop_on(n, LocalName::RadPr, LocalName::DegHide)
+                        || dom.children_named(n, m(LocalName::Deg)).next().is_none()
                     {
                         vec![slot(n, LocalName::E)]
                     } else {
@@ -7142,7 +6218,7 @@ fn expand_mathml(
                     }
                 }
                 LocalName::D => {
-                    children_named(dom, n, LocalName::E).into_iter().map(MathmlItem::Row).collect()
+                    dom.children_named(n, m(LocalName::E)).map(MathmlItem::Row).collect()
                 }
                 LocalName::Nary => {
                     vec![slot(n, LocalName::Sub), slot(n, LocalName::Sup), slot(n, LocalName::E)]
@@ -7154,14 +6230,12 @@ fn expand_mathml(
                 LocalName::Acc | LocalName::Bar | LocalName::GroupChr => {
                     vec![slot(n, LocalName::E)]
                 }
-                LocalName::M => children_named(dom, n, LocalName::Mr)
-                    .into_iter()
-                    .map(MathmlItem::Cells)
-                    .collect(),
-                LocalName::EqArr => children_named(dom, n, LocalName::E)
-                    .into_iter()
-                    .map(MathmlItem::EqRow)
-                    .collect(),
+                LocalName::M => {
+                    dom.children_named(n, m(LocalName::Mr)).map(MathmlItem::Cells).collect()
+                }
+                LocalName::EqArr => {
+                    dom.children_named(n, m(LocalName::E)).map(MathmlItem::EqRow).collect()
+                }
                 LocalName::Box | LocalName::BorderBox | LocalName::Phant => {
                     vec![slot(n, LocalName::E)]
                 }
@@ -7189,7 +6263,7 @@ fn finish_mathml(dom: &Dom, item: MathmlItem, parts: Vec<String>) -> String {
             }
             match name.local {
                 LocalName::F => {
-                    let attrs = match prop_val(dom, n, LocalName::FPr, LocalName::Type).as_deref() {
+                    let attrs = match dom.prop_val(n, LocalName::FPr, LocalName::Type).as_deref() {
                         Some("noBar") => " linethickness=\"0\"",
                         Some("lin" | "skw") => " bevelled=\"true\"",
                         _ => "",
@@ -7212,11 +6286,14 @@ fn finish_mathml(dom: &Dom, item: MathmlItem, parts: Vec<String>) -> String {
                     }
                 }
                 LocalName::D => {
-                    let beg = prop_val(dom, n, LocalName::DPr, LocalName::BegChr)
+                    let beg = dom
+                        .prop_val(n, LocalName::DPr, LocalName::BegChr)
                         .unwrap_or_else(|| "(".into());
-                    let end = prop_val(dom, n, LocalName::DPr, LocalName::EndChr)
+                    let end = dom
+                        .prop_val(n, LocalName::DPr, LocalName::EndChr)
                         .unwrap_or_else(|| ")".into());
-                    let sep = prop_val(dom, n, LocalName::DPr, LocalName::SepChr)
+                    let sep = dom
+                        .prop_val(n, LocalName::DPr, LocalName::SepChr)
                         .unwrap_or_else(|| "|".into());
                     let sep_mo = if sep.is_empty() { String::new() } else { mo(&sep, "") };
                     let body = parts.join(&sep_mo);
@@ -7227,14 +6304,16 @@ fn finish_mathml(dom: &Dom, item: MathmlItem, parts: Vec<String>) -> String {
                     format!("<mrow>{open}{body}{close}</mrow>")
                 }
                 LocalName::Nary => {
-                    let chr = prop_val(dom, n, LocalName::NaryPr, LocalName::Chr)
+                    let chr = dom
+                        .prop_val(n, LocalName::NaryPr, LocalName::Chr)
                         .unwrap_or_else(|| "\u{222B}".into());
-                    let lim_loc = prop_val(dom, n, LocalName::NaryPr, LocalName::LimLoc)
+                    let lim_loc = dom
+                        .prop_val(n, LocalName::NaryPr, LocalName::LimLoc)
                         .unwrap_or_else(|| {
                             if chr == "\u{222B}" { "subSup".into() } else { "undOvr".into() }
                         });
-                    let sub_hide = prop_on(dom, n, LocalName::NaryPr, LocalName::SubHide);
-                    let sup_hide = prop_on(dom, n, LocalName::NaryPr, LocalName::SupHide);
+                    let sub_hide = dom.prop_on(n, LocalName::NaryPr, LocalName::SubHide);
+                    let sup_hide = dom.prop_on(n, LocalName::NaryPr, LocalName::SupHide);
                     let op = mo(&chr, " stretchy=\"false\"");
                     let und_ovr = lim_loc == "undOvr";
                     let scripted = match (sub_hide, sup_hide) {
@@ -7260,21 +6339,23 @@ fn finish_mathml(dom: &Dom, item: MathmlItem, parts: Vec<String>) -> String {
                 LocalName::LimLow => format!("<munder>{}{}</munder>", p(0), p(1)),
                 LocalName::LimUpp => format!("<mover>{}{}</mover>", p(0), p(1)),
                 LocalName::Acc => {
-                    let chr = prop_val(dom, n, LocalName::AccPr, LocalName::Chr)
+                    let chr = dom
+                        .prop_val(n, LocalName::AccPr, LocalName::Chr)
                         .unwrap_or_else(|| "\u{0302}".into());
                     format!("<mover accent=\"true\">{}{}</mover>", p(0), mo(&chr, ""))
                 }
                 LocalName::Bar => {
-                    let top = prop_val(dom, n, LocalName::BarPr, LocalName::Pos).as_deref()
-                        == Some("top");
+                    let top =
+                        dom.prop_val(n, LocalName::BarPr, LocalName::Pos).as_deref() == Some("top");
                     let (tag, line) =
                         if top { ("mover", "\u{00AF}") } else { ("munder", "\u{005F}") };
                     format!("<{tag}>{}{}</{tag}>", p(0), mo(line, " stretchy=\"true\""))
                 }
                 LocalName::GroupChr => {
-                    let chr = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Chr)
+                    let chr = dom
+                        .prop_val(n, LocalName::GroupChrPr, LocalName::Chr)
                         .unwrap_or_else(|| "\u{23DF}".into());
-                    let top = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Pos).as_deref()
+                    let top = dom.prop_val(n, LocalName::GroupChrPr, LocalName::Pos).as_deref()
                         == Some("top");
                     let tag = if top { "mover" } else { "munder" };
                     format!("<{tag}>{}{}</{tag}>", p(0), mo(&chr, " stretchy=\"true\""))
@@ -7289,10 +6370,9 @@ fn finish_mathml(dom: &Dom, item: MathmlItem, parts: Vec<String>) -> String {
 
 /// `m:r` → 各 `m:t` 分类后的 token 串（`sty="p"` / `m:nor` 的 run 整段是 `<mi>`）。
 fn run_to_mml(dom: &Dom, run: NodeId) -> String {
-    let plain = is_plain_run(dom, run);
-    children_named(dom, run, LocalName::T)
-        .iter()
-        .map(|&t| run_text_to_mml(&omml_text_of(dom, t), plain))
+    let plain = dom.is_plain_run(run);
+    dom.children_named(run, m(LocalName::T))
+        .map(|t| run_text_to_mml(&dom.omml_text_of(t), plain))
         .collect()
 }
 
@@ -7311,7 +6391,7 @@ pub(crate) fn run_text_to_mml(text: &str, plain: bool) -> String {
         return if text.is_empty() {
             String::new()
         } else {
-            format!("<mi>{}</mi>", escape_text(text))
+            format!("<mi>{}</mi>", String::from(FragmentText::from(text)))
         };
     }
     let chars: Vec<char> = text.chars().collect();
@@ -7327,7 +6407,10 @@ pub(crate) fn run_text_to_mml(text: &str, plain: bool) -> String {
             }
             out.push_str(&format!("<mn>{num}</mn>"));
         } else if is_letter(ch) {
-            out.push_str(&format!("<mi>{}</mi>", escape_text(&ch.to_string())));
+            out.push_str(&format!(
+                "<mi>{}</mi>",
+                String::from(FragmentText::from(ch.to_string().as_str()))
+            ));
             i += 1;
         } else if ch == ' ' {
             i += 1;
@@ -7341,7 +6424,10 @@ pub(crate) fn run_text_to_mml(text: &str, plain: bool) -> String {
             });
             i += 1;
         } else {
-            out.push_str(&format!("<mtext>{}</mtext>", escape_text(&ch.to_string())));
+            out.push_str(&format!(
+                "<mtext>{}</mtext>",
+                String::from(FragmentText::from(ch.to_string().as_str()))
+            ));
             i += 1;
         }
     }
@@ -7350,95 +6436,6 @@ pub(crate) fn run_text_to_mml(text: &str, plain: bool) -> String {
 
 pub(crate) fn m(local: LocalName) -> QName {
     QName::new(NsId::M, local)
-}
-
-/// 第一个名为 `m:<local>` 的语义子节点。
-pub(crate) fn child(dom: &Dom, node: NodeId, local: LocalName) -> Option<NodeId> {
-    dom.semantic_children(node).find(|&c| dom.is(c, m(local)))
-}
-
-/// 全部名为 `m:<local>` 的语义子节点，文档序。
-pub(crate) fn children_named(dom: &Dom, node: NodeId, local: LocalName) -> Vec<NodeId> {
-    dom.semantic_children(node).filter(|&c| dom.is(c, m(local))).collect()
-}
-
-/// 内容子节点：元素，且名字不以 `Pr` 结尾（TS `contentChildren`：属性包不是内容）。
-pub(crate) fn content_children(dom: &Dom, node: NodeId) -> Vec<NodeId> {
-    dom.semantic_children(node)
-        .filter(|&c| dom.name(c).is_some())
-        .filter(|&c| !dom.lex_name(c).is_some_and(|q| q.ends_with("Pr")))
-        .collect()
-}
-
-/// `node/m:<pr>/m:<child>/@m:val`（TS `propVal`）。
-pub(crate) fn prop_val(dom: &Dom, node: NodeId, pr: LocalName, name: LocalName) -> Option<String> {
-    let pr = child(dom, node, pr)?;
-    let c = child(dom, pr, name)?;
-    dom.attr_value(c, m(LocalName::Val)).map(|v| v.into_owned())
-}
-
-/// 属性存在且不是 `0` / `false` / `off`（TS `propOn`）。
-pub(crate) fn prop_on(dom: &Dom, node: NodeId, pr: LocalName, name: LocalName) -> bool {
-    prop_val(dom, node, pr, name)
-        .is_some_and(|v| !matches!(v.to_ascii_lowercase().as_str(), "0" | "false" | "off"))
-}
-
-/// 一个 `m:t` 的文本（实体已解码）。
-pub(crate) fn omml_text_of(dom: &Dom, node: NodeId) -> String {
-    let mut s = String::new();
-    for c in dom.semantic_children(node) {
-        if let Some(t) = dom.text(c) {
-            s.push_str(&t);
-        }
-    }
-    s
-}
-
-/// 一个 `m:r` 的全部 `m:t` 文本拼接。
-pub(crate) fn run_text(dom: &Dom, run: NodeId) -> String {
-    children_named(dom, run, LocalName::T).iter().map(|&t| omml_text_of(dom, t)).collect()
-}
-
-/// `m:rPr/m:sty = "p"` 或有 `m:rPr/m:nor`：普通文字（不按数学斜体分类）。
-pub(crate) fn is_plain_run(dom: &Dom, run: NodeId) -> bool {
-    let sty = prop_val(dom, run, LocalName::RPr, LocalName::Sty);
-    sty.as_deref() == Some("p")
-        || child(dom, run, LocalName::RPr)
-            .is_some_and(|pr| child(dom, pr, LocalName::Nor).is_some())
-}
-
-/// 容器下全部 `m:r` 的文字拼接（TS `plainTextOfRuns`：函数名 / `lim`）。
-pub(crate) fn plain_text_of_runs(dom: &Dom, node: Option<NodeId>) -> String {
-    let Some(node) = node else { return String::new() };
-    children_named(dom, node, LocalName::R).iter().map(|&r| run_text(dom, r)).collect()
-}
-
-/// TS `escapeXmlText`：去掉 XML 1.0 不允许的控制字符，转义 `& < >`。
-pub(crate) fn escape_text(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    for ch in s.chars() {
-        match ch {
-            '\u{0}'..='\u{8}' | '\u{B}' | '\u{C}' | '\u{E}'..='\u{1F}' => {}
-            '&' => out.push_str("&amp;"),
-            '<' => out.push_str("&lt;"),
-            '>' => out.push_str("&gt;"),
-            c => out.push(c),
-        }
-    }
-    out
-}
-
-/// 一个节点下全部 `m:oMath` 片段，文档序（`m:oMathPara` 展开；`m:oMath` 不嵌套）。
-pub fn fragments(dom: &Dom, node: NodeId) -> Vec<NodeId> {
-    dom.semantic_descendants(node).filter(|&n| dom.is(n, m(LocalName::OMath))).collect()
-}
-
-/// 片段里全部 `m:t` 的文本，文档序（TS `mathTokens`：可编辑的公式 token）。
-pub fn tokens(dom: &Dom, omath: NodeId) -> Vec<String> {
-    dom.semantic_descendants(omath)
-        .filter(|&n| dom.is(n, m(LocalName::T)))
-        .map(|t| omml_text_of(dom, t))
-        .collect()
 }
 
 /// OMML 的命名空间 URI（Transitional 与 Strict 相同）。
@@ -7454,8 +6451,6 @@ pub const NS_M: &str = "http://schemas.openxmlformats.org/officeDocument/2006/ma
 //   与 MCE 选哪支无关（与 [`crate::edit::media_ops`] 的 `wp:docPr/@id` 同一条理由）。
 // - **迭代遍历**（`rev-nested-wrappers` 是 500 层 `w:ins` / `w:del` 交替）。
 // - 文档序 = part 顺序（主 part → 页眉页脚 → 脚注 → 尾注 → 批注 → 外部文本框）内各自的前序。
-
-use std::collections::BTreeMap;
 
 /// 修订的会话内稳定 id（`MOD-13`）。
 ///
@@ -8100,58 +7095,6 @@ fn descend(n: NodeId, name: QName, ctx: &mut Ctx) {
     }
 }
 
-// 内容控件（`MOD-08`，任务 3.3）：`w:sdt` 的 `sdtPr` 读成 [`SdtInfo`]。
-//
-// 块级与 run 级 sdt 用同一个读取器。控件种类按 `sdtPr` 里第一个可识别的控件元素判定，**只看局部名**
-// ——复选框在 `w14`、重复节在 `w15`，Word 各版本的前缀不一样（TS 也是这么认的）。
-// 编辑策略在 `EDIT-03`：[`refusing_sdt`] 给出拒绝理由，`ContentLocked` / `SdtContentLocked` 只读，
-// 有 `data_binding` 的第一阶段也只读（显示文字只是绑定数据的缓存，Word 重开会从 customXml 刷回）。
-
-/// 无字段枚举 + `as_str` + `parse`：把「变体 ↔ XML 字面」的名字表写成一张表，
-/// 免得枚举、匹配、测试各抄一遍（通用枚举宏见 `named_enum!`，这里只服务 sdt）。
-///
-/// ```ignore
-/// sdt_enum! {
-///     /// 文档注释
-///     pub enum SdtLock { Unlocked => "unlocked", SdtLocked => "sdtLocked" }
-/// }
-/// ```
-macro_rules! sdt_enum {
-        ($(#[$m:meta])* pub enum $name:ident { $($(#[$vm:meta])* $variant:ident => $text:literal),+ $(,)? }) => {
-            $(#[$m])*
-            #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-            pub enum $name {
-                $($(#[$vm])* $variant,)+
-            }
-
-            impl $name {
-                /// 全部变体，声明顺序。
-                pub const ALL: &[$name] = &[$($name::$variant,)+];
-
-                /// XML 字面。
-                pub const fn as_str(self) -> &'static str {
-                    match self {
-                        $($name::$variant => $text,)+
-                    }
-                }
-
-                /// 精确匹配 XML 字面。
-                pub fn parse(s: &str) -> Option<$name> {
-                    match s {
-                        $($text => Some($name::$variant),)+
-                        _ => None,
-                    }
-                }
-            }
-
-            impl std::fmt::Display for $name {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    f.write_str(self.as_str())
-                }
-            }
-        };
-    }
-
 sdt_enum! {
     /// 控件种类（`sdtPr` 里的控件元素）。识别不出来（只有 `w:id` / `w:tag` 一类）→ [`SdtControl::Unknown`]。
     pub enum SdtControl {
@@ -8410,10 +7353,6 @@ pub fn refusing_sdt(dom: &Dom, node: NodeId) -> Option<(SdtInfo, SdtRefusal)> {
 // `sectPr`（TS `sectionAt` 同义）。一份 `w:sectPr` 都没有的文档给一个隐式节（`node: None`，
 // 全部取缺省，同 TS `DEFAULT_SECTION`）。
 
-use crate::semantic::props::{
-    SectType, SectionProps, read_section_props, read_section_props_change,
-};
-
 /// 缺省节：US Letter 竖排、四边 1 英寸（同 TS `DEFAULT_SECTION`）。
 pub const DEFAULT_PAGE_WIDTH: i64 = 12_240;
 pub const DEFAULT_PAGE_HEIGHT: i64 = 15_840;
@@ -8445,10 +7384,9 @@ impl HfVariant {
 
     /// `w:type` 的建模值 → 变体。缺失与认不出的都算 `default`（Word 行为，`docs/01` §12）。
     pub fn of(kind: Option<&Val<crate::semantic::props::HdrFtrType>>) -> HfVariant {
-        use crate::semantic::props::HdrFtrType as T;
         match kind {
-            Some(Val::Value(T::First)) => HfVariant::First,
-            Some(Val::Value(T::Even)) => HfVariant::Even,
+            Some(Val::Value(HdrFtrType::First)) => HfVariant::First,
+            Some(Val::Value(HdrFtrType::Even)) => HfVariant::Even,
             // default / odd（非 schema）/ Raw / 缺失
             _ => HfVariant::Default,
         }
@@ -8650,7 +7588,7 @@ fn sect_pr_of(dom: &Dom, block: &Block) -> Option<(NodeId, SectionOwner)> {
 /// 读一个 `w:sectPr` 建出 `SectionInfo`。
 ///
 /// `#[inline(never)]`：`SectionProps` 几 KB，读进来立刻装箱，调用方的栈帧只留一个指针
-/// （同 `model/table.rs` 的 `boxed_reader!`）。
+/// （同表格属性的 `boxed_reader!`）。
 #[inline(never)]
 fn info_of(
     dom: &Dom,
@@ -8734,9 +7672,6 @@ pub fn section_of(dom: &Dom, sections: &[SectionInfo], node: NodeId) -> Option<u
 // 读的是**投影**：`Source` 只收 TS `SourceInfo` 的六个字段，未建模的域（`b:Editor` /
 // `b:Volume` / `b:Pages` / 多作者列表…）留在 DOM 里，写回时原字节不动（`SAVE-07` 的权威列表
 // 只重建变了的条目）。
-
-use crate::package::Package;
-use crate::xml::Dirty;
 
 /// 一条文献源（TS `SourceInfo`）。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -8854,12 +7789,6 @@ pub fn publisher_element(kind: &str) -> LocalName {
 // 另外给 [`Document`] 补跨表格的遍历：[`Document::blocks`] / [`Document::paragraphs`] 深入单元格，
 // [`Document::block_path`] 给任意块的祖先路径（`MOD-13` 的容器级刷新与 `EDIT-02` 的定位用）。
 
-use crate::semantic::props::codec::Twips;
-use crate::semantic::props::{
-    read_attr, read_cell_props, read_cell_props_change, read_row_props, read_row_props_change,
-    read_table_props, read_table_props_change,
-};
-
 /// `w:tbl`（`MOD-07`）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TableBlock {
@@ -8968,35 +7897,6 @@ impl Cell {
 fn table_w(local: LocalName) -> QName {
     QName::w(local)
 }
-
-/// 读容器属性并装箱。**必须**是独立且不内联的函数：`TableProps` 2.1 KB、`CellProps` 2.4 KB，
-/// 快照元组同样大；留在 `build_table` / `build_row` / `build_cell` 的栈帧里，它们会一直活到递归
-/// 返回（debug 构建按帧分配临时值），64 层嵌套就把 2 MiB 的测试线程栈撑爆。装进 `Box` 之后每层
-/// 只留一个指针，2000 层的语料与 5000 层的 hostile 文档都能在默认栈上跑完。
-macro_rules! boxed_reader {
-        ($(#[$m:meta])* $name:ident, $read:path, $props:ty) => {
-            $(#[$m])*
-            #[inline(never)]
-            fn $name(dom: &Dom, container: Option<NodeId>, diags: &mut Vec<Diagnostic>) -> Box<$props> {
-                Box::new($read(dom, container, diags))
-            }
-        };
-    }
-
-/// 同上，读 `*PrChange` 的旧值快照。
-macro_rules! boxed_change_reader {
-        ($(#[$m:meta])* $name:ident, $read:path, $props:ty) => {
-            $(#[$m])*
-            #[inline(never)]
-            fn $name(
-                dom: &Dom,
-                container: Option<NodeId>,
-                diags: &mut Vec<Diagnostic>,
-            ) -> Option<(NodeId, Box<$props>)> {
-                $read(dom, container, diags).map(|(n, v)| (n, Box::new(v)))
-            }
-        };
-    }
 
 boxed_reader!(
     /// `w:tblPr`（也用于 `w:tblPrEx`）。
@@ -9321,7 +8221,6 @@ impl<'a> Iterator for Blocks<'a> {
 
 /// 一个块直接挂着的文本框内容流：`(块列表, 这些 `NodeId` 属于哪个 part)`；`None` = 与宿主同 part。
 pub fn box_flows(block: &Block) -> Vec<(&[Block], Option<PartId>)> {
-    use crate::model::Display;
     let mut out: Vec<(&[Block], Option<PartId>)> = Vec::new();
     fn push<'b>(out: &mut Vec<(&'b [Block], Option<PartId>)>, d: Option<&'b Display>) {
         match d {
@@ -9356,7 +8255,6 @@ pub fn box_flows(block: &Block) -> Vec<(&[Block], Option<PartId>)> {
 /// 增量刷新（`MOD-13`）建不出那种内容：外部 part 的 DOM 与索引只在整体 `rebuild` 时装好。
 /// 碰上就退回整体重建（`TEST-07` 一步就抓到：`SetShapeStyle` 之后外部文本框的内容空了）。
 pub fn has_external_textbox(block: &Block) -> bool {
-    use crate::model::Display;
     let external = |d: Option<&Display>| match d {
         Some(Display::Drawing(d)) => d.shapes.iter().any(|s| s.txbx_rel.is_some()),
         _ => false,
@@ -9634,7 +8532,6 @@ impl Document {
 pub fn glossary_flows(
     pkg: &crate::package::Package,
 ) -> crate::error::Result<Vec<(PartId, NodeId, crate::span::FlowId, usize)>> {
-    use crate::package::RelType;
     let mut ids: std::collections::BTreeSet<_> =
         pkg.parts().iter().flat_map(|p| pkg.related(p.id, RelType::GlossaryDocument)).collect();
     ids.extend(
@@ -9724,8 +8621,6 @@ impl Document {
 
 // 主题声明值（`MOD-10`）：`a:theme/a:themeElements` 的字体方案与颜色方案。
 // 只记录声明；主题字体 / 颜色的解析规则（槽位映射、tint/shade、空 EA 槽）在 `RES-05`。
-
-use crate::semantic::props::{HexColorOrAuto, ThemeColor};
 
 /// 颜色方案的 12 个槽位（`a:clrScheme` 子元素名）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -10528,69 +9423,57 @@ fn pair(v: &str) -> Option<(i64, i64)> {
 
 #[cfg(test)]
 mod test_model {
-    use super::custom_geom;
-    use super::diagram_text;
-    use super::drawing_display;
-    use super::lenient_int;
-    use super::*;
-    use super::{DEFAULT_MARGIN, DEFAULT_PAGE_HEIGHT, DEFAULT_PAGE_WIDTH};
-    use super::{PLOT_ELEMENTS, chartex_kind, palette, plot_kind, serial_date_text};
-    use super::{heading_level_of_id, heading_level_of_name};
-    use super::{is_custom_xml_item, publisher_element};
-    use super::{vml_color, vml_display};
-    use crate::resolve::drawingml::Rgb;
-    use crate::semantic::props::{TblStyleOverrideType, ThemeColor};
 
     #[test]
     fn mod_11_chart_kind_table_covers_every_plot_element() {
         // 16 种图（ECMA-376 §21.2.2）都在表里，别的元素不是图
-        assert_eq!(PLOT_ELEMENTS.len(), 16);
-        for &l in PLOT_ELEMENTS {
-            assert!(plot_kind(l).is_some());
+        assert_eq!(super::PLOT_ELEMENTS.len(), 16);
+        for &l in super::PLOT_ELEMENTS {
+            assert!(super::plot_kind(l).is_some());
         }
-        assert_eq!(plot_kind(LocalName::PlotArea), None);
-        assert_eq!(plot_kind(LocalName::DoughnutChart), Some(ChartKind::Pie));
-        assert_eq!(plot_kind(LocalName::RadarChart), Some(ChartKind::Other));
-        assert_eq!(chartex_kind("waterfall"), Some(ChartKind::Bar));
-        assert_eq!(chartex_kind("regionMap"), None);
+        assert_eq!(super::plot_kind(super::LocalName::PlotArea), None);
+        assert_eq!(super::plot_kind(super::LocalName::DoughnutChart), Some(super::ChartKind::Pie));
+        assert_eq!(super::plot_kind(super::LocalName::RadarChart), Some(super::ChartKind::Other));
+        assert_eq!(super::chartex_kind("waterfall"), Some(super::ChartKind::Bar));
+        assert_eq!(super::chartex_kind("regionMap"), None);
     }
 
     #[test]
     fn mod_11_excel_serial_dates() {
-        assert_eq!(serial_date_text("37377").as_deref(), Some("5/1/2002"));
-        assert_eq!(serial_date_text("37408").as_deref(), Some("6/1/2002"));
-        assert_eq!(serial_date_text("1").as_deref(), Some("12/31/1899"));
-        assert_eq!(serial_date_text("45658.4").as_deref(), Some("1/1/2025"));
-        assert_eq!(serial_date_text("0"), None);
-        assert_eq!(serial_date_text("80001"), None);
-        assert_eq!(serial_date_text("abc"), None);
+        assert_eq!(super::serial_date_text("37377").as_deref(), Some("5/1/2002"));
+        assert_eq!(super::serial_date_text("37408").as_deref(), Some("6/1/2002"));
+        assert_eq!(super::serial_date_text("1").as_deref(), Some("12/31/1899"));
+        assert_eq!(super::serial_date_text("45658.4").as_deref(), Some("1/1/2025"));
+        assert_eq!(super::serial_date_text("0"), None);
+        assert_eq!(super::serial_date_text("80001"), None);
+        assert_eq!(super::serial_date_text("abc"), None);
     }
 
     #[test]
     fn mod_11_palette_columns() {
-        let office = ColorScheme::office_default();
-        let hex6 = |p: [Rgb; 6]| p.map(crate::resolve::drawingml::hex);
+        let office = super::ColorScheme::office_default();
+        let hex6 = |p: [super::Rgb; 6]| p.map(crate::resolve::drawingml::hex);
         // 缺省 / 列 2 = 六个 accent
-        assert_eq!(hex6(palette(None, &office).unwrap())[0], "4472C4");
-        assert_eq!(hex6(palette(Some(2), &office).unwrap())[5], "70AD47");
-        assert_eq!(hex6(palette(Some(10), &office).unwrap())[0], "4472C4");
+        assert_eq!(hex6(super::palette(None, &office).unwrap())[0], "4472C4");
+        assert_eq!(hex6(super::palette(Some(2), &office).unwrap())[5], "70AD47");
+        assert_eq!(hex6(super::palette(Some(10), &office).unwrap())[0], "4472C4");
         // 列 1 灰阶
-        assert_eq!(hex6(palette(Some(1), &office).unwrap())[0], "595959");
-        assert_eq!(hex6(palette(Some(41), &office).unwrap())[1], "D9D9D9");
+        assert_eq!(hex6(super::palette(Some(1), &office).unwrap())[0], "595959");
+        assert_eq!(hex6(super::palette(Some(41), &office).unwrap())[1], "D9D9D9");
         // 列 3–8 单色阶梯：以对应 accent 起头，六个颜色互不相同
-        let mono = hex6(palette(Some(5), &office).unwrap());
+        let mono = hex6(super::palette(Some(5), &office).unwrap());
         assert_eq!(mono[0], "A5A5A5");
         assert_eq!(mono.iter().collect::<std::collections::BTreeSet<_>>().len(), 6);
-        assert_eq!(hex6(palette(Some(40), &office).unwrap())[0], "70AD47");
+        assert_eq!(hex6(super::palette(Some(40), &office).unwrap())[0], "70AD47");
     }
 
     const CUSTGEOM_NS: &str = r#" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main""#;
 
-    fn parse_custgeom(inner: &str) -> (Dom, Option<CustomGeom>) {
+    fn parse_custgeom(inner: &str) -> (super::Dom, Option<super::CustomGeom>) {
         let src = format!("<a:custGeom{CUSTGEOM_NS}>{inner}</a:custGeom>");
-        let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
+        let dom = super::Dom::parse(super::PartId(0), src.as_bytes()).expect("dom");
         let root = dom.root();
-        let g = custom_geom(&dom, root);
+        let g = super::custom_geom(&dom, root);
         (dom, g)
     }
 
@@ -10614,11 +9497,11 @@ mod test_model {
         assert_eq!(
             p.cmds,
             vec![
-                GeomCmd::MoveTo([0, 476_250]),
-                GeomCmd::LineTo([952_500, 476_250]),
-                GeomCmd::LineTo([952_500, 0]),
-                GeomCmd::LineTo([0, 0]),
-                GeomCmd::Close,
+                super::GeomCmd::MoveTo([0, 476_250]),
+                super::GeomCmd::LineTo([952_500, 476_250]),
+                super::GeomCmd::LineTo([952_500, 0]),
+                super::GeomCmd::LineTo([0, 0]),
+                super::GeomCmd::Close,
             ]
         );
     }
@@ -10660,19 +9543,15 @@ mod test_model {
         let g = g.expect("geom");
         let p = &g.paths[0];
         assert!(p.fill_none && p.stroke_none);
-        assert_eq!(p.cmds[1], GeomCmd::CubicTo([[1, 2], [3, 4], [5, 6]]));
+        assert_eq!(p.cmds[1], super::GeomCmd::CubicTo([[1, 2], [3, 4], [5, 6]]));
         assert_eq!(p.cmds[1].letter(), 'C');
         assert_eq!(p.cmds[1].points().len(), 3);
     }
 
-    use crate::semantic::props::{
-        CharacterSpacing, DocProtect, FontFamily, FontPitch, Jc, MultiLevelType, NumberFormat,
-    };
-
     const W: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 
-    fn dom(xml: &str) -> Dom {
-        Dom::parse(PartId(0), xml.as_bytes()).unwrap()
+    fn dom(xml: &str) -> super::Dom {
+        super::Dom::parse(super::PartId(0), xml.as_bytes()).unwrap()
     }
 
     #[test]
@@ -10695,58 +9574,70 @@ mod test_model {
                     </w:styles>"#
         ));
         let mut diags = Vec::new();
-        let s = Styles::from_dom(&d, &mut diags).unwrap();
+        let s = super::Styles::from_dom(&d, &mut diags).unwrap();
         assert!(diags.is_empty(), "{diags:?}");
         assert_eq!(s.styles.len(), 8);
         assert!(s.latent_styles.is_some());
-        assert_eq!(s.doc_default_rpr().unwrap().size, Some(Val::Value(22)));
+        assert_eq!(s.doc_default_rpr().unwrap().size, Some(super::Val::Value(22)));
         assert_eq!(
             s.doc_default_ppr().unwrap().spacing.as_ref().unwrap().after,
-            Some(Val::Value(160))
+            Some(super::Val::Value(160))
         );
         // 默认样式：最后一个 default 胜出；无声明取第一个
-        assert_eq!(s.default_for(StyleType::Paragraph).unwrap().id(), Some("Body"));
-        assert_eq!(s.default_for(StyleType::Character).unwrap().id(), Some("DefaultParagraphFont"));
+        assert_eq!(s.default_for(super::StyleType::Paragraph).unwrap().id(), Some("Body"));
         assert_eq!(
-            s.default_for(StyleType::Table),
+            s.default_for(super::StyleType::Character).unwrap().id(),
+            Some("DefaultParagraphFont")
+        );
+        assert_eq!(
+            s.default_for(super::StyleType::Table),
             None,
             "无声明且无 Normal → 无默认（Word 行为）"
         );
-        assert_eq!(s.default_for(StyleType::Numbering), None);
+        assert_eq!(s.default_for(super::StyleType::Numbering), None);
         // 无声明时退到 Normal
         let d2 = dom(&format!(
             r#"<w:styles xmlns:w="{W}"><w:style w:type="paragraph" w:styleId="Body"><w:name w:val="Body"/></w:style>
                        <w:style w:type="paragraph" w:styleId="a"><w:name w:val="Normal"/></w:style></w:styles>"#
         ));
-        let s2 = Styles::from_dom(&d2, &mut Vec::new()).unwrap();
-        assert_eq!(s2.default_for(StyleType::Paragraph).unwrap().id(), Some("a"));
+        let s2 = super::Styles::from_dom(&d2, &mut Vec::new()).unwrap();
+        assert_eq!(s2.default_for(super::StyleType::Paragraph).unwrap().id(), Some("a"));
         let h1 = s.get("Heading1").unwrap();
-        assert_eq!(h1.kind(), Some(StyleType::Paragraph));
+        assert_eq!(h1.kind(), Some(super::StyleType::Paragraph));
         assert_eq!(h1.based_on.as_deref(), Some("Normal"));
         assert_eq!(h1.link.as_deref(), Some("Heading1Char"));
-        assert_eq!(h1.ui_priority, Some(Val::Value(9)));
+        assert_eq!(h1.ui_priority, Some(super::Val::Value(9)));
         assert_eq!(h1.q_format, Some(true));
         assert_eq!(h1.ppr.as_ref().unwrap().keep_next, Some(true));
-        assert_eq!(h1.rpr.as_ref().unwrap().size, Some(Val::Value(32)));
-        assert_eq!(Styles::own_heading_level(h1), OwnHeadingLevel::Level(1));
+        assert_eq!(h1.rpr.as_ref().unwrap().size, Some(super::Val::Value(32)));
+        assert_eq!(super::Styles::own_heading_level(h1), super::OwnHeadingLevel::Level(1));
         assert_eq!(
-            Styles::own_heading_level(s.get("TOCHeading").unwrap()),
-            OwnHeadingLevel::Blocked
+            super::Styles::own_heading_level(s.get("TOCHeading").unwrap()),
+            super::OwnHeadingLevel::Blocked
         );
-        assert_eq!(Styles::own_heading_level(s.get("MyH").unwrap()), OwnHeadingLevel::Level(3));
-        assert_eq!(Styles::own_heading_level(s.get("Normal").unwrap()), OwnHeadingLevel::Inherit);
-        assert_eq!(heading_level_of_name("Heading 3"), Some(3));
-        assert_eq!(heading_level_of_name("heading3"), Some(3));
-        assert_eq!(heading_level_of_name("Heading 10"), None);
-        assert_eq!(heading_level_of_id("Heading9"), Some(9));
-        assert_eq!(heading_level_of_id("Heading1Char"), None);
+        assert_eq!(
+            super::Styles::own_heading_level(s.get("MyH").unwrap()),
+            super::OwnHeadingLevel::Level(3)
+        );
+        assert_eq!(
+            super::Styles::own_heading_level(s.get("Normal").unwrap()),
+            super::OwnHeadingLevel::Inherit
+        );
+        assert_eq!(super::heading_level_of_name("Heading 3"), Some(3));
+        assert_eq!(super::heading_level_of_name("heading3"), Some(3));
+        assert_eq!(super::heading_level_of_name("Heading 10"), None);
+        assert_eq!(super::heading_level_of_id("Heading9"), Some(9));
+        assert_eq!(super::heading_level_of_id("Heading1Char"), None);
         let dpf = s.get("DefaultParagraphFont").unwrap();
         assert_eq!(dpf.semi_hidden, Some(true));
         assert_eq!(dpf.unhide_when_used, Some(true));
         let tg = s.get("TableGrid").unwrap();
         assert!(tg.tbl_pr.is_some());
         assert_eq!(tg.conditional.len(), 1);
-        assert_eq!(tg.conditional[0].kind, Some(Val::Value(TblStyleOverrideType::FirstRow)));
+        assert_eq!(
+            tg.conditional[0].kind,
+            Some(super::Val::Value(super::TblStyleOverrideType::FirstRow))
+        );
         assert_eq!(tg.conditional[0].rpr.as_ref().unwrap().bold, Some(true));
         assert!(tg.conditional[0].tc_pr.is_some());
     }
@@ -10772,22 +9663,28 @@ mod test_model {
                     </w:numbering>"#
         ));
         let mut diags = Vec::new();
-        let n = Numbering::from_dom(&d, &mut diags).unwrap();
+        let n = super::Numbering::from_dom(&d, &mut diags).unwrap();
         assert!(diags.is_empty(), "{diags:?}");
         assert_eq!(n.abstract_nums.len(), 2);
         assert_eq!(n.nums.len(), 2);
         let a0 = n.abstract_num(0).unwrap();
         assert_eq!(a0.nsid.as_deref(), Some("0ABC1234"));
-        assert_eq!(a0.multi_level_type, Some(Val::Value(MultiLevelType::HybridMultilevel)));
+        assert_eq!(
+            a0.multi_level_type,
+            Some(super::Val::Value(super::MultiLevelType::HybridMultilevel))
+        );
         let l0 = a0.level(0).unwrap();
         assert_eq!(l0.tplc.as_deref(), Some("04090001"));
         assert_eq!(l0.start_or_default(), 1);
-        assert_eq!(l0.num_fmt.as_ref().unwrap().val, Some(Val::Value(NumberFormat::Bullet)));
+        assert_eq!(
+            l0.num_fmt.as_ref().unwrap().val,
+            Some(super::Val::Value(super::NumberFormat::Bullet))
+        );
         assert_eq!(l0.lvl_text.as_ref().unwrap().val.as_deref(), Some("\u{F0B7}"));
-        assert_eq!(l0.lvl_jc, Some(Val::Value(Jc::Left)));
+        assert_eq!(l0.lvl_jc, Some(super::Val::Value(super::Jc::Left)));
         assert_eq!(
             l0.ppr.as_ref().unwrap().indent.as_ref().unwrap().hanging,
-            Some(Val::Value(360))
+            Some(super::Val::Value(360))
         );
         assert_eq!(
             l0.rpr.as_ref().unwrap().fonts.as_ref().unwrap().ascii.as_deref(),
@@ -10795,21 +9692,24 @@ mod test_model {
         );
         let l1 = a0.level(1).unwrap();
         assert_eq!(l1.start_or_default(), 0, "缺 w:start 从 0 起");
-        assert_eq!(l1.lvl_restart, Some(Val::Value(0)));
+        assert_eq!(l1.lvl_restart, Some(super::Val::Value(0)));
         assert_eq!(l1.is_lgl, Some(true));
         // w14 自定义格式：MCE 选中 Choice 分支
         let a1 = n.abstract_num(1).unwrap();
         assert_eq!(a1.num_style_link.as_deref(), Some("ListNumber"));
         let f = a1.level(0).unwrap().num_fmt.as_ref().unwrap();
-        assert_eq!(f.val, Some(Val::Value(NumberFormat::Custom)));
+        assert_eq!(f.val, Some(super::Val::Value(super::NumberFormat::Custom)));
         assert_eq!(f.format.as_deref(), Some("001, 002, 003, ..."));
         // num 与覆盖
         assert_eq!(n.num(1).unwrap().abstract_id(), Some(0));
         let n2 = n.num(2).unwrap();
         assert_eq!(n2.overrides.len(), 2);
-        assert_eq!(n2.override_for(0).unwrap().start_override, Some(Val::Value(5)));
+        assert_eq!(n2.override_for(0).unwrap().start_override, Some(super::Val::Value(5)));
         let ov = n2.override_for(1).unwrap().lvl.as_ref().unwrap();
-        assert_eq!(ov.num_fmt.as_ref().unwrap().val, Some(Val::Value(NumberFormat::UpperRoman)));
+        assert_eq!(
+            ov.num_fmt.as_ref().unwrap().val,
+            Some(super::Val::Value(super::NumberFormat::UpperRoman))
+        );
         assert!(n.num(3).is_none());
     }
 
@@ -10831,23 +9731,23 @@ mod test_model {
                     </w:settings>"#
         ));
         let mut diags = Vec::new();
-        let s = Settings::from_dom(&d, &mut diags).unwrap();
+        let s = super::Settings::from_dom(&d, &mut diags).unwrap();
         assert!(diags.is_empty(), "{diags:?}");
         let wp = s.write_protection.as_ref().unwrap();
         assert_eq!(wp.recommended, Some(true));
-        assert_eq!(wp.spin_count, Some(Val::Value(100_000)));
-        assert_eq!(s.zoom.as_ref().unwrap().percent, Some(Val::Value(100)));
+        assert_eq!(wp.spin_count, Some(super::Val::Value(100_000)));
+        assert_eq!(s.zoom.as_ref().unwrap().percent, Some(super::Val::Value(100)));
         assert_eq!(s.remove_personal_information, Some(true));
         assert_eq!(s.track_revisions, Some(true));
         let dp = s.document_protection.as_ref().unwrap();
-        assert_eq!(dp.edit, Some(Val::Value(DocProtect::ReadOnly)));
+        assert_eq!(dp.edit, Some(super::Val::Value(super::DocProtect::ReadOnly)));
         assert_eq!(dp.enforcement, Some(true));
         assert_eq!(s.default_tab_stop_or_default(), 420);
         assert_eq!(s.auto_hyphenation, Some(false));
         assert_eq!(s.even_and_odd_headers, Some(true));
         assert_eq!(
             s.character_spacing_control,
-            Some(Val::Value(CharacterSpacing::CompressPunctuation))
+            Some(super::Val::Value(super::CharacterSpacing::CompressPunctuation))
         );
         assert!(s.rsids.is_some());
         assert_eq!(s.theme_font_lang.as_ref().unwrap().east_asia.as_deref(), Some("zh-CN"));
@@ -10871,28 +9771,28 @@ mod test_model {
                       <w:font w:name="宋体"><w:altName w:val="SimSun"/><w:family w:val="auto"/><w:pitch w:val="default"/></w:font>
                     </w:fonts>"#
         ));
-        let ft = FontTable::from_dom(&d, &mut diags).unwrap();
+        let ft = super::FontTable::from_dom(&d, &mut diags).unwrap();
         assert!(diags.is_empty(), "{diags:?}");
         assert_eq!(ft.fonts.len(), 2);
         let c = ft.get("Calibri").unwrap();
-        assert_eq!(c.family, Some(Val::Value(FontFamily::Swiss)));
-        assert_eq!(c.pitch, Some(Val::Value(FontPitch::Variable)));
+        assert_eq!(c.family, Some(super::Val::Value(super::FontFamily::Swiss)));
+        assert_eq!(c.pitch, Some(super::Val::Value(super::FontPitch::Variable)));
         assert_eq!(c.sig.as_ref().unwrap().usb0.as_deref(), Some("E0002AFF"));
         let e = c.embed_regular.as_ref().unwrap();
         assert_eq!(e.id.as_deref(), Some("rId1"));
         assert_eq!(e.subsetted, Some(true));
         assert_eq!(ft.get("宋体").unwrap().alt_name.as_deref(), Some("SimSun"));
-        assert!(Settings::from_dom(&d, &mut diags).is_none(), "根不是 w:settings");
+        assert!(super::Settings::from_dom(&d, &mut diags).is_none(), "根不是 w:settings");
     }
 
     const DGM: &str = "http://schemas.openxmlformats.org/drawingml/2006/diagram";
     const A: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
 
-    fn data(pts: &str, cxns: &str) -> Dom {
+    fn data(pts: &str, cxns: &str) -> super::Dom {
         let src = format!(
             r#"<dgm:dataModel xmlns:dgm="{DGM}" xmlns:a="{A}"><dgm:ptLst>{pts}</dgm:ptLst><dgm:cxnLst>{cxns}</dgm:cxnLst></dgm:dataModel>"#
         );
-        Dom::parse(PartId(0), src.as_bytes()).expect("parse")
+        super::Dom::parse(super::PartId(0), src.as_bytes()).expect("parse")
     }
 
     fn pt(id: &str, text: &str, ty: &str) -> String {
@@ -10928,7 +9828,7 @@ mod test_model {
             ]
             .concat(),
         );
-        assert_eq!(diagram_text(&dom).as_deref(), Some("Root\nFirst\nLeaf\nLater\nAlone"));
+        assert_eq!(super::diagram_text(&dom).as_deref(), Some("Root\nFirst\nLeaf\nLater\nAlone"));
     }
 
     #[test]
@@ -10943,14 +9843,14 @@ mod test_model {
             ]
             .concat(),
         );
-        assert_eq!(diagram_text(&dom).as_deref(), Some("Root\nLater\nFirst"));
+        assert_eq!(super::diagram_text(&dom).as_deref(), Some("Root\nLater\nFirst"));
         // 有根、子树里成环：环上的点各出现一次
         let dom = data(
             &[pt("a", "A", ""), pt("b", "B", ""), pt("c", "C", "")].concat(),
             &[cxn("a", "b", "", ""), cxn("b", "c", "", ""), cxn("c", "b", "", "")].concat(),
         );
-        assert_eq!(diagram_text(&dom).as_deref(), Some("A\nB\nC"));
-        assert_eq!(diagram_text(&data("", "")), None);
+        assert_eq!(super::diagram_text(&dom).as_deref(), Some("A\nB\nC"));
+        assert_eq!(super::diagram_text(&data("", "")), None);
     }
 
     const DRAWING_NS: &str = concat!(
@@ -10962,11 +9862,11 @@ mod test_model {
         r#" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture""#,
     );
 
-    fn parse_drawing(inner: &str) -> (Dom, DrawingDisplay) {
+    fn parse_drawing(inner: &str) -> (super::Dom, super::DrawingDisplay) {
         let src = format!("<w:drawing{DRAWING_NS}>{inner}</w:drawing>");
-        let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
+        let dom = super::Dom::parse(super::PartId(0), src.as_bytes()).expect("dom");
         let root = dom.root();
-        let d = drawing_display(&dom, root);
+        let d = super::drawing_display(&dom, root);
         (dom, d)
     }
 
@@ -10981,9 +9881,9 @@ mod test_model {
         let (_, d) = parse_drawing(&format!(
             r#"<wp:inline distT="0" distB="0"><wp:extent cx="914400" cy="457200"/><wp:docPr id="1" name="Logo" descr="a photo"/>{PIC}</wp:inline>"#
         ));
-        assert_eq!(d.kind, DrawingKind::Picture);
+        assert_eq!(d.kind, super::DrawingKind::Picture);
         assert!(d.anchor.is_none(), "wp:inline 是随文，没有锚定几何");
-        assert_eq!(d.extent, Some(Extent { cx: 914_400, cy: 457_200 }));
+        assert_eq!(d.extent, Some(super::Extent { cx: 914_400, cy: 457_200 }));
         assert_eq!(d.doc_pr.name.as_deref(), Some("Logo"));
         assert_eq!(d.doc_pr.descr.as_deref(), Some("a photo"));
         let p = d.picture().expect("picture").clone();
@@ -11009,14 +9909,14 @@ mod test_model {
         assert_eq!(a.relative_height, Some(251_658_242));
         assert_eq!(
             a.dist,
-            Dist { top: Some(10), bottom: Some(20), left: Some(30), right: Some(40) }
+            super::Dist { top: Some(10), bottom: Some(20), left: Some(30), right: Some(40) }
         );
         assert_eq!(a.h.relative_from.as_deref(), Some("page"));
         assert_eq!(a.h.offset_emu, Some(-1270));
         assert_eq!(a.v.relative_from.as_deref(), Some("margin"));
         assert_eq!(a.v.align.as_deref(), Some("center"));
         assert_eq!(a.v.pct, Some(25000));
-        assert_eq!(a.wrap, Wrap::Square { text: Some("left".into()) });
+        assert_eq!(a.wrap, super::Wrap::Square { text: Some("left".into()) });
         assert_eq!(a.wrap.text(), Some("left"));
     }
 
@@ -11034,8 +9934,8 @@ mod test_model {
         let p = d.picture().expect("picture").clone();
         assert_eq!(p.link.as_deref(), Some("rId9"));
         assert!(p.embed.is_none());
-        assert_eq!(p.crop, Some(RectFrac { l: 5000, t: 0, r: 0, b: 10000 }));
-        assert_eq!(p.fill_rect, Some(RectFrac { l: 0, t: 1000, r: 0, b: 0 }));
+        assert_eq!(p.crop, Some(super::RectFrac { l: 5000, t: 0, r: 0, b: 10000 }));
+        assert_eq!(p.fill_rect, Some(super::RectFrac { l: 0, t: 1000, r: 0, b: 0 }));
         assert_eq!(p.rot_60k, Some(5_400_000));
         assert!(p.flip_h && !p.flip_v);
         let b = p.border.expect("border");
@@ -11057,8 +9957,8 @@ mod test_model {
             r#"</a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p></w:txbxContent>"#,
             r#"</a:graphicData></a:graphic></wp:anchor>"#,
         ));
-        assert_eq!(d.extent, Some(Extent { cx: 100, cy: 100 }), "取宿主的 extent");
-        assert_eq!(d.kind, DrawingKind::Shape);
+        assert_eq!(d.extent, Some(super::Extent { cx: 100, cy: 100 }), "取宿主的 extent");
+        assert_eq!(d.kind, super::DrawingKind::Shape);
         assert!(d.picture().is_none(), "框里的 pic:pic 不属于宿主 drawing");
     }
 
@@ -11068,18 +9968,18 @@ mod test_model {
         let deep = format!("{}{}", "<a:grpSp>".repeat(500), "</a:grpSp>".repeat(500));
         let (_, d) =
             parse_drawing(&format!(r#"<wp:inline><wp:extent cx="1" cy="2"/>{deep}</wp:inline>"#));
-        assert_eq!(d.extent, Some(Extent { cx: 1, cy: 2 }));
+        assert_eq!(d.extent, Some(super::Extent { cx: 1, cy: 2 }));
     }
 
     #[test]
     fn lenient_int_follows_parse_int() {
-        assert_eq!(lenient_int("381000"), 381_000);
-        assert_eq!(lenient_int("-95250"), -95_250);
-        assert_eq!(lenient_int("abc"), 0);
-        assert_eq!(lenient_int("-abc"), 0);
-        assert_eq!(lenient_int("12abc"), 12);
-        assert_eq!(lenient_int(" +7"), 7);
-        assert_eq!(lenient_int(""), 0);
+        assert_eq!(super::lenient_int("381000"), 381_000);
+        assert_eq!(super::lenient_int("-95250"), -95_250);
+        assert_eq!(super::lenient_int("abc"), 0);
+        assert_eq!(super::lenient_int("-abc"), 0);
+        assert_eq!(super::lenient_int("12abc"), 12);
+        assert_eq!(super::lenient_int(" +7"), 7);
+        assert_eq!(super::lenient_int(""), 0);
     }
 
     const SECTION_NS: &str =
@@ -11099,8 +9999,8 @@ mod test_model {
             ),
             SECTION_NS
         );
-        let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
-        let s = Sections::build(&dom);
+        let dom = super::Dom::parse(super::PartId(0), src.as_bytes()).expect("dom");
+        let s = super::Sections::build(&dom);
         assert!(!s.is_empty());
 
         // 第一段（偏移落在第一个 sectPr 之前）归第一节
@@ -11112,8 +10012,11 @@ mod test_model {
 
         // 落在两者之间的偏移归正文末尾那个空 sectPr：一切取缺省
         let last = s.at(u32::MAX - 1).expect("section");
-        assert_eq!((last.page_width, last.page_height), (DEFAULT_PAGE_WIDTH, DEFAULT_PAGE_HEIGHT));
-        assert_eq!(last.margin_left, DEFAULT_MARGIN);
+        assert_eq!(
+            (last.page_width, last.page_height),
+            (super::DEFAULT_PAGE_WIDTH, super::DEFAULT_PAGE_HEIGHT)
+        );
+        assert_eq!(last.margin_left, super::DEFAULT_MARGIN);
         assert_eq!(last.columns, 1);
     }
 
@@ -11135,31 +10038,31 @@ mod test_model {
             ),
             SECTION_NS
         );
-        let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
-        let g = *Sections::build(&dom).at(0).expect("section");
-        assert_eq!(g.page_width, DEFAULT_PAGE_WIDTH, "w=\"abc\" 退到缺省");
-        assert_eq!(g.page_height, DEFAULT_PAGE_HEIGHT, "h=\"-1\" 不是正数，退到缺省");
-        assert_eq!(g.margin_top, DEFAULT_MARGIN);
+        let dom = super::Dom::parse(super::PartId(0), src.as_bytes()).expect("dom");
+        let g = *super::Sections::build(&dom).at(0).expect("section");
+        assert_eq!(g.page_width, super::DEFAULT_PAGE_WIDTH, "w=\"abc\" 退到缺省");
+        assert_eq!(g.page_height, super::DEFAULT_PAGE_HEIGHT, "h=\"-1\" 不是正数，退到缺省");
+        assert_eq!(g.margin_top, super::DEFAULT_MARGIN);
         assert_eq!(g.margin_right, 200);
-        assert_eq!(g.margin_bottom, DEFAULT_MARGIN);
+        assert_eq!(g.margin_bottom, super::DEFAULT_MARGIN);
         assert_eq!(g.margin_left, 400);
         assert_eq!(g.columns, 1, "num=0 至少一栏");
     }
 
     #[test]
     fn mod_10_custom_xml_item_paths() {
-        assert!(is_custom_xml_item("customXml/item1.xml"));
-        assert!(is_custom_xml_item("customXml/item12.xml"));
-        assert!(!is_custom_xml_item("customXml/itemProps1.xml"));
-        assert!(!is_custom_xml_item("customXml/item.xml"));
-        assert!(!is_custom_xml_item("word/document.xml"));
+        assert!(super::is_custom_xml_item("customXml/item1.xml"));
+        assert!(super::is_custom_xml_item("customXml/item12.xml"));
+        assert!(!super::is_custom_xml_item("customXml/itemProps1.xml"));
+        assert!(!super::is_custom_xml_item("customXml/item.xml"));
+        assert!(!super::is_custom_xml_item("word/document.xml"));
     }
 
     #[test]
     fn mod_10_publisher_element_per_source_type() {
-        assert_eq!(publisher_element("JournalArticle"), LocalName::JournalName);
-        assert_eq!(publisher_element("InternetSite"), LocalName::InternetSiteTitle);
-        assert_eq!(publisher_element("Book"), LocalName::Publisher);
+        assert_eq!(super::publisher_element("JournalArticle"), super::LocalName::JournalName);
+        assert_eq!(super::publisher_element("InternetSite"), super::LocalName::InternetSiteTitle);
+        assert_eq!(super::publisher_element("Book"), super::LocalName::Publisher);
     }
 
     #[test]
@@ -11174,68 +10077,82 @@ mod test_model {
                         <a:minorFont><a:latin typeface="Calibri"/><a:ea typeface="宋体"/><a:cs typeface="Arial"/></a:minorFont></a:fontScheme>
                     </a:themeElements></a:theme>"#
         );
-        let dom = Dom::parse(PartId(0), xml.as_bytes()).unwrap();
-        let t = Theme::from_dom(&dom).unwrap();
+        let dom = super::Dom::parse(super::PartId(0), xml.as_bytes()).unwrap();
+        let t = super::Theme::from_dom(&dom).unwrap();
         assert_eq!(t.name.as_deref(), Some("Office Theme"));
         let c = t.colors.as_ref().unwrap();
         assert_eq!(c.name.as_deref(), Some("Office"));
-        assert_eq!(c.get(ThemeSlot::Dk1), Some([0, 0, 0]));
-        assert_eq!(c.get(ThemeSlot::Dk2), Some([0x44, 0x54, 0x6A]));
-        assert_eq!(c.get(ThemeSlot::Accent1), Some([0x44, 0x72, 0xC4]));
-        assert_eq!(c.get(ThemeSlot::Accent2), None);
-        assert_eq!(c.get(ThemeSlot::Lt2), None);
-        assert_eq!(c.get_or_default(ThemeSlot::Lt1), Some([0xFF, 0xFF, 0xFF]));
+        assert_eq!(c.get(super::ThemeSlot::Dk1), Some([0, 0, 0]));
+        assert_eq!(c.get(super::ThemeSlot::Dk2), Some([0x44, 0x54, 0x6A]));
+        assert_eq!(c.get(super::ThemeSlot::Accent1), Some([0x44, 0x72, 0xC4]));
+        assert_eq!(c.get(super::ThemeSlot::Accent2), None);
+        assert_eq!(c.get(super::ThemeSlot::Lt2), None);
+        assert_eq!(c.get_or_default(super::ThemeSlot::Lt1), Some([0xFF, 0xFF, 0xFF]));
         let f = t.fonts.as_ref().unwrap();
         assert_eq!(f.major.latin.as_deref(), Some("Calibri Light"));
         assert_eq!(f.major.ea, None, "空串视为无");
         assert_eq!(f.major.script("Hans"), Some("等线 Light"));
         assert_eq!(f.minor.ea.as_deref(), Some("宋体"));
         assert_eq!(f.minor.cs.as_deref(), Some("Arial"));
-        assert_eq!(ThemeSlot::from_theme_color(ThemeColor::Text1), Some(ThemeSlot::Dk1));
-        assert_eq!(ThemeSlot::from_theme_color(ThemeColor::None), None);
-        assert_eq!(ThemeSlot::from_scheme_name("bg2"), Some(ThemeSlot::Lt2));
-        let office = ColorScheme::office_default();
-        assert_eq!(office.get(ThemeSlot::Accent1), Some([0x44, 0x72, 0xC4]));
-        assert_eq!(office.get(ThemeSlot::FolHlink), Some([0x95, 0x4F, 0x72]));
+        assert_eq!(
+            super::ThemeSlot::from_theme_color(super::ThemeColor::Text1),
+            Some(super::ThemeSlot::Dk1)
+        );
+        assert_eq!(super::ThemeSlot::from_theme_color(super::ThemeColor::None), None);
+        assert_eq!(super::ThemeSlot::from_scheme_name("bg2"), Some(super::ThemeSlot::Lt2));
+        let office = super::ColorScheme::office_default();
+        assert_eq!(office.get(super::ThemeSlot::Accent1), Some([0x44, 0x72, 0xC4]));
+        assert_eq!(office.get(super::ThemeSlot::FolHlink), Some([0x95, 0x4F, 0x72]));
         assert!(office.node.is_none());
     }
 
     #[test]
     fn mod_10_theme_wrong_root_is_none() {
-        let dom = Dom::parse(PartId(0), format!(r#"<a:foo xmlns:a="{A}"/>"#).as_bytes()).unwrap();
-        assert!(Theme::from_dom(&dom).is_none());
+        let dom =
+            super::Dom::parse(super::PartId(0), format!(r#"<a:foo xmlns:a="{A}"/>"#).as_bytes())
+                .unwrap();
+        assert!(super::Theme::from_dom(&dom).is_none());
     }
 
     #[test]
     fn mod_11_unit_conversions_round_trip() {
-        assert_eq!(emu_to_px(914_400.0), 96.0);
-        assert_eq!(emu_to_pt(914_400.0), 72.0);
-        assert_eq!(emu_to_twips(914_400.0), 1440.0);
-        assert_eq!(pt_to_emu(72.0), 914_400.0);
-        assert_eq!(twips_to_emu(1440.0), 914_400.0);
-        assert_eq!(px_to_emu(96.0), 914_400.0);
+        assert_eq!(super::emu_to_px(914_400.0), 96.0);
+        assert_eq!(super::emu_to_pt(914_400.0), 72.0);
+        assert_eq!(super::emu_to_twips(914_400.0), 1440.0);
+        assert_eq!(super::pt_to_emu(72.0), 914_400.0);
+        assert_eq!(super::twips_to_emu(1440.0), 914_400.0);
+        assert_eq!(super::px_to_emu(96.0), 914_400.0);
         // 语料里最常见的一张图：cx=914400 → 96px、cy=457200 → 48px
-        assert_eq!(emu_to_px(457_200.0), 48.0);
+        assert_eq!(super::emu_to_px(457_200.0), 48.0);
     }
 
     #[test]
     fn mod_11_parse_length_units() {
-        assert_eq!(parse_length("96pt"), Some(Length { value: 96.0, unit: LengthUnit::Pt }));
-        assert_eq!(parse_length(" -12.5px "), Some(Length { value: -12.5, unit: LengthUnit::Px }));
-        assert_eq!(parse_length("3.5"), Some(Length { value: 3.5, unit: LengthUnit::None }));
-        assert_eq!(parse_length("1IN").unwrap().to_emu(), Some(914_400.0));
-        assert_eq!(parse_length("2.54cm").unwrap().to_emu().unwrap().round(), 914_400.0);
-        assert_eq!(parse_length("25.4mm").unwrap().to_emu().unwrap().round(), 914_400.0);
-        assert_eq!(parse_length("6pc").unwrap().to_emu(), Some(914_400.0));
-        assert_eq!(parse_length("3.5").unwrap().to_emu(), None);
-        assert_eq!(parse_length("auto"), None);
-        assert_eq!(parse_length("10em"), None);
-        assert_eq!(parse_length(""), None);
+        assert_eq!(
+            super::parse_length("96pt"),
+            Some(super::Length { value: 96.0, unit: super::LengthUnit::Pt })
+        );
+        assert_eq!(
+            super::parse_length(" -12.5px "),
+            Some(super::Length { value: -12.5, unit: super::LengthUnit::Px })
+        );
+        assert_eq!(
+            super::parse_length("3.5"),
+            Some(super::Length { value: 3.5, unit: super::LengthUnit::None })
+        );
+        assert_eq!(super::parse_length("1IN").unwrap().to_emu(), Some(914_400.0));
+        assert_eq!(super::parse_length("2.54cm").unwrap().to_emu().unwrap().round(), 914_400.0);
+        assert_eq!(super::parse_length("25.4mm").unwrap().to_emu().unwrap().round(), 914_400.0);
+        assert_eq!(super::parse_length("6pc").unwrap().to_emu(), Some(914_400.0));
+        assert_eq!(super::parse_length("3.5").unwrap().to_emu(), None);
+        assert_eq!(super::parse_length("auto"), None);
+        assert_eq!(super::parse_length("10em"), None);
+        assert_eq!(super::parse_length(""), None);
     }
 
     #[test]
     fn mod_11_parse_style_keeps_pairs_verbatim() {
-        let s = parse_style("position:absolute;MARGIN-LEFT: 36pt ;width:96pt;;bogus");
+        let s = super::parse_style("position:absolute;MARGIN-LEFT: 36pt ;width:96pt;;bogus");
         assert_eq!(
             s,
             vec![
@@ -11246,7 +10163,7 @@ mod test_model {
         );
         // 值里带冒号（mso-position 之类）只在第一个冒号处切
         assert_eq!(
-            parse_style("mso-wrap-style:none:x"),
+            super::parse_style("mso-wrap-style:none:x"),
             vec![("mso-wrap-style".to_string(), "none:x".to_string())]
         );
     }
@@ -11258,11 +10175,11 @@ mod test_model {
         r#" xmlns:o="urn:schemas-microsoft-com:office:office""#,
     );
 
-    fn parse_vml(inner: &str) -> (Dom, VmlDisplay) {
+    fn parse_vml(inner: &str) -> (super::Dom, super::VmlDisplay) {
         let src = format!("<w:pict{VML_NS}>{inner}</w:pict>");
-        let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
+        let dom = super::Dom::parse(super::PartId(0), src.as_bytes()).expect("dom");
         let root = dom.root();
-        let v = vml_display(&dom, root);
+        let v = super::vml_display(&dom, root);
         (dom, v)
     }
 
@@ -11273,7 +10190,7 @@ mod test_model {
             r##"<v:rect id="_x0000_i1026" style="width:0;height:1.5pt" o:hralign="center" o:hr="t" fillcolor="#aca899" stroked="f"/>"##,
         );
         let r = v.rule().expect("hr");
-        assert_eq!(r.kind, VmlKind::Rect);
+        assert_eq!(r.kind, super::VmlKind::Rect);
         assert_eq!(r.fill_color.as_deref(), Some("aca899"), "去掉 # 但保留原大小写");
         assert_eq!(r.stroked, Some(false));
         assert_eq!(r.style_len("height").unwrap().to_emu(), Some(1.5 * 12700.0));
@@ -11290,7 +10207,7 @@ mod test_model {
             r#"</v:group>"#,
         ));
         assert_eq!(v.shapes.len(), 3);
-        assert_eq!(v.shapes[0].kind, VmlKind::Group);
+        assert_eq!(v.shapes[0].kind, super::VmlKind::Group);
         assert_eq!(v.shapes[0].coordsize, Some((2000, 1000)));
         assert_eq!(v.shapes[1].parent, Some(0));
         assert_eq!(v.shapes[2].parent, Some(0));
@@ -11313,21 +10230,16 @@ mod test_model {
 
     #[test]
     fn mod_11_vml_color_forms() {
-        assert_eq!(vml_color("#ACA899"), Some("ACA899".into()));
-        assert_eq!(vml_color("aca899"), Some("aca899".into()));
-        assert_eq!(vml_color("#ffffff [65535]"), Some("ffffff".into()));
+        assert_eq!(super::vml_color("#ACA899"), Some("ACA899".into()));
+        assert_eq!(super::vml_color("aca899"), Some("aca899".into()));
+        assert_eq!(super::vml_color("#ffffff [65535]"), Some("ffffff".into()));
         // HTML 颜色名与 `#abc` 简写也认（TS `vmlColorHex`）
-        assert_eq!(vml_color("red"), Some("FF0000".into()));
-        assert_eq!(vml_color("Silver [2]"), Some("C0C0C0".into()));
-        assert_eq!(vml_color("#abc"), Some("aabbcc".into()));
-        assert_eq!(vml_color("window"), None);
+        assert_eq!(super::vml_color("red"), Some("FF0000".into()));
+        assert_eq!(super::vml_color("Silver [2]"), Some("C0C0C0".into()));
+        assert_eq!(super::vml_color("#abc"), Some("aabbcc".into()));
+        assert_eq!(super::vml_color("window"), None);
     }
     // 模型验收（`spec/06` 验收清单 MOD-03 / 05 / 06，任务 1.5–1.8）。
-
-    use crate::diag::DiagCode;
-    use crate::package::{PartId, Rels};
-    use crate::semantic::props::Val;
-    use crate::xml::{Dom, LocalName, QName};
 
     const R: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
     const M: &str = "http://schemas.openxmlformats.org/officeDocument/2006/math";
@@ -11335,33 +10247,33 @@ mod test_model {
 
     const V: &str = "urn:schemas-microsoft-com:vml";
 
-    fn doc(body: &str) -> Dom {
+    fn doc(body: &str) -> super::Dom {
         let xml = format!(
             r#"<w:document xmlns:w="{W}" xmlns:r="{R}" xmlns:m="{M}" xmlns:wp="{WP}" xmlns:a="{A}" xmlns:v="{V}"><w:body>{body}</w:body></w:document>"#
         );
-        Dom::parse(PartId(0), xml.as_bytes()).unwrap_or_else(|e| panic!("{e}\n{xml}"))
+        super::Dom::parse(super::PartId(0), xml.as_bytes()).unwrap_or_else(|e| panic!("{e}\n{xml}"))
     }
 
-    fn styles(xml: &str) -> Styles {
-        let d = Dom::parse(
-            PartId(0),
+    fn styles(xml: &str) -> super::Styles {
+        let d = super::Dom::parse(
+            super::PartId(0),
             format!(r#"<w:styles xmlns:w="{W}">{xml}</w:styles>"#).as_bytes(),
         )
         .unwrap();
-        Styles::from_dom(&d, &mut Vec::new()).unwrap()
+        super::Styles::from_dom(&d, &mut Vec::new()).unwrap()
     }
 
-    fn build(body: &str) -> (Vec<Block>, Vec<crate::diag::Diagnostic>) {
+    fn build(body: &str) -> (Vec<super::Block>, Vec<crate::diag::Diagnostic>) {
         let d = doc(body);
-        Document::build_main(&d, None, &Rels::default())
+        super::Document::build_main(&d, None, &super::Rels::default())
     }
 
-    fn build_with(body: &str, s: &Styles) -> Vec<Block> {
+    fn build_with(body: &str, s: &super::Styles) -> Vec<super::Block> {
         let d = doc(body);
-        Document::build_main(&d, Some(s), &Rels::default()).0
+        super::Document::build_main(&d, Some(s), &super::Rels::default()).0
     }
 
-    fn text_of(b: &Block) -> String {
+    fn text_of(b: &super::Block) -> String {
         b.as_text().expect("text block").text()
     }
 
@@ -11373,9 +10285,9 @@ mod test_model {
         assert_eq!(text_of(&blocks[0]), "Hello\tWorld");
         let tb = blocks[0].as_text().unwrap();
         assert_eq!(tb.utf16_len(), 11);
-        let Inline::Run(run) = &tb.inlines[0] else { panic!() };
+        let super::Inline::Run(run) = &tb.inlines[0] else { panic!() };
         assert_eq!(run.segments.len(), 3);
-        assert_eq!(run.segments[1].kind, SegmentKind::Tab);
+        assert_eq!(run.segments[1].kind, super::SegmentKind::Tab);
         assert_eq!(run.segments[1].text, 5..6);
         assert_eq!(run.segment_text(&run.segments[2]), "World");
 
@@ -11384,8 +10296,11 @@ mod test_model {
             r#"<w:p><w:r><w:t>A</w:t></w:r><w:r><w:drawing><wp:inline><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"/></a:graphic></wp:inline></w:drawing></w:r><w:r><w:t>B</w:t></w:r></w:p>"#,
         );
         let t = text_of(&blocks[0]);
-        assert_eq!(t, format!("A{OBJECT_REPLACEMENT}B"));
-        assert_eq!(t.chars().filter(|&c| c == OBJECT_REPLACEMENT).count(), 1);
+        assert_eq!(
+            t,
+            format!("A{OBJECT_REPLACEMENT}B", OBJECT_REPLACEMENT = super::OBJECT_REPLACEMENT)
+        );
+        assert_eq!(t.chars().filter(|&c| c == super::OBJECT_REPLACEMENT).count(), 1);
         assert_eq!(blocks[0].as_text().unwrap().utf16_len(), 3);
 
         // 无 preserve 的 <w:t> x </w:t> 文本为 x；有 preserve 原样；xml:space 沿祖先继承、default 复位
@@ -11402,15 +10317,24 @@ mod test_model {
             r#"<w:p><w:r><w:t>a</w:t><w:br/><w:t>b</w:t><w:br w:type="page"/><w:cr/><w:noBreakHyphen/><w:softHyphen/><w:t>😀</w:t><w:lastRenderedPageBreak/><w:fldChar w:fldCharType="begin"/></w:r></w:p>"#,
         );
         let tb = blocks[0].as_text().unwrap();
-        assert_eq!(tb.text(), format!("a\nb{OBJECT_REPLACEMENT}\n\u{2011}\u{00AD}😀"));
+        assert_eq!(
+            tb.text(),
+            format!(
+                "a\nb{OBJECT_REPLACEMENT}\n\u{2011}\u{00AD}😀",
+                OBJECT_REPLACEMENT = super::OBJECT_REPLACEMENT
+            )
+        );
         assert_eq!(tb.utf16_len(), 9, "😀 占 2 个 UTF-16 单位");
-        let Inline::Run(run) = &tb.inlines[0] else { panic!() };
-        let kinds: Vec<&SegmentKind> = run.segments.iter().map(|s| &s.kind).collect();
-        assert!(matches!(kinds[1], SegmentKind::Br { kind: BreakKind::TextWrapping, .. }));
-        assert!(matches!(kinds[3], SegmentKind::Br { kind: BreakKind::Page, .. }));
-        assert_eq!(kinds[8], &SegmentKind::LastRenderedPageBreak);
+        let super::Inline::Run(run) = &tb.inlines[0] else { panic!() };
+        let kinds: Vec<&super::SegmentKind> = run.segments.iter().map(|s| &s.kind).collect();
+        assert!(matches!(
+            kinds[1],
+            super::SegmentKind::Br { kind: super::BreakKind::TextWrapping, .. }
+        ));
+        assert!(matches!(kinds[3], super::SegmentKind::Br { kind: super::BreakKind::Page, .. }));
+        assert_eq!(kinds[8], &super::SegmentKind::LastRenderedPageBreak);
         assert_eq!(run.segments[8].utf16_len, 0);
-        assert_eq!(run.segments[9].kind, SegmentKind::FldChar);
+        assert_eq!(run.segments[9].kind, super::SegmentKind::FldChar);
         assert_eq!(run.segments[7].utf16_len, 2);
         // 段区间覆盖且不重叠
         let mut pos = 0;
@@ -11431,30 +10355,33 @@ mod test_model {
         );
         let tb = blocks[0].as_text().unwrap();
         assert_eq!(tb.inlines.len(), 5);
-        let Inline::Run(run) = &tb.inlines[0] else { panic!() };
+        let super::Inline::Run(run) = &tb.inlines[0] else { panic!() };
         assert_eq!(run.props.bold, Some(true));
-        assert_eq!(run.props.size, Some(Val::Value(28)));
+        assert_eq!(run.props.size, Some(super::Val::Value(28)));
         assert_eq!(run.text, "\u{F0FC}", "符号字体映射表在 M2，先按 U+F000 + (code & 0xFF)");
         assert!(
-            matches!(&run.segments[0].kind, SegmentKind::Sym { font: Some(f), code: Some(0xF0FC) } if f == "Wingdings")
+            matches!(&run.segments[0].kind, super::SegmentKind::Sym { font: Some(f), code: Some(0xF0FC) } if f == "Wingdings")
         );
-        assert!(matches!(&tb.inlines[1], Inline::Atom(InlineAtom { kind: AtomKind::Math, .. })));
+        assert!(matches!(
+            &tb.inlines[1],
+            super::Inline::Atom(super::InlineAtom { kind: super::AtomKind::Math, .. })
+        ));
         assert!(matches!(
             &tb.inlines[2],
-            Inline::Atom(InlineAtom { kind: AtomKind::BareBreak { kind: BreakKind::Page }, .. })
+            super::Inline::Atom(super::InlineAtom {
+                kind: super::AtomKind::BareBreak { kind: super::BreakKind::Page },
+                ..
+            })
         ));
-        let Inline::Run(ruby) = &tb.inlines[3] else { panic!() };
-        assert!(matches!(&ruby.segments[0].kind, SegmentKind::Ruby { rt, .. } if rt == "rt"));
-        let Inline::Run(fn_ref) = &tb.inlines[4] else { panic!() };
+        let super::Inline::Run(ruby) = &tb.inlines[3] else { panic!() };
         assert!(
-            matches!(&fn_ref.segments[0].kind, SegmentKind::FootnoteRef { id: Some(id) } if id == "1")
+            matches!(&ruby.segments[0].kind, super::SegmentKind::Ruby { rt, .. } if rt == "rt")
         );
-        assert_eq!(
-            tb.text(),
-            format!(
-                "\u{F0FC}{OBJECT_REPLACEMENT}{OBJECT_REPLACEMENT}{OBJECT_REPLACEMENT}{OBJECT_REPLACEMENT}"
-            )
+        let super::Inline::Run(fn_ref) = &tb.inlines[4] else { panic!() };
+        assert!(
+            matches!(&fn_ref.segments[0].kind, super::SegmentKind::FootnoteRef { id: Some(id) } if id == "1")
         );
+        assert_eq!(tb.text(), format!("\u{F0FC}{o}{o}{o}{o}", o = super::OBJECT_REPLACEMENT));
         assert_eq!(tb.utf16_len(), 5);
     }
 
@@ -11472,20 +10399,20 @@ mod test_model {
         );
         let tb = blocks[0].as_text().unwrap();
         assert_eq!(tb.text(), "linkinnewgonesdtchg", "范围标记与 proofErr 不占位");
-        let runs: Vec<&Run> = tb
+        let runs: Vec<&super::Run> = tb
             .inlines
             .iter()
             .filter_map(|i| match i {
-                Inline::Run(r) => Some(r),
+                super::Inline::Run(r) => Some(r),
                 _ => None,
             })
             .collect();
         assert_eq!(runs.len(), 6);
         assert!(
-            matches!(&runs[0].link, Some(Link::Hyperlink { target: LinkTarget::External { rel_id, href: None }, tooltip: Some(t), .. }) if rel_id == "rId9" && t == "tip")
+            matches!(&runs[0].link, Some(super::Link::Hyperlink { target: super::LinkTarget::External { rel_id, href: None }, tooltip: Some(t), .. }) if rel_id == "rId9" && t == "tip")
         );
         assert!(
-            matches!(&runs[1].link, Some(Link::Hyperlink { target: LinkTarget::Internal { anchor }, .. }) if anchor == "bm1")
+            matches!(&runs[1].link, Some(super::Link::Hyperlink { target: super::LinkTarget::Internal { anchor }, .. }) if anchor == "bm1")
         );
         let ins = runs[2].rev.as_ref().unwrap();
         assert_eq!(ins.ins.as_ref().unwrap().author.as_deref(), Some("A"));
@@ -11495,7 +10422,7 @@ mod test_model {
             mv.del.is_some() && mv.move_from.is_some() && mv.ins.is_none(),
             "moveFrom 同时计入 del"
         );
-        assert_eq!(runs[3].segments[0].kind, SegmentKind::DelText);
+        assert_eq!(runs[3].segments[0].kind, super::SegmentKind::DelText);
         assert!(runs[4].rev.is_none() && runs[4].link.is_none());
         let chg = runs[5].rev.as_ref().unwrap();
         let (meta, old) = chg.props_change.as_ref().unwrap();
@@ -11524,28 +10451,39 @@ mod test_model {
               <w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr><w:r><w:t>i</w:t></w:r></w:p>
               <w:p><w:pPr><w:outlineLvl w:val="2"/></w:pPr><w:r><w:t>j</w:t></w:r></w:p>"#;
         let blocks = build_with(body, &s);
-        let kinds: Vec<&TextKind> = blocks.iter().map(|b| &b.as_text().unwrap().kind).collect();
-        assert_eq!(kinds[0], &TextKind::Paragraph, "outlineLvl=9 且样式为 Heading1 → Paragraph");
-        assert_eq!(kinds[1], &TextKind::Heading { level: 1 }, "basedOn 继承标题级别");
-        assert_eq!(kinds[2], &TextKind::Paragraph, "outlineLvl 9 阻断继承");
+        let kinds: Vec<&super::TextKind> =
+            blocks.iter().map(|b| &b.as_text().unwrap().kind).collect();
+        assert_eq!(
+            kinds[0],
+            &super::TextKind::Paragraph,
+            "outlineLvl=9 且样式为 Heading1 → Paragraph"
+        );
+        assert_eq!(kinds[1], &super::TextKind::Heading { level: 1 }, "basedOn 继承标题级别");
+        assert_eq!(kinds[2], &super::TextKind::Paragraph, "outlineLvl 9 阻断继承");
         assert_eq!(
             kinds[3],
-            &TextKind::ListItem { list: ListRef { num_id: 5, ilvl: 1, from_style: true } }
+            &super::TextKind::ListItem {
+                list: super::ListRef { num_id: 5, ilvl: 1, from_style: true }
+            }
         );
-        assert_eq!(kinds[4], &TextKind::Paragraph, "样式 numId 0 取消继承编号");
-        assert_eq!(kinds[5], &TextKind::Paragraph, "直接 numId 0 → 无编号");
+        assert_eq!(kinds[4], &super::TextKind::Paragraph, "样式 numId 0 取消继承编号");
+        assert_eq!(kinds[5], &super::TextKind::Paragraph, "直接 numId 0 → 无编号");
         assert_eq!(
             kinds[6],
-            &TextKind::ListItem { list: ListRef { num_id: 5, ilvl: 2, from_style: true } },
+            &super::TextKind::ListItem {
+                list: super::ListRef { num_id: 5, ilvl: 2, from_style: true }
+            },
             "ilvl 直接、numId 来自样式"
         );
         assert_eq!(
             kinds[7],
-            &TextKind::ListItem { list: ListRef { num_id: 9, ilvl: 0, from_style: false } },
+            &super::TextKind::ListItem {
+                list: super::ListRef { num_id: 9, ilvl: 0, from_style: false }
+            },
             "ListRef 优先于 Heading"
         );
-        assert_eq!(kinds[8], &TextKind::Heading { level: 3 }, "文档未定义的内建 Heading3");
-        assert_eq!(kinds[9], &TextKind::Heading { level: 3 }, "直接 outlineLvl");
+        assert_eq!(kinds[8], &super::TextKind::Heading { level: 3 }, "文档未定义的内建 Heading3");
+        assert_eq!(kinds[9], &super::TextKind::Heading { level: 3 }, "直接 outlineLvl");
     }
 
     #[test]
@@ -11574,14 +10512,14 @@ mod test_model {
               <w:p><w:r><w:t>text</w:t><w:drawing><wp:inline><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"/></a:graphic></wp:inline></w:drawing></w:r></w:p>
               <w:sectPr><w:pgSz w:w="11906"/></w:sectPr>"#;
         let d = doc(body);
-        let (blocks, warnings) = Document::build_main(&d, Some(&s), &Rels::default());
+        let (blocks, warnings) = super::Document::build_main(&d, Some(&s), &super::Rels::default());
         let kinds: Vec<String> = blocks
             .iter()
             .map(|b| match b {
-                Block::Text(t) => format!("Text:{}", t.text()),
-                Block::Table(_) => "Table".into(),
-                Block::Image(_) => "Image".into(),
-                Block::Protected(p) => format!("Protected:{}", p.kind.key()),
+                super::Block::Text(t) => format!("Text:{}", t.text()),
+                super::Block::Table(_) => "Table".into(),
+                super::Block::Image(_) => "Image".into(),
+                super::Block::Protected(p) => format!("Protected:{}", p.kind.key()),
             })
             .collect();
         assert_eq!(
@@ -11604,7 +10542,10 @@ mod test_model {
                 "Protected:protected.chart",
                 "Protected:protected.rule",
                 "Protected:protected.ole",
-                &format!("Text:text{OBJECT_REPLACEMENT}"),
+                &format!(
+                    "Text:text{OBJECT_REPLACEMENT}",
+                    OBJECT_REPLACEMENT = super::OBJECT_REPLACEMENT
+                ),
                 "Protected:protected.section_props",
             ]
         );
@@ -11613,28 +10554,33 @@ mod test_model {
             blocks[2].sdt().is_some() && blocks[3].sdt().is_some() && blocks[0].sdt().is_none()
         );
         assert!(
-            matches!(blocks[6].revisions(), [Revision::Insert(m)] if m.author.as_deref() == Some("A"))
+            matches!(blocks[6].revisions(), [super::Revision::Insert(m)] if m.author.as_deref() == Some("A"))
         );
-        let Block::Protected(unknown) = &blocks[7] else { panic!() };
+        let super::Block::Protected(unknown) = &blocks[7] else { panic!() };
         assert!(
-            matches!(&unknown.kind, ProtectedKind::Unknown(q) if q.local == LocalName::AltChunk)
+            matches!(&unknown.kind, super::ProtectedKind::Unknown(q) if q.local == super::LocalName::AltChunk)
         );
-        let Block::Protected(hidden) = &blocks[8] else { panic!() };
+        let super::Block::Protected(hidden) = &blocks[8] else { panic!() };
         assert_eq!(hidden.preview, "hidden");
         assert!(
-            matches!(&blocks[10], Block::Protected(p) if p.kind == ProtectedKind::SectionBreak)
+            matches!(&blocks[10], super::Block::Protected(p) if p.kind == super::ProtectedKind::SectionBreak)
         );
-        assert_eq!(warnings.iter().filter(|d| d.code == DiagCode::ModUnknownBlock).count(), 1);
-        // 每条规则可单测
-        let f = ParagraphFacts { has_sect_pr: true, visible_text: false, ..Default::default() };
         assert_eq!(
-            classify_paragraph(&f),
-            ("R10", ParaClass::Protected(ProtectedKind::SectionBreak))
+            warnings.iter().filter(|d| d.code == super::DiagCode::ModUnknownBlock).count(),
+            1
         );
-        let f = ParagraphFacts { has_sect_pr: true, visible_text: true, ..Default::default() };
-        assert_eq!(classify_paragraph(&f), ("R19", ParaClass::Text));
-        let (rule, class) = classify_body_child(&d, blocks[1].node());
-        assert_eq!((rule, class), ("R02", BodyClass::Table));
+        // 每条规则可单测
+        let f =
+            super::ParagraphFacts { has_sect_pr: true, visible_text: false, ..Default::default() };
+        assert_eq!(
+            f.classify(),
+            ("R10", super::ParaClass::Protected(super::ProtectedKind::SectionBreak))
+        );
+        let f =
+            super::ParagraphFacts { has_sect_pr: true, visible_text: true, ..Default::default() };
+        assert_eq!(f.classify(), ("R19", super::ParaClass::Text));
+        let (rule, class) = super::BodyClass::classify(&d, blocks[1].node());
+        assert_eq!((rule, class), ("R02", super::BodyClass::Table));
     }
 
     #[test]
@@ -11650,26 +10596,26 @@ mod test_model {
                    <w:del w:id="3" w:author="a" w:date="2024-01-01T00:00:00Z"><w:r><w:delText>gone</w:delText></w:r></w:del>
                    <m:oMath/></w:p>"#,
         );
-        let blocks = Document::build_main(&d, Some(&s), &Rels::default()).0;
+        let blocks = super::Document::build_main(&d, Some(&s), &super::Rels::default()).0;
         let tb = blocks[0].as_text().unwrap();
         let f = &tb.facts;
         assert!(f.visible_text, "delText 也算可见文本");
         assert!(f.visible_text_outside_boxes);
         assert_eq!(f.toc_style_level, Some(2));
         assert_eq!(f.picts.len(), 1);
-        assert_eq!(f.picts[0].kind, PictKind::TextBox);
+        assert_eq!(f.picts[0].kind, super::PictKind::TextBox);
         assert_eq!(f.math.count, 1);
         assert!(f.revision.run_del && f.revision.para_mark_del && f.revision.ppr_change);
         assert!(!f.revision.run_ins);
         assert!(matches!(
             tb.revisions.as_slice(),
-            [Revision::ParaMarkDelete(_), Revision::ParaPropsChange { .. }]
+            [super::Revision::ParaMarkDelete(_), super::Revision::ParaPropsChange { .. }]
         ));
         // 只有文本框里有字：visible_text 为假
         let d2 = doc(
             r#"<w:p><w:r><w:pict><v:shape><v:textbox><w:txbxContent><w:p><w:r><w:t>boxed</w:t></w:r></w:p></w:txbxContent></v:textbox></v:shape></w:pict></w:r></w:p>"#,
         );
-        let blocks = Document::build_main(&d2, None, &Rels::default()).0;
+        let blocks = super::Document::build_main(&d2, None, &super::Rels::default()).0;
         let f = &blocks[0].as_text().unwrap().facts;
         assert!(!f.visible_text && !f.visible_text_outside_boxes);
     }
@@ -11677,11 +10623,11 @@ mod test_model {
     #[test]
     fn mod_01_document_without_body_warns() {
         let xml = format!(r#"<w:document xmlns:w="{W}"/>"#);
-        let d = Dom::parse(PartId(0), xml.as_bytes()).unwrap();
-        let (blocks, warnings) = Document::build_main(&d, None, &Rels::default());
+        let d = super::Dom::parse(super::PartId(0), xml.as_bytes()).unwrap();
+        let (blocks, warnings) = super::Document::build_main(&d, None, &super::Rels::default());
         assert!(blocks.is_empty());
         assert_eq!(warnings.len(), 1);
-        assert_eq!(warnings[0].code, DiagCode::ModUnparseable);
-        let _ = QName::w(LocalName::Body);
+        assert_eq!(warnings[0].code, super::DiagCode::ModUnparseable);
+        let _ = super::QName::w(super::LocalName::Body);
     }
 }

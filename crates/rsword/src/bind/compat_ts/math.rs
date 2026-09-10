@@ -3,8 +3,7 @@
 
 use serde_json::{Map, Value};
 
-use crate::model::{Display, ProtectedBlock};
-use crate::model::{FormulaDisplay, math_tokens};
+use crate::model::{Display, FormulaDisplay, ProtectedBlock};
 use crate::xml::NodeId;
 
 use super::blocks::Ctx;
@@ -31,7 +30,7 @@ fn formula_json(ctx: &Ctx<'_>, f: &FormulaDisplay) -> Map<String, Value> {
 /// 文字夹公式的段落里一个 `m:oMath` 原子 → `{ text: token 拼接, math: { omml: 原字节 } }`。
 pub(super) fn math_run(ctx: &Ctx<'_>, omath: NodeId) -> Map<String, Value> {
     display_json! {
-        "text" => math_tokens(ctx.dom, omath).concat(),
+        "text" => ctx.dom.math_tokens(omath).collect::<String>(),
         "math" => Value::Object(display_json! { "omml" => ctx.node_xml(omath).to_string() }),
     }
 }

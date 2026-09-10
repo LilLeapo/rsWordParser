@@ -65,6 +65,8 @@ src/bind/native/json.rs DocumentJson
 ## 审计注解位置
 
 祖先可见性也锁定，防止改回无条件 `doc(hidden)` 后压掉子项的审计：
+`model` 另有 `#[macro_use]`，使其文件顶部的声明宏可供后续兄弟模块使用；
+该属性不改变文档可见性。测试只对 `model` 明确要求此属性，其余祖先仍保持两条审计属性。
 
 ```bind-11-ancestors
 diag

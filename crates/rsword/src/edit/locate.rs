@@ -10,8 +10,7 @@
 
 use crate::diag::DiagCode;
 use crate::error::{Error, Result};
-use crate::model::Document;
-use crate::model::{Inline, SegmentKind};
+use crate::model::{Document, Inline, SegmentKind};
 use crate::package::Package;
 use crate::xml::{LocalName, NodeId, QName};
 
