@@ -13,7 +13,6 @@ use crate::edit::plan::{MutationPlan, MutationResult};
 use crate::edit::{EditSession, NewBlock};
 use crate::error::{Error, Result};
 use crate::model::escape_text;
-use crate::model::named_enum;
 use crate::package::ns_context::NamespaceContext;
 use crate::package::{PartId, RelType};
 use crate::xml::plan::{NewElement, NodeEdit, Target};

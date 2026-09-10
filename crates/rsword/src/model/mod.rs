@@ -48,6 +48,169 @@ use crate::xml::{Dirty, Dom, LocalName, MceRole, NodeId, NsId, QName};
 /// 一条修订的元数据（`w:id` / `w:author` / `w:date`）。定义在 L2（范围标记用同一组属性）。
 pub use crate::span::RevisionMeta;
 
+// 模型层的声明宏。
+//
+// 显示模型里有一批「无字段枚举 + 一个稳定短名字」的类型：种类、绕排、填充方式……名字用在
+// 诊断、语料普查的输出、以后的 i18n key 上。枚举写一遍、名字表再写一遍，迟早对不上——尤其是
+// 加变体的时候编译器不会提醒你去补名字表。宏把两者绑在同一处声明里。
+
+/// 声明一个无字段枚举，并生成 `as_str`（名字表跟着变体走，漏了编译不过）。
+///
+/// ```ignore
+/// named_enum! {
+///     /// VML 元素种类。
+///     pub enum VmlKind {
+///         /// `v:shape`
+///         Shape = "shape",
+///         Group = "group",
+///     }
+/// }
+/// ```
+macro_rules! named_enum {
+        (
+            $(#[$meta:meta])*
+            $vis:vis enum $name:ident {
+                $($(#[$vmeta:meta])* $variant:ident = $text:literal),+ $(,)?
+            }
+        ) => {
+            $(#[$meta])*
+            #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+            $vis enum $name {
+                $($(#[$vmeta])* $variant,)+
+            }
+
+            impl $name {
+                /// 稳定的短名字。
+                pub const fn as_str(self) -> &'static str {
+                    match self {
+                        $(Self::$variant => $text,)+
+                    }
+                }
+            }
+
+            impl ::core::fmt::Display for $name {
+                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                    f.write_str(self.as_str())
+                }
+            }
+        };
+    }
+
+/// 图表 part 元素名 → 种类。一张表同时给出「哪些元素算绘图区里的图」（`plot_kind` 有值）与「归并到哪一类」；
+/// ECMA-376 §21.2.2 的 16 种图全部在表里，认不出的种类明说是 `Other`，别的元素（`c:catAx` 等）不是图。
+macro_rules! chart_kinds {
+        ($($local:ident => $kind:ident),+ $(,)?) => {
+            /// 绘图区子元素 → 图表种类；不是图表元素 → `None`。
+            pub fn plot_kind(local: LocalName) -> Option<ChartKind> {
+                match local {
+                    $(LocalName::$local => Some(ChartKind::$kind),)+
+                    _ => None,
+                }
+            }
+
+            /// 表里全部图表元素（测试用：每一种都要被认出来）。
+            pub const PLOT_ELEMENTS: &[LocalName] = &[$(LocalName::$local,)+];
+        };
+    }
+
+/// 三张 TS 表的反查：符号 / n 元运算符 / 重音 → 命令名（同一字符有多个名字时**第一个**赢）。
+macro_rules! latex_symbols {
+            ($fn:ident / $rev:ident: $($name:literal => $ch:literal),+ $(,)?) => {
+                /// 字符 → `\命令`（表序，别名取第一个）。
+                fn $fn(ch: char) -> Option<&'static str> {
+                    $( if ch == $ch { return Some($name); } )+
+                    None
+                }
+
+                /// `\命令` → 字符（同一张表的反方向，`latex_to_omml` 用）。
+                pub(in crate::model) fn $rev(name: &str) -> Option<char> {
+                    $( if name == $name { return Some($ch); } )+
+                    None
+                }
+            };
+        }
+
+// 内容控件（`MOD-08`，任务 3.3）：`w:sdt` 的 `sdtPr` 读成 [`SdtInfo`]。
+//
+// 块级与 run 级 sdt 用同一个读取器。控件种类按 `sdtPr` 里第一个可识别的控件元素判定，**只看局部名**
+// ——复选框在 `w14`、重复节在 `w15`，Word 各版本的前缀不一样（TS 也是这么认的）。
+// 编辑策略在 `EDIT-03`：[`refusing_sdt`] 给出拒绝理由，`ContentLocked` / `SdtContentLocked` 只读，
+// 有 `data_binding` 的第一阶段也只读（显示文字只是绑定数据的缓存，Word 重开会从 customXml 刷回）。
+
+/// 无字段枚举 + `as_str` + `parse`：把「变体 ↔ XML 字面」的名字表写成一张表，
+/// 免得枚举、匹配、测试各抄一遍（通用枚举宏见 `named_enum!`，这里只服务 sdt）。
+///
+/// ```ignore
+/// sdt_enum! {
+///     /// 文档注释
+///     pub enum SdtLock { Unlocked => "unlocked", SdtLocked => "sdtLocked" }
+/// }
+/// ```
+macro_rules! sdt_enum {
+        ($(#[$m:meta])* pub enum $name:ident { $($(#[$vm:meta])* $variant:ident => $text:literal),+ $(,)? }) => {
+            $(#[$m])*
+            #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+            pub enum $name {
+                $($(#[$vm])* $variant,)+
+            }
+
+            impl $name {
+                /// 全部变体，声明顺序。
+                pub const ALL: &[$name] = &[$($name::$variant,)+];
+
+                /// XML 字面。
+                pub const fn as_str(self) -> &'static str {
+                    match self {
+                        $($name::$variant => $text,)+
+                    }
+                }
+
+                /// 精确匹配 XML 字面。
+                pub fn parse(s: &str) -> Option<$name> {
+                    match s {
+                        $($text => Some($name::$variant),)+
+                        _ => None,
+                    }
+                }
+            }
+
+            impl std::fmt::Display for $name {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    f.write_str(self.as_str())
+                }
+            }
+        };
+    }
+
+/// 读容器属性并装箱。**必须**是独立且不内联的函数：`TableProps` 2.1 KB、`CellProps` 2.4 KB，
+/// 快照元组同样大；留在 `build_table` / `build_row` / `build_cell` 的栈帧里，它们会一直活到递归
+/// 返回（debug 构建按帧分配临时值），64 层嵌套就把 2 MiB 的测试线程栈撑爆。装进 `Box` 之后每层
+/// 只留一个指针，2000 层的语料与 5000 层的 hostile 文档都能在默认栈上跑完。
+macro_rules! boxed_reader {
+        ($(#[$m:meta])* $name:ident, $read:path, $props:ty) => {
+            $(#[$m])*
+            #[inline(never)]
+            fn $name(dom: &Dom, container: Option<NodeId>, diags: &mut Vec<Diagnostic>) -> Box<$props> {
+                Box::new($read(dom, container, diags))
+            }
+        };
+    }
+
+/// 同上，读 `*PrChange` 的旧值快照。
+macro_rules! boxed_change_reader {
+        ($(#[$m:meta])* $name:ident, $read:path, $props:ty) => {
+            $(#[$m])*
+            #[inline(never)]
+            fn $name(
+                dom: &Dom,
+                container: Option<NodeId>,
+                diags: &mut Vec<Diagnostic>,
+            ) -> Option<(NodeId, Box<$props>)> {
+                $read(dom, container, diags).map(|(n, v)| (n, Box::new(v)))
+            }
+        };
+    }
+
 // 块模型（`MOD-02`、`MOD-03`、`MOD-08`、`MOD-09`，`docs/03` §6.3）。
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -2035,56 +2198,6 @@ pub fn text_kind(f: &ParagraphFacts) -> TextKind {
     TextKind::Paragraph
 }
 
-// 模型层的声明宏。
-//
-// 显示模型里有一批「无字段枚举 + 一个稳定短名字」的类型：种类、绕排、填充方式……名字用在
-// 诊断、语料普查的输出、以后的 i18n key 上。枚举写一遍、名字表再写一遍，迟早对不上——尤其是
-// 加变体的时候编译器不会提醒你去补名字表。宏把两者绑在同一处声明里。
-
-/// 声明一个无字段枚举，并生成 `as_str`（名字表跟着变体走，漏了编译不过）。
-///
-/// ```ignore
-/// named_enum! {
-///     /// VML 元素种类。
-///     pub enum VmlKind {
-///         /// `v:shape`
-///         Shape = "shape",
-///         Group = "group",
-///     }
-/// }
-/// ```
-macro_rules! named_enum {
-        (
-            $(#[$meta:meta])*
-            $vis:vis enum $name:ident {
-                $($(#[$vmeta:meta])* $variant:ident = $text:literal),+ $(,)?
-            }
-        ) => {
-            $(#[$meta])*
-            #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-            $vis enum $name {
-                $($(#[$vmeta])* $variant,)+
-            }
-
-            impl $name {
-                /// 稳定的短名字。
-                pub const fn as_str(self) -> &'static str {
-                    match self {
-                        $(Self::$variant => $text,)+
-                    }
-                }
-            }
-
-            impl ::core::fmt::Display for $name {
-                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                    f.write_str(self.as_str())
-                }
-            }
-        };
-    }
-
-pub(crate) use named_enum;
-
 // 辅助 part 的内容流（`MOD-01`、`docs/03` §6.7，`spec/16` 任务 5.3）。
 //
 // 页眉页脚、脚注尾注、批注的内容都是 `Vec<Block>`，**与正文同一个构建器**。它们与正文的差别只有
@@ -2198,23 +2311,6 @@ named_enum! {
         TopRight = "tr",
     }
 }
-
-/// 图表 part 元素名 → 种类。一张表同时给出「哪些元素算绘图区里的图」（`plot_kind` 有值）与「归并到哪一类」；
-/// ECMA-376 §21.2.2 的 16 种图全部在表里，认不出的种类明说是 `Other`，别的元素（`c:catAx` 等）不是图。
-macro_rules! chart_kinds {
-        ($($local:ident => $kind:ident),+ $(,)?) => {
-            /// 绘图区子元素 → 图表种类；不是图表元素 → `None`。
-            pub fn plot_kind(local: LocalName) -> Option<ChartKind> {
-                match local {
-                    $(LocalName::$local => Some(ChartKind::$kind),)+
-                    _ => None,
-                }
-            }
-
-            /// 表里全部图表元素（测试用：每一种都要被认出来）。
-            pub const PLOT_ELEMENTS: &[LocalName] = &[$(LocalName::$local,)+];
-        };
-    }
 
 chart_kinds! {
     BarChart => Bar,
@@ -6377,23 +6473,6 @@ fn char_escape(ch: char) -> Option<&'static str> {
     })
 }
 
-/// 三张 TS 表的反查：符号 / n 元运算符 / 重音 → 命令名（同一字符有多个名字时**第一个**赢）。
-macro_rules! latex_symbols {
-            ($fn:ident / $rev:ident: $($name:literal => $ch:literal),+ $(,)?) => {
-                /// 字符 → `\命令`（表序，别名取第一个）。
-                fn $fn(ch: char) -> Option<&'static str> {
-                    $( if ch == $ch { return Some($name); } )+
-                    None
-                }
-
-                /// `\命令` → 字符（同一张表的反方向，`latex_to_omml` 用）。
-                pub(in crate::model) fn $rev(name: &str) -> Option<char> {
-                    $( if name == $name { return Some($ch); } )+
-                    None
-                }
-            };
-        }
-
 latex_symbols! { symbol_command / symbol_char:
     "alpha" => 'α', "beta" => 'β', "gamma" => 'γ', "delta" => 'δ', "epsilon" => 'ε', "zeta" => 'ζ',
     "eta" => 'η', "theta" => 'θ', "vartheta" => 'ϑ', "iota" => 'ι', "kappa" => 'κ', "lambda" => 'λ',
@@ -8076,58 +8155,6 @@ fn descend(n: NodeId, name: QName, ctx: &mut Ctx) {
     }
 }
 
-// 内容控件（`MOD-08`，任务 3.3）：`w:sdt` 的 `sdtPr` 读成 [`SdtInfo`]。
-//
-// 块级与 run 级 sdt 用同一个读取器。控件种类按 `sdtPr` 里第一个可识别的控件元素判定，**只看局部名**
-// ——复选框在 `w14`、重复节在 `w15`，Word 各版本的前缀不一样（TS 也是这么认的）。
-// 编辑策略在 `EDIT-03`：[`refusing_sdt`] 给出拒绝理由，`ContentLocked` / `SdtContentLocked` 只读，
-// 有 `data_binding` 的第一阶段也只读（显示文字只是绑定数据的缓存，Word 重开会从 customXml 刷回）。
-
-/// 无字段枚举 + `as_str` + `parse`：把「变体 ↔ XML 字面」的名字表写成一张表，
-/// 免得枚举、匹配、测试各抄一遍（通用枚举宏见 `named_enum!`，这里只服务 sdt）。
-///
-/// ```ignore
-/// sdt_enum! {
-///     /// 文档注释
-///     pub enum SdtLock { Unlocked => "unlocked", SdtLocked => "sdtLocked" }
-/// }
-/// ```
-macro_rules! sdt_enum {
-        ($(#[$m:meta])* pub enum $name:ident { $($(#[$vm:meta])* $variant:ident => $text:literal),+ $(,)? }) => {
-            $(#[$m])*
-            #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-            pub enum $name {
-                $($(#[$vm])* $variant,)+
-            }
-
-            impl $name {
-                /// 全部变体，声明顺序。
-                pub const ALL: &[$name] = &[$($name::$variant,)+];
-
-                /// XML 字面。
-                pub const fn as_str(self) -> &'static str {
-                    match self {
-                        $($name::$variant => $text,)+
-                    }
-                }
-
-                /// 精确匹配 XML 字面。
-                pub fn parse(s: &str) -> Option<$name> {
-                    match s {
-                        $($text => Some($name::$variant),)+
-                        _ => None,
-                    }
-                }
-            }
-
-            impl std::fmt::Display for $name {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    f.write_str(self.as_str())
-                }
-            }
-        };
-    }
-
 sdt_enum! {
     /// 控件种类（`sdtPr` 里的控件元素）。识别不出来（只有 `w:id` / `w:tag` 一类）→ [`SdtControl::Unknown`]。
     pub enum SdtControl {
@@ -8930,35 +8957,6 @@ impl Cell {
 fn table_w(local: LocalName) -> QName {
     QName::w(local)
 }
-
-/// 读容器属性并装箱。**必须**是独立且不内联的函数：`TableProps` 2.1 KB、`CellProps` 2.4 KB，
-/// 快照元组同样大；留在 `build_table` / `build_row` / `build_cell` 的栈帧里，它们会一直活到递归
-/// 返回（debug 构建按帧分配临时值），64 层嵌套就把 2 MiB 的测试线程栈撑爆。装进 `Box` 之后每层
-/// 只留一个指针，2000 层的语料与 5000 层的 hostile 文档都能在默认栈上跑完。
-macro_rules! boxed_reader {
-        ($(#[$m:meta])* $name:ident, $read:path, $props:ty) => {
-            $(#[$m])*
-            #[inline(never)]
-            fn $name(dom: &Dom, container: Option<NodeId>, diags: &mut Vec<Diagnostic>) -> Box<$props> {
-                Box::new($read(dom, container, diags))
-            }
-        };
-    }
-
-/// 同上，读 `*PrChange` 的旧值快照。
-macro_rules! boxed_change_reader {
-        ($(#[$m:meta])* $name:ident, $read:path, $props:ty) => {
-            $(#[$m])*
-            #[inline(never)]
-            fn $name(
-                dom: &Dom,
-                container: Option<NodeId>,
-                diags: &mut Vec<Diagnostic>,
-            ) -> Option<(NodeId, Box<$props>)> {
-                $read(dom, container, diags).map(|(n, v)| (n, Box::new(v)))
-            }
-        };
-    }
 
 boxed_reader!(
     /// `w:tblPr`（也用于 `w:tblPrEx`）。

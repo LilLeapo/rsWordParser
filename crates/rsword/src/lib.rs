@@ -28,6 +28,10 @@
 #[cfg(test)]
 extern crate self as rsword;
 
+#[macro_use]
+#[cfg_attr(not(rsword_api_docs), doc(hidden))]
+#[cfg_attr(rsword_api_docs, allow(missing_docs))]
+pub mod model;
 #[doc(hidden)]
 pub mod agent;
 pub mod bind;
@@ -43,9 +47,6 @@ pub mod edit;
 #[cfg_attr(not(rsword_api_docs), doc(hidden))]
 #[cfg_attr(rsword_api_docs, allow(missing_docs))]
 pub mod error;
-#[cfg_attr(not(rsword_api_docs), doc(hidden))]
-#[cfg_attr(rsword_api_docs, allow(missing_docs))]
-pub mod model;
 #[cfg_attr(not(rsword_api_docs), doc(hidden))]
 #[cfg_attr(rsword_api_docs, allow(missing_docs))]
 pub mod package;

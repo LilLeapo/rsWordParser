@@ -10,7 +10,6 @@
 
 use crate::diag::DiagCode;
 use crate::error::{Error, Result};
-use crate::model::named_enum;
 use crate::package::PartFlavor;
 use crate::package::ns_context::NamespaceContext;
 use crate::xml::{
