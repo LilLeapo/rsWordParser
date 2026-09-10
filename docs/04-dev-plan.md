@@ -306,6 +306,41 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | corpus 内并列 *.model.json 的位置 | 项目负责人追认 | 按建议执行，快照与 TS 期望并存、各自修改纪律不变 | 不阻挡快照回归；位置决定未获最终追认 |
 | MCP 原生 Rust 形态 | 项目负责人追认 | 按建议执行、待追认；工具声明与传输层分离 | 不阻挡连接及真实会话试验；不宣称形态已最终裁定 |
 | MCP 缺省 result shape | 评审者在真实 Agent 门 5 实测两形态后确认 | 缺省 text、structured 可选，共同分页、实际计费 | 缺省最终确认及门 5 实证待办；传输冒烟不能代替真实 Agent |
+| **`InsertText` 边界插入不继承格式（引擎缺陷，2026-09-10 实测）** | 项目负责人定修法 | `replaceText` 在 `find` 覆盖整个 run 时静默丢弃该 run 的 `w:rPr` | **静默改版式**，不报错不回滚；`spec/22-agent.md:285` 的「保留未涉及属性」与 `edit/mod.rs` `InsertText` 的「边界插入继承格式的新 run」在此路径上均不成立 |
+
+#### 8.0.1 `InsertText` 边界插入丢 `w:rPr`（2026-09-10 独立复现）
+
+`tools/agent-query/src/edit.rs` 的 `replace()` 只发两条原生操作，没有第三条补属性：
+
+```rust
+ops.push(wire(json!({"op":"deleteRange","from":from,"to":to}))?);
+ops.push(wire(json!({"op":"insertText","at":from,"text":text}))?);
+```
+
+`find` 覆盖整个 run 时，`deleteRange` 先把该 run 清空，`insertText` 落在没有相邻 `Text` 段的边界上，
+新 run 的 `w:rPr` 为空。最小复现（单 run、`sz=32` + `rFonts eastAsia="仿宋_GB2312"`）：
+
+| 命中方式 | 结果 |
+| --- | --- |
+| 部分命中（`find` 是 run 文本的子串） | `w:rPr` **完整保留**，就地改 `w:t` |
+| 整 run 命中，段内无其他 run | `w:rPr` **整块丢失**（继承链落到空的 `default_run_props`） |
+| 整 run 命中，段内有相邻 run | 文本落进**邻居的 `w:t`**：冒用邻居格式，且两个 run **被合并**、run 边界丢失 |
+
+第三行是比丢格式更坏的一种：段内两个 run（三号仿宋「甲」+ 小四楷体带下划线「乙」），
+替换「甲」后输出成单个 `<w:r><w:rPr>小四 楷体 下划线</w:rPr><w:t>改后甲乙</w:t></w:r>`——
+替换出来的文字凭空得到了下划线。
+
+`docs/04` §5.1 的 1.12 与下方偏差表把继承链定为「左侧 run 的 `rPr` 字节克隆 → 右侧最近 run → `default_run_props`」。
+缺陷在于**这条链里没有「刚被删掉的那个 run」**：`deleteRange` 抹掉正主之后，链只能取到邻居或空默认值，
+两种结果都不是调用方要的格式。
+
+危险在于**调用方无法预知哪个 `find` 恰好等于某个 run 的全文**——取决于模板作者怎么切 run。
+同一个 `find` 在一份文档里安全、在另一份里毁版式，且不报错、不回滚。
+
+两条修法：① 让 `InsertText` 的边界分支从被删 run 继承 `rPr`，兑现现有文档契约（首选，所有调用方受益）；
+② 在 `replace()` 补一条 `setRunProps`（改动小，但只是把绕过挪进引擎）。
+
+另：`docs/18-cli.md:30`「MCP 服务器本轮未交付，留给 9.7」已过时，`crates/rsword-mcp` 的 16 个工具实测连通。
 
 R10“warnings 只有机器码”是派工口误，不是 spec/20 原文；现有 message 与用户说明/能力影响/未知码回退的区别见 docs/12。
 22 项任务、Word 证据与 W7 执行缺口另见 docs/12；它们不会因上述待办表归档而自动通过。
