@@ -12,7 +12,7 @@ use crate::diag::DiagCode;
 use crate::edit::plan::{MutationPlan, MutationResult};
 use crate::edit::{EditSession, NewBlock};
 use crate::error::{Error, Result};
-use crate::model::macros::named_enum;
+use crate::model::named_enum;
 use crate::model::omml::escape_text;
 use crate::package::ns_context::NamespaceContext;
 use crate::package::{PartId, RelType};

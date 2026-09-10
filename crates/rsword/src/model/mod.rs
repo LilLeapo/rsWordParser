@@ -2083,26 +2083,26 @@ pub mod classify {
         TextKind::Paragraph
     }
 }
-pub(crate) mod macros {
-    //! 模型层的声明宏。
-    //!
-    //! 显示模型里有一批「无字段枚举 + 一个稳定短名字」的类型：种类、绕排、填充方式……名字用在
-    //! 诊断、语料普查的输出、以后的 i18n key 上。枚举写一遍、名字表再写一遍，迟早对不上——尤其是
-    //! 加变体的时候编译器不会提醒你去补名字表。宏把两者绑在同一处声明里。
 
-    /// 声明一个无字段枚举，并生成 `as_str`（名字表跟着变体走，漏了编译不过）。
-    ///
-    /// ```ignore
-    /// named_enum! {
-    ///     /// VML 元素种类。
-    ///     pub enum VmlKind {
-    ///         /// `v:shape`
-    ///         Shape = "shape",
-    ///         Group = "group",
-    ///     }
-    /// }
-    /// ```
-    macro_rules! named_enum {
+// 模型层的声明宏。
+//
+// 显示模型里有一批「无字段枚举 + 一个稳定短名字」的类型：种类、绕排、填充方式……名字用在
+// 诊断、语料普查的输出、以后的 i18n key 上。枚举写一遍、名字表再写一遍，迟早对不上——尤其是
+// 加变体的时候编译器不会提醒你去补名字表。宏把两者绑在同一处声明里。
+
+/// 声明一个无字段枚举，并生成 `as_str`（名字表跟着变体走，漏了编译不过）。
+///
+/// ```ignore
+/// named_enum! {
+///     /// VML 元素种类。
+///     pub enum VmlKind {
+///         /// `v:shape`
+///         Shape = "shape",
+///         Group = "group",
+///     }
+/// }
+/// ```
+macro_rules! named_enum {
         (
             $(#[$meta:meta])*
             $vis:vis enum $name:ident {
@@ -2132,8 +2132,7 @@ pub(crate) mod macros {
         };
     }
 
-    pub(crate) use named_enum;
-}
+pub(crate) use named_enum;
 
 pub mod aux {
     //! 辅助 part 的内容流（`MOD-01`、`docs/03` §6.7，`spec/16` 任务 5.3）。
@@ -2231,7 +2230,7 @@ pub mod chart {
     use std::ops::Range;
 
     use crate::diag::{DiagCode, Diagnostic};
-    use crate::model::macros::named_enum;
+    use crate::model::named_enum;
     use crate::model::theme::{ColorScheme, ThemeSlot};
     use crate::package::PartId;
     use crate::resolve::drawingml::{DrawingColor, Rgb, color_in};
@@ -4645,7 +4644,7 @@ pub mod facts {
 
     use crate::model::block::{ListRef, SdtInfo};
     use crate::model::decl::{OwnHeadingLevel, Styles};
-    use crate::model::macros::named_enum;
+    use crate::model::named_enum;
     use crate::semantic::props::{ParaProps, Style, StyleType, Val};
     use crate::span::FieldId;
     use crate::xml::{Dom, LocalName, MceRole, NodeId, NsId, QName};
@@ -7726,7 +7725,7 @@ pub mod revision {
 
     use crate::diag::{DiagCode, Diagnostic};
     use crate::model::RevisionMeta;
-    use crate::model::macros::named_enum;
+    use crate::model::named_enum;
     use crate::package::PartId;
     use crate::span::field::{FieldId, FieldIndex};
     use crate::xml::{Dirty, Dom, LocalName, NodeId, NsId, QName};
@@ -8707,7 +8706,7 @@ pub mod section {
     use crate::diag::Diagnostic;
     use crate::model::block::{Block, ProtectedKind, Revision};
     use crate::model::inline::RevisionMeta;
-    use crate::model::macros::named_enum;
+    use crate::model::named_enum;
     use crate::semantic::props::{
         SectType, SectionProps, Val, read_section_props, read_section_props_change,
     };
@@ -10494,7 +10493,7 @@ pub mod vml {
     //! 遍历是迭代的、带深度上限，和绘图那边同一条规矩。
 
     use crate::model::block::Block;
-    use crate::model::macros::named_enum;
+    use crate::model::named_enum;
     use crate::model::{Length, parse_length, parse_style};
     use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 

@@ -12,7 +12,7 @@ use crate::edit::EditSession;
 use crate::edit::plan::{MutationPlan, MutationResult};
 use crate::error::{Error, Result};
 use crate::model::EMU_PER_PX;
-use crate::model::macros::named_enum;
+use crate::model::named_enum;
 use crate::package::RelType;
 use crate::package::ns_context::NamespaceContext;
 use crate::xml::plan::{NewElement, NodeEdit, Target};
