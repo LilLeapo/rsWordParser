@@ -3,8 +3,8 @@
 
 use serde_json::{Map, Value};
 
-use crate::model::math::{FormulaDisplay, math_tokens};
 use crate::model::{Display, ProtectedBlock};
+use crate::model::{FormulaDisplay, math_tokens};
 use crate::xml::NodeId;
 
 use super::blocks::Ctx;
