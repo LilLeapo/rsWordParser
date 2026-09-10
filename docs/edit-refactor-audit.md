@@ -59,3 +59,17 @@ graph TD
 - 整列守卫与删除计划重新创建同语义借用迭代器；提交前 Document 不变。
   单格吸收宽度暂保留几何数据，避免把相邻格选择与这次查询变更混在一起。
 - check、fmt、diff --check、库测试 425 项以及修订专项回归通过。
+
+## 表格操作方法迁移
+
+`table_of`、`insert_row`、`delete_row`、`insert_column`、`delete_column`、
+`merge_cells`、`bump_row_gap`、`patch_cell_span`、`shift_bookmark_columns`
+归入 EditSession 私有方法。原分派、错误信息、计划写入和提交顺序保持不变。
+使用 syn 解析器按选定 ItemFn 和 ExprCall 的源码跨度生成副本，先审阅完整补丁，
+再写入工作树；同名的一参数局部 `table_of` 闭包未误改。
+check、fmt、diff --check、库测试 425 项以及 edit / cell_edit / revision_grid 回归通过。
+
+历史核对：`5a140b2^` 中 locate.rs 没有模块声明或 include/path 引用。
+它是早期主正文专用定位实现，当前定位已支持 part 与段内边界；其唯一测试的
+`A😀B` 六个边界断言在 `position_utf16_text_conversion_preserves_boundaries_and_errors`
+中完整保留，并区分代理对与越界的现行诊断。不恢复重复类型或过时调用路径。
