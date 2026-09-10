@@ -801,7 +801,7 @@ fn part_images(ctx: &Ctx<'_>, hf: &HfPart) -> Vec<Value> {
                 out.push(img);
             }
         } else if dom.is(n, QName::w(LocalName::Pict)) || dom.is(n, QName::w(LocalName::Object)) {
-            let v = crate::model::vml::vml_display(dom, n);
+            let v = crate::model::vml_display(dom, n);
             // 文字水印不算图片
             if v.shapes.iter().any(|s| s.textpath.is_some()) {
                 continue;

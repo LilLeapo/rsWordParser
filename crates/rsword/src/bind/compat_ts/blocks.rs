@@ -22,7 +22,7 @@ use super::textbox;
 use super::utf16::Utf16Index;
 use crate::bind::native::json::set_some;
 use crate::model::Sections;
-use crate::model::vml::vml_display;
+use crate::model::vml_display;
 use crate::model::{
     AtomKind, Block, BreakKind, Display, Document, Inline, LinkTarget, ProtectedKind, Revision,
     RevisionMeta, Run, SdtControl, SdtInfo, SegmentKind, StyleType, TextBlock, TextKind,

@@ -12,9 +12,9 @@
 use serde_json::{Map, Value};
 
 use crate::model::emu_to_px;
-use crate::model::vml::{VmlKind, VmlShape};
 use crate::model::{Block, Display, Inline, SegmentKind, TextBlock, VmlDisplay};
 use crate::model::{DrawingDisplay, FillKind, ImageDisplay, ShapeDisplay, Wrap};
+use crate::model::{VmlKind, VmlShape};
 use crate::resolve::drawingml::{ColorBase, color_in, hex};
 use crate::xml::{LocalName, NodeId, NsId, QName};
 
