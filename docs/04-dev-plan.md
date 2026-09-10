@@ -79,7 +79,7 @@ rsWordParser/
     Cargo.toml               # zip、memchr、thiserror
     src/lib.rs               # 模块索引 + 规范映射表
     src/diag.rs              # Diagnostic / DiagCode / ValidationOrigin（00 §0.5）
-    src/error.rs             # Error / NotOoxml / Result（PKG-02/03、XML-08、SAVE-02）
+    src/error.rs             # 单一 Error 枚举 / Result（PKG-02/03、XML-08、SAVE-02）
     src/package/             # L0  PKG-*   （PartId、limits、PartFlavor、PackageFlavor 已定义）
     src/xml/                 # L1  XML-*   （MAX_DEPTH、Dirty 已定义）
     src/span/  span/field/   # L2  SPAN-* / FLD-*

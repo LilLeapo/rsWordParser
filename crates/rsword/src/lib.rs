@@ -75,7 +75,7 @@ pub use edit::{EditContext, EditOp, EditSession, MutationResult};
 #[doc(inline)]
 pub use error::Error;
 #[doc(hidden)]
-pub use error::{NotOoxml, Result};
+pub use error::Result;
 #[doc(inline)]
 pub use span::field::FieldSpan;
 #[doc(inline)]

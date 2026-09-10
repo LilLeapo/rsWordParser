@@ -6,33 +6,29 @@
 use crate::diag::{DiagCode, Diagnostic};
 
 // 分组显式使用 @group，避免类型属性、分组文档与变体属性之间的匹配歧义。
-// 一次调用集中声明全部错误类型；变体正文保留 Rust 原生语法和 thiserror 属性。
+// 一次调用生成唯一的 Error 枚举；分组只组织声明，不产生额外错误类型。
 // @error 从调用处捕获 derive 路径，使 thiserror 的透明 source 绑定与字段属性使用相同
 // 宏卫生上下文；在定义处硬编码 derive 路径会令当前工具链报 transparent 未绑定。
 macro_rules! declare_error {
     (
         @error($error:path)
-        $(
-            $(#[$type_attr:meta])*
-            $vis:vis enum $name:ident {
-                $(
-                    $(#[doc = $group_doc:literal])*
-                    @group $group:ident { $($variants:tt)* }
-                )+
-            }
-        )+
-    ) => {
-        $(
-            $(#[$type_attr])*
+        $(#[$type_attr:meta])*
+        $vis:vis enum Error {
             $(
-                #[doc = concat!("\n## ", stringify!($group))]
-                $(#[doc = $group_doc])*
+                $(#[doc = $group_doc:literal])*
+                @group $group:ident { $($variants:tt)* }
             )+
-            #[derive(Debug, $error)]
-            $vis enum $name {
-                $($($variants)*)+
-            }
+        }
+    ) => {
+        $(#[$type_attr])*
+        $(
+            #[doc = concat!("\n## ", stringify!($group))]
+            $(#[doc = $group_doc])*
         )+
+        #[derive(Debug, $error)]
+        $vis enum Error {
+            $($($variants)*)+
+        }
     };
 }
 
@@ -40,9 +36,10 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 declare_error! {
     @error(thiserror::Error)
-    /// `PKG-03`：输入不是 OOXML 文字处理文档。
-    #[derive(Clone, PartialEq, Eq)]
-    pub enum NotOoxml {
+    #[non_exhaustive]
+    /// 包打开、编辑或保存的具名错误。枚举允许增加变体，调用方匹配时须保留兜底分支。
+    #[cfg_attr(rsword_api_docs, deny(missing_docs))]
+    pub enum Error {
         @group package {
             /// 存在 `mimetype` 且以 `application/vnd.oasis.opendocument` 开头。
             #[error("OpenDocument file ({0}) is not OOXML")]
@@ -51,21 +48,12 @@ declare_error! {
             #[error("not a docx: missing main document part")]
             MissingMainPart,
         }
-    }
-    #[non_exhaustive]
-    /// 包打开、编辑或保存的具名错误。枚举允许增加变体，调用方匹配时须保留兜底分支。
-    #[cfg_attr(rsword_api_docs, deny(missing_docs))]
-    pub enum Error {
         @group formula {
             /// OMML 超出 LaTeX 投影子集；读取器局部回退到 token 编辑。
             #[error("OMML cannot be represented by the supported LaTeX subset")]
             LatexUnsupported,
         }
         @group operation {
-            /// 输入不是 OOXML 文字处理文档。
-            #[error(transparent)]
-            NotOoxml(#[from] NotOoxml),
-
             /// `PKG-02`：在解压任何 part 之前按 central directory 声明大小拒绝。
             #[error("docx rejected ({code}): {message}")]
             Limit {
@@ -120,28 +108,28 @@ declare_error! {
                 message: String,
             },
         }
-    }
-    #[cfg(test)]
-    #[derive(Clone, PartialEq, Eq)]
-    enum DeclarationFixture {
         /// 无字段与元组字段的错误。
         @group simple {
+            #[cfg(test)]
             #[error("absent")]
             Absent,
+            #[cfg(test)]
             #[error("offset {0}")]
             Offset(u32),
         }
         /// 具名字段、参数表达式、错误链与透明转换。
         @group causes {
+            #[cfg(test)]
             #[error("{}: {cause}", .context.len())]
             Context {
                 /// 上层操作的说明。
                 context: String,
                 #[source]
-                cause: NotOoxml,
+                cause: std::num::ParseIntError,
             },
+            #[cfg(test)]
             #[error(transparent)]
-            Wrapped(#[from] NotOoxml),
+            Wrapped(#[from] std::num::ParseIntError),
         }
     }
 }
@@ -159,21 +147,19 @@ impl Error {
 mod test_model {
     #[test]
     fn declarations_preserve_messages_conversions_and_sources() {
-        let absent = super::DeclarationFixture::Absent;
+        let absent = super::Error::Absent;
         let _: &dyn std::error::Error = &absent;
         assert_eq!(absent.to_string(), "absent");
-        assert_eq!(super::DeclarationFixture::Offset(7).to_string(), "offset 7");
-        let cause = super::NotOoxml::MissingMainPart;
+        assert_eq!(super::Error::Offset(7).to_string(), "offset 7");
+        let cause = "invalid".parse::<u32>().unwrap_err();
         let _: &dyn std::error::Error = &cause;
-        let context =
-            super::DeclarationFixture::Context { context: "read".into(), cause: cause.clone() };
-        assert_eq!(context, context.clone());
-        assert_eq!(context.to_string(), "4: not a docx: missing main document part");
+        let context = super::Error::Context { context: "read".into(), cause: cause.clone() };
+        assert_eq!(context.to_string(), format!("4: {cause}"));
         assert_eq!(std::error::Error::source(&context).unwrap().to_string(), cause.to_string());
-        let wrapped = super::DeclarationFixture::from(cause.clone());
+        let wrapped = super::Error::from(cause.clone());
         assert_eq!(wrapped.to_string(), cause.to_string());
         assert!(std::error::Error::source(&wrapped).is_none());
-        let error = super::Error::from(cause);
+        let error = super::Error::MissingMainPart;
         let _: &dyn std::error::Error = &error;
         assert_eq!(error.to_string(), "not a docx: missing main document part");
         assert!(std::error::Error::source(&error).is_none());

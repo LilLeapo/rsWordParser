@@ -80,7 +80,6 @@ fn pkg_11_entries_keep_zip_order_and_parts_parse() {
 
 use std::io::Write;
 
-use rsword::NotOoxml;
 use rsword::package::{Package, PackageFlavor, PartFlavor, PartUri, RelType};
 use rsword::xml::{LocalName, NsId, QName};
 
@@ -141,24 +140,18 @@ fn pkg_03_non_ooxml_inputs() {
         ("content.xml", b"<office:document-content/>"),
     ]);
     match Package::open(&odt).unwrap_err() {
-        Error::NotOoxml(NotOoxml::OpenDocument(m)) => {
+        Error::OpenDocument(m) => {
             assert_eq!(m, "application/vnd.oasis.opendocument.text")
         }
         other => panic!("expected OpenDocument, got {other:?}"),
     }
     let empty = build_zip(&[]);
-    assert!(matches!(
-        Package::open(&empty).unwrap_err(),
-        Error::NotOoxml(NotOoxml::MissingMainPart)
-    ));
+    assert!(matches!(Package::open(&empty).unwrap_err(), Error::MissingMainPart));
     let no_main = build_zip(&[
         ("[Content_Types].xml", content_types(&[]).as_bytes()),
         ("word/styles.xml", b"<a/>"),
     ]);
-    assert!(matches!(
-        Package::open(&no_main).unwrap_err(),
-        Error::NotOoxml(NotOoxml::MissingMainPart)
-    ));
+    assert!(matches!(Package::open(&no_main).unwrap_err(), Error::MissingMainPart));
 }
 
 #[test]
