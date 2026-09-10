@@ -1,5 +1,7 @@
 # rsWordParser 全面测试交接：第二台 Mac / Codex + computer use
 
+第二轮执行入口（2026-09-10）：[第二轮语义与公开 API 验收任务](13-round2-semantic-e2e-test-tasks.md)。第一轮已结束；下一轮请以该文件的基线、任务顺序和验收标准为准，本文保留作历史设计依据。
+
 增量任务：用户进一步要求使用 computer use 在 Word 中亲手创建尽可能复杂的真实文档。正在执行本交接的代理请继续现有任务，并接入 [Word 复杂语料补充交接](12-word-authored-complex-corpus-handoff.md)，不必重启或重复已完成测试。
 
 交接日期：2026-09-09。本文是可直接交给新代理的任务说明。使用中文汇报。
