@@ -1215,8 +1215,7 @@ const CT_XLSX: &str = "application/vnd.openxmlformats-officedocument.spreadsheet
 const NS_C: &str = "http://schemas.openxmlformats.org/drawingml/2006/chart";
 pub const NS_A: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
 pub const NS_R: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-pub const NS_WP: &str =
-    "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+pub const NS_WP: &str = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
 /// TS 缺省的图表尺寸：5486400 × 3200400 EMU（576 × 336 px）。
 pub const DEFAULT_EXTENT_EMU: (i64, i64) = (5_486_400, 3_200_400);
 
@@ -1794,12 +1793,7 @@ impl EditSession {
     }
 
     /// 同 [`Self::add_media`]；`dedup = false` 时总是新建一个 part（墨迹：每条一个 part，TS 同，任务 6.8）。
-    pub fn add_media_with(
-        &mut self,
-        bytes: Vec<u8>,
-        mime: &str,
-        dedup: bool,
-    ) -> Result<String> {
+    pub fn add_media_with(&mut self, bytes: Vec<u8>, mime: &str, dedup: bool) -> Result<String> {
         let mut h = std::collections::hash_map::DefaultHasher::new();
         bytes.hash(&mut h);
         let key = (mime.to_string(), h.finish());
@@ -2276,7 +2270,7 @@ enum Act {
     /// 删标记，再把这一段与下一段合并（无追踪的 `MergeWithNext`）。
     Merge,
     /// 用 `*Change` 里的快照还原容器：`(容器名, 不动的字段)`。
-    Restore(LocalName, &'static [LocalName]),
+    Restore(LocalName, RevisionKeep),
     /// 删这个格并收缩网格。
     DropCell,
     /// 这个方向不支持。
@@ -2285,12 +2279,35 @@ enum Act {
 /// `RevKind` → （接受动作, 拒绝动作）。一张表同时给出两个方向，
 /// `tests/revisions.rs` 的用例列表按同一张表写。
 
-// `in_change = false` 的字段不在快照里，还原时不能动它们
-const PPR_KEEP: &[LocalName] = &[LocalName::RPr, LocalName::SectPr];
-const SECT_KEEP: &[LocalName] = &[LocalName::HeaderReference, LocalName::FooterReference];
-const ROW_KEEP: &[LocalName] = &[LocalName::Ins, LocalName::Del];
-const CELL_KEEP: &[LocalName] =
-    &[LocalName::CellIns, LocalName::CellDel, LocalName::CellMerge, LocalName::Headers];
+/// `in_change = false` 的字段不在快照里，还原时不能动它们。
+/// 策略按值保存，不借用全局字段表；单字节标签无需 packed 或堆分配。
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RevisionKeep {
+    None,
+    Paragraph,
+    Section,
+    Row,
+    Cell,
+}
+
+impl RevisionKeep {
+    #[inline]
+    fn contains(self, local: LocalName) -> bool {
+        match self {
+            Self::None => false,
+            Self::Paragraph => matches!(local, LocalName::RPr | LocalName::SectPr),
+            Self::Section => {
+                matches!(local, LocalName::HeaderReference | LocalName::FooterReference)
+            }
+            Self::Row => matches!(local, LocalName::Ins | LocalName::Del),
+            Self::Cell => matches!(
+                local,
+                LocalName::CellIns | LocalName::CellDel | LocalName::CellMerge | LocalName::Headers
+            ),
+        }
+    }
+}
 accept_reject! {
     // 内容包裹（`owner` 是 `Row` 时另有一套，见 `row_actions`）
     Insert        => Act::Unwrap,   Act::Drop;
@@ -2307,14 +2324,14 @@ accept_reject! {
     ParaMarkMoveFrom => Act::Merge,    Act::DropMark;
     ParaMarkMoveTo   => Act::DropMark, Act::Merge;
     // 属性快照
-    RunPropsChange     => Act::DropMark, Act::Restore(LocalName::RPr, &[]);
-    ParaPropsChange    => Act::DropMark, Act::Restore(LocalName::PPr, PPR_KEEP);
-    TablePropsChange   => Act::DropMark, Act::Restore(LocalName::TblPr, &[]);
-    TablePropsExChange => Act::DropMark, Act::Restore(LocalName::TblPrEx, &[]);
-    SectPropsChange    => Act::DropMark, Act::Restore(LocalName::SectPr, SECT_KEEP);
-    TableGridChange    => Act::DropMark, Act::Restore(LocalName::TblGrid, &[]);
-    RowPropsChange     => Act::DropMark, Act::Restore(LocalName::TrPr, ROW_KEEP);
-    CellPropsChange    => Act::DropMark, Act::Restore(LocalName::TcPr, CELL_KEEP);
+    RunPropsChange     => Act::DropMark, Act::Restore(LocalName::RPr, RevisionKeep::None);
+    ParaPropsChange    => Act::DropMark, Act::Restore(LocalName::PPr, RevisionKeep::Paragraph);
+    TablePropsChange   => Act::DropMark, Act::Restore(LocalName::TblPr, RevisionKeep::None);
+    TablePropsExChange => Act::DropMark, Act::Restore(LocalName::TblPrEx, RevisionKeep::None);
+    SectPropsChange    => Act::DropMark, Act::Restore(LocalName::SectPr, RevisionKeep::Section);
+    TableGridChange    => Act::DropMark, Act::Restore(LocalName::TblGrid, RevisionKeep::None);
+    RowPropsChange     => Act::DropMark, Act::Restore(LocalName::TrPr, RevisionKeep::Row);
+    CellPropsChange    => Act::DropMark, Act::Restore(LocalName::TcPr, RevisionKeep::Cell);
     // `w:numberingChange` 只有 `w:original` 属性、没有内层容器（§17.13.5.14，已废弃），
     // 拒绝无从还原：两个方向都只删标记，登记在 `docs/04` §8
     NumberingChange    => Act::DropMark, Act::DropMark;
@@ -2331,15 +2348,21 @@ accept_reject! {
 /// 真实 Word 的对照件是这条的出处：`fixtures/revisions/table-and-move/tracked.docx` 有 6 个
 /// `w:tblPrEx`，`accepted.docx` 与 `rejected.docx` **一个都没有**——那些行属性覆盖是跟踪操作
 /// 的产物，修订一解决 Word 就把整个容器丢掉。
-const DROPPABLE_EMPTY: &[LocalName] = &[
-    LocalName::RPr,
-    LocalName::PPr,
-    LocalName::TrPr,
-    LocalName::TcPr,
-    LocalName::TblPr,
-    LocalName::TblPrEx,
-    LocalName::NumPr,
-];
+impl Act {
+    #[inline]
+    fn droppable_empty(local: LocalName) -> bool {
+        matches!(
+            local,
+            LocalName::RPr
+                | LocalName::PPr
+                | LocalName::TrPr
+                | LocalName::TcPr
+                | LocalName::TblPr
+                | LocalName::TblPrEx
+                | LocalName::NumPr
+        )
+    }
+}
 /// 要处理的一条修订（把索引里的数据抄出来：处理过程中索引会重建）。
 #[derive(Debug, Clone)]
 struct Job {
@@ -2872,11 +2895,7 @@ impl EditSession {
     }
 
     /// `[Content_Types].xml` 里加一条 `Override`（缺内容类型 part 时只记诊断）。
-    pub fn add_content_type_override(
-        &mut self,
-        uri: &PartUri,
-        content_type: &str,
-    ) -> Result<()> {
+    pub fn add_content_type_override(&mut self, uri: &PartUri, content_type: &str) -> Result<()> {
         let Some(ct_part) = self.pkg.content_types_part() else {
             self.record(vec![Diagnostic::invariant_violation(
                 self.pkg.main_part(),
@@ -5191,11 +5210,7 @@ pub fn insert_ordered(
 /// - `NewBlock::Table` → 每个 `w:tr` 加 `trPr/w:ins`（`w:tblPrEx` 仍排在 `w:trPr` 之前）；
 /// - `NewBlock::Xml` / `Wrapped`（`opaque`）→ 整个元素包进块级 `w:ins`（TS 的形态，
 ///   解析器已认）。调用方给的是整段原始 XML，往里面塞标记就等于改写它给的字节。
-pub fn mark_new_block_inserted(
-    t: &mut Tracker,
-    node: NewElement,
-    opaque: bool,
-) -> NewElement {
+pub fn mark_new_block_inserted(t: &mut Tracker, node: NewElement, opaque: bool) -> NewElement {
     if opaque {
         return t.marker(LocalName::Ins).with_child(node);
     }
@@ -8480,7 +8495,7 @@ impl MutationPlan {
             });
         }
         plan.structure_changed = true;
-        for c in Dom::live_children(dom, wrapper).collect::<Vec<_>>() {
+        for c in dom.live_children(wrapper) {
             plan.node_edits.push(NodeEdit::Move {
                 node: c,
                 parent: Target::Node(parent),
@@ -8491,14 +8506,14 @@ impl MutationPlan {
     }
     #[inline]
     /// 删掉 `marker` 之后空掉的属性容器一路往上也删（`w:rPr` → `w:pPr`、`w:tblPrEx` …）。
-    /// 那正是真实 Word 的形态，见 [`DROPPABLE_EMPTY`]。
+    /// 那正是真实 Word 的形态，见 [`Act::droppable_empty`]。
     fn drop_empty_containers(&mut self, dom: &Dom, marker: NodeId) {
         let plan = self;
         let mut gone = vec![marker];
         let mut cur = dom.parent(marker);
         while let Some(c) = cur {
             let Some(name) = dom.name(c) else { break };
-            if name.ns != NsId::W || !DROPPABLE_EMPTY.contains(&name.local) {
+            if name.ns != NsId::W || !Act::droppable_empty(name.local) {
                 break;
             }
             if Dom::live_children(dom, c).any(|x| !gone.contains(&x)) {
@@ -8518,16 +8533,16 @@ impl MutationPlan {
         container: NodeId,
         change: NodeId,
         inner: LocalName,
-        keep: &[LocalName],
+        keep: RevisionKeep,
     ) {
         let plan = self;
         let mut kept = 0usize;
-        for c in Dom::live_children(dom, container).collect::<Vec<_>>() {
+        for c in dom.live_children(container) {
             if c == change {
                 continue;
             }
             let Some(name) = dom.name(c) else { continue };
-            if name.ns == NsId::W && keep.contains(&name.local) {
+            if name.ns == NsId::W && keep.contains(name.local) {
                 kept += 1;
                 continue;
             }
@@ -8544,7 +8559,7 @@ impl MutationPlan {
                 .iter()
                 .find(|t| dom.name(container) == Some(t.element))
                 .map(|t| t.order_index);
-            for c in Dom::live_children(dom, snapshot).collect::<Vec<_>>() {
+            for c in dom.live_children(snapshot) {
                 let before = order
                     .zip(dom.name(c).and_then(|q| order.and_then(|f| f(q))))
                     .and_then(|(f, mine)| {
@@ -8562,10 +8577,10 @@ impl MutationPlan {
             }
         }
         plan.node_edits.push(NodeEdit::Delete(change));
-        // 旧值是"什么都没有"→ 容器整个去掉（Word 的形态，见 `DROPPABLE_EMPTY`）
+        // 旧值是"什么都没有"→ 容器整个去掉（Word 的形态，见 `Act::droppable_empty`）
         if kept == 0
             && restored == 0
-            && dom.name(container).is_some_and(|q| DROPPABLE_EMPTY.contains(&q.local))
+            && dom.name(container).is_some_and(|q| Act::droppable_empty(q.local))
         {
             plan.node_edits.push(NodeEdit::Delete(container));
         }
