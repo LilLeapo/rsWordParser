@@ -425,7 +425,7 @@ fn boxes_of(
     let has_line_shapes = wrap_square && drawings.iter().any(|d| d.shapes.iter().any(is_line_prst));
     // 每个 `w:txbxContent` 占一个保存路径序号，不管框最后留没留下来。
     let mut ordinal = 0usize;
-    // 管辖这一段的节：页面 / 页边距对齐的锚定位置要用它解（`model::section`）。
+    // 管辖这一段的节：页面 / 页边距对齐的锚定位置要用它解（`model::SectionGeom`）。
     let sect = ctx.section_at(para_node);
     let actx = box_json::AnchorCtx::new(drawings, sect, first_page);
     let no_anchor = drawings.iter().all(|d| d.anchor.is_none());

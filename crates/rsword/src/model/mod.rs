@@ -15,9 +15,36 @@
 //! | [`Document`] | `Document` 与 `rebuild`（`MOD-01/13`） |
 //! | [`Styles`] / [`Theme`] / [`Notes`] | 声明模型（`MOD-10`）：样式 / 编号 / 主题 / 设置 / 批注 / 注释 |
 
-// 块模型（`MOD-02`、`MOD-03`、`MOD-08`、`MOD-09`，`docs/03` §6.3）。
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::ops::Range;
 
-use crate::semantic::props::{CellProps, RowProps, TableProps};
+use crate::diag::{DiagCode, Diagnostic};
+use crate::error::{Error, Result};
+use crate::package::{Package, PartId, RelTarget, RelType, Rels};
+use crate::resolve::drawingml::{DrawingColor, Rgb, color_in};
+use crate::semantic::props::codec::{OnOff, Twips};
+pub use crate::semantic::props::{
+    AbstractNum, Compat, CompatSetting, DocDefaults, Font, FontTable, Level, LevelOverride, Num,
+    Numbering, ParaProps, RunProps, Settings, Style, StyleType, Styles, TableStylePr,
+    TblStyleOverrideType,
+};
+use crate::semantic::props::{
+    CellProps, HexColorOrAuto, RowProps, SectType, SectionProps, TableProps, ThemeColor, Val,
+    read_attr, read_cell_props, read_cell_props_change, read_font_table, read_numbering,
+    read_para_props, read_row_props, read_row_props_change, read_run_props, read_run_props_change,
+    read_section_props, read_section_props_change, read_settings, read_styles, read_table_props,
+    read_table_props_change,
+};
+use crate::span::field::{FieldForm, FieldIndex, Keyword};
+use crate::span::{
+    FieldId, FlowMap, RangeClass, SpanId, SpanIndex, is_property_element, is_range_marker,
+};
+use crate::xml::{Dirty, Dom, LocalName, MceRole, NodeId, NsId, QName};
+
+/// 一条修订的元数据（`w:id` / `w:author` / `w:date`）。定义在 L2（范围标记用同一组属性）。
+pub use crate::span::RevisionMeta;
+
+// 块模型（`MOD-02`、`MOD-03`、`MOD-08`、`MOD-09`，`docs/03` §6.3）。
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Block {
@@ -239,15 +266,7 @@ pub enum Revision {
 }
 
 // `Document` 与 `Document::rebuild`（`MOD-01`、`MOD-13`，任务 1.5–1.8）：从规范状态（DOM）
-// 完整构建投影。M1 只建正文流：段落 → inlines → run 坐标流；表格 / 图片块占位；
-// `refresh` 在 M2 随编辑引擎加入。
-
-use crate::error::Result;
-
-use crate::package::{RelTarget, RelType};
-use crate::semantic::props::{read_para_props, read_run_props_change};
-use crate::span::RangeClass;
-use crate::span::field::FieldForm;
+// 完整构建正文与辅助内容流的投影，并在编辑后刷新受影响的块。
 
 /// 文档模型（`MOD-01`）：DOM + Span 的语义投影。
 #[derive(Debug, Clone, PartialEq)]
@@ -1822,8 +1841,6 @@ fn field_identities(idx: &FieldIndex) -> Vec<(u32, NodeId)> {
 // 与 TS 的 `buildBlock` 决策树不同处标 △（见 spec）。M1 只需 R01/R02(占位)/R07/R08/R10/R19，
 // 其余规则已按 facts 写出，但 M1 的 facts 里字段事实为空，R09 不会命中。
 
-use crate::span::{is_property_element, is_range_marker};
-
 /// body（或 sdtContent / 修订包裹）直接子节点的分类（R01–R07）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BodyClass {
@@ -2074,13 +2091,6 @@ pub(crate) use named_enum;
 // 每个 `w:footnote` / `w:endnote` / `w:comment` 条目各是一个独立内容流，`FlowId` 只在 part 内有
 // 意义），块按**容器**建（注释 part 里一个条目一个容器，页眉 part 整个根就是一个容器）。
 
-use crate::diag::Diagnostic;
-
-use crate::package::{PartId, Rels};
-use crate::span::field::FieldIndex;
-use crate::span::{FlowMap, SpanIndex};
-use crate::xml::Dom;
-
 /// 一个辅助 XML part 的内容流索引。
 #[derive(Debug, Clone, PartialEq)]
 pub struct AuxFlows {
@@ -2153,8 +2163,6 @@ pub(crate) fn empty_ext_txbx() -> &'static ExtTxbxMap<'static> {
 //
 // chartex（`cx:chartSpace`，旭日 / 树状 / 瀑布 / 箱形 / 漏斗 / 帕累托）按 TS 的降级读：数据维度与系列名进同一个
 // [`ChartDisplay`]，`kind` 取最近的经典种类；它的 part 不可编辑（`chartex: true`）。
-
-use crate::resolve::drawingml::{DrawingColor, Rgb, color_in};
 
 named_enum! {
     /// 图表种类（TS `ChartDisplay.kind`）。三维与环形归并到平面同类；认不出的 `*Chart` 元素是 `Other`。
@@ -3039,14 +3047,6 @@ fn custgeom_num(dom: &Dom, node: NodeId, local: LocalName) -> Option<i64> {
 // 类型本身由属性表生成（`schema/props/{styles,numbering,settings,font_table}.toml`），
 // 这里只加"从 part 读取"和只读查找；样式链、编号覆盖合并等解释在 `resolve`。
 
-pub use crate::semantic::props::{
-    AbstractNum, Compat, CompatSetting, DocDefaults, Font, FontTable, Level, LevelOverride, Num,
-    Numbering, ParaProps, RunProps, Settings, Style, StyleType, TableStylePr, TblStyleOverrideType,
-};
-use crate::semantic::props::{
-    Val, codec::OnOff, read_font_table, read_numbering, read_settings, read_styles,
-};
-
 fn root_if(dom: &Dom, name: QName) -> Option<NodeId> {
     let root = dom.root();
     dom.is(root, name).then_some(root)
@@ -3279,8 +3279,6 @@ impl FontTable {
     }
 }
 
-pub use crate::semantic::props::Styles;
-
 // SmartArt 与绘图画布的模型（`MOD-11`，`spec/17` 任务 6.3）。
 //
 // SmartArt 有两个 part：**数据 part**（`dgm:dataModel`，主 part 里 `dgm:relIds/@r:dm` 指向）给节点文字，
@@ -3288,8 +3286,6 @@ pub use crate::semantic::props::Styles;
 // 这里只读**事实**：EMU、1/60000 度、颜色的原始定义；px 换算、画布缩放与排版启发式全在
 // `bind/compat_ts/diagram.rs`。画布（`lc:lockedCanvas`，R14）在主 part 里，形状用同一个
 // [`DiagramShape`]，外加子坐标系（[`CanvasDisplay`]）。
-
-use std::collections::HashSet;
 
 /// 一个形状：绘图 part 的 `dsp:sp`，或画布里的 `a:sp` / `a:pic`。几何是原值（EMU、1/60000 度）；
 /// 画布形状的几何在**子坐标系**里（[`CanvasDisplay::ch_off`] / `ch_ext`），缩放在投影层。
@@ -3666,7 +3662,7 @@ pub enum Display {
     Drawing(Box<DrawingDisplay>),
     /// `w:pict` / `w:object`（含 OLE 信息）
     Vml(Box<VmlDisplay>),
-    /// 公式段落（R11）的 `m:oMath` 片段、token、MathML / LaTeX（M6 6.5，`model::math`）。
+    /// 公式段落（R11）的 `m:oMath` 片段、token、MathML / LaTeX（M6 6.5，[`FormulaDisplay`]）。
     Formula(Box<FormulaDisplay>),
 }
 
@@ -3715,7 +3711,7 @@ pub struct DrawingDisplay {
     /// `dgm:relIds`：SmartArt 两个 part 的引用（M6 6.3）。part 在 `Document.diagram_parts`，
     /// 按 `rel_id`（`@r:dm`）经 `Document.diagram_by_rel` 找。
     pub diagram: Option<DiagramRef>,
-    /// `lc:lockedCanvas`：绘图画布的子坐标系与形状（M6 6.3；`model::diagram`）。
+    /// `lc:lockedCanvas`：绘图画布的子坐标系与形状（M6 6.3；[`CanvasDisplay`]）。
     pub canvas: Option<Box<CanvasDisplay>>,
 }
 
@@ -3749,7 +3745,7 @@ pub struct ShapeDisplay {
     pub prst: Option<String>,
     /// 有 `a:custGeom`：自定义路径几何。
     pub cust_geom: bool,
-    /// `a:custGeom` 的路径；用到公式或圆弧时为 `None`（`model::custgeom`）。
+    /// `a:custGeom` 的路径；用到公式或圆弧时为 `None`（[`custom_geom`]）。
     pub geom: Option<CustomGeom>,
     /// `a:xfrm/a:ext`（EMU）。
     pub ext: Option<Extent>,
@@ -4500,8 +4496,6 @@ fn is_own_flow(dom: &Dom, node: NodeId) -> bool {
 // M1 范围：文本、sectPr、样式、编号、outline、公式与修订计数、绘图 / VML 的粗事实
 // （种类按 `graphicData/@uri` 与 VML 子元素判定）。字段事实（`fields` / `inside_field_result`）在 M2。
 
-use crate::xml::MceRole;
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ParagraphFacts {
     pub has_sect_pr: bool,
@@ -5091,11 +5085,6 @@ impl Styles {
 // `PAGE` / `NUMPAGES` 是原子字段，渲染器看到 `Keyword::Page` 自己替换页码
 // （`docs/03` §5.4 末段——所以模型里没有 `PAGE_MARK` 这类占位符，那只存在于 `compat_ts`）。
 
-use crate::diag::DiagCode;
-
-use crate::span::field::Keyword;
-use crate::xml::{LocalName, NsId};
-
 /// 一个页眉或页脚 part。
 #[derive(Debug, Clone, PartialEq)]
 pub struct HfPart {
@@ -5346,11 +5335,6 @@ fn scan_subtree(dom: &Dom, root: NodeId, out: &mut Vec<InkInfo>) {
 // 给出坐标流中的文本偏移到子节点的映射。偏移单位对外是 UTF-16 code unit，
 // 内部字符串是 UTF-8，`utf16_len` 缓存每段长度。
 
-use std::ops::Range;
-
-use crate::span::{FieldId, SpanId};
-use crate::xml::{NodeId, QName};
-
 /// 坐标流里代表一个原子（图片、字段、公式、分页符……）的字符，占 1 个 UTF-16 单位。
 pub const OBJECT_REPLACEMENT: char = '\u{FFFC}';
 
@@ -5559,9 +5543,6 @@ pub enum LinkTarget {
     Unresolved,
 }
 
-/// 一条修订的元数据（`w:id` / `w:author` / `w:date`）。定义在 L2（范围标记用同一组属性）。
-pub use crate::span::RevisionMeta;
-
 /// run 的修订上下文（`MOD-06`）：`w:moveFrom` 同时计入 `del`，`w:moveTo` 同时计入 `ins`（TS 语义），
 /// `move_*` 保留精确信息。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -5653,10 +5634,6 @@ pub fn ruby_part_text(dom: &Dom, ruby: NodeId, part: LocalName) -> String {
 // 声明值（文字、格式、节点位置）与**内容块**（`Note.blocks` / `Comment.blocks`）都在这里：
 // 条目的内容与页眉页脚、正文同一个构建器（`docs/03` §6.7，任务 5.3）。`text` / `rich` 是 TS 形态的
 // 投影（`COMPAT-02` 的 `footnotes[].richParas`），与 `blocks` 并存——它们随 `compat_ts` 在 M9 一起删。
-
-use std::collections::HashMap;
-
-use crate::semantic::props::read_run_props;
 
 fn notes_w(l: LocalName) -> QName {
     QName::new(NsId::W, l)
@@ -6508,8 +6485,6 @@ fn matrix_env(beg: &str, end: &str) -> Option<&'static str> {
 // 输出与 TS **逐字相等**（`fixtures/fieldgen/` 是对照件）：同样的元素顺序、同样的属性顺序、
 // 同样的转义。这是**用户输入**的解析器，不是文档遍历，所以按 `spec/18` 的约定用递归下降 +
 // 深度上限（256），超限 `Err(EDIT_MATH_TOO_DEEP)` 而不是写显式栈。
-
-use crate::error::Error;
 
 /// 递归深度上限（用户输入，不是文档；`spec/18` 风险 11）。
 const LATEX_MAX_DEPTH: usize = 256;
@@ -7454,8 +7429,6 @@ pub const NS_M: &str = "http://schemas.openxmlformats.org/officeDocument/2006/ma
 //   与 MCE 选哪支无关（与 [`crate::edit::media_ops`] 的 `wp:docPr/@id` 同一条理由）。
 // - **迭代遍历**（`rev-nested-wrappers` 是 500 层 `w:ins` / `w:del` 交替）。
 // - 文档序 = part 顺序（主 part → 页眉页脚 → 脚注 → 尾注 → 批注 → 外部文本框）内各自的前序。
-
-use std::collections::BTreeMap;
 
 /// 修订的会话内稳定 id（`MOD-13`）。
 ///
@@ -8410,10 +8383,6 @@ pub fn refusing_sdt(dom: &Dom, node: NodeId) -> Option<(SdtInfo, SdtRefusal)> {
 // `sectPr`（TS `sectionAt` 同义）。一份 `w:sectPr` 都没有的文档给一个隐式节（`node: None`，
 // 全部取缺省，同 TS `DEFAULT_SECTION`）。
 
-use crate::semantic::props::{
-    SectType, SectionProps, read_section_props, read_section_props_change,
-};
-
 /// 缺省节：US Letter 竖排、四边 1 英寸（同 TS `DEFAULT_SECTION`）。
 pub const DEFAULT_PAGE_WIDTH: i64 = 12_240;
 pub const DEFAULT_PAGE_HEIGHT: i64 = 15_840;
@@ -8650,7 +8619,7 @@ fn sect_pr_of(dom: &Dom, block: &Block) -> Option<(NodeId, SectionOwner)> {
 /// 读一个 `w:sectPr` 建出 `SectionInfo`。
 ///
 /// `#[inline(never)]`：`SectionProps` 几 KB，读进来立刻装箱，调用方的栈帧只留一个指针
-/// （同 `model/table.rs` 的 `boxed_reader!`）。
+/// （同表格属性的 `boxed_reader!`）。
 #[inline(never)]
 fn info_of(
     dom: &Dom,
@@ -8734,9 +8703,6 @@ pub fn section_of(dom: &Dom, sections: &[SectionInfo], node: NodeId) -> Option<u
 // 读的是**投影**：`Source` 只收 TS `SourceInfo` 的六个字段，未建模的域（`b:Editor` /
 // `b:Volume` / `b:Pages` / 多作者列表…）留在 DOM 里，写回时原字节不动（`SAVE-07` 的权威列表
 // 只重建变了的条目）。
-
-use crate::package::Package;
-use crate::xml::Dirty;
 
 /// 一条文献源（TS `SourceInfo`）。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -8853,12 +8819,6 @@ pub fn publisher_element(kind: &str) -> LocalName {
 //
 // 另外给 [`Document`] 补跨表格的遍历：[`Document::blocks`] / [`Document::paragraphs`] 深入单元格，
 // [`Document::block_path`] 给任意块的祖先路径（`MOD-13` 的容器级刷新与 `EDIT-02` 的定位用）。
-
-use crate::semantic::props::codec::Twips;
-use crate::semantic::props::{
-    read_attr, read_cell_props, read_cell_props_change, read_row_props, read_row_props_change,
-    read_table_props, read_table_props_change,
-};
 
 /// `w:tbl`（`MOD-07`）。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -9724,8 +9684,6 @@ impl Document {
 
 // 主题声明值（`MOD-10`）：`a:theme/a:themeElements` 的字体方案与颜色方案。
 // 只记录声明；主题字体 / 颜色的解析规则（槽位映射、tint/shade、空 EA 槽）在 `RES-05`。
-
-use crate::semantic::props::{HexColorOrAuto, ThemeColor};
 
 /// 颜色方案的 12 个槽位（`a:clrScheme` 子元素名）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]

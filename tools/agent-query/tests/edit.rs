@@ -691,7 +691,7 @@ fn agent_07_w2_level_two_heading_and_original_block_bytes() {
     let p = projection(&bytes);
     let headings: Vec<_> = doc
         .paragraphs()
-        .filter(|p| matches!(p.kind, rsword::model::block::TextKind::Heading { level: 2 }))
+        .filter(|p| matches!(p.kind, rsword::model::TextKind::Heading { level: 2 }))
         .collect();
     assert_eq!(headings.len(), 1);
     let target = p
@@ -718,7 +718,7 @@ fn agent_07_w2_level_two_heading_and_original_block_bytes() {
     let paras: Vec<_> = doc.paragraphs().collect();
     let i = paras
         .iter()
-        .position(|p| matches!(p.kind, rsword::model::block::TextKind::Heading { level: 2 }))
+        .position(|p| matches!(p.kind, rsword::model::TextKind::Heading { level: 2 }))
         .unwrap();
     assert_eq!(paras[i + 1].text(), "摘要：本节介绍正文与列表。");
 }

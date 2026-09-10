@@ -33,7 +33,7 @@ use super::{ProjCx, SchemaDefs, ToJson, as_str_json, json_str_enum, model_json};
 
 // ---- 定长数组的投影（容器 / 基础类型，手写；`spec/21`：区间与元组一律二元数组） ---------------------
 
-/// `a:pt` 的路径坐标（`model::custgeom`）：`[x, y]`。
+/// `a:pt` 的路径坐标（`model::CustomGeom`）：`[x, y]`。
 impl ToJson for [i64; 2] {
     fn to_json(&self, _cx: &ProjCx<'_>) -> Value {
         Value::Array(vec![Value::from(self[0]), Value::from(self[1])])
@@ -149,7 +149,7 @@ model_json! {
         opt prst => "prst", String = prst;
         /// 有 `a:custGeom`：自定义路径几何。
         flag cust_geom => "custGeom" = cust_geom;
-        /// `a:custGeom` 的路径；用到公式或圆弧时缺席（`model::custgeom`）。
+        /// `a:custGeom` 的路径；用到公式或圆弧时缺席（`model::CustomGeom`）。
         opt geom => "geom", CustomGeom = geom;
         /// `a:xfrm/a:ext`。
         opt ext => "ext", Extent = ext;

@@ -117,7 +117,7 @@ fn mod_10_implicit_section_when_the_document_has_no_sect_pr() {
     assert_eq!(s.node, None);
     assert_eq!(s.owner, SectionOwner::Implicit);
     assert_eq!(s.block_range, 0..doc.main.len());
-    assert_eq!(s.geom().page_width, rsword::model::section::DEFAULT_PAGE_WIDTH);
+    assert_eq!(s.geom().page_width, rsword::model::DEFAULT_PAGE_WIDTH);
     assert_eq!(s.start_type(), rsword::semantic::props::SectType::NextPage);
     assert!(!s.title_pg());
     assert_eq!(s.hf_ref(HfKind::Header, HfVariant::Default), None);
