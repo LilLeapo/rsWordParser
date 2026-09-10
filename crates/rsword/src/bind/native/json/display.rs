@@ -10,6 +10,7 @@
 
 use serde_json::Value;
 
+use crate::model::DrawingKind;
 use crate::model::FormulaDisplay;
 use crate::model::ThemeSlot;
 use crate::model::block::Block;
@@ -24,7 +25,6 @@ use crate::model::drawing::{
     FillDisplay, FillKind, ImageDisplay, LineDisplay, Position, RectFrac, ShapeDisplay, StyleRef,
     Wrap,
 };
-use crate::model::facts::DrawingKind;
 use crate::model::vml::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};
 use crate::model::{CustomGeom, GeomCmd, GeomPath};
 use crate::package::PartId;

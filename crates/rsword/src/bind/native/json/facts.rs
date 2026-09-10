@@ -3,7 +3,7 @@
 //! `true`，缺席即假。
 
 use crate::model::block::{ListRef, SdtInfo};
-use crate::model::facts::{
+use crate::model::{
     DrawingFacts, DrawingKind, MathFacts, ParagraphFacts, PictFacts, PictKind, RevisionFacts,
 };
 use crate::span::FieldId;

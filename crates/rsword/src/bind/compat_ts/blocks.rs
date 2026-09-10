@@ -828,7 +828,7 @@ fn paragraph_block(
             // 与字段文本段落同形——TS 那边它们都是同一个 passthrough 分支
             ProtectedKind::FieldBlockResult(_) => {
                 let style = para_style_id(ctx, p);
-                let toc = style.as_deref().and_then(crate::model::facts::toc_level_of_id);
+                let toc = style.as_deref().and_then(crate::model::toc_level_of_id);
                 // TS 没有 R09：它逐段判定。块字段中间那些**自己不含 fldChar / instrText** 的段落
                 // 在 TS 那边落到规则 3（TOC 样式 → `TOC entry`）。既不含字段结构又没有目录样式的
                 // 段落 TS 会当普通段落，本引擎按 `FLD-08` 保护整段区间（差异见 `docs/04` §8）。
@@ -882,7 +882,7 @@ fn paragraph_block(
             // 哪怕一个字都没有（R18 归了 `Ole`），也是字段芯片（任务 6.4；有字的版本走上面的文本分支）
             ProtectedKind::Ole if has_field_chars(ctx, p) && !ole_display_applies(ctx, p) => {
                 let style = para_style_id(ctx, p);
-                let toc = style.as_deref().and_then(crate::model::facts::toc_level_of_id);
+                let toc = style.as_deref().and_then(crate::model::toc_level_of_id);
                 let mut o = passthrough(o, &field_label(ctx, p));
                 set(&mut o, "previewText", ctx.plain_text(p));
                 set_some!(&mut o, "styleId" => style, "fieldDisplay" => field_display(ctx, p, toc));
