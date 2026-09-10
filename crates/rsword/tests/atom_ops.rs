@@ -3,7 +3,6 @@
 mod common;
 
 use rsword::edit::{EditContext, EditOp, EditSession, InlinePos, NewAtom, NewMath, NewRun};
-use rsword::model::inline::BreakKind;
 use rsword::xml::NodeId;
 
 const BODY: &str = "<w:p><w:r><w:t>前后</w:t></w:r></w:p>";
@@ -30,13 +29,16 @@ fn insert(atom: NewAtom) -> Vec<u8> {
 
 #[test]
 fn edit_02_break_atom() {
-    let out = insert(NewAtom::Break { kind: BreakKind::Page, clear: None });
+    let out = insert(NewAtom::Break { kind: rsword::model::BreakKind::Page, clear: None });
     common::xpath_asserts!(
         &out,
         "word/document.xml",
         [("count(//w:p/w:r/w:br)", ["1"]), ("//w:p/w:r/w:br/@w:type", ["page"]),]
     );
-    let out = insert(NewAtom::Break { kind: BreakKind::TextWrapping, clear: Some("all".into()) });
+    let out = insert(NewAtom::Break {
+        kind: rsword::model::BreakKind::TextWrapping,
+        clear: Some("all".into()),
+    });
     common::xpath_asserts!(
         &out,
         "word/document.xml",
@@ -157,7 +159,7 @@ fn tracked_atom_goes_into_ins() {
     s.apply(
         EditOp::InsertAtom {
             at: InlinePos::new(p, 1),
-            atom: NewAtom::Break { kind: BreakKind::Page, clear: None },
+            atom: NewAtom::Break { kind: rsword::model::BreakKind::Page, clear: None },
         },
         &ctx,
     )

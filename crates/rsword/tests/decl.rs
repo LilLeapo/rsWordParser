@@ -6,10 +6,8 @@ mod common;
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use rsword::model::{
-    ColorScheme, FontTable, Numbering, Settings, StyleType, Styles, Theme, ThemeSlot,
-};
 use rsword::package::{Package, RelType};
+use rsword::semantic::props::StyleType;
 use rsword::semantic::props::{Codec, DocProtect, Val};
 use serde_json::Value;
 
@@ -81,14 +79,14 @@ fn mod_10_declarations_parse_on_corpus_and_match_ts() {
 
             let styles = part_of(&pkg, RelType::Styles, "word/styles.xml").and_then(|id| {
                 let dom = pkg.dom(id).ok()??;
-                Styles::from_dom(dom, &mut diags)
+                rsword::semantic::props::Styles::from_dom(dom, &mut diags)
             });
             *st.diags.entry("styles").or_default() += diags.len();
             diags.clear();
             let numbering =
                 part_of(&pkg, RelType::Numbering, "word/numbering.xml").and_then(|id| {
                     let dom = pkg.dom(id).ok()??;
-                    Numbering::from_dom(dom, &mut diags)
+                    rsword::semantic::props::Numbering::from_dom(dom, &mut diags)
                 });
             *st.diags.entry("numbering").or_default() += diags.len();
             for dg in &diags {
@@ -102,16 +100,16 @@ fn mod_10_declarations_parse_on_corpus_and_match_ts() {
             let settings_part = part_of(&pkg, RelType::Settings, "word/settings.xml");
             let settings = settings_part.and_then(|id| {
                 let dom = pkg.dom(id).ok()??;
-                Settings::from_dom(dom, &mut diags)
+                rsword::semantic::props::Settings::from_dom(dom, &mut diags)
             });
             *st.diags.entry("settings").or_default() += diags.len();
             diags.clear();
             let theme = part_of(&pkg, RelType::Theme, "word/theme/theme1.xml")
-                .and_then(|id| Theme::from_dom(pkg.dom(id).ok()??));
+                .and_then(|id| rsword::model::Theme::from_dom(pkg.dom(id).ok()??));
             let font_table =
                 part_of(&pkg, RelType::FontTable, "word/fontTable.xml").and_then(|id| {
                     let dom = pkg.dom(id).ok()??;
-                    FontTable::from_dom(dom, &mut diags)
+                    rsword::semantic::props::FontTable::from_dom(dom, &mut diags)
                 });
             *st.diags.entry("fontTable").or_default() += diags.len();
             diags.clear();
@@ -179,12 +177,12 @@ fn mod_10_declarations_parse_on_corpus_and_match_ts() {
 
             // ---- themeColors：没有 theme part 时 TS 用内建 Office 调色板 ----
             if let Some(ec) = e.get("themeColors").and_then(Value::as_object) {
-                let office = ColorScheme::office_default();
+                let office = rsword::model::ColorScheme::office_default();
                 let colors = match &theme {
                     Some(t) => t.colors.as_ref(),
                     None => Some(&office),
                 };
-                for slot in ThemeSlot::ALL {
+                for slot in rsword::model::ThemeSlot::ALL {
                     let exp = ec.get(slot.as_str()).and_then(Value::as_str).map(str::to_string);
                     let ours = colors.and_then(|c| c.get(slot)).map(hex);
                     check(&mut st, "themeColors", &path, exp == ours, || {

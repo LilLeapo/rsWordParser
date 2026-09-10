@@ -188,7 +188,7 @@ M2 `FLD-06` 的关键字表宏（`EMBED` / `LINK` 已在）、M5 的 `xpath_asse
 | 债 | 位置 | 解决任务 |
 | --- | --- | --- |
 | `AtomKind::Math` 注释「`FormulaDisplay` 在 M3」 | `model/inline.rs` | 6.5 |
-| `r12_chart` 注释「ChartEx 且有 Fallback 图 → Image 的判定 … 随显示模型补」 | `model/classify.rs` | 6.2 |
+| `ParagraphFacts::r12_chart` 注释「ChartEx 且有 Fallback 图 → Image 的判定 … 随显示模型补」 | `model/mod.rs` | 6.2 |
 | `compat_ts/mod.rs` 的占位 `inks: []`、`extras.chartParts: {}` | `bind/compat_ts/mod.rs` | 6.2 / 6.8 |
 | `save_blocks.rs` 对 `chart` / `image` / `replaceImage` 的 `Err(EDIT_UNSUPPORTED)`（消息还写着「在 M3」） | `bind/compat_ts/save_blocks.rs` | 6.6 / 6.7 |
 | `diff.rs` 注释「公式与 ruby 仍不在（M6 / 后续里程碑）」 | `bind/compat_ts/diff.rs` | 6.5 |

@@ -10,7 +10,6 @@
 
 use crate::diag::DiagCode;
 use crate::error::{Error, Result};
-use crate::model::macros::named_enum;
 use crate::package::PartFlavor;
 use crate::package::ns_context::NamespaceContext;
 use crate::xml::{
@@ -175,9 +174,7 @@ fn wrap_paragraph(
     vml: Option<&str>,
 ) -> String {
     let graphic = format!(
-        concat!(
-            r#"<a:graphic xmlns:a="{a}"><a:graphicData uri="{wps}">{wsp}</a:graphicData></a:graphic>"#
-        ),
+        r#"<a:graphic xmlns:a="{a}"><a:graphicData uri="{wps}">{wsp}</a:graphicData></a:graphic>"#,
         a = NS_A,
         wps = NS_WPS,
         wsp = wsp,

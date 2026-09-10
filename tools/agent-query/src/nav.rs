@@ -1,15 +1,13 @@
 //! AGENT-03/05：仅从规范投影与模型读取，范围在返回载荷前裁剪。
 use crate::{Result, budget::Budget, error};
 use crate::{cursor::Registry, paging};
-use rsword::{
-    agent::{
-        anchors::{Anchor, ObjectRef},
-        text::{FlowRange, Projection},
-    },
-    model::{Document, block::TextKind},
-    package::PartId,
-    xml::NodeId,
-};
+use rsword::agent::anchors::Anchor;
+use rsword::agent::anchors::ObjectRef;
+use rsword::agent::text::FlowRange;
+use rsword::agent::text::Projection;
+use rsword::model::Document;
+use rsword::package::PartId;
+use rsword::xml::NodeId;
 use serde_json::{Value, json};
 use std::ops::Range;
 #[derive(Default)]
@@ -66,7 +64,7 @@ pub fn outline(p: &Projection, doc: &Document, levels: Range<u8>) -> Result<Vec<
             .enumerate()
             .filter_map(|(i, o)| {
                 doc.text_block_in(PartId(o.part), NodeId(o.node)).and_then(|t| match t.kind {
-                    TextKind::Heading { level } => Some((i, o, t, level)),
+                    rsword::model::TextKind::Heading { level } => Some((i, o, t, level)),
                     _ => None,
                 })
             })

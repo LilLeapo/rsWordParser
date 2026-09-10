@@ -2,8 +2,8 @@
 //! `grid` 允许 0 / `Raw` / 缺失，`tblPrEx` 不折叠、`tcW` 不校正——折叠与校正是 `RES-08`
 //! （`resolve`）与 `compat_ts` 的事。行 / 格的修订包裹与 `*PropsChange` 随各表投影。
 
-use crate::model::block::{Block, Revision, SdtInfo};
-use crate::model::table::{Cell, GridCol, Row, TableBlock};
+use crate::model::{Block, Revision, SdtInfo};
+use crate::model::{Cell, GridCol, Row, TableBlock};
 use crate::semantic::props::{CellProps, RowProps, TableProps, Val};
 use crate::xml::NodeId;
 

@@ -12,13 +12,13 @@
 use serde_json::{Map, Value};
 
 use crate::model::CustomGeom;
-use crate::model::drawing::{
+use crate::model::SectionGeom;
+use crate::model::{
     Anchor, AnchorGeom, BodyPr, DrawingDisplay, Extent, FillKind, ShapeDisplay, StyleRef, Wrap,
 };
-use crate::model::section::SectionGeom;
-use crate::model::units::{EMU_PER_PX, emu_to_px, parse_length, parse_style};
-use crate::model::vml::{VmlKind, VmlShape, vml_color};
 use crate::model::{Block, Display};
+use crate::model::{EMU_PER_PX, emu_to_px, parse_length, parse_style};
+use crate::model::{VmlKind, VmlShape, vml_color};
 use crate::resolve::drawingml::{DrawingColor, Rgb, average, color_in, hex, parse_color};
 use crate::xml::{LocalName, NodeId, NsId, QName};
 
@@ -522,7 +522,7 @@ pub(super) fn vml_geom_box(s: &VmlShape, place: VmlPlace) -> Option<Map<String, 
         .then(|| s.stroke_color.clone().or_else(|| place.scale.map(|_| "000000".to_string())))
         .flatten();
     // 白色又没描边：Word 什么都不画
-    if stroke.is_none() && !fill.as_deref().is_some_and(|f| !f.eq_ignore_ascii_case("ffffff")) {
+    if stroke.is_none() && fill.as_deref().is_none_or(|f| f.eq_ignore_ascii_case("ffffff")) {
         return None;
     }
     let w = vml_dim_px(s, "width", place.scale)?;

@@ -1,7 +1,7 @@
 //! SmartArt 与绘图画布块的投影（`COMPAT-03`，任务 6.3）：TS `extractDiagramText` / `extractDiagramDrawing` /
 //! `extractLockedCanvas` 的产物——`previewText`、`diagramDisplay`、同段其他绘图的 `textboxes[]`。
 //!
-//! 模型在 `model/diagram.rs`（EMU 与颜色定义）；这里做 px 换算、画布的子坐标系缩放、颜色解析（`RES-05`），
+//! 模型在 `model::DiagramPart`（EMU 与颜色定义）；这里做 px 换算、画布的子坐标系缩放、颜色解析（`RES-05`），
 //! 以及**只属于显示层**的两条启发式：`lnWPx` 缺省 1，和 LibreOffice 对齐的溢出文本分栏（画布通常按远大于
 //! 摆放尺寸的坐标系作图，原字号的文字装不进缩小后的框，LO 把这些文本形状叠成错开的列）。
 
@@ -9,10 +9,10 @@ use std::collections::BTreeMap;
 
 use serde_json::{Map, Value};
 
-use crate::model::diagram::{DiagramPart, DiagramShape};
-use crate::model::drawing::{DrawingDisplay, RectFrac, Wrap};
-use crate::model::units::EMU_PER_PX;
+use crate::model::EMU_PER_PX;
+use crate::model::{DiagramPart, DiagramShape};
 use crate::model::{Display, Document, ProtectedBlock};
+use crate::model::{DrawingDisplay, RectFrac, Wrap};
 use crate::package::Package;
 use crate::resolve::drawingml::{Rgb, average, color_in, hex};
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};

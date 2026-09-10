@@ -5,9 +5,13 @@
 
 use libfuzzer_sys::fuzz_target;
 use rsword::model::ColorScheme;
-use rsword::model::chart::ChartPart;
-use rsword::model::diagram::{canvas_display, diagram_shapes, diagram_text};
-use rsword::model::omml::{latex, mathml, tokens};
+use rsword::model::ChartPart;
+use rsword::model::canvas_display;
+use rsword::model::diagram_shapes;
+use rsword::model::diagram_text;
+use rsword::model::omml::latex;
+use rsword::model::omml::mathml;
+use rsword::model::tokens;
 use rsword::package::PartId;
 use rsword::xml::{Dom, LocalName, NsId, QName};
 

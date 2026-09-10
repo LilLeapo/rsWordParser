@@ -64,7 +64,7 @@ fn main_bytes(s: &EditSession) -> Vec<u8> {
 fn op_of(s: &EditSession, k: &OpSketch) -> Option<EditOp> {
     let doc = s.document();
     let paras: Vec<(NodeId, u32)> = doc.paragraphs().map(|b| (b.node, b.utf16_len())).collect();
-    let blocks: Vec<NodeId> = doc.main.iter().map(Block::node).collect();
+    let blocks: Vec<NodeId> = doc.main.iter().map(rsword::model::Block::node).collect();
     let (para, len) = *paras.get(k.para as usize % paras.len().max(1))?;
     let a = u32::from(k.from) % (len + 1);
     let b = u32::from(k.to) % (len + 1);

@@ -4,7 +4,7 @@
 
 mod common;
 
-use rsword::model::{Block, Document};
+use rsword::model::Document;
 use rsword::package::Package;
 use rsword::resolve::{ColumnSource, Resolver, TblLookFlags};
 use rsword::semantic::props::TblStyleOverrideType;
@@ -56,12 +56,12 @@ fn with_table<T>(
     let bytes =
         std::fs::read(common::corpus_dir("synthetic").join(format!("{name}.docx"))).unwrap();
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let tables: Vec<_> = doc
         .main
         .iter()
         .filter_map(|b| match b {
-            Block::Table(t) => Some(t),
+            rsword::model::Block::Table(t) => Some(t),
             _ => None,
         })
         .collect();
@@ -123,25 +123,27 @@ fn res_08_conditional_formats_follow_tbl_look() {
         let bytes =
             std::fs::read(common::corpus_dir("synthetic").join(format!("{name}.docx"))).unwrap();
         let mut pkg = Package::open(&bytes).unwrap();
-        let doc = Document::rebuild(&mut pkg).unwrap();
+        let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
         let styles = doc.styles.as_ref().expect("styles.xml");
         let r = Resolver::new(&doc);
         let table_styles: Vec<&str> = styles
             .styles
             .iter()
-            .filter(|s| s.kind() == Some(rsword::model::StyleType::Table))
+            .filter(|s| s.kind() == Some(rsword::semantic::props::StyleType::Table))
             .filter_map(|s| s.id())
             .collect();
         assert!(table_styles.len() >= 2, "{name}: 应有基样式与子样式");
         let based: Vec<&str> = styles
             .styles
             .iter()
-            .filter(|s| s.kind() == Some(rsword::model::StyleType::Table) && s.based_on.is_some())
+            .filter(|s| {
+                s.kind() == Some(rsword::semantic::props::StyleType::Table) && s.based_on.is_some()
+            })
             .filter_map(|s| s.id())
             .collect();
         let child = based.first().unwrap_or_else(|| panic!("{name}: 应有 basedOn 的表格样式"));
         let view = r.table_style(Some(child));
-        let chain = r.chain(child, rsword::model::StyleType::Table);
+        let chain = r.chain(child, rsword::semantic::props::StyleType::Table);
         assert!(chain.len() >= 2, "{name}: basedOn 链应有两层");
         // 子样式自己没声明、父样式声明了的层也要在
         let own_conds: usize = chain[0].conditional.len();
@@ -178,7 +180,7 @@ fn res_08_row_height_is_clamped() {
     for path in common::docx_paths("synthetic") {
         let bytes = std::fs::read(&path).unwrap();
         let Ok(mut pkg) = Package::open(&bytes) else { continue };
-        let Ok(doc) = Document::rebuild(&mut pkg) else { continue };
+        let Ok(doc) = rsword::model::Document::rebuild(&mut pkg) else { continue };
         let r = Resolver::new(&doc);
         let dom = pkg.part(doc.main_part).dom().unwrap();
         for t in doc.tables() {
@@ -244,14 +246,14 @@ fn res_08_column_widths_match_ts_on_the_corpus() {
         let name = path.file_stem().unwrap().to_str().unwrap().to_string();
         let bytes = std::fs::read(&path).unwrap();
         let mut pkg = Package::open(&bytes).unwrap();
-        let doc = Document::rebuild(&mut pkg).unwrap();
+        let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
         let r = Resolver::new(&doc);
         let dom = pkg.part(doc.main_part).dom().unwrap();
         let ours: Vec<_> = doc
             .main
             .iter()
             .filter_map(|b| match b {
-                Block::Table(t) => Some(t),
+                rsword::model::Block::Table(t) => Some(t),
                 _ => None,
             })
             .collect();
@@ -331,7 +333,7 @@ fn res_03_table_style_layer_sits_between_para_and_char_styles() {
     let bytes =
         std::fs::read(common::corpus_dir("synthetic").join("table-style__001.docx")).unwrap();
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let r = Resolver::new(&doc);
     let dom = pkg.part(doc.main_part).dom().unwrap();
     let t = doc.tables().next().unwrap();

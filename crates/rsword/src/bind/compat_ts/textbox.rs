@@ -11,10 +11,10 @@
 
 use serde_json::{Map, Value};
 
-use crate::model::drawing::{DrawingDisplay, FillKind, ImageDisplay, ShapeDisplay, Wrap};
-use crate::model::units::emu_to_px;
-use crate::model::vml::{VmlKind, VmlShape};
+use crate::model::emu_to_px;
 use crate::model::{Block, Display, Inline, SegmentKind, TextBlock, VmlDisplay};
+use crate::model::{DrawingDisplay, FillKind, ImageDisplay, ShapeDisplay, Wrap};
+use crate::model::{VmlKind, VmlShape};
 use crate::resolve::drawingml::{ColorBase, color_in, hex};
 use crate::xml::{LocalName, NodeId, NsId, QName};
 
@@ -168,7 +168,7 @@ pub(super) fn drawing_block(
     // 未编辑时字节不变）。有文字的框、以及提取出框的 wps 段落是例外。
     if !stray.trim().is_empty()
         && !boxes.iter().any(BoxInfo::has_text)
-        && !(has_wsp && !boxes.is_empty())
+        && (!has_wsp || boxes.is_empty())
     {
         return None;
     }
@@ -425,7 +425,7 @@ fn boxes_of(
     let has_line_shapes = wrap_square && drawings.iter().any(|d| d.shapes.iter().any(is_line_prst));
     // 每个 `w:txbxContent` 占一个保存路径序号，不管框最后留没留下来。
     let mut ordinal = 0usize;
-    // 管辖这一段的节：页面 / 页边距对齐的锚定位置要用它解（`model::section`）。
+    // 管辖这一段的节：页面 / 页边距对齐的锚定位置要用它解（`model::SectionGeom`）。
     let sect = ctx.section_at(para_node);
     let actx = box_json::AnchorCtx::new(drawings, sect, first_page);
     let no_anchor = drawings.iter().all(|d| d.anchor.is_none());
@@ -601,9 +601,7 @@ fn group_place(
         )),
         _ if g.is_absolute() => {
             let px = |key: &str| {
-                g.style_len(key)
-                    .and_then(|l| l.to_emu())
-                    .map_or(0.0, crate::model::units::emu_to_px)
+                g.style_len(key).and_then(|l| l.to_emu()).map_or(0.0, crate::model::emu_to_px)
             };
             Some((px("margin-left"), px("margin-top")))
         }
@@ -622,7 +620,7 @@ fn group_place(
 }
 
 fn px(emu: i64) -> i64 {
-    crate::model::units::emu_to_px(emu as f64).round() as i64
+    crate::model::emu_to_px(emu as f64).round() as i64
 }
 
 /// `pictures` 选项下的只读照片框（TS `pushPic`）：组内图片按组仿射映射到绝对位置。
@@ -809,7 +807,7 @@ fn keeps_box(
         if s.prst.is_none() && !s.cust_geom {
             return false;
         }
-        if s.prst.as_deref() == Some("rect") && !s.ext.is_some_and(|e| e.cy > THIN_RULE_EMU) {
+        if s.prst.as_deref() == Some("rect") && s.ext.is_none_or(|e| e.cy <= THIN_RULE_EMU) {
             return false;
         }
         // 无字预设形状：几何得有可见的墨才留
@@ -869,7 +867,7 @@ fn stray_text(ctx: &Ctx<'_>, p: NodeId) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::drawing::{Extent, LineDisplay};
+    use crate::model::{Extent, LineDisplay};
     use crate::xml::NodeId;
 
     fn shape(prst: Option<&str>, cy: Option<i64>) -> ShapeDisplay {

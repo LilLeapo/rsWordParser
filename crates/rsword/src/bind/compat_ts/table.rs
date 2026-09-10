@@ -9,8 +9,8 @@ use std::collections::BTreeSet;
 
 use serde_json::{Map, Value};
 
-use crate::model::table::{Cell, TableBlock};
 use crate::model::{Block, Revision, RevisionMeta, Style, StyleType, TextBlock};
+use crate::model::{Cell, TableBlock};
 use crate::resolve::rgb_hex;
 use crate::resolve::{Resolver, TableView, ViewCell};
 use crate::semantic::props::{
@@ -99,7 +99,7 @@ pub(super) fn table_json(
         Some(w) => match w.kind.as_ref().and_then(Val::value) {
             Some(crate::semantic::props::TblWidthType::Auto) => true,
             Some(crate::semantic::props::TblWidthType::Dxa) | None => {
-                !w.twips().is_some_and(|v| v > 0)
+                w.twips().is_none_or(|v| v <= 0)
             }
             _ => false,
         },

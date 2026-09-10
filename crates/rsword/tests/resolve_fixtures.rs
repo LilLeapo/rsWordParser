@@ -16,7 +16,6 @@ mod common;
 
 use std::path::{Path, PathBuf};
 
-use rsword::model::{Document, HfKind, HfVariant};
 use rsword::package::Package;
 use rsword::resolve::Resolver;
 use rsword::resolve::section::HfSlot;
@@ -98,7 +97,7 @@ fn answers(dir: &Path) -> Answers {
     let bytes = std::fs::read(dir.join("doc.docx"))
         .unwrap_or_else(|e| panic!("{}: {e}", dir.join("doc.docx").display()));
     let mut pkg = Package::open(&bytes).expect("open");
-    let doc = Document::rebuild(&mut pkg).expect("rebuild");
+    let doc = rsword::model::Document::rebuild(&mut pkg).expect("rebuild");
     let r = Resolver::new(&doc);
     let mut runs = Vec::new();
     // 表格里的段落要走 `RES-08` 的表格视图，不然 `firstRow` 那一层根本没参与（`RES-03` 第 4 层）
@@ -136,12 +135,13 @@ fn answers(dir: &Path) -> Answers {
     };
     for i in 0..doc.sections.len() {
         let view = r.section(&doc.sections, i).expect("section view");
-        let (text, from) = match view.slot(HfKind::Header, HfVariant::Default) {
-            HfSlot::Declared(rid) => (text_of(rid), -1),
-            HfSlot::Inherited { from, id } => (text_of(id), *from as i64),
-            // `-2` = 这个槽在这一节完全没有（既没声明也继承不到）
-            HfSlot::Absent => (String::new(), -2),
-        };
+        let (text, from) =
+            match view.slot(rsword::model::HfKind::Header, rsword::model::HfVariant::Default) {
+                HfSlot::Declared(rid) => (text_of(rid), -1),
+                HfSlot::Inherited { from, id } => (text_of(id), *from as i64),
+                // `-2` = 这个槽在这一节完全没有（既没声明也继承不到）
+                HfSlot::Absent => (String::new(), -2),
+            };
         sections.push((text, from));
     }
     Answers { runs, sections }

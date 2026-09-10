@@ -3,7 +3,6 @@
 mod common;
 use rsword::{
     agent::text::{Scope, project},
-    model::Document,
     package::Package,
 };
 use rsword_agent_query::{
@@ -190,7 +189,7 @@ fn agent_06_text_pages_equal_full_projection_and_counts() {
                 continue;
             }
         };
-        let doc = Document::rebuild(&mut pkg).unwrap();
+        let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
         let p = project(&pkg, &doc, Scope::All, "corpus:1").unwrap();
         let units = paging::text_units(&p, 0..p.anchors.len()).unwrap();
         assert_eq!(
@@ -365,7 +364,7 @@ fn agent_06_file_reopen_fingerprint_and_fresh_anchors() {
         assert_ne!(next.as_deref(), Some(token.as_str()));
     }
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     assert_eq!(joined, project(&pkg, &doc, Scope::Main, "oracle").unwrap().content);
     let other = dir.join("other.docx");
     std::fs::write(&other, &bytes).unwrap();
@@ -578,7 +577,7 @@ fn agent_06_auxiliary_model_flow_keeps_its_own_indices() {
         ],
     );
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let projection = project(&pkg, &doc, Scope::All, "oracle").unwrap();
     let flow = projection.flows.iter().find(|f| f.object.part != doc.main_part.0).unwrap();
     let mut s = Sessions::default();
@@ -653,7 +652,7 @@ fn agent_06_continuation_concatenates_independent_text_oracle() {
         "<w:p><w:r><w:t>FIRST</w:t></w:r></w:p><w:p><w:r><w:t>MIDDLE😀</w:t></w:r></w:p><w:p><w:r><w:t>LAST</w:t></w:r></w:p>",
     );
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let p = project(&pkg, &doc, Scope::Main, "v").unwrap();
     let units = paging::text_units(&p, 0..p.anchors.len()).unwrap();
     assert_eq!(units.len(), 3);
@@ -720,7 +719,7 @@ fn agent_06_final_page_without_cursor_can_fit_after_rejected_prefix() {
 fn agent_06_snapshot_wire_preserves_legacy_strings() {
     let bytes = fixture();
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     for snapshot in [
         "legacy",
         r#""quoted""#,

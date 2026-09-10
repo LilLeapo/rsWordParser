@@ -1,17 +1,17 @@
 //! 图表块的投影（`COMPAT-03`，任务 6.2）：TS `extractChart` 的三样产物——块上的 `chartDisplay`、
 //! `previewText`（标题，没标题给 `""`）、`extras.chartParts[path]`（可编辑图表 part 的原文）。
 //!
-//! 模型在 `model/chart.rs`（6.1）；这里只做字段换名与单位换算：颜色 → 无 `#` 的大写 hex，
+//! 模型在 `model::ChartPart`（6.1）；这里只做字段换名与单位换算：颜色 → 无 `#` 的大写 hex，
 //! 宿主绘图的 `wp:extent` → 取整的 px，整数值的 `f64` 写成 JSON 整数（TS 的 `JSON.stringify` 就是这样）。
 
 use std::collections::BTreeMap;
 
 use serde_json::{Map, Value};
 
-use crate::model::chart::{ChartColor, ChartDisplay, ChartPart, ChartSeries};
-use crate::model::drawing::DrawingDisplay;
-use crate::model::units::emu_to_px;
+use crate::model::DrawingDisplay;
+use crate::model::emu_to_px;
 use crate::model::{Block, Display, Document, ProtectedBlock, ProtectedKind};
+use crate::model::{ChartColor, ChartDisplay, ChartPart, ChartSeries};
 use crate::package::Package;
 use crate::resolve::drawingml::hex;
 use crate::xml::Dom;

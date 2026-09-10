@@ -262,13 +262,12 @@ fn new_textbox_emits_a_choice_and_a_vml_twin() {
 }
 
 fn has_textbox(s: &EditSession) -> bool {
-    use rsword::model::{Block, Display, Inline};
     s.document().blocks().any(|b| {
-        let Block::Text(t) = b else { return false };
+        let rsword::model::Block::Text(t) = b else { return false };
         t.inlines.iter().any(|i| {
-            let Inline::Run(r) = i else { return false };
+            let rsword::model::Inline::Run(r) = i else { return false };
             r.segments.iter().any(|seg| {
-                seg.display.as_ref().and_then(Display::as_drawing).is_some_and(|d| {
+                seg.display.as_ref().and_then(rsword::model::Display::as_drawing).is_some_and(|d| {
                     d.shapes.iter().any(|sh| sh.txbx.is_some() && !sh.content.is_empty())
                 })
             })
@@ -498,5 +497,5 @@ fn only_drawing(s: &EditSession) -> rsword::model::DrawingDisplay {
         .descendants(dom.root())
         .find(|&n| dom.is(n, QName::w(LocalName::Drawing)))
         .expect("w:drawing");
-    rsword::model::drawing::drawing_display(dom, d)
+    rsword::model::drawing_display(dom, d)
 }

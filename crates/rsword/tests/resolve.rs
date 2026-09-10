@@ -6,9 +6,9 @@ mod common;
 
 use std::collections::BTreeMap;
 
-use rsword::model::{Document, StyleType};
 use rsword::package::Package;
 use rsword::resolve::{Resolver, rgb_hex};
+use rsword::semantic::props::StyleType;
 use rsword::semantic::props::{LineSpacingRule, ParaProps, RunProps, UnderlineKind, Val};
 use serde_json::Value;
 
@@ -232,7 +232,7 @@ fn res_02_style_display_matches_ts() {
         let e: Value = serde_json::from_str(&text).unwrap();
         let bytes = std::fs::read(&path).unwrap();
         let Ok(mut pkg) = Package::open(&bytes) else { continue };
-        let Ok(doc) = Document::rebuild(&mut pkg) else { continue };
+        let Ok(doc) = rsword::model::Document::rebuild(&mut pkg) else { continue };
         st.docs += 1;
         let r = Resolver::new(&doc);
         let file = path.file_name().unwrap().to_string_lossy().to_string();
@@ -244,18 +244,18 @@ fn res_02_style_display_matches_ts() {
             };
             st.styles += 1;
             let mut ours: BTreeMap<&'static str, Value> = BTreeMap::new();
-            if kind != StyleType::Table {
+            if kind != rsword::semantic::props::StyleType::Table {
                 if let Some(rp) = r.style_run_props(id, kind) {
                     run_display(&r, &rp, &mut ours);
                 }
-                if kind == StyleType::Paragraph
+                if kind == rsword::semantic::props::StyleType::Paragraph
                     && let Some(pp) = r.style_para_props(id)
                 {
                     para_display(&pp, &mut ours);
                 }
             }
             let ts_display = ts.get("display").and_then(Value::as_object);
-            let keys: Vec<&str> = if kind == StyleType::Paragraph {
+            let keys: Vec<&str> = if kind == rsword::semantic::props::StyleType::Paragraph {
                 RUN_KEYS.iter().chain(PARA_KEYS).copied().collect()
             } else {
                 RUN_KEYS.to_vec()
@@ -268,7 +268,7 @@ fn res_02_style_display_matches_ts() {
                     st.mismatches.push(format!("{file}: {id}.{key}: TS={exp:?} ours={got:?}"));
                 }
             }
-            if kind == StyleType::Paragraph {
+            if kind == rsword::semantic::props::StyleType::Paragraph {
                 let exp = ts.get("headingLevel").and_then(Value::as_u64);
                 let got = r.heading_level(id).map(u64::from);
                 *st.compared.entry("headingLevel").or_default() += 1;
@@ -334,7 +334,7 @@ fn res_02_style_display_matches_ts() {
 /// 这是 4.5 / 4.6 的前置保险——形状的填充与描边全靠它，等到那时才发现「某种底色没实现」就太晚了。
 #[test]
 fn res_05_drawingml_colors_resolve_across_the_corpus() {
-    use rsword::model::theme::ColorScheme;
+    use rsword::model::ColorScheme;
     use rsword::resolve::drawingml::{color_in, hex};
     use rsword::xml::{LocalName, NsId};
 
@@ -360,7 +360,7 @@ fn res_05_drawingml_colors_resolve_across_the_corpus() {
         let file = path.file_name().unwrap().to_string_lossy().to_string();
         let bytes = std::fs::read(&path).unwrap();
         let Ok(mut pkg) = Package::open(&bytes) else { continue };
-        let Ok(doc) = Document::rebuild(&mut pkg) else { continue };
+        let Ok(doc) = rsword::model::Document::rebuild(&mut pkg) else { continue };
         let palette: ColorScheme = Resolver::new(&doc).palette().clone();
         docs += 1;
         let main = pkg.main_part();
@@ -461,8 +461,8 @@ fn toggle_ambiguous(
         })
     };
     let levels = usize::from(doc_default.is_some_and(|p| toggle_of(p, f).is_some()))
-        + usize::from(declared_in(para_style, StyleType::Paragraph))
-        + usize::from(declared_in(char_style, StyleType::Character));
+        + usize::from(declared_in(para_style, rsword::semantic::props::StyleType::Paragraph))
+        + usize::from(declared_in(char_style, rsword::semantic::props::StyleType::Character));
     levels >= 2
 }
 
@@ -474,7 +474,7 @@ fn toggle_ambiguous(
 /// 会走到这条分支，桌面版复核的优先级立刻上升。
 #[test]
 fn res_04_toggle_ambiguity_probe() {
-    use rsword::model::{Block, Inline};
+    use rsword::model::Block;
     let mut runs = 0usize;
     let mut docs = 0usize;
     let mut hits: BTreeMap<String, usize> = BTreeMap::new();
@@ -483,7 +483,7 @@ fn res_04_toggle_ambiguity_probe() {
         for path in common::docx_paths(kind) {
             let Ok(bytes) = std::fs::read(&path) else { continue };
             let Ok(mut pkg) = Package::open(&bytes) else { continue };
-            let Ok(doc) = Document::rebuild(&mut pkg) else { continue };
+            let Ok(doc) = rsword::model::Document::rebuild(&mut pkg) else { continue };
             docs += 1;
             let r = Resolver::new(&doc);
             let doc_default = doc.styles.as_ref().and_then(|s| s.doc_default_rpr());
@@ -508,10 +508,10 @@ fn res_04_toggle_ambiguity_probe() {
                 }
             }
             for b in all {
-                let Block::Text(tb) = b else { continue };
+                let rsword::model::Block::Text(tb) = b else { continue };
                 let para_style = tb.style_id.as_deref();
                 for i in &tb.inlines {
-                    let Inline::Run(run) = i else { continue };
+                    let rsword::model::Inline::Run(run) = i else { continue };
                     runs += 1;
                     let char_style = run.props.style.as_deref();
                     for &f in rsword::resolve::TOGGLE_FIELDS {

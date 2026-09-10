@@ -2,7 +2,7 @@
 
 mod common;
 
-use rsword::model::{Document, HfKind, HfVariant, Revision, SectionOwner};
+use rsword::model::{Document, HfKind, HfVariant, SectionOwner};
 use rsword::package::Package;
 use rsword::resolve::Resolver;
 use rsword::resolve::section::HfSlot;
@@ -12,7 +12,7 @@ const R: &str = r#"xmlns:r="http://schemas.openxmlformats.org/officeDocument/200
 fn doc_of(body: &str) -> (Package, Document) {
     let bytes = common::docx_with_body(body);
     let mut pkg = Package::open(&bytes).expect("open");
-    let doc = Document::rebuild(&mut pkg).expect("rebuild");
+    let doc = rsword::model::Document::rebuild(&mut pkg).expect("rebuild");
     (pkg, doc)
 }
 
@@ -23,7 +23,7 @@ fn doc_with_settings(body: &str, settings: &str) -> (Package, Document) {
     );
     let bytes = common::docx_with_parts(body, &[("word/settings.xml", &xml)]);
     let mut pkg = Package::open(&bytes).expect("open");
-    let doc = Document::rebuild(&mut pkg).expect("rebuild");
+    let doc = rsword::model::Document::rebuild(&mut pkg).expect("rebuild");
     (pkg, doc)
 }
 
@@ -117,7 +117,7 @@ fn mod_10_implicit_section_when_the_document_has_no_sect_pr() {
     assert_eq!(s.node, None);
     assert_eq!(s.owner, SectionOwner::Implicit);
     assert_eq!(s.block_range, 0..doc.main.len());
-    assert_eq!(s.geom().page_width, rsword::model::section::DEFAULT_PAGE_WIDTH);
+    assert_eq!(s.geom().page_width, rsword::model::DEFAULT_PAGE_WIDTH);
     assert_eq!(s.start_type(), rsword::semantic::props::SectType::NextPage);
     assert!(!s.title_pg());
     assert_eq!(s.hf_ref(HfKind::Header, HfVariant::Default), None);
@@ -139,7 +139,7 @@ fn mod_09_sect_props_change_attaches_to_the_section() {
     let s = &doc.sections[0];
     assert_eq!(s.geom().page_width, 11906, "当前值");
     match s.revisions.as_slice() {
-        [Revision::SectPropsChange { meta, old }] => {
+        [rsword::model::Revision::SectPropsChange { meta, old }] => {
             assert_eq!(meta.id.as_deref(), Some("7"));
             assert_eq!(meta.author.as_deref(), Some("甲"));
             assert_eq!(
@@ -200,7 +200,7 @@ fn mod_10_section_count_matches_ts_read_sections_on_corpus() {
             .max(1);
         let bytes = std::fs::read(&path).unwrap();
         let Ok(mut pkg) = Package::open(&bytes) else { continue };
-        let Ok(doc) = Document::rebuild(&mut pkg) else { continue };
+        let Ok(doc) = rsword::model::Document::rebuild(&mut pkg) else { continue };
         docs += 1;
         sections += doc.sections.len();
         if doc.sections.len() > 1 {

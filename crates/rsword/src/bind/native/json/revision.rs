@@ -1,7 +1,7 @@
 //! 修订的 JSON 投影（`BIND-02`，`MOD-09`）：`RevisionIndex` 经 `entries()` 投影为
 //! `Vec<RevisionEntry>`；`RevKind` 是 `named_enum!`，`as_str` 即 JSON 值。
 
-use crate::model::revision::{RevKind, RevOwner, RevisionEntry};
+use crate::model::{RevKind, RevOwner, RevisionEntry};
 use crate::span::{FieldId, RevisionMeta};
 use crate::xml::NodeId;
 

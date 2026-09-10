@@ -21,7 +21,7 @@ pub use uri::{PartUri, UriError, resolve};
 pub use zip::{Compression, ZipEntryRef, ZipPackage, neutralize_unicode_path};
 
 use crate::diag::{DiagCode, Diagnostic};
-use crate::error::{Error, NotOoxml, Result};
+use crate::error::{Error, Result};
 use crate::xml::{Dom, NsId, XmlError, sniff_root};
 
 /// part 在会话内的稳定编号（zip 中非目录条目的顺序）。
@@ -323,9 +323,9 @@ impl Package {
                     .map(|b| String::from_utf8_lossy(&b).trim().to_string());
                 return Err(match mime {
                     Some(m) if m.starts_with("application/vnd.oasis.opendocument") => {
-                        NotOoxml::OpenDocument(m).into()
+                        Error::OpenDocument(m)
                     }
-                    _ => NotOoxml::MissingMainPart.into(),
+                    _ => Error::MissingMainPart,
                 });
             }
         };

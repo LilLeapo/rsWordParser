@@ -189,9 +189,8 @@ fn touch_block(dom: &Dom, plan: &mut MutationPlan, node: NodeId) {
 
 /// `mc:Fallback` 里第一个会画东西的 VML 形状。
 fn vml_shape(dom: &Dom, fallback: NodeId) -> Option<NodeId> {
-    dom.descendants(fallback).find(|&n| {
-        live(dom, n) && dom.is_ns(n, NsId::V, "v") && crate::model::vml::drawn_shape(dom, n)
-    })
+    dom.descendants(fallback)
+        .find(|&n| live(dom, n) && dom.is_ns(n, NsId::V, "v") && crate::model::drawn_shape(dom, n))
 }
 
 /// EMU / pt（VML 的 `@style` 用 pt）。
@@ -233,8 +232,7 @@ fn vml_attrs(dom: &Dom, choice: NodeId, shape: NodeId) -> Vec<(LocalName, String
     {
         let Some(pos) = find(choice, wp(which)) else { continue };
         let Some(off) = find(pos, wp(LocalName::PosOffset)) else { continue };
-        let Some(v) =
-            crate::model::drawing::text_of(dom, off).and_then(|t| t.trim().parse::<i64>().ok())
+        let Some(v) = crate::model::text_of(dom, off).and_then(|t| t.trim().parse::<i64>().ok())
         else {
             continue;
         };

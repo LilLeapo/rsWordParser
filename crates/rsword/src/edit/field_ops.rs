@@ -10,7 +10,8 @@ use std::collections::HashMap;
 
 use crate::diag::DiagCode;
 use crate::error::{Error, Result};
-use crate::model::inline::{Inline, SegmentKind};
+use crate::model::Inline;
+use crate::model::SegmentKind;
 use crate::model::{Block, TextBlock};
 use crate::resolve::Resolver;
 use crate::span::FieldId;

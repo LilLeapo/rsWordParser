@@ -13,7 +13,7 @@
 
 use crate::edit::MutationPlan;
 use crate::error::Result;
-use crate::model::sources::publisher_element;
+use crate::model::publisher_element;
 use crate::package::{PartFlavor, PartId, RelType};
 use crate::semantic::props::{NewElement, NodeEdit, Target};
 use crate::xml::{Dirty, Dom, LocalName, NodeId, NsId, QName};

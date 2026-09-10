@@ -23,7 +23,10 @@ impl ApiError {
 impl From<Error> for ApiError {
     fn from(e: Error) -> Self {
         let code = match &e {
-            Error::NotOoxml(_) => "NOT_OOXML",
+            Error::LatexUnsupported => "LATEX_UNSUPPORTED",
+            Error::OpenDocument(_) | Error::MissingMainPart => "NOT_OOXML",
+            #[cfg(test)]
+            Error::Absent | Error::Offset(_) | Error::Context { .. } | Error::Wrapped(_) => "TEST",
             Error::Limit { code, .. } | Error::Edit { code, .. } | Error::EditPlan { code, .. } => {
                 code.as_str()
             }
@@ -48,6 +51,22 @@ impl std::error::Error for ApiError {}
 mod tests {
     use super::*;
     use crate::diag::DiagCode;
+
+    #[test]
+    fn flattened_package_errors_preserve_protocol() {
+        for (error, message) in [
+            (Error::MissingMainPart, "not a docx: missing main document part"),
+            (
+                Error::OpenDocument("application/vnd.oasis.opendocument.text".into()),
+                "OpenDocument file (application/vnd.oasis.opendocument.text) is not OOXML",
+            ),
+        ] {
+            assert!(std::error::Error::source(&error).is_none());
+            let api = ApiError::from(error);
+            assert_eq!(api.code, "NOT_OOXML");
+            assert_eq!(api.message, message);
+        }
+    }
 
     #[test]
     fn legacy_edit_errors_preserve_protocol_codes_and_messages() {

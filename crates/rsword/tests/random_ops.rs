@@ -29,7 +29,7 @@ use rsword::edit::{
     BlockAt, BlockPos, EditContext, EditOp, EditSession, InlinePos, NewBlock, NewInline, NewRun,
     RevisionAuthor,
 };
-use rsword::model::{Block, Document, SectionOwner};
+use rsword::model::{Block, Document};
 use rsword::package::PartId;
 use rsword::semantic::props::Change;
 use rsword::xml::{LocalName, NodeId, QName};
@@ -107,7 +107,7 @@ fn inline_op(doc: &Document, rng: &mut Rng) -> Option<EditOp> {
         _ => EditOp::InsertAtom {
             at: pos(a),
             atom: rsword::edit::NewAtom::Break {
-                kind: rsword::model::inline::BreakKind::TextWrapping,
+                kind: rsword::model::BreakKind::TextWrapping,
                 clear: None,
             },
         },
@@ -115,7 +115,7 @@ fn inline_op(doc: &Document, rng: &mut Rng) -> Option<EditOp> {
 }
 
 fn block_op(doc: &Document, rng: &mut Rng) -> Option<EditOp> {
-    let blocks: Vec<NodeId> = doc.main.iter().map(Block::node).collect();
+    let blocks: Vec<NodeId> = doc.main.iter().map(rsword::model::Block::node).collect();
     let &node = rng.pick(&blocks)?;
     let at = BlockPos {
         part: None,
@@ -355,7 +355,7 @@ fn revision_op(doc: &Document, rng: &mut Rng) -> Option<EditOp> {
 
 fn section_op(doc: &Document, rng: &mut Rng) -> Option<EditOp> {
     let sects: Vec<NodeId> = doc.sections.iter().filter_map(|s| s.node).collect();
-    let paras: Vec<NodeId> = doc.main.iter().map(Block::node).collect();
+    let paras: Vec<NodeId> = doc.main.iter().map(rsword::model::Block::node).collect();
     Some(match rng.below(4) {
         0 => EditOp::InsertSectionBreak {
             after: *rng.pick(&paras)?,
@@ -370,14 +370,22 @@ fn section_op(doc: &Document, rng: &mut Rng) -> Option<EditOp> {
             EditOp::DeleteSectionBreak { sect: *rng.pick(&sects)? }
         }
         2 => EditOp::SetSectionProps {
-            sect: doc.sections.last().filter(|s| s.owner == SectionOwner::Body)?.node?,
+            sect: doc
+                .sections
+                .last()
+                .filter(|s| s.owner == rsword::model::SectionOwner::Body)?
+                .node?,
             patch: rsword::semantic::props::SectionPropsPatch {
                 title_pg: Change::Set(rng.chance(2)),
                 ..Default::default()
             },
         },
         _ => EditOp::SetWatermark {
-            sect: doc.sections.last().filter(|s| s.owner == SectionOwner::Body)?.node?,
+            sect: doc
+                .sections
+                .last()
+                .filter(|s| s.owner == rsword::model::SectionOwner::Body)?
+                .node?,
             text: rng.chance(2).then(|| "机密".to_string()),
         },
     })
@@ -401,8 +409,8 @@ fn package_op(rng: &mut Rng) -> Option<EditOp> {
 fn refresh_matches_rebuild(s: &EditSession) -> Result<(), String> {
     let refreshed = s.document().clone();
     // 独立 oracle 的惰性解析等副作用不得进入活会话。
-    let rebuilt =
-        Document::rebuild(&mut s.package().clone()).map_err(|e| format!("rebuild 失败: {e}"))?;
+    let rebuilt = rsword::model::Document::rebuild(&mut s.package().clone())
+        .map_err(|e| format!("rebuild 失败: {e}"))?;
     let n = refreshed.main.len().max(rebuilt.main.len());
     for i in 0..n {
         let (a, b) = (refreshed.main.get(i), rebuilt.main.get(i));
