@@ -16,7 +16,6 @@ mod common;
 
 use std::path::{Path, PathBuf};
 
-use rsword::model::{Document, HfKind, HfVariant};
 use rsword::package::Package;
 use rsword::resolve::Resolver;
 use rsword::resolve::section::HfSlot;

@@ -2,8 +2,6 @@
 
 mod common;
 
-#[cfg(feature = "compat-ts")]
-use rsword::model::Inline;
 use rsword::model::{Document, NoteKind};
 use rsword::package::Package;
 

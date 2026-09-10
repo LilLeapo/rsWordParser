@@ -4,9 +4,7 @@ mod common;
 use rsword::agent::text::Projection;
 use rsword::agent::text::Scope;
 use rsword::agent::text::project;
-use rsword::model::Block;
 use rsword::model::Document;
-use rsword::model::TextKind;
 use rsword::package::Package;
 use rsword_agent_query::{
     budget::{self, Budget},

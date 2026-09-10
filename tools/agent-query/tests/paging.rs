@@ -3,7 +3,6 @@
 mod common;
 use rsword::{
     agent::text::{Scope, project},
-    model::Document,
     package::Package,
 };
 use rsword_agent_query::{

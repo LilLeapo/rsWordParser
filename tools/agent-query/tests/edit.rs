@@ -4,7 +4,6 @@ mod common;
 use rsword::{
     agent::text::{self, Scope},
     bind::native::{EditOpJson, SessionTable},
-    model::Document,
     package::Package,
 };
 use rsword_agent_query::{

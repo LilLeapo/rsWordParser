@@ -174,9 +174,7 @@ fn wrap_paragraph(
     vml: Option<&str>,
 ) -> String {
     let graphic = format!(
-        concat!(
-            r#"<a:graphic xmlns:a="{a}"><a:graphicData uri="{wps}">{wsp}</a:graphicData></a:graphic>"#
-        ),
+        r#"<a:graphic xmlns:a="{a}"><a:graphicData uri="{wps}">{wsp}</a:graphicData></a:graphic>"#,
         a = NS_A,
         wps = NS_WPS,
         wsp = wsp,

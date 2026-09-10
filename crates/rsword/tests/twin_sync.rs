@@ -262,7 +262,6 @@ fn new_textbox_emits_a_choice_and_a_vml_twin() {
 }
 
 fn has_textbox(s: &EditSession) -> bool {
-    use rsword::model::{Block, Display, Inline};
     s.document().blocks().any(|b| {
         let rsword::model::Block::Text(t) = b else { return false };
         t.inlines.iter().any(|i| {

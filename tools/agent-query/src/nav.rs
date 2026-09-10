@@ -6,7 +6,6 @@ use rsword::agent::anchors::ObjectRef;
 use rsword::agent::text::FlowRange;
 use rsword::agent::text::Projection;
 use rsword::model::Document;
-use rsword::model::TextKind;
 use rsword::package::PartId;
 use rsword::xml::NodeId;
 use serde_json::{Value, json};

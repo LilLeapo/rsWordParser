@@ -11,7 +11,7 @@ mod common;
 use rsword::bind::compat_ts::{
     EmbeddedKind, block_of_path, diff_json, embedded_kind, known_diffs, parsed_doc, split_known,
 };
-use rsword::model::{Block, Display, Document, ProtectedKind};
+use rsword::model::ProtectedKind;
 use rsword::package::Package;
 #[cfg(feature = "compat-ts")]
 use serde_json::{Value, json};

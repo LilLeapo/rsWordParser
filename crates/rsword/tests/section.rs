@@ -2,7 +2,7 @@
 
 mod common;
 
-use rsword::model::{Document, HfKind, HfVariant, Revision, SectionOwner};
+use rsword::model::{Document, HfKind, HfVariant, SectionOwner};
 use rsword::package::Package;
 use rsword::resolve::Resolver;
 use rsword::resolve::section::HfSlot;

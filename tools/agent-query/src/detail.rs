@@ -9,11 +9,7 @@ use rsword::agent::anchors::Anchor;
 use rsword::agent::text::Projection;
 use rsword::bind::native::json::ProjCx;
 use rsword::bind::native::json::ToJson;
-use rsword::model::Block;
-use rsword::model::Blocks;
-use rsword::model::Display;
 use rsword::model::Document;
-use rsword::model::Inline;
 use rsword::model::box_flows;
 use rsword::package::Package;
 use rsword::package::PartId;
@@ -159,8 +155,6 @@ impl Details {
                         .map(|(i, _)| i)
                         .collect()
                 } else if doc.hf_parts.contains_key(&PartId(o.object.part)) {
-                    use rsword::model::HfKind;
-                    use rsword::model::HfVariant;
                     let resolver = rsword::resolve::Resolver::new(doc);
                     (0..doc.sections.len())
                         .filter(|&i| {

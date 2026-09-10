@@ -3,7 +3,6 @@
 mod common;
 
 use rsword::edit::{EditContext, EditOp, EditSession, InlinePos, NewAtom, NewMath, NewRun};
-use rsword::model::BreakKind;
 use rsword::xml::NodeId;
 
 const BODY: &str = "<w:p><w:r><w:t>前后</w:t></w:r></w:p>";

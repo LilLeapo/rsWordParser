@@ -1,7 +1,6 @@
 //! SAVE-02 / EDIT-05：拒绝列修订保留当前存活列；推导失败不得提交非法网格。
 mod common;
 use rsword::edit::{BlockPos, EditContext, EditOp, EditSession, NewBlock, RevisionAuthor};
-use rsword::model::RevKind;
 use rsword::semantic::props::Val;
 
 fn tracked() -> EditContext {

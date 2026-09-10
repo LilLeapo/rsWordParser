@@ -15,7 +15,7 @@ use rsword::bind::compat_ts::{
 };
 use rsword::diag::DiagCode;
 use rsword::model::EMU_PER_PX;
-use rsword::model::{Block, ChartColor, ChartDisplay, Display, Document, ProtectedKind};
+use rsword::model::{Block, ChartColor, ChartDisplay, Document, ProtectedKind};
 use rsword::package::Package;
 use rsword::resolve::drawingml::{Rgb, hex};
 use serde_json::Value;

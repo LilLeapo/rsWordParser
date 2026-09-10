@@ -9,9 +9,9 @@ use std::path::PathBuf;
 #[cfg(feature = "compat-ts")]
 use rsword::bind::compat_ts::parsed_doc;
 use rsword::edit::{EditContext, EditOp, EditSession, InlinePos};
-use rsword::model::{RevKind, RevisionEntry};
 #[cfg(feature = "compat-ts")]
-use rsword::model::{RevOwner, RevisionIndex};
+use rsword::model::RevisionIndex;
+use rsword::model::{RevKind, RevisionEntry};
 use rsword::package::Package;
 #[cfg(feature = "compat-ts")]
 use serde_json::{Map, Value};

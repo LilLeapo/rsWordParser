@@ -29,7 +29,7 @@ use rsword::edit::{
     BlockAt, BlockPos, EditContext, EditOp, EditSession, InlinePos, NewBlock, NewInline, NewRun,
     RevisionAuthor,
 };
-use rsword::model::{Block, Document, SectionOwner};
+use rsword::model::{Block, Document};
 use rsword::package::PartId;
 use rsword::semantic::props::Change;
 use rsword::xml::{LocalName, NodeId, QName};

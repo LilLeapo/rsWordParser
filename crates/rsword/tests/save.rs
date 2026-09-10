@@ -8,8 +8,6 @@ use std::io::{Cursor, Read};
 use rsword::bind::compat_ts;
 #[cfg(feature = "compat-ts")]
 use rsword::edit::{EditContext, EditOp, EditSession, InlinePos};
-#[cfg(feature = "compat-ts")]
-use rsword::model::{Inline, SegmentKind};
 use rsword::package::Package;
 use rsword::xml::{Dirty, LocalName, NodeKind, QName};
 

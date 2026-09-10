@@ -4,7 +4,7 @@
 
 mod common;
 
-use rsword::model::{Block, Document};
+use rsword::model::Document;
 use rsword::package::Package;
 use rsword::resolve::{ColumnSource, Resolver, TblLookFlags};
 use rsword::semantic::props::TblStyleOverrideType;

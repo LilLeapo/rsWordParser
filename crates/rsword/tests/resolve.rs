@@ -6,7 +6,6 @@ mod common;
 
 use std::collections::BTreeMap;
 
-use rsword::model::Document;
 use rsword::package::Package;
 use rsword::resolve::{Resolver, rgb_hex};
 use rsword::semantic::props::StyleType;
@@ -475,7 +474,7 @@ fn toggle_ambiguous(
 /// 会走到这条分支，桌面版复核的优先级立刻上升。
 #[test]
 fn res_04_toggle_ambiguity_probe() {
-    use rsword::model::{Block, Inline};
+    use rsword::model::Block;
     let mut runs = 0usize;
     let mut docs = 0usize;
     let mut hits: BTreeMap<String, usize> = BTreeMap::new();

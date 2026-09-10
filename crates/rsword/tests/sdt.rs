@@ -5,7 +5,7 @@ mod common;
 
 use rsword::DiagCode;
 use rsword::edit::{EditOp, EditSession, InlinePos};
-use rsword::model::{Block, Document, SdtControl, SdtLock, SdtRefusal, refusing_sdt};
+use rsword::model::{SdtControl, SdtLock, SdtRefusal, refusing_sdt};
 use rsword::package::{PartId, Rels};
 use rsword::xml::{Dom, LocalName, QName};
 

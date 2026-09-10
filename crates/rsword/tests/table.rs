@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 
 use rsword::diag::DiagCode;
 use rsword::edit::EditSession;
-use rsword::model::{Block, BlockStep, Document, ProtectedKind, Revision, TableBlock};
+use rsword::model::{Block, BlockStep, ProtectedKind, Revision, TableBlock};
 use rsword::package::{Package, PartId, Rels};
 use rsword::semantic::props::{JcTable, Val, VerticalJc};
 use rsword::xml::{Dom, LocalName, QName};

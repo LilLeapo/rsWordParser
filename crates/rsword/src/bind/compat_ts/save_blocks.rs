@@ -1329,9 +1329,8 @@ fn rpr_change_element(run: &Value) -> Option<NewElement> {
     if let Some(style) = s_old("styleId") {
         val(&mut inner, LocalName::RStyle, style);
     }
-    if let (font, ascii) = (s_old("font"), s_old("fontAscii"))
-        && (font.is_some() || ascii.is_some())
-    {
+    let (font, ascii) = (s_old("font"), s_old("fontAscii"));
+    if font.is_some() || ascii.is_some() {
         let a = ascii.or(font).unwrap_or_default().to_string();
         let mut f = NewElement::new(w(LocalName::RFonts));
         f.push_attr(QName::w(LocalName::Ascii), a.clone());
@@ -2021,7 +2020,7 @@ impl Planner<'_> {
                 let t = s_of(run, "text").unwrap_or_default();
                 let marked =
                     t.contains(super::hf::TOTAL_PAGES_MARK) || t.contains(super::hf::PAGE_MARK);
-                if !marked && !(!page_emitted && t.contains('#')) {
+                if !marked && (page_emitted || !t.contains('#')) {
                     self.runs_to_inlines(std::slice::from_ref(run), &mut inlines)?;
                     continue;
                 }

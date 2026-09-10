@@ -5,7 +5,7 @@ mod common;
 #[cfg(feature = "compat-ts")]
 use std::collections::BTreeSet;
 
-use rsword::model::{Block, Document, HfKind};
+use rsword::model::{Document, HfKind};
 use rsword::package::Package;
 
 const W: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";

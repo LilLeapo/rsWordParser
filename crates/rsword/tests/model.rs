@@ -5,7 +5,7 @@ mod common;
 
 use std::collections::BTreeMap;
 
-use rsword::model::{Block, Document, Inline, OBJECT_REPLACEMENT, SegmentKind, TextKind};
+use rsword::model::{Block, OBJECT_REPLACEMENT, SegmentKind};
 use rsword::package::Package;
 use serde_json::Value;
 

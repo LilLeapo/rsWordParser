@@ -168,7 +168,7 @@ pub(super) fn drawing_block(
     // 未编辑时字节不变）。有文字的框、以及提取出框的 wps 段落是例外。
     if !stray.trim().is_empty()
         && !boxes.iter().any(BoxInfo::has_text)
-        && !(has_wsp && !boxes.is_empty())
+        && (!has_wsp || boxes.is_empty())
     {
         return None;
     }
@@ -807,7 +807,7 @@ fn keeps_box(
         if s.prst.is_none() && !s.cust_geom {
             return false;
         }
-        if s.prst.as_deref() == Some("rect") && !s.ext.is_some_and(|e| e.cy > THIN_RULE_EMU) {
+        if s.prst.as_deref() == Some("rect") && s.ext.is_none_or(|e| e.cy <= THIN_RULE_EMU) {
             return false;
         }
         // 无字预设形状：几何得有可见的墨才留

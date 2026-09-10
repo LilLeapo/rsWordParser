@@ -13,7 +13,7 @@ use rsword::edit::{
     InlinePos, NewBlock, NewChart, NewChartKind, NewChartSeries, NewComment, NewImage, NewInk,
     NewInline, NewRun,
 };
-use rsword::model::{Block, HfKind, HfVariant, ProtectedKind, SectionOwner};
+use rsword::model::{Block, ProtectedKind};
 use rsword::save::options::CompatSaveOptions as SaveOptions;
 use rsword::xml::NodeId;
 

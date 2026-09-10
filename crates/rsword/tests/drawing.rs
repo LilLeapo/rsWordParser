@@ -10,10 +10,6 @@ use std::collections::BTreeMap;
 #[cfg(feature = "compat-ts")]
 use rsword::bind::compat_ts::parsed_doc;
 use rsword::model::Block;
-use rsword::model::Display;
-use rsword::model::Document;
-use rsword::model::DrawingKind;
-use rsword::model::Inline;
 use rsword::model::SegmentKind;
 use rsword::model::Wrap;
 use rsword::model::emu_to_px;

@@ -12,7 +12,6 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
 use rsword::bind::native::{DocumentOpts, document_json, document_schema};
-use rsword::model::Document;
 use rsword::package::Package;
 use serde::Deserialize as _;
 use serde_json::Value;

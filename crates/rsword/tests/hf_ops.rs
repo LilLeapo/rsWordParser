@@ -7,7 +7,7 @@ use common::xpath_asserts;
 use rsword::edit::{
     BlockAt, BlockPos, EditContext, EditOp, EditSession, InlinePos, NewBlock, NewInline, NewRun,
 };
-use rsword::model::{Document, HfKind, HfVariant, SectionOwner};
+use rsword::model::{Document, HfKind, HfVariant};
 use rsword::package::Package;
 #[cfg(feature = "compat-ts")]
 use rsword::semantic::props::SettingsPatch;
