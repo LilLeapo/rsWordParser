@@ -10,7 +10,7 @@
 use crate::model::Display;
 use crate::model::Inline;
 use crate::model::ParagraphFacts;
-use crate::model::table::TableBlock;
+use crate::model::TableBlock;
 use crate::model::{
     Block, ImageBlock, ListRef, ProtectedBlock, ProtectedKind, Revision, SdtInfo, TextBlock,
     TextKind,

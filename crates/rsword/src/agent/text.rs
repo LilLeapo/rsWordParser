@@ -878,7 +878,7 @@ pub fn project(pkg: &Package, doc: &Document, scope: Scope, snapshot: &str) -> R
         }
     }
     let mut excluded = Vec::new();
-    for (part, node, flow, paragraphs) in crate::model::table::glossary_flows(pkg)
+    for (part, node, flow, paragraphs) in crate::model::glossary_flows(pkg)
         .map_err(|e| err("AGENT_PROJECTION_FAILED", e.to_string()))?
     {
         let object =

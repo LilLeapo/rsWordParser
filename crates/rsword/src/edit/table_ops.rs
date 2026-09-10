@@ -6,7 +6,7 @@
 
 use crate::diag::DiagCode;
 use crate::error::{Error, Result};
-use crate::model::table::{Cell, Row, TableBlock};
+use crate::model::{Cell, Row, TableBlock};
 use crate::semantic::props::{
     Change, Merge, RowPropsPatch, TblWidth, Val, plan_apply_cell_props_at, plan_apply_row_props_at,
 };

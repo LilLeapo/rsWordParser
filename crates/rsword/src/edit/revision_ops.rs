@@ -345,7 +345,7 @@ fn apply_jobs(s: &mut EditSession, jobs: Vec<Job>, accept: bool) -> Result<Mutat
                 }
                 pending.extend(t.rows.iter().flat_map(|r| &r.cells).flat_map(|c| &c.blocks));
             }
-            for (blocks, here) in crate::model::table::box_flows(block) {
+            for (blocks, here) in crate::model::box_flows(block) {
                 if here.is_none_or(|p| p == part) {
                     pending.extend(blocks);
                 }
