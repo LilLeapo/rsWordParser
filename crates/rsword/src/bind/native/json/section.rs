@@ -5,7 +5,7 @@
 use std::ops::Range;
 
 use crate::model::block::Revision;
-use crate::model::section::{HfKind, HfVariant, SectionInfo, SectionOwner};
+use crate::model::{HfKind, HfVariant, SectionInfo, SectionOwner};
 use crate::semantic::props::SectionProps;
 use crate::xml::NodeId;
 

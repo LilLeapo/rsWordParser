@@ -2,9 +2,9 @@
 //! 内容与正文同一构建器，`blocks` 直接复用块域的表。每 part 的三份索引（`SPAN-01`）
 //! 是内部结构，不投影。
 
+use crate::model::HfKind;
 use crate::model::HfPart;
 use crate::model::block::Block;
-use crate::model::section::HfKind;
 use crate::package::PartId;
 use crate::xml::NodeId;
 

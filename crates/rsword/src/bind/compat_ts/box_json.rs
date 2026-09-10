@@ -12,10 +12,10 @@
 use serde_json::{Map, Value};
 
 use crate::model::CustomGeom;
+use crate::model::SectionGeom;
 use crate::model::drawing::{
     Anchor, AnchorGeom, BodyPr, DrawingDisplay, Extent, FillKind, ShapeDisplay, StyleRef, Wrap,
 };
-use crate::model::section::SectionGeom;
 use crate::model::vml::{VmlKind, VmlShape, vml_color};
 use crate::model::{Block, Display};
 use crate::model::{EMU_PER_PX, emu_to_px, parse_length, parse_style};

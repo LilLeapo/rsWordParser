@@ -12,7 +12,7 @@
 //!
 //! 三个变体各自继承（Word 与 TS 都是按 `w:type` 分别继承，不是整组继承）。
 
-use crate::model::section::{HfKind, HfVariant, SectionGeom, SectionInfo};
+use crate::model::{HfKind, HfVariant, SectionGeom, SectionInfo};
 use crate::resolve::Resolver;
 
 /// 一个槽（kind × variant）的有效值。
