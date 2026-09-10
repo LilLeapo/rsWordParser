@@ -6,29 +6,33 @@
 use crate::diag::{DiagCode, Diagnostic};
 
 // 分组显式使用 @group，避免类型属性、分组文档与变体属性之间的匹配歧义。
-// 变体正文使用 Rust 原生语法，保留 thiserror 的任意消息表达式及字段属性。
+// 一次调用集中声明全部错误类型；变体正文保留 Rust 原生语法和 thiserror 属性。
 // @error 从调用处捕获 derive 路径，使 thiserror 的透明 source 绑定与字段属性使用相同
 // 宏卫生上下文；在定义处硬编码 derive 路径会令当前工具链报 transparent 未绑定。
 macro_rules! declare_error {
     (
         @error($error:path)
-        $(#[$type_attr:meta])*
-        $vis:vis enum $name:ident {
-            $(
-                $(#[doc = $group_doc:literal])*
-                @group $group:ident { $($variants:tt)* }
-            )+
-        }
-    ) => {
-        $(#[$type_attr])*
         $(
-            #[doc = concat!("\n## ", stringify!($group))]
-            $(#[doc = $group_doc])*
+            $(#[$type_attr:meta])*
+            $vis:vis enum $name:ident {
+                $(
+                    $(#[doc = $group_doc:literal])*
+                    @group $group:ident { $($variants:tt)* }
+                )+
+            }
         )+
-        #[derive(Debug, $error)]
-        $vis enum $name {
-            $($($variants)*)+
-        }
+    ) => {
+        $(
+            $(#[$type_attr])*
+            $(
+                #[doc = concat!("\n## ", stringify!($group))]
+                $(#[doc = $group_doc])*
+            )+
+            #[derive(Debug, $error)]
+            $vis enum $name {
+                $($($variants)*)+
+            }
+        )+
     };
 }
 
@@ -48,10 +52,6 @@ declare_error! {
             MissingMainPart,
         }
     }
-}
-
-declare_error! {
-    @error(thiserror::Error)
     #[non_exhaustive]
     /// 包打开、编辑或保存的具名错误。枚举允许增加变体，调用方匹配时须保留兜底分支。
     #[cfg_attr(rsword_api_docs, deny(missing_docs))]
@@ -121,19 +121,6 @@ declare_error! {
             },
         }
     }
-}
-
-#[cfg_attr(rsword_api_docs, deny(missing_docs))]
-impl Error {
-    /// 构造带稳定机器码的编辑拒绝错误。
-    #[inline]
-    pub fn edit(code: DiagCode, message: impl Into<String>) -> Self {
-        Error::Edit { code, message: message.into() }
-    }
-}
-
-declare_error! {
-    @error(thiserror::Error)
     #[cfg(test)]
     #[derive(Clone, PartialEq, Eq)]
     enum DeclarationFixture {
@@ -156,6 +143,15 @@ declare_error! {
             #[error(transparent)]
             Wrapped(#[from] NotOoxml),
         }
+    }
+}
+
+#[cfg_attr(rsword_api_docs, deny(missing_docs))]
+impl Error {
+    /// 构造带稳定机器码的编辑拒绝错误。
+    #[inline]
+    pub fn edit(code: DiagCode, message: impl Into<String>) -> Self {
+        Error::Edit { code, message: message.into() }
     }
 }
 
