@@ -36,7 +36,7 @@ fn edit_03_reject_insert_preserves_current_column_widths() {
             .revisions
             .entries()
             .iter()
-            .find(|r| r.kind == RevKind::TableGridChange)
+            .find(|r| r.kind == rsword::model::RevKind::TableGridChange)
             .unwrap()
             .id;
         let op = if reject_all {
@@ -78,7 +78,7 @@ fn save_02_reject_inconsistent_grid_snapshot_is_atomic() {
         .revisions
         .entries()
         .iter()
-        .find(|r| r.kind == RevKind::TableGridChange)
+        .find(|r| r.kind == rsword::model::RevKind::TableGridChange)
         .unwrap()
         .id;
     let err = s.apply(EditOp::RejectRevision { rev }, &EditContext::default()).unwrap_err();

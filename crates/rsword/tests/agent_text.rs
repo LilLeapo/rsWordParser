@@ -14,7 +14,7 @@ fn heading() -> (Package, Document) {
         "<w:p><w:pPr><w:outlineLvl w:val=\"0\"/></w:pPr><w:r><w:t>中😀文</w:t></w:r></w:p>",
     );
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     (pkg, doc)
 }
 #[test]
@@ -92,7 +92,7 @@ fn agent_01_cell_selection_same_range_and_union_dedup() {
         "<w:p><w:r><w:t>outside</w:t></w:r></w:p><w:tbl><w:tblGrid><w:gridCol/><w:gridCol/></w:tblGrid><w:tr><w:tc><w:p><w:r><w:t>cell one</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>cell two</w:t></w:r></w:p></w:tc></w:tr></w:tbl>",
     );
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let p = project(&pkg, &doc, Scope::All, "test:1").unwrap();
     let cell =
         p.objects.values().find(|o| o.object.kind == "cell" && o.metadata["column"] == 0).unwrap();
@@ -132,7 +132,7 @@ fn agent_01_02_corpus_determinism_and_complete_anchors() {
                 continue;
             }
         };
-        let doc = Document::rebuild(&mut pkg).unwrap();
+        let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
         // 穷尽所有可解析 XML part，不只枚举 Agent 碰巧输出的段落。
         let xml_parts: Vec<_> = pkg.parts().iter().filter(|p| p.is_xml).map(|p| p.id).collect();
         for id in xml_parts {
@@ -259,8 +259,8 @@ fn span_01_glossary_entries_are_distinct_and_reported() {
     let bytes =
         std::fs::read(common::corpus_dir("real").join("sdt/content-controls.docx")).unwrap();
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
-    let flows = rsword::model::table::glossary_flows(&pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
+    let flows = rsword::model::glossary_flows(&pkg).unwrap();
     assert_eq!(flows.len(), 3);
     assert_eq!(flows.iter().map(|x| (x.0, x.2)).collect::<BTreeSet<_>>().len(), 3);
     assert_eq!(flows.iter().map(|x| x.3).sum::<usize>(), 3);
@@ -313,7 +313,7 @@ fn agent_01_escaped_literal_hidden_and_revision_text() {
         "<w:p><w:r><w:t>[image #1]|\\é😀</w:t></w:r><w:r><w:rPr><w:vanish/></w:rPr><w:t>SECRET</w:t></w:r><w:ins w:id=\"1\" w:author=\"张三\"><w:r><w:t>inserted</w:t></w:r></w:ins><w:del w:id=\"2\" w:author=\"李四\"><w:r><w:delText>deleted</w:delText></w:r></w:del></w:p>",
     );
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let p = project(&pkg, &doc, Scope::Main, "test:1").unwrap();
     assert!(p.content.starts_with("\\[image \\#1\\]\\|\\\\é😀"));
     assert!(!p.content.contains("SECRET"));
@@ -360,11 +360,11 @@ fn agent_02_affinity_candidates_and_stale_identity() {
 }
 #[test]
 fn res_09_list_markers_restart_override_and_legal() {
-    use rsword::model::block::ListRef;
+    use rsword::model::ListRef;
     let numbering = r#"<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:abstractNum w:abstractNumId="1"><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="upperRoman"/><w:lvlText w:val="%1."/></w:lvl><w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlRestart w:val="0"/><w:isLgl/><w:lvlText w:val="%1.%2"/></w:lvl></w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="1"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="3"/></w:lvlOverride></w:num><w:num w:numId="2"><w:abstractNumId w:val="1"/></w:num></w:numbering>"#;
     let bytes = common::docx_with_parts("<w:p/>", &[("word/numbering.xml", numbering)]);
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let items: Vec<_> = [(1, 0), (1, 1), (2, 0), (1, 1), (1, 0)]
         .into_iter()
         .map(|(num_id, ilvl)| ListRef { num_id, ilvl, from_style: false })
@@ -380,7 +380,7 @@ fn agent_01_same_media_two_occurrences_have_distinct_objects() {
     let drawing = r#"<w:r><w:drawing><wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><wp:extent cx="100" cy="100"/><wp:docPr id="1" name="image"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="sameMedia"/></pic:blipFill></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>"#;
     let bytes = common::docx_with_body(&format!("<w:p>{drawing}{drawing}</w:p>"));
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let p = project(&pkg, &doc, Scope::All, "test:1").unwrap();
     let objects: Vec<_> = p.objects.values().filter(|x| x.object.kind == "image").collect();
     assert_eq!(objects.len(), 2);
@@ -392,7 +392,7 @@ fn agent_01_same_media_two_occurrences_have_distinct_objects() {
 fn agent_02_empty_projection_has_real_end_owner() {
     let bytes = common::docx_with_body("");
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     // 空 body 没有合成节点，末尾仍指向真实流根。
     let empty = doc;
     let p = project(&pkg, &empty, Scope::Main, "test:1").unwrap();

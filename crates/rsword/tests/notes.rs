@@ -14,7 +14,7 @@ const W16CID: &str = "http://schemas.microsoft.com/office/word/2016/wordml/cid";
 
 fn doc_of(bytes: &[u8]) -> Document {
     let mut pkg = Package::open(bytes).unwrap();
-    Document::rebuild(&mut pkg).unwrap()
+    rsword::model::Document::rebuild(&mut pkg).unwrap()
 }
 
 fn corpus_doc(name: &str) -> Document {
@@ -131,7 +131,7 @@ fn compat_07_comment_ids_follow_the_ts_rules() {
         .inlines
         .iter()
         .filter_map(|i| match i {
-            Inline::Run(r) if !r.text.is_empty() => Some((r.text.clone(), r.comments.len())),
+            rsword::model::Inline::Run(r) if !r.text.is_empty() => Some((r.text.clone(), r.comments.len())),
             _ => None,
         })
         .collect();
@@ -182,7 +182,7 @@ fn mod_10_comments_and_notes_across_the_corpus() {
     for path in common::docx_paths("synthetic") {
         let bytes = std::fs::read(&path).unwrap();
         let Ok(mut pkg) = Package::open(&bytes) else { continue };
-        let Ok(doc) = Document::rebuild(&mut pkg) else { continue };
+        let Ok(doc) = rsword::model::Document::rebuild(&mut pkg) else { continue };
         docs += 1;
         if !doc.comments.items.is_empty() {
             with_comments += 1;
@@ -528,7 +528,7 @@ fn mod_01_note_and_comment_blocks_across_the_corpus() {
     for path in common::docx_paths("synthetic") {
         let bytes = std::fs::read(&path).unwrap();
         let Ok(mut pkg) = Package::open(&bytes) else { continue };
-        let Ok(doc) = Document::rebuild(&mut pkg) else { continue };
+        let Ok(doc) = rsword::model::Document::rebuild(&mut pkg) else { continue };
         let notes = doc.footnotes.items.iter().chain(doc.endnotes.items.iter());
         for n in notes {
             entries += 1;

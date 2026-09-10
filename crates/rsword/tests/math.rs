@@ -13,7 +13,9 @@ use rsword::bind::compat_ts::{
 };
 #[cfg(feature = "compat-ts")]
 use rsword::edit::{EditContext, EditOp, EditSession, InlinePos};
-use rsword::model::omml::{fragments, latex, mathml};
+use rsword::model::fragments;
+use rsword::model::omml::latex;
+use rsword::model::omml::mathml;
 #[cfg(feature = "compat-ts")]
 use rsword::package::Package;
 use rsword::xml::Dom;
@@ -35,13 +37,13 @@ fn omath(inner: &str) -> (Dom, Vec<rsword::xml::NodeId>) {
 
 fn to_mathml(inner: &str) -> String {
     let (dom, frags) = omath(inner);
-    frags.iter().map(|&f| mathml::to_mathml(&dom, f)).collect()
+    frags.iter().map(|&f| rsword::model::to_mathml(&dom, f)).collect()
 }
 
 fn to_latex(inner: &str) -> Option<String> {
     let (dom, frags) = omath(inner);
     let [only] = frags.as_slice() else { return None };
-    latex::to_latex(&dom, *only)
+    rsword::model::to_latex(&dom, *only)
 }
 
 #[cfg(feature = "compat-ts")]
@@ -356,9 +358,9 @@ fn test_09_deeply_nested_omml_converts_iteratively() {
         s.push_str("</m:num><m:den><m:r><m:t>1</m:t></m:r></m:den></m:f>");
     }
     let (dom, frags) = omath(&format!("<m:oMath>{s}</m:oMath>"));
-    let m = mathml::to_mathml(&dom, frags[0]);
+    let m = rsword::model::to_mathml(&dom, frags[0]);
     assert_eq!(m.matches("<mfrac>").count(), depth);
-    let l = latex::to_latex(&dom, frags[0]).expect("latex");
+    let l = rsword::model::to_latex(&dom, frags[0]).expect("latex");
     assert_eq!(l.matches("\\frac").count(), depth);
 }
 

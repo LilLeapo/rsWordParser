@@ -33,16 +33,16 @@ fn mod_13_rebuild_is_idempotent_and_text_blocks_match_ts() {
         for path in common::docx_paths(kind) {
             let bytes = std::fs::read(&path).unwrap();
             let Ok(mut pkg) = Package::open(&bytes) else { continue };
-            let Ok(doc) = Document::rebuild(&mut pkg) else { continue };
+            let Ok(doc) = rsword::model::Document::rebuild(&mut pkg) else { continue };
             st.docs += 1;
-            let again = Document::rebuild(&mut pkg).unwrap();
+            let again = rsword::model::Document::rebuild(&mut pkg).unwrap();
             assert_eq!(doc, again, "{}: rebuild 不幂等", path.display());
             for b in &doc.main {
                 let k = match b {
-                    Block::Text(_) => "text",
-                    Block::Table(_) => "table",
-                    Block::Image(_) => "image",
-                    Block::Protected(_) => "protected",
+                    rsword::model::Block::Text(_) => "text",
+                    rsword::model::Block::Table(_) => "table",
+                    rsword::model::Block::Image(_) => "image",
+                    rsword::model::Block::Protected(_) => "protected",
                 };
                 *st.blocks.entry(k).or_default() += 1;
             }
@@ -80,7 +80,7 @@ fn mod_13_rebuild_is_idempotent_and_text_blocks_match_ts() {
                     st.mismatches.push(format!("{file}: docxIndex {idx} 本引擎没有块"));
                     continue;
                 };
-                let Block::Text(t) = ours else {
+                let rsword::model::Block::Text(t) = ours else {
                     if known(&file, "kind") {
                         *st.skipped.entry("known_kind").or_default() += 1;
                         continue;
@@ -93,7 +93,7 @@ fn mod_13_rebuild_is_idempotent_and_text_blocks_match_ts() {
                 };
                 // 字段 / 符号 / 图片 / 脚注等 TS 另有折叠规则（M2），跳过含这些段的段落
                 let has_special = t.inlines.iter().any(|i| match i {
-                    Inline::Run(r) => r.segments.iter().any(|s| {
+                    rsword::model::Inline::Run(r) => r.segments.iter().any(|s| {
                         matches!(
                             s.kind,
                             SegmentKind::FldChar
@@ -111,12 +111,12 @@ fn mod_13_rebuild_is_idempotent_and_text_blocks_match_ts() {
                                 | SegmentKind::Other(_)
                         )
                     }),
-                    Inline::Atom(_) | Inline::Field { .. } => true,
+                    rsword::model::Inline::Atom(_) | rsword::model::Inline::Field { .. } => true,
                 }) || t.facts.revision.any();
                 let our_ty = match &t.kind {
-                    TextKind::Paragraph => "paragraph",
-                    TextKind::Heading { .. } => "heading",
-                    TextKind::ListItem { .. } => "listItem",
+                    rsword::model::TextKind::Paragraph => "paragraph",
+                    rsword::model::TextKind::Heading { .. } => "heading",
+                    rsword::model::TextKind::ListItem { .. } => "listItem",
                 };
                 *st.compared.entry("type").or_default() += 1;
                 if our_ty != ty && !known(&file, "type") {
@@ -125,7 +125,7 @@ fn mod_13_rebuild_is_idempotent_and_text_blocks_match_ts() {
                     continue;
                 }
                 match &t.kind {
-                    TextKind::Heading { level } => {
+                    rsword::model::TextKind::Heading { level } => {
                         let ts_level = tb.get("level").and_then(Value::as_u64);
                         *st.compared.entry("level").or_default() += 1;
                         if ts_level != Some(u64::from(*level)) {
@@ -134,7 +134,7 @@ fn mod_13_rebuild_is_idempotent_and_text_blocks_match_ts() {
                             ));
                         }
                     }
-                    TextKind::ListItem { list } => {
+                    rsword::model::TextKind::ListItem { list } => {
                         let l = tb.get("list");
                         let ts_num = l
                             .and_then(|l| l.get("numId"))
@@ -148,7 +148,7 @@ fn mod_13_rebuild_is_idempotent_and_text_blocks_match_ts() {
                             ));
                         }
                     }
-                    TextKind::Paragraph => {}
+                    rsword::model::TextKind::Paragraph => {}
                 }
                 let ts_style = tb.get("styleId").and_then(Value::as_str);
                 *st.compared.entry("styleId").or_default() += 1;
@@ -194,9 +194,9 @@ fn known(file: &str, what: &str) -> bool {
 
 fn block_kind(b: &Block) -> &'static str {
     match b {
-        Block::Text(_) => "text",
-        Block::Table(_) => "table",
-        Block::Image(_) => "image",
-        Block::Protected(p) => p.kind.key(),
+        rsword::model::Block::Text(_) => "text",
+        rsword::model::Block::Table(_) => "table",
+        rsword::model::Block::Image(_) => "image",
+        rsword::model::Block::Protected(p) => p.kind.key(),
     }
 }

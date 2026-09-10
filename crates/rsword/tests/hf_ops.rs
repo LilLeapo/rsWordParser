@@ -44,7 +44,7 @@ fn session(body: &str, extra: &[(&str, &str)]) -> EditSession {
 /// 节是块序的投影，`w:sectPr` 自己也是一个块）。
 fn assert_refresh_matches_rebuild(s: &mut EditSession, what: &str) {
     let refreshed = s.document().clone();
-    let rebuilt = Document::rebuild(s.package_mut()).expect("rebuild");
+    let rebuilt = rsword::model::Document::rebuild(s.package_mut()).expect("rebuild");
     assert_eq!(refreshed.main, rebuilt.main, "{what}: 块投影与重建不一致");
     assert_eq!(refreshed.sections, rebuilt.sections, "{what}: 节投影与重建不一致");
 }
@@ -143,8 +143,8 @@ fn save_05_set_header_footer_creates_the_part_and_reference() {
     s.apply(
         EditOp::SetHeaderFooter {
             sect,
-            kind: HfKind::Header,
-            variant: HfVariant::Default,
+            kind: rsword::model::HfKind::Header,
+            variant: rsword::model::HfVariant::Default,
             content: vec![NewBlock::Paragraph {
                 props: None,
                 inlines: vec![NewInline::Run(NewRun::text("新页眉"))],
@@ -184,7 +184,7 @@ fn save_05_set_header_footer_creates_the_part_and_reference() {
 
     // 模型里能查到，且这一节声明了它
     let mut pkg = Package::open(&saved).expect("reopen");
-    let doc = Document::rebuild(&mut pkg).expect("rebuild");
+    let doc = rsword::model::Document::rebuild(&mut pkg).expect("rebuild");
     assert_eq!(doc.hf_parts.len(), 1);
     assert_eq!(doc.sections.len(), 1);
     assert!(doc.sections[0].hf_ref(HfKind::Header, HfVariant::Default).is_some());
@@ -222,8 +222,8 @@ fn edit_03_set_header_footer_rewrites_the_declared_part() {
     s.apply(
         EditOp::SetHeaderFooter {
             sect,
-            kind: HfKind::Header,
-            variant: HfVariant::Default,
+            kind: rsword::model::HfKind::Header,
+            variant: rsword::model::HfVariant::Default,
             content: vec![NewBlock::Paragraph {
                 props: None,
                 inlines: vec![NewInline::Run(NewRun::text("改过了"))],
@@ -275,8 +275,8 @@ fn edit_03_link_header_footer_attaches_an_existing_part() {
     s.apply(
         EditOp::LinkHeaderFooter {
             sect: first_sect,
-            kind: HfKind::Header,
-            variant: HfVariant::Default,
+            kind: rsword::model::HfKind::Header,
+            variant: rsword::model::HfVariant::Default,
             part,
         },
         &EditContext::default(),
@@ -306,8 +306,8 @@ fn edit_03_link_header_footer_attaches_an_existing_part() {
     s2.apply(
         EditOp::LinkHeaderFooter {
             sect: sect2,
-            kind: HfKind::Header,
-            variant: HfVariant::Default,
+            kind: rsword::model::HfKind::Header,
+            variant: rsword::model::HfVariant::Default,
             part: part2,
         },
         &EditContext::default(),
@@ -522,8 +522,8 @@ fn test_09_dangling_header_reference() {
     s.apply(
         EditOp::SetHeaderFooter {
             sect,
-            kind: HfKind::Header,
-            variant: HfVariant::Default,
+            kind: rsword::model::HfKind::Header,
+            variant: rsword::model::HfVariant::Default,
             content: vec![NewBlock::Paragraph {
                 props: None,
                 inlines: vec![NewInline::Run(NewRun::text("修好了"))],
@@ -543,7 +543,7 @@ fn test_09_binary_header_part_is_opaque() {
     let bytes = hostile("hf-part-binary.docx");
     // `PKG_OPAQUE_PART` 是**包级**诊断（part 打开时就记下了），在 `Package` 的表里
     let mut probe = Package::open(&bytes).expect("open");
-    let _ = Document::rebuild(&mut probe).expect("rebuild");
+    let _ = rsword::model::Document::rebuild(&mut probe).expect("rebuild");
     assert!(
         codes(probe.diagnostics()).contains(&"PKG_OPAQUE_PART"),
         "{:?}",
@@ -560,8 +560,8 @@ fn test_09_binary_header_part_is_opaque() {
         .apply(
             EditOp::SetHeaderFooter {
                 sect,
-                kind: HfKind::Header,
-                variant: HfVariant::Default,
+                kind: rsword::model::HfKind::Header,
+                variant: rsword::model::HfVariant::Default,
                 content: vec![NewBlock::Paragraph { props: None, inlines: Vec::new() }],
             },
             &EditContext::default(),
@@ -634,7 +634,7 @@ fn test_09_deeply_nested_textboxes_in_a_header() {
 /// 页眉页脚域的随机操作：页眉段落里的内联编辑 + 五个节 / 页眉页脚操作。
 fn random_hf_op(s: &EditSession, rng: &mut common::Rng) -> Option<EditOp> {
     let doc = s.document();
-    let sect = doc.sections.last().filter(|x| x.owner == SectionOwner::Body)?.node?;
+    let sect = doc.sections.last().filter(|x| x.owner == rsword::model::SectionOwner::Body)?.node?;
     // 页眉页脚 part 里的段落（带 part 的位置，5.5a）
     let paras: Vec<(rsword::package::PartId, NodeId, u32)> = doc
         .hf_parts
@@ -671,11 +671,11 @@ fn random_hf_op(s: &EditSession, rng: &mut common::Rng) -> Option<EditOp> {
             },
         }),
         4 => {
-            let kind = if rng.below(2) == 0 { HfKind::Header } else { HfKind::Footer };
+            let kind = if rng.below(2) == 0 { rsword::model::HfKind::Header } else { rsword::model::HfKind::Footer };
             let variant = match rng.below(3) {
-                0 => HfVariant::Default,
-                1 => HfVariant::First,
-                _ => HfVariant::Even,
+                0 => rsword::model::HfVariant::Default,
+                1 => rsword::model::HfVariant::First,
+                _ => rsword::model::HfVariant::Even,
             };
             Some(EditOp::SetHeaderFooter {
                 sect,
@@ -696,8 +696,8 @@ fn random_hf_op(s: &EditSession, rng: &mut common::Rng) -> Option<EditOp> {
         }
         _ => {
             let part = *doc.hf_parts.keys().nth(rng.below(doc.hf_parts.len().max(1)))?;
-            let kind = if rng.below(2) == 0 { HfKind::Header } else { HfKind::Footer };
-            Some(EditOp::LinkHeaderFooter { sect, kind, variant: HfVariant::Default, part })
+            let kind = if rng.below(2) == 0 { rsword::model::HfKind::Header } else { rsword::model::HfKind::Footer };
+            Some(EditOp::LinkHeaderFooter { sect, kind, variant: rsword::model::HfVariant::Default, part })
         }
     }
 }
@@ -713,7 +713,7 @@ fn test_07_random_header_footer_sequences() {
         .filter(|p| {
             let Ok(bytes) = std::fs::read(p) else { return false };
             let Ok(mut pkg) = Package::open(&bytes) else { return false };
-            Document::rebuild(&mut pkg).is_ok_and(|d| !d.hf_parts.is_empty())
+            rsword::model::Document::rebuild(&mut pkg).is_ok_and(|d| !d.hf_parts.is_empty())
         })
         .take(10)
         .collect();

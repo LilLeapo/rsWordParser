@@ -23,12 +23,12 @@ fn doc(body: &str) -> Dom {
 
 fn build(body: &str) -> (Vec<Block>, Vec<rsword::Diagnostic>) {
     let d = doc(body);
-    Document::build_main(&d, None, &Rels::default())
+    rsword::model::Document::build_main(&d, None, &Rels::default())
 }
 
 fn table(b: &Block) -> &TableBlock {
     match b {
-        Block::Table(t) => t,
+        rsword::model::Block::Table(t) => t,
         other => panic!("not a table: {other:?}"),
     }
 }
@@ -131,7 +131,7 @@ fn test_09_hostile_deep_table_parses_degrades_and_saves_identical() {
     let path = common::corpus_dir("hostile").join("xml-deep-table.docx");
     let bytes = std::fs::read(&path).unwrap();
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     assert!(
         doc.blocks().any(|b| matches!(b, Block::Protected(p) if p.kind == ProtectedKind::TooDeep)),
         "深层没有 TooDeep"
@@ -188,7 +188,7 @@ fn mod_09_table_revisions_attach_to_table_row_and_cell() {
         .revisions
         .iter()
         .filter_map(|r| match r {
-            Revision::Insert(m) => Some(m.id.as_deref()),
+            rsword::model::Revision::Insert(m) => Some(m.id.as_deref()),
             _ => None,
         })
         .collect();
@@ -206,11 +206,11 @@ fn mod_09_corpus_table_revisions() {
         let bytes =
             std::fs::read(common::corpus_dir("synthetic").join(format!("{name}.docx"))).unwrap();
         let mut pkg = Package::open(&bytes).unwrap();
-        let doc = Document::rebuild(&mut pkg).unwrap();
+        let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
         let t = doc.tables().next().expect("a table");
         assert_eq!(t.rows.len(), 3, "{name}");
         let row_rev = t.rows[1].revisions.iter().find_map(|r| match (r, kind) {
-            (Revision::Delete(m), "del") | (Revision::Insert(m), "ins") => Some(m),
+            (rsword::model::Revision::Delete(m), "del") | (rsword::model::Revision::Insert(m), "ins") => Some(m),
             _ => None,
         });
         let m = row_rev
@@ -265,7 +265,7 @@ fn mod_13_blocks_paragraphs_and_block_path_reach_into_cells() {
            <w:p><w:r><w:t>tail</w:t></w:r></w:p>"#,
     );
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let texts: Vec<String> = doc.paragraphs().map(|p| p.text()).collect();
     assert_eq!(texts, ["top", "c1", "nested", "", "tail"]);
     assert_eq!(doc.text_blocks().count(), 2, "text_blocks 仍只给顶层");
@@ -348,7 +348,7 @@ fn compare_table(name: &str, ours: &TableBlock, ts: &Value, depth: usize, st: &m
                 .blocks
                 .iter()
                 .filter_map(|b| match b {
-                    Block::Table(t) if t.rows.iter().any(|r| !r.cells.is_empty()) => Some(t),
+                    rsword::model::Block::Table(t) if t.rows.iter().any(|r| !r.cells.is_empty()) => Some(t),
                     _ => None,
                 })
                 .collect();
@@ -400,13 +400,13 @@ fn mod_07_corpus_rows_and_cells_match_ts() {
         let name = path.file_stem().unwrap().to_str().unwrap().to_string();
         let bytes = std::fs::read(&path).unwrap();
         let mut pkg = Package::open(&bytes).unwrap();
-        let doc = Document::rebuild(&mut pkg).unwrap();
+        let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
         st.docs += 1;
         let ours: Vec<&TableBlock> = doc
             .main
             .iter()
             .filter_map(|b| match b {
-                Block::Table(t) => Some(t),
+                rsword::model::Block::Table(t) => Some(t),
                 _ => None,
             })
             .collect();

@@ -63,7 +63,7 @@ fn ftr(inner: &str) -> String {
 fn doc_with_hf(body: &str, extra: &[(&str, &str)]) -> (Package, Document) {
     let bytes = common::docx_with_parts(body, extra);
     let mut pkg = Package::open(&bytes).expect("open");
-    let doc = Document::rebuild(&mut pkg).expect("rebuild");
+    let doc = rsword::model::Document::rebuild(&mut pkg).expect("rebuild");
     (pkg, doc)
 }
 
@@ -99,7 +99,7 @@ fn mod_01_header_content_uses_the_body_pipeline() {
         .blocks
         .iter()
         .find_map(|b| match b {
-            Block::Table(t) => Some(t),
+            rsword::model::Block::Table(t) => Some(t),
             _ => None,
         })
         .expect("表格块");
@@ -271,7 +271,7 @@ fn test_09_unbalanced_header_part_is_opaque() {
     let path = common::corpus_dir("hostile").join("xml-unbalanced-header.docx");
     let bytes = std::fs::read(&path).expect("hostile 语料");
     let mut pkg = Package::open(&bytes).expect("open");
-    let doc = Document::rebuild(&mut pkg).expect("rebuild");
+    let doc = rsword::model::Document::rebuild(&mut pkg).expect("rebuild");
     assert!(doc.hf_parts.is_empty(), "不平衡的 header 建不出 HfPart");
     assert!(doc.text_blocks().count() > 0, "正文照常");
 }
@@ -603,7 +603,7 @@ fn compat_05_hf_parts_match_ts_on_corpus() {
         let j: serde_json::Value = serde_json::from_str(&txt).expect("expected.json");
         let bytes = std::fs::read(&path).unwrap();
         let Ok(mut pkg) = Package::open(&bytes) else { continue };
-        let Ok(doc) = Document::rebuild(&mut pkg) else { continue };
+        let Ok(doc) = rsword::model::Document::rebuild(&mut pkg) else { continue };
         let ts = j["hfParts"].as_object().cloned().unwrap_or_default();
         if ts.is_empty() && doc.hf_by_rel.is_empty() {
             continue;
@@ -670,7 +670,7 @@ fn test_04_editing_a_header_paragraph_touches_only_that_part() {
     for path in common::docx_paths("synthetic") {
         let bytes = std::fs::read(&path).unwrap();
         let Ok(mut probe) = Package::open(&bytes) else { continue };
-        let Ok(doc) = Document::rebuild(&mut probe) else { continue };
+        let Ok(doc) = rsword::model::Document::rebuild(&mut probe) else { continue };
         // 有文本段落就往里插字（空段落也算，`InsertText` 在偏移 0 一样能落）；整个页眉只有
         // 一张图或一张表的（语料里有 9 份）就插一个新段落——门要的是"改页眉只重写那个 part"，
         // 用哪个操作达到不重要
@@ -733,7 +733,7 @@ fn test_04_editing_a_header_paragraph_touches_only_that_part() {
 
         // 重解析：该段落多了字，别的 part 的文字不变
         let mut re = Package::open(&saved).expect("reopen");
-        let doc2 = Document::rebuild(&mut re).expect("rebuild");
+        let doc2 = rsword::model::Document::rebuild(&mut re).expect("rebuild");
         let hf2 = &doc2.hf_parts[&part];
         assert!(
             hf2.text_blocks().any(|tb| tb.text().starts_with('Z')),

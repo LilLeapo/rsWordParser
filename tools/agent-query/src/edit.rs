@@ -349,7 +349,7 @@ impl Compiler<'_> {
         let mut ops = vec![];
         if existing
             .as_ref()
-            .is_some_and(|style| style.kind() != Some(rsword::model::StyleType::Paragraph))
+            .is_some_and(|style| style.kind() != Some(rsword::semantic::props::StyleType::Paragraph))
         {
             return Err(error("AGENT_STYLE_CONFLICT", "setBlockStyle 只接受段落样式"));
         }
@@ -358,7 +358,7 @@ impl Compiler<'_> {
                 return Err(error("AGENT_STYLE_CONFLICT", "样式声明 id/type 不匹配"));
             }
             if let Some(existing) = &existing {
-                if existing.kind() != Some(rsword::model::StyleType::Paragraph)
+                if existing.kind() != Some(rsword::semantic::props::StyleType::Paragraph)
                     || existing.name.as_deref() != Some(create.name.as_str())
                     || existing.based_on != create.based_on
                     || existing.ppr.as_ref() != create.para_props.as_ref()

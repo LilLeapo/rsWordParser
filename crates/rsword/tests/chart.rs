@@ -14,7 +14,7 @@ use rsword::bind::compat_ts::{
     EmbeddedKind, block_of_path, diff_json, embedded_kind, known_diffs, parsed_doc, split_known,
 };
 use rsword::diag::DiagCode;
-use rsword::model::units::EMU_PER_PX;
+use rsword::model::EMU_PER_PX;
 use rsword::model::{Block, ChartColor, ChartDisplay, Display, Document, ProtectedKind};
 use rsword::package::Package;
 use rsword::resolve::drawingml::{Rgb, hex};
@@ -194,11 +194,11 @@ fn our_charts(doc: &Document) -> Vec<OurChart<'_>> {
     doc.main
         .iter()
         .filter_map(|b| match b {
-            Block::Protected(p) if p.kind == ProtectedKind::Chart => Some(p),
+            rsword::model::Block::Protected(p) if p.kind == rsword::model::ProtectedKind::Chart => Some(p),
             _ => None,
         })
         .map(|p| {
-            let drawing = p.display.as_ref().and_then(Display::as_drawing);
+            let drawing = p.display.as_ref().and_then(rsword::model::Display::as_drawing);
             let px = drawing.and_then(|d| d.extent).filter(|e| e.cx > 0 && e.cy > 0).map(|e| {
                 (
                     (e.cx as f64 / EMU_PER_PX).round() as i64,
@@ -243,7 +243,7 @@ fn mod_11_chart_parts_match_ts_across_the_corpus() {
         ts_docs += 1;
         let bytes = std::fs::read(&path).unwrap();
         let mut pkg = Package::open(&bytes).expect("open");
-        let doc = Document::rebuild(&mut pkg).expect("rebuild");
+        let doc = rsword::model::Document::rebuild(&mut pkg).expect("rebuild");
         st.docs += 1;
         let ours = our_charts(&doc);
         if ours.len() != ts_charts.len() {
@@ -334,7 +334,7 @@ fn build(chart_xml: &str, declare_c: bool, target: &str) -> Document {
         ],
     );
     let mut pkg = Package::open(&docx).expect("open");
-    Document::rebuild(&mut pkg).expect("rebuild")
+    rsword::model::Document::rebuild(&mut pkg).expect("rebuild")
 }
 
 fn display_of(doc: &Document) -> Option<&ChartDisplay> {
@@ -410,7 +410,7 @@ fn test_09_hostile_chart_parts_degrade_locally() {
     let bytes =
         std::fs::read(common::corpus_dir("hostile").join("chart-part-malformed.docx")).unwrap();
     let mut pkg = Package::open(&bytes).expect("open");
-    let doc = Document::rebuild(&mut pkg).expect("rebuild");
+    let doc = rsword::model::Document::rebuild(&mut pkg).expect("rebuild");
     let cp = doc.chart_parts.values().next().expect("chart part 已登记");
     assert!(cp.root.is_none() && cp.display.is_none());
     assert!(pkg.diagnostics().iter().any(|d| d.code == DiagCode::PkgOpaquePart));
@@ -421,7 +421,7 @@ fn test_09_hostile_chart_parts_degrade_locally() {
     let bytes =
         std::fs::read(common::corpus_dir("hostile").join("chart-missing-rel.docx")).unwrap();
     let mut pkg = Package::open(&bytes).expect("open");
-    let doc = Document::rebuild(&mut pkg).expect("rebuild");
+    let doc = rsword::model::Document::rebuild(&mut pkg).expect("rebuild");
     let missing = doc.warnings.iter().filter(|w| w.code == DiagCode::PkgRelMissing).count();
     assert!(missing >= 1, "{:?}", doc.warnings);
     assert!(our_charts(&doc).iter().all(|(_, d, _)| d.is_none()));
@@ -605,11 +605,11 @@ fn compat_03_chartex_fallback_picture_becomes_an_image_block() {
     let docx = chartex_docx(&with_fallback);
     // 模型：Image 块，显示模型是回退图、extent 是 Choice 的
     let mut pkg = Package::open(&docx).expect("open");
-    let doc = Document::rebuild(&mut pkg).expect("rebuild");
-    let Some(Block::Image(img)) = doc.main.first() else {
+    let doc = rsword::model::Document::rebuild(&mut pkg).expect("rebuild");
+    let Some(rsword::model::Block::Image(img)) = doc.main.first() else {
         panic!("应是 Image 块：{:?}", doc.main.first())
     };
-    let d = img.display.as_ref().and_then(Display::as_drawing).expect("DrawingDisplay");
+    let d = img.display.as_ref().and_then(rsword::model::Display::as_drawing).expect("DrawingDisplay");
     assert!(d.picture().is_some(), "显示模型取自 Fallback 里的图片");
     assert!(d.chart.is_none());
     assert_eq!(d.extent.map(|e| (e.cx, e.cy)), Some((2_857_500, 1_905_000)), "尺寸取 Choice");

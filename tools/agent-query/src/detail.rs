@@ -5,12 +5,20 @@ use crate::{
     error,
     nav::{self, Selection, Unit},
 };
-use rsword::{
-    agent::{anchors::Anchor, text::Projection},
-    bind::native::json::{ProjCx, ToJson},
-    model::{Block, Blocks, Display, Document, Inline, table::box_flows},
-    package::{Package, PartId, RelTarget, media::MediaStore},
-};
+use rsword::agent::anchors::Anchor;
+use rsword::agent::text::Projection;
+use rsword::bind::native::json::ProjCx;
+use rsword::bind::native::json::ToJson;
+use rsword::model::Block;
+use rsword::model::Blocks;
+use rsword::model::Display;
+use rsword::model::Document;
+use rsword::model::Inline;
+use rsword::model::box_flows;
+use rsword::package::Package;
+use rsword::package::PartId;
+use rsword::package::RelTarget;
+use rsword::package::media::MediaStore;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 /// 只读索引，构建时允许读取完整模型；返回时只从授权对象集合中取值。
@@ -43,12 +51,12 @@ impl Details {
             }
         }
         while let Some((part, root)) = stack.pop() {
-            for b in Blocks::over(std::slice::from_ref(root)) {
+            for b in rsword::model::Blocks::over(std::slice::from_ref(root)) {
                 if !seen.insert((part, b.node())) {
                     continue;
                 }
                 let mut data = json!({"model":b.to_json(&cx)});
-                if let Block::Table(t) = b
+                if let rsword::model::Block::Table(t) = b
                     && let Some(dom) = pkg.part(part).dom()
                 {
                     let view = rsword::resolve::Resolver::new(doc).table(dom, t);
@@ -60,25 +68,25 @@ impl Details {
                     stack.extend(content.iter().map(|b| (child_part.unwrap_or(part), b)));
                 }
                 let displays: Vec<_> = match b {
-                    Block::Text(t) => t
+                    rsword::model::Block::Text(t) => t
                         .inlines
                         .iter()
                         .flat_map(|i| match i {
-                            Inline::Run(r) => r
+                            rsword::model::Inline::Run(r) => r
                                 .segments
                                 .iter()
                                 .filter_map(|s| s.display.as_ref())
                                 .collect::<Vec<_>>(),
-                            Inline::Atom(_) | Inline::Field { id: _, result: _ } => vec![],
+                            rsword::model::Inline::Atom(_) | rsword::model::Inline::Field { id: _, result: _ } => vec![],
                         })
                         .collect(),
-                    Block::Image(i) => i.display.iter().collect(),
-                    Block::Protected(b) => b.display.iter().chain(b.siblings.iter()).collect(),
-                    Block::Table(_) => vec![],
+                    rsword::model::Block::Image(i) => i.display.iter().collect(),
+                    rsword::model::Block::Protected(b) => b.display.iter().chain(b.siblings.iter()).collect(),
+                    rsword::model::Block::Table(_) => vec![],
                 };
                 for display in displays {
                     match display {
-                        Display::Drawing(d) => {
+                        rsword::model::Display::Drawing(d) => {
                             for pic in &d.pictures {
                                 entries.insert((part.0,pic.node.unwrap_or(d.node).0),json!({"display":pic.to_json(&cx),"media":pic.embed.iter().chain(pic.link.iter()).map(|rid|media_ref(pkg,media,part,rid)).collect::<Vec<_>>() }));
                             }
@@ -99,14 +107,14 @@ impl Details {
                                 entries.insert((part.0,diagram.node.0),json!({"reference":diagram.to_json(&cx),"diagram":target.and_then(|id|doc.diagram_parts.get(&id)).map(|d|d.to_json(&cx))}));
                             }
                         }
-                        Display::Vml(v) => {
+                        rsword::model::Display::Vml(v) => {
                             for shape in &v.shapes {
                                 if let Some(rid) = &shape.imagedata {
                                     entries.insert((part.0,shape.node.0),json!({"display":shape.to_json(&cx),"media":[media_ref(pkg,media,part,rid)]}));
                                 }
                             }
                         }
-                        Display::Formula(_) => {}
+                        rsword::model::Display::Formula(_) => {}
                     }
                 }
             }
@@ -148,13 +156,14 @@ impl Details {
                         .map(|(i, _)| i)
                         .collect()
                 } else if doc.hf_parts.contains_key(&PartId(o.object.part)) {
-                    use rsword::model::section::{HfKind, HfVariant};
+                    use rsword::model::HfKind;
+use rsword::model::HfVariant;
                     let resolver = rsword::resolve::Resolver::new(doc);
                     (0..doc.sections.len())
                         .filter(|&i| {
                             let section = resolver.section(&doc.sections, i).unwrap();
-                            HfKind::ALL.into_iter().any(|kind| {
-                                HfVariant::ALL.into_iter().any(|variant| {
+                            rsword::model::HfKind::ALL.into_iter().any(|kind| {
+                                rsword::model::HfVariant::ALL.into_iter().any(|variant| {
                                     section
                                         .slot(kind, variant)
                                         .rel_id()

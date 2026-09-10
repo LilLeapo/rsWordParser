@@ -122,14 +122,14 @@ fn index_idents(
         }
         // TS 把 `w:moveFrom` 也投成 `del`、`w:moveTo` 投成 `ins`（`RevisionCtx` 两格都填）
         let key = match (e.kind, e.owner) {
-            (RevKind::RunInsert | RevKind::RunMoveTo, _) => "ins",
-            (RevKind::RunDelete | RevKind::RunMoveFrom, _) => "del",
-            (RevKind::ParaMarkDelete, _) => "paraMarkDel",
-            (RevKind::ParaPropsChange, _) => "pPrChange",
-            (RevKind::Insert, RevOwner::Row(_)) => "rowIns",
-            (RevKind::Delete, RevOwner::Row(_)) => "rowDel",
-            (RevKind::CellInsert, _) => "cellIns",
-            (RevKind::CellDelete, _) => "cellDel",
+            (rsword::model::RevKind::RunInsert | rsword::model::RevKind::RunMoveTo, _) => "ins",
+            (rsword::model::RevKind::RunDelete | rsword::model::RevKind::RunMoveFrom, _) => "del",
+            (rsword::model::RevKind::ParaMarkDelete, _) => "paraMarkDel",
+            (rsword::model::RevKind::ParaPropsChange, _) => "pPrChange",
+            (rsword::model::RevKind::Insert, rsword::model::RevOwner::Row(_)) => "rowIns",
+            (rsword::model::RevKind::Delete, rsword::model::RevOwner::Row(_)) => "rowDel",
+            (rsword::model::RevKind::CellInsert, _) => "cellIns",
+            (rsword::model::RevKind::CellDelete, _) => "cellDel",
             _ => continue,
         };
         let meta = &e.meta;
@@ -249,7 +249,7 @@ fn mod_09_nested_wrappers_depth() {
     assert_eq!(nested.len(), 500, "500 层各一条");
     for (i, e) in nested.iter().enumerate() {
         assert_eq!(e.depth as usize, i, "第 {i} 层的 depth");
-        let want = if i % 2 == 0 { RevKind::RunInsert } else { RevKind::RunDelete };
+        let want = if i % 2 == 0 { rsword::model::RevKind::RunInsert } else { rsword::model::RevKind::RunDelete };
         assert_eq!(e.kind, want, "第 {i} 层 ins / del 交替");
     }
     let inner_first = idx.iter_inner_first();
@@ -436,7 +436,7 @@ fn gate_2_accept_reject_all_corpus() {
         }
         // `w:cellMerge` 的拒绝方向不支持（`spec/18`「不在 M7」）
         let has_cell_merge =
-            probe.document().revisions.entries().iter().any(|e| e.kind == RevKind::CellMerge);
+            probe.document().revisions.entries().iter().any(|e| e.kind == rsword::model::RevKind::CellMerge);
         checked += 1;
         for accept in [true, false] {
             if !accept && has_cell_merge {
@@ -649,7 +649,7 @@ fn mod_09_content_wrappers_accept_reject() {
         (
             "块级 w:ins",
             format!(r#"<w:ins w:id="1" {D}><w:p><w:r><w:t>新块</w:t></w:r></w:p></w:ins>"#),
-            RevKind::Insert,
+            rsword::model::RevKind::Insert,
             "新块",
         ),
         (
@@ -657,7 +657,7 @@ fn mod_09_content_wrappers_accept_reject() {
             format!(
                 r#"<w:del w:id="1" {D}><w:p><w:r><w:delText>旧块</w:delText></w:r></w:p></w:del>"#
             ),
-            RevKind::Delete,
+            rsword::model::RevKind::Delete,
             "旧块",
         ),
         (
@@ -665,13 +665,13 @@ fn mod_09_content_wrappers_accept_reject() {
             format!(
                 r#"<w:moveFrom w:id="1" {D}><w:p><w:r><w:delText>搬走</w:delText></w:r></w:p></w:moveFrom>"#
             ),
-            RevKind::MoveFrom,
+            rsword::model::RevKind::MoveFrom,
             "搬走",
         ),
         (
             "块级 w:moveTo",
             format!(r#"<w:moveTo w:id="1" {D}><w:p><w:r><w:t>搬来</w:t></w:r></w:p></w:moveTo>"#),
-            RevKind::MoveTo,
+            rsword::model::RevKind::MoveTo,
             "搬来",
         ),
     ];
@@ -714,13 +714,13 @@ fn mod_09_run_wrappers_accept_reject() {
         (
             "run w:ins",
             format!(r#"<w:ins w:id="1" {D}><w:r><w:t>甲</w:t></w:r></w:ins>"#),
-            RevKind::RunInsert,
+            rsword::model::RevKind::RunInsert,
             true,
         ),
         (
             "run w:del",
             format!(r#"<w:del w:id="1" {D}><w:r><w:delText>甲</w:delText></w:r></w:del>"#),
-            RevKind::RunDelete,
+            rsword::model::RevKind::RunDelete,
             false,
         ),
         (
@@ -728,13 +728,13 @@ fn mod_09_run_wrappers_accept_reject() {
             format!(
                 r#"<w:moveFrom w:id="1" {D}><w:r><w:delText>甲</w:delText></w:r></w:moveFrom>"#
             ),
-            RevKind::RunMoveFrom,
+            rsword::model::RevKind::RunMoveFrom,
             false,
         ),
         (
             "run w:moveTo",
             format!(r#"<w:moveTo w:id="1" {D}><w:r><w:t>甲</w:t></w:r></w:moveTo>"#),
-            RevKind::RunMoveTo,
+            rsword::model::RevKind::RunMoveTo,
             true,
         ),
     ];
@@ -772,20 +772,20 @@ fn mod_09_para_marks_accept_reject() {
         (
             "pPr/rPr/w:ins",
             two(&format!(r#"<w:ins w:id="1" {D}/>"#)),
-            RevKind::ParaMarkInsert,
+            rsword::model::RevKind::ParaMarkInsert,
             false,
         ),
-        ("pPr/rPr/w:del", two(&format!(r#"<w:del w:id="1" {D}/>"#)), RevKind::ParaMarkDelete, true),
+        ("pPr/rPr/w:del", two(&format!(r#"<w:del w:id="1" {D}/>"#)), rsword::model::RevKind::ParaMarkDelete, true),
         (
             "pPr/rPr/w:moveFrom",
             two(&format!(r#"<w:moveFrom w:id="1" {D}/>"#)),
-            RevKind::ParaMarkMoveFrom,
+            rsword::model::RevKind::ParaMarkMoveFrom,
             true,
         ),
         (
             "pPr/rPr/w:moveTo",
             two(&format!(r#"<w:moveTo w:id="1" {D}/>"#)),
-            RevKind::ParaMarkMoveTo,
+            rsword::model::RevKind::ParaMarkMoveTo,
             false,
         ),
     ];
@@ -820,7 +820,7 @@ fn mod_09_props_changes_accept_reject() {
         &format!(
             r#"<w:p><w:r><w:rPr><w:b/><w:rPrChange w:id="1" {D}><w:rPr><w:i/></w:rPr></w:rPrChange></w:rPr><w:t>字</w:t></w:r></w:p>"#
         ),
-        RevKind::RunPropsChange,
+        rsword::model::RevKind::RunPropsChange,
         true,
         &[("count(//w:rPr/w:b)", &["1"]), ("count(//w:rPr/w:i)", &["0"])],
     );
@@ -829,7 +829,7 @@ fn mod_09_props_changes_accept_reject() {
         &format!(
             r#"<w:p><w:r><w:rPr><w:b/><w:rPrChange w:id="1" {D}><w:rPr><w:i/></w:rPr></w:rPrChange></w:rPr><w:t>字</w:t></w:r></w:p>"#
         ),
-        RevKind::RunPropsChange,
+        rsword::model::RevKind::RunPropsChange,
         false,
         &[("count(//w:rPr/w:b)", &["0"]), ("count(//w:rPr/w:i)", &["1"])],
     );
@@ -840,14 +840,14 @@ fn mod_09_props_changes_accept_reject() {
     check(
         "pPrChange",
         &ppr,
-        RevKind::ParaPropsChange,
+        rsword::model::RevKind::ParaPropsChange,
         true,
         &[("//w:pPr/w:jc/@w:val", &["center"]), ("count(//w:pPrChange)", &["0"])],
     );
     check(
         "pPrChange",
         &ppr,
-        RevKind::ParaPropsChange,
+        rsword::model::RevKind::ParaPropsChange,
         false,
         &[("//w:pPr/w:jc/@w:val", &["right"])],
     );
@@ -859,7 +859,7 @@ fn mod_09_props_changes_accept_reject() {
         check(
             "numberingChange",
             &num,
-            RevKind::NumberingChange,
+            rsword::model::RevKind::NumberingChange,
             accept,
             &[("count(//w:numberingChange)", &["0"]), ("//w:numPr/w:numId/@w:val", &["1"])],
         );
@@ -871,14 +871,14 @@ fn mod_09_props_changes_accept_reject() {
     check(
         "sectPrChange",
         &sect,
-        RevKind::SectPropsChange,
+        rsword::model::RevKind::SectPropsChange,
         true,
         &[("//w:sectPr/w:pgSz/@w:w", &["11906"]), ("count(//w:sectPrChange)", &["0"])],
     );
     check(
         "sectPrChange",
         &sect,
-        RevKind::SectPropsChange,
+        rsword::model::RevKind::SectPropsChange,
         false,
         &[("//w:sectPr/w:pgSz/@w:w", &["12240"])],
     );
@@ -912,14 +912,14 @@ fn mod_09_table_revisions_accept_reject() {
     check(
         "tblPrChange",
         &body,
-        RevKind::TablePropsChange,
+        rsword::model::RevKind::TablePropsChange,
         true,
         &[("count(//w:tblPr/w:tblStyle)", &["0"]), ("count(//w:tblPrChange)", &["0"])],
     );
     check(
         "tblPrChange",
         &body,
-        RevKind::TablePropsChange,
+        rsword::model::RevKind::TablePropsChange,
         false,
         &[("//w:tblPr/w:tblStyle/@w:val", &["旧"])],
     );
@@ -934,14 +934,14 @@ fn mod_09_table_revisions_accept_reject() {
     check(
         "tblGridChange",
         &body,
-        RevKind::TableGridChange,
+        rsword::model::RevKind::TableGridChange,
         true,
         &[("count(/w:document/w:body/w:tbl/w:tblGrid/w:gridCol)", &["2"])],
     );
     check(
         "tblGridChange",
         &body,
-        RevKind::TableGridChange,
+        rsword::model::RevKind::TableGridChange,
         false,
         &[("/w:document/w:body/w:tbl/w:tblGrid/w:gridCol/@w:w", &["3000", "5000"])],
     );
@@ -956,14 +956,14 @@ fn mod_09_table_revisions_accept_reject() {
     check(
         "trPrChange",
         &body,
-        RevKind::RowPropsChange,
+        rsword::model::RevKind::RowPropsChange,
         true,
         &[("count(//w:trPr/w:tblHeader)", &["0"])],
     );
     check(
         "trPrChange",
         &body,
-        RevKind::RowPropsChange,
+        rsword::model::RevKind::RowPropsChange,
         false,
         &[("count(//w:trPr/w:tblHeader)", &["1"])],
     );
@@ -980,14 +980,14 @@ fn mod_09_table_revisions_accept_reject() {
     check(
         "tblPrExChange",
         &body,
-        RevKind::TablePropsExChange,
+        rsword::model::RevKind::TablePropsExChange,
         true,
         &[("count(//w:tblPrExChange)", &["0"]), ("count(//w:tblPrEx/w:tblCellMar)", &["1"])],
     );
     check(
         "tblPrExChange",
         &body,
-        RevKind::TablePropsExChange,
+        rsword::model::RevKind::TablePropsExChange,
         false,
         &[
             // 旧值是空的 → 整个 `w:tblPrEx` 去掉（真实 Word 的形态）
@@ -1007,21 +1007,21 @@ fn mod_09_table_revisions_accept_reject() {
     check(
         "tcPrChange",
         &body,
-        RevKind::CellPropsChange,
+        rsword::model::RevKind::CellPropsChange,
         true,
         &[("//w:tr/w:tc[1]/w:tcPr/w:tcW/@w:w", &["4000"])],
     );
     check(
         "tcPrChange",
         &body,
-        RevKind::CellPropsChange,
+        rsword::model::RevKind::CellPropsChange,
         false,
         &[("//w:tr/w:tc[1]/w:tcPr/w:tcW/@w:w", &["1234"])],
     );
     // cellIns / cellDel：接受 / 拒绝的方向相反，整列都带标记 → 网格也少一列
     for (label, mark, kind, cell_gone_on_accept) in [
-        ("cellIns", format!(r#"<w:cellIns w:id="1" {D}/>"#), RevKind::CellInsert, false),
-        ("cellDel", format!(r#"<w:cellDel w:id="1" {D}/>"#), RevKind::CellDelete, true),
+        ("cellIns", format!(r#"<w:cellIns w:id="1" {D}/>"#), rsword::model::RevKind::CellInsert, false),
+        ("cellDel", format!(r#"<w:cellDel w:id="1" {D}/>"#), rsword::model::RevKind::CellDelete, true),
     ] {
         let body = table("", "", "", "", &mark);
         // 只有一行 → 带标记的那个格就是"整列"，格没了网格也少一列
@@ -1052,7 +1052,7 @@ fn mod_09_table_revisions_accept_reject() {
     check(
         "cellMerge",
         &body,
-        RevKind::CellMerge,
+        rsword::model::RevKind::CellMerge,
         true,
         &[("count(//w:cellMerge)", &["0"]), ("count(//w:tr/w:tc)", &["2"])],
     );

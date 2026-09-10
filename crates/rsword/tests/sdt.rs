@@ -30,7 +30,7 @@ fn sdt_body(pr: &str) -> String {
 /// 建模并取出块上的 `SdtInfo`。
 fn info_of(pr: &str) -> rsword::model::SdtInfo {
     let d = doc(&sdt_body(pr));
-    let (blocks, _) = Document::build_main(&d, None, &Rels::default());
+    let (blocks, _) = rsword::model::Document::build_main(&d, None, &Rels::default());
     blocks[0].sdt().expect("块带 SdtInfo").clone()
 }
 
@@ -64,26 +64,26 @@ fn mod_08_acceptance_data_binding_and_content_lock() {
 #[test]
 fn mod_08_control_kinds_ignore_the_prefix() {
     let kinds = [
-        ("<w:richText/>", SdtControl::RichText),
-        ("<w:text/>", SdtControl::PlainText),
-        ("<w:picture/>", SdtControl::Picture),
-        ("<w:comboBox/>", SdtControl::ComboBox),
-        ("<w:dropDownList/>", SdtControl::DropDownList),
+        ("<w:richText/>", rsword::model::SdtControl::RichText),
+        ("<w:text/>", rsword::model::SdtControl::PlainText),
+        ("<w:picture/>", rsword::model::SdtControl::Picture),
+        ("<w:comboBox/>", rsword::model::SdtControl::ComboBox),
+        ("<w:dropDownList/>", rsword::model::SdtControl::DropDownList),
         (
             r#"<w:date w:fullDate="2026-01-01T00:00:00Z"><w:dateFormat w:val="yyyy"/></w:date>"#,
-            SdtControl::Date,
+            rsword::model::SdtControl::Date,
         ),
-        ("<w14:checkbox/>", SdtControl::Checkbox),
-        ("<w:checkbox/>", SdtControl::Checkbox),
-        ("<w:group/>", SdtControl::Group),
-        ("<w:citation/>", SdtControl::Citation),
-        ("<w:bibliography/>", SdtControl::Bibliography),
-        ("<w:equation/>", SdtControl::Equation),
-        ("<w15:repeatingSection/>", SdtControl::RepeatingSection),
-        ("<w15:repeatingSectionItem/>", SdtControl::RepeatingSectionItem),
-        ("<w:docPartList/>", SdtControl::DocPartList),
-        ("", SdtControl::Unknown),
-        ("<w:id w:val=\"1\"/>", SdtControl::Unknown),
+        ("<w14:checkbox/>", rsword::model::SdtControl::Checkbox),
+        ("<w:checkbox/>", rsword::model::SdtControl::Checkbox),
+        ("<w:group/>", rsword::model::SdtControl::Group),
+        ("<w:citation/>", rsword::model::SdtControl::Citation),
+        ("<w:bibliography/>", rsword::model::SdtControl::Bibliography),
+        ("<w:equation/>", rsword::model::SdtControl::Equation),
+        ("<w15:repeatingSection/>", rsword::model::SdtControl::RepeatingSection),
+        ("<w15:repeatingSectionItem/>", rsword::model::SdtControl::RepeatingSectionItem),
+        ("<w:docPartList/>", rsword::model::SdtControl::DocPartList),
+        ("", rsword::model::SdtControl::Unknown),
+        ("<w:id w:val=\"1\"/>", rsword::model::SdtControl::Unknown),
     ];
     for (pr, want) in kinds {
         assert_eq!(info_of(pr).control, want, "{pr}");
@@ -102,10 +102,10 @@ fn mod_08_control_kinds_ignore_the_prefix() {
     assert!(!i.doc_part.as_ref().unwrap().unique);
     assert!(info_of("<w:text/>").doc_part.is_none());
     // 名字表：变体与字面一一对应
-    for c in SdtControl::ALL {
+    for c in rsword::model::SdtControl::ALL {
         assert_eq!(SdtControl::parse(c.as_str()), Some(*c), "{c}");
     }
-    for l in SdtLock::ALL {
+    for l in rsword::model::SdtLock::ALL {
         assert_eq!(SdtLock::parse(l.as_str()), Some(*l), "{l}");
     }
 }
@@ -113,13 +113,13 @@ fn mod_08_control_kinds_ignore_the_prefix() {
 #[test]
 fn mod_08_locks_and_defaults() {
     let cases = [
-        ("", SdtLock::Unlocked, false, false),
-        (r#"<w:lock w:val="unlocked"/>"#, SdtLock::Unlocked, false, false),
-        (r#"<w:lock w:val="sdtLocked"/>"#, SdtLock::SdtLocked, false, true),
-        (r#"<w:lock w:val="contentLocked"/>"#, SdtLock::ContentLocked, true, false),
-        (r#"<w:lock w:val="sdtContentLocked"/>"#, SdtLock::SdtContentLocked, true, true),
+        ("", rsword::model::SdtLock::Unlocked, false, false),
+        (r#"<w:lock w:val="unlocked"/>"#, rsword::model::SdtLock::Unlocked, false, false),
+        (r#"<w:lock w:val="sdtLocked"/>"#, rsword::model::SdtLock::SdtLocked, false, true),
+        (r#"<w:lock w:val="contentLocked"/>"#, rsword::model::SdtLock::ContentLocked, true, false),
+        (r#"<w:lock w:val="sdtContentLocked"/>"#, rsword::model::SdtLock::SdtContentLocked, true, true),
         // 不认识的字面按未锁（PROP-09 的保值只管属性表；这里是模型的降级）
-        (r#"<w:lock w:val="weird"/>"#, SdtLock::Unlocked, false, false),
+        (r#"<w:lock w:val="weird"/>"#, rsword::model::SdtLock::Unlocked, false, false),
     ];
     for (pr, lock, content, sdt) in cases {
         let i = info_of(pr);
@@ -129,7 +129,7 @@ fn mod_08_locks_and_defaults() {
     }
     // 没有 sdtPr：全缺省
     let d = doc(r#"<w:sdt><w:sdtContent><w:p/></w:sdtContent></w:sdt>"#);
-    let (blocks, _) = Document::build_main(&d, None, &Rels::default());
+    let (blocks, _) = rsword::model::Document::build_main(&d, None, &Rels::default());
     let i = blocks[0].sdt().unwrap();
     assert_eq!((i.lock, i.control), (SdtLock::Unlocked, SdtControl::Unknown));
     assert!(i.alias.is_none() && i.tag.is_none() && i.id.is_none() && !i.showing_placeholder);
@@ -147,7 +147,7 @@ fn mod_08_refusing_sdt_walks_ancestors() {
            </w:sdtContent></w:sdt>"#,
         sdt_body(r#"<w:tag w:val="inner"/>"#)
     ));
-    let (blocks, _) = Document::build_main(&d, None, &Rels::default());
+    let (blocks, _) = rsword::model::Document::build_main(&d, None, &Rels::default());
     // 最近的 sdt 是内层（未锁），但守卫要一直找到外层
     let para = blocks[0].node();
     assert_eq!(blocks[0].sdt().unwrap().tag.as_deref(), Some("inner"));
@@ -156,7 +156,7 @@ fn mod_08_refusing_sdt_walks_ancestors() {
     assert_eq!(why, SdtRefusal::Locked);
     // 都不锁 → None
     let d = doc(&sdt_body(r#"<w:tag w:val="free"/>"#));
-    let (blocks, _) = Document::build_main(&d, None, &Rels::default());
+    let (blocks, _) = rsword::model::Document::build_main(&d, None, &Rels::default());
     assert!(refusing_sdt(&d, blocks[0].node()).is_none());
 }
 
@@ -229,7 +229,7 @@ fn mod_08_corpus_sdt_reads() {
         for path in common::docx_paths(kind) {
             let bytes = std::fs::read(&path).unwrap();
             let Ok(mut pkg) = rsword::package::Package::open(&bytes) else { continue };
-            let Ok(document) = Document::rebuild(&mut pkg) else { continue };
+            let Ok(document) = rsword::model::Document::rebuild(&mut pkg) else { continue };
             docs += 1;
             let dom = pkg.part(document.main_part).dom().unwrap();
             for n in dom.descendants(dom.root()).filter(|&n| dom.is(n, QName::w(LocalName::Sdt))) {
@@ -250,5 +250,5 @@ fn mod_08_corpus_sdt_reads() {
     eprintln!("sdt: {docs} docs, {sdts} sdt, controls {controls:?}");
     assert!(sdts >= 14, "{sdts}");
     // 语料里没有锁与数据绑定（行为靠上面的合成用例保证）
-    let _ = Block::Text;
+    let _ = rsword::model::Block::Text;
 }

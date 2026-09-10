@@ -9,8 +9,14 @@ use std::collections::BTreeMap;
 
 #[cfg(feature = "compat-ts")]
 use rsword::bind::compat_ts::parsed_doc;
-use rsword::model::units::emu_to_px;
-use rsword::model::{Block, Display, Document, DrawingKind, Inline, SegmentKind, Wrap};
+use rsword::model::emu_to_px;
+use rsword::model::Block;
+use rsword::model::Display;
+use rsword::model::Document;
+use rsword::model::DrawingKind;
+use rsword::model::Inline;
+use rsword::model::SegmentKind;
+use rsword::model::drawing_Wrap as Wrap;
 use rsword::package::Package;
 use serde_json::Value;
 
@@ -30,12 +36,12 @@ struct Stats {
 
 fn wrap_name(w: &Wrap) -> &'static str {
     match w {
-        Wrap::None => "none",
-        Wrap::Square { .. } => "square",
-        Wrap::Tight { .. } => "tight",
-        Wrap::Through { .. } => "through",
-        Wrap::TopAndBottom => "topAndBottom",
-        Wrap::Unspecified => "unspecified",
+        rsword::model::drawing_Wrap::None => "none",
+        rsword::model::drawing_Wrap::Square { .. } => "square",
+        rsword::model::drawing_Wrap::Tight { .. } => "tight",
+        rsword::model::drawing_Wrap::Through { .. } => "through",
+        rsword::model::drawing_Wrap::TopAndBottom => "topAndBottom",
+        rsword::model::drawing_Wrap::Unspecified => "unspecified",
     }
 }
 
@@ -44,10 +50,10 @@ fn drawings_of(block: &Block) -> Vec<&rsword::model::DrawingDisplay> {
     let Some(tb) = block.as_text() else { return Vec::new() };
     let mut out = Vec::new();
     for i in &tb.inlines {
-        let Inline::Run(r) = i else { continue };
+        let rsword::model::Inline::Run(r) = i else { continue };
         for s in &r.segments {
             if matches!(s.kind, SegmentKind::Drawing { .. })
-                && let Some(Display::Drawing(d)) = &s.display
+                && let Some(rsword::model::Display::Drawing(d)) = &s.display
             {
                 out.push(&**d);
             }
@@ -63,7 +69,7 @@ fn mod_11_drawing_facts_across_the_corpus() {
         let file = path.file_name().unwrap().to_string_lossy().to_string();
         let bytes = std::fs::read(&path).unwrap();
         let Ok(mut pkg) = Package::open(&bytes) else { continue };
-        let Ok(doc) = Document::rebuild(&mut pkg) else { continue };
+        let Ok(doc) = rsword::model::Document::rebuild(&mut pkg) else { continue };
         st.docs += 1;
 
         // TS 的期望值（hostile 语料没有）
@@ -76,7 +82,7 @@ fn mod_11_drawing_facts_across_the_corpus() {
             for d in &ds {
                 st.drawings += 1;
                 *st.by_kind.entry(d.kind.as_str()).or_default() += 1;
-                if d.kind == DrawingKind::Unknown {
+                if d.kind == rsword::model::DrawingKind::Unknown {
                     *st.unknown_docs.entry(file.clone()).or_default() += 1;
                 }
                 match &d.anchor {
@@ -91,7 +97,7 @@ fn mod_11_drawing_facts_across_the_corpus() {
                 {
                     st.with_media += 1;
                 }
-                if d.kind == DrawingKind::Picture {
+                if d.kind == rsword::model::DrawingKind::Picture {
                     assert!(d.picture().is_some(), "{file}: Picture 绘图应当有 pic:pic");
                 }
             }
@@ -149,24 +155,24 @@ fn mod_11_vml_and_ole_across_the_corpus() {
     for path in common::docx_paths("synthetic").into_iter().chain(common::docx_paths("hostile")) {
         let bytes = std::fs::read(&path).unwrap();
         let Ok(mut pkg) = Package::open(&bytes) else { continue };
-        let Ok(doc) = Document::rebuild(&mut pkg) else { continue };
+        let Ok(doc) = rsword::model::Document::rebuild(&mut pkg) else { continue };
         docs += 1;
         let mut seen: Vec<&VmlDisplay> = Vec::new();
         for block in &doc.main {
             match block {
-                Block::Protected(b) => seen.extend(b.display.as_ref().and_then(Display::as_vml)),
-                Block::Image(b) => seen.extend(b.display.as_ref().and_then(Display::as_vml)),
-                Block::Text(tb) => {
+                rsword::model::Block::Protected(b) => seen.extend(b.display.as_ref().and_then(rsword::model::Display::as_vml)),
+                rsword::model::Block::Image(b) => seen.extend(b.display.as_ref().and_then(rsword::model::Display::as_vml)),
+                rsword::model::Block::Text(tb) => {
                     for i in &tb.inlines {
-                        let Inline::Run(r) = i else { continue };
+                        let rsword::model::Inline::Run(r) = i else { continue };
                         for s in &r.segments {
                             if matches!(s.kind, SegmentKind::Pict | SegmentKind::Object) {
-                                seen.extend(s.display.as_ref().and_then(Display::as_vml));
+                                seen.extend(s.display.as_ref().and_then(rsword::model::Display::as_vml));
                             }
                         }
                     }
                 }
-                Block::Table(_) => {}
+                rsword::model::Block::Table(_) => {}
             }
         }
         for v in seen {

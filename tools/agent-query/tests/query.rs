@@ -1,11 +1,13 @@
 //! AGENT-03/04/05：独立模型/文本 oracle、预算与范围边界。
 #[path = "../../../crates/rsword/tests/common/mod.rs"]
 mod common;
-use rsword::{
-    agent::text::{Projection, Scope, project},
-    model::{Block, Document, block::TextKind},
-    package::Package,
-};
+use rsword::agent::text::Projection;
+use rsword::agent::text::Scope;
+use rsword::agent::text::project;
+use rsword::model::Block;
+use rsword::model::Document;
+use rsword::model::TextKind;
+use rsword::package::Package;
 use rsword_agent_query::{
     budget::{self, Budget},
     find::Finder,
@@ -16,7 +18,7 @@ use serde_json::{Value, json};
 use std::{collections::BTreeSet, path::Path};
 fn fixture(body: &str) -> (Package, Document, Projection) {
     let mut pkg = Package::open(&common::docx_with_body(body)).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let p = project(&pkg, &doc, Scope::All, "query:1").unwrap();
     (pkg, doc, p)
 }
@@ -61,7 +63,7 @@ fn agent_03_real_outline_and_budget_measurement() {
     assert!(largest.ends_with("misc/large-report.docx"));
     for path in paths.iter() {
         let mut pkg = Package::open(&std::fs::read(path).unwrap()).unwrap();
-        let doc = Document::rebuild(&mut pkg).unwrap();
+        let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
         let p = project(&pkg, &doc, Scope::Main, "outline:1").unwrap();
         let rows = nav::outline(&p, &doc, 1..10).unwrap();
         assert!(!rows.is_empty() || doc.main.is_empty(), "{}", path.display());
@@ -69,8 +71,8 @@ fn agent_03_real_outline_and_budget_measurement() {
             .main
             .iter()
             .filter_map(|b| match b {
-                Block::Text(t) => match t.kind {
-                    TextKind::Heading { level } => Some((level, t.text())),
+                rsword::model::Block::Text(t) => match t.kind {
+                    rsword::model::TextKind::Heading { level } => Some((level, t.text())),
                     _ => None,
                 },
                 _ => None,
@@ -377,7 +379,7 @@ fn agent_04_corpus_literal_and_regex_independent_oracles() {
                 continue;
             }
         };
-        let doc = Document::rebuild(&mut pkg).unwrap();
+        let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
         let p = project(&pkg, &doc, Scope::All, "corpus:1").unwrap();
         for f in &p.flows {
             let text = p.text_range(f.range.clone()).unwrap();
@@ -530,7 +532,7 @@ fn agent_04_empty_and_adjacent_flow_end_ownership() {
             ],
         );
         let mut pkg = Package::open(&bytes).unwrap();
-        let doc = Document::rebuild(&mut pkg).unwrap();
+        let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
         let p = project(&pkg, &doc, Scope::All, "flow:1").unwrap();
         assert_eq!(p.flows.len(), 2);
         for f in &p.flows {
@@ -637,7 +639,7 @@ fn agent_05_real_table_chart_and_media_details_match_model() {
     {
         let bytes = std::fs::read(common::repo_root().join("corpus/real").join(name)).unwrap();
         let mut pkg = Package::open(&bytes).unwrap();
-        let doc = Document::rebuild(&mut pkg).unwrap();
+        let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
         let p = project(&pkg, &doc, Scope::All, "detail:1").unwrap();
         let mut media = MediaStore::new();
         for part in pkg.parts() {
@@ -648,7 +650,7 @@ fn agent_05_real_table_chart_and_media_details_match_model() {
         let index = Details::build(&pkg, &doc, &p, &media);
         let cx = ProjCx { pkg: &pkg, display: true };
         if name.contains("large-report") {
-            let Block::Table(t) = &doc.main[43] else { panic!("具名第一表") };
+            let rsword::model::Block::Table(t) = &doc.main[43] else { panic!("具名第一表") };
             let detail = index.get(doc.main_part.0, t.node.0).unwrap();
             assert_eq!(detail["model"], doc.main[43].to_json(&cx));
             let resolver = rsword::resolve::Resolver::new(&doc);

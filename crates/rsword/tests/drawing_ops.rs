@@ -323,7 +323,7 @@ fn drawing_edits_are_not_tracked() {
 // ---------------------------------------------------------------- SetDrawingWrap
 
 use rsword::edit::ImageWrap;
-use rsword::model::drawing::Wrap;
+use rsword::model::drawing_Wrap as Wrap;
 
 /// 九种绕排 + 随文，`SetDrawingWrap` 的完整取值域。
 const ALL_WRAPS: [Option<ImageWrap>; 10] = [
@@ -395,20 +395,20 @@ fn set_wrap_round_trips_on_the_image_wrap_corpus() {
 /// 方形 / 紧密 / 穿越靠 `positionH` 的对齐分左右——正好是我们生成时写进去的那两样。
 fn shell_wrap(s: &EditSession) -> Option<ImageWrap> {
     let dom = s.package().part(s.document().main_part).dom().expect("主 part");
-    let d = rsword::model::drawing::drawing_display(dom, drawing(s, 0));
+    let d = rsword::model::drawing_display(dom, drawing(s, 0));
     let a = d.anchor.as_ref()?;
     let right = a.h.align.as_deref() == Some("right");
     Some(match &a.wrap {
-        Wrap::None if a.behind_doc => ImageWrap::Behind,
-        Wrap::None => ImageWrap::Front,
-        Wrap::TopAndBottom => ImageWrap::TopBottom,
-        Wrap::Square { .. } if right => ImageWrap::SquareRight,
-        Wrap::Square { .. } => ImageWrap::SquareLeft,
-        Wrap::Tight { .. } if right => ImageWrap::TightRight,
-        Wrap::Tight { .. } => ImageWrap::TightLeft,
-        Wrap::Through { .. } if right => ImageWrap::ThroughRight,
-        Wrap::Through { .. } => ImageWrap::ThroughLeft,
-        Wrap::Unspecified => return None,
+        rsword::model::drawing_Wrap::None if a.behind_doc => ImageWrap::Behind,
+        rsword::model::drawing_Wrap::None => ImageWrap::Front,
+        rsword::model::drawing_Wrap::TopAndBottom => ImageWrap::TopBottom,
+        rsword::model::drawing_Wrap::Square { .. } if right => ImageWrap::SquareRight,
+        rsword::model::drawing_Wrap::Square { .. } => ImageWrap::SquareLeft,
+        rsword::model::drawing_Wrap::Tight { .. } if right => ImageWrap::TightRight,
+        rsword::model::drawing_Wrap::Tight { .. } => ImageWrap::TightLeft,
+        rsword::model::drawing_Wrap::Through { .. } if right => ImageWrap::ThroughRight,
+        rsword::model::drawing_Wrap::Through { .. } => ImageWrap::ThroughLeft,
+        rsword::model::drawing_Wrap::Unspecified => return None,
     })
 }
 

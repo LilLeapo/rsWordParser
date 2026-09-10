@@ -198,13 +198,13 @@ fn test_04_corpus_edit_fidelity() {
         'blocks: for (block_idx, block) in s.document().text_blocks().enumerate() {
             let mut offset = 0u32;
             for inline in &block.inlines {
-                let Inline::Run(run) = inline else {
+                let rsword::model::Inline::Run(run) = inline else {
                     offset += inline.utf16_len();
                     continue;
                 };
                 let mut segment_start = offset;
                 for segment in &run.segments {
-                    if segment.kind == SegmentKind::Text
+                    if segment.kind == rsword::model::SegmentKind::Text
                         && segment.utf16_len > 0
                         && run.rev.as_ref().is_none_or(|rev| rev.del.is_none())
                     {

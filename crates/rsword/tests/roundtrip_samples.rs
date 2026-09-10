@@ -44,7 +44,7 @@ fn write(name: &str, bytes: &[u8]) {
 }
 
 fn text_paras(s: &EditSession) -> Vec<rsword::xml::NodeId> {
-    s.document().main.iter().filter(|b| matches!(b, Block::Text(_))).map(Block::node).collect()
+    s.document().main.iter().filter(|b| matches!(b, Block::Text(_))).map(rsword::model::Block::node).collect()
 }
 
 fn image(bytes: Vec<u8>, wrap: Option<ImageWrap>) -> NewImage {

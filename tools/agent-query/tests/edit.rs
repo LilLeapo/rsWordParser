@@ -29,7 +29,7 @@ fn fixture() -> Vec<u8> {
 }
 fn objects(bytes: &[u8]) -> Vec<Value> {
     let mut p = Package::open(bytes).unwrap();
-    let d = Document::rebuild(&mut p).unwrap();
+    let d = rsword::model::Document::rebuild(&mut p).unwrap();
     let t = text::project(&p, &d, Scope::Main, "test").unwrap();
     t.objects.values().filter(|o| o.object.kind == "paragraph").map(|o| json!(o.object)).collect()
 }
@@ -242,7 +242,7 @@ fn agent_08_budget_failure_and_report_expiry() {
 fn agent_07_compiled_all_uses_distinct_descending_positions() {
     let bytes = fixture();
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let p = text::project(&pkg, &doc, Scope::All, "probe").unwrap();
     let mut native = SessionTable::default();
     let id = native.open(&bytes, None).unwrap();
@@ -276,7 +276,7 @@ fn real(name: &str) -> Vec<u8> {
 }
 fn projection(bytes: &[u8]) -> text::Projection {
     let mut p = Package::open(bytes).unwrap();
-    let d = Document::rebuild(&mut p).unwrap();
+    let d = rsword::model::Document::rebuild(&mut p).unwrap();
     text::project(&p, &d, Scope::All, "fixture").unwrap()
 }
 fn real_target(bytes: &[u8], kind: &str, index: usize) -> Value {
@@ -329,7 +329,7 @@ fn agent_07_w2_w5_w6_structured_operations() {
     s.edit(&id, 2, &comment, None, Some(&worker())).unwrap();
     let saved = s.save(&id, None).unwrap();
     let mut pkg = Package::open(&saved).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let comment = doc.comments.items.iter().find(|c| c.author.as_deref() == Some("Agent")).unwrap();
     let range = doc
         .spans
@@ -390,7 +390,7 @@ fn agent_07_w4_table_column_and_auxiliary_refusal() {
     s.edit(&id, 0, &action(target), None, None).unwrap();
     let saved = s.save(&id, None).unwrap();
     let mut pkg = Package::open(&saved).unwrap();
-    let d = Document::rebuild(&mut pkg).unwrap();
+    let d = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let table = d
         .blocks()
         .find_map(|b| if let rsword::model::Block::Table(t) = b { Some(t) } else { None })
@@ -425,7 +425,7 @@ fn agent_07_w9_shared_image_and_external_audit() {
     assert_ne!(xml, original);
     let first = real_target(&bytes, "image", 0);
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let dom = pkg.part(doc.main_part).dom().unwrap();
     let node = rsword::xml::NodeId(first["node"].as_u64().unwrap() as u32);
     let raw = dom.lex_str(&dom.node(node).lex.as_ref().unwrap().range);
@@ -502,7 +502,7 @@ fn agent_07_w3_author_lock_preserves_other_author() {
 fn agent_07_w8_header_and_failed_batch_full_rollback() {
     let bytes = real("text/text-basic.docx");
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let section = doc.sections[0].node.unwrap();
     let target = json!({"part":doc.main_part.0,"flow":doc.flow_of_in(doc.main_part,doc.body.unwrap()).unwrap().0,"node":section.0,"kind":"section"});
     let action = json!({"action":"setHeaderFooter","target":target,"kind":"header","variant":"default","paragraphs":["Agent 审阅稿"]});
@@ -525,7 +525,7 @@ fn agent_07_w8_header_and_failed_batch_full_rollback() {
 fn agent_07_w10_seven_original_blocks_move_intact() {
     let bytes = real("misc/large-report.docx");
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let p = projection(&bytes);
     let object = |node| {
         p.objects
@@ -556,7 +556,7 @@ fn agent_07_w10_seven_original_blocks_move_intact() {
         originals.iter().map(|original| xml.find(original).expect("原块字节原样")).collect();
     assert!(positions.windows(2).all(|w| w[0] < w[1]));
     let mut pkg = Package::open(&saved).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let dom = pkg.part(doc.main_part).dom().unwrap();
     for (i, original) in originals.iter().enumerate() {
         assert_eq!(
@@ -646,7 +646,7 @@ fn agent_07_w1_body_scope_excludes_matching_headers() {
     let bytes = real("hf/hf-variants.docx");
     let p = projection(&bytes);
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     assert!(doc.paragraphs().any(|p| p.text().contains('页')));
     let hf: Vec<_> = doc
         .hf_parts
@@ -677,7 +677,7 @@ fn agent_07_w1_body_scope_excludes_matching_headers() {
     .unwrap();
     let saved = s.save(&id, None).unwrap();
     let mut pkg = Package::open(&saved).unwrap();
-    let d = Document::rebuild(&mut pkg).unwrap();
+    let d = rsword::model::Document::rebuild(&mut pkg).unwrap();
     assert!(d.paragraphs().all(|p| !p.text().contains('页')));
     for (name, original) in hf {
         assert_eq!(common::part_bytes(&saved, &name), original);
@@ -687,7 +687,7 @@ fn agent_07_w1_body_scope_excludes_matching_headers() {
 fn agent_07_w2_level_two_heading_and_original_block_bytes() {
     let bytes = real("text/text-basic.docx");
     let mut pkg = Package::open(&bytes).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let p = projection(&bytes);
     let headings: Vec<_> = doc
         .paragraphs()
@@ -714,7 +714,7 @@ fn agent_07_w2_level_two_heading_and_original_block_bytes() {
         assert!(xml.contains(&original));
     }
     let mut pkg = Package::open(&saved).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     let paras: Vec<_> = doc.paragraphs().collect();
     let i = paras
         .iter()
