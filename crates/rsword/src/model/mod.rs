@@ -5728,9 +5728,8 @@ pub struct FormulaDisplay {
 
 /// 一个段落的公式显示模型。`visible_text`：段落有可见正文（`ParagraphFacts::visible_text`）。
 pub fn formula_display(dom: &Dom, para: NodeId, visible_text: bool) -> FormulaDisplay {
-    let fragments = crate::model::fragments(dom, para);
-    let tokens: Vec<String> =
-        fragments.iter().flat_map(|&f| crate::model::tokens(dom, f)).collect();
+    let fragments: Vec<NodeId> = dom.math_fragments(para).collect();
+    let tokens: Vec<String> = fragments.iter().flat_map(|&f| dom.math_tokens(f)).collect();
     let mathml = (!visible_text)
         .then(|| fragments.iter().map(|&f| to_mathml(dom, f)).collect::<String>())
         .filter(|s| !s.is_empty());
@@ -5739,11 +5738,6 @@ pub fn formula_display(dom: &Dom, para: NodeId, visible_text: bool) -> FormulaDi
         _ => None,
     };
     FormulaDisplay { fragments, tokens, mathml, latex }
-}
-
-/// 一个 `m:oMath` 原子的 token（R19 的公式 run：`text` = token 拼接）。
-pub fn math_tokens(dom: &Dom, omath: NodeId) -> Vec<String> {
-    crate::model::tokens(dom, omath)
 }
 
 /// `w:ruby` 的一半（`w:rt` / `w:rubyBase`）的文字：直接 `w:r` 子节点的直接 `w:t` 子节点拼接（TS `rubyPartText`）。
@@ -7484,19 +7478,6 @@ pub(crate) fn run_text_to_mml(text: &str, plain: bool) -> String {
 
 pub(crate) fn m(local: LocalName) -> QName {
     QName::new(NsId::M, local)
-}
-
-/// 一个节点下全部 `m:oMath` 片段，文档序（`m:oMathPara` 展开；`m:oMath` 不嵌套）。
-pub fn fragments(dom: &Dom, node: NodeId) -> Vec<NodeId> {
-    dom.semantic_descendants(node).filter(|&n| dom.is(n, m(LocalName::OMath))).collect()
-}
-
-/// 片段里全部 `m:t` 的文本，文档序（TS `mathTokens`：可编辑的公式 token）。
-pub fn tokens(dom: &Dom, omath: NodeId) -> Vec<String> {
-    dom.semantic_descendants(omath)
-        .filter(|&n| dom.is(n, m(LocalName::T)))
-        .map(|t| dom.omml_text_of(t))
-        .collect()
 }
 
 /// OMML 的命名空间 URI（Transitional 与 Strict 相同）。

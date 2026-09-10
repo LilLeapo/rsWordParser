@@ -151,6 +151,23 @@ pub struct Dom {
 }
 
 impl Dom {
+    /// 一个节点下全部 `m:oMath` 片段，文档序（`m:oMathPara` 展开；`m:oMath` 不嵌套）。
+    /// 结果迭代器借用 DOM，不物化节点列表。
+    #[inline]
+    pub fn math_fragments(&self, node: NodeId) -> impl Iterator<Item = NodeId> + '_ {
+        self.semantic_descendants(node)
+            .filter(|&n| self.is(n, QName::new(NsId::M, LocalName::OMath)))
+    }
+
+    /// 片段里全部 `m:t` 的文本，文档序（TS `mathTokens`：可编辑的公式 token）。
+    /// 每个 token 可能拼接多个解码文本节点；只在消费时创建独立文本，不收集中间列表。
+    #[inline]
+    pub fn math_tokens(&self, omath: NodeId) -> impl Iterator<Item = String> + '_ {
+        self.semantic_descendants(omath)
+            .filter(|&n| self.is(n, QName::new(NsId::M, LocalName::T)))
+            .map(|t| self.omml_text_of(t))
+    }
+
     /// 内容子节点：元素，且名字不以 `Pr` 结尾（TS `contentChildren`：属性包不是内容）。
     #[inline]
     pub fn content_children(&self, node: NodeId) -> impl Iterator<Item = NodeId> + '_ {
@@ -397,6 +414,34 @@ impl Iterator for Descendants<'_> {
 
 #[cfg(test)]
 mod test_model {
+    #[test]
+    fn math_iterators_preserve_order_empty_tokens_and_decoding() {
+        let mut dom = super::Dom::parse(
+            super::PartId(0),
+            br#"<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">
+                <w:oMath/><m:oMath><m:r><m:t>a&amp;<![CDATA[b]]>z</m:t><m:t/></m:r></m:oMath>
+                <m:oMathPara><m:oMath><m:r><m:t>c</m:t></m:r></m:oMath></m:oMathPara>
+            </w:p>"#,
+        )
+        .unwrap();
+        let root = dom.root();
+        let (first, second) = {
+            let mut fragments = dom.math_fragments(root);
+            let pair = (fragments.next().unwrap(), fragments.next().unwrap());
+            assert!(fragments.next().is_none());
+            pair
+        };
+        assert!(first < second);
+        // CDATA is an opaque node in the existing OOXML parser; only text nodes contribute.
+        assert!(dom.math_tokens(first).eq(["a&z", ""]));
+        assert!(dom.math_tokens(second).eq(["c"]));
+        assert_eq!(dom.math_tokens(root).collect::<String>(), "a&zc");
+        dom.node_mut(first).dirty = super::Dirty::Deleted;
+        assert!(dom.math_fragments(root).eq([second]));
+        assert!(dom.math_tokens(root).eq(["c"]));
+    }
+
     #[test]
     fn omml_properties_preserve_missing_empty_and_case_semantics() {
         for (value, enabled) in [

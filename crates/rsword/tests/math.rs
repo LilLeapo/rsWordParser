@@ -13,7 +13,6 @@ use rsword::bind::compat_ts::{
 };
 #[cfg(feature = "compat-ts")]
 use rsword::edit::{EditContext, EditOp, EditSession, InlinePos};
-use rsword::model::fragments;
 
 #[cfg(feature = "compat-ts")]
 use rsword::package::Package;
@@ -30,7 +29,7 @@ fn omath(inner: &str) -> (Dom, Vec<rsword::xml::NodeId>) {
         r#"<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:m="{M}">{inner}</w:p>"#
     );
     let dom = Dom::parse(rsword::package::PartId(0), src.as_bytes()).expect("parse");
-    let frags = fragments(&dom, dom.root());
+    let frags = dom.math_fragments(dom.root()).collect();
     (dom, frags)
 }
 
