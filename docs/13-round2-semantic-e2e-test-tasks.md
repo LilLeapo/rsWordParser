@@ -82,11 +82,11 @@ cargo test --workspace --locked --features compat-ts
 
 | 领域 | 代码入口与注意事项 |
 | --- | --- |
-| 正文与表格 | `model/table.rs` 的 `Document::blocks()`、`paragraphs()`、`tables()`；`text_blocks()` 仅顶层，不能代表整份文档 |
+| 正文与表格 | `model/mod.rs` 的 `Document::blocks()`、`paragraphs()`、`tables()`；`text_blocks()` 仅顶层，不能代表整份文档 |
 | 辅助 part | `Document::blocks_of_part()`、`hf_parts`、`comments`、`footnotes`、`endnotes`；读取所属 part URI |
-| 文本框 | `model/table.rs::box_flows()`、外部文本框相关入口；核对 Blocks 遍历实现，避免遗漏或重复 |
+| 文本框 | `model/mod.rs::box_flows()`、外部文本框相关入口；核对 Blocks 遍历实现，避免遗漏或重复 |
 | 字段与范围 | `fields_in()`、`field_result_text()`、`range_locations_in()`；区分指令、缓存结果、目标关系 |
-| 节 | `Document::sections` 与 `model/section.rs`；解析页眉页脚引用和继承，不能只数 sectPr |
+| 节 | `Document::sections` 与 `model/mod.rs`；解析页眉页脚引用和继承，不能只数 sectPr |
 | 格式 | 原始 ParaProps/RunProps 与 `Resolver::new()`、`para()`、`run()`；表格上下文按实际接口提供 |
 | 编辑 | `EditSession::apply()`、`apply_all()`、`save()`；调用当前 API，不能套旧版签名 |
 | 对外输出 | `bind/native/`、Agent 查询工具、显式开启的 `bind/compat_ts/`；分别验证实际产品承诺的字段 |
