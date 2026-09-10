@@ -12,7 +12,7 @@
 use serde_json::{Map, Value};
 
 use crate::model::drawing::{DrawingDisplay, FillKind, ImageDisplay, ShapeDisplay, Wrap};
-use crate::model::units::emu_to_px;
+use crate::model::emu_to_px;
 use crate::model::vml::{VmlKind, VmlShape};
 use crate::model::{Block, Display, Inline, SegmentKind, TextBlock, VmlDisplay};
 use crate::resolve::drawingml::{ColorBase, color_in, hex};
@@ -601,9 +601,7 @@ fn group_place(
         )),
         _ if g.is_absolute() => {
             let px = |key: &str| {
-                g.style_len(key)
-                    .and_then(|l| l.to_emu())
-                    .map_or(0.0, crate::model::units::emu_to_px)
+                g.style_len(key).and_then(|l| l.to_emu()).map_or(0.0, crate::model::emu_to_px)
             };
             Some((px("margin-left"), px("margin-top")))
         }
@@ -622,7 +620,7 @@ fn group_place(
 }
 
 fn px(emu: i64) -> i64 {
-    crate::model::units::emu_to_px(emu as f64).round() as i64
+    crate::model::emu_to_px(emu as f64).round() as i64
 }
 
 /// `pictures` 选项下的只读照片框（TS `pushPic`）：组内图片按组仿射映射到绝对位置。

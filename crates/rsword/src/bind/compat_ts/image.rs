@@ -6,8 +6,8 @@
 use serde_json::{Map, Value};
 
 use crate::model::drawing::{AnchorGeom, DrawingDisplay, Wrap};
-use crate::model::units::{EMU_PER_PT, EMU_PER_PX, Length, emu_to_px};
 use crate::model::{Display, Segment, SegmentKind, VmlDisplay};
+use crate::model::{EMU_PER_PT, EMU_PER_PX, Length, emu_to_px};
 use crate::resolve::drawingml::{ColorBase, color_in, hex};
 use crate::xml::{Dom, LocalName, NodeId, QName};
 

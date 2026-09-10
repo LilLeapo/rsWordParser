@@ -959,17 +959,17 @@ fn v_align(a: &str) -> Option<&'static str> {
     }
 }
 
-/// EMU → px，四舍五入（`MOD-11` 的单位换算集中在 `model/units.rs`）。
+/// EMU → px，四舍五入（`MOD-11` 的单位换算集中在 `model::emu_to_px`）。
 fn px(emu: i64) -> i64 {
     #[allow(clippy::cast_possible_truncation)]
-    let v = crate::model::units::emu_to_px(emu as f64).round() as i64;
+    let v = crate::model::emu_to_px(emu as f64).round() as i64;
     v
 }
 
 /// VML `style` 里的长度 → px（`width:40pt` → 53）。无单位或非绝对单位 → `None`。
-fn style_px(l: crate::model::units::Length) -> Option<i64> {
+fn style_px(l: crate::model::Length) -> Option<i64> {
     #[allow(clippy::cast_possible_truncation)]
-    let v = crate::model::units::emu_to_px(l.to_emu()?).round() as i64;
+    let v = crate::model::emu_to_px(l.to_emu()?).round() as i64;
     (v > 0).then_some(v)
 }
 
@@ -1099,7 +1099,7 @@ fn place_path(d: &str, x: f64, y: f64, w: f64, h: f64) -> String {
 
 /// EMU → px，保留两位小数（TS `px()`）。
 fn emu_px2(emu: f64) -> f64 {
-    round2(crate::model::units::emu_to_px(emu))
+    round2(crate::model::emu_to_px(emu))
 }
 
 fn round2(v: f64) -> f64 {

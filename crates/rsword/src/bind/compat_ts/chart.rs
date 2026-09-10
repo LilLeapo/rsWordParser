@@ -10,7 +10,7 @@ use serde_json::{Map, Value};
 
 use crate::model::chart::{ChartColor, ChartDisplay, ChartPart, ChartSeries};
 use crate::model::drawing::DrawingDisplay;
-use crate::model::units::emu_to_px;
+use crate::model::emu_to_px;
 use crate::model::{Block, Display, Document, ProtectedBlock, ProtectedKind};
 use crate::package::Package;
 use crate::resolve::drawingml::hex;
