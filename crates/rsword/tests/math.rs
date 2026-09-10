@@ -41,7 +41,7 @@ fn to_mathml(inner: &str) -> String {
 fn to_latex(inner: &str) -> Option<String> {
     let (dom, frags) = omath(inner);
     let [only] = frags.as_slice() else { return None };
-    rsword::model::to_latex(&dom, *only)
+    dom.latex(*only)
 }
 
 #[cfg(feature = "compat-ts")]
@@ -358,7 +358,7 @@ fn test_09_deeply_nested_omml_converts_iteratively() {
     let (dom, frags) = omath(&format!("<m:oMath>{s}</m:oMath>"));
     let m = rsword::model::to_mathml(&dom, frags[0]);
     assert_eq!(m.matches("<mfrac>").count(), depth);
-    let l = rsword::model::to_latex(&dom, frags[0]).expect("latex");
+    let l = dom.latex(frags[0]).expect("latex");
     assert_eq!(l.matches("\\frac").count(), depth);
 }
 

@@ -7,6 +7,7 @@
 use crate::diag::DiagCode;
 use crate::error::{Error, Result};
 use crate::model::BreakKind;
+use crate::xml::dom::{Latex, Omml};
 use crate::xml::{LocalName, NewElement, NodeEdit, NsId, QName, Target};
 
 use super::plan::{MutationPlan, MutationResult};
@@ -155,11 +156,11 @@ fn note_ref_element(endnote: bool, id: &str) -> NewElement {
     NewElement::new(w(local)).with_attr(w(LocalName::Id), id.to_string())
 }
 
-/// `m:oMath`：OMML 直接解析，LaTeX 先转 OMML（7.5b 的 `latex_to_omml`）。
+/// `m:oMath`：OMML 直接解析，LaTeX 先转 OMML（7.5b 的 `Omml::try_from`）。
 fn math_element(s: &mut EditSession, m: &NewMath) -> Result<NewElement> {
     let omml = match m {
         NewMath::Omml(x) => x.clone(),
-        NewMath::Latex(tex) => crate::model::latex_to_omml(tex)?,
+        NewMath::Latex(tex) => String::from(Omml::try_from(Latex::from(tex.as_str()))?),
     };
     let main = s.part_or_main(None);
     let dom = s

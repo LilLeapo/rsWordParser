@@ -14,6 +14,7 @@ use crate::edit::{EditSession, NewBlock};
 use crate::error::{Error, Result};
 use crate::package::ns_context::NamespaceContext;
 use crate::package::{PartId, RelType};
+use crate::xml::dom::{Latex, Omml};
 use crate::xml::entities::FragmentText;
 use crate::xml::plan::{NewElement, NodeEdit, Target};
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName, parse_fragment};
@@ -103,11 +104,11 @@ pub(crate) fn materialize_at(
         NewBlock::Image(img) => NewBlock::Xml(super::media_ops::image_paragraph(s, &img)?),
         // 独立公式段：先把 LaTeX 转成 OMML，再按 TS `mathParagraphXml` 生成整段
         NewBlock::MathPara { omml, align } => {
-            let body = match &omml {
-                crate::edit::NewMath::Omml(x) => x.clone(),
-                crate::edit::NewMath::Latex(t) => crate::model::latex_to_omml(t)?,
+            let body = match omml {
+                crate::edit::NewMath::Omml(x) => Omml::from(x),
+                crate::edit::NewMath::Latex(t) => Omml::try_from(Latex::from(t.as_str()))?,
             };
-            let xml = crate::model::math_paragraph_xml(&body, &align);
+            let xml = body.paragraph(&align);
             let main = s.main_part();
             let w_uri = NsId::W.uri(s.flavor()).expect("w 有两族 URI");
             let m_uri = crate::model::NS_M;
