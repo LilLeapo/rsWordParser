@@ -5,6 +5,7 @@ use std::ops::Range;
 
 use crate::model::AtomKind;
 use crate::model::BreakKind;
+use crate::model::Display;
 use crate::model::Inline;
 use crate::model::InlineAtom;
 use crate::model::Link;
@@ -13,7 +14,6 @@ use crate::model::RevisionCtx;
 use crate::model::Run;
 use crate::model::Segment;
 use crate::model::SegmentKind;
-use crate::model::drawing::Display;
 use crate::semantic::props::RunProps;
 use crate::span::{FieldId, RevisionMeta, SpanId};
 use crate::xml::{NodeId, QName};

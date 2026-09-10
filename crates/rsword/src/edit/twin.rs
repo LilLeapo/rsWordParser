@@ -233,8 +233,7 @@ fn vml_attrs(dom: &Dom, choice: NodeId, shape: NodeId) -> Vec<(LocalName, String
     {
         let Some(pos) = find(choice, wp(which)) else { continue };
         let Some(off) = find(pos, wp(LocalName::PosOffset)) else { continue };
-        let Some(v) =
-            crate::model::drawing::text_of(dom, off).and_then(|t| t.trim().parse::<i64>().ok())
+        let Some(v) = crate::model::text_of(dom, off).and_then(|t| t.trim().parse::<i64>().ok())
         else {
             continue;
         };

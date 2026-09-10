@@ -7,9 +7,9 @@
 //! `ImageBlock.display` 与 `ProtectedBlock.display` / `siblings` 属显示模型（`MOD-11`），
 //! `display: true` 才投影（决策 4）。
 
+use crate::model::Display;
 use crate::model::Inline;
 use crate::model::ParagraphFacts;
-use crate::model::drawing::Display;
 use crate::model::table::TableBlock;
 use crate::model::{
     Block, ImageBlock, ListRef, ProtectedBlock, ProtectedKind, Revision, SdtInfo, TextBlock,

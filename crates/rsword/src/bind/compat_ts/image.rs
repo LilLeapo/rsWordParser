@@ -5,7 +5,7 @@
 
 use serde_json::{Map, Value};
 
-use crate::model::drawing::{AnchorGeom, DrawingDisplay, Wrap};
+use crate::model::{AnchorGeom, DrawingDisplay, Wrap};
 use crate::model::{Display, Segment, SegmentKind, VmlDisplay};
 use crate::model::{EMU_PER_PT, EMU_PER_PX, Length, emu_to_px};
 use crate::resolve::drawingml::{ColorBase, color_in, hex};
@@ -321,10 +321,7 @@ fn wrap_kind(a: &AnchorGeom, d: &DrawingDisplay) -> &'static str {
     if to_right { right } else { left }
 }
 
-fn border(
-    ctx: &Ctx<'_>,
-    ln: Option<&crate::model::drawing::LineDisplay>,
-) -> Option<Map<String, Value>> {
+fn border(ctx: &Ctx<'_>, ln: Option<&crate::model::LineDisplay>) -> Option<Map<String, Value>> {
     let ln = ln?;
     if ln.no_fill {
         return None;
@@ -343,7 +340,7 @@ fn border(
     Some(o)
 }
 
-fn rect(c: crate::model::drawing::RectFrac) -> Map<String, Value> {
+fn rect(c: crate::model::RectFrac) -> Map<String, Value> {
     let mut o = Map::new();
     for (k, v) in [("l", c.l), ("t", c.t), ("r", c.r), ("b", c.b)] {
         set(&mut o, k, v as f64 / 100_000.0);
@@ -554,7 +551,7 @@ pub(super) fn normalize_z_orders(blocks: &mut [Value]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::drawing::{Dist, Extent, Position};
+    use crate::model::{Dist, Extent, Position};
     use crate::xml::NodeId;
 
     fn anchor(wrap: Wrap, align: Option<&str>, from: Option<&str>, off: Option<i64>) -> AnchorGeom {

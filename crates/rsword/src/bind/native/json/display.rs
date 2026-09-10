@@ -17,12 +17,12 @@ use crate::model::ThemeSlot;
 use crate::model::chart::{
     ChartColor, ChartDisplay, ChartGrouping, ChartKind, ChartPart, ChartSeries, LegendPos,
 };
-use crate::model::drawing::{
+use crate::model::vml::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};
+use crate::model::{
     Anchor, AnchorGeom, BodyPr, ChartRef, DiagramRef, Display, Dist, DocPr, DrawingDisplay, Extent,
     FillDisplay, FillKind, ImageDisplay, LineDisplay, Position, RectFrac, ShapeDisplay, StyleRef,
     Wrap,
 };
-use crate::model::vml::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};
 use crate::model::{CanvasDisplay, DiagramLine, DiagramPart, DiagramPicture, DiagramShape};
 use crate::model::{CustomGeom, GeomCmd, GeomPath};
 use crate::package::PartId;

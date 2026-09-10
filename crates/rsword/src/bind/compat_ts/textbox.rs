@@ -11,10 +11,10 @@
 
 use serde_json::{Map, Value};
 
-use crate::model::drawing::{DrawingDisplay, FillKind, ImageDisplay, ShapeDisplay, Wrap};
 use crate::model::emu_to_px;
 use crate::model::vml::{VmlKind, VmlShape};
 use crate::model::{Block, Display, Inline, SegmentKind, TextBlock, VmlDisplay};
+use crate::model::{DrawingDisplay, FillKind, ImageDisplay, ShapeDisplay, Wrap};
 use crate::resolve::drawingml::{ColorBase, color_in, hex};
 use crate::xml::{LocalName, NodeId, NsId, QName};
 
@@ -867,7 +867,7 @@ fn stray_text(ctx: &Ctx<'_>, p: NodeId) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::drawing::{Extent, LineDisplay};
+    use crate::model::{Extent, LineDisplay};
     use crate::xml::NodeId;
 
     fn shape(prst: Option<&str>, cy: Option<i64>) -> ShapeDisplay {
