@@ -4,18 +4,22 @@ use super::{
     anchors::{AnchorMap, ObjectRef, Result, Target, err},
     diagnostics::diagnostic_view,
 };
-use crate::{
-    bind::native::json::{ProjCx, ToJson},
-    edit::InlinePos,
-    model::{Block, Display, Document, Inline, TextBlock},
-    model::{
-        block::{ProtectedKind, TextKind},
-        inline::{AtomKind, SegmentKind},
-    },
-    package::{Package, PartId},
-    resolve::Resolver,
-    xml::NodeId,
-};
+use crate::bind::native::json::ProjCx;
+use crate::bind::native::json::ToJson;
+use crate::edit::InlinePos;
+use crate::model::AtomKind;
+use crate::model::Block;
+use crate::model::Display;
+use crate::model::Document;
+use crate::model::Inline;
+use crate::model::SegmentKind;
+use crate::model::TextBlock;
+use crate::model::block::ProtectedKind;
+use crate::model::block::TextKind;
+use crate::package::Package;
+use crate::package::PartId;
+use crate::resolve::Resolver;
+use crate::xml::NodeId;
 use serde::Serialize;
 use serde_json::{Value, json};
 use std::{
@@ -352,9 +356,9 @@ impl<'a> Builder<'a> {
                     let o = self.object(part, a.node, "atom")?;
                     match a.kind {
                         AtomKind::Math => self.placeholder(&o, "math", Category::Math),
-                        AtomKind::BareBreak {
-                            kind: crate::model::inline::BreakKind::TextWrapping,
-                        } => self.mark(&o, "\n"),
+                        AtomKind::BareBreak { kind: crate::model::BreakKind::TextWrapping } => {
+                            self.mark(&o, "\n")
+                        }
                         AtomKind::BareBreak { .. } => {
                             self.placeholder(&o, "page-break", Category::Structure)
                         }
@@ -414,8 +418,7 @@ impl<'a> Builder<'a> {
                                 self.source(&so, t.node, segment_offset, r.segment_text(seg))
                             }
                             SegmentKind::Br {
-                                kind: crate::model::inline::BreakKind::TextWrapping,
-                                ..
+                                kind: crate::model::BreakKind::TextWrapping, ..
                             } => self.source(&so, t.node, segment_offset, r.segment_text(seg)),
                             SegmentKind::Br { .. } => {
                                 self.placeholder(&so, "page-break", Category::Structure)

@@ -241,7 +241,7 @@ pub enum NewAtomJson {
     /// 换行、分页或分栏。
     Break {
         /// 换行种类。
-        kind: crate::model::inline::BreakKind,
+        kind: crate::model::BreakKind,
         /// 绕排清除方式。
         clear: Option<String>,
     },

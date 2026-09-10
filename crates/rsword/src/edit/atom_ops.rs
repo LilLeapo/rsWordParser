@@ -6,7 +6,7 @@
 
 use crate::diag::DiagCode;
 use crate::error::{Error, Result};
-use crate::model::inline::BreakKind;
+use crate::model::BreakKind;
 use crate::xml::{LocalName, NewElement, NodeEdit, NsId, QName, Target};
 
 use super::plan::{MutationPlan, MutationResult};

@@ -199,7 +199,7 @@ pub enum NewBlock {
 #[derive(Debug, Clone, PartialEq)]
 pub enum NewAtom {
     /// `w:r/w:br`；`clear` 只对文字换行有意义。
-    Break { kind: crate::model::inline::BreakKind, clear: Option<String> },
+    Break { kind: crate::model::BreakKind, clear: Option<String> },
     /// `w:r/w:sym`：符号字体里的一个码位（`RES-05` 的反向）。
     Symbol { font: String, code: u32 },
     /// 脚注 / 尾注：新建条目（`w:id` 按 `EDIT-06`，part 不存在按 `SAVE-05` 建）+ 引用 run。
