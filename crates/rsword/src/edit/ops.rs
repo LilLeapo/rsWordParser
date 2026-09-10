@@ -8,7 +8,7 @@ use crate::model::Inline;
 use crate::model::Run;
 use crate::model::Segment;
 use crate::model::SegmentKind;
-use crate::model::block::TextBlock;
+use crate::model::TextBlock;
 use crate::model::utf16_len;
 use crate::model::{SdtRefusal, refusing_sdt};
 use crate::package::{PartId, RelType};

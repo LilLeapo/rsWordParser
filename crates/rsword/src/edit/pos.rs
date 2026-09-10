@@ -11,7 +11,7 @@ use crate::diag::DiagCode;
 use crate::error::{Error, Result};
 use crate::model::Inline;
 use crate::model::SegmentKind;
-use crate::model::block::TextBlock;
+use crate::model::TextBlock;
 use crate::package::PartId;
 use crate::xml::NodeId;
 

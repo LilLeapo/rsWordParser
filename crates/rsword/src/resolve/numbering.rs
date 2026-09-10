@@ -1,7 +1,7 @@
 //! RES-09：按文档序计算编号标记；不修改声明值，不猜未支持的数字格式。
 use super::Resolver;
 use crate::{
-    model::block::ListRef,
+    model::ListRef,
     semantic::props::{Level, Val},
 };
 use std::collections::{BTreeMap, BTreeSet};

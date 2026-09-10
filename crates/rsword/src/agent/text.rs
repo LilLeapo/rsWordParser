@@ -12,10 +12,10 @@ use crate::model::Block;
 use crate::model::Display;
 use crate::model::Document;
 use crate::model::Inline;
+use crate::model::ProtectedKind;
 use crate::model::SegmentKind;
 use crate::model::TextBlock;
-use crate::model::block::ProtectedKind;
-use crate::model::block::TextKind;
+use crate::model::TextKind;
 use crate::package::Package;
 use crate::package::PartId;
 use crate::resolve::Resolver;
@@ -164,9 +164,9 @@ impl<'a> Builder<'a> {
     fn revisions(
         &mut self,
         part: PartId,
-        revisions: &[crate::model::block::Revision],
+        revisions: &[crate::model::Revision],
     ) -> Result<Vec<(ObjectRef, String)>> {
-        use crate::model::block::Revision as R;
+        use crate::model::Revision as R;
         let mut closes = Vec::new();
         for rev in revisions {
             let (meta, tag) = match rev {

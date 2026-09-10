@@ -10,10 +10,10 @@
 
 use serde_json::Value;
 
+use crate::model::Block;
 use crate::model::DrawingKind;
 use crate::model::FormulaDisplay;
 use crate::model::ThemeSlot;
-use crate::model::block::Block;
 use crate::model::chart::{
     ChartColor, ChartDisplay, ChartGrouping, ChartKind, ChartPart, ChartSeries, LegendPos,
 };

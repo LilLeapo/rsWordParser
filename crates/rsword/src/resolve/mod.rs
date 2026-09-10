@@ -8,7 +8,7 @@
 //! toggle 属性（`RES-04`）的规则在 [`toggle`] 里参数化，等 `fixtures/resolve/toggle/*` 的
 //! **真实 Word 观察值**校准（任务 5.8）；激活的那条与非 toggle 属性同规则。
 
-use crate::model::block::ListRef;
+use crate::model::ListRef;
 use crate::model::heading_level_of_chain;
 use crate::model::{ColorScheme, Theme};
 use crate::model::{Document, Level, Style};

@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashMap};
 use crate::diag::{DiagCode, Diagnostic};
 use crate::error::{Error, Result};
 use crate::model::Document;
-use crate::model::block::TextBlock;
+use crate::model::TextBlock;
 use crate::model::revision::RevisionId;
 use crate::package::{Package, PartFlavor, PartId, PartUri, RelTarget, RelType, Relationship};
 use crate::save::SaveOptions;
