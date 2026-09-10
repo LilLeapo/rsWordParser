@@ -2,6 +2,55 @@
 //! 才返回 `Err`（`docs/01` §13.5、`PKG-02`、`PKG-03`、`XML-08`、`SAVE-02`）；
 //! 其余一律局部降级并记 [`crate::Diagnostic`]。
 
+macro_rules! declare_error {
+    (
+        // ⛔ Behind `@derive` rather than a leading `$(#[$attr:meta])*`, and ⛔ not behind
+        // a bare `derive:` either. Two ambiguities to get past, both hard errors:
+        // a leading attribute repetition collides with each group's own `#[doc]`
+        // ("built-in NTs meta"), and a bare `derive` collides with `$group:ident`
+        // ("built-in NTs ident"). `@` cannot start an identifier, so it settles both.
+        $(@derive[$($derive:path),* $(,)?])?
+        $(
+        $(#[doc = $group_doc:literal])*
+        $group:ident {
+            $(
+                $(#[$attr:meta])*
+                // ⭐⭐ Three variant shapes, ⛔ not one. A bare variant, a tuple, and
+                // **named fields** -- and the third is not a convenience: the message
+                // formats its fields by name, so a variant with five of them reads
+                // `{declared}`/`{implied}` instead of `{2}`/`{3}`. Forcing those into
+                // tuples is how a message drifts from the value it prints.
+                //
+                // ⚠ The named arm comes **first**: `{` cannot start a type, so the two
+                // are unambiguous, but a `tt`-munching matcher tries arms in order and
+                // the tuple arm's `$(...)?` would otherwise match the empty case and
+                // then choke on the brace.
+                $variant:ident
+                    $( { $($field:ident : $fty:ty),* $(,)? } )?
+                    $( ( $($ty:ty),* $(,)? ) )?
+                    => $message:literal
+            ),* $(,)?
+        }
+    )*) => {
+        // ⭐ `Debug` and `thiserror::Error` are what this macro is *for*, so they stay.
+        // ⛔ `Clone`/`PartialEq`/`Eq` are **not** added here: whether an error enum can
+        // have them is decided by the fields the caller puts in it -- `io::Error` is
+        // none of the three -- so the caller writes those `#[derive(..)]` itself, above
+        // its first group. Deriving them here made every caller's field list answer to
+        // this macro instead.
+        #[derive(Debug, thiserror::Error $(, $($derive),*)?)]
+        pub enum Error {
+            $($(
+                $(#[$attr])*
+                #[error($message)]
+                $variant
+                    $( { $($field : $fty),* } )?
+                    $( ( $($ty),* ) )?,
+            )*)*
+        }
+    };
+}
+
 use crate::diag::{DiagCode, Diagnostic};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
