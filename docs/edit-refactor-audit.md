@@ -48,3 +48,14 @@ graph TD
   快照克隆、计划集合、合法 Option 与递归 Box 均未改变。
 - 检查：fmt、diff --check、rsword check、库测试（425 通过），以及
   revisions / revision_grid / tracked_ops 专项回归。
+
+## 已验证单元：修订使用的表格查询
+
+- `cell_column`、`column_cells`、`grid_cols`、`absorb_cell_width` 成为
+  EditSession 的私有 inline 方法，删除原受限可见性自由函数。
+- 前三个查询直接借用会话 Document 中的 TableBlock / Row，无几何快照分配。
+  `RowGeometry::cell_spans` 按原 gridBefore 与 gridSpan 顺序计算位置。
+  缺表仍返回 None 或空迭代器，不新增错误或默认表格。
+- 整列守卫与删除计划重新创建同语义借用迭代器；提交前 Document 不变。
+  单格吸收宽度暂保留几何数据，避免把相邻格选择与这次查询变更混在一起。
+- check、fmt、diff --check、库测试 425 项以及修订专项回归通过。

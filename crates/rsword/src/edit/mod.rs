@@ -4555,52 +4555,71 @@ pub fn delete_column(
     s.commit_plan(plan)
 }
 /// 一个 `w:tc` 在网格里的 `(起始列, 跨度)`（7.4 的格接受 / 拒绝用）。
-pub(super) fn cell_column(s: &EditSession, table: NodeId, cell: NodeId) -> Option<(u32, u32)> {
-    let t = table_of(s, table).ok()?;
-    let geo = geometry(t);
-    geo.rows.iter().find_map(|row| {
-        row.cells.iter().find(|&&(n, _, _)| n == cell).map(|&(_, start, span)| (start, span))
-    })
+impl EditSession {
+    #[inline]
+    fn cell_column(&self, table: NodeId, cell: NodeId) -> Option<(u32, u32)> {
+        let table = table_of(self, table).ok()?;
+        table.rows.iter().find_map(|row| {
+            RowGeometry::cell_spans(row)
+                .find(|&(node, _, _)| node == cell)
+                .map(|(_, start, span)| (start, span))
+        })
+    }
+    /// 一个格被单独删掉时，把它的网格跨度与宽度并进同行的邻格（左邻优先，行首取右邻），
+    /// 保住「一行的网格宽度 = `tblGrid` 列数」（`MOD-07` / `SAVE-02` 的 `SAVE_TABLE_GRID`）。
+    /// 7.4 拒绝 `cellIns` / 接受 `cellDel` 时，只有一行少一个格的情况走这里。
+    #[inline]
+    fn absorb_cell_width(&self, table: NodeId, cell: NodeId, plan: &mut MutationPlan) {
+        let s = self;
+        let Ok(t) = table_of(s, table) else { return };
+        let geo = geometry(t);
+        let Some(row) = geo.rows.iter().find(|r| r.cells.iter().any(|&(n, _, _)| n == cell)) else {
+            return;
+        };
+        let i = row.cells.iter().position(|&(n, _, _)| n == cell).expect("checked above");
+        let pick = if i > 0 { row.cells.get(i - 1) } else { row.cells.get(i + 1) };
+        let Some(&(neighbour, _, nspan)) = pick else { return };
+        let width = {
+            let dom = s.dom();
+            let tc_pr = table_ops_child_named(dom, cell, LocalName::TcPr);
+            crate::semantic::props::read_cell_props(dom, tc_pr, &mut Vec::new())
+                .width
+                .as_ref()
+                .and_then(TblWidth::twips)
+                .unwrap_or(0)
+        };
+        let span = row.cells[i].2;
+        patch_cell_span(s, neighbour, Some(nspan + span), width, plan);
+    }
+    /// 每一行在第 `col` 列上的那个 `w:tc`（`(行节点, 格节点)`）。
+    #[inline]
+    fn column_cells(&self, table: NodeId, col: u32) -> impl Iterator<Item = (NodeId, NodeId)> + '_ {
+        table_of(self, table).ok().into_iter().flat_map(move |table| {
+            table.rows.iter().filter_map(move |row| {
+                RowGeometry::cell_spans(row)
+                    .find(|&(_, start, span)| col >= start && col < start + span)
+                    .map(|(cell, _, _)| (row.node, cell))
+            })
+        })
+    }
+    /// `w:tblGrid` 的 `w:gridCol` 节点，按列序。
+    #[inline]
+    fn grid_cols(&self, table: NodeId) -> impl Iterator<Item = NodeId> + '_ {
+        table_of(self, table).ok().into_iter().flat_map(|table| table.grid.iter().map(|g| g.node))
+    }
 }
-/// 一个格被单独删掉时，把它的网格跨度与宽度并进同行的邻格（左邻优先，行首取右邻），
-/// 保住「一行的网格宽度 = `tblGrid` 列数」（`MOD-07` / `SAVE-02` 的 `SAVE_TABLE_GRID`）。
-/// 7.4 拒绝 `cellIns` / 接受 `cellDel` 时，只有一行少一个格的情况走这里。
-pub(super) fn absorb_cell_width(
-    s: &EditSession,
-    table: NodeId,
-    cell: NodeId,
-    plan: &mut MutationPlan,
-) {
-    let Ok(t) = table_of(s, table) else { return };
-    let geo = geometry(t);
-    let Some(row) = geo.rows.iter().find(|r| r.cells.iter().any(|&(n, _, _)| n == cell)) else {
-        return;
-    };
-    let i = row.cells.iter().position(|&(n, _, _)| n == cell).expect("checked above");
-    let pick = if i > 0 { row.cells.get(i - 1) } else { row.cells.get(i + 1) };
-    let Some(&(neighbour, _, nspan)) = pick else { return };
-    let width = {
-        let dom = s.dom();
-        let tc_pr = table_ops_child_named(dom, cell, LocalName::TcPr);
-        crate::semantic::props::read_cell_props(dom, tc_pr, &mut Vec::new())
-            .width
-            .as_ref()
-            .and_then(TblWidth::twips)
-            .unwrap_or(0)
-    };
-    let span = row.cells[i].2;
-    patch_cell_span(s, neighbour, Some(nspan + span), width, plan);
-}
-/// 每一行在第 `col` 列上的那个 `w:tc`（`(行节点, 格节点)`）。
-pub(super) fn column_cells(s: &EditSession, table: NodeId, col: u32) -> Vec<(NodeId, NodeId)> {
-    let Ok(t) = table_of(s, table) else { return Vec::new() };
-    let geo = geometry(t);
-    geo.rows.iter().filter_map(|row| row.cell_at(col).map(|i| (row.node, row.cells[i].0))).collect()
-}
-/// `w:tblGrid` 的 `w:gridCol` 节点，按列序。
-pub(super) fn grid_cols(s: &EditSession, table: NodeId) -> Vec<NodeId> {
-    let Ok(t) = table_of(s, table) else { return Vec::new() };
-    geometry(t).grid.iter().map(|&(n, _)| n).collect()
+
+impl RowGeometry {
+    /// 根据原模型声明计算列位置；借用 owner，不构造整张几何表。
+    #[inline]
+    fn cell_spans(row: &Row) -> impl Iterator<Item = (NodeId, u32, u32)> + '_ {
+        row.cells.iter().scan(u32_of(&row.props.grid_before), |col, cell| {
+            let start = *col;
+            let span = cell.grid_span();
+            *col += span;
+            Some((cell.node, start, span))
+        })
+    }
 }
 // ---- MergeCells ---------------------------------------------------------------------------------
 pub fn merge_cells(
@@ -8443,37 +8462,38 @@ impl EditSession {
             .ancestors(cell)
             .find(|&a| dom.is(a, QName::w(LocalName::Tbl)))
             .ok_or_else(|| Error::edit(DiagCode::EditPlanInvalid, "格不在表格里"))?;
-        let Some((col, span)) = cell_column(s, table, cell) else {
+        let Some((col, span)) = s.cell_column(table, cell) else {
             let mut plan = MutationPlan::new(job.part);
             plan.structure_changed = true;
             plan.node_edits.push(NodeEdit::Delete(cell));
             return Ok(vec![plan]);
         };
         // 这一列上带同种标记的格；有一行没标记 → 网格不能收缩
-        let column = column_cells(s, table, col);
+        let mut column = s.column_cells(table, col).peekable();
         let dom = s.dom_in(part)?;
         let marked = |c: NodeId| {
             Dom::live_children(dom, c).find(|&x| dom.is(x, QName::w(LocalName::TcPr))).is_some_and(
                 |tcpr| Dom::live_children(dom, tcpr).any(|m| dom.is(m, QName::w(mark))),
             )
         };
-        let whole_column = !column.is_empty() && column.iter().all(|&(_, c)| marked(c));
+        let whole_column = column.peek().is_some() && column.all(|(_, c)| marked(c));
         let mut plan = MutationPlan::new(job.part);
         plan.structure_changed = true;
         plan.touch(table);
         if whole_column {
-            for &(_, c) in &column {
+            // 尚未提交，模型保持不变；重新借用同一列，避免保存临时目标集合。
+            for (_, c) in s.column_cells(table, col) {
                 plan.node_edits.push(NodeEdit::Delete(c));
             }
             if span == 1 {
-                for g in grid_cols(s, table).into_iter().skip(col as usize).take(1) {
+                if let Some(g) = s.grid_cols(table).nth(col as usize) {
                     plan.node_edits.push(NodeEdit::Delete(g));
                 }
             }
         } else {
             // 只这一行少一个格：把它的宽度并进邻格，行的网格宽度才还对得上 `tblGrid`
             plan.node_edits.push(NodeEdit::Delete(cell));
-            absorb_cell_width(s, table, cell, &mut plan);
+            s.absorb_cell_width(table, cell, &mut plan);
         }
         Ok(vec![plan])
     }
