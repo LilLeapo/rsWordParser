@@ -15,7 +15,6 @@ use rsword::edit::{
     BlockAt, BlockPos, EditContext, EditOp, EditSession, InlinePos, NewBlock, NewInline, NewRun,
     RevisionAuthor,
 };
-use rsword::model::Block;
 use rsword::xml::NodeId;
 
 /// 五份小语料（各 2 KB 上下）：双向文字、表格 + 图、交叉引用字段、修订、表格修订。
