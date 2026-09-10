@@ -792,7 +792,7 @@ fn part_images(ctx: &Ctx<'_>, hf: &HfPart) -> Vec<Value> {
     let mut out = Vec::new();
     for n in dom.semantic_descendants(hf.root) {
         if dom.is(n, QName::w(LocalName::Drawing)) {
-            let d = crate::model::drawing::drawing_display(dom, n);
+            let d = crate::model::drawing_display(dom, n);
             let anchored = d.anchor.is_some();
             if !anchored && in_table(n) {
                 continue;
@@ -801,7 +801,7 @@ fn part_images(ctx: &Ctx<'_>, hf: &HfPart) -> Vec<Value> {
                 out.push(img);
             }
         } else if dom.is(n, QName::w(LocalName::Pict)) || dom.is(n, QName::w(LocalName::Object)) {
-            let v = crate::model::vml::vml_display(dom, n);
+            let v = crate::model::vml_display(dom, n);
             // 文字水印不算图片
             if v.shapes.iter().any(|s| s.textpath.is_some()) {
                 continue;
@@ -830,11 +830,7 @@ fn top_level_table_ranges(dom: &Dom, root: NodeId) -> Vec<(u32, u32)> {
 }
 
 /// `w:drawing` → 一条 `HfImage`。解析不出媒体就不出这条（TS 同样跳过）。
-fn drawing_image(
-    ctx: &Ctx<'_>,
-    d: &crate::model::drawing::DrawingDisplay,
-    node: NodeId,
-) -> Option<Value> {
+fn drawing_image(ctx: &Ctx<'_>, d: &crate::model::DrawingDisplay, node: NodeId) -> Option<Value> {
     // 一个 drawing 里可能有几张图（mac Word 的 PDF Choice + PNG Fallback）：取第一张解析得出的
     let found = d
         .pictures
@@ -899,7 +895,7 @@ fn vml_image(
 }
 
 /// `wp:positionH` / `wp:positionV` → `posH` / `posV` 或 `posXPx` / `posYPx` + 基准。
-fn anchor_pos(a: &crate::model::drawing::AnchorGeom, o: &mut Map<String, Value>) {
+fn anchor_pos(a: &crate::model::AnchorGeom, o: &mut Map<String, Value>) {
     for (axis_h, pos) in [(true, &a.h), (false, &a.v)] {
         if let Some(align) = pos.align.as_deref() {
             if axis_h {
@@ -929,8 +925,8 @@ fn anchor_pos(a: &crate::model::drawing::AnchorGeom, o: &mut Map<String, Value>)
     }
 }
 
-fn wrap_name(w: &crate::model::drawing::Wrap) -> Option<&'static str> {
-    use crate::model::drawing::Wrap;
+fn wrap_name(w: &crate::model::Wrap) -> Option<&'static str> {
+    use crate::model::Wrap;
     Some(match w {
         Wrap::None => "none",
         Wrap::Square { .. } => "square",
@@ -959,22 +955,22 @@ fn v_align(a: &str) -> Option<&'static str> {
     }
 }
 
-/// EMU → px，四舍五入（`MOD-11` 的单位换算集中在 `model/units.rs`）。
+/// EMU → px，四舍五入（`MOD-11` 的单位换算集中在 `model::emu_to_px`）。
 fn px(emu: i64) -> i64 {
     #[allow(clippy::cast_possible_truncation)]
-    let v = crate::model::units::emu_to_px(emu as f64).round() as i64;
+    let v = crate::model::emu_to_px(emu as f64).round() as i64;
     v
 }
 
 /// VML `style` 里的长度 → px（`width:40pt` → 53）。无单位或非绝对单位 → `None`。
-fn style_px(l: crate::model::units::Length) -> Option<i64> {
+fn style_px(l: crate::model::Length) -> Option<i64> {
     #[allow(clippy::cast_possible_truncation)]
-    let v = crate::model::units::emu_to_px(l.to_emu()?).round() as i64;
+    let v = crate::model::emu_to_px(l.to_emu()?).round() as i64;
     (v > 0).then_some(v)
 }
 
 /// `a:srcRect` → 四边的小数（TS `rectFrac`：千分之一百分比 → 0..1）。
-fn crop_json(c: crate::model::drawing::RectFrac) -> Map<String, Value> {
+fn crop_json(c: crate::model::RectFrac) -> Map<String, Value> {
     let mut o = Map::new();
     for (k, v) in [("l", c.l), ("t", c.t), ("r", c.r), ("b", c.b)] {
         #[allow(clippy::cast_precision_loss)]
@@ -1009,7 +1005,7 @@ fn para_align_of(dom: &Dom, node: NodeId) -> Option<&'static str> {
 ///
 /// 任何一处表达不出来就整张不给（返回 `None`）：有文字、有旋转 / 翻转、缺尺寸、没有实心填充、
 /// 几何用了公式或圆弧（`model::custgeom` 给不出路径）。宁可不画，也不能画一张缺了形状的图。
-fn shape_drawing_svg(ctx: &Ctx<'_>, d: &crate::model::drawing::DrawingDisplay) -> Option<String> {
+fn shape_drawing_svg(ctx: &Ctx<'_>, d: &crate::model::DrawingDisplay) -> Option<String> {
     let ext = d.extent.filter(|e| e.cx > 0 && e.cy > 0)?;
     if d.shapes.is_empty() || d.shapes.iter().any(|s| !s.content.is_empty()) {
         return None;
@@ -1045,7 +1041,7 @@ fn shape_drawing_svg(ctx: &Ctx<'_>, d: &crate::model::drawing::DrawingDisplay) -
         let fill = s
             .fill
             .as_ref()
-            .filter(|f| f.kind == crate::model::drawing::FillKind::Solid)
+            .filter(|f| f.kind == crate::model::FillKind::Solid)
             .and_then(|f| super::box_json::color_hex(ctx, f.node))?;
         let geom = s.geom.as_ref()?;
         let pd = super::box_json::path_data(geom, s.ext)?;
@@ -1099,7 +1095,7 @@ fn place_path(d: &str, x: f64, y: f64, w: f64, h: f64) -> String {
 
 /// EMU → px，保留两位小数（TS `px()`）。
 fn emu_px2(emu: f64) -> f64 {
-    round2(crate::model::units::emu_to_px(emu))
+    round2(crate::model::emu_to_px(emu))
 }
 
 fn round2(v: f64) -> f64 {

@@ -12,8 +12,8 @@ use crate::diag::DiagCode;
 use crate::edit::plan::{MutationPlan, MutationResult};
 use crate::edit::{EditSession, NewBlock};
 use crate::error::{Error, Result};
-use crate::model::macros::named_enum;
-use crate::model::omml::escape_text;
+use crate::model::escape_text;
+use crate::model::named_enum;
 use crate::package::ns_context::NamespaceContext;
 use crate::package::{PartId, RelType};
 use crate::xml::plan::{NewElement, NodeEdit, Target};
@@ -106,12 +106,12 @@ pub(crate) fn materialize_at(
         NewBlock::MathPara { omml, align } => {
             let body = match &omml {
                 crate::edit::NewMath::Omml(x) => x.clone(),
-                crate::edit::NewMath::Latex(t) => crate::model::omml::latex_to_omml(t)?,
+                crate::edit::NewMath::Latex(t) => crate::model::latex_to_omml(t)?,
             };
-            let xml = crate::model::omml::math_paragraph_xml(&body, &align);
+            let xml = crate::model::math_paragraph_xml(&body, &align);
             let main = s.main_part();
             let w_uri = NsId::W.uri(s.flavor()).expect("w 有两族 URI");
-            let m_uri = crate::model::omml::NS_M;
+            let m_uri = crate::model::NS_M;
             let xml =
                 xml.replacen("<w:p>", &format!(r#"<w:p xmlns:w="{w_uri}" xmlns:m="{m_uri}">"#), 1);
             let dom = s

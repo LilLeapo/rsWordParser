@@ -4,7 +4,7 @@
 
 use serde_json::{Map, Value, json};
 
-use crate::model::theme::ThemeSlot;
+use crate::model::ThemeSlot;
 use crate::model::{Document, Level, StyleType};
 use crate::resolve::{Resolver, rgb_hex};
 use crate::semantic::props::{
@@ -725,7 +725,7 @@ pub(super) fn theme_fonts_json(doc: &Document, r: &Resolver) -> Value {
 /// TS `parseTheme` 的 colors：没有 theme part → 内建 Office 调色板；有 part 但无 clrScheme → `null`。
 pub(super) fn theme_colors_json(doc: &Document) -> Value {
     let palette = match &doc.theme {
-        None => crate::model::theme::ColorScheme::office_default(),
+        None => crate::model::ColorScheme::office_default(),
         Some(t) => match &t.colors {
             Some(c) => c.clone(),
             None => return Value::Null,

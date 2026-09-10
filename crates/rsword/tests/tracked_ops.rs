@@ -968,7 +968,7 @@ const TABLE_DOC: &str = concat!(
     r#"<w:p><w:r><w:t>表后一段</w:t></w:r></w:p>"#,
 );
 
-fn table_block(s: &EditSession) -> &rsword::model::table::TableBlock {
+fn table_block(s: &EditSession) -> &rsword::model::TableBlock {
     s.document()
         .main
         .iter()

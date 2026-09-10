@@ -4,10 +4,14 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
+use rsword::model::ChartPart;
 use rsword::model::ColorScheme;
-use rsword::model::chart::ChartPart;
-use rsword::model::diagram::{canvas_display, diagram_shapes, diagram_text};
-use rsword::model::omml::{latex, mathml, tokens};
+use rsword::model::canvas_display;
+use rsword::model::diagram_shapes;
+use rsword::model::diagram_text;
+use rsword::model::to_latex;
+use rsword::model::to_mathml;
+use rsword::model::tokens;
 use rsword::package::PartId;
 use rsword::xml::{Dom, LocalName, NsId, QName};
 
@@ -24,8 +28,8 @@ fuzz_target!(|data: &[u8]| {
     for n in dom.descendants(dom.root()) {
         if dom.is(n, QName::new(NsId::M, LocalName::OMath)) {
             let _ = tokens(&dom, n).len();
-            let _ = mathml::to_mathml(&dom, n).len();
-            let _ = latex::to_latex(&dom, n).map(|s| s.len());
+            let _ = to_mathml(&dom, n).len();
+            let _ = to_latex(&dom, n).map(|s| s.len());
         } else if dom.is(n, QName::new(NsId::Lc, LocalName::LockedCanvas)) {
             let _ = canvas_display(&dom, n).shapes.len();
         }

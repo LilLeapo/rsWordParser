@@ -9,8 +9,9 @@ use std::ops::Range;
 
 use crate::diag::DiagCode;
 use crate::error::{Error, Result};
-use crate::model::block::TextBlock;
-use crate::model::inline::{Inline, SegmentKind};
+use crate::model::Inline;
+use crate::model::SegmentKind;
+use crate::model::TextBlock;
 use crate::package::PartId;
 use crate::xml::NodeId;
 

@@ -12,7 +12,6 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
 use rsword::bind::native::{DocumentOpts, document_json, document_schema};
-use rsword::model::Document;
 use rsword::package::Package;
 use serde::Deserialize as _;
 use serde_json::Value;
@@ -273,7 +272,7 @@ fn check_corpus(display: bool) {
             continue;
         }
         let mut pkg = opened.unwrap_or_else(|e| panic!("{}: 意外打开失败: {e}", path.display()));
-        let doc = Document::rebuild(&mut pkg)
+        let doc = rsword::model::Document::rebuild(&mut pkg)
             .unwrap_or_else(|e| panic!("{}: 意外重建失败: {e}", path.display()));
         let opts = DocumentOpts { display };
         let json = document_json(&pkg, &doc, opts).0;
@@ -298,7 +297,7 @@ fn check_corpus(display: bool) {
             path.display()
         );
         let mut rebuilt_pkg = Package::open(&bytes).unwrap();
-        let rebuilt_doc = Document::rebuild(&mut rebuilt_pkg).unwrap();
+        let rebuilt_doc = rsword::model::Document::rebuild(&mut rebuilt_pkg).unwrap();
         assert_eq!(
             first,
             document_json(&rebuilt_pkg, &rebuilt_doc, opts).to_string(),
@@ -411,7 +410,7 @@ fn bind_02_volume_reduction() {
             continue;
         }
         with_media += 1;
-        let doc = Document::rebuild(&mut pkg).unwrap();
+        let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
         ours_total += document_json(&pkg, &doc, DocumentOpts::default()).to_string().len();
         ts_total += rsword::bind::compat_ts::parsed_doc(&mut pkg).unwrap().to_string().len();
     }

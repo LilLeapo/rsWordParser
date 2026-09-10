@@ -3,8 +3,8 @@
 //! （`COMPAT-02` 的 `richParas`），BIND-02 禁止项，M9 随 compat_ts 删除——跳过；`RichRun`
 //! 只被 `rich` 用，不投影。`Comments` / `Notes` 容器不写表：`Document` 顶层直接投影 `items`。
 
-use crate::model::block::Block;
-use crate::model::notes::{Comment, Note, NoteKind};
+use crate::model::Block;
+use crate::model::{Comment, Note, NoteKind};
 use crate::xml::NodeId;
 
 use super::model_json;

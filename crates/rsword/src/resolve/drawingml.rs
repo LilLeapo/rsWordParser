@@ -26,7 +26,7 @@
 //! 的变换被丢掉。那是 TS 的缺陷（`docs/04` §8「TS 的缺陷不跟随」），这里一律施加。语料里没有这种
 //! 写法，所以不影响差分。
 
-use crate::model::theme::{ColorScheme, ThemeSlot};
+use crate::model::{ColorScheme, ThemeSlot};
 use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
 
 /// sRGB 三通道，0–255，**保留小数**：多段渐变要先平均再取整（TS `gradFillApproxHex` 同序）。

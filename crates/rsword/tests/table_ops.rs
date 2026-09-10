@@ -44,14 +44,14 @@ fn shape(s: &EditSession) -> Vec<(usize, Vec<u32>, i32, i32)> {
 fn cell_text(s: &EditSession, row: usize, cell: usize) -> String {
     table_of(s).rows[row].cells[cell]
         .text_blocks()
-        .map(TextBlock::text)
+        .map(rsword::model::TextBlock::text)
         .collect::<Vec<_>>()
         .join("|")
 }
 
 fn assert_refresh_matches_rebuild(s: &mut EditSession, what: &str) {
     let refreshed = s.document().clone();
-    let rebuilt = Document::rebuild(s.package_mut()).unwrap();
+    let rebuilt = rsword::model::Document::rebuild(s.package_mut()).unwrap();
     assert_eq!(refreshed.main, rebuilt.main, "{what}: refresh 与 rebuild 不一致");
 }
 
@@ -523,7 +523,7 @@ fn test_07_random_table_edit_sequences() {
             }
             // MOD-13：投影 == 重建
             let refreshed = s.document().clone();
-            let rebuilt = Document::rebuild(s.package_mut()).unwrap();
+            let rebuilt = rsword::model::Document::rebuild(s.package_mut()).unwrap();
             assert_eq!(refreshed.main, rebuilt.main, "{what}: refresh != rebuild");
             // SAVE-02：不能出现引擎不变式破坏
             assert!(
@@ -562,7 +562,10 @@ fn table_shapes(doc: &Document) -> Vec<Vec<(Vec<u32>, Vec<String>)>> {
                         r.cells
                             .iter()
                             .map(|c| {
-                                c.text_blocks().map(TextBlock::text).collect::<Vec<_>>().join("|")
+                                c.text_blocks()
+                                    .map(rsword::model::TextBlock::text)
+                                    .collect::<Vec<_>>()
+                                    .join("|")
                             })
                             .collect(),
                     )

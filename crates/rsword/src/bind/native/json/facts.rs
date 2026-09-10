@@ -2,10 +2,10 @@
 //! （`MOD-05`）与 `TextKind` 判定（`MOD-03`）的输入。bool 一律 `flag` 行——为真才写
 //! `true`，缺席即假。
 
-use crate::model::block::{ListRef, SdtInfo};
-use crate::model::facts::{
+use crate::model::{
     DrawingFacts, DrawingKind, MathFacts, ParagraphFacts, PictFacts, PictKind, RevisionFacts,
 };
+use crate::model::{ListRef, SdtInfo};
 use crate::span::FieldId;
 use crate::xml::NodeId;
 

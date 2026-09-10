@@ -9,7 +9,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::model::table::{Cell, Row, TableBlock};
+use crate::model::{Cell, Row, TableBlock};
 use crate::model::{Style, StyleType, TableStylePr};
 use crate::resolve::{Effective, Provenance, Resolver};
 use crate::semantic::props::{

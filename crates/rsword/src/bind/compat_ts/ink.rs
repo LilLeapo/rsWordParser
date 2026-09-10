@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use serde_json::{Map, Value, json};
 
 use super::blocks::Ctx;
-use crate::model::units::EMU_PER_PX;
+use crate::model::EMU_PER_PX;
 use crate::xml::NodeId;
 
 /// EMU → px 的 JSON 值：整除给整数，否则给浮点（TS `emu / 9525`）。

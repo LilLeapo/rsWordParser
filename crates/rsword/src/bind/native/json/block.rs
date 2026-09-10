@@ -7,14 +7,14 @@
 //! `ImageBlock.display` 与 `ProtectedBlock.display` / `siblings` 属显示模型（`MOD-11`），
 //! `display: true` 才投影（决策 4）。
 
-use crate::model::block::{
+use crate::model::Display;
+use crate::model::Inline;
+use crate::model::ParagraphFacts;
+use crate::model::TableBlock;
+use crate::model::{
     Block, ImageBlock, ListRef, ProtectedBlock, ProtectedKind, Revision, SdtInfo, TextBlock,
     TextKind,
 };
-use crate::model::drawing::Display;
-use crate::model::facts::ParagraphFacts;
-use crate::model::inline::Inline;
-use crate::model::table::TableBlock;
 use crate::semantic::props::{CellProps, ParaProps, RowProps, SectionProps, TableProps};
 use crate::span::{FieldId, RevisionMeta};
 use crate::xml::{NodeId, QName};

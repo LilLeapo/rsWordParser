@@ -1,6 +1,6 @@
 //! 主题颜色解析（`RES-05`）：槽位映射、shade → tint 的 sRGB 逐通道近似。
 
-use crate::model::theme::{ColorScheme, ThemeSlot};
+use crate::model::{ColorScheme, ThemeSlot};
 use crate::semantic::props::{Color, HexColorOrAuto, Val};
 
 /// `c*s/255` 再 `c*t/255 + 255*(1 - t/255)`，逐通道四舍五入。`tint`/`shade` 是 `themeTint`/`themeShade` 的 0–255。

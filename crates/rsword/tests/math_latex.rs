@@ -4,9 +4,9 @@
 
 mod common;
 
-use rsword::model::omml::latex_to_omml;
+use rsword::model::latex_to_omml;
 #[cfg(feature = "compat-ts")]
-use rsword::model::omml::math_paragraph_xml;
+use rsword::model::math_paragraph_xml;
 #[cfg(feature = "compat-ts")]
 use serde_json::Value;
 

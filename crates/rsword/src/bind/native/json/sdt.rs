@@ -2,7 +2,7 @@
 //! `SdtControl` / `SdtLock` 是 `sdt_enum!`，`as_str` 即 JSON 值。`SdtRefusal` 是 edit 侧
 //! （`EDIT-03`）的拒绝理由，不是模型，不投影。
 
-use crate::model::sdt::{DataBinding, DocPart, SdtControl, SdtInfo, SdtLock};
+use crate::model::{DataBinding, DocPart, SdtControl, SdtInfo, SdtLock};
 use crate::xml::NodeId;
 
 use super::{as_str_json, model_json};

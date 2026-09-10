@@ -1,6 +1,6 @@
 //! 主题字体解析（`RES-05`）：`rFonts` 的主题属性覆盖同槽字面值；空 EA 槽按 `themeFontLang`。
 
-use crate::model::theme::{FontScheme, FontSlots};
+use crate::model::{FontScheme, FontSlots};
 use crate::semantic::props::{Fonts, ThemeFont, Val};
 
 /// `w:rFonts` 解析后的四个槽位。

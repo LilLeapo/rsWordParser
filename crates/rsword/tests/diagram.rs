@@ -11,7 +11,7 @@ mod common;
 use rsword::bind::compat_ts::{
     EmbeddedKind, block_of_path, diff_json, embedded_kind, known_diffs, parsed_doc, split_known,
 };
-use rsword::model::{Block, Display, Document, ProtectedKind};
+use rsword::model::ProtectedKind;
 use rsword::package::Package;
 #[cfg(feature = "compat-ts")]
 use serde_json::{Value, json};
@@ -216,7 +216,7 @@ fn compat_03_smart_art_text_tree_and_drawing_part_shapes() {
         let docx = smart_art_docx(&para, via_rel, "diagrams/data1.xml");
         // 模型：数据 part 与绘图 part 都找到了
         let mut pkg = Package::open(&docx).expect("open");
-        let doc = Document::rebuild(&mut pkg).expect("rebuild");
+        let doc = rsword::model::Document::rebuild(&mut pkg).expect("rebuild");
         let dp = doc.diagram_parts.values().next().expect("diagram part");
         assert!(dp.drawing.is_some(), "via_rel={via_rel}: 绘图 part 没找到");
         assert_eq!(dp.text.as_deref(), Some("Root & team\nFirst\nLeaf\nLater\nIsolated"));
@@ -469,10 +469,12 @@ fn compat_03_canvas_anchor_offsets_and_missing_extent() {
 fn mod_11_canvas_and_diagram_blocks_in_the_model() {
     let docx = canvas_docx(&canvas_run(None, true));
     let mut pkg = Package::open(&docx).expect("open");
-    let doc = Document::rebuild(&mut pkg).expect("rebuild");
-    let Some(Block::Protected(pb)) = doc.main.first() else { panic!("{:?}", doc.main.first()) };
+    let doc = rsword::model::Document::rebuild(&mut pkg).expect("rebuild");
+    let Some(rsword::model::Block::Protected(pb)) = doc.main.first() else {
+        panic!("{:?}", doc.main.first())
+    };
     assert_eq!(pb.kind, ProtectedKind::SmartArt);
-    let d = pb.display.as_ref().and_then(Display::as_drawing).expect("drawing");
+    let d = pb.display.as_ref().and_then(rsword::model::Display::as_drawing).expect("drawing");
     let c = d.canvas.as_deref().expect("canvas");
     assert_eq!(c.ch_off, Some((285_750, 571_500)));
     assert_eq!(c.ch_ext.map(|e| (e.cx, e.cy)), Some((8_572_500, 5_715_000)));

@@ -415,7 +415,7 @@ use serde_json::Value;
 
 fn document(body: &str) -> (Package, Document) {
     let mut pkg = Package::open(&common::docx_with_body(body)).unwrap();
-    let doc = Document::rebuild(&mut pkg).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
     (pkg, doc)
 }
 
@@ -438,7 +438,9 @@ fn mod_06_atomic_field_takes_one_coordinate_unit() {
     let tb = doc.text_blocks().next().unwrap();
     assert_eq!(tb.text(), "a\u{FFFC}b", "结果 `12` 只占 1 个单位");
     assert_eq!(tb.inlines.len(), 3);
-    let Inline::Field { id, result } = &tb.inlines[1] else { panic!("{:?}", tb.inlines[1]) };
+    let rsword::model::Inline::Field { id, result } = &tb.inlines[1] else {
+        panic!("{:?}", tb.inlines[1])
+    };
     assert_eq!(*doc.fields.get(*id).unwrap().keyword(), Keyword::Page);
     assert_eq!(result.len(), 1, "结果 run 仍在，只是不参与坐标");
     // 结构 run（begin / instrText / separate / end）不出现在 inlines 里
@@ -458,7 +460,7 @@ fn fld_07_hyperlink_field_is_transparent() {
         .inlines
         .iter()
         .filter_map(|i| match i {
-            Inline::Run(r) => Some(r),
+            rsword::model::Inline::Run(r) => Some(r),
             _ => None,
         })
         .collect();
@@ -490,8 +492,8 @@ fn mod_05_r09_block_field_protects_its_paragraphs() {
         .main
         .iter()
         .map(|b| match b {
-            Block::Protected(p) => format!("{:?}", p.kind),
-            Block::Text(_) => "Text".into(),
+            rsword::model::Block::Protected(p) => format!("{:?}", p.kind),
+            rsword::model::Block::Text(_) => "Text".into(),
             _ => "other".into(),
         })
         .collect();

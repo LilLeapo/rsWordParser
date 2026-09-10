@@ -15,7 +15,6 @@ use rsword::edit::{
     BlockAt, BlockPos, EditContext, EditOp, EditSession, InlinePos, NewBlock, NewInline, NewRun,
     RevisionAuthor,
 };
-use rsword::model::Block;
 use rsword::xml::NodeId;
 
 /// 五份小语料（各 2 KB 上下）：双向文字、表格 + 图、交叉引用字段、修订、表格修订。
@@ -64,7 +63,7 @@ fn main_bytes(s: &EditSession) -> Vec<u8> {
 fn op_of(s: &EditSession, k: &OpSketch) -> Option<EditOp> {
     let doc = s.document();
     let paras: Vec<(NodeId, u32)> = doc.paragraphs().map(|b| (b.node, b.utf16_len())).collect();
-    let blocks: Vec<NodeId> = doc.main.iter().map(Block::node).collect();
+    let blocks: Vec<NodeId> = doc.main.iter().map(rsword::model::Block::node).collect();
     let (para, len) = *paras.get(k.para as usize % paras.len().max(1))?;
     let a = u32::from(k.from) % (len + 1);
     let b = u32::from(k.to) % (len + 1);

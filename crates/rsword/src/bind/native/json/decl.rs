@@ -3,7 +3,7 @@
 //! `props_gen`）；这里只补手写的 `CompatFacts`。`OwnHeadingLevel` 是 `RES-02` 的内部
 //! 辅助，不进模型 JSON。
 
-use crate::model::decl::CompatFacts;
+use crate::model::CompatFacts;
 use crate::semantic::props::CompatSetting;
 use crate::xml::QName;
 

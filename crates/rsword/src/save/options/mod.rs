@@ -568,11 +568,11 @@ pub(crate) fn plan_all(
         }
     }
     if let Some(want) = &opts.sources
-        && let Some(id) = crate::model::sources::find_part(pkg)
+        && let Some(id) = crate::model::find_part(pkg)
     {
         pkg.dom(id)?;
         if let Some(dom) = pkg.part(id).dom() {
-            let current = crate::model::sources::read(dom);
+            let current = crate::model::read(dom);
             let plan = decl::sources_plan(dom, id, &current, want);
             if !plan.is_empty() {
                 plans.push(plan);

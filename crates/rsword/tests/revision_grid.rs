@@ -1,7 +1,6 @@
 //! SAVE-02 / EDIT-05：拒绝列修订保留当前存活列；推导失败不得提交非法网格。
 mod common;
 use rsword::edit::{BlockPos, EditContext, EditOp, EditSession, NewBlock, RevisionAuthor};
-use rsword::model::RevKind;
 use rsword::semantic::props::Val;
 
 fn tracked() -> EditContext {
@@ -36,7 +35,7 @@ fn edit_03_reject_insert_preserves_current_column_widths() {
             .revisions
             .entries()
             .iter()
-            .find(|r| r.kind == RevKind::TableGridChange)
+            .find(|r| r.kind == rsword::model::RevKind::TableGridChange)
             .unwrap()
             .id;
         let op = if reject_all {
@@ -78,7 +77,7 @@ fn save_02_reject_inconsistent_grid_snapshot_is_atomic() {
         .revisions
         .entries()
         .iter()
-        .find(|r| r.kind == RevKind::TableGridChange)
+        .find(|r| r.kind == rsword::model::RevKind::TableGridChange)
         .unwrap()
         .id;
     let err = s.apply(EditOp::RejectRevision { rev }, &EditContext::default()).unwrap_err();

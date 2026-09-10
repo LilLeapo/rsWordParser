@@ -9,8 +9,8 @@ use std::collections::BTreeSet;
 
 use serde_json::{Map, Value};
 
-use crate::model::table::{Cell, TableBlock};
 use crate::model::{Block, Revision, RevisionMeta, Style, StyleType, TextBlock};
+use crate::model::{Cell, TableBlock};
 use crate::resolve::rgb_hex;
 use crate::resolve::{Resolver, TableView, ViewCell};
 use crate::semantic::props::{

@@ -46,7 +46,10 @@ fn cell_texts(doc: &Document) -> Vec<Vec<Vec<String>>> {
             t.rows
                 .iter()
                 .map(|r| {
-                    r.cells.iter().map(|c| c.text_blocks().map(TextBlock::text).collect()).collect()
+                    r.cells
+                        .iter()
+                        .map(|c| c.text_blocks().map(rsword::model::TextBlock::text).collect())
+                        .collect()
                 })
                 .collect()
         })
@@ -64,7 +67,7 @@ fn child_names(s: &EditSession, node: rsword::xml::NodeId) -> Vec<&'static str> 
 /// 投影与从 DOM 完整重建的结果一致（`MOD-13` 的 oracle）。
 fn assert_refresh_matches_rebuild(s: &mut EditSession, what: &str) {
     let refreshed = s.document().clone();
-    let rebuilt = Document::rebuild(s.package_mut()).unwrap();
+    let rebuilt = rsword::model::Document::rebuild(s.package_mut()).unwrap();
     assert_eq!(refreshed.main, rebuilt.main, "{what}: refresh 与 rebuild 不一致");
 }
 

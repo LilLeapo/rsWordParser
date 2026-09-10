@@ -13,7 +13,7 @@ use rsword::edit::{
     InlinePos, NewBlock, NewChart, NewChartKind, NewChartSeries, NewComment, NewImage, NewInk,
     NewInline, NewRun,
 };
-use rsword::model::{Block, HfKind, HfVariant, ProtectedKind, SectionOwner};
+use rsword::model::{Block, ProtectedKind};
 use rsword::save::options::CompatSaveOptions as SaveOptions;
 use rsword::xml::NodeId;
 
@@ -33,7 +33,7 @@ fn content_blocks(s: &EditSession) -> Vec<NodeId> {
         .main
         .iter()
         .filter(|b| !matches!(b, Block::Protected(p) if p.kind == ProtectedKind::SectionProps))
-        .map(Block::node)
+        .map(rsword::model::Block::node)
         .collect()
 }
 
@@ -241,7 +241,7 @@ fn generate_edited_real_documents() {
                     .main
                     .iter()
                     .find(|b| matches!(b, Block::Image(_)))
-                    .map(Block::node);
+                    .map(rsword::model::Block::node);
                 let Some(p) = pic else { return Ok(None) };
                 dom.descendants(p)
                     .find(|&n| dom.is(n, rsword::xml::QName::w(rsword::xml::LocalName::Drawing)))
@@ -280,14 +280,14 @@ fn generate_edited_real_documents() {
                 .document()
                 .sections
                 .last()
-                .filter(|x| x.owner == SectionOwner::Body)
+                .filter(|x| x.owner == rsword::model::SectionOwner::Body)
                 .and_then(|x| x.node);
             let Some(sect) = sect else { return Ok(None) };
             s.apply(
                 EditOp::SetHeaderFooter {
                     sect,
-                    kind: HfKind::Header,
-                    variant: HfVariant::Default,
+                    kind: rsword::model::HfKind::Header,
+                    variant: rsword::model::HfVariant::Default,
                     content: vec![NewBlock::Paragraph {
                         props: None,
                         inlines: vec![NewInline::Run(NewRun::text("rsword 页眉"))],

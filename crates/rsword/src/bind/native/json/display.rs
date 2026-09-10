@@ -10,23 +10,21 @@
 
 use serde_json::Value;
 
-use crate::model::block::Block;
-use crate::model::chart::{
-    ChartColor, ChartDisplay, ChartGrouping, ChartKind, ChartPart, ChartSeries, LegendPos,
-};
-use crate::model::custgeom::{CustomGeom, GeomCmd, GeomPath};
-use crate::model::diagram::{
-    CanvasDisplay, DiagramLine, DiagramPart, DiagramPicture, DiagramShape,
-};
-use crate::model::drawing::{
+use crate::model::Block;
+use crate::model::DrawingKind;
+use crate::model::FormulaDisplay;
+use crate::model::ThemeSlot;
+use crate::model::{
     Anchor, AnchorGeom, BodyPr, ChartRef, DiagramRef, Display, Dist, DocPr, DrawingDisplay, Extent,
     FillDisplay, FillKind, ImageDisplay, LineDisplay, Position, RectFrac, ShapeDisplay, StyleRef,
     Wrap,
 };
-use crate::model::facts::DrawingKind;
-use crate::model::math::FormulaDisplay;
-use crate::model::theme::ThemeSlot;
-use crate::model::vml::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};
+use crate::model::{CanvasDisplay, DiagramLine, DiagramPart, DiagramPicture, DiagramShape};
+use crate::model::{
+    ChartColor, ChartDisplay, ChartGrouping, ChartKind, ChartPart, ChartSeries, LegendPos,
+};
+use crate::model::{CustomGeom, GeomCmd, GeomPath};
+use crate::model::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};
 use crate::package::PartId;
 use crate::resolve::drawingml::{ColorBase, ColorTransform, DrawingColor, Rgb};
 use crate::xml::NodeId;

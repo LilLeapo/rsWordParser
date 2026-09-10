@@ -59,7 +59,7 @@ fn content_blocks(doc: &Document) -> Vec<NodeId> {
     doc.main
         .iter()
         .filter(|b| !matches!(b, Block::Protected(p) if p.kind == ProtectedKind::SectionProps))
-        .map(Block::node)
+        .map(rsword::model::Block::node)
         .collect()
 }
 
@@ -212,7 +212,7 @@ fn test_07_random_embedded_edit_sequences() {
             }
             // MOD-13：投影 == 重建（块与墨迹表）
             let refreshed = s.document().clone();
-            let rebuilt = Document::rebuild(s.package_mut()).unwrap();
+            let rebuilt = rsword::model::Document::rebuild(s.package_mut()).unwrap();
             assert_eq!(refreshed.main, rebuilt.main, "{what}: refresh != rebuild");
             assert_eq!(refreshed.inks, rebuilt.inks, "{what}: 墨迹表 refresh != rebuild");
             assert!(
