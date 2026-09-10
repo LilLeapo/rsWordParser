@@ -3827,7 +3827,7 @@ pub fn set_textbox_content(
         let opaque = matches!(block, NewBlock::Xml(_) | NewBlock::Wrapped { .. });
         let node = MutationPlan::new_block_element(dom, block);
         let node = match &mut tracker {
-            Some(t) => mark_new_block_inserted(t, node, opaque),
+            Some(t) => t.mark_new_block_inserted(node, opaque),
             None => node,
         };
         plan.node_edits.push(NodeEdit::Insert {
@@ -4056,13 +4056,13 @@ impl EditSession {
                 source: src,
             }),
             (None, Some(src)) => {
-                clone_row_props_without_revisions(&mut plan, s.dom(), row_k, src);
+                plan.clone_row_props_without_revisions(s.dom(), row_k, src);
             }
             (None, None) => {}
             (Some(t), Some(src)) => {
                 let k = plan.node_edits.len();
                 if src_revs {
-                    clone_row_props_without_revisions(&mut plan, s.dom(), row_k, src);
+                    plan.clone_row_props_without_revisions(s.dom(), row_k, src);
                 } else {
                     plan.node_edits.push(NodeEdit::InsertClone {
                         parent: Target::New(row_k),
@@ -4886,30 +4886,30 @@ fn row_revision_marks(dom: &Dom, tr_pr: NodeId) -> impl Iterator<Item = NodeId> 
             .any(|&l| dom.is(c, QName::w(l)))
     })
 }
-/// 把模板行的 `trPr` 逐个子元素克隆过去，**跳过修订标记**。子元素各自还是字节克隆
-/// （`XML-12` 规则 F），只是那几个不跟着走。
-fn clone_row_props_without_revisions(
-    plan: &mut MutationPlan,
-    dom: &Dom,
-    row_k: usize,
-    src: NodeId,
-) {
-    let k = plan.node_edits.len();
-    plan.node_edits.push(NodeEdit::Insert {
-        parent: Target::New(row_k),
-        before: None,
-        node: NewElement::new(QName::w(LocalName::TrPr)),
-    });
-    let revs: Vec<NodeId> = row_revision_marks(dom, src).collect();
-    for c in Dom::live_element_children(dom, src) {
-        if revs.contains(&c) {
-            continue;
-        }
-        plan.node_edits.push(NodeEdit::InsertClone {
-            parent: Target::New(k),
+impl MutationPlan {
+    #[inline]
+    /// 把模板行的 `trPr` 逐个子元素克隆过去，**跳过修订标记**。子元素各自还是字节克隆
+    /// （`XML-12` 规则 F），只是那几个不跟着走。
+    fn clone_row_props_without_revisions(&mut self, dom: &Dom, row_k: usize, src: NodeId) {
+        let plan = self;
+
+        let k = plan.node_edits.len();
+        plan.node_edits.push(NodeEdit::Insert {
+            parent: Target::New(row_k),
             before: None,
-            source: c,
+            node: NewElement::new(QName::w(LocalName::TrPr)),
         });
+        let revs: Vec<NodeId> = row_revision_marks(dom, src).collect();
+        for c in Dom::live_element_children(dom, src) {
+            if revs.contains(&c) {
+                continue;
+            }
+            plan.node_edits.push(NodeEdit::InsertClone {
+                parent: Target::New(k),
+                before: None,
+                source: c,
+            });
+        }
     }
 }
 
@@ -5265,80 +5265,89 @@ pub fn insert_ordered(
         .unwrap_or(container.children.len());
     container.children.insert(at, NewNode::Element(marker));
 }
-/// 新建的块（`NewElement`，还没进 DOM）标成"插入"（`spec/18` 7.3）：
-///
-/// - `NewBlock::Paragraph` → 内容子节点整批进一个 `w:ins`，再给段落标记加 `pPr/rPr/w:ins`；
-/// - `NewBlock::Table` → 每个 `w:tr` 加 `trPr/w:ins`（`w:tblPrEx` 仍排在 `w:trPr` 之前）；
-/// - `NewBlock::Xml` / `Wrapped`（`opaque`）→ 整个元素包进块级 `w:ins`（TS 的形态，
-///   解析器已认）。调用方给的是整段原始 XML，往里面塞标记就等于改写它给的字节。
-pub fn mark_new_block_inserted(t: &mut Tracker, node: NewElement, opaque: bool) -> NewElement {
-    if opaque {
-        return t.marker(LocalName::Ins).with_child(node);
-    }
-    let is = |e: &NewElement, l: LocalName| e.name == track_w(l);
-    if is(&node, LocalName::P) {
-        let mut out = NewElement::new(node.name);
-        out.attrs = node.attrs.clone();
-        let mut content = t.marker(LocalName::Ins);
-        for child in node.children {
-            match &child {
-                NewNode::Element(e) if e.name == track_w(LocalName::PPr) => {
-                    out.children.push(NewNode::Element(with_para_mark(t, e.clone())));
+impl Tracker {
+    #[inline]
+    /// 新建的块（`NewElement`，还没进 DOM）标成"插入"（`spec/18` 7.3）：
+    ///
+    /// - `NewBlock::Paragraph` → 内容子节点整批进一个 `w:ins`，再给段落标记加 `pPr/rPr/w:ins`；
+    /// - `NewBlock::Table` → 每个 `w:tr` 加 `trPr/w:ins`（`w:tblPrEx` 仍排在 `w:trPr` 之前）；
+    /// - `NewBlock::Xml` / `Wrapped`（`opaque`）→ 整个元素包进块级 `w:ins`（TS 的形态，
+    ///   解析器已认）。调用方给的是整段原始 XML，往里面塞标记就等于改写它给的字节。
+    fn mark_new_block_inserted(&mut self, node: NewElement, opaque: bool) -> NewElement {
+        let t = self;
+
+        if opaque {
+            return t.marker(LocalName::Ins).with_child(node);
+        }
+        let is = |e: &NewElement, l: LocalName| e.name == track_w(l);
+        if is(&node, LocalName::P) {
+            let mut out = NewElement::new(node.name);
+            out.attrs = node.attrs;
+            let mut content = t.marker(LocalName::Ins);
+            for child in node.children {
+                match child {
+                    NewNode::Element(e) if e.name == track_w(LocalName::PPr) => {
+                        out.children.push(NewNode::Element(t.with_para_mark(e)));
+                    }
+                    other => content.children.push(other),
                 }
-                _ => content.children.push(child),
             }
+            // 没有 `pPr` 时补一个，只为放段落标记的 `w:ins`
+            if !out
+                .children
+                .iter()
+                .any(|c| matches!(c, NewNode::Element(e) if e.name == QName::w(LocalName::PPr)))
+            {
+                let ppr = t.with_para_mark(NewElement::new(track_w(LocalName::PPr)));
+                out.children.insert(0, NewNode::Element(ppr));
+            }
+            if !content.children.is_empty() {
+                out.children.push(NewNode::Element(content));
+            }
+            return out;
         }
-        // 没有 `pPr` 时补一个，只为放段落标记的 `w:ins`
-        if !out
-            .children
-            .iter()
-            .any(|c| matches!(c, NewNode::Element(e) if e.name == QName::w(LocalName::PPr)))
-        {
-            let ppr = with_para_mark(t, NewElement::new(track_w(LocalName::PPr)));
-            out.children.insert(0, NewNode::Element(ppr));
+        if is(&node, LocalName::Tbl) {
+            let mut out = NewElement::new(node.name);
+            out.attrs = node.attrs;
+            for child in node.children {
+                match child {
+                    NewNode::Element(e) if e.name == track_w(LocalName::Tr) => {
+                        out.children.push(NewNode::Element(t.with_row_mark(e, LocalName::Ins)));
+                    }
+                    other => out.children.push(other),
+                }
+            }
+            return out;
         }
-        if !content.children.is_empty() {
-            out.children.push(NewNode::Element(content));
-        }
-        return out;
+        t.marker(LocalName::Ins).with_child(node)
     }
-    if is(&node, LocalName::Tbl) {
-        let mut out = NewElement::new(node.name);
-        out.attrs = node.attrs.clone();
-        for child in node.children {
+}
+impl Tracker {
+    #[inline]
+    /// `pPr` 里放段落标记的 `w:ins`（`rPr` 缺就建；`w:ins` 是 `rPr` 的第一个子元素，`PROP-05`）。
+    fn with_para_mark(&mut self, ppr: NewElement) -> NewElement {
+        let t = self;
+
+        let marker = t.marker(LocalName::Ins);
+        let mut out = NewElement::new(ppr.name);
+        out.attrs = ppr.attrs;
+        let mut done = false;
+        for child in ppr.children {
             match child {
-                NewNode::Element(e) if e.name == track_w(LocalName::Tr) => {
-                    out.children.push(NewNode::Element(with_row_mark(t, e, LocalName::Ins)));
+                NewNode::Element(e) if e.name == track_w(LocalName::RPr) => {
+                    let mut rpr = NewElement::new(e.name);
+                    rpr.attrs = e.attrs;
+                    rpr.children.push(NewNode::Element(marker.clone()));
+                    rpr.children.extend(e.children);
+                    out.children.push(NewNode::Element(rpr));
+                    done = true;
                 }
                 other => out.children.push(other),
             }
         }
-        return out;
-    }
-    t.marker(LocalName::Ins).with_child(node)
-}
-/// `pPr` 里放段落标记的 `w:ins`（`rPr` 缺就建；`w:ins` 是 `rPr` 的第一个子元素，`PROP-05`）。
-fn with_para_mark(t: &mut Tracker, ppr: NewElement) -> NewElement {
-    let marker = t.marker(LocalName::Ins);
-    let mut out = NewElement::new(ppr.name);
-    out.attrs = ppr.attrs.clone();
-    let mut done = false;
-    for child in ppr.children {
-        match child {
-            NewNode::Element(e) if e.name == track_w(LocalName::RPr) => {
-                let mut rpr = NewElement::new(e.name);
-                rpr.attrs = e.attrs.clone();
-                rpr.children.push(NewNode::Element(marker.clone()));
-                rpr.children.extend(e.children);
-                out.children.push(NewNode::Element(rpr));
-                done = true;
-            }
-            other => out.children.push(other),
-        }
-    }
-    if !done {
-        // `w:rPr` 是 `w:pPr` 的最后一个子元素（只有 `sectPr` / `pPrChange` 在它后面）
-        let at = out
+        if !done {
+            // `w:rPr` 是 `w:pPr` 的最后一个子元素（只有 `sectPr` / `pPrChange` 在它后面）
+            let at = out
             .children
             .iter()
             .position(|c| {
@@ -5346,47 +5355,53 @@ fn with_para_mark(t: &mut Tracker, ppr: NewElement) -> NewElement {
                     if e.name == QName::w(LocalName::SectPr) || e.name == QName::w(LocalName::PPrChange))
             })
             .unwrap_or(out.children.len());
-        out.children.insert(
-            at,
-            NewNode::Element(NewElement::new(track_w(LocalName::RPr)).with_child(marker)),
-        );
-    }
-    out
-}
-/// `w:tr` 加 `trPr/w:ins` 或 `trPr/w:del`。
-fn with_row_mark(t: &mut Tracker, row: NewElement, mark: LocalName) -> NewElement {
-    let marker = t.marker(mark);
-    let mut out = NewElement::new(row.name);
-    out.attrs = row.attrs.clone();
-    let mut done = false;
-    for child in row.children {
-        match child {
-            NewNode::Element(e) if e.name == track_w(LocalName::TrPr) => {
-                let mut trpr = NewElement::new(e.name);
-                trpr.attrs = e.attrs.clone();
-                trpr.children.extend(e.children);
-                trpr.children.push(NewNode::Element(marker.clone()));
-                out.children.push(NewNode::Element(trpr));
-                done = true;
-            }
-            other => out.children.push(other),
+            out.children.insert(
+                at,
+                NewNode::Element(NewElement::new(track_w(LocalName::RPr)).with_child(marker)),
+            );
         }
+        out
     }
-    if !done {
-        // `w:trPr` 紧跟 `w:tblPrEx`（如果有），在所有 `w:tc` 之前
-        let at = out
-            .children
-            .iter()
-            .position(
-                |c| !matches!(c, NewNode::Element(e) if e.name == QName::w(LocalName::TblPrEx)),
-            )
-            .unwrap_or(out.children.len());
-        out.children.insert(
-            at,
-            NewNode::Element(NewElement::new(track_w(LocalName::TrPr)).with_child(marker)),
-        );
+}
+impl Tracker {
+    #[inline]
+    /// `w:tr` 加 `trPr/w:ins` 或 `trPr/w:del`。
+    fn with_row_mark(&mut self, row: NewElement, mark: LocalName) -> NewElement {
+        let t = self;
+
+        let marker = t.marker(mark);
+        let mut out = NewElement::new(row.name);
+        out.attrs = row.attrs;
+        let mut done = false;
+        for child in row.children {
+            match child {
+                NewNode::Element(e) if e.name == track_w(LocalName::TrPr) => {
+                    let mut trpr = NewElement::new(e.name);
+                    trpr.attrs = e.attrs;
+                    trpr.children.extend(e.children);
+                    trpr.children.push(NewNode::Element(marker.clone()));
+                    out.children.push(NewNode::Element(trpr));
+                    done = true;
+                }
+                other => out.children.push(other),
+            }
+        }
+        if !done {
+            // `w:trPr` 紧跟 `w:tblPrEx`（如果有），在所有 `w:tc` 之前
+            let at = out
+                .children
+                .iter()
+                .position(
+                    |c| !matches!(c, NewNode::Element(e) if e.name == QName::w(LocalName::TblPrEx)),
+                )
+                .unwrap_or(out.children.len());
+            out.children.insert(
+                at,
+                NewNode::Element(NewElement::new(track_w(LocalName::TrPr)).with_child(marker)),
+            );
+        }
+        out
     }
-    out
 }
 /// `REV_NOT_TRACKED`：这个操作 Word 也不记修订（或另有机制），照常执行、留一条记录。
 /// 有 `MutationPlan` 的地方用 `ops::run` 入口那条集中判定；这里给没有计划的调用点用。
@@ -8955,7 +8970,7 @@ impl EditSession {
             let opaque = matches!(block, NewBlock::Xml(_) | NewBlock::Wrapped { .. });
             let node = MutationPlan::new_block_element(dom, block);
             let node = match &mut tracker {
-                Some(t) => mark_new_block_inserted(t, node, opaque),
+                Some(t) => t.mark_new_block_inserted(node, opaque),
                 None => node,
             };
             plan.node_edits.push(NodeEdit::Insert {
@@ -11202,7 +11217,7 @@ impl EditSession {
             // 追踪：段落的内容进 `w:ins` 且段落标记标插入；表格每行 `trPr/w:ins`；其他整块包 `w:ins`
             let node = match &mut tracker {
                 None => node,
-                Some(t) => mark_new_block_inserted(t, node, opaque),
+                Some(t) => t.mark_new_block_inserted(node, opaque),
             };
             plan.node_edits.push(NodeEdit::Insert { parent: Target::Node(parent), before, node });
         }
@@ -12833,7 +12848,7 @@ impl EditSession {
                 let node = MutationPlan::new_block_element(dom, b);
                 // 追踪：新结果块按 `InsertBlock` 规则、旧结果块按 `DeleteBlock` 规则（`spec/18` 7.3）
                 let node = match &mut tracker {
-                    Some(t) => mark_new_block_inserted(t, node, opaque),
+                    Some(t) => t.mark_new_block_inserted(node, opaque),
                     None => node,
                 };
                 plan.node_edits.push(NodeEdit::Insert {

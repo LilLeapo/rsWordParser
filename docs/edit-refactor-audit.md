@@ -86,3 +86,15 @@ check、fmt、diff --check、库测试 425 项以及 edit / cell_edit / revision
   edit / cell_edit / revision_grid 回归通过。
 - `cargo check --workspace` 在表格方法单元后通过。基础层源码扫描未发现对编辑类型
   的实现依赖，仍有旧文档链接待统一更新；save 双向编排依赖仍待处理。
+
+## 修订模板方法归属
+
+按用户进一步明确的规则，优先选择被修改对象作为 receiver；没有可变对象时，
+再选择主要借用状态及领域归属。
+`with_para_mark` / `with_row_mark` / `mark_new_block_inserted` → Tracker 的私有
+inline 方法；`clone_row_props_without_revisions` → MutationPlan 的私有 inline 方法。
+调用使用 `t.with_para_mark(...)`、`plan.clone_row_props_without_revisions(...)` 等形式。
+消费 NewElement 时移动属性集合与段落属性元素，移除六处属性 clone 及一处子树 clone。
+重复属性容器需要复用同一修订标记，marker.clone 保留，未更改修订 ID 分配顺序。
+check、fmt、diff 检查、库测试 425 项和三组修订回归通过。
+一次库测试编译受到 SIGTERM 中断，随后原命令重跑通过；中断不计成功。
