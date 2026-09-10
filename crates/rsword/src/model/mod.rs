@@ -355,7 +355,7 @@ pub mod build {
             };
             // 文献源 part 按根元素找（customXml 的关系类型对每个 item 都一样）；要在下面借出
             // 各 part 的 DOM 之前做完，它自己要 `&mut pkg`
-            let sources_part = crate::model::sources::find_part(pkg);
+            let sources_part = crate::model::find_part(pkg);
             let styles_id = aux(pkg, RelType::Styles, "word/styles.xml");
             let comments_id = aux(pkg, RelType::Comments, "word/comments.xml");
             let comments_ex_id = aux(pkg, RelType::CommentsExtended, "word/commentsExtended.xml");
@@ -527,7 +527,7 @@ pub mod build {
                 let cp = ChartPart::build(id, pkg.part(id).dom(), &scheme, &mut warnings);
                 chart_parts.insert(id, cp);
             }
-            let sources = dom_of(sources_part).map(crate::model::sources::read).unwrap_or_default();
+            let sources = dom_of(sources_part).map(crate::model::read).unwrap_or_default();
             let font_table = dom_of(font_id).and_then(|d| FontTable::from_dom(d, &mut warnings));
             let with_dom = |id: Option<PartId>| id.and_then(|i| pkg.part(i).dom().map(|d| (i, d)));
             // 条目内容复用正文管线（任务 5.3）：要那个 part 自己的 rels（条目里的图片 / 链接按 part 解析）
@@ -8992,126 +8992,124 @@ pub mod section {
         Some(sections.iter().position(|s| s.end_offset > start).unwrap_or(sections.len() - 1))
     }
 }
-pub mod sources {
-    //! 参考文献源（`MOD-10`，`spec/16` 任务 5.7）。
-    //!
-    //! Word 把文献源放在一个 `customXml/item{N}.xml` part 里，根元素是 bibliography 命名空间的
-    //! `b:Sources`——放在这儿 Word 自己的"管理源"对话框才认。所以这份数据既不在主 part 里，
-    //! 也不在任何 `w:` 关系上，只能按"根元素叫什么"去找（`find_part`）。
-    //!
-    //! 读的是**投影**：`Source` 只收 TS `SourceInfo` 的六个字段，未建模的域（`b:Editor` /
-    //! `b:Volume` / `b:Pages` / 多作者列表…）留在 DOM 里，写回时原字节不动（`SAVE-07` 的权威列表
-    //! 只重建变了的条目）。
 
-    use crate::package::{Package, PartId};
-    use crate::xml::{Dirty, Dom, LocalName, NodeId, NsId, QName};
+// 参考文献源（`MOD-10`，`spec/16` 任务 5.7）。
+//
+// Word 把文献源放在一个 `customXml/item{N}.xml` part 里，根元素是 bibliography 命名空间的
+// `b:Sources`——放在这儿 Word 自己的"管理源"对话框才认。所以这份数据既不在主 part 里，
+// 也不在任何 `w:` 关系上，只能按"根元素叫什么"去找（`find_part`）。
+//
+// 读的是**投影**：`Source` 只收 TS `SourceInfo` 的六个字段，未建模的域（`b:Editor` /
+// `b:Volume` / `b:Pages` / 多作者列表…）留在 DOM 里，写回时原字节不动（`SAVE-07` 的权威列表
+// 只重建变了的条目）。
 
-    /// 一条文献源（TS `SourceInfo`）。
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct Source {
-        /// `b:Tag`：引文里引用它的短标签，也是权威列表的键。
-        pub tag: String,
-        /// `b:SourceType`（`JournalArticle` / `Book` / `InternetSite` …）；缺失按 TS 记 `Misc`。
-        pub kind: String,
-        /// `b:Corporate`，否则第一个 `b:Person` 的 `"Last, First"`（两者都缺就是空串）。
-        pub author: String,
-        pub title: String,
-        pub year: String,
-        /// `b:Publisher` → `b:JournalName` → `b:InternetSiteTitle`，取第一个有的。
-        pub publisher: Option<String>,
-        pub url: Option<String>,
-        /// 这条 `b:Source` 元素本身（写回时未变的条目原字节保留）。
-        pub node: NodeId,
-    }
+use crate::package::Package;
+use crate::xml::Dirty;
 
-    fn b(local: LocalName) -> QName {
-        QName::new(NsId::B, local)
-    }
+/// 一条文献源（TS `SourceInfo`）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Source {
+    /// `b:Tag`：引文里引用它的短标签，也是权威列表的键。
+    pub tag: String,
+    /// `b:SourceType`（`JournalArticle` / `Book` / `InternetSite` …）；缺失按 TS 记 `Misc`。
+    pub kind: String,
+    /// `b:Corporate`，否则第一个 `b:Person` 的 `"Last, First"`（两者都缺就是空串）。
+    pub author: String,
+    pub title: String,
+    pub year: String,
+    /// `b:Publisher` → `b:JournalName` → `b:InternetSiteTitle`，取第一个有的。
+    pub publisher: Option<String>,
+    pub url: Option<String>,
+    /// 这条 `b:Source` 元素本身（写回时未变的条目原字节保留）。
+    pub node: NodeId,
+}
 
-    fn live(dom: &Dom, n: NodeId) -> bool {
-        dom.node(n).dirty != Dirty::Deleted
-    }
+fn b(local: LocalName) -> QName {
+    QName::new(NsId::B, local)
+}
 
-    /// 子树里第一个该名字元素的文本（trim 过）。TS 用正则取"整条 `b:Source` 里第一个"，
-    /// 所以多作者时只看第一个 `b:Person`——这里按同一规则走文档序。
-    fn field(dom: &Dom, source: NodeId, local: LocalName) -> Option<String> {
-        let n = dom.semantic_descendants(source).find(|&n| live(dom, n) && dom.is(n, b(local)))?;
-        let text = crate::xml::xpath::string_value(dom, n);
-        let text = text.trim();
-        (!text.is_empty()).then(|| text.to_string())
-    }
+fn live(dom: &Dom, n: NodeId) -> bool {
+    dom.node(n).dirty != Dirty::Deleted
+}
 
-    /// 一个 part 的 `b:Sources` 根元素。
-    fn sources_root(dom: &Dom) -> Option<NodeId> {
-        let root = dom.root();
-        dom.is(root, b(LocalName::Sources)).then_some(root)
-    }
+/// 子树里第一个该名字元素的文本（trim 过）。TS 用正则取"整条 `b:Source` 里第一个"，
+/// 所以多作者时只看第一个 `b:Person`——这里按同一规则走文档序。
+fn field(dom: &Dom, source: NodeId, local: LocalName) -> Option<String> {
+    let n = dom.semantic_descendants(source).find(|&n| live(dom, n) && dom.is(n, b(local)))?;
+    let text = crate::xml::xpath::string_value(dom, n);
+    let text = text.trim();
+    (!text.is_empty()).then(|| text.to_string())
+}
 
-    /// 包里承载 `b:Sources` 的 part：`customXml/item{N}.xml` 里根元素是 `b:Sources` 的那个。
-    ///
-    /// 按**根元素**找而不是按关系：customXml 的关系类型对每个 item 都一样，Word 也是这么找的
-    /// （TS `findSourcesPart` 用"文件名匹配 + 内容里出现命名空间"，同一件事）。
-    pub fn find_part(pkg: &mut Package) -> Option<PartId> {
-        let candidates: Vec<PartId> = pkg
-            .parts()
-            .iter()
-            .filter(|p| p.is_xml && is_custom_xml_item(p.uri.as_str()))
-            .map(|p| p.id)
-            .collect();
-        candidates
-            .into_iter()
-            .find(|&id| pkg.dom(id).ok().flatten().and_then(sources_root).is_some())
-    }
+/// 一个 part 的 `b:Sources` 根元素。
+fn sources_root(dom: &Dom) -> Option<NodeId> {
+    let root = dom.root();
+    dom.is(root, b(LocalName::Sources)).then_some(root)
+}
 
-    /// `customXml/item1.xml`（不含 `itemProps1.xml`）。
-    pub(super) fn is_custom_xml_item(uri: &str) -> bool {
-        let Some(rest) = uri.strip_prefix("customXml/item") else { return false };
-        let Some(digits) = rest.strip_suffix(".xml") else { return false };
-        !digits.is_empty() && digits.bytes().all(|c| c.is_ascii_digit())
-    }
+/// 包里承载 `b:Sources` 的 part：`customXml/item{N}.xml` 里根元素是 `b:Sources` 的那个。
+///
+/// 按**根元素**找而不是按关系：customXml 的关系类型对每个 item 都一样，Word 也是这么找的
+/// （TS `findSourcesPart` 用"文件名匹配 + 内容里出现命名空间"，同一件事）。
+pub fn find_part(pkg: &mut Package) -> Option<PartId> {
+    let candidates: Vec<PartId> = pkg
+        .parts()
+        .iter()
+        .filter(|p| p.is_xml && is_custom_xml_item(p.uri.as_str()))
+        .map(|p| p.id)
+        .collect();
+    candidates.into_iter().find(|&id| pkg.dom(id).ok().flatten().and_then(sources_root).is_some())
+}
 
-    /// 一个 `b:Sources` part 的全部条目（文档序）。`b:Tag` 缺失的条目跳过（同 TS：标签是键）。
-    pub fn read(dom: &Dom) -> Vec<Source> {
-        let Some(root) = sources_root(dom) else { return Vec::new() };
-        dom.semantic_children(root)
-            .filter(|&n| live(dom, n) && dom.is(n, b(LocalName::Source)))
-            .filter_map(|n| {
-                let tag = field(dom, n, LocalName::UTag)?;
-                let author = field(dom, n, LocalName::Corporate).unwrap_or_else(|| {
-                    let last = field(dom, n, LocalName::Last).unwrap_or_default();
-                    let first = field(dom, n, LocalName::First).unwrap_or_default();
-                    [last, first]
-                        .iter()
-                        .filter(|s| !s.is_empty())
-                        .cloned()
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                });
-                Some(Source {
-                    tag,
-                    kind: field(dom, n, LocalName::SourceType).unwrap_or_else(|| "Misc".into()),
-                    author,
-                    title: field(dom, n, LocalName::UTitle).unwrap_or_default(),
-                    year: field(dom, n, LocalName::Year).unwrap_or_default(),
-                    publisher: field(dom, n, LocalName::Publisher)
-                        .or_else(|| field(dom, n, LocalName::JournalName))
-                        .or_else(|| field(dom, n, LocalName::InternetSiteTitle)),
-                    url: field(dom, n, LocalName::URL),
-                    node: n,
-                })
+/// `customXml/item1.xml`（不含 `itemProps1.xml`）。
+pub(in crate::model) fn is_custom_xml_item(uri: &str) -> bool {
+    let Some(rest) = uri.strip_prefix("customXml/item") else { return false };
+    let Some(digits) = rest.strip_suffix(".xml") else { return false };
+    !digits.is_empty() && digits.bytes().all(|c| c.is_ascii_digit())
+}
+
+/// 一个 `b:Sources` part 的全部条目（文档序）。`b:Tag` 缺失的条目跳过（同 TS：标签是键）。
+pub fn read(dom: &Dom) -> Vec<Source> {
+    let Some(root) = sources_root(dom) else { return Vec::new() };
+    dom.semantic_children(root)
+        .filter(|&n| live(dom, n) && dom.is(n, b(LocalName::Source)))
+        .filter_map(|n| {
+            let tag = field(dom, n, LocalName::UTag)?;
+            let author = field(dom, n, LocalName::Corporate).unwrap_or_else(|| {
+                let last = field(dom, n, LocalName::Last).unwrap_or_default();
+                let first = field(dom, n, LocalName::First).unwrap_or_default();
+                [last, first]
+                    .iter()
+                    .filter(|s| !s.is_empty())
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            });
+            Some(Source {
+                tag,
+                kind: field(dom, n, LocalName::SourceType).unwrap_or_else(|| "Misc".into()),
+                author,
+                title: field(dom, n, LocalName::UTitle).unwrap_or_default(),
+                year: field(dom, n, LocalName::Year).unwrap_or_default(),
+                publisher: field(dom, n, LocalName::Publisher)
+                    .or_else(|| field(dom, n, LocalName::JournalName))
+                    .or_else(|| field(dom, n, LocalName::InternetSiteTitle)),
+                url: field(dom, n, LocalName::URL),
+                node: n,
             })
-            .collect()
-    }
+        })
+        .collect()
+}
 
-    /// `b:SourceType` → 出版方字段的元素名（TS `sourceEntryXml` 的三分支）。
-    pub fn publisher_element(kind: &str) -> LocalName {
-        match kind {
-            "JournalArticle" => LocalName::JournalName,
-            "InternetSite" => LocalName::InternetSiteTitle,
-            _ => LocalName::Publisher,
-        }
+/// `b:SourceType` → 出版方字段的元素名（TS `sourceEntryXml` 的三分支）。
+pub fn publisher_element(kind: &str) -> LocalName {
+    match kind {
+        "JournalArticle" => LocalName::JournalName,
+        "InternetSite" => LocalName::InternetSiteTitle,
+        _ => LocalName::Publisher,
     }
 }
+
 pub mod table {
     //! 表格模型（`MOD-07`，`MOD-09` 的表格部分，任务 3.2）。
     //!
@@ -10861,7 +10859,7 @@ pub use revision::{RevKind, RevOwner, RevisionEntry, RevisionId, RevisionIndex};
 
 pub use sdt::{DataBinding, DocPart, SdtControl, SdtLock, SdtRefusal, refusing_sdt};
 pub use section::{HfKind, HfVariant, SectionGeom, SectionInfo, SectionOwner, Sections};
-pub use sources::Source;
+
 pub use table::{BlockStep, Blocks, Cell, GridCol, Row, box_flows, glossary_flows};
 pub use theme::{ColorScheme, FontScheme, FontSlots, Theme, ThemeSlot};
 pub use vml::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};
@@ -10875,9 +10873,9 @@ mod test_model {
     use super::drawing::drawing_display;
     use super::lenient_int;
     use super::section::{DEFAULT_MARGIN, DEFAULT_PAGE_HEIGHT, DEFAULT_PAGE_WIDTH};
-    use super::sources::{is_custom_xml_item, publisher_element};
     use super::vml::{vml_color, vml_display};
     use super::*;
+    use super::{is_custom_xml_item, publisher_element};
     use crate::resolve::drawingml::Rgb;
     use crate::semantic::props::{TblStyleOverrideType, ThemeColor};
 

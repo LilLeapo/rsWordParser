@@ -2,7 +2,7 @@
 //! 加 `node`；未建模的 `b:*` 域留在 DOM 里，写回时原字节不动（`SAVE-07` 的权威列表只重建
 //! 变了的条目）。
 
-use crate::model::sources::Source;
+use crate::model::Source;
 use crate::xml::NodeId;
 
 use super::model_json;
