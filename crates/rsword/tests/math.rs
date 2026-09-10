@@ -15,7 +15,6 @@ use rsword::bind::compat_ts::{
 use rsword::edit::{EditContext, EditOp, EditSession, InlinePos};
 use rsword::model::fragments;
 
-use rsword::model::mathml;
 #[cfg(feature = "compat-ts")]
 use rsword::package::Package;
 use rsword::xml::Dom;
@@ -152,7 +151,7 @@ fn mod_11_omml_to_mathml_fixtures() {
     // oMathPara 展开
     let (dom, frags) = omath(&format!("<m:oMathPara>{FRACTION}</m:oMathPara>"));
     assert_eq!(frags.len(), 1);
-    assert!(mathml::to_mathml(&dom, frags[0]).contains("<mfrac>"));
+    assert!(rsword::model::to_mathml(&dom, frags[0]).contains("<mfrac>"));
     // 普通文字 run 整段是 mi；括号在普通 run 里不伸缩；空格跳过；未知字符是 mtext；实体转义
     let m = to_mathml(
         r#"<m:oMath><m:r><m:rPr><m:sty m:val="p"/></m:rPr><m:t>sin</m:t></m:r><m:r><m:t>(a &lt; b) ^</m:t></m:r></m:oMath>"#,
