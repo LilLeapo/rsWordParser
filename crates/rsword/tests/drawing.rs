@@ -15,7 +15,7 @@ use rsword::model::Document;
 use rsword::model::DrawingKind;
 use rsword::model::Inline;
 use rsword::model::SegmentKind;
-use rsword::model::drawing_Wrap as Wrap;
+use rsword::model::Wrap;
 use rsword::model::emu_to_px;
 use rsword::package::Package;
 use serde_json::Value;
@@ -36,12 +36,12 @@ struct Stats {
 
 fn wrap_name(w: &Wrap) -> &'static str {
     match w {
-        rsword::model::drawing_Wrap::None => "none",
-        rsword::model::drawing_Wrap::Square { .. } => "square",
-        rsword::model::drawing_Wrap::Tight { .. } => "tight",
-        rsword::model::drawing_Wrap::Through { .. } => "through",
-        rsword::model::drawing_Wrap::TopAndBottom => "topAndBottom",
-        rsword::model::drawing_Wrap::Unspecified => "unspecified",
+        Wrap::None => "none",
+        Wrap::Square { .. } => "square",
+        Wrap::Tight { .. } => "tight",
+        Wrap::Through { .. } => "through",
+        Wrap::TopAndBottom => "topAndBottom",
+        Wrap::Unspecified => "unspecified",
     }
 }
 

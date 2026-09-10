@@ -323,7 +323,7 @@ fn drawing_edits_are_not_tracked() {
 // ---------------------------------------------------------------- SetDrawingWrap
 
 use rsword::edit::ImageWrap;
-use rsword::model::drawing_Wrap as Wrap;
+use rsword::model::Wrap;
 
 /// 九种绕排 + 随文，`SetDrawingWrap` 的完整取值域。
 const ALL_WRAPS: [Option<ImageWrap>; 10] = [
@@ -399,16 +399,16 @@ fn shell_wrap(s: &EditSession) -> Option<ImageWrap> {
     let a = d.anchor.as_ref()?;
     let right = a.h.align.as_deref() == Some("right");
     Some(match &a.wrap {
-        rsword::model::drawing_Wrap::None if a.behind_doc => ImageWrap::Behind,
-        rsword::model::drawing_Wrap::None => ImageWrap::Front,
-        rsword::model::drawing_Wrap::TopAndBottom => ImageWrap::TopBottom,
-        rsword::model::drawing_Wrap::Square { .. } if right => ImageWrap::SquareRight,
-        rsword::model::drawing_Wrap::Square { .. } => ImageWrap::SquareLeft,
-        rsword::model::drawing_Wrap::Tight { .. } if right => ImageWrap::TightRight,
-        rsword::model::drawing_Wrap::Tight { .. } => ImageWrap::TightLeft,
-        rsword::model::drawing_Wrap::Through { .. } if right => ImageWrap::ThroughRight,
-        rsword::model::drawing_Wrap::Through { .. } => ImageWrap::ThroughLeft,
-        rsword::model::drawing_Wrap::Unspecified => return None,
+        Wrap::None if a.behind_doc => ImageWrap::Behind,
+        Wrap::None => ImageWrap::Front,
+        Wrap::TopAndBottom => ImageWrap::TopBottom,
+        Wrap::Square { .. } if right => ImageWrap::SquareRight,
+        Wrap::Square { .. } => ImageWrap::SquareLeft,
+        Wrap::Tight { .. } if right => ImageWrap::TightRight,
+        Wrap::Tight { .. } => ImageWrap::TightLeft,
+        Wrap::Through { .. } if right => ImageWrap::ThroughRight,
+        Wrap::Through { .. } => ImageWrap::ThroughLeft,
+        Wrap::Unspecified => return None,
     })
 }
 

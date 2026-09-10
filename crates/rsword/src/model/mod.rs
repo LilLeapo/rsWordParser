@@ -10878,7 +10878,7 @@ pub use decl::{
 pub use diagram::{CanvasDisplay, DiagramLine, DiagramPart, DiagramPicture, DiagramShape};
 pub use drawing::{
     AnchorGeom, ChartRef, DiagramRef, Display, Dist, DocPr, DrawingDisplay, Extent, ImageDisplay,
-    LineDisplay, Position, RectFrac, Wrap,
+    LineDisplay, Position, RectFrac, Wrap, drawing_display,
 };
 pub use facts::{
     DrawingFacts, DrawingKind, MathFacts, ParagraphFacts, PictFacts, PictKind, RevisionFacts,
@@ -10890,6 +10890,10 @@ pub use inline::{
 };
 pub use math::FormulaDisplay;
 pub use notes::{Comment, Comments, Note, NoteKind, Notes, RichRun};
+pub use omml::fragments;
+pub use omml::latex::to_latex;
+pub use omml::latex_to_omml::{latex_to_omml, math_paragraph_xml};
+pub use omml::mathml::to_mathml;
 pub use revision::{RevKind, RevOwner, RevisionEntry, RevisionId, RevisionIndex};
 // `SdtInfo` 从 `block` 一并导出（它是 `Block` 的字段）
 pub use aux::AuxFlows;
@@ -10897,8 +10901,9 @@ pub use hf::HfPart;
 pub use sdt::{DataBinding, DocPart, SdtControl, SdtLock, SdtRefusal, refusing_sdt};
 pub use section::{HfKind, HfVariant, SectionGeom, SectionInfo, SectionOwner, Sections};
 pub use sources::Source;
-pub use table::{BlockStep, Blocks, Cell, GridCol, Row, box_flows};
+pub use table::{BlockStep, Blocks, Cell, GridCol, Row, box_flows, glossary_flows};
 pub use theme::{ColorScheme, FontScheme, FontSlots, Theme, ThemeSlot};
+pub use units::{EMU_PER_PX, emu_to_px};
 pub use vml::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};
 
 #[cfg(test)]
