@@ -26,8 +26,12 @@ src/span/index.rs RangeSpan
 src/span/field/index.rs FieldSpan
 src/edit/mod.rs EditOp
 src/edit/mod.rs EditContext
-src/edit/plan.rs MutationResult
-src/edit/session.rs EditSession
+src/edit/mod.rs EntryReconciliation
+src/edit/mod.rs Utf16TextOffset
+src/edit/mod.rs ImageExtentPx
+src/edit/mod.rs ImageExtentEmu
+src/edit/mod.rs MutationResult
+src/edit/mod.rs EditSession
 src/error.rs Error
 src/diag.rs DiagCode
 src/bind/native/error.rs ApiError
@@ -56,6 +60,9 @@ src/bind/native/edit/payload.rs NewBlockJson
 两者不适用该属性。公开载荷里引用的旧模块类型仍处于观察期，不因引用自动扩大稳定承诺。
 
 ```bind-11-values
+src/edit/mod.rs Utf16TextOffset
+src/edit/mod.rs ImageExtentPx
+src/edit/mod.rs ImageExtentEmu
 src/span/index.rs Anchor
 src/bind/native/json.rs ProjCx
 src/bind/native/json.rs DocumentOpts
@@ -107,15 +114,48 @@ src/bind/native/session.rs type:SessionId
 src/bind/native/session.rs type:SessionTable
 src/diag.rs impl:DiagCode:1
 src/diag.rs type:DiagCode
-src/edit/ink_ops.rs impl:EditSession:1
-src/edit/media_ops.rs impl:EditSession:1
 src/edit/mod.rs impl:EditContext:1
+src/edit/mod.rs impl:EditOp:1
+src/edit/mod.rs impl:EditSession:1
+src/edit/mod.rs impl:EditSession:10
+src/edit/mod.rs impl:EditSession:11
+src/edit/mod.rs impl:EditSession:12
+src/edit/mod.rs impl:EditSession:13
+src/edit/mod.rs impl:EditSession:14
+src/edit/mod.rs impl:EditSession:15
+src/edit/mod.rs impl:EditSession:16
+src/edit/mod.rs impl:EditSession:17
+src/edit/mod.rs impl:EditSession:18
+src/edit/mod.rs impl:EditSession:19
+src/edit/mod.rs impl:EditSession:2
+src/edit/mod.rs impl:EditSession:20
+src/edit/mod.rs impl:EditSession:21
+src/edit/mod.rs impl:EditSession:22
+src/edit/mod.rs impl:EditSession:23
+src/edit/mod.rs impl:EditSession:24
+src/edit/mod.rs impl:EditSession:25
+src/edit/mod.rs impl:EditSession:26
+src/edit/mod.rs impl:EditSession:27
+src/edit/mod.rs impl:EditSession:28
+src/edit/mod.rs impl:EditSession:29
+src/edit/mod.rs impl:EditSession:3
+src/edit/mod.rs impl:EditSession:30
+src/edit/mod.rs impl:EditSession:31
+src/edit/mod.rs impl:EditSession:4
+src/edit/mod.rs impl:EditSession:5
+src/edit/mod.rs impl:EditSession:6
+src/edit/mod.rs impl:EditSession:7
+src/edit/mod.rs impl:EditSession:8
+src/edit/mod.rs impl:EditSession:9
+src/edit/mod.rs impl:MutationResult:1
 src/edit/mod.rs type:EditContext
 src/edit/mod.rs type:EditOp
-src/edit/plan.rs impl:MutationResult:1
-src/edit/plan.rs type:MutationResult
-src/edit/session.rs impl:EditSession:1
-src/edit/session.rs type:EditSession
+src/edit/mod.rs type:EditSession
+src/edit/mod.rs type:EntryReconciliation
+src/edit/mod.rs type:ImageExtentEmu
+src/edit/mod.rs type:ImageExtentPx
+src/edit/mod.rs type:MutationResult
+src/edit/mod.rs type:Utf16TextOffset
 src/error.rs impl:Error:1
 src/error.rs type:Error
 src/save/prune.rs impl:EditSession:1
@@ -136,3 +176,5 @@ src/xml/mod.rs type:Dirty
 `with_*` 方法构造；MutationResult 由 apply 返回，也可从 Default 填充公开字段。
 新增字段允许演进，不依赖穷尽结构体字面量。所有破坏性变更须在 crate minor 版本记录迁移路径；
 DiagCode 的既有变体名和机器码只保留、只追加，由 `tests/public_api.rs` 的发布表锁定。
+
+`Utf16TextOffset` 是文本借用与 UTF-16 偏移组成的完整转换输入值，字段集合固定；采用值对象豁免，允许字面构造。转换为 UTF-8 字节偏移使用 `usize::try_from`，失败保留编辑诊断。

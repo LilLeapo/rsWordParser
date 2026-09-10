@@ -4,12 +4,9 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use rsword::model::ChartPart;
-use rsword::model::ColorScheme;
-use rsword::model::canvas_display;
-use rsword::model::diagram_shapes;
-use rsword::model::diagram_text;
-use rsword::model::to_mathml;
+use rsword::model::{
+    ChartPart, ColorScheme, canvas_display, diagram_shapes, diagram_text, to_mathml,
+};
 use rsword::package::PartId;
 use rsword::xml::{Dom, LocalName, NsId, QName};
 
@@ -25,7 +22,7 @@ fuzz_target!(|data: &[u8]| {
     // 公式与画布：文档里每一处
     for n in dom.descendants(dom.root()) {
         if dom.is(n, QName::new(NsId::M, LocalName::OMath)) {
-            let _ = dom.math_tokens(n).count();
+            let _ = dom.math_tokens(n).map(|token| token.len()).sum::<usize>();
             let _ = to_mathml(&dom, n).len();
             let _ = dom.latex(n).map(|s| s.len());
         } else if dom.is(n, QName::new(NsId::Lc, LocalName::LockedCanvas)) {

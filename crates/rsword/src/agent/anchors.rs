@@ -333,12 +333,15 @@ impl AnchorMap {
                         .text_block_in(crate::package::PartId(*part), inline_pos.para)
                         .ok_or_else(|| err("AGENT_BAD_ANCHOR", "源段落不存在"))?;
                     let text = tb.text();
-                    let begin = crate::edit::pos::utf16_to_byte(&text, inline_pos.offset.0)
-                        .map_err(|_| err("AGENT_BAD_ANCHOR", "源起点非法"))?;
-                    let finish = crate::edit::pos::utf16_to_byte(
-                        &text,
-                        inline_pos.offset.0 + s.range.end - s.range.start,
-                    )
+                    let begin = usize::try_from(crate::edit::Utf16TextOffset {
+                        text: &text,
+                        offset: inline_pos.offset,
+                    })
+                    .map_err(|_| err("AGENT_BAD_ANCHOR", "源起点非法"))?;
+                    let finish = usize::try_from(crate::edit::Utf16TextOffset {
+                        text: &text,
+                        offset: Utf16Offset(inline_pos.offset.0 + s.range.end - s.range.start),
+                    })
                     .map_err(|_| err("AGENT_BAD_ANCHOR", "源终点非法"))?;
                     if text.get(begin..finish) != Some(&content[a..b]) {
                         return Err(err("AGENT_BAD_ANCHOR", "源文字与投影不一致"));
@@ -363,7 +366,8 @@ impl AnchorMap {
                         })
                         .chain(std::iter::once(s.range.end - s.range.start))
                     {
-                        crate::edit::pos::locate(tb, Utf16Offset(inline_pos.offset.0 + delta))
+                        Utf16Offset(inline_pos.offset.0 + delta)
+                            .locate(tb)
                             .map_err(|_| err("AGENT_BAD_ANCHOR", "源位置不满足 EDIT-02"))?;
                     }
                     counts.source_utf16 += s.range.end - s.range.start;
