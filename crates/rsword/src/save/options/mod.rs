@@ -230,7 +230,7 @@ pub(crate) fn edit_ops(
 /// 闸门与投影层同一条：全部 `|z| <= 10000` 说明这份文档的 z 序本来就是规矩的，一个字节都不动。
 /// 名次已经对上的那些也不发操作（`SetDrawingZOrder` 会让节点 `SelfDirty`）。
 fn z_order_ops(s: &crate::edit::EditSession) -> Vec<EditOp> {
-    const Z_BASE: i64 = crate::edit::media_ops::Z_ORDER_BASE;
+    const Z_BASE: i64 = crate::edit::Z_ORDER_BASE;
     let main = s.document().main_part;
     let Some(dom) = s.package().part(main).dom() else { return Vec::new() };
     let mut anchored: Vec<(NodeId, i64)> = Vec::new();
