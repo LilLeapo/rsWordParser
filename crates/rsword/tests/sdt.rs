@@ -117,7 +117,12 @@ fn mod_08_locks_and_defaults() {
         (r#"<w:lock w:val="unlocked"/>"#, rsword::model::SdtLock::Unlocked, false, false),
         (r#"<w:lock w:val="sdtLocked"/>"#, rsword::model::SdtLock::SdtLocked, false, true),
         (r#"<w:lock w:val="contentLocked"/>"#, rsword::model::SdtLock::ContentLocked, true, false),
-        (r#"<w:lock w:val="sdtContentLocked"/>"#, rsword::model::SdtLock::SdtContentLocked, true, true),
+        (
+            r#"<w:lock w:val="sdtContentLocked"/>"#,
+            rsword::model::SdtLock::SdtContentLocked,
+            true,
+            true,
+        ),
         // 不认识的字面按未锁（PROP-09 的保值只管属性表；这里是模型的降级）
         (r#"<w:lock w:val="weird"/>"#, rsword::model::SdtLock::Unlocked, false, false),
     ];

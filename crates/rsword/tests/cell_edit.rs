@@ -46,7 +46,10 @@ fn cell_texts(doc: &Document) -> Vec<Vec<Vec<String>>> {
             t.rows
                 .iter()
                 .map(|r| {
-                    r.cells.iter().map(|c| c.text_blocks().map(rsword::model::TextBlock::text).collect()).collect()
+                    r.cells
+                        .iter()
+                        .map(|c| c.text_blocks().map(rsword::model::TextBlock::text).collect())
+                        .collect()
                 })
                 .collect()
         })

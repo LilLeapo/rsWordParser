@@ -470,7 +470,9 @@ fn mod_11_canvas_and_diagram_blocks_in_the_model() {
     let docx = canvas_docx(&canvas_run(None, true));
     let mut pkg = Package::open(&docx).expect("open");
     let doc = rsword::model::Document::rebuild(&mut pkg).expect("rebuild");
-    let Some(rsword::model::Block::Protected(pb)) = doc.main.first() else { panic!("{:?}", doc.main.first()) };
+    let Some(rsword::model::Block::Protected(pb)) = doc.main.first() else {
+        panic!("{:?}", doc.main.first())
+    };
     assert_eq!(pb.kind, ProtectedKind::SmartArt);
     let d = pb.display.as_ref().and_then(rsword::model::Display::as_drawing).expect("drawing");
     let c = d.canvas.as_deref().expect("canvas");

@@ -7,9 +7,9 @@ mod common;
 use std::collections::BTreeMap;
 
 use rsword::model::Document;
-use rsword::semantic::props::StyleType;
 use rsword::package::Package;
 use rsword::resolve::{Resolver, rgb_hex};
+use rsword::semantic::props::StyleType;
 use rsword::semantic::props::{LineSpacingRule, ParaProps, RunProps, UnderlineKind, Val};
 use serde_json::Value;
 

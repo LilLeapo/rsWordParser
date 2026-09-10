@@ -562,7 +562,10 @@ fn table_shapes(doc: &Document) -> Vec<Vec<(Vec<u32>, Vec<String>)>> {
                         r.cells
                             .iter()
                             .map(|c| {
-                                c.text_blocks().map(rsword::model::TextBlock::text).collect::<Vec<_>>().join("|")
+                                c.text_blocks()
+                                    .map(rsword::model::TextBlock::text)
+                                    .collect::<Vec<_>>()
+                                    .join("|")
                             })
                             .collect(),
                     )

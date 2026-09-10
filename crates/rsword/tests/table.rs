@@ -210,7 +210,8 @@ fn mod_09_corpus_table_revisions() {
         let t = doc.tables().next().expect("a table");
         assert_eq!(t.rows.len(), 3, "{name}");
         let row_rev = t.rows[1].revisions.iter().find_map(|r| match (r, kind) {
-            (rsword::model::Revision::Delete(m), "del") | (rsword::model::Revision::Insert(m), "ins") => Some(m),
+            (rsword::model::Revision::Delete(m), "del")
+            | (rsword::model::Revision::Insert(m), "ins") => Some(m),
             _ => None,
         });
         let m = row_rev
@@ -348,7 +349,11 @@ fn compare_table(name: &str, ours: &TableBlock, ts: &Value, depth: usize, st: &m
                 .blocks
                 .iter()
                 .filter_map(|b| match b {
-                    rsword::model::Block::Table(t) if t.rows.iter().any(|r| !r.cells.is_empty()) => Some(t),
+                    rsword::model::Block::Table(t)
+                        if t.rows.iter().any(|r| !r.cells.is_empty()) =>
+                    {
+                        Some(t)
+                    }
                     _ => None,
                 })
                 .collect();

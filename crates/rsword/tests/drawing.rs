@@ -9,7 +9,6 @@ use std::collections::BTreeMap;
 
 #[cfg(feature = "compat-ts")]
 use rsword::bind::compat_ts::parsed_doc;
-use rsword::model::emu_to_px;
 use rsword::model::Block;
 use rsword::model::Display;
 use rsword::model::Document;
@@ -17,6 +16,7 @@ use rsword::model::DrawingKind;
 use rsword::model::Inline;
 use rsword::model::SegmentKind;
 use rsword::model::drawing_Wrap as Wrap;
+use rsword::model::emu_to_px;
 use rsword::package::Package;
 use serde_json::Value;
 
@@ -160,14 +160,20 @@ fn mod_11_vml_and_ole_across_the_corpus() {
         let mut seen: Vec<&VmlDisplay> = Vec::new();
         for block in &doc.main {
             match block {
-                rsword::model::Block::Protected(b) => seen.extend(b.display.as_ref().and_then(rsword::model::Display::as_vml)),
-                rsword::model::Block::Image(b) => seen.extend(b.display.as_ref().and_then(rsword::model::Display::as_vml)),
+                rsword::model::Block::Protected(b) => {
+                    seen.extend(b.display.as_ref().and_then(rsword::model::Display::as_vml))
+                }
+                rsword::model::Block::Image(b) => {
+                    seen.extend(b.display.as_ref().and_then(rsword::model::Display::as_vml))
+                }
                 rsword::model::Block::Text(tb) => {
                     for i in &tb.inlines {
                         let rsword::model::Inline::Run(r) = i else { continue };
                         for s in &r.segments {
                             if matches!(s.kind, SegmentKind::Pict | SegmentKind::Object) {
-                                seen.extend(s.display.as_ref().and_then(rsword::model::Display::as_vml));
+                                seen.extend(
+                                    s.display.as_ref().and_then(rsword::model::Display::as_vml),
+                                );
                             }
                         }
                     }

@@ -194,7 +194,9 @@ fn our_charts(doc: &Document) -> Vec<OurChart<'_>> {
     doc.main
         .iter()
         .filter_map(|b| match b {
-            rsword::model::Block::Protected(p) if p.kind == rsword::model::ProtectedKind::Chart => Some(p),
+            rsword::model::Block::Protected(p) if p.kind == rsword::model::ProtectedKind::Chart => {
+                Some(p)
+            }
             _ => None,
         })
         .map(|p| {
@@ -609,7 +611,8 @@ fn compat_03_chartex_fallback_picture_becomes_an_image_block() {
     let Some(rsword::model::Block::Image(img)) = doc.main.first() else {
         panic!("应是 Image 块：{:?}", doc.main.first())
     };
-    let d = img.display.as_ref().and_then(rsword::model::Display::as_drawing).expect("DrawingDisplay");
+    let d =
+        img.display.as_ref().and_then(rsword::model::Display::as_drawing).expect("DrawingDisplay");
     assert!(d.picture().is_some(), "显示模型取自 Fallback 里的图片");
     assert!(d.chart.is_none());
     assert_eq!(d.extent.map(|e| (e.cx, e.cy)), Some((2_857_500, 1_905_000)), "尺寸取 Choice");

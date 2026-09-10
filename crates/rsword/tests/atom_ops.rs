@@ -36,7 +36,10 @@ fn edit_02_break_atom() {
         "word/document.xml",
         [("count(//w:p/w:r/w:br)", ["1"]), ("//w:p/w:r/w:br/@w:type", ["page"]),]
     );
-    let out = insert(NewAtom::Break { kind: rsword::model::BreakKind::TextWrapping, clear: Some("all".into()) });
+    let out = insert(NewAtom::Break {
+        kind: rsword::model::BreakKind::TextWrapping,
+        clear: Some("all".into()),
+    });
     common::xpath_asserts!(
         &out,
         "word/document.xml",

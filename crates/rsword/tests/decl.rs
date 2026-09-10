@@ -7,14 +7,14 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use rsword::model::ColorScheme;
+use rsword::model::Theme;
+use rsword::model::ThemeSlot;
+use rsword::package::{Package, RelType};
 use rsword::semantic::props::FontTable;
 use rsword::semantic::props::Numbering;
 use rsword::semantic::props::Settings;
 use rsword::semantic::props::StyleType;
 use rsword::semantic::props::Styles;
-use rsword::model::Theme;
-use rsword::model::ThemeSlot;
-use rsword::package::{Package, RelType};
 use rsword::semantic::props::{Codec, DocProtect, Val};
 use serde_json::Value;
 

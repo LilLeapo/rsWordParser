@@ -438,7 +438,9 @@ fn mod_06_atomic_field_takes_one_coordinate_unit() {
     let tb = doc.text_blocks().next().unwrap();
     assert_eq!(tb.text(), "a\u{FFFC}b", "结果 `12` 只占 1 个单位");
     assert_eq!(tb.inlines.len(), 3);
-    let rsword::model::Inline::Field { id, result } = &tb.inlines[1] else { panic!("{:?}", tb.inlines[1]) };
+    let rsword::model::Inline::Field { id, result } = &tb.inlines[1] else {
+        panic!("{:?}", tb.inlines[1])
+    };
     assert_eq!(*doc.fields.get(*id).unwrap().keyword(), Keyword::Page);
     assert_eq!(result.len(), 1, "结果 run 仍在，只是不参与坐标");
     // 结构 run（begin / instrText / separate / end）不出现在 inlines 里

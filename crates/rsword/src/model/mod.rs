@@ -15,7 +15,7 @@
 //! | [`build`] | `Document` 与 `rebuild`（`MOD-01/13`） |
 //! | [`decl`] / [`theme`] / [`notes`] | 声明模型（`MOD-10`）：样式 / 编号 / 主题 / 设置 / 批注 / 注释 |
 
-mod block {
+pub mod block {
     //! 块模型（`MOD-02`、`MOD-03`、`MOD-08`、`MOD-09`，`docs/03` §6.3）。
 
     use crate::model::drawing::Display;
@@ -246,7 +246,7 @@ mod block {
         CellMerge(RevisionMeta),
     }
 }
-mod build {
+pub mod build {
     //! `Document` 与 `Document::rebuild`（`MOD-01`、`MOD-13`，任务 1.5–1.8）：从规范状态（DOM）
     //! 完整构建投影。M1 只建正文流：段落 → inlines → run 坐标流；表格 / 图片块占位；
     //! `refresh` 在 M2 随编辑引擎加入。
@@ -438,11 +438,11 @@ mod build {
                 match pkg.find(u) {
                     Some(data) => {
                         let by_rel =
-                            pkg.part(data).rels.of_kind(RelType::DiagramDrawing).find_map(|d| match &d
-                                .target
-                            {
-                                RelTarget::Internal(u) => pkg.find(u),
-                                RelTarget::External(_) => None,
+                            pkg.part(data).rels.of_kind(RelType::DiagramDrawing).find_map(|d| {
+                                match &d.target {
+                                    RelTarget::Internal(u) => pkg.find(u),
+                                    RelTarget::External(_) => None,
+                                }
                             });
                         let drawing = by_rel.or_else(|| {
                             let name = u.as_str();
@@ -469,7 +469,8 @@ mod build {
             let mut warnings = Vec::new();
             let dom_of = |id: Option<PartId>| id.and_then(|id| pkg.part(id).dom());
             let styles = dom_of(styles_id).and_then(|d| Styles::from_dom(d, &mut warnings));
-            let numbering = dom_of(numbering_id).and_then(|d| Numbering::from_dom(d, &mut warnings));
+            let numbering =
+                dom_of(numbering_id).and_then(|d| Numbering::from_dom(d, &mut warnings));
             let settings = dom_of(settings_id).and_then(|d| Settings::from_dom(d, &mut warnings));
             let theme = dom_of(theme_id).and_then(Theme::from_dom);
             for rid in chart_rels_missing {
@@ -554,8 +555,9 @@ mod build {
             let mut fields = FieldIndex::build(dom);
             warnings.extend(fields.take_diagnostics());
             let mut spans = SpanIndex::build(dom);
-            warnings
-                .extend(spans.diagnostics().iter().filter(|d| d.code == DiagCode::SpanNoFlow).cloned());
+            warnings.extend(
+                spans.diagnostics().iter().filter(|d| d.code == DiagCode::SpanNoFlow).cloned(),
+            );
             // `SPAN-10`：端点落在原子字段内部时移到原子边界（7.5）
             spans.snap_to_field_atoms(dom, &fields);
             let ext_txbx: crate::model::aux::ExtTxbxMap<'_> = txbx_rels
@@ -594,9 +596,14 @@ mod build {
                     continue; // 多个 rId 指向同一个 part（Word 的"同前"）
                 }
                 let Some(hf_dom) = pkg.part(id).dom() else { continue };
-                if let Some(hf) =
-                    HfPart::build(id, hf_dom, kind, styles.as_ref(), &pkg.part(id).rels, &mut warnings)
-                {
+                if let Some(hf) = HfPart::build(
+                    id,
+                    hf_dom,
+                    kind,
+                    styles.as_ref(),
+                    &pkg.part(id).rels,
+                    &mut warnings,
+                ) {
                     hf_parts.insert(id, hf);
                 }
             }
@@ -606,8 +613,9 @@ mod build {
             for info in &sections {
                 for (kind, variant, rid) in info.declared_refs() {
                     if !hf_by_rel.contains_key(rid) {
-                        let range =
-                            info.node.and_then(|n| dom.node(n).lex.as_ref().map(|l| l.range.clone()));
+                        let range = info
+                            .node
+                            .and_then(|n| dom.node(n).lex.as_ref().map(|l| l.range.clone()));
                         warnings.push(Diagnostic::pre_existing(
                             main,
                             range,
@@ -747,7 +755,11 @@ mod build {
         ///
         /// 字段与范围索引是整个 part 的投影，跟着一起重建（只重建主 part；容器级的增量在 M7 随
         /// `TEST-07` 的随机序列一起评估）。
-        pub fn refresh_blocks(&mut self, pkg: &mut Package, blocks: &[NodeId]) -> Result<Vec<NodeId>> {
+        pub fn refresh_blocks(
+            &mut self,
+            pkg: &mut Package,
+            blocks: &[NodeId],
+        ) -> Result<Vec<NodeId>> {
             let main = self.main_part;
             pkg.dom(main)?;
             let dom = pkg.part(main).dom().expect("main part parsed above");
@@ -1018,8 +1030,9 @@ mod build {
                     }
                     BodyClass::Sdt => {
                         let info = SdtInfo::read(dom, node);
-                        let content =
-                            dom.semantic_children(node).find(|&n| dom.is(n, w(LocalName::SdtContent)));
+                        let content = dom
+                            .semantic_children(node)
+                            .find(|&n| dom.is(n, w(LocalName::SdtContent)));
                         let before = out.len();
                         if let Some(content) = content {
                             self.build_container(content, Some(&info), revs, out);
@@ -1125,8 +1138,10 @@ mod build {
             if facts.revision.ppr_change
                 && let Some((change, old)) = read_para_props_change_of(dom, ppr, &mut self.warnings)
             {
-                revisions
-                    .push(Revision::ParaPropsChange { meta: self.meta(change), old: Box::new(old) });
+                revisions.push(Revision::ParaPropsChange {
+                    meta: self.meta(change),
+                    old: Box::new(old),
+                });
             }
             if let Some(num) = &props.num {
                 for &n in &num.raw_unmodeled {
@@ -1254,8 +1269,9 @@ mod build {
                             cover.insert(n, ids);
                         }
                     }
-                    if let Some(c) =
-                        dom.semantic_children(n).find(|&c| dom.is(c, w(LocalName::CommentReference)))
+                    if let Some(c) = dom
+                        .semantic_children(n)
+                        .find(|&c| dom.is(c, w(LocalName::CommentReference)))
                     {
                         refs.push((id_of(c), n));
                     }
@@ -1384,7 +1400,8 @@ mod build {
                     ) => {}
                     (NsId::W, LocalName::R) => {
                         // `FLD-07` 原子形态：begin run 起，整段字段折成一个 `Inline::Field`
-                        if let Some(next) = self.atomic_field_at(node, &nodes[i..], link, rev, out) {
+                        if let Some(next) = self.atomic_field_at(node, &nodes[i..], link, rev, out)
+                        {
                             i += next;
                             continue;
                         }
@@ -1491,7 +1508,8 @@ mod build {
             rev: Option<&RevisionCtx>,
             out: &mut Vec<Inline>,
         ) -> Option<usize> {
-            let f = self.fields.field_of(node).filter(|f| f.form.head() == node && f.is_atomic())?;
+            let f =
+                self.fields.field_of(node).filter(|f| f.form.head() == node && f.is_atomic())?;
             let (id, tail, separate) = match &f.form {
                 FieldForm::Complex { end, separate, .. } => (f.id, *end, *separate),
                 FieldForm::Simple { .. } => return None,
@@ -1544,7 +1562,10 @@ mod build {
                         // （摊平表见 `vml_display`）。给它们各建一份会让内容树的规模随嵌套层数指数增长
                         // ——`corpus/hostile/hf-deep-txbx.docx` 就是这么把投影卡死的
                         self.fill_box_content(
-                            v.shapes.iter_mut().filter(|s| !s.nested).map(|s| (s.txbx, &mut s.content)),
+                            v.shapes
+                                .iter_mut()
+                                .filter(|s| !s.nested)
+                                .map(|s| (s.txbx, &mut s.content)),
                         );
                         Some(Display::Vml(Box::new(v)))
                     }
@@ -1554,7 +1575,8 @@ mod build {
             }
             let mut ctx = rev.cloned().unwrap_or_default();
             if let Some(rpr) = rpr_node
-                && let Some((change, old)) = read_run_props_change(dom, Some(rpr), &mut self.warnings)
+                && let Some((change, old)) =
+                    read_run_props_change(dom, Some(rpr), &mut self.warnings)
             {
                 ctx.props_change = Some((self.meta(change), Box::new(old)));
             }
@@ -1662,7 +1684,11 @@ mod build {
                     } else {
                         text.push_str(s.trim_matches([' ', '\t', '\r', '\n']));
                     }
-                    if name.local == LocalName::T { SegmentKind::Text } else { SegmentKind::DelText }
+                    if name.local == LocalName::T {
+                        SegmentKind::Text
+                    } else {
+                        SegmentKind::DelText
+                    }
                 }
                 LocalName::Tab => {
                     text.push('\t');
@@ -1673,7 +1699,8 @@ mod build {
                     SegmentKind::PTab { align: self.attr(node, NsId::W, LocalName::Alignment) }
                 }
                 LocalName::Br => {
-                    let kind = BreakKind::parse(self.attr(node, NsId::W, LocalName::Type).as_deref());
+                    let kind =
+                        BreakKind::parse(self.attr(node, NsId::W, LocalName::Type).as_deref());
                     text.push(match kind {
                         BreakKind::TextWrapping => '\n',
                         BreakKind::Page | BreakKind::Column => OBJECT_REPLACEMENT,
@@ -1851,7 +1878,7 @@ mod build {
         idx.fields().iter().map(|f| (f.id.0, f.form.head())).collect()
     }
 }
-mod classify {
+pub mod classify {
     //! 分类规则表（`MOD-05`）与 `TextKind` 判定（`MOD-03`）：都是 facts 的纯函数，按优先级首条命中。
     //!
     //! 与 TS 的 `buildBlock` 决策树不同处标 △（见 spec）。M1 只需 R01/R02(占位)/R07/R08/R10/R19，
@@ -1904,8 +1931,9 @@ mod classify {
             LocalName::Tbl => ("R02", BodyClass::Table),
             LocalName::Sdt => ("R03", BodyClass::Sdt),
             LocalName::Br => {
-                let page =
-                    dom.attr_value(node, QName::w(LocalName::Type)).is_some_and(|t| t.trim() == "page");
+                let page = dom
+                    .attr_value(node, QName::w(LocalName::Type))
+                    .is_some_and(|t| t.trim() == "page");
                 ("R05", BodyClass::BodyBreak { page })
             }
             LocalName::Ins => ("R06", BodyClass::InsertWrap),
@@ -1964,7 +1992,8 @@ mod classify {
     }
 
     pub fn r10_section_break(f: &ParagraphFacts) -> Option<ParaClass> {
-        (f.has_sect_pr && !f.visible_text).then_some(ParaClass::Protected(ProtectedKind::SectionBreak))
+        (f.has_sect_pr && !f.visible_text)
+            .then_some(ParaClass::Protected(ProtectedKind::SectionBreak))
     }
 
     pub fn r11_equation(f: &ParagraphFacts) -> Option<ParaClass> {
@@ -1978,7 +2007,9 @@ mod classify {
             match d.kind {
                 // chartex（旭日图 / 瀑布图 …）配了预渲染的回退图：Word 之外的渲染器画的就是这张图，
                 // 数据模型的降级读法只留给没有回退图的 part。`graphic_display` 取回退图的显示模型。
-                DrawingKind::ChartEx if d.fallback_picture.is_some() => return Some(ParaClass::Image),
+                DrawingKind::ChartEx if d.fallback_picture.is_some() => {
+                    return Some(ParaClass::Image);
+                }
                 DrawingKind::Chart | DrawingKind::ChartEx => chart = true,
                 _ => {}
             }
@@ -2004,8 +2035,9 @@ mod classify {
         if f.visible_text || !f.objects.is_empty() || f.math.count != 0 {
             return None;
         }
-        let single_picture =
-            f.drawings.len() == 1 && f.picts.is_empty() && f.drawings[0].kind == DrawingKind::Picture;
+        let single_picture = f.drawings.len() == 1
+            && f.picts.is_empty()
+            && f.drawings[0].kind == DrawingKind::Picture;
         let single_imagedata =
             f.picts.len() == 1 && f.drawings.is_empty() && f.picts[0].kind == PictKind::ImageData;
         (single_picture || single_imagedata).then_some(ParaClass::Image)
@@ -2103,7 +2135,7 @@ pub(crate) mod macros {
     pub(crate) use named_enum;
 }
 
-mod aux {
+pub mod aux {
     //! 辅助 part 的内容流（`MOD-01`、`docs/03` §6.7，`spec/16` 任务 5.3）。
     //!
     //! 页眉页脚、脚注尾注、批注的内容都是 `Vec<Block>`，**与正文同一个构建器**。它们与正文的差别只有
@@ -2181,7 +2213,7 @@ mod aux {
         &EMPTY
     }
 }
-mod chart {
+pub mod chart {
     //! 图表 part 的显示模型（`MOD-11`，`spec/17` 任务 6.1）。
     //!
     //! 图表 part（`word/charts/chartN.xml`）是**有自己 DOM 的 XML part**（L1），这里的 [`ChartDisplay`] 是它的投影：
@@ -2430,7 +2462,8 @@ mod chart {
             .name(plot)
             .is_some_and(|n| n.local == LocalName::DoughnutChart)
             .then(|| {
-                plot_child_val(LocalName::HoleSize).map_or(50, |v| v.trim().parse::<u32>().unwrap_or(0))
+                plot_child_val(LocalName::HoleSize)
+                    .map_or(50, |v| v.trim().parse::<u32>().unwrap_or(0))
             })
             .filter(|&h| h > 0);
         let legend_pos = child(dom, chart, NsId::C, LocalName::Legend).map(|legend| {
@@ -2478,8 +2511,8 @@ mod chart {
                         .collect();
                 }
             }
-            let color =
-                child(dom, ser, NsId::C, LocalName::SpPr).and_then(|sp| solid_fill(dom, sp, scheme));
+            let color = child(dom, ser, NsId::C, LocalName::SpPr)
+                .and_then(|sp| solid_fill(dom, sp, scheme));
             let point_colors = data_point_colors(dom, ser, scheme);
             let (mut x_values, mut sizes, mut line) = (None, None, false);
             if matches!(kind, ChartKind::Scatter | ChartKind::Bubble) {
@@ -2643,8 +2676,8 @@ mod chart {
             else {
                 continue;
             };
-            let Some(color) =
-                child(dom, d_pt, NsId::C, LocalName::SpPr).and_then(|sp| solid_fill(dom, sp, scheme))
+            let Some(color) = child(dom, d_pt, NsId::C, LocalName::SpPr)
+                .and_then(|sp| solid_fill(dom, sp, scheme))
             else {
                 continue;
             };
@@ -2681,7 +2714,8 @@ mod chart {
             .and_then(|v| v.trim().parse::<usize>().ok());
         let mut points: Vec<Option<String>> = Vec::new();
         for pt in children(dom, cache, NsId::C, LocalName::Pt) {
-            let Some(idx) = attr(dom, pt, LocalName::Idx).and_then(|v| v.trim().parse::<usize>().ok())
+            let Some(idx) =
+                attr(dom, pt, LocalName::Idx).and_then(|v| v.trim().parse::<usize>().ok())
             else {
                 continue;
             };
@@ -2767,17 +2801,22 @@ mod chart {
     /// （消费者必须跳过不认识的元素；测试语料故意改过这个名字）。
     fn chartex_display(dom: &Dom, space: NodeId) -> Option<ChartDisplay> {
         let chart_data = child(dom, space, NsId::Cx, LocalName::ChartData).or_else(|| {
-            dom.semantic_children(space).find(|&c| child(dom, c, NsId::Cx, LocalName::Data).is_some())
+            dom.semantic_children(space)
+                .find(|&c| child(dom, c, NsId::Cx, LocalName::Data).is_some())
         });
         // data id → (类别, 值)
         let mut data_by_id: Vec<(String, Vec<String>, Vec<Option<f64>>)> = Vec::new();
-        for data in chart_data.into_iter().flat_map(|cd| children(dom, cd, NsId::Cx, LocalName::Data)) {
+        for data in
+            chart_data.into_iter().flat_map(|cd| children(dom, cd, NsId::Cx, LocalName::Data))
+        {
             let id = attr(dom, data, LocalName::Id).unwrap_or_default();
             let (mut cats, mut vals) = (Vec::new(), Vec::new());
             for dim in dom.semantic_children(data) {
                 if is(dom, dim, NsId::Cx, LocalName::StrDim) {
-                    cats =
-                        chartex_points(dom, dim).into_iter().map(Option::unwrap_or_default).collect();
+                    cats = chartex_points(dom, dim)
+                        .into_iter()
+                        .map(Option::unwrap_or_default)
+                        .collect();
                 } else if is(dom, dim, NsId::Cx, LocalName::NumDim) {
                     vals = chartex_points(dom, dim)
                         .into_iter()
@@ -2801,8 +2840,8 @@ mod chart {
             {
                 kind = k;
             }
-            let data_id =
-                child(dom, ser, NsId::Cx, LocalName::DataId).and_then(|d| attr(dom, d, LocalName::Val));
+            let data_id = child(dom, ser, NsId::Cx, LocalName::DataId)
+                .and_then(|d| attr(dom, d, LocalName::Val));
             let Some((_, cats, vals)) =
                 data_by_id.iter().find(|(id, ..)| Some(id.as_str()) == data_id.as_deref())
             else {
@@ -2867,7 +2906,8 @@ mod chart {
         let Some(lvl) = child(dom, dim, NsId::Cx, LocalName::Lvl) else { return Vec::new() };
         let mut out: Vec<Option<String>> = Vec::new();
         for pt in children(dom, lvl, NsId::Cx, LocalName::Pt) {
-            let Some(idx) = attr(dom, pt, LocalName::Idx).and_then(|v| v.trim().parse::<usize>().ok())
+            let Some(idx) =
+                attr(dom, pt, LocalName::Idx).and_then(|v| v.trim().parse::<usize>().ok())
             else {
                 continue;
             };
@@ -2922,9 +2962,8 @@ mod chart {
     fn range_of(dom: &Dom, node: NodeId) -> Option<Range<u32>> {
         dom.node(node).lex.as_ref().map(|l| l.range.clone())
     }
-
 }
-mod custgeom {
+pub mod custgeom {
     //! `a:custGeom` 自定义几何（`MOD-11`；`spec/15` 任务 4.6d）。
     //!
     //! 只记录路径命令与每条 `a:path` 的声明尺寸；归一化到 0..1 与拼成 SVG 路径串是显示投影，
@@ -3004,7 +3043,8 @@ mod custgeom {
                 return None;
             }
         }
-        let path_lst = dom.semantic_children(cust_geom).find(|&c| dom.is(c, a(LocalName::PathLst)))?;
+        let path_lst =
+            dom.semantic_children(cust_geom).find(|&c| dom.is(c, a(LocalName::PathLst)))?;
         let mut paths = Vec::new();
         for p in dom.semantic_children(path_lst) {
             if !dom.is(p, a(LocalName::Path)) {
@@ -3081,9 +3121,8 @@ mod custgeom {
     fn num(dom: &Dom, node: NodeId, local: LocalName) -> Option<i64> {
         attr(dom, node, local)?.parse().ok()
     }
-
 }
-mod decl {
+pub mod decl {
     //! 声明模型（`MOD-10`，任务 1.4）：styles / numbering / settings / fontTable 的入口与查找辅助。
     //!
     //! 类型本身由属性表生成（`schema/props/{styles,numbering,settings,font_table}.toml`），
@@ -3091,8 +3130,9 @@ mod decl {
 
     use crate::diag::Diagnostic;
     pub use crate::semantic::props::{
-        AbstractNum, Compat, CompatSetting, DocDefaults, Font, FontTable, Level, LevelOverride, Num,
-        Numbering, ParaProps, RunProps, Settings, Style, StyleType, TableStylePr, TblStyleOverrideType,
+        AbstractNum, Compat, CompatSetting, DocDefaults, Font, FontTable, Level, LevelOverride,
+        Num, Numbering, ParaProps, RunProps, Settings, Style, StyleType, TableStylePr,
+        TblStyleOverrideType,
     };
     use crate::semantic::props::{
         Val, codec::OnOff, read_font_table, read_numbering, read_settings, read_styles,
@@ -3173,8 +3213,9 @@ mod decl {
     }
 
     /// `/^heading\s*([1-9])$/i`
-    fn heading_level_of_name(name: &str) -> Option<u8> {
-        let rest = name.get(..7).filter(|p| p.eq_ignore_ascii_case("heading")).map(|_| &name[7..])?;
+    pub(super) fn heading_level_of_name(name: &str) -> Option<u8> {
+        let rest =
+            name.get(..7).filter(|p| p.eq_ignore_ascii_case("heading")).map(|_| &name[7..])?;
         let rest = rest.trim_start();
         let mut it = rest.chars();
         let d = it.next()?;
@@ -3185,7 +3226,7 @@ mod decl {
     }
 
     /// `/^Heading([1-9])$/`
-    fn heading_level_of_id(id: &str) -> Option<u8> {
+    pub(super) fn heading_level_of_id(id: &str) -> Option<u8> {
         let rest = id.strip_prefix("Heading")?;
         let mut it = rest.chars();
         let d = it.next()?;
@@ -3332,9 +3373,8 @@ mod decl {
     }
 
     pub use crate::semantic::props::Styles;
-
 }
-mod diagram {
+pub mod diagram {
     //! SmartArt 与绘图画布的模型（`MOD-11`，`spec/17` 任务 6.3）。
     //!
     //! SmartArt 有两个 part：**数据 part**（`dgm:dataModel`，主 part 里 `dgm:relIds/@r:dm` 指向）给节点文字，
@@ -3430,7 +3470,8 @@ mod diagram {
                 }
                 diagram_text(dom)
             });
-            let shapes = drawing.and_then(|(_, dom)| dom).map(diagram_shapes).filter(|s| !s.is_empty());
+            let shapes =
+                drawing.and_then(|(_, dom)| dom).map(diagram_shapes).filter(|s| !s.is_empty());
             DiagramPart { data, drawing: drawing.map(|(id, _)| id), text, shapes }
         }
     }
@@ -3561,9 +3602,10 @@ mod diagram {
             match name.local {
                 LocalName::GrpSpPr => {
                     if let Some(xfrm) = child(dom, n, NsId::A, LocalName::Xfrm) {
-                        c.ch_off = child(dom, xfrm, NsId::A, LocalName::ChOff).and_then(|g| xy(dom, g));
-                        c.ch_ext =
-                            child(dom, xfrm, NsId::A, LocalName::ChExt).and_then(|g| extent_of(dom, g));
+                        c.ch_off =
+                            child(dom, xfrm, NsId::A, LocalName::ChOff).and_then(|g| xy(dom, g));
+                        c.ch_ext = child(dom, xfrm, NsId::A, LocalName::ChExt)
+                            .and_then(|g| extent_of(dom, g));
                     }
                 }
                 LocalName::Sp => {
@@ -3656,7 +3698,9 @@ mod diagram {
                 LocalName::Blip if p.embed.is_none() => {
                     p.embed = attr(dom, n, NsId::R, LocalName::Embed)
                 }
-                LocalName::FillRect if p.fill_rect.is_none() => p.fill_rect = Some(rect_frac(dom, n)),
+                LocalName::FillRect if p.fill_rect.is_none() => {
+                    p.fill_rect = Some(rect_frac(dom, n))
+                }
                 _ => {}
             }
         }
@@ -3698,9 +3742,8 @@ mod diagram {
     fn child(dom: &Dom, node: NodeId, ns: NsId, local: LocalName) -> Option<NodeId> {
         dom.semantic_children(node).find(|&c| dom.is(c, QName::new(ns, local)))
     }
-
 }
-mod drawing {
+pub mod drawing {
     //! 绘图显示模型（`MOD-11`；`spec/15` 任务 4.3）。
     //!
     //! 一个 `w:drawing` 的**文档事实**：锚定几何、`wp:extent`、`wp:docPr`，以及 `pic:pic` 的图片信息。
@@ -4082,7 +4125,9 @@ mod drawing {
     impl LineDisplay {
         /// 两端任一有箭头。
         pub fn arrowed(&self) -> bool {
-            [&self.head_end, &self.tail_end].iter().any(|e| e.as_deref().is_some_and(|t| t != "none"))
+            [&self.head_end, &self.tail_end]
+                .iter()
+                .any(|e| e.as_deref().is_some_and(|t| t != "none"))
         }
     }
 
@@ -4111,7 +4156,9 @@ mod drawing {
             if let Some(name) = dom.name(n) {
                 match (eff_ns(dom, n), name.local) {
                     (NsId::Wp, LocalName::Anchor) => d.anchor = Some(anchor_geom(dom, n)),
-                    (NsId::Wp, LocalName::Extent) if d.extent.is_none() => d.extent = extent_of(dom, n),
+                    (NsId::Wp, LocalName::Extent) if d.extent.is_none() => {
+                        d.extent = extent_of(dom, n)
+                    }
                     (NsId::Wp, LocalName::DocPr) => d.doc_pr = doc_pr(dom, n),
                     (NsId::A, LocalName::GraphicData) if d.kind == DrawingKind::Unknown => {
                         d.kind = crate::model::facts::graphic_data_kind(dom, n);
@@ -4125,13 +4172,17 @@ mod drawing {
                         });
                     }
                     (NsId::Dgm, LocalName::RelIds) if d.diagram.is_none() => {
-                        d.diagram =
-                            Some(DiagramRef { node: n, rel_id: attr(dom, n, NsId::R, LocalName::Dm) });
+                        d.diagram = Some(DiagramRef {
+                            node: n,
+                            rel_id: attr(dom, n, NsId::R, LocalName::Dm),
+                        });
                     }
                     (NsId::Lc, LocalName::LockedCanvas) if d.canvas.is_none() => {
                         d.canvas = Some(Box::new(canvas_display(dom, n)));
                     }
-                    (NsId::Wps, LocalName::Wsp) => d.shapes.push(shape_display(dom, n, false, parent)),
+                    (NsId::Wps, LocalName::Wsp) => {
+                        d.shapes.push(shape_display(dom, n, false, parent))
+                    }
                     (NsId::Wpg, LocalName::Wgp | LocalName::GrpSp) => {
                         d.shapes.push(shape_display(dom, n, true, parent));
                         group = Some(d.shapes.len() - 1);
@@ -4166,7 +4217,12 @@ mod drawing {
 
     /// `wps:wsp` / `wpg:wgp` / `wpg:grpSp` → [`ShapeDisplay`]。只看形状自己的属性子树，
     /// 不下钻进 `txbxContent`（框里的内容是独立内容流）。
-    fn shape_display(dom: &Dom, node: NodeId, is_group: bool, group: Option<usize>) -> ShapeDisplay {
+    fn shape_display(
+        dom: &Dom,
+        node: NodeId,
+        is_group: bool,
+        group: Option<usize>,
+    ) -> ShapeDisplay {
         let mut s = ShapeDisplay {
             node,
             is_group,
@@ -4198,7 +4254,9 @@ mod drawing {
         for c in dom.semantic_children(node) {
             let Some(name) = dom.name(c) else { continue };
             match (eff_ns(dom, c), name.local) {
-                (NsId::Wps, LocalName::SpPr) | (NsId::Wpg, LocalName::GrpSpPr) => sp_pr(dom, c, &mut s),
+                (NsId::Wps, LocalName::SpPr) | (NsId::Wpg, LocalName::GrpSpPr) => {
+                    sp_pr(dom, c, &mut s)
+                }
                 (NsId::Wps, LocalName::Style) => {
                     for r in dom.semantic_children(c) {
                         let Some(n) = dom.name(r) else { continue };
@@ -4214,8 +4272,9 @@ mod drawing {
                 (NsId::Wps, LocalName::BodyPr) => s.body = Some(body_pr(dom, c)),
                 (NsId::Wps, LocalName::CNvPr) => s.cnv_id = attr(dom, c, NsId::None, LocalName::Id),
                 (NsId::Wps, LocalName::Txbx) => {
-                    s.txbx_rel =
-                        dom.attr_value(c, QName::new(NsId::R, LocalName::Txbx)).map(|v| v.into_owned());
+                    s.txbx_rel = dom
+                        .attr_value(c, QName::new(NsId::R, LocalName::Txbx))
+                        .map(|v| v.into_owned());
                     s.txbx = dom
                         .semantic_children(c)
                         .find(|&t| dom.is(t, QName::new(NsId::W, LocalName::TxbxContent)));
@@ -4254,24 +4313,40 @@ mod drawing {
                     s.geom = custom_geom(dom, c);
                 }
                 LocalName::GrpFill if s.fill.is_none() => {
-                    s.fill =
-                        Some(FillDisplay { node: c, kind: FillKind::Group, blip: None, tile: false })
+                    s.fill = Some(FillDisplay {
+                        node: c,
+                        kind: FillKind::Group,
+                        blip: None,
+                        tile: false,
+                    })
                 }
                 LocalName::NoFill if s.fill.is_none() => {
                     s.fill =
                         Some(FillDisplay { node: c, kind: FillKind::None, blip: None, tile: false })
                 }
                 LocalName::SolidFill if s.fill.is_none() => {
-                    s.fill =
-                        Some(FillDisplay { node: c, kind: FillKind::Solid, blip: None, tile: false })
+                    s.fill = Some(FillDisplay {
+                        node: c,
+                        kind: FillKind::Solid,
+                        blip: None,
+                        tile: false,
+                    })
                 }
                 LocalName::GradFill if s.fill.is_none() => {
-                    s.fill =
-                        Some(FillDisplay { node: c, kind: FillKind::Gradient, blip: None, tile: false })
+                    s.fill = Some(FillDisplay {
+                        node: c,
+                        kind: FillKind::Gradient,
+                        blip: None,
+                        tile: false,
+                    })
                 }
                 LocalName::PattFill if s.fill.is_none() => {
-                    s.fill =
-                        Some(FillDisplay { node: c, kind: FillKind::Pattern, blip: None, tile: false })
+                    s.fill = Some(FillDisplay {
+                        node: c,
+                        kind: FillKind::Pattern,
+                        blip: None,
+                        tile: false,
+                    })
                 }
                 LocalName::BlipFill if s.fill.is_none() => {
                     let mut blip = None;
@@ -4560,9 +4635,8 @@ mod drawing {
             n.ns == NsId::W && matches!(n.local, LocalName::TxbxContent | LocalName::Drawing)
         })
     }
-
 }
-mod facts {
+pub mod facts {
     //! `ParagraphFacts`（`MOD-04`，`docs/03` §6.2）：对 `w:p` 一次遍历得到的事实，分类（`MOD-05`）
     //! 与 `TextKind` 判定（`MOD-03`）都是它的纯函数。
     //!
@@ -4741,8 +4815,9 @@ mod facts {
 
     /// 元素下所有文本节点拼接后 trim 是否非空。
     fn has_visible_text(dom: &Dom, node: NodeId) -> bool {
-        dom.semantic_children(node)
-            .any(|c| dom.text(c).is_some_and(|t| !t.trim_matches([' ', '\t', '\r', '\n']).is_empty()))
+        dom.semantic_children(node).any(|c| {
+            dom.text(c).is_some_and(|t| !t.trim_matches([' ', '\t', '\r', '\n']).is_empty())
+        })
     }
 
     impl ParagraphFacts {
@@ -4815,7 +4890,9 @@ mod facts {
                         gfx = true;
                     }
                     (NsId::M, LocalName::OMath) if !in_gfx && !in_txbx => f.math.count += 1,
-                    (NsId::M, LocalName::OMathPara) if !in_gfx && !in_txbx => f.math.omath_para = true,
+                    (NsId::M, LocalName::OMathPara) if !in_gfx && !in_txbx => {
+                        f.math.omath_para = true
+                    }
                     (NsId::W, LocalName::Ins) => f.revision.run_ins = true,
                     (NsId::W, LocalName::Del) => f.revision.run_del = true,
                     (NsId::W, LocalName::MoveFrom) => f.revision.move_from = true,
@@ -4937,7 +5014,8 @@ mod facts {
         }
         if chain.is_empty() {
             let id = style_id?;
-            let rest = id.get(..7).filter(|p| p.eq_ignore_ascii_case("heading")).map(|_| &id[7..])?;
+            let rest =
+                id.get(..7).filter(|p| p.eq_ignore_ascii_case("heading")).map(|_| &id[7..])?;
             let mut it = rest.chars();
             let d = it.next()?;
             if it.next().is_none() && d.is_ascii_digit() && d != '0' {
@@ -5151,7 +5229,7 @@ mod facts {
         }
     }
 }
-mod hf {
+pub mod hf {
     //! 页眉页脚 part 的内容流（`MOD-01` 的 `hf_parts`、`docs/03` §6.7，`spec/16` 任务 5.3）。
     //!
     //! **复用正文管线**：`w:hdr` / `w:ftr` 里的段落、表格、sdt、修订包裹、文本框都走同一个
@@ -5257,7 +5335,7 @@ mod hf {
             .filter(|s| !s.is_empty())
     }
 }
-mod ink {
+pub mod ink {
     //! 墨迹（`aidocs-ink` 批注层，`MOD-06` / `MOD-11`，`spec/17` 任务 6.8）。
     //!
     //! 编辑器把手绘笔迹存成**自己写进文档的浮动图片 run**：`w:r/w:drawing/wp:anchor`，`wp:docPr/@name` 以
@@ -5340,7 +5418,8 @@ mod ink {
             rel_id: None,
             payload: None,
         };
-        let Some(anchor) = dom.semantic_children(drawing).find(|&c| dom.is(c, wp(LocalName::Anchor)))
+        let Some(anchor) =
+            dom.semantic_children(drawing).find(|&c| dom.is(c, wp(LocalName::Anchor)))
         else {
             return info;
         };
@@ -5350,7 +5429,8 @@ mod ink {
                 .and_then(|c| dom.semantic_children(c).find_map(|t| dom.text(t)))
                 .map_or(0, |t| lenient_int(&t))
         };
-        let num = |n: NodeId, l: LocalName| dom.attr_value(n, plain(l)).map_or(0, |v| lenient_int(&v));
+        let num =
+            |n: NodeId, l: LocalName| dom.attr_value(n, plain(l)).map_or(0, |v| lenient_int(&v));
         for c in dom.semantic_children(anchor) {
             let Some(name) = dom.name(c) else { continue };
             if name.ns != NsId::Wp {
@@ -5359,7 +5439,9 @@ mod ink {
             match name.local {
                 LocalName::PositionH => info.offset_emu.0 = pos_offset(c),
                 LocalName::PositionV => info.offset_emu.1 = pos_offset(c),
-                LocalName::Extent => info.extent_emu = (num(c, LocalName::Cx), num(c, LocalName::Cy)),
+                LocalName::Extent => {
+                    info.extent_emu = (num(c, LocalName::Cx), num(c, LocalName::Cy))
+                }
                 LocalName::DocPr => {
                     info.payload = dom
                         .attr_value(c, plain(LocalName::Descr))
@@ -5424,9 +5506,8 @@ mod ink {
             out.push(ink_info(dom, para, run, n));
         }
     }
-
 }
-mod inline {
+pub mod inline {
     //! 内联模型与坐标流（`MOD-06`，`docs/03` §6.3、§8.1）。
     //!
     //! `Run` 与物理 `w:r` 一一对应；`segments` 覆盖 run 的全部子节点、按顺序、区间不重叠，
@@ -5678,7 +5759,7 @@ mod inline {
         s.encode_utf16().count() as u32
     }
 }
-mod math {
+pub mod math {
     //! 公式与 ruby 的模型（`MOD-11`，`spec/17` 任务 6.5）。
     //!
     //! 公式段落（R11：`m:oMathPara` 或没有可见正文的公式段）挂 [`FormulaDisplay`]：片段节点、可编辑的 token、
@@ -5735,7 +5816,7 @@ mod math {
         out
     }
 }
-mod notes {
+pub mod notes {
     //! 批注与脚注 / 尾注条目（`MOD-10`，任务 2.6）。
     //!
     //! 一条批注要三个部件合起来才完整：`comments.xml` 给正文、作者与首字母，
@@ -5902,7 +5983,11 @@ mod notes {
 
         /// `EDIT-06`：批注 `w:id` 在文档内取最大值 + 1。
         pub fn next_id(&self) -> u32 {
-            self.items.iter().filter_map(|c| c.id.trim().parse::<u32>().ok()).max().map_or(1, |m| m + 1)
+            self.items
+                .iter()
+                .filter_map(|c| c.id.trim().parse::<u32>().ok())
+                .max()
+                .map_or(1, |m| m + 1)
         }
     }
 
@@ -6008,11 +6093,20 @@ mod notes {
 
         /// `EDIT-06`：注释 id 取最大值 + 1（结构条目用 -1 / 0，一并计入）。
         pub fn next_id(&self) -> i64 {
-            self.items.iter().filter_map(|n| n.id.trim().parse::<i64>().ok()).max().map_or(1, |m| m + 1)
+            self.items
+                .iter()
+                .filter_map(|n| n.id.trim().parse::<i64>().ok())
+                .max()
+                .map_or(1, |m| m + 1)
         }
     }
 
-    fn read_note(dom: &Dom, node: NodeId, ref_mark: LocalName, diags: &mut Vec<Diagnostic>) -> Note {
+    fn read_note(
+        dom: &Dom,
+        node: NodeId,
+        ref_mark: LocalName,
+        diags: &mut Vec<Diagnostic>,
+    ) -> Note {
         // `w:type`（小写）是 `LocalName::Type`；`UType` 是 `[Content_Types].xml` 里大写的 `Type`
         let kind = match attr(dom, node, NsId::W, LocalName::Type).as_deref() {
             None => NoteKind::Normal,
@@ -6106,7 +6200,7 @@ mod notes {
             .any(|c| dom.is(c, w(LocalName::FootnoteRef)) || dom.is(c, w(LocalName::EndnoteRef)))
     }
 }
-mod omml {
+pub mod omml {
     //! OMML（Office Math，`m:` 命名空间）的读法与两个转换器（`spec/17` 任务 6.5）。
     //!
     //! [`mathml`] 与 [`latex`] 是 TS `math.ts` 的 `ommlToMathML` / `ommlToLatex` 的逐字移植——差分按字符串比较，
@@ -6114,15 +6208,15 @@ mod omml {
     //! 结果栈）：语料 `corpus/hostile/omml-deep.docx` 有 3,000 层嵌套，递归会把测试线程的栈吃光。
     //! 这里放两者共用的小工具：语义子节点查找、属性包读取、run 文字、XML 转义。
 
-    mod latex {
+    pub mod latex {
         //! OMML → LaTeX 子集（TS `ommlToLatex`，`math.ts` 502–723 的逐字移植）。
         //!
         //! 子集之外的结构（`m:sPre`、`m:limUpp`、认不出的 n 元运算符 / 重音 / 定界符、`\` 与换行）→ `None`，
         //! 调用方只保留 token 级编辑。与 [`super::mathml`] 同一套迭代求值骨架，错误一路短路。
 
         use super::{
-            child, children_named, content_children, is_plain_run, plain_text_of_runs, prop_on, prop_val,
-            run_text, text_of,
+            child, children_named, content_children, is_plain_run, plain_text_of_runs, prop_on,
+            prop_val, run_text, text_of,
         };
         use crate::xml::{Dom, LocalName, NodeId, NsId};
 
@@ -6231,9 +6325,9 @@ mod omml {
                 Item::Seq(n) => Some(nodes(dom, *n)),
                 Item::Binom(f) => Some(vec![slot(*f, LocalName::Num), slot(*f, LocalName::Den)]),
                 Item::Matrix { node, .. } => Some(matrix_rows(dom, *node)),
-                Item::MatrixRow(mr) => {
-                    Some(children_named(dom, *mr, LocalName::E).into_iter().map(Item::Seq).collect())
-                }
+                Item::MatrixRow(mr) => Some(
+                    children_named(dom, *mr, LocalName::E).into_iter().map(Item::Seq).collect(),
+                ),
                 Item::LeftRight { slot, .. } => Some(nodes(dom, *slot)),
                 Item::Node(n) => {
                     let n = *n;
@@ -6255,7 +6349,8 @@ mod omml {
                         }
                         LocalName::F => {
                             // 裸的 noBar 分式只出现在 \binom 的 m:d 包里（那边处理）；别的分式样式在子集之外
-                            if prop_val(dom, n, LocalName::FPr, LocalName::Type).is_some_and(|t| t != "bar")
+                            if prop_val(dom, n, LocalName::FPr, LocalName::Type)
+                                .is_some_and(|t| t != "bar")
                             {
                                 return Err(Unsupported);
                             }
@@ -6264,7 +6359,11 @@ mod omml {
                         LocalName::SSup => vec![slot(n, LocalName::E), slot(n, LocalName::Sup)],
                         LocalName::SSub => vec![slot(n, LocalName::E), slot(n, LocalName::Sub)],
                         LocalName::SSubSup => {
-                            vec![slot(n, LocalName::E), slot(n, LocalName::Sub), slot(n, LocalName::Sup)]
+                            vec![
+                                slot(n, LocalName::E),
+                                slot(n, LocalName::Sub),
+                                slot(n, LocalName::Sup),
+                            ]
                         }
                         LocalName::Rad => {
                             if prop_on(dom, n, LocalName::RadPr, LocalName::DegHide)
@@ -6282,21 +6381,27 @@ mod omml {
                             if nary_command(&chr).is_none() {
                                 return Err(Unsupported);
                             }
-                            vec![slot(n, LocalName::Sub), slot(n, LocalName::Sup), slot(n, LocalName::E)]
+                            vec![
+                                slot(n, LocalName::Sub),
+                                slot(n, LocalName::Sup),
+                                slot(n, LocalName::E),
+                            ]
                         }
                         LocalName::Func => {
                             let name = plain_text_of_runs(dom, child(dom, n, LocalName::FName));
                             let name = name.trim();
                             if !(LATEX_FUNCTIONS.contains(&name)
                                 || name == "lim"
-                                || (!name.is_empty() && name.chars().all(|c| c.is_ascii_alphabetic())))
+                                || (!name.is_empty()
+                                    && name.chars().all(|c| c.is_ascii_alphabetic())))
                             {
                                 return Err(Unsupported);
                             }
                             vec![slot(n, LocalName::E)]
                         }
                         LocalName::LimLow => {
-                            if plain_text_of_runs(dom, child(dom, n, LocalName::E)).trim() != "lim" {
+                            if plain_text_of_runs(dom, child(dom, n, LocalName::E)).trim() != "lim"
+                            {
                                 return Err(Unsupported);
                             }
                             vec![slot(n, LocalName::Lim)]
@@ -6339,7 +6444,9 @@ mod omml {
                     format!("\\begin{{{env}}} {} \\end{{{env}}}", parts.join(" \\\\ "))
                 }
                 Item::MatrixRow(_) => parts.join(" & "),
-                Item::LeftRight { beg, end, .. } => format!("\\left{beg} {} \\right{end}", parts.concat()),
+                Item::LeftRight { beg, end, .. } => {
+                    format!("\\left{beg} {} \\right{end}", parts.concat())
+                }
                 Item::Node(n) => {
                     let n = *n;
                     let Some(name) = dom.name(n) else { return Ok(String::new()) };
@@ -6402,7 +6509,9 @@ mod omml {
                                 p(0)
                             )
                         }
-                        LocalName::Box | LocalName::BorderBox | LocalName::Phant => p(0).to_string(),
+                        LocalName::Box | LocalName::BorderBox | LocalName::Phant => {
+                            p(0).to_string()
+                        }
                         // `m:m` 展开成一个 `Matrix` 项，结果就是它
                         LocalName::M => p(0).to_string(),
                         _ => return Err(Unsupported),
@@ -6413,8 +6522,10 @@ mod omml {
 
         /// `m:d`（TS `delimiterToLatex`）：`\binom`、矩阵环境、`\left … \right` 三种形态之一。
         fn delimiter(dom: &Dom, d: NodeId) -> Result<Item, Unsupported> {
-            let beg = prop_val(dom, d, LocalName::DPr, LocalName::BegChr).unwrap_or_else(|| "(".into());
-            let end = prop_val(dom, d, LocalName::DPr, LocalName::EndChr).unwrap_or_else(|| ")".into());
+            let beg =
+                prop_val(dom, d, LocalName::DPr, LocalName::BegChr).unwrap_or_else(|| "(".into());
+            let end =
+                prop_val(dom, d, LocalName::DPr, LocalName::EndChr).unwrap_or_else(|| ")".into());
             let slots = children_named(dom, d, LocalName::E);
             let [slot] = slots.as_slice() else { return Err(Unsupported) };
             let inner = content_children(dom, *slot);
@@ -6423,11 +6534,13 @@ mod omml {
                 if beg == "("
                     && end == ")"
                     && dom.is(only, super::m(LocalName::F))
-                    && prop_val(dom, only, LocalName::FPr, LocalName::Type).as_deref() == Some("noBar")
+                    && prop_val(dom, only, LocalName::FPr, LocalName::Type).as_deref()
+                        == Some("noBar")
                 {
                     return Ok(Item::Binom(only));
                 }
-                if (dom.is(only, super::m(LocalName::M)) || dom.is(only, super::m(LocalName::EqArr)))
+                if (dom.is(only, super::m(LocalName::M))
+                    || dom.is(only, super::m(LocalName::EqArr)))
                     && let Some(env) = matrix_env(&beg, &end)
                 {
                     return Ok(Item::Matrix { node: only, env: env.to_string() });
@@ -6562,9 +6675,9 @@ mod omml {
 
         /// TS `LATEX_FUNCTIONS`。
         const LATEX_FUNCTIONS: &[&str] = &[
-            "sin", "cos", "tan", "cot", "sec", "csc", "sinh", "cosh", "tanh", "coth", "arcsin", "arccos",
-            "arctan", "ln", "log", "exp", "max", "min", "sup", "inf", "arg", "det", "gcd", "deg", "dim",
-            "ker", "mod",
+            "sin", "cos", "tan", "cot", "sec", "csc", "sinh", "cosh", "tanh", "coth", "arcsin",
+            "arccos", "arctan", "ln", "log", "exp", "max", "min", "sup", "inf", "arg", "det",
+            "gcd", "deg", "dim", "ker", "mod",
         ];
 
         /// 定界字符 → `\left` / `\right` 后面的 token（TS `LEFT_RIGHT_CHARS` 的反查；`""` → `.`）。
@@ -6602,7 +6715,7 @@ mod omml {
             })
         }
     }
-    mod latex_to_omml {
+    pub mod latex_to_omml {
         //! LaTeX → OMML（TS `math.ts` 的 `latexToOmml`，`spec/18` 7.5 逐字移植）。
         //!
         //! 输出与 TS **逐字相等**（`fixtures/fieldgen/` 是对照件）：同样的元素顺序、同样的属性顺序、
@@ -6643,7 +6756,8 @@ mod omml {
 
             fn rest_starts_with(&self, pat: &str) -> bool {
                 let p: Vec<char> = pat.chars().collect();
-                self.src.len() >= self.pos + p.len() && self.src[self.pos..self.pos + p.len()] == p[..]
+                self.src.len() >= self.pos + p.len()
+                    && self.src[self.pos..self.pos + p.len()] == p[..]
             }
 
             fn skip_spaces(&mut self) {
@@ -6789,14 +6903,19 @@ mod omml {
                     if (other == '^' || other == '_') && other != ch {
                         p.pos += 1;
                         let second = parse_group(p)?;
-                        let (sub, sup) = if ch == '_' { (script, second) } else { (second, script) };
+                        let (sub, sup) =
+                            if ch == '_' { (script, second) } else { (second, script) };
                         atoms.push(format!(
                             "<m:sSubSup><m:e>{base}</m:e><m:sub>{sub}</m:sub><m:sup>{sup}</m:sup></m:sSubSup>"
                         ));
                     } else if ch == '^' {
-                        atoms.push(format!("<m:sSup><m:e>{base}</m:e><m:sup>{script}</m:sup></m:sSup>"));
+                        atoms.push(format!(
+                            "<m:sSup><m:e>{base}</m:e><m:sup>{script}</m:sup></m:sSup>"
+                        ));
                     } else {
-                        atoms.push(format!("<m:sSub><m:e>{base}</m:e><m:sub>{script}</m:sub></m:sSub>"));
+                        atoms.push(format!(
+                            "<m:sSub><m:e>{base}</m:e><m:sub>{script}</m:sub></m:sSub>"
+                        ));
                     }
                     continue;
                 }
@@ -6895,7 +7014,9 @@ mod omml {
                     p.pos += 4;
                     let closing = read_brace_text(p)?;
                     if closing != env {
-                        return Err(err(format!("\\end{{{closing}}} does not match \\begin{{{env}}}")));
+                        return Err(err(format!(
+                            "\\end{{{closing}}} does not match \\begin{{{env}}}"
+                        )));
                     }
                     break;
                 } else {
@@ -7125,7 +7246,7 @@ mod omml {
             })
         }
     }
-    mod mathml {
+    pub mod mathml {
         //! OMML → MathML Core（TS `ommlToMathML`，`math.ts` 55–376 的逐字移植）。
         //!
         //! 迭代求值：`Item` 是一个待求值的项（元素 / 槽位 / 行 …），任务栈里 `Eval(item)` 展开出子项与一个
@@ -7133,7 +7254,8 @@ mod omml {
         //! 只是一个长一点的栈。
 
         use super::{
-            child, children_named, content_children, escape_text, is_plain_run, prop_on, prop_val, text_of,
+            child, children_named, content_children, escape_text, is_plain_run, prop_on, prop_val,
+            text_of,
         };
         use crate::xml::{Dom, LocalName, NodeId, NsId};
 
@@ -7197,8 +7319,9 @@ mod omml {
         /// 展开一个项：叶子直接把结果压栈并返回 `None`；否则返回子项。
         fn expand(dom: &Dom, item: Item, results: &mut Vec<String>) -> Option<Vec<Item>> {
             let slot = |n: NodeId, l: LocalName| Item::Slot(n, l);
-            let rows =
-                |n: NodeId| -> Vec<Item> { content_children(dom, n).into_iter().map(Item::Node).collect() };
+            let rows = |n: NodeId| -> Vec<Item> {
+                content_children(dom, n).into_iter().map(Item::Node).collect()
+            };
             match item {
                 Item::Slot(parent, name) => match child(dom, parent, name) {
                     None => {
@@ -7234,7 +7357,11 @@ mod omml {
                         LocalName::SSup => vec![slot(n, LocalName::E), slot(n, LocalName::Sup)],
                         LocalName::SSub => vec![slot(n, LocalName::E), slot(n, LocalName::Sub)],
                         LocalName::SSubSup | LocalName::SPre => {
-                            vec![slot(n, LocalName::E), slot(n, LocalName::Sub), slot(n, LocalName::Sup)]
+                            vec![
+                                slot(n, LocalName::E),
+                                slot(n, LocalName::Sub),
+                                slot(n, LocalName::Sup),
+                            ]
                         }
                         LocalName::Rad => {
                             if prop_on(dom, n, LocalName::RadPr, LocalName::DegHide)
@@ -7245,11 +7372,16 @@ mod omml {
                                 vec![slot(n, LocalName::E), slot(n, LocalName::Deg)]
                             }
                         }
-                        LocalName::D => {
-                            children_named(dom, n, LocalName::E).into_iter().map(Item::Row).collect()
-                        }
+                        LocalName::D => children_named(dom, n, LocalName::E)
+                            .into_iter()
+                            .map(Item::Row)
+                            .collect(),
                         LocalName::Nary => {
-                            vec![slot(n, LocalName::Sub), slot(n, LocalName::Sup), slot(n, LocalName::E)]
+                            vec![
+                                slot(n, LocalName::Sub),
+                                slot(n, LocalName::Sup),
+                                slot(n, LocalName::E),
+                            ]
                         }
                         LocalName::Func => vec![slot(n, LocalName::FName), slot(n, LocalName::E)],
                         LocalName::LimLow | LocalName::LimUpp => {
@@ -7258,12 +7390,14 @@ mod omml {
                         LocalName::Acc | LocalName::Bar | LocalName::GroupChr => {
                             vec![slot(n, LocalName::E)]
                         }
-                        LocalName::M => {
-                            children_named(dom, n, LocalName::Mr).into_iter().map(Item::Cells).collect()
-                        }
-                        LocalName::EqArr => {
-                            children_named(dom, n, LocalName::E).into_iter().map(Item::EqRow).collect()
-                        }
+                        LocalName::M => children_named(dom, n, LocalName::Mr)
+                            .into_iter()
+                            .map(Item::Cells)
+                            .collect(),
+                        LocalName::EqArr => children_named(dom, n, LocalName::E)
+                            .into_iter()
+                            .map(Item::EqRow)
+                            .collect(),
                         LocalName::Box | LocalName::BorderBox | LocalName::Phant => {
                             vec![slot(n, LocalName::E)]
                         }
@@ -7291,7 +7425,9 @@ mod omml {
                     }
                     match name.local {
                         LocalName::F => {
-                            let attrs = match prop_val(dom, n, LocalName::FPr, LocalName::Type).as_deref() {
+                            let attrs = match prop_val(dom, n, LocalName::FPr, LocalName::Type)
+                                .as_deref()
+                            {
                                 Some("noBar") => " linethickness=\"0\"",
                                 Some("lin" | "skw") => " bevelled=\"true\"",
                                 _ => "",
@@ -7300,9 +7436,16 @@ mod omml {
                         }
                         LocalName::SSup => format!("<msup>{}{}</msup>", p(0), p(1)),
                         LocalName::SSub => format!("<msub>{}{}</msub>", p(0), p(1)),
-                        LocalName::SSubSup => format!("<msubsup>{}{}{}</msubsup>", p(0), p(1), p(2)),
+                        LocalName::SSubSup => {
+                            format!("<msubsup>{}{}{}</msubsup>", p(0), p(1), p(2))
+                        }
                         LocalName::SPre => {
-                            format!("<mmultiscripts>{}<mprescripts/>{}{}</mmultiscripts>", p(0), p(1), p(2))
+                            format!(
+                                "<mmultiscripts>{}<mprescripts/>{}{}</mmultiscripts>",
+                                p(0),
+                                p(1),
+                                p(2)
+                            )
                         }
                         LocalName::Rad => {
                             if parts.len() == 1 {
@@ -7320,10 +7463,16 @@ mod omml {
                                 .unwrap_or_else(|| "|".into());
                             let sep_mo = if sep.is_empty() { String::new() } else { mo(&sep, "") };
                             let body = parts.join(&sep_mo);
-                            let open =
-                                if beg.is_empty() { String::new() } else { mo(&beg, " stretchy=\"true\"") };
-                            let close =
-                                if end.is_empty() { String::new() } else { mo(&end, " stretchy=\"true\"") };
+                            let open = if beg.is_empty() {
+                                String::new()
+                            } else {
+                                mo(&beg, " stretchy=\"true\"")
+                            };
+                            let close = if end.is_empty() {
+                                String::new()
+                            } else {
+                                mo(&end, " stretchy=\"true\"")
+                            };
                             format!("<mrow>{open}{body}{close}</mrow>")
                         }
                         LocalName::Nary => {
@@ -7331,7 +7480,11 @@ mod omml {
                                 .unwrap_or_else(|| "\u{222B}".into());
                             let lim_loc = prop_val(dom, n, LocalName::NaryPr, LocalName::LimLoc)
                                 .unwrap_or_else(|| {
-                                    if chr == "\u{222B}" { "subSup".into() } else { "undOvr".into() }
+                                    if chr == "\u{222B}" {
+                                        "subSup".into()
+                                    } else {
+                                        "undOvr".into()
+                                    }
                                 });
                             let sub_hide = prop_on(dom, n, LocalName::NaryPr, LocalName::SubHide);
                             let sup_hide = prop_on(dom, n, LocalName::NaryPr, LocalName::SupHide);
@@ -7354,7 +7507,9 @@ mod omml {
                             };
                             format!("<mrow>{scripted}{}</mrow>", p(2))
                         }
-                        LocalName::Func => format!("<mrow>{}<mo>\u{2061}</mo>{}</mrow>", p(0), p(1)),
+                        LocalName::Func => {
+                            format!("<mrow>{}<mo>\u{2061}</mo>{}</mrow>", p(0), p(1))
+                        }
                         LocalName::LimLow => format!("<munder>{}{}</munder>", p(0), p(1)),
                         LocalName::LimUpp => format!("<mover>{}{}</mover>", p(0), p(1)),
                         LocalName::Acc => {
@@ -7372,13 +7527,16 @@ mod omml {
                         LocalName::GroupChr => {
                             let chr = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Chr)
                                 .unwrap_or_else(|| "\u{23DF}".into());
-                            let top = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Pos).as_deref()
+                            let top = prop_val(dom, n, LocalName::GroupChrPr, LocalName::Pos)
+                                .as_deref()
                                 == Some("top");
                             let tag = if top { "mover" } else { "munder" };
                             format!("<{tag}>{}{}</{tag}>", p(0), mo(&chr, " stretchy=\"true\""))
                         }
                         LocalName::M | LocalName::EqArr => format!("<mtable>{}</mtable>", joined()),
-                        LocalName::Box | LocalName::BorderBox | LocalName::Phant => p(0).to_string(),
+                        LocalName::Box | LocalName::BorderBox | LocalName::Phant => {
+                            p(0).to_string()
+                        }
                         _ => joined(),
                     }
                 }
@@ -7472,7 +7630,12 @@ mod omml {
     }
 
     /// `node/m:<pr>/m:<child>/@m:val`（TS `propVal`）。
-    pub(crate) fn prop_val(dom: &Dom, node: NodeId, pr: LocalName, name: LocalName) -> Option<String> {
+    pub(crate) fn prop_val(
+        dom: &Dom,
+        node: NodeId,
+        pr: LocalName,
+        name: LocalName,
+    ) -> Option<String> {
         let pr = child(dom, node, pr)?;
         let c = child(dom, pr, name)?;
         dom.attr_value(c, m(LocalName::Val)).map(|v| v.into_owned())
@@ -7547,7 +7710,7 @@ mod omml {
     /// OMML 的命名空间 URI（Transitional 与 Strict 相同）。
     pub const NS_M: &str = "http://schemas.openxmlformats.org/officeDocument/2006/math";
 }
-mod revision {
+pub mod revision {
     //! 跨 part 的修订索引（`MOD-09`、`EDIT-06`；`spec/18` 7.1）。
     //!
     //! `Block.revisions` / `Run.rev` / `Row` / `Cell` / `SectionInfo` 上的修订是**投影**：run 级的
@@ -7899,7 +8062,10 @@ mod revision {
 
     impl RevisionIndex {
         /// 扫一批 part，按给定顺序拼成文档序的索引。
-        pub(crate) fn build(parts: &[RevPart<'_>], warnings: &mut Vec<Diagnostic>) -> RevisionIndex {
+        pub(crate) fn build(
+            parts: &[RevPart<'_>],
+            warnings: &mut Vec<Diagnostic>,
+        ) -> RevisionIndex {
             let mut idx = RevisionIndex::default();
             for p in parts {
                 let base = idx.entries.len() as u32;
@@ -7923,7 +8089,8 @@ mod revision {
             for i in lonely {
                 let e = &self.entries[i];
                 let dom = parts.iter().find(|p| p.part == e.part).map(|p| p.dom);
-                let range = dom.and_then(|d| d.node(e.node()).lex.as_ref().map(|l| l.range.clone()));
+                let range =
+                    dom.and_then(|d| d.node(e.node()).lex.as_ref().map(|l| l.range.clone()));
                 warnings.push(Diagnostic::pre_existing(
                     e.part,
                     range,
@@ -8069,7 +8236,8 @@ mod revision {
             LocalName::Ins | LocalName::Del | LocalName::MoveFrom | LocalName::MoveTo => {
                 let ins = matches!(name.local, LocalName::Ins | LocalName::MoveTo);
                 let mv = matches!(name.local, LocalName::MoveFrom | LocalName::MoveTo);
-                if ctx.in_ppr && dom.parent(n).is_some_and(|p| dom.is(p, QName::w(LocalName::RPr))) {
+                if ctx.in_ppr && dom.parent(n).is_some_and(|p| dom.is(p, QName::w(LocalName::RPr)))
+                {
                     // 段落标记。`w:moveFrom` / `w:moveTo` 对标记的作用与 `w:del` / `w:ins` 相同
                     // （接受 moveFrom = 与下一段合并），但要与另一半配对，所以另立种类
                     let kind = match (mv, ins) {
@@ -8109,8 +8277,12 @@ mod revision {
             LocalName::SectPrChange => {
                 (RevKind::SectPropsChange, owner_or(ctx.sect, RevOwner::Section))
             }
-            LocalName::TblPrChange => (RevKind::TablePropsChange, owner_or(ctx.table, RevOwner::Table)),
-            LocalName::TblPrExChange => (RevKind::TablePropsExChange, owner_or(ctx.row, RevOwner::Row)),
+            LocalName::TblPrChange => {
+                (RevKind::TablePropsChange, owner_or(ctx.table, RevOwner::Table))
+            }
+            LocalName::TblPrExChange => {
+                (RevKind::TablePropsExChange, owner_or(ctx.row, RevOwner::Row))
+            }
             LocalName::TblGridChange => {
                 (RevKind::TableGridChange, owner_or(ctx.table, RevOwner::Table))
             }
@@ -8211,7 +8383,7 @@ mod revision {
         }
     }
 }
-mod sdt {
+pub mod sdt {
     //! 内容控件（`MOD-08`，任务 3.3）：`w:sdt` 的 `sdtPr` 读成 [`SdtInfo`]。
     //!
     //! 块级与 run 级 sdt 用同一个读取器。控件种类按 `sdtPr` 里第一个可识别的控件元素判定，**只看局部名**
@@ -8387,7 +8559,8 @@ mod sdt {
                 placeholder: None,
                 showing_placeholder: false,
             };
-            let Some(pr) = dom.semantic_children(sdt).find(|&n| dom.is(n, w(LocalName::SdtPr))) else {
+            let Some(pr) = dom.semantic_children(sdt).find(|&n| dom.is(n, w(LocalName::SdtPr)))
+            else {
                 return info;
             };
             let val = |n: NodeId| dom.attr_value(n, w(LocalName::Val)).map(|v| v.into_owned());
@@ -8399,8 +8572,11 @@ mod sdt {
                 let Some(name) = dom.name(child) else { continue };
                 // 控件元素只看局部名：checkbox 在 w14、repeatingSection* 在 w15
                 if info.control == SdtControl::Unknown
-                    && let Some(kind) =
-                        name.local.known_str().and_then(SdtControl::parse).filter(|c| c.is_control())
+                    && let Some(kind) = name
+                        .local
+                        .known_str()
+                        .and_then(SdtControl::parse)
+                        .filter(|c| c.is_control())
                 {
                     info.control = kind;
                     if matches!(kind, SdtControl::DocPartObj | SdtControl::DocPartList) {
@@ -8417,8 +8593,10 @@ mod sdt {
                     }
                     LocalName::Id => info.id = val(child).and_then(|v| v.trim().parse().ok()),
                     LocalName::Lock => {
-                        info.lock =
-                            val(child).as_deref().and_then(SdtLock::parse).unwrap_or(SdtLock::Unlocked);
+                        info.lock = val(child)
+                            .as_deref()
+                            .and_then(SdtLock::parse)
+                            .unwrap_or(SdtLock::Unlocked);
                     }
                     LocalName::DataBinding => {
                         info.data_binding = Some(DataBinding {
@@ -8506,7 +8684,7 @@ mod sdt {
             })
     }
 }
-mod section {
+pub mod section {
     //! 节模型（`MOD-10` 的 `SectionInfo`、`spec/16` 任务 5.1 / 5.2）与锚定绘图要的页面几何
     //! （`spec/15` 任务 4.6c）。
     //!
@@ -8636,7 +8814,9 @@ mod section {
         /// 本节声明的全部槽（供 `resolve::section` 做继承）。
         pub fn declared_refs(&self) -> impl Iterator<Item = (HfKind, HfVariant, &str)> + '_ {
             HfKind::ALL.into_iter().flat_map(move |k| {
-                HfVariant::ALL.into_iter().filter_map(move |v| self.hf_ref(k, v).map(|id| (k, v, id)))
+                HfVariant::ALL
+                    .into_iter()
+                    .filter_map(move |v| self.hf_ref(k, v).map(|id| (k, v, id)))
             })
         }
 
@@ -8845,9 +9025,8 @@ mod section {
         let start = dom.node(node).lex.as_ref().map_or(0, |l| l.range.start);
         Some(sections.iter().position(|s| s.end_offset > start).unwrap_or(sections.len() - 1))
     }
-
 }
-mod sources {
+pub mod sources {
     //! 参考文献源（`MOD-10`，`spec/16` 任务 5.7）。
     //!
     //! Word 把文献源放在一个 `customXml/item{N}.xml` part 里，根元素是 bibliography 命名空间的
@@ -8913,11 +9092,13 @@ mod sources {
             .filter(|p| p.is_xml && is_custom_xml_item(p.uri.as_str()))
             .map(|p| p.id)
             .collect();
-        candidates.into_iter().find(|&id| pkg.dom(id).ok().flatten().and_then(sources_root).is_some())
+        candidates
+            .into_iter()
+            .find(|&id| pkg.dom(id).ok().flatten().and_then(sources_root).is_some())
     }
 
     /// `customXml/item1.xml`（不含 `itemProps1.xml`）。
-    fn is_custom_xml_item(uri: &str) -> bool {
+    pub(super) fn is_custom_xml_item(uri: &str) -> bool {
         let Some(rest) = uri.strip_prefix("customXml/item") else { return false };
         let Some(digits) = rest.strip_suffix(".xml") else { return false };
         !digits.is_empty() && digits.bytes().all(|c| c.is_ascii_digit())
@@ -8964,9 +9145,8 @@ mod sources {
             _ => LocalName::Publisher,
         }
     }
-
 }
-mod table {
+pub mod table {
     //! 表格模型（`MOD-07`，`MOD-09` 的表格部分，任务 3.2）。
     //!
     //! 模型只存**声明值**：`grid` 是 `gridCol/@w:w` 原值（允许 0 与缺失），`hMerge` 不折叠、`trHeight`
@@ -8985,8 +9165,9 @@ mod table {
     use crate::package::PartId;
     use crate::semantic::props::codec::Twips;
     use crate::semantic::props::{
-        CellProps, Ctx, RowProps, TableProps, Val, read_attr, read_cell_props, read_cell_props_change,
-        read_row_props, read_row_props_change, read_table_props, read_table_props_change,
+        CellProps, Ctx, RowProps, TableProps, Val, read_attr, read_cell_props,
+        read_cell_props_change, read_row_props, read_row_props_change, read_table_props,
+        read_table_props_change,
     };
     use crate::span::is_range_marker;
     use crate::xml::{Dom, LocalName, NodeId, NsId, QName};
@@ -9061,7 +9242,8 @@ mod table {
     impl Row {
         /// `gridBefore + Σ gridSpan + gridAfter`：这一行在声明网格里占的列数。
         pub fn grid_width(&self) -> i64 {
-            let n = |v: &Option<Val<i32>>| v.as_ref().and_then(Val::value).copied().unwrap_or(0).max(0);
+            let n =
+                |v: &Option<Val<i32>>| v.as_ref().and_then(Val::value).copied().unwrap_or(0).max(0);
             i64::from(n(&self.props.grid_before))
                 + self.cells.iter().map(|c| i64::from(c.grid_span())).sum::<i64>()
                 + i64::from(n(&self.props.grid_after))
@@ -9189,7 +9371,8 @@ mod table {
                 revisions.push(Revision::TablePropsChange { meta: self.meta(change), old });
             }
             let mut grid = Vec::new();
-            if let Some(g) = dom.semantic_children(tbl).find(|&n| dom.is(n, w(LocalName::TblGrid))) {
+            if let Some(g) = dom.semantic_children(tbl).find(|&n| dom.is(n, w(LocalName::TblGrid)))
+            {
                 for c in dom.semantic_children(g) {
                     if dom.is(c, w(LocalName::GridCol)) {
                         let mut ctx = Ctx::new(dom, &mut self.warnings);
@@ -9296,8 +9479,9 @@ mod table {
                     }
                     LocalName::Sdt => {
                         let info = SdtInfo::read(dom, child);
-                        if let Some(content) =
-                            dom.semantic_children(child).find(|&n| dom.is(n, w(LocalName::SdtContent)))
+                        if let Some(content) = dom
+                            .semantic_children(child)
+                            .find(|&n| dom.is(n, w(LocalName::SdtContent)))
                         {
                             out.push(Wrap { node: content, sdt: Some(info), revs: revs.to_vec() });
                         }
@@ -9604,8 +9788,9 @@ mod table {
             // 没命中才下到框里。宿主块可能在别的 part（页眉里的文本框），所以每个 part 都走一遍
             let mut parts = vec![self.main_part];
             parts.extend(self.hf_parts.keys().copied());
-            parts
-                .extend([self.footnotes.part, self.endnotes.part, self.comments.part].iter().flatten());
+            parts.extend(
+                [self.footnotes.part, self.endnotes.part, self.comments.part].iter().flatten(),
+            );
             for here in parts {
                 let Some(tops) = self.blocks_of_part(here) else { continue };
                 for b in tops {
@@ -9618,7 +9803,8 @@ mod table {
                     if let Block::Table(_) = b {
                         for x in Blocks::over(std::slice::from_ref(b)) {
                             for (content, cpart) in box_flows(x) {
-                                let hit = text_block_deep(content, cpart.unwrap_or(here), part, para);
+                                let hit =
+                                    text_block_deep(content, cpart.unwrap_or(here), part, para);
                                 if hit.is_some() {
                                     return hit;
                                 }
@@ -9735,7 +9921,8 @@ mod table {
                     if !seen.insert(n) {
                         continue;
                     }
-                    if dom.is(n, QName::w(LocalName::T)) || dom.is(n, QName::w(LocalName::DelText)) {
+                    if dom.is(n, QName::w(LocalName::T)) || dom.is(n, QName::w(LocalName::DelText))
+                    {
                         let here = dom.ancestors(n).find(|&n| dom.is(n, QName::w(LocalName::P)));
                         if paragraph.is_some() && here != paragraph {
                             out.push('\n');
@@ -9748,7 +9935,9 @@ mod table {
                         }
                     } else if dom.is(n, QName::w(LocalName::Tab)) {
                         out.push('\t');
-                    } else if dom.is(n, QName::w(LocalName::Br)) || dom.is(n, QName::w(LocalName::Cr)) {
+                    } else if dom.is(n, QName::w(LocalName::Br))
+                        || dom.is(n, QName::w(LocalName::Cr))
+                    {
                         out.push('\n');
                     }
                 }
@@ -9850,7 +10039,7 @@ mod table {
         }
     }
 }
-mod theme {
+pub mod theme {
     //! 主题声明值（`MOD-10`）：`a:theme/a:themeElements` 的字体方案与颜色方案。
     //! 只记录声明；主题字体 / 颜色的解析规则（槽位映射、tint/shade、空 EA 槽）在 `RES-05`。
 
@@ -9996,9 +10185,10 @@ mod theme {
                     LocalName::Ea => out.ea = typeface,
                     LocalName::Cs => out.cs = typeface,
                     LocalName::Font => {
-                        if let (Some(script), Some(t)) =
-                            (dom.attr_value(child, QName::new(NsId::None, LocalName::Script)), typeface)
-                        {
+                        if let (Some(script), Some(t)) = (
+                            dom.attr_value(child, QName::new(NsId::None, LocalName::Script)),
+                            typeface,
+                        ) {
                             out.scripts.push((script.into_owned(), t));
                         }
                     }
@@ -10119,7 +10309,8 @@ mod theme {
             if !dom.is(root, QName::new(NsId::A, LocalName::Theme)) {
                 return None;
             }
-            let mut theme = Theme { node: root, name: attr_name(dom, root), fonts: None, colors: None };
+            let mut theme =
+                Theme { node: root, name: attr_name(dom, root), fonts: None, colors: None };
             let elements = dom
                 .semantic_children(root)
                 .find(|&n| dom.is(n, QName::new(NsId::A, LocalName::ThemeElements)));
@@ -10144,8 +10335,12 @@ mod theme {
                                 _ => {}
                             }
                         }
-                        theme.fonts =
-                            Some(FontScheme { node: child, name: attr_name(dom, child), major, minor });
+                        theme.fonts = Some(FontScheme {
+                            node: child,
+                            name: attr_name(dom, child),
+                            major,
+                            minor,
+                        });
                     }
                     _ => {}
                 }
@@ -10153,9 +10348,8 @@ mod theme {
             Some(theme)
         }
     }
-
 }
-mod units {
+pub mod units {
     //! 长度单位换算（`spec/15` 任务 4.2）。
     //!
     //! 模型层一律存 **EMU 原值**（`MOD-11`：显示模型只放文档事实）。px 是显示投影，只有
@@ -10286,9 +10480,8 @@ mod units {
         }
         out
     }
-
 }
-mod vml {
+pub mod vml {
     //! VML 显示模型（`MOD-11`；`spec/15` 任务 4.5 / 4.7）。
     //!
     //! `w:pict` 与 `w:object` 里装的都是 VML：形状把几何写在 `style` 属性里（CSS 语法），填充与描边
@@ -10507,7 +10700,8 @@ mod vml {
                         group = Some(shapes.len() - 1);
                     }
                 }
-                if name.local == LocalName::OLEObject && ole.is_none() && dom.is_ns(n, NsId::O, "o") {
+                if name.local == LocalName::OLEObject && ole.is_none() && dom.is_ns(n, NsId::O, "o")
+                {
                     ole = Some(OleInfo {
                         node: n,
                         prog_id: attr(dom, n, NsId::None, LocalName::ProgID),
@@ -10543,7 +10737,8 @@ mod vml {
                 .unwrap_or_default(),
             fill_color: attr(dom, n, NsId::None, LocalName::Fillcolor).and_then(|v| vml_color(&v)),
             filled: flag(dom, n, NsId::None, LocalName::Filled),
-            stroke_color: attr(dom, n, NsId::None, LocalName::Strokecolor).and_then(|v| vml_color(&v)),
+            stroke_color: attr(dom, n, NsId::None, LocalName::Strokecolor)
+                .and_then(|v| vml_color(&v)),
             stroked: flag(dom, n, NsId::None, LocalName::Stroked),
             coordsize: attr(dom, n, NsId::None, LocalName::Coordsize).and_then(|v| pair(&v)),
             coordorigin: attr(dom, n, NsId::None, LocalName::Coordorigin).and_then(|v| pair(&v)),
@@ -10663,7 +10858,6 @@ mod vml {
         let (a, b) = v.split_once(',')?;
         Some((a.trim().parse().ok()?, b.trim().parse().ok()?))
     }
-
 }
 
 pub use block::{
@@ -10707,152 +10901,160 @@ pub use table::{BlockStep, Blocks, Cell, GridCol, Row, box_flows};
 pub use theme::{ColorScheme, FontScheme, FontSlots, Theme, ThemeSlot};
 pub use vml::{OleInfo, VmlDisplay, VmlFill, VmlKind, VmlShape};
 
-
 #[cfg(test)]
 mod test_model {
+    use super::chart::{PLOT_ELEMENTS, chartex_kind, palette, plot_kind, serial_date_text};
+    use super::custgeom::custom_geom;
+    use super::decl::{heading_level_of_id, heading_level_of_name};
+    use super::diagram::diagram_text;
+    use super::drawing::drawing_display;
+    use super::ink::lenient_int;
+    use super::section::{DEFAULT_MARGIN, DEFAULT_PAGE_HEIGHT, DEFAULT_PAGE_WIDTH};
+    use super::sources::{is_custom_xml_item, publisher_element};
+    use super::units::*;
+    use super::vml::{vml_color, vml_display};
     use super::*;
-            use super::*;
+    use crate::resolve::drawingml::Rgb;
+    use crate::semantic::props::{TblStyleOverrideType, ThemeColor};
 
-            #[test]
-            fn mod_11_chart_kind_table_covers_every_plot_element() {
-                // 16 种图（ECMA-376 §21.2.2）都在表里，别的元素不是图
-                assert_eq!(PLOT_ELEMENTS.len(), 16);
-                for &l in PLOT_ELEMENTS {
-                    assert!(plot_kind(l).is_some());
-                }
-                assert_eq!(plot_kind(LocalName::PlotArea), None);
-                assert_eq!(plot_kind(LocalName::DoughnutChart), Some(ChartKind::Pie));
-                assert_eq!(plot_kind(LocalName::RadarChart), Some(ChartKind::Other));
-                assert_eq!(chartex_kind("waterfall"), Some(ChartKind::Bar));
-                assert_eq!(chartex_kind("regionMap"), None);
-            }
+    #[test]
+    fn mod_11_chart_kind_table_covers_every_plot_element() {
+        // 16 种图（ECMA-376 §21.2.2）都在表里，别的元素不是图
+        assert_eq!(PLOT_ELEMENTS.len(), 16);
+        for &l in PLOT_ELEMENTS {
+            assert!(plot_kind(l).is_some());
+        }
+        assert_eq!(plot_kind(LocalName::PlotArea), None);
+        assert_eq!(plot_kind(LocalName::DoughnutChart), Some(ChartKind::Pie));
+        assert_eq!(plot_kind(LocalName::RadarChart), Some(ChartKind::Other));
+        assert_eq!(chartex_kind("waterfall"), Some(ChartKind::Bar));
+        assert_eq!(chartex_kind("regionMap"), None);
+    }
 
-            #[test]
-            fn mod_11_excel_serial_dates() {
-                assert_eq!(serial_date_text("37377").as_deref(), Some("5/1/2002"));
-                assert_eq!(serial_date_text("37408").as_deref(), Some("6/1/2002"));
-                assert_eq!(serial_date_text("1").as_deref(), Some("12/31/1899"));
-                assert_eq!(serial_date_text("45658.4").as_deref(), Some("1/1/2025"));
-                assert_eq!(serial_date_text("0"), None);
-                assert_eq!(serial_date_text("80001"), None);
-                assert_eq!(serial_date_text("abc"), None);
-            }
+    #[test]
+    fn mod_11_excel_serial_dates() {
+        assert_eq!(serial_date_text("37377").as_deref(), Some("5/1/2002"));
+        assert_eq!(serial_date_text("37408").as_deref(), Some("6/1/2002"));
+        assert_eq!(serial_date_text("1").as_deref(), Some("12/31/1899"));
+        assert_eq!(serial_date_text("45658.4").as_deref(), Some("1/1/2025"));
+        assert_eq!(serial_date_text("0"), None);
+        assert_eq!(serial_date_text("80001"), None);
+        assert_eq!(serial_date_text("abc"), None);
+    }
 
-            #[test]
-            fn mod_11_palette_columns() {
-                let office = ColorScheme::office_default();
-                let hex6 = |p: [Rgb; 6]| p.map(crate::resolve::drawingml::hex);
-                // 缺省 / 列 2 = 六个 accent
-                assert_eq!(hex6(palette(None, &office).unwrap())[0], "4472C4");
-                assert_eq!(hex6(palette(Some(2), &office).unwrap())[5], "70AD47");
-                assert_eq!(hex6(palette(Some(10), &office).unwrap())[0], "4472C4");
-                // 列 1 灰阶
-                assert_eq!(hex6(palette(Some(1), &office).unwrap())[0], "595959");
-                assert_eq!(hex6(palette(Some(41), &office).unwrap())[1], "D9D9D9");
-                // 列 3–8 单色阶梯：以对应 accent 起头，六个颜色互不相同
-                let mono = hex6(palette(Some(5), &office).unwrap());
-                assert_eq!(mono[0], "A5A5A5");
-                assert_eq!(mono.iter().collect::<std::collections::BTreeSet<_>>().len(), 6);
-                assert_eq!(hex6(palette(Some(40), &office).unwrap())[0], "70AD47");
-            }
-            use super::*;
-            use crate::package::PartId;
+    #[test]
+    fn mod_11_palette_columns() {
+        let office = ColorScheme::office_default();
+        let hex6 = |p: [Rgb; 6]| p.map(crate::resolve::drawingml::hex);
+        // 缺省 / 列 2 = 六个 accent
+        assert_eq!(hex6(palette(None, &office).unwrap())[0], "4472C4");
+        assert_eq!(hex6(palette(Some(2), &office).unwrap())[5], "70AD47");
+        assert_eq!(hex6(palette(Some(10), &office).unwrap())[0], "4472C4");
+        // 列 1 灰阶
+        assert_eq!(hex6(palette(Some(1), &office).unwrap())[0], "595959");
+        assert_eq!(hex6(palette(Some(41), &office).unwrap())[1], "D9D9D9");
+        // 列 3–8 单色阶梯：以对应 accent 起头，六个颜色互不相同
+        let mono = hex6(palette(Some(5), &office).unwrap());
+        assert_eq!(mono[0], "A5A5A5");
+        assert_eq!(mono.iter().collect::<std::collections::BTreeSet<_>>().len(), 6);
+        assert_eq!(hex6(palette(Some(40), &office).unwrap())[0], "70AD47");
+    }
 
-            const NS: &str = r#" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main""#;
+    const CUSTGEOM_NS: &str = r#" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main""#;
 
-            fn parse(inner: &str) -> (Dom, Option<CustomGeom>) {
-                let src = format!("<a:custGeom{NS}>{inner}</a:custGeom>");
-                let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
-                let root = dom.root();
-                let g = custom_geom(&dom, root);
-                (dom, g)
-            }
+    fn parse_custgeom(inner: &str) -> (Dom, Option<CustomGeom>) {
+        let src = format!("<a:custGeom{CUSTGEOM_NS}>{inner}</a:custGeom>");
+        let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
+        let root = dom.root();
+        let g = custom_geom(&dom, root);
+        (dom, g)
+    }
 
-            const RECT: &str = concat!(
-                r#"<a:avLst/><a:gdLst/><a:pathLst><a:path w="952500" h="476250">"#,
-                r#"<a:moveTo><a:pt x="0" y="476250"/></a:moveTo>"#,
-                r#"<a:lnTo><a:pt x="952500" y="476250"/></a:lnTo>"#,
-                r#"<a:lnTo><a:pt x="952500" y="0"/></a:lnTo>"#,
-                r#"<a:lnTo><a:pt x="0" y="0"/></a:lnTo>"#,
-                r#"<a:close/></a:path></a:pathLst>"#,
-            );
+    const RECT: &str = concat!(
+        r#"<a:avLst/><a:gdLst/><a:pathLst><a:path w="952500" h="476250">"#,
+        r#"<a:moveTo><a:pt x="0" y="476250"/></a:moveTo>"#,
+        r#"<a:lnTo><a:pt x="952500" y="476250"/></a:lnTo>"#,
+        r#"<a:lnTo><a:pt x="952500" y="0"/></a:lnTo>"#,
+        r#"<a:lnTo><a:pt x="0" y="0"/></a:lnTo>"#,
+        r#"<a:close/></a:path></a:pathLst>"#,
+    );
 
-            #[test]
-            fn mod_11_custgeom_straight_edges() {
-                let (_, g) = parse(RECT);
-                let g = g.expect("geom");
-                assert_eq!(g.paths.len(), 1);
-                let p = &g.paths[0];
-                assert_eq!((p.w, p.h), (Some(952_500), Some(476_250)));
-                assert!(!p.fill_none && !p.stroke_none);
-                assert_eq!(
-                    p.cmds,
-                    vec![
-                        GeomCmd::MoveTo([0, 476_250]),
-                        GeomCmd::LineTo([952_500, 476_250]),
-                        GeomCmd::LineTo([952_500, 0]),
-                        GeomCmd::LineTo([0, 0]),
-                        GeomCmd::Close,
-                    ]
-                );
-            }
+    #[test]
+    fn mod_11_custgeom_straight_edges() {
+        let (_, g) = parse_custgeom(RECT);
+        let g = g.expect("geom");
+        assert_eq!(g.paths.len(), 1);
+        let p = &g.paths[0];
+        assert_eq!((p.w, p.h), (Some(952_500), Some(476_250)));
+        assert!(!p.fill_none && !p.stroke_none);
+        assert_eq!(
+            p.cmds,
+            vec![
+                GeomCmd::MoveTo([0, 476_250]),
+                GeomCmd::LineTo([952_500, 476_250]),
+                GeomCmd::LineTo([952_500, 0]),
+                GeomCmd::LineTo([0, 0]),
+                GeomCmd::Close,
+            ]
+        );
+    }
 
-            #[test]
-            fn mod_11_custgeom_bails_on_formulas_and_arcs() {
-                // 引导公式：坐标可能写成引导名，求不了值 → 整条作废
-                let (_, g) =
-                    parse(&format!(r#"<a:gdLst><a:gd name="adj" fmla="val 50000"/></a:gdLst>{RECT}"#));
-                assert!(g.is_none(), "有 gd 公式就不给路径");
-                // 圆弧要转贝塞尔，不做
-                let (_, g) = parse(concat!(
-                    r#"<a:pathLst><a:path w="100" h="100">"#,
-                    r#"<a:moveTo><a:pt x="0" y="0"/></a:moveTo>"#,
-                    r#"<a:arcTo wR="50" hR="50" stAng="0" swAng="5400000"/>"#,
-                    r#"</a:path></a:pathLst>"#,
-                ));
-                assert!(g.is_none(), "有 arcTo 就不给路径");
-                // 坐标是引导名而不是数字
-                let (_, g) = parse(concat!(
-                    r#"<a:pathLst><a:path w="100" h="100">"#,
-                    r#"<a:moveTo><a:pt x="hc" y="0"/></a:moveTo></a:path></a:pathLst>"#,
-                ));
-                assert!(g.is_none(), "非数字坐标就不给路径");
-                // 没有 pathLst
-                let (_, g) = parse("<a:avLst/>");
-                assert!(g.is_none());
-            }
+    #[test]
+    fn mod_11_custgeom_bails_on_formulas_and_arcs() {
+        // 引导公式：坐标可能写成引导名，求不了值 → 整条作废
+        let (_, g) = parse_custgeom(&format!(
+            r#"<a:gdLst><a:gd name="adj" fmla="val 50000"/></a:gdLst>{RECT}"#
+        ));
+        assert!(g.is_none(), "有 gd 公式就不给路径");
+        // 圆弧要转贝塞尔，不做
+        let (_, g) = parse_custgeom(concat!(
+            r#"<a:pathLst><a:path w="100" h="100">"#,
+            r#"<a:moveTo><a:pt x="0" y="0"/></a:moveTo>"#,
+            r#"<a:arcTo wR="50" hR="50" stAng="0" swAng="5400000"/>"#,
+            r#"</a:path></a:pathLst>"#,
+        ));
+        assert!(g.is_none(), "有 arcTo 就不给路径");
+        // 坐标是引导名而不是数字
+        let (_, g) = parse_custgeom(concat!(
+            r#"<a:pathLst><a:path w="100" h="100">"#,
+            r#"<a:moveTo><a:pt x="hc" y="0"/></a:moveTo></a:path></a:pathLst>"#,
+        ));
+        assert!(g.is_none(), "非数字坐标就不给路径");
+        // 没有 pathLst
+        let (_, g) = parse_custgeom("<a:avLst/>");
+        assert!(g.is_none());
+    }
 
-            #[test]
-            fn mod_11_custgeom_fill_and_stroke_flags() {
-                let (_, g) = parse(concat!(
-                    r#"<a:pathLst><a:path w="10" h="10" fill="none" stroke="0">"#,
-                    r#"<a:moveTo><a:pt x="0" y="0"/></a:moveTo>"#,
-                    r#"<a:cubicBezTo><a:pt x="1" y="2"/><a:pt x="3" y="4"/><a:pt x="5" y="6"/></a:cubicBezTo>"#,
-                    r#"</a:path></a:pathLst>"#,
-                ));
-                let g = g.expect("geom");
-                let p = &g.paths[0];
-                assert!(p.fill_none && p.stroke_none);
-                assert_eq!(p.cmds[1], GeomCmd::CubicTo([[1, 2], [3, 4], [5, 6]]));
-                assert_eq!(p.cmds[1].letter(), 'C');
-                assert_eq!(p.cmds[1].points().len(), 3);
-            }
-            use super::*;
-            use crate::package::PartId;
-            use crate::semantic::props::{
-                CharacterSpacing, DocProtect, FontFamily, FontPitch, Jc, MultiLevelType, NumberFormat,
-            };
+    #[test]
+    fn mod_11_custgeom_fill_and_stroke_flags() {
+        let (_, g) = parse_custgeom(concat!(
+            r#"<a:pathLst><a:path w="10" h="10" fill="none" stroke="0">"#,
+            r#"<a:moveTo><a:pt x="0" y="0"/></a:moveTo>"#,
+            r#"<a:cubicBezTo><a:pt x="1" y="2"/><a:pt x="3" y="4"/><a:pt x="5" y="6"/></a:cubicBezTo>"#,
+            r#"</a:path></a:pathLst>"#,
+        ));
+        let g = g.expect("geom");
+        let p = &g.paths[0];
+        assert!(p.fill_none && p.stroke_none);
+        assert_eq!(p.cmds[1], GeomCmd::CubicTo([[1, 2], [3, 4], [5, 6]]));
+        assert_eq!(p.cmds[1].letter(), 'C');
+        assert_eq!(p.cmds[1].points().len(), 3);
+    }
 
-            const W: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+    use crate::semantic::props::{
+        CharacterSpacing, DocProtect, FontFamily, FontPitch, Jc, MultiLevelType, NumberFormat,
+    };
 
-            fn dom(xml: &str) -> Dom {
-                Dom::parse(PartId(0), xml.as_bytes()).unwrap()
-            }
+    const W: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 
-            #[test]
-            fn mod_10_styles_defaults_and_heading_levels() {
-                let d = dom(&format!(
-                    r#"<w:styles xmlns:w="{W}">
+    fn dom(xml: &str) -> Dom {
+        Dom::parse(PartId(0), xml.as_bytes()).unwrap()
+    }
+
+    #[test]
+    fn mod_10_styles_defaults_and_heading_levels() {
+        let d = dom(&format!(
+            r#"<w:styles xmlns:w="{W}">
                       <w:docDefaults><w:rPrDefault><w:rPr><w:sz w:val="22"/><w:lang w:val="en-US" w:eastAsia="zh-CN"/></w:rPr></w:rPrDefault>
                         <w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="259" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>
                       <w:latentStyles w:count="1"><w:lsdException w:name="Normal"/></w:latentStyles>
@@ -10867,68 +11069,68 @@ mod test_model {
                       <w:style w:type="table" w:styleId="TableGrid"><w:name w:val="Table Grid"/><w:tblPr><w:tblBorders><w:top w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>
                         <w:tblStylePr w:type="firstRow"><w:rPr><w:b/></w:rPr><w:tcPr><w:shd w:val="clear" w:fill="D9D9D9"/></w:tcPr></w:tblStylePr></w:style>
                     </w:styles>"#
-                ));
-                let mut diags = Vec::new();
-                let s = Styles::from_dom(&d, &mut diags).unwrap();
-                assert!(diags.is_empty(), "{diags:?}");
-                assert_eq!(s.styles.len(), 8);
-                assert!(s.latent_styles.is_some());
-                assert_eq!(s.doc_default_rpr().unwrap().size, Some(Val::Value(22)));
-                assert_eq!(
-                    s.doc_default_ppr().unwrap().spacing.as_ref().unwrap().after,
-                    Some(Val::Value(160))
-                );
-                // 默认样式：最后一个 default 胜出；无声明取第一个
-                assert_eq!(s.default_for(StyleType::Paragraph).unwrap().id(), Some("Body"));
-                assert_eq!(s.default_for(StyleType::Character).unwrap().id(), Some("DefaultParagraphFont"));
-                assert_eq!(
-                    s.default_for(StyleType::Table),
-                    None,
-                    "无声明且无 Normal → 无默认（Word 行为）"
-                );
-                assert_eq!(s.default_for(StyleType::Numbering), None);
-                // 无声明时退到 Normal
-                let d2 = dom(&format!(
-                    r#"<w:styles xmlns:w="{W}"><w:style w:type="paragraph" w:styleId="Body"><w:name w:val="Body"/></w:style>
+        ));
+        let mut diags = Vec::new();
+        let s = Styles::from_dom(&d, &mut diags).unwrap();
+        assert!(diags.is_empty(), "{diags:?}");
+        assert_eq!(s.styles.len(), 8);
+        assert!(s.latent_styles.is_some());
+        assert_eq!(s.doc_default_rpr().unwrap().size, Some(Val::Value(22)));
+        assert_eq!(
+            s.doc_default_ppr().unwrap().spacing.as_ref().unwrap().after,
+            Some(Val::Value(160))
+        );
+        // 默认样式：最后一个 default 胜出；无声明取第一个
+        assert_eq!(s.default_for(StyleType::Paragraph).unwrap().id(), Some("Body"));
+        assert_eq!(s.default_for(StyleType::Character).unwrap().id(), Some("DefaultParagraphFont"));
+        assert_eq!(
+            s.default_for(StyleType::Table),
+            None,
+            "无声明且无 Normal → 无默认（Word 行为）"
+        );
+        assert_eq!(s.default_for(StyleType::Numbering), None);
+        // 无声明时退到 Normal
+        let d2 = dom(&format!(
+            r#"<w:styles xmlns:w="{W}"><w:style w:type="paragraph" w:styleId="Body"><w:name w:val="Body"/></w:style>
                        <w:style w:type="paragraph" w:styleId="a"><w:name w:val="Normal"/></w:style></w:styles>"#
-                ));
-                let s2 = Styles::from_dom(&d2, &mut Vec::new()).unwrap();
-                assert_eq!(s2.default_for(StyleType::Paragraph).unwrap().id(), Some("a"));
-                let h1 = s.get("Heading1").unwrap();
-                assert_eq!(h1.kind(), Some(StyleType::Paragraph));
-                assert_eq!(h1.based_on.as_deref(), Some("Normal"));
-                assert_eq!(h1.link.as_deref(), Some("Heading1Char"));
-                assert_eq!(h1.ui_priority, Some(Val::Value(9)));
-                assert_eq!(h1.q_format, Some(true));
-                assert_eq!(h1.ppr.as_ref().unwrap().keep_next, Some(true));
-                assert_eq!(h1.rpr.as_ref().unwrap().size, Some(Val::Value(32)));
-                assert_eq!(Styles::own_heading_level(h1), OwnHeadingLevel::Level(1));
-                assert_eq!(
-                    Styles::own_heading_level(s.get("TOCHeading").unwrap()),
-                    OwnHeadingLevel::Blocked
-                );
-                assert_eq!(Styles::own_heading_level(s.get("MyH").unwrap()), OwnHeadingLevel::Level(3));
-                assert_eq!(Styles::own_heading_level(s.get("Normal").unwrap()), OwnHeadingLevel::Inherit);
-                assert_eq!(heading_level_of_name("Heading 3"), Some(3));
-                assert_eq!(heading_level_of_name("heading3"), Some(3));
-                assert_eq!(heading_level_of_name("Heading 10"), None);
-                assert_eq!(heading_level_of_id("Heading9"), Some(9));
-                assert_eq!(heading_level_of_id("Heading1Char"), None);
-                let dpf = s.get("DefaultParagraphFont").unwrap();
-                assert_eq!(dpf.semi_hidden, Some(true));
-                assert_eq!(dpf.unhide_when_used, Some(true));
-                let tg = s.get("TableGrid").unwrap();
-                assert!(tg.tbl_pr.is_some());
-                assert_eq!(tg.conditional.len(), 1);
-                assert_eq!(tg.conditional[0].kind, Some(Val::Value(TblStyleOverrideType::FirstRow)));
-                assert_eq!(tg.conditional[0].rpr.as_ref().unwrap().bold, Some(true));
-                assert!(tg.conditional[0].tc_pr.is_some());
-            }
+        ));
+        let s2 = Styles::from_dom(&d2, &mut Vec::new()).unwrap();
+        assert_eq!(s2.default_for(StyleType::Paragraph).unwrap().id(), Some("a"));
+        let h1 = s.get("Heading1").unwrap();
+        assert_eq!(h1.kind(), Some(StyleType::Paragraph));
+        assert_eq!(h1.based_on.as_deref(), Some("Normal"));
+        assert_eq!(h1.link.as_deref(), Some("Heading1Char"));
+        assert_eq!(h1.ui_priority, Some(Val::Value(9)));
+        assert_eq!(h1.q_format, Some(true));
+        assert_eq!(h1.ppr.as_ref().unwrap().keep_next, Some(true));
+        assert_eq!(h1.rpr.as_ref().unwrap().size, Some(Val::Value(32)));
+        assert_eq!(Styles::own_heading_level(h1), OwnHeadingLevel::Level(1));
+        assert_eq!(
+            Styles::own_heading_level(s.get("TOCHeading").unwrap()),
+            OwnHeadingLevel::Blocked
+        );
+        assert_eq!(Styles::own_heading_level(s.get("MyH").unwrap()), OwnHeadingLevel::Level(3));
+        assert_eq!(Styles::own_heading_level(s.get("Normal").unwrap()), OwnHeadingLevel::Inherit);
+        assert_eq!(heading_level_of_name("Heading 3"), Some(3));
+        assert_eq!(heading_level_of_name("heading3"), Some(3));
+        assert_eq!(heading_level_of_name("Heading 10"), None);
+        assert_eq!(heading_level_of_id("Heading9"), Some(9));
+        assert_eq!(heading_level_of_id("Heading1Char"), None);
+        let dpf = s.get("DefaultParagraphFont").unwrap();
+        assert_eq!(dpf.semi_hidden, Some(true));
+        assert_eq!(dpf.unhide_when_used, Some(true));
+        let tg = s.get("TableGrid").unwrap();
+        assert!(tg.tbl_pr.is_some());
+        assert_eq!(tg.conditional.len(), 1);
+        assert_eq!(tg.conditional[0].kind, Some(Val::Value(TblStyleOverrideType::FirstRow)));
+        assert_eq!(tg.conditional[0].rpr.as_ref().unwrap().bold, Some(true));
+        assert!(tg.conditional[0].tc_pr.is_some());
+    }
 
-            #[test]
-            fn mod_10_numbering_declarations() {
-                let d = dom(&format!(
-                    r#"<w:numbering xmlns:w="{W}" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    #[test]
+    fn mod_10_numbering_declarations() {
+        let d = dom(&format!(
+            r#"<w:numbering xmlns:w="{W}" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                          xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" mc:Ignorable="w14">
                       <w:abstractNum w:abstractNumId="0"><w:nsid w:val="0ABC1234"/><w:multiLevelType w:val="hybridMultilevel"/>
                         <w:lvl w:ilvl="0" w:tplc="04090001"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="&#xF0B7;"/><w:lvlJc w:val="left"/>
@@ -10944,53 +11146,53 @@ mod test_model {
                       <w:num w:numId="2"><w:abstractNumId w:val="0"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="5"/></w:lvlOverride>
                         <w:lvlOverride w:ilvl="1"><w:lvl w:ilvl="1"><w:numFmt w:val="upperRoman"/><w:lvlText w:val="%2"/></w:lvl></w:lvlOverride></w:num>
                     </w:numbering>"#
-                ));
-                let mut diags = Vec::new();
-                let n = Numbering::from_dom(&d, &mut diags).unwrap();
-                assert!(diags.is_empty(), "{diags:?}");
-                assert_eq!(n.abstract_nums.len(), 2);
-                assert_eq!(n.nums.len(), 2);
-                let a0 = n.abstract_num(0).unwrap();
-                assert_eq!(a0.nsid.as_deref(), Some("0ABC1234"));
-                assert_eq!(a0.multi_level_type, Some(Val::Value(MultiLevelType::HybridMultilevel)));
-                let l0 = a0.level(0).unwrap();
-                assert_eq!(l0.tplc.as_deref(), Some("04090001"));
-                assert_eq!(l0.start_or_default(), 1);
-                assert_eq!(l0.num_fmt.as_ref().unwrap().val, Some(Val::Value(NumberFormat::Bullet)));
-                assert_eq!(l0.lvl_text.as_ref().unwrap().val.as_deref(), Some("\u{F0B7}"));
-                assert_eq!(l0.lvl_jc, Some(Val::Value(Jc::Left)));
-                assert_eq!(
-                    l0.ppr.as_ref().unwrap().indent.as_ref().unwrap().hanging,
-                    Some(Val::Value(360))
-                );
-                assert_eq!(
-                    l0.rpr.as_ref().unwrap().fonts.as_ref().unwrap().ascii.as_deref(),
-                    Some("Symbol")
-                );
-                let l1 = a0.level(1).unwrap();
-                assert_eq!(l1.start_or_default(), 0, "缺 w:start 从 0 起");
-                assert_eq!(l1.lvl_restart, Some(Val::Value(0)));
-                assert_eq!(l1.is_lgl, Some(true));
-                // w14 自定义格式：MCE 选中 Choice 分支
-                let a1 = n.abstract_num(1).unwrap();
-                assert_eq!(a1.num_style_link.as_deref(), Some("ListNumber"));
-                let f = a1.level(0).unwrap().num_fmt.as_ref().unwrap();
-                assert_eq!(f.val, Some(Val::Value(NumberFormat::Custom)));
-                assert_eq!(f.format.as_deref(), Some("001, 002, 003, ..."));
-                // num 与覆盖
-                assert_eq!(n.num(1).unwrap().abstract_id(), Some(0));
-                let n2 = n.num(2).unwrap();
-                assert_eq!(n2.overrides.len(), 2);
-                assert_eq!(n2.override_for(0).unwrap().start_override, Some(Val::Value(5)));
-                let ov = n2.override_for(1).unwrap().lvl.as_ref().unwrap();
-                assert_eq!(ov.num_fmt.as_ref().unwrap().val, Some(Val::Value(NumberFormat::UpperRoman)));
-                assert!(n.num(3).is_none());
-            }
+        ));
+        let mut diags = Vec::new();
+        let n = Numbering::from_dom(&d, &mut diags).unwrap();
+        assert!(diags.is_empty(), "{diags:?}");
+        assert_eq!(n.abstract_nums.len(), 2);
+        assert_eq!(n.nums.len(), 2);
+        let a0 = n.abstract_num(0).unwrap();
+        assert_eq!(a0.nsid.as_deref(), Some("0ABC1234"));
+        assert_eq!(a0.multi_level_type, Some(Val::Value(MultiLevelType::HybridMultilevel)));
+        let l0 = a0.level(0).unwrap();
+        assert_eq!(l0.tplc.as_deref(), Some("04090001"));
+        assert_eq!(l0.start_or_default(), 1);
+        assert_eq!(l0.num_fmt.as_ref().unwrap().val, Some(Val::Value(NumberFormat::Bullet)));
+        assert_eq!(l0.lvl_text.as_ref().unwrap().val.as_deref(), Some("\u{F0B7}"));
+        assert_eq!(l0.lvl_jc, Some(Val::Value(Jc::Left)));
+        assert_eq!(
+            l0.ppr.as_ref().unwrap().indent.as_ref().unwrap().hanging,
+            Some(Val::Value(360))
+        );
+        assert_eq!(
+            l0.rpr.as_ref().unwrap().fonts.as_ref().unwrap().ascii.as_deref(),
+            Some("Symbol")
+        );
+        let l1 = a0.level(1).unwrap();
+        assert_eq!(l1.start_or_default(), 0, "缺 w:start 从 0 起");
+        assert_eq!(l1.lvl_restart, Some(Val::Value(0)));
+        assert_eq!(l1.is_lgl, Some(true));
+        // w14 自定义格式：MCE 选中 Choice 分支
+        let a1 = n.abstract_num(1).unwrap();
+        assert_eq!(a1.num_style_link.as_deref(), Some("ListNumber"));
+        let f = a1.level(0).unwrap().num_fmt.as_ref().unwrap();
+        assert_eq!(f.val, Some(Val::Value(NumberFormat::Custom)));
+        assert_eq!(f.format.as_deref(), Some("001, 002, 003, ..."));
+        // num 与覆盖
+        assert_eq!(n.num(1).unwrap().abstract_id(), Some(0));
+        let n2 = n.num(2).unwrap();
+        assert_eq!(n2.overrides.len(), 2);
+        assert_eq!(n2.override_for(0).unwrap().start_override, Some(Val::Value(5)));
+        let ov = n2.override_for(1).unwrap().lvl.as_ref().unwrap();
+        assert_eq!(ov.num_fmt.as_ref().unwrap().val, Some(Val::Value(NumberFormat::UpperRoman)));
+        assert!(n.num(3).is_none());
+    }
 
-            #[test]
-            fn mod_10_settings_compat_facts_and_font_table() {
-                let d = dom(&format!(
-                    r#"<w:settings xmlns:w="{W}" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml">
+    #[test]
+    fn mod_10_settings_compat_facts_and_font_table() {
+        let d = dom(&format!(
+            r#"<w:settings xmlns:w="{W}" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml">
                       <w:writeProtection w:recommended="1" w:algorithmName="SHA-512" w:hashValue="abc=" w:saltValue="s=" w:spinCount="100000"/>
                       <w:zoom w:percent="100"/><w:removePersonalInformation/><w:trackRevisions/>
                       <w:documentProtection w:edit="readOnly" w:enforcement="1"/>
@@ -11003,353 +11205,343 @@ mod test_model {
                       <w:themeFontLang w:val="en-US" w:eastAsia="zh-CN"/><w:decimalSymbol w:val="."/><w:listSeparator w:val=","/>
                       <w15:chartTrackingRefBased/>
                     </w:settings>"#
-                ));
-                let mut diags = Vec::new();
-                let s = Settings::from_dom(&d, &mut diags).unwrap();
-                assert!(diags.is_empty(), "{diags:?}");
-                let wp = s.write_protection.as_ref().unwrap();
-                assert_eq!(wp.recommended, Some(true));
-                assert_eq!(wp.spin_count, Some(Val::Value(100_000)));
-                assert_eq!(s.zoom.as_ref().unwrap().percent, Some(Val::Value(100)));
-                assert_eq!(s.remove_personal_information, Some(true));
-                assert_eq!(s.track_revisions, Some(true));
-                let dp = s.document_protection.as_ref().unwrap();
-                assert_eq!(dp.edit, Some(Val::Value(DocProtect::ReadOnly)));
-                assert_eq!(dp.enforcement, Some(true));
-                assert_eq!(s.default_tab_stop_or_default(), 420);
-                assert_eq!(s.auto_hyphenation, Some(false));
-                assert_eq!(s.even_and_odd_headers, Some(true));
-                assert_eq!(
-                    s.character_spacing_control,
-                    Some(Val::Value(CharacterSpacing::CompressPunctuation))
-                );
-                assert!(s.rsids.is_some());
-                assert_eq!(s.theme_font_lang.as_ref().unwrap().east_asia.as_deref(), Some("zh-CN"));
-                assert_eq!(s.chart_tracking_ref_based, Some(true));
-                let facts = s.compat_facts(&d);
-                assert_eq!(facts.mode, Some(15));
-                assert_eq!(facts.settings.len(), 2);
-                let flags: Vec<String> =
-                    facts.flags.iter().map(|q| q.display(d.interner()).to_string()).collect();
-                assert_eq!(
-                    flags,
-                    ["w:spaceForUL", "w:balanceSingleByteDoubleByteWidth"],
-                    "val=0 的开关不算"
-                );
+        ));
+        let mut diags = Vec::new();
+        let s = Settings::from_dom(&d, &mut diags).unwrap();
+        assert!(diags.is_empty(), "{diags:?}");
+        let wp = s.write_protection.as_ref().unwrap();
+        assert_eq!(wp.recommended, Some(true));
+        assert_eq!(wp.spin_count, Some(Val::Value(100_000)));
+        assert_eq!(s.zoom.as_ref().unwrap().percent, Some(Val::Value(100)));
+        assert_eq!(s.remove_personal_information, Some(true));
+        assert_eq!(s.track_revisions, Some(true));
+        let dp = s.document_protection.as_ref().unwrap();
+        assert_eq!(dp.edit, Some(Val::Value(DocProtect::ReadOnly)));
+        assert_eq!(dp.enforcement, Some(true));
+        assert_eq!(s.default_tab_stop_or_default(), 420);
+        assert_eq!(s.auto_hyphenation, Some(false));
+        assert_eq!(s.even_and_odd_headers, Some(true));
+        assert_eq!(
+            s.character_spacing_control,
+            Some(Val::Value(CharacterSpacing::CompressPunctuation))
+        );
+        assert!(s.rsids.is_some());
+        assert_eq!(s.theme_font_lang.as_ref().unwrap().east_asia.as_deref(), Some("zh-CN"));
+        assert_eq!(s.chart_tracking_ref_based, Some(true));
+        let facts = s.compat_facts(&d);
+        assert_eq!(facts.mode, Some(15));
+        assert_eq!(facts.settings.len(), 2);
+        let flags: Vec<String> =
+            facts.flags.iter().map(|q| q.display(d.interner()).to_string()).collect();
+        assert_eq!(
+            flags,
+            ["w:spaceForUL", "w:balanceSingleByteDoubleByteWidth"],
+            "val=0 的开关不算"
+        );
 
-                let d = dom(&format!(
-                    r#"<w:fonts xmlns:w="{W}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+        let d = dom(&format!(
+            r#"<w:fonts xmlns:w="{W}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
                       <w:font w:name="Calibri"><w:panose1 w:val="020F0502020204030204"/><w:charset w:val="00"/><w:family w:val="swiss"/><w:pitch w:val="variable"/>
                         <w:sig w:usb0="E0002AFF" w:usb1="C000247B" w:usb2="00000009" w:usb3="00000000" w:csb0="000001FF" w:csb1="00000000"/>
                         <w:embedRegular r:id="rId1" w:fontKey="{{ABC}}" w:subsetted="1"/></w:font>
                       <w:font w:name="宋体"><w:altName w:val="SimSun"/><w:family w:val="auto"/><w:pitch w:val="default"/></w:font>
                     </w:fonts>"#
-                ));
-                let ft = FontTable::from_dom(&d, &mut diags).unwrap();
-                assert!(diags.is_empty(), "{diags:?}");
-                assert_eq!(ft.fonts.len(), 2);
-                let c = ft.get("Calibri").unwrap();
-                assert_eq!(c.family, Some(Val::Value(FontFamily::Swiss)));
-                assert_eq!(c.pitch, Some(Val::Value(FontPitch::Variable)));
-                assert_eq!(c.sig.as_ref().unwrap().usb0.as_deref(), Some("E0002AFF"));
-                let e = c.embed_regular.as_ref().unwrap();
-                assert_eq!(e.id.as_deref(), Some("rId1"));
-                assert_eq!(e.subsetted, Some(true));
-                assert_eq!(ft.get("宋体").unwrap().alt_name.as_deref(), Some("SimSun"));
-                assert!(Settings::from_dom(&d, &mut diags).is_none(), "根不是 w:settings");
-            }
-            use super::*;
-            use crate::package::PartId;
+        ));
+        let ft = FontTable::from_dom(&d, &mut diags).unwrap();
+        assert!(diags.is_empty(), "{diags:?}");
+        assert_eq!(ft.fonts.len(), 2);
+        let c = ft.get("Calibri").unwrap();
+        assert_eq!(c.family, Some(Val::Value(FontFamily::Swiss)));
+        assert_eq!(c.pitch, Some(Val::Value(FontPitch::Variable)));
+        assert_eq!(c.sig.as_ref().unwrap().usb0.as_deref(), Some("E0002AFF"));
+        let e = c.embed_regular.as_ref().unwrap();
+        assert_eq!(e.id.as_deref(), Some("rId1"));
+        assert_eq!(e.subsetted, Some(true));
+        assert_eq!(ft.get("宋体").unwrap().alt_name.as_deref(), Some("SimSun"));
+        assert!(Settings::from_dom(&d, &mut diags).is_none(), "根不是 w:settings");
+    }
 
-            const DGM: &str = "http://schemas.openxmlformats.org/drawingml/2006/diagram";
-            const A: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
+    const DGM: &str = "http://schemas.openxmlformats.org/drawingml/2006/diagram";
+    const A: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
 
-            fn data(pts: &str, cxns: &str) -> Dom {
-                let src = format!(
-                    r#"<dgm:dataModel xmlns:dgm="{DGM}" xmlns:a="{A}"><dgm:ptLst>{pts}</dgm:ptLst><dgm:cxnLst>{cxns}</dgm:cxnLst></dgm:dataModel>"#
-                );
-                Dom::parse(PartId(0), src.as_bytes()).expect("parse")
-            }
+    fn data(pts: &str, cxns: &str) -> Dom {
+        let src = format!(
+            r#"<dgm:dataModel xmlns:dgm="{DGM}" xmlns:a="{A}"><dgm:ptLst>{pts}</dgm:ptLst><dgm:cxnLst>{cxns}</dgm:cxnLst></dgm:dataModel>"#
+        );
+        Dom::parse(PartId(0), src.as_bytes()).expect("parse")
+    }
 
-            fn pt(id: &str, text: &str, ty: &str) -> String {
-                let ty = if ty.is_empty() { String::new() } else { format!(r#" type="{ty}""#) };
-                format!(
-                    r#"<dgm:pt modelId="{id}"{ty}><dgm:t><a:p><a:r><a:t>{text}</a:t></a:r></a:p></dgm:t></dgm:pt>"#
-                )
-            }
+    fn pt(id: &str, text: &str, ty: &str) -> String {
+        let ty = if ty.is_empty() { String::new() } else { format!(r#" type="{ty}""#) };
+        format!(
+            r#"<dgm:pt modelId="{id}"{ty}><dgm:t><a:p><a:r><a:t>{text}</a:t></a:r></a:p></dgm:t></dgm:pt>"#
+        )
+    }
 
-            fn cxn(src: &str, dst: &str, ord: &str, ty: &str) -> String {
-                let ty = if ty.is_empty() { String::new() } else { format!(r#" type="{ty}""#) };
-                let ord = if ord.is_empty() { String::new() } else { format!(r#" srcOrd="{ord}""#) };
-                format!(r#"<dgm:cxn modelId="c"{ty} srcId="{src}" destId="{dst}"{ord}/>"#)
-            }
+    fn cxn(src: &str, dst: &str, ord: &str, ty: &str) -> String {
+        let ty = if ty.is_empty() { String::new() } else { format!(r#" type="{ty}""#) };
+        let ord = if ord.is_empty() { String::new() } else { format!(r#" srcOrd="{ord}""#) };
+        format!(r#"<dgm:cxn modelId="c"{ty} srcId="{src}" destId="{dst}"{ord}/>"#)
+    }
 
-            #[test]
-            fn tree_order_then_isolated_points() {
-                let dom = data(
-                    &[
-                        pt("root", "Root", ""),
-                        pt("later", "Later", ""),
-                        pt("first", "First", ""),
-                        pt("leaf", "Leaf", ""),
-                        pt("alone", "Alone", ""),
-                        pt("pres", "IGNORED", "pres"),
-                    ]
-                    .concat(),
-                    &[
-                        cxn("root", "later", "9", "parOf"),
-                        cxn("root", "first", "1", ""),
-                        cxn("first", "leaf", "0", ""),
-                        cxn("root", "alone", "0", "presOf"),
-                    ]
-                    .concat(),
-                );
-                assert_eq!(diagram_text(&dom).as_deref(), Some("Root\nFirst\nLeaf\nLater\nAlone"));
-            }
+    #[test]
+    fn tree_order_then_isolated_points() {
+        let dom = data(
+            &[
+                pt("root", "Root", ""),
+                pt("later", "Later", ""),
+                pt("first", "First", ""),
+                pt("leaf", "Leaf", ""),
+                pt("alone", "Alone", ""),
+                pt("pres", "IGNORED", "pres"),
+            ]
+            .concat(),
+            &[
+                cxn("root", "later", "9", "parOf"),
+                cxn("root", "first", "1", ""),
+                cxn("first", "leaf", "0", ""),
+                cxn("root", "alone", "0", "presOf"),
+            ]
+            .concat(),
+        );
+        assert_eq!(diagram_text(&dom).as_deref(), Some("Root\nFirst\nLeaf\nLater\nAlone"));
+    }
 
-            #[test]
-            fn cycles_self_loops_and_missing_src_ord_terminate() {
-                // root ↔ later 成环、first 自指：没有根，全部按文件序当孤立点
-                let dom = data(
-                    &[pt("root", "Root", ""), pt("later", "Later", ""), pt("first", "First", "")].concat(),
-                    &[
-                        cxn("root", "later", "", ""),
-                        cxn("later", "root", "", ""),
-                        cxn("first", "first", "", ""),
-                    ]
-                    .concat(),
-                );
-                assert_eq!(diagram_text(&dom).as_deref(), Some("Root\nLater\nFirst"));
-                // 有根、子树里成环：环上的点各出现一次
-                let dom = data(
-                    &[pt("a", "A", ""), pt("b", "B", ""), pt("c", "C", "")].concat(),
-                    &[cxn("a", "b", "", ""), cxn("b", "c", "", ""), cxn("c", "b", "", "")].concat(),
-                );
-                assert_eq!(diagram_text(&dom).as_deref(), Some("A\nB\nC"));
-                assert_eq!(diagram_text(&data("", "")), None);
-            }
-            use super::*;
-            use crate::package::PartId;
+    #[test]
+    fn cycles_self_loops_and_missing_src_ord_terminate() {
+        // root ↔ later 成环、first 自指：没有根，全部按文件序当孤立点
+        let dom = data(
+            &[pt("root", "Root", ""), pt("later", "Later", ""), pt("first", "First", "")].concat(),
+            &[
+                cxn("root", "later", "", ""),
+                cxn("later", "root", "", ""),
+                cxn("first", "first", "", ""),
+            ]
+            .concat(),
+        );
+        assert_eq!(diagram_text(&dom).as_deref(), Some("Root\nLater\nFirst"));
+        // 有根、子树里成环：环上的点各出现一次
+        let dom = data(
+            &[pt("a", "A", ""), pt("b", "B", ""), pt("c", "C", "")].concat(),
+            &[cxn("a", "b", "", ""), cxn("b", "c", "", ""), cxn("c", "b", "", "")].concat(),
+        );
+        assert_eq!(diagram_text(&dom).as_deref(), Some("A\nB\nC"));
+        assert_eq!(diagram_text(&data("", "")), None);
+    }
 
-            const NS: &str = concat!(
-                r#" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main""#,
-                r#" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships""#,
-                r#" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing""#,
-                r#" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing""#,
-                r#" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main""#,
-                r#" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture""#,
-            );
+    const DRAWING_NS: &str = concat!(
+        r#" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main""#,
+        r#" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships""#,
+        r#" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing""#,
+        r#" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing""#,
+        r#" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main""#,
+        r#" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture""#,
+    );
 
-            fn parse(inner: &str) -> (Dom, DrawingDisplay) {
-                let src = format!("<w:drawing{NS}>{inner}</w:drawing>");
-                let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
-                let root = dom.root();
-                let d = drawing_display(&dom, root);
-                (dom, d)
-            }
+    fn parse_drawing(inner: &str) -> (Dom, DrawingDisplay) {
+        let src = format!("<w:drawing{DRAWING_NS}>{inner}</w:drawing>");
+        let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
+        let root = dom.root();
+        let d = drawing_display(&dom, root);
+        (dom, d)
+    }
 
-            const PIC: &str = concat!(
-                r#"<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">"#,
-                r#"<pic:pic><pic:blipFill><a:blip r:embed="rId7"/></pic:blipFill></pic:pic>"#,
-                r#"</a:graphicData></a:graphic>"#,
-            );
+    const PIC: &str = concat!(
+        r#"<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">"#,
+        r#"<pic:pic><pic:blipFill><a:blip r:embed="rId7"/></pic:blipFill></pic:pic>"#,
+        r#"</a:graphicData></a:graphic>"#,
+    );
 
-            #[test]
-            fn mod_11_inline_picture_facts() {
-                let (_, d) = parse(&format!(
-                    r#"<wp:inline distT="0" distB="0"><wp:extent cx="914400" cy="457200"/><wp:docPr id="1" name="Logo" descr="a photo"/>{PIC}</wp:inline>"#
-                ));
-                assert_eq!(d.kind, DrawingKind::Picture);
-                assert!(d.anchor.is_none(), "wp:inline 是随文，没有锚定几何");
-                assert_eq!(d.extent, Some(Extent { cx: 914_400, cy: 457_200 }));
-                assert_eq!(d.doc_pr.name.as_deref(), Some("Logo"));
-                assert_eq!(d.doc_pr.descr.as_deref(), Some("a photo"));
-                let p = d.picture().expect("picture").clone();
-                assert_eq!(p.embed.as_deref(), Some("rId7"));
-                assert!(p.link.is_none());
-            }
+    #[test]
+    fn mod_11_inline_picture_facts() {
+        let (_, d) = parse_drawing(&format!(
+            r#"<wp:inline distT="0" distB="0"><wp:extent cx="914400" cy="457200"/><wp:docPr id="1" name="Logo" descr="a photo"/>{PIC}</wp:inline>"#
+        ));
+        assert_eq!(d.kind, DrawingKind::Picture);
+        assert!(d.anchor.is_none(), "wp:inline 是随文，没有锚定几何");
+        assert_eq!(d.extent, Some(Extent { cx: 914_400, cy: 457_200 }));
+        assert_eq!(d.doc_pr.name.as_deref(), Some("Logo"));
+        assert_eq!(d.doc_pr.descr.as_deref(), Some("a photo"));
+        let p = d.picture().expect("picture").clone();
+        assert_eq!(p.embed.as_deref(), Some("rId7"));
+        assert!(p.link.is_none());
+    }
 
-            #[test]
-            fn mod_11_anchor_geometry_defaults_and_values() {
-                let (_, d) = parse(concat!(
-                    r#"<wp:anchor behindDoc="1" allowOverlap="0" distT="10" distB="20" distL="30" distR="40" relativeHeight="251658242">"#,
-                    r#"<wp:positionH relativeFrom="page"><wp:posOffset>-1270</wp:posOffset></wp:positionH>"#,
-                    r#"<wp:positionV relativeFrom="margin"><wp:align>center</wp:align><wp14:pctPosVOffset>25000</wp14:pctPosVOffset></wp:positionV>"#,
-                    r#"<wp:wrapSquare wrapText="left"/>"#,
-                    r#"<wp:extent cx="100" cy="200"/>"#,
-                    r#"</wp:anchor>"#,
-                ));
-                let a = d.anchor.expect("anchor");
-                assert!(a.behind_doc);
-                assert!(!a.allow_overlap, "allowOverlap=0");
-                assert!(a.layout_in_cell, "没写 layoutInCell 时缺省为 true");
-                assert!(!a.locked);
-                assert_eq!(a.relative_height, Some(251_658_242));
-                assert_eq!(
-                    a.dist,
-                    Dist { top: Some(10), bottom: Some(20), left: Some(30), right: Some(40) }
-                );
-                assert_eq!(a.h.relative_from.as_deref(), Some("page"));
-                assert_eq!(a.h.offset_emu, Some(-1270));
-                assert_eq!(a.v.relative_from.as_deref(), Some("margin"));
-                assert_eq!(a.v.align.as_deref(), Some("center"));
-                assert_eq!(a.v.pct, Some(25000));
-                assert_eq!(a.wrap, Wrap::Square { text: Some("left".into()) });
-                assert_eq!(a.wrap.text(), Some("left"));
-            }
+    #[test]
+    fn mod_11_anchor_geometry_defaults_and_values() {
+        let (_, d) = parse_drawing(concat!(
+            r#"<wp:anchor behindDoc="1" allowOverlap="0" distT="10" distB="20" distL="30" distR="40" relativeHeight="251658242">"#,
+            r#"<wp:positionH relativeFrom="page"><wp:posOffset>-1270</wp:posOffset></wp:positionH>"#,
+            r#"<wp:positionV relativeFrom="margin"><wp:align>center</wp:align><wp14:pctPosVOffset>25000</wp14:pctPosVOffset></wp:positionV>"#,
+            r#"<wp:wrapSquare wrapText="left"/>"#,
+            r#"<wp:extent cx="100" cy="200"/>"#,
+            r#"</wp:anchor>"#,
+        ));
+        let a = d.anchor.expect("anchor");
+        assert!(a.behind_doc);
+        assert!(!a.allow_overlap, "allowOverlap=0");
+        assert!(a.layout_in_cell, "没写 layoutInCell 时缺省为 true");
+        assert!(!a.locked);
+        assert_eq!(a.relative_height, Some(251_658_242));
+        assert_eq!(
+            a.dist,
+            Dist { top: Some(10), bottom: Some(20), left: Some(30), right: Some(40) }
+        );
+        assert_eq!(a.h.relative_from.as_deref(), Some("page"));
+        assert_eq!(a.h.offset_emu, Some(-1270));
+        assert_eq!(a.v.relative_from.as_deref(), Some("margin"));
+        assert_eq!(a.v.align.as_deref(), Some("center"));
+        assert_eq!(a.v.pct, Some(25000));
+        assert_eq!(a.wrap, Wrap::Square { text: Some("left".into()) });
+        assert_eq!(a.wrap.text(), Some("left"));
+    }
 
-            #[test]
-            fn mod_11_picture_crop_rotation_and_border() {
-                let (_, d) = parse(concat!(
-                    r#"<wp:inline><wp:extent cx="100" cy="100"/>"#,
-                    r#"<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic>"#,
-                    r#"<pic:blipFill><a:blip r:link="rId9"/><a:srcRect l="5000" b="10000"/>"#,
-                    r#"<a:stretch><a:fillRect t="1000"/></a:stretch></pic:blipFill>"#,
-                    r#"<pic:spPr><a:xfrm rot="5400000" flipH="1"><a:off x="0" y="0"/></a:xfrm>"#,
-                    r#"<a:ln w="12700"><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill><a:prstDash val="dash"/></a:ln>"#,
-                    r#"</pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline>"#,
-                ));
-                let p = d.picture().expect("picture").clone();
-                assert_eq!(p.link.as_deref(), Some("rId9"));
-                assert!(p.embed.is_none());
-                assert_eq!(p.crop, Some(RectFrac { l: 5000, t: 0, r: 0, b: 10000 }));
-                assert_eq!(p.fill_rect, Some(RectFrac { l: 0, t: 1000, r: 0, b: 0 }));
-                assert_eq!(p.rot_60k, Some(5_400_000));
-                assert!(p.flip_h && !p.flip_v);
-                let b = p.border.expect("border");
-                assert_eq!(b.width_emu, Some(12700));
-                assert!(!b.no_fill);
-                assert_eq!(b.dash.as_deref(), Some("dash"));
-                assert!(b.fill.is_some(), "颜色容器节点要留给 resolve::drawingml");
-            }
+    #[test]
+    fn mod_11_picture_crop_rotation_and_border() {
+        let (_, d) = parse_drawing(concat!(
+            r#"<wp:inline><wp:extent cx="100" cy="100"/>"#,
+            r#"<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic>"#,
+            r#"<pic:blipFill><a:blip r:link="rId9"/><a:srcRect l="5000" b="10000"/>"#,
+            r#"<a:stretch><a:fillRect t="1000"/></a:stretch></pic:blipFill>"#,
+            r#"<pic:spPr><a:xfrm rot="5400000" flipH="1"><a:off x="0" y="0"/></a:xfrm>"#,
+            r#"<a:ln w="12700"><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill><a:prstDash val="dash"/></a:ln>"#,
+            r#"</pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline>"#,
+        ));
+        let p = d.picture().expect("picture").clone();
+        assert_eq!(p.link.as_deref(), Some("rId9"));
+        assert!(p.embed.is_none());
+        assert_eq!(p.crop, Some(RectFrac { l: 5000, t: 0, r: 0, b: 10000 }));
+        assert_eq!(p.fill_rect, Some(RectFrac { l: 0, t: 1000, r: 0, b: 0 }));
+        assert_eq!(p.rot_60k, Some(5_400_000));
+        assert!(p.flip_h && !p.flip_v);
+        let b = p.border.expect("border");
+        assert_eq!(b.width_emu, Some(12700));
+        assert!(!b.no_fill);
+        assert_eq!(b.dash.as_deref(), Some("dash"));
+        assert!(b.fill.is_some(), "颜色容器节点要留给 resolve::drawingml");
+    }
 
-            #[test]
-            fn mod_11_textbox_content_is_not_this_drawings_geometry() {
-                // 文本框里的图属于框内段落，不能被宿主 drawing 认领（`spec/15` 风险 3）。
-                let (_, d) = parse(concat!(
-                    r#"<wp:anchor><wp:extent cx="100" cy="100"/><wp:docPr id="1" name="Box"/>"#,
-                    r#"<a:graphic><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">"#,
-                    r#"<w:txbxContent><w:p><w:r><w:drawing><wp:inline><wp:extent cx="999" cy="888"/>"#,
-                    r#"<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">"#,
-                    r#"<pic:pic><pic:blipFill><a:blip r:embed="rIdInner"/></pic:blipFill></pic:pic>"#,
-                    r#"</a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p></w:txbxContent>"#,
-                    r#"</a:graphicData></a:graphic></wp:anchor>"#,
-                ));
-                assert_eq!(d.extent, Some(Extent { cx: 100, cy: 100 }), "取宿主的 extent");
-                assert_eq!(d.kind, DrawingKind::Shape);
-                assert!(d.picture().is_none(), "框里的 pic:pic 不属于宿主 drawing");
-            }
+    #[test]
+    fn mod_11_textbox_content_is_not_this_drawings_geometry() {
+        // 文本框里的图属于框内段落，不能被宿主 drawing 认领（`spec/15` 风险 3）。
+        let (_, d) = parse_drawing(concat!(
+            r#"<wp:anchor><wp:extent cx="100" cy="100"/><wp:docPr id="1" name="Box"/>"#,
+            r#"<a:graphic><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">"#,
+            r#"<w:txbxContent><w:p><w:r><w:drawing><wp:inline><wp:extent cx="999" cy="888"/>"#,
+            r#"<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">"#,
+            r#"<pic:pic><pic:blipFill><a:blip r:embed="rIdInner"/></pic:blipFill></pic:pic>"#,
+            r#"</a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p></w:txbxContent>"#,
+            r#"</a:graphicData></a:graphic></wp:anchor>"#,
+        ));
+        assert_eq!(d.extent, Some(Extent { cx: 100, cy: 100 }), "取宿主的 extent");
+        assert_eq!(d.kind, DrawingKind::Shape);
+        assert!(d.picture().is_none(), "框里的 pic:pic 不属于宿主 drawing");
+    }
 
-            #[test]
-            fn mod_11_deep_nesting_terminates() {
-                // 恶意输入：深嵌套不能栈溢出，也不能死循环。
-                let deep = format!("{}{}", "<a:grpSp>".repeat(500), "</a:grpSp>".repeat(500));
-                let (_, d) = parse(&format!(r#"<wp:inline><wp:extent cx="1" cy="2"/>{deep}</wp:inline>"#));
-                assert_eq!(d.extent, Some(Extent { cx: 1, cy: 2 }));
-            }
-            use super::lenient_int;
+    #[test]
+    fn mod_11_deep_nesting_terminates() {
+        // 恶意输入：深嵌套不能栈溢出，也不能死循环。
+        let deep = format!("{}{}", "<a:grpSp>".repeat(500), "</a:grpSp>".repeat(500));
+        let (_, d) =
+            parse_drawing(&format!(r#"<wp:inline><wp:extent cx="1" cy="2"/>{deep}</wp:inline>"#));
+        assert_eq!(d.extent, Some(Extent { cx: 1, cy: 2 }));
+    }
 
-            #[test]
-            fn lenient_int_follows_parse_int() {
-                assert_eq!(lenient_int("381000"), 381_000);
-                assert_eq!(lenient_int("-95250"), -95_250);
-                assert_eq!(lenient_int("abc"), 0);
-                assert_eq!(lenient_int("-abc"), 0);
-                assert_eq!(lenient_int("12abc"), 12);
-                assert_eq!(lenient_int(" +7"), 7);
-                assert_eq!(lenient_int(""), 0);
-            }
-            use super::*;
-            use crate::package::PartId;
+    #[test]
+    fn lenient_int_follows_parse_int() {
+        assert_eq!(lenient_int("381000"), 381_000);
+        assert_eq!(lenient_int("-95250"), -95_250);
+        assert_eq!(lenient_int("abc"), 0);
+        assert_eq!(lenient_int("-abc"), 0);
+        assert_eq!(lenient_int("12abc"), 12);
+        assert_eq!(lenient_int(" +7"), 7);
+        assert_eq!(lenient_int(""), 0);
+    }
 
-            const NS: &str = r#" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main""#;
+    const SECTION_NS: &str =
+        r#" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main""#;
 
-            #[test]
-            fn mod_10_section_geometry_and_defaults() {
-                let src = format!(
-                    concat!(
-                        "<w:body{}>",
-                        r#"<w:p><w:pPr><w:sectPr><w:pgSz w:w="11906" w:h="16838"/>"#,
-                        r#"<w:pgMar w:top="100" w:right="200" w:bottom="300" w:left="400"/>"#,
-                        r#"<w:cols w:num="2"/></w:sectPr></w:pPr></w:p>"#,
-                        "<w:p/>",
-                        "<w:sectPr/>",
-                        "</w:body>"
-                    ),
-                    NS
-                );
-                let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
-                let s = Sections::build(&dom);
-                assert!(!s.is_empty());
+    #[test]
+    fn mod_10_section_geometry_and_defaults() {
+        let src = format!(
+            concat!(
+                "<w:body{}>",
+                r#"<w:p><w:pPr><w:sectPr><w:pgSz w:w="11906" w:h="16838"/>"#,
+                r#"<w:pgMar w:top="100" w:right="200" w:bottom="300" w:left="400"/>"#,
+                r#"<w:cols w:num="2"/></w:sectPr></w:pPr></w:p>"#,
+                "<w:p/>",
+                "<w:sectPr/>",
+                "</w:body>"
+            ),
+            SECTION_NS
+        );
+        let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
+        let s = Sections::build(&dom);
+        assert!(!s.is_empty());
 
-                // 第一段（偏移落在第一个 sectPr 之前）归第一节
-                let first = s.at(10).expect("section");
-                assert_eq!(first.page_width, 11906);
-                assert_eq!((first.margin_top, first.margin_left), (100, 400));
-                assert_eq!(first.columns, 2);
-                assert_eq!(first.body_width(), 11906 - 400 - 200);
+        // 第一段（偏移落在第一个 sectPr 之前）归第一节
+        let first = s.at(10).expect("section");
+        assert_eq!(first.page_width, 11906);
+        assert_eq!((first.margin_top, first.margin_left), (100, 400));
+        assert_eq!(first.columns, 2);
+        assert_eq!(first.body_width(), 11906 - 400 - 200);
 
-                // 落在两者之间的偏移归正文末尾那个空 sectPr：一切取缺省
-                let last = s.at(u32::MAX - 1).expect("section");
-                assert_eq!((last.page_width, last.page_height), (DEFAULT_PAGE_WIDTH, DEFAULT_PAGE_HEIGHT));
-                assert_eq!(last.margin_left, DEFAULT_MARGIN);
-                assert_eq!(last.columns, 1);
-            }
+        // 落在两者之间的偏移归正文末尾那个空 sectPr：一切取缺省
+        let last = s.at(u32::MAX - 1).expect("section");
+        assert_eq!((last.page_width, last.page_height), (DEFAULT_PAGE_WIDTH, DEFAULT_PAGE_HEIGHT));
+        assert_eq!(last.margin_left, DEFAULT_MARGIN);
+        assert_eq!(last.columns, 1);
+    }
 
-            /// 任务 5.1 / 5.9：几何走属性表之后，认不出的字面（`Val::Raw`）、缺失、以及**不是正数的
-            /// 尺寸**都退到缺省，不会让 `body_width` 变成负数（`PROP-09` + hostile `sectpr-bad-values`）。
-            ///
-            /// 5.1 时 `w:h="-1"` 是照原值给的（"能解析的数就照给"）；5.9 改成也退缺省：`ST_TwipsMeasure`
-            /// 本来就是无符号的，而 `SectionGeom` 的每个消费者都拿它做版面算术。声明值仍是 -1
-            /// （`props` 里原样保留，写回不受影响），只有几何视图回退（`docs/04` §8）。
-            #[test]
-            fn prop_09_bad_section_values_fall_back_to_defaults() {
-                let src = format!(
-                    concat!(
-                        "<w:body{}>",
-                        r#"<w:sectPr><w:pgSz w:w="abc" w:h="-1"/>"#,
-                        r#"<w:pgMar w:top="x" w:right="200" w:bottom="y" w:left="400"/>"#,
-                        r#"<w:cols w:num="0"/></w:sectPr>"#,
-                        "</w:body>"
-                    ),
-                    NS
-                );
-                let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
-                let g = *Sections::build(&dom).at(0).expect("section");
-                assert_eq!(g.page_width, DEFAULT_PAGE_WIDTH, "w=\"abc\" 退到缺省");
-                assert_eq!(g.page_height, DEFAULT_PAGE_HEIGHT, "h=\"-1\" 不是正数，退到缺省");
-                assert_eq!(g.margin_top, DEFAULT_MARGIN);
-                assert_eq!(g.margin_right, 200);
-                assert_eq!(g.margin_bottom, DEFAULT_MARGIN);
-                assert_eq!(g.margin_left, 400);
-                assert_eq!(g.columns, 1, "num=0 至少一栏");
-            }
-            use super::*;
+    /// 任务 5.1 / 5.9：几何走属性表之后，认不出的字面（`Val::Raw`）、缺失、以及**不是正数的
+    /// 尺寸**都退到缺省，不会让 `body_width` 变成负数（`PROP-09` + hostile `sectpr-bad-values`）。
+    ///
+    /// 5.1 时 `w:h="-1"` 是照原值给的（"能解析的数就照给"）；5.9 改成也退缺省：`ST_TwipsMeasure`
+    /// 本来就是无符号的，而 `SectionGeom` 的每个消费者都拿它做版面算术。声明值仍是 -1
+    /// （`props` 里原样保留，写回不受影响），只有几何视图回退（`docs/04` §8）。
+    #[test]
+    fn prop_09_bad_section_values_fall_back_to_defaults() {
+        let src = format!(
+            concat!(
+                "<w:body{}>",
+                r#"<w:sectPr><w:pgSz w:w="abc" w:h="-1"/>"#,
+                r#"<w:pgMar w:top="x" w:right="200" w:bottom="y" w:left="400"/>"#,
+                r#"<w:cols w:num="0"/></w:sectPr>"#,
+                "</w:body>"
+            ),
+            SECTION_NS
+        );
+        let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
+        let g = *Sections::build(&dom).at(0).expect("section");
+        assert_eq!(g.page_width, DEFAULT_PAGE_WIDTH, "w=\"abc\" 退到缺省");
+        assert_eq!(g.page_height, DEFAULT_PAGE_HEIGHT, "h=\"-1\" 不是正数，退到缺省");
+        assert_eq!(g.margin_top, DEFAULT_MARGIN);
+        assert_eq!(g.margin_right, 200);
+        assert_eq!(g.margin_bottom, DEFAULT_MARGIN);
+        assert_eq!(g.margin_left, 400);
+        assert_eq!(g.columns, 1, "num=0 至少一栏");
+    }
 
-            #[test]
-            fn mod_10_custom_xml_item_paths() {
-                assert!(is_custom_xml_item("customXml/item1.xml"));
-                assert!(is_custom_xml_item("customXml/item12.xml"));
-                assert!(!is_custom_xml_item("customXml/itemProps1.xml"));
-                assert!(!is_custom_xml_item("customXml/item.xml"));
-                assert!(!is_custom_xml_item("word/document.xml"));
-            }
+    #[test]
+    fn mod_10_custom_xml_item_paths() {
+        assert!(is_custom_xml_item("customXml/item1.xml"));
+        assert!(is_custom_xml_item("customXml/item12.xml"));
+        assert!(!is_custom_xml_item("customXml/itemProps1.xml"));
+        assert!(!is_custom_xml_item("customXml/item.xml"));
+        assert!(!is_custom_xml_item("word/document.xml"));
+    }
 
-            #[test]
-            fn mod_10_publisher_element_per_source_type() {
-                assert_eq!(publisher_element("JournalArticle"), LocalName::JournalName);
-                assert_eq!(publisher_element("InternetSite"), LocalName::InternetSiteTitle);
-                assert_eq!(publisher_element("Book"), LocalName::Publisher);
-            }
-            use super::*;
-            use crate::package::PartId;
+    #[test]
+    fn mod_10_publisher_element_per_source_type() {
+        assert_eq!(publisher_element("JournalArticle"), LocalName::JournalName);
+        assert_eq!(publisher_element("InternetSite"), LocalName::InternetSiteTitle);
+        assert_eq!(publisher_element("Book"), LocalName::Publisher);
+    }
 
-            const A: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
-
-            #[test]
-            fn mod_10_theme_fonts_and_colors() {
-                let xml = format!(
-                    r#"<a:theme xmlns:a="{A}" name="Office Theme"><a:themeElements>
+    #[test]
+    fn mod_10_theme_fonts_and_colors() {
+        let xml = format!(
+            r#"<a:theme xmlns:a="{A}" name="Office Theme"><a:themeElements>
                       <a:clrScheme name="Office"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1>
                         <a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="44546A"/></a:dk2>
                         <a:accent1><a:srgbClr val="4472c4"/></a:accent1><a:hlink><a:srgbClr val="0563C1"/></a:hlink></a:clrScheme>
@@ -11357,291 +11549,290 @@ mod test_model {
                         <a:font script="Jpan" typeface="游ゴシック Light"/><a:font script="Hans" typeface="等线 Light"/></a:majorFont>
                         <a:minorFont><a:latin typeface="Calibri"/><a:ea typeface="宋体"/><a:cs typeface="Arial"/></a:minorFont></a:fontScheme>
                     </a:themeElements></a:theme>"#
-                );
-                let dom = Dom::parse(PartId(0), xml.as_bytes()).unwrap();
-                let t = Theme::from_dom(&dom).unwrap();
-                assert_eq!(t.name.as_deref(), Some("Office Theme"));
-                let c = t.colors.as_ref().unwrap();
-                assert_eq!(c.name.as_deref(), Some("Office"));
-                assert_eq!(c.get(ThemeSlot::Dk1), Some([0, 0, 0]));
-                assert_eq!(c.get(ThemeSlot::Dk2), Some([0x44, 0x54, 0x6A]));
-                assert_eq!(c.get(ThemeSlot::Accent1), Some([0x44, 0x72, 0xC4]));
-                assert_eq!(c.get(ThemeSlot::Accent2), None);
-                assert_eq!(c.get(ThemeSlot::Lt2), None);
-                assert_eq!(c.get_or_default(ThemeSlot::Lt1), Some([0xFF, 0xFF, 0xFF]));
-                let f = t.fonts.as_ref().unwrap();
-                assert_eq!(f.major.latin.as_deref(), Some("Calibri Light"));
-                assert_eq!(f.major.ea, None, "空串视为无");
-                assert_eq!(f.major.script("Hans"), Some("等线 Light"));
-                assert_eq!(f.minor.ea.as_deref(), Some("宋体"));
-                assert_eq!(f.minor.cs.as_deref(), Some("Arial"));
-                assert_eq!(ThemeSlot::from_theme_color(ThemeColor::Text1), Some(ThemeSlot::Dk1));
-                assert_eq!(ThemeSlot::from_theme_color(ThemeColor::None), None);
-                assert_eq!(ThemeSlot::from_scheme_name("bg2"), Some(ThemeSlot::Lt2));
-                let office = ColorScheme::office_default();
-                assert_eq!(office.get(ThemeSlot::Accent1), Some([0x44, 0x72, 0xC4]));
-                assert_eq!(office.get(ThemeSlot::FolHlink), Some([0x95, 0x4F, 0x72]));
-                assert!(office.node.is_none());
-            }
+        );
+        let dom = Dom::parse(PartId(0), xml.as_bytes()).unwrap();
+        let t = Theme::from_dom(&dom).unwrap();
+        assert_eq!(t.name.as_deref(), Some("Office Theme"));
+        let c = t.colors.as_ref().unwrap();
+        assert_eq!(c.name.as_deref(), Some("Office"));
+        assert_eq!(c.get(ThemeSlot::Dk1), Some([0, 0, 0]));
+        assert_eq!(c.get(ThemeSlot::Dk2), Some([0x44, 0x54, 0x6A]));
+        assert_eq!(c.get(ThemeSlot::Accent1), Some([0x44, 0x72, 0xC4]));
+        assert_eq!(c.get(ThemeSlot::Accent2), None);
+        assert_eq!(c.get(ThemeSlot::Lt2), None);
+        assert_eq!(c.get_or_default(ThemeSlot::Lt1), Some([0xFF, 0xFF, 0xFF]));
+        let f = t.fonts.as_ref().unwrap();
+        assert_eq!(f.major.latin.as_deref(), Some("Calibri Light"));
+        assert_eq!(f.major.ea, None, "空串视为无");
+        assert_eq!(f.major.script("Hans"), Some("等线 Light"));
+        assert_eq!(f.minor.ea.as_deref(), Some("宋体"));
+        assert_eq!(f.minor.cs.as_deref(), Some("Arial"));
+        assert_eq!(ThemeSlot::from_theme_color(ThemeColor::Text1), Some(ThemeSlot::Dk1));
+        assert_eq!(ThemeSlot::from_theme_color(ThemeColor::None), None);
+        assert_eq!(ThemeSlot::from_scheme_name("bg2"), Some(ThemeSlot::Lt2));
+        let office = ColorScheme::office_default();
+        assert_eq!(office.get(ThemeSlot::Accent1), Some([0x44, 0x72, 0xC4]));
+        assert_eq!(office.get(ThemeSlot::FolHlink), Some([0x95, 0x4F, 0x72]));
+        assert!(office.node.is_none());
+    }
 
-            #[test]
-            fn mod_10_theme_wrong_root_is_none() {
-                let dom = Dom::parse(PartId(0), format!(r#"<a:foo xmlns:a="{A}"/>"#).as_bytes()).unwrap();
-                assert!(Theme::from_dom(&dom).is_none());
-            }
-            use super::*;
+    #[test]
+    fn mod_10_theme_wrong_root_is_none() {
+        let dom = Dom::parse(PartId(0), format!(r#"<a:foo xmlns:a="{A}"/>"#).as_bytes()).unwrap();
+        assert!(Theme::from_dom(&dom).is_none());
+    }
 
-            #[test]
-            fn mod_11_unit_conversions_round_trip() {
-                assert_eq!(emu_to_px(914_400.0), 96.0);
-                assert_eq!(emu_to_pt(914_400.0), 72.0);
-                assert_eq!(emu_to_twips(914_400.0), 1440.0);
-                assert_eq!(pt_to_emu(72.0), 914_400.0);
-                assert_eq!(twips_to_emu(1440.0), 914_400.0);
-                assert_eq!(px_to_emu(96.0), 914_400.0);
-                // 语料里最常见的一张图：cx=914400 → 96px、cy=457200 → 48px
-                assert_eq!(emu_to_px(457_200.0), 48.0);
-            }
+    #[test]
+    fn mod_11_unit_conversions_round_trip() {
+        assert_eq!(emu_to_px(914_400.0), 96.0);
+        assert_eq!(emu_to_pt(914_400.0), 72.0);
+        assert_eq!(emu_to_twips(914_400.0), 1440.0);
+        assert_eq!(pt_to_emu(72.0), 914_400.0);
+        assert_eq!(twips_to_emu(1440.0), 914_400.0);
+        assert_eq!(px_to_emu(96.0), 914_400.0);
+        // 语料里最常见的一张图：cx=914400 → 96px、cy=457200 → 48px
+        assert_eq!(emu_to_px(457_200.0), 48.0);
+    }
 
-            #[test]
-            fn mod_11_parse_length_units() {
-                assert_eq!(parse_length("96pt"), Some(Length { value: 96.0, unit: LengthUnit::Pt }));
-                assert_eq!(parse_length(" -12.5px "), Some(Length { value: -12.5, unit: LengthUnit::Px }));
-                assert_eq!(parse_length("3.5"), Some(Length { value: 3.5, unit: LengthUnit::None }));
-                assert_eq!(parse_length("1IN").unwrap().to_emu(), Some(914_400.0));
-                assert_eq!(parse_length("2.54cm").unwrap().to_emu().unwrap().round(), 914_400.0);
-                assert_eq!(parse_length("25.4mm").unwrap().to_emu().unwrap().round(), 914_400.0);
-                assert_eq!(parse_length("6pc").unwrap().to_emu(), Some(914_400.0));
-                assert_eq!(parse_length("3.5").unwrap().to_emu(), None);
-                assert_eq!(parse_length("auto"), None);
-                assert_eq!(parse_length("10em"), None);
-                assert_eq!(parse_length(""), None);
-            }
+    #[test]
+    fn mod_11_parse_length_units() {
+        assert_eq!(parse_length("96pt"), Some(Length { value: 96.0, unit: LengthUnit::Pt }));
+        assert_eq!(parse_length(" -12.5px "), Some(Length { value: -12.5, unit: LengthUnit::Px }));
+        assert_eq!(parse_length("3.5"), Some(Length { value: 3.5, unit: LengthUnit::None }));
+        assert_eq!(parse_length("1IN").unwrap().to_emu(), Some(914_400.0));
+        assert_eq!(parse_length("2.54cm").unwrap().to_emu().unwrap().round(), 914_400.0);
+        assert_eq!(parse_length("25.4mm").unwrap().to_emu().unwrap().round(), 914_400.0);
+        assert_eq!(parse_length("6pc").unwrap().to_emu(), Some(914_400.0));
+        assert_eq!(parse_length("3.5").unwrap().to_emu(), None);
+        assert_eq!(parse_length("auto"), None);
+        assert_eq!(parse_length("10em"), None);
+        assert_eq!(parse_length(""), None);
+    }
 
-            #[test]
-            fn mod_11_parse_style_keeps_pairs_verbatim() {
-                let s = parse_style("position:absolute;MARGIN-LEFT: 36pt ;width:96pt;;bogus");
-                assert_eq!(
-                    s,
-                    vec![
-                        ("position".to_string(), "absolute".to_string()),
-                        ("margin-left".to_string(), "36pt".to_string()),
-                        ("width".to_string(), "96pt".to_string()),
-                    ]
-                );
-                // 值里带冒号（mso-position 之类）只在第一个冒号处切
-                assert_eq!(
-                    parse_style("mso-wrap-style:none:x"),
-                    vec![("mso-wrap-style".to_string(), "none:x".to_string())]
-                );
-            }
-            use super::*;
-            use crate::package::PartId;
+    #[test]
+    fn mod_11_parse_style_keeps_pairs_verbatim() {
+        let s = parse_style("position:absolute;MARGIN-LEFT: 36pt ;width:96pt;;bogus");
+        assert_eq!(
+            s,
+            vec![
+                ("position".to_string(), "absolute".to_string()),
+                ("margin-left".to_string(), "36pt".to_string()),
+                ("width".to_string(), "96pt".to_string()),
+            ]
+        );
+        // 值里带冒号（mso-position 之类）只在第一个冒号处切
+        assert_eq!(
+            parse_style("mso-wrap-style:none:x"),
+            vec![("mso-wrap-style".to_string(), "none:x".to_string())]
+        );
+    }
 
-            const NS: &str = concat!(
-                r#" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main""#,
-                r#" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships""#,
-                r#" xmlns:v="urn:schemas-microsoft-com:vml""#,
-                r#" xmlns:o="urn:schemas-microsoft-com:office:office""#,
-            );
+    const VML_NS: &str = concat!(
+        r#" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main""#,
+        r#" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships""#,
+        r#" xmlns:v="urn:schemas-microsoft-com:vml""#,
+        r#" xmlns:o="urn:schemas-microsoft-com:office:office""#,
+    );
 
-            fn parse(inner: &str) -> (Dom, VmlDisplay) {
-                let src = format!("<w:pict{NS}>{inner}</w:pict>");
-                let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
-                let root = dom.root();
-                let v = vml_display(&dom, root);
-                (dom, v)
-            }
+    fn parse_vml(inner: &str) -> (Dom, VmlDisplay) {
+        let src = format!("<w:pict{VML_NS}>{inner}</w:pict>");
+        let dom = Dom::parse(PartId(0), src.as_bytes()).expect("dom");
+        let root = dom.root();
+        let v = vml_display(&dom, root);
+        (dom, v)
+    }
 
-            #[test]
-            fn mod_11_vml_horizontal_rule() {
-                // 语料 smartart-ole__005：HTML <hr> 导入的细横线
-                let (_, v) = parse(
-                    r##"<v:rect id="_x0000_i1026" style="width:0;height:1.5pt" o:hralign="center" o:hr="t" fillcolor="#aca899" stroked="f"/>"##,
-                );
-                let r = v.rule().expect("hr");
-                assert_eq!(r.kind, VmlKind::Rect);
-                assert_eq!(r.fill_color.as_deref(), Some("aca899"), "去掉 # 但保留原大小写");
-                assert_eq!(r.stroked, Some(false));
-                assert_eq!(r.style_len("height").unwrap().to_emu(), Some(1.5 * 12700.0));
-                // width:0 是「铺满可用宽度」，不是 0 宽
-                assert_eq!(r.style_get("width"), Some("0"));
-            }
+    #[test]
+    fn mod_11_vml_horizontal_rule() {
+        // 语料 smartart-ole__005：HTML <hr> 导入的细横线
+        let (_, v) = parse_vml(
+            r##"<v:rect id="_x0000_i1026" style="width:0;height:1.5pt" o:hralign="center" o:hr="t" fillcolor="#aca899" stroked="f"/>"##,
+        );
+        let r = v.rule().expect("hr");
+        assert_eq!(r.kind, VmlKind::Rect);
+        assert_eq!(r.fill_color.as_deref(), Some("aca899"), "去掉 # 但保留原大小写");
+        assert_eq!(r.stroked, Some(false));
+        assert_eq!(r.style_len("height").unwrap().to_emu(), Some(1.5 * 12700.0));
+        // width:0 是「铺满可用宽度」，不是 0 宽
+        assert_eq!(r.style_get("width"), Some("0"));
+    }
 
-            #[test]
-            fn mod_11_vml_group_records_coordsize_and_parent() {
-                let (_, v) = parse(concat!(
-                    r#"<v:group style="width:150pt;height:75pt" coordsize="2000,1000">"#,
-                    r#"<v:shape id="pic" style="position:absolute;width:200;height:100"><v:imagedata r:id="rId10"/></v:shape>"#,
-                    r#"<v:shape id="tb" style="position:absolute"><v:textbox><w:txbxContent/></v:textbox></v:shape>"#,
-                    r#"</v:group>"#,
-                ));
-                assert_eq!(v.shapes.len(), 3);
-                assert_eq!(v.shapes[0].kind, VmlKind::Group);
-                assert_eq!(v.shapes[0].coordsize, Some((2000, 1000)));
-                assert_eq!(v.shapes[1].parent, Some(0));
-                assert_eq!(v.shapes[2].parent, Some(0));
-                assert_eq!(v.image().and_then(|s| s.imagedata.as_deref()), Some("rId10"));
-                assert!(v.shapes[1].is_absolute());
-                assert!(v.has_textbox());
-                // 组坐标里的长度没有单位，换算要靠组比例（4.6）
-                assert_eq!(v.shapes[1].style_len("width").unwrap().to_emu(), None);
-            }
+    #[test]
+    fn mod_11_vml_group_records_coordsize_and_parent() {
+        let (_, v) = parse_vml(concat!(
+            r#"<v:group style="width:150pt;height:75pt" coordsize="2000,1000">"#,
+            r#"<v:shape id="pic" style="position:absolute;width:200;height:100"><v:imagedata r:id="rId10"/></v:shape>"#,
+            r#"<v:shape id="tb" style="position:absolute"><v:textbox><w:txbxContent/></v:textbox></v:shape>"#,
+            r#"</v:group>"#,
+        ));
+        assert_eq!(v.shapes.len(), 3);
+        assert_eq!(v.shapes[0].kind, VmlKind::Group);
+        assert_eq!(v.shapes[0].coordsize, Some((2000, 1000)));
+        assert_eq!(v.shapes[1].parent, Some(0));
+        assert_eq!(v.shapes[2].parent, Some(0));
+        assert_eq!(v.image().and_then(|s| s.imagedata.as_deref()), Some("rId10"));
+        assert!(v.shapes[1].is_absolute());
+        assert!(v.has_textbox());
+        // 组坐标里的长度没有单位，换算要靠组比例（4.6）
+        assert_eq!(v.shapes[1].style_len("width").unwrap().to_emu(), None);
+    }
 
-            #[test]
-            fn mod_11_vml_wordart_and_hidden() {
-                let (_, v) =
-                    parse(r#"<v:shape style="visibility:hidden"><v:textpath string="HELLO"/></v:shape>"#);
-                assert_eq!(v.shapes[0].textpath.as_deref(), Some("HELLO"));
-                assert!(v.shapes[0].is_hidden());
-                assert!(v.rule().is_none());
-            }
+    #[test]
+    fn mod_11_vml_wordart_and_hidden() {
+        let (_, v) = parse_vml(
+            r#"<v:shape style="visibility:hidden"><v:textpath string="HELLO"/></v:shape>"#,
+        );
+        assert_eq!(v.shapes[0].textpath.as_deref(), Some("HELLO"));
+        assert!(v.shapes[0].is_hidden());
+        assert!(v.rule().is_none());
+    }
 
-            #[test]
-            fn mod_11_vml_color_forms() {
-                assert_eq!(vml_color("#ACA899"), Some("ACA899".into()));
-                assert_eq!(vml_color("aca899"), Some("aca899".into()));
-                assert_eq!(vml_color("#ffffff [65535]"), Some("ffffff".into()));
-                // HTML 颜色名与 `#abc` 简写也认（TS `vmlColorHex`）
-                assert_eq!(vml_color("red"), Some("FF0000".into()));
-                assert_eq!(vml_color("Silver [2]"), Some("C0C0C0".into()));
-                assert_eq!(vml_color("#abc"), Some("aabbcc".into()));
-                assert_eq!(vml_color("window"), None);
-            }
-        // 模型验收（`spec/06` 验收清单 MOD-03 / 05 / 06，任务 1.5–1.8）。
+    #[test]
+    fn mod_11_vml_color_forms() {
+        assert_eq!(vml_color("#ACA899"), Some("ACA899".into()));
+        assert_eq!(vml_color("aca899"), Some("aca899".into()));
+        assert_eq!(vml_color("#ffffff [65535]"), Some("ffffff".into()));
+        // HTML 颜色名与 `#abc` 简写也认（TS `vmlColorHex`）
+        assert_eq!(vml_color("red"), Some("FF0000".into()));
+        assert_eq!(vml_color("Silver [2]"), Some("C0C0C0".into()));
+        assert_eq!(vml_color("#abc"), Some("aabbcc".into()));
+        assert_eq!(vml_color("window"), None);
+    }
+    // 模型验收（`spec/06` 验收清单 MOD-03 / 05 / 06，任务 1.5–1.8）。
 
-        use super::*;
-        use crate::diag::DiagCode;
-        use crate::package::{PartId, Rels};
-        use crate::semantic::props::Val;
-        use crate::xml::{Dom, LocalName, QName};
+    use crate::diag::DiagCode;
+    use crate::package::{PartId, Rels};
+    use crate::semantic::props::Val;
+    use crate::xml::{Dom, LocalName, QName};
 
-        const W: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
-        const R: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-        const M: &str = "http://schemas.openxmlformats.org/officeDocument/2006/math";
-        const WP: &str = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
-        const A: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
-        const V: &str = "urn:schemas-microsoft-com:vml";
+    const R: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+    const M: &str = "http://schemas.openxmlformats.org/officeDocument/2006/math";
+    const WP: &str = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
 
-        fn doc(body: &str) -> Dom {
-            let xml = format!(
-                r#"<w:document xmlns:w="{W}" xmlns:r="{R}" xmlns:m="{M}" xmlns:wp="{WP}" xmlns:a="{A}" xmlns:v="{V}"><w:body>{body}</w:body></w:document>"#
-            );
-            Dom::parse(PartId(0), xml.as_bytes()).unwrap_or_else(|e| panic!("{e}\n{xml}"))
+    const V: &str = "urn:schemas-microsoft-com:vml";
+
+    fn doc(body: &str) -> Dom {
+        let xml = format!(
+            r#"<w:document xmlns:w="{W}" xmlns:r="{R}" xmlns:m="{M}" xmlns:wp="{WP}" xmlns:a="{A}" xmlns:v="{V}"><w:body>{body}</w:body></w:document>"#
+        );
+        Dom::parse(PartId(0), xml.as_bytes()).unwrap_or_else(|e| panic!("{e}\n{xml}"))
+    }
+
+    fn styles(xml: &str) -> Styles {
+        let d = Dom::parse(
+            PartId(0),
+            format!(r#"<w:styles xmlns:w="{W}">{xml}</w:styles>"#).as_bytes(),
+        )
+        .unwrap();
+        Styles::from_dom(&d, &mut Vec::new()).unwrap()
+    }
+
+    fn build(body: &str) -> (Vec<Block>, Vec<crate::diag::Diagnostic>) {
+        let d = doc(body);
+        Document::build_main(&d, None, &Rels::default())
+    }
+
+    fn build_with(body: &str, s: &Styles) -> Vec<Block> {
+        let d = doc(body);
+        Document::build_main(&d, Some(s), &Rels::default()).0
+    }
+
+    fn text_of(b: &Block) -> String {
+        b.as_text().expect("text block").text()
+    }
+
+    #[test]
+    fn mod_06_coordinate_flow_acceptance() {
+        // "Hello" + <w:tab/> + "World" → Hello\tWorld
+        let (blocks, _) =
+            build(r#"<w:p><w:r><w:t>Hello</w:t><w:tab/><w:t>World</w:t></w:r></w:p>"#);
+        assert_eq!(text_of(&blocks[0]), "Hello\tWorld");
+        let tb = blocks[0].as_text().unwrap();
+        assert_eq!(tb.utf16_len(), 11);
+        let Inline::Run(run) = &tb.inlines[0] else { panic!() };
+        assert_eq!(run.segments.len(), 3);
+        assert_eq!(run.segments[1].kind, SegmentKind::Tab);
+        assert_eq!(run.segments[1].text, 5..6);
+        assert_eq!(run.segment_text(&run.segments[2]), "World");
+
+        // 含图片 run 的段落坐标流含 1 个 U+FFFC
+        let (blocks, _) = build(
+            r#"<w:p><w:r><w:t>A</w:t></w:r><w:r><w:drawing><wp:inline><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"/></a:graphic></wp:inline></w:drawing></w:r><w:r><w:t>B</w:t></w:r></w:p>"#,
+        );
+        let t = text_of(&blocks[0]);
+        assert_eq!(t, format!("A{OBJECT_REPLACEMENT}B"));
+        assert_eq!(t.chars().filter(|&c| c == OBJECT_REPLACEMENT).count(), 1);
+        assert_eq!(blocks[0].as_text().unwrap().utf16_len(), 3);
+
+        // 无 preserve 的 <w:t> x </w:t> 文本为 x；有 preserve 原样；xml:space 沿祖先继承、default 复位
+        let (blocks, _) =
+            build(r#"<w:p><w:r><w:t> x </w:t><w:t xml:space="preserve"> y </w:t></w:r></w:p>"#);
+        assert_eq!(text_of(&blocks[0]), "x y ");
+        let (blocks, _) = build(
+            r#"<w:p xml:space="preserve"><w:r><w:t> a </w:t><w:t xml:space="default"> b </w:t></w:r></w:p>"#,
+        );
+        assert_eq!(text_of(&blocks[0]), " a b");
+
+        // 换行 / 分页 / 连字符 / 代理对
+        let (blocks, _) = build(
+            r#"<w:p><w:r><w:t>a</w:t><w:br/><w:t>b</w:t><w:br w:type="page"/><w:cr/><w:noBreakHyphen/><w:softHyphen/><w:t>😀</w:t><w:lastRenderedPageBreak/><w:fldChar w:fldCharType="begin"/></w:r></w:p>"#,
+        );
+        let tb = blocks[0].as_text().unwrap();
+        assert_eq!(tb.text(), format!("a\nb{OBJECT_REPLACEMENT}\n\u{2011}\u{00AD}😀"));
+        assert_eq!(tb.utf16_len(), 9, "😀 占 2 个 UTF-16 单位");
+        let Inline::Run(run) = &tb.inlines[0] else { panic!() };
+        let kinds: Vec<&SegmentKind> = run.segments.iter().map(|s| &s.kind).collect();
+        assert!(matches!(kinds[1], SegmentKind::Br { kind: BreakKind::TextWrapping, .. }));
+        assert!(matches!(kinds[3], SegmentKind::Br { kind: BreakKind::Page, .. }));
+        assert_eq!(kinds[8], &SegmentKind::LastRenderedPageBreak);
+        assert_eq!(run.segments[8].utf16_len, 0);
+        assert_eq!(run.segments[9].kind, SegmentKind::FldChar);
+        assert_eq!(run.segments[7].utf16_len, 2);
+        // 段区间覆盖且不重叠
+        let mut pos = 0;
+        for s in &run.segments {
+            assert_eq!(s.text.start, pos);
+            pos = s.text.end;
         }
+        assert_eq!(pos as usize, run.text.len());
+    }
 
-        fn styles(xml: &str) -> Styles {
-            let d =
-                Dom::parse(PartId(0), format!(r#"<w:styles xmlns:w="{W}">{xml}</w:styles>"#).as_bytes())
-                    .unwrap();
-            Styles::from_dom(&d, &mut Vec::new()).unwrap()
-        }
-
-        fn build(body: &str) -> (Vec<Block>, Vec<crate::diag::Diagnostic>) {
-            let d = doc(body);
-            Document::build_main(&d, None, &Rels::default())
-        }
-
-        fn build_with(body: &str, s: &Styles) -> Vec<Block> {
-            let d = doc(body);
-            Document::build_main(&d, Some(s), &Rels::default()).0
-        }
-
-        fn text_of(b: &Block) -> String {
-            b.as_text().expect("text block").text()
-        }
-
-        #[test]
-        fn mod_06_coordinate_flow_acceptance() {
-            // "Hello" + <w:tab/> + "World" → Hello\tWorld
-            let (blocks, _) = build(r#"<w:p><w:r><w:t>Hello</w:t><w:tab/><w:t>World</w:t></w:r></w:p>"#);
-            assert_eq!(text_of(&blocks[0]), "Hello\tWorld");
-            let tb = blocks[0].as_text().unwrap();
-            assert_eq!(tb.utf16_len(), 11);
-            let Inline::Run(run) = &tb.inlines[0] else { panic!() };
-            assert_eq!(run.segments.len(), 3);
-            assert_eq!(run.segments[1].kind, SegmentKind::Tab);
-            assert_eq!(run.segments[1].text, 5..6);
-            assert_eq!(run.segment_text(&run.segments[2]), "World");
-
-            // 含图片 run 的段落坐标流含 1 个 U+FFFC
-            let (blocks, _) = build(
-                r#"<w:p><w:r><w:t>A</w:t></w:r><w:r><w:drawing><wp:inline><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"/></a:graphic></wp:inline></w:drawing></w:r><w:r><w:t>B</w:t></w:r></w:p>"#,
-            );
-            let t = text_of(&blocks[0]);
-            assert_eq!(t, format!("A{OBJECT_REPLACEMENT}B"));
-            assert_eq!(t.chars().filter(|&c| c == OBJECT_REPLACEMENT).count(), 1);
-            assert_eq!(blocks[0].as_text().unwrap().utf16_len(), 3);
-
-            // 无 preserve 的 <w:t> x </w:t> 文本为 x；有 preserve 原样；xml:space 沿祖先继承、default 复位
-            let (blocks, _) =
-                build(r#"<w:p><w:r><w:t> x </w:t><w:t xml:space="preserve"> y </w:t></w:r></w:p>"#);
-            assert_eq!(text_of(&blocks[0]), "x y ");
-            let (blocks, _) = build(
-                r#"<w:p xml:space="preserve"><w:r><w:t> a </w:t><w:t xml:space="default"> b </w:t></w:r></w:p>"#,
-            );
-            assert_eq!(text_of(&blocks[0]), " a b");
-
-            // 换行 / 分页 / 连字符 / 代理对
-            let (blocks, _) = build(
-                r#"<w:p><w:r><w:t>a</w:t><w:br/><w:t>b</w:t><w:br w:type="page"/><w:cr/><w:noBreakHyphen/><w:softHyphen/><w:t>😀</w:t><w:lastRenderedPageBreak/><w:fldChar w:fldCharType="begin"/></w:r></w:p>"#,
-            );
-            let tb = blocks[0].as_text().unwrap();
-            assert_eq!(tb.text(), format!("a\nb{OBJECT_REPLACEMENT}\n\u{2011}\u{00AD}😀"));
-            assert_eq!(tb.utf16_len(), 9, "😀 占 2 个 UTF-16 单位");
-            let Inline::Run(run) = &tb.inlines[0] else { panic!() };
-            let kinds: Vec<&SegmentKind> = run.segments.iter().map(|s| &s.kind).collect();
-            assert!(matches!(kinds[1], SegmentKind::Br { kind: BreakKind::TextWrapping, .. }));
-            assert!(matches!(kinds[3], SegmentKind::Br { kind: BreakKind::Page, .. }));
-            assert_eq!(kinds[8], &SegmentKind::LastRenderedPageBreak);
-            assert_eq!(run.segments[8].utf16_len, 0);
-            assert_eq!(run.segments[9].kind, SegmentKind::FldChar);
-            assert_eq!(run.segments[7].utf16_len, 2);
-            // 段区间覆盖且不重叠
-            let mut pos = 0;
-            for s in &run.segments {
-                assert_eq!(s.text.start, pos);
-                pos = s.text.end;
-            }
-            assert_eq!(pos as usize, run.text.len());
-        }
-
-        #[test]
-        fn mod_06_symbols_atoms_and_run_props() {
-            let (blocks, _) = build(
-                r#"<w:p><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:sym w:font="Wingdings" w:char="F0FC"/></w:r>
+    #[test]
+    fn mod_06_symbols_atoms_and_run_props() {
+        let (blocks, _) = build(
+            r#"<w:p><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:sym w:font="Wingdings" w:char="F0FC"/></w:r>
                    <m:oMath><m:r><m:t>x</m:t></m:r></m:oMath><w:br w:type="page"/>
                    <w:r><w:ruby><w:rt><w:r><w:t>rt</w:t></w:r></w:rt><w:rubyBase><w:r><w:t>base</w:t></w:r></w:rubyBase></w:ruby></w:r>
                    <w:r><w:footnoteReference w:id="1"/></w:r></w:p>"#,
-            );
-            let tb = blocks[0].as_text().unwrap();
-            assert_eq!(tb.inlines.len(), 5);
-            let Inline::Run(run) = &tb.inlines[0] else { panic!() };
-            assert_eq!(run.props.bold, Some(true));
-            assert_eq!(run.props.size, Some(Val::Value(28)));
-            assert_eq!(run.text, "\u{F0FC}", "符号字体映射表在 M2，先按 U+F000 + (code & 0xFF)");
-            assert!(
-                matches!(&run.segments[0].kind, SegmentKind::Sym { font: Some(f), code: Some(0xF0FC) } if f == "Wingdings")
-            );
-            assert!(matches!(&tb.inlines[1], Inline::Atom(InlineAtom { kind: AtomKind::Math, .. })));
-            assert!(matches!(
-                &tb.inlines[2],
-                Inline::Atom(InlineAtom { kind: AtomKind::BareBreak { kind: BreakKind::Page }, .. })
-            ));
-            let Inline::Run(ruby) = &tb.inlines[3] else { panic!() };
-            assert!(matches!(&ruby.segments[0].kind, SegmentKind::Ruby { rt, .. } if rt == "rt"));
-            let Inline::Run(fn_ref) = &tb.inlines[4] else { panic!() };
-            assert!(
-                matches!(&fn_ref.segments[0].kind, SegmentKind::FootnoteRef { id: Some(id) } if id == "1")
-            );
-            assert_eq!(tb.text(), format!("\u{F0FC}{o}{o}{o}{o}", o = OBJECT_REPLACEMENT));
-            assert_eq!(tb.utf16_len(), 5);
-        }
+        );
+        let tb = blocks[0].as_text().unwrap();
+        assert_eq!(tb.inlines.len(), 5);
+        let Inline::Run(run) = &tb.inlines[0] else { panic!() };
+        assert_eq!(run.props.bold, Some(true));
+        assert_eq!(run.props.size, Some(Val::Value(28)));
+        assert_eq!(run.text, "\u{F0FC}", "符号字体映射表在 M2，先按 U+F000 + (code & 0xFF)");
+        assert!(
+            matches!(&run.segments[0].kind, SegmentKind::Sym { font: Some(f), code: Some(0xF0FC) } if f == "Wingdings")
+        );
+        assert!(matches!(&tb.inlines[1], Inline::Atom(InlineAtom { kind: AtomKind::Math, .. })));
+        assert!(matches!(
+            &tb.inlines[2],
+            Inline::Atom(InlineAtom { kind: AtomKind::BareBreak { kind: BreakKind::Page }, .. })
+        ));
+        let Inline::Run(ruby) = &tb.inlines[3] else { panic!() };
+        assert!(matches!(&ruby.segments[0].kind, SegmentKind::Ruby { rt, .. } if rt == "rt"));
+        let Inline::Run(fn_ref) = &tb.inlines[4] else { panic!() };
+        assert!(
+            matches!(&fn_ref.segments[0].kind, SegmentKind::FootnoteRef { id: Some(id) } if id == "1")
+        );
+        assert_eq!(tb.text(), format!("\u{F0FC}{o}{o}{o}{o}", o = OBJECT_REPLACEMENT));
+        assert_eq!(tb.utf16_len(), 5);
+    }
 
-        #[test]
-        fn mod_06_hyperlink_revisions_and_transparent_containers() {
-            let (blocks, _) = build(
-                r#"<w:p><w:hyperlink r:id="rId9" w:tooltip="tip"><w:r><w:t>link</w:t></w:r></w:hyperlink>
+    #[test]
+    fn mod_06_hyperlink_revisions_and_transparent_containers() {
+        let (blocks, _) = build(
+            r#"<w:p><w:hyperlink r:id="rId9" w:tooltip="tip"><w:r><w:t>link</w:t></w:r></w:hyperlink>
                    <w:hyperlink w:anchor="bm1"><w:r><w:t>in</w:t></w:r></w:hyperlink>
                    <w:ins w:id="3" w:author="A" w:date="2024-01-01T00:00:00Z"><w:r><w:t>new</w:t></w:r></w:ins>
                    <w:moveFrom w:id="4" w:author="B" w:date="2024-01-02T00:00:00Z"><w:r><w:delText>gone</w:delText></w:r></w:moveFrom>
@@ -11649,50 +11840,50 @@ mod test_model {
                    <w:bookmarkStart w:id="0" w:name="bm1"/><w:proofErr w:type="spellStart"/>
                    <w:r><w:rPr><w:rPrChange w:id="7" w:author="C" w:date="2024-01-03T00:00:00Z"><w:rPr><w:i/></w:rPr></w:rPrChange></w:rPr><w:t>chg</w:t></w:r>
                    <w:bookmarkEnd w:id="0"/></w:p>"#,
-            );
-            let tb = blocks[0].as_text().unwrap();
-            assert_eq!(tb.text(), "linkinnewgonesdtchg", "范围标记与 proofErr 不占位");
-            let runs: Vec<&Run> = tb
-                .inlines
-                .iter()
-                .filter_map(|i| match i {
-                    Inline::Run(r) => Some(r),
-                    _ => None,
-                })
-                .collect();
-            assert_eq!(runs.len(), 6);
-            assert!(
-                matches!(&runs[0].link, Some(Link::Hyperlink { target: LinkTarget::External { rel_id, href: None }, tooltip: Some(t), .. }) if rel_id == "rId9" && t == "tip")
-            );
-            assert!(
-                matches!(&runs[1].link, Some(Link::Hyperlink { target: LinkTarget::Internal { anchor }, .. }) if anchor == "bm1")
-            );
-            let ins = runs[2].rev.as_ref().unwrap();
-            assert_eq!(ins.ins.as_ref().unwrap().author.as_deref(), Some("A"));
-            assert!(ins.del.is_none());
-            let mv = runs[3].rev.as_ref().unwrap();
-            assert!(
-                mv.del.is_some() && mv.move_from.is_some() && mv.ins.is_none(),
-                "moveFrom 同时计入 del"
-            );
-            assert_eq!(runs[3].segments[0].kind, SegmentKind::DelText);
-            assert!(runs[4].rev.is_none() && runs[4].link.is_none());
-            let chg = runs[5].rev.as_ref().unwrap();
-            let (meta, old) = chg.props_change.as_ref().unwrap();
-            assert_eq!(meta.id.as_deref(), Some("7"));
-            assert_eq!(old.italic, Some(true));
-        }
+        );
+        let tb = blocks[0].as_text().unwrap();
+        assert_eq!(tb.text(), "linkinnewgonesdtchg", "范围标记与 proofErr 不占位");
+        let runs: Vec<&Run> = tb
+            .inlines
+            .iter()
+            .filter_map(|i| match i {
+                Inline::Run(r) => Some(r),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(runs.len(), 6);
+        assert!(
+            matches!(&runs[0].link, Some(Link::Hyperlink { target: LinkTarget::External { rel_id, href: None }, tooltip: Some(t), .. }) if rel_id == "rId9" && t == "tip")
+        );
+        assert!(
+            matches!(&runs[1].link, Some(Link::Hyperlink { target: LinkTarget::Internal { anchor }, .. }) if anchor == "bm1")
+        );
+        let ins = runs[2].rev.as_ref().unwrap();
+        assert_eq!(ins.ins.as_ref().unwrap().author.as_deref(), Some("A"));
+        assert!(ins.del.is_none());
+        let mv = runs[3].rev.as_ref().unwrap();
+        assert!(
+            mv.del.is_some() && mv.move_from.is_some() && mv.ins.is_none(),
+            "moveFrom 同时计入 del"
+        );
+        assert_eq!(runs[3].segments[0].kind, SegmentKind::DelText);
+        assert!(runs[4].rev.is_none() && runs[4].link.is_none());
+        let chg = runs[5].rev.as_ref().unwrap();
+        let (meta, old) = chg.props_change.as_ref().unwrap();
+        assert_eq!(meta.id.as_deref(), Some("7"));
+        assert_eq!(old.italic, Some(true));
+    }
 
-        #[test]
-        fn mod_03_text_kind_acceptance() {
-            let s = styles(
-                r#"<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:pPr><w:outlineLvl w:val="0"/></w:pPr></w:style>
+    #[test]
+    fn mod_03_text_kind_acceptance() {
+        let s = styles(
+            r#"<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:pPr><w:outlineLvl w:val="0"/></w:pPr></w:style>
                    <w:style w:type="paragraph" w:styleId="Sub"><w:name w:val="Sub"/><w:basedOn w:val="Heading1"/></w:style>
                    <w:style w:type="paragraph" w:styleId="ListPara"><w:name w:val="List Para"/><w:pPr><w:numPr><w:ilvl w:val="1"/><w:numId w:val="5"/></w:numPr></w:pPr></w:style>
                    <w:style w:type="paragraph" w:styleId="NoList"><w:name w:val="No List"/><w:basedOn w:val="ListPara"/><w:pPr><w:numPr><w:numId w:val="0"/></w:numPr></w:pPr></w:style>
                    <w:style w:type="paragraph" w:styleId="TOCHeading"><w:name w:val="TOC Heading"/><w:basedOn w:val="Heading1"/><w:pPr><w:outlineLvl w:val="9"/></w:pPr></w:style>"#,
-            );
-            let body = r#"
+        );
+        let body = r#"
               <w:p><w:pPr><w:pStyle w:val="Heading1"/><w:outlineLvl w:val="9"/></w:pPr><w:r><w:t>a</w:t></w:r></w:p>
               <w:p><w:pPr><w:pStyle w:val="Sub"/></w:pPr><w:r><w:t>b</w:t></w:r></w:p>
               <w:p><w:pPr><w:pStyle w:val="TOCHeading"/></w:pPr><w:r><w:t>c</w:t></w:r></w:p>
@@ -11703,37 +11894,37 @@ mod test_model {
               <w:p><w:pPr><w:pStyle w:val="Heading1"/><w:numPr><w:numId w:val="9"/></w:numPr></w:pPr><w:r><w:t>h</w:t></w:r></w:p>
               <w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr><w:r><w:t>i</w:t></w:r></w:p>
               <w:p><w:pPr><w:outlineLvl w:val="2"/></w:pPr><w:r><w:t>j</w:t></w:r></w:p>"#;
-            let blocks = build_with(body, &s);
-            let kinds: Vec<&TextKind> = blocks.iter().map(|b| &b.as_text().unwrap().kind).collect();
-            assert_eq!(kinds[0], &TextKind::Paragraph, "outlineLvl=9 且样式为 Heading1 → Paragraph");
-            assert_eq!(kinds[1], &TextKind::Heading { level: 1 }, "basedOn 继承标题级别");
-            assert_eq!(kinds[2], &TextKind::Paragraph, "outlineLvl 9 阻断继承");
-            assert_eq!(
-                kinds[3],
-                &TextKind::ListItem { list: ListRef { num_id: 5, ilvl: 1, from_style: true } }
-            );
-            assert_eq!(kinds[4], &TextKind::Paragraph, "样式 numId 0 取消继承编号");
-            assert_eq!(kinds[5], &TextKind::Paragraph, "直接 numId 0 → 无编号");
-            assert_eq!(
-                kinds[6],
-                &TextKind::ListItem { list: ListRef { num_id: 5, ilvl: 2, from_style: true } },
-                "ilvl 直接、numId 来自样式"
-            );
-            assert_eq!(
-                kinds[7],
-                &TextKind::ListItem { list: ListRef { num_id: 9, ilvl: 0, from_style: false } },
-                "ListRef 优先于 Heading"
-            );
-            assert_eq!(kinds[8], &TextKind::Heading { level: 3 }, "文档未定义的内建 Heading3");
-            assert_eq!(kinds[9], &TextKind::Heading { level: 3 }, "直接 outlineLvl");
-        }
+        let blocks = build_with(body, &s);
+        let kinds: Vec<&TextKind> = blocks.iter().map(|b| &b.as_text().unwrap().kind).collect();
+        assert_eq!(kinds[0], &TextKind::Paragraph, "outlineLvl=9 且样式为 Heading1 → Paragraph");
+        assert_eq!(kinds[1], &TextKind::Heading { level: 1 }, "basedOn 继承标题级别");
+        assert_eq!(kinds[2], &TextKind::Paragraph, "outlineLvl 9 阻断继承");
+        assert_eq!(
+            kinds[3],
+            &TextKind::ListItem { list: ListRef { num_id: 5, ilvl: 1, from_style: true } }
+        );
+        assert_eq!(kinds[4], &TextKind::Paragraph, "样式 numId 0 取消继承编号");
+        assert_eq!(kinds[5], &TextKind::Paragraph, "直接 numId 0 → 无编号");
+        assert_eq!(
+            kinds[6],
+            &TextKind::ListItem { list: ListRef { num_id: 5, ilvl: 2, from_style: true } },
+            "ilvl 直接、numId 来自样式"
+        );
+        assert_eq!(
+            kinds[7],
+            &TextKind::ListItem { list: ListRef { num_id: 9, ilvl: 0, from_style: false } },
+            "ListRef 优先于 Heading"
+        );
+        assert_eq!(kinds[8], &TextKind::Heading { level: 3 }, "文档未定义的内建 Heading3");
+        assert_eq!(kinds[9], &TextKind::Heading { level: 3 }, "直接 outlineLvl");
+    }
 
-        #[test]
-        fn mod_05_body_rules() {
-            let s = styles(
-                r#"<w:style w:type="paragraph" w:styleId="Hidden"><w:name w:val="Hidden"/><w:rPr><w:vanish/></w:rPr></w:style>"#,
-            );
-            let body = r#"
+    #[test]
+    fn mod_05_body_rules() {
+        let s = styles(
+            r#"<w:style w:type="paragraph" w:styleId="Hidden"><w:name w:val="Hidden"/><w:rPr><w:vanish/></w:rPr></w:style>"#,
+        );
+        let body = r#"
               <w:p><w:r><w:t>text</w:t></w:r></w:p>
               <w:tbl><w:tr><w:tc><w:p/></w:tc></w:tr></w:tbl>
               <w:sdt><w:sdtContent><w:p><w:r><w:t>s1</w:t></w:r></w:p><w:p><w:r><w:t>s2</w:t></w:r></w:p></w:sdtContent></w:sdt>
@@ -11753,106 +11944,115 @@ mod test_model {
               <w:p><w:r><w:object><v:shape/></w:object></w:r></w:p>
               <w:p><w:r><w:t>text</w:t><w:drawing><wp:inline><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"/></a:graphic></wp:inline></w:drawing></w:r></w:p>
               <w:sectPr><w:pgSz w:w="11906"/></w:sectPr>"#;
-            let d = doc(body);
-            let (blocks, warnings) = Document::build_main(&d, Some(&s), &Rels::default());
-            let kinds: Vec<String> = blocks
-                .iter()
-                .map(|b| match b {
-                    Block::Text(t) => format!("Text:{}", t.text()),
-                    Block::Table(_) => "Table".into(),
-                    Block::Image(_) => "Image".into(),
-                    Block::Protected(p) => format!("Protected:{}", p.kind.key()),
-                })
-                .collect();
-            assert_eq!(
-                kinds,
-                [
-                    "Text:text",
-                    "Table",
-                    "Text:s1",
-                    "Text:s2",
-                    "Protected:protected.invisible",
-                    "Protected:protected.body_break",
-                    "Text:inserted",
-                    "Protected:protected.unknown",
-                    "Protected:protected.invisible",
-                    "Text:shown",
-                    "Protected:protected.section_break",
-                    "Text:with text",
-                    "Protected:protected.equation",
-                    "Image",
-                    "Protected:protected.chart",
-                    "Protected:protected.rule",
-                    "Protected:protected.ole",
-                    &format!("Text:text{OBJECT_REPLACEMENT}"),
-                    "Protected:protected.section_props",
-                ]
-            );
-            // sdt 信息、修订包裹、预览、诊断
-            assert!(blocks[2].sdt().is_some() && blocks[3].sdt().is_some() && blocks[0].sdt().is_none());
-            assert!(
-                matches!(blocks[6].revisions(), [Revision::Insert(m)] if m.author.as_deref() == Some("A"))
-            );
-            let Block::Protected(unknown) = &blocks[7] else { panic!() };
-            assert!(matches!(&unknown.kind, ProtectedKind::Unknown(q) if q.local == LocalName::AltChunk));
-            let Block::Protected(hidden) = &blocks[8] else { panic!() };
-            assert_eq!(hidden.preview, "hidden");
-            assert!(matches!(&blocks[10], Block::Protected(p) if p.kind == ProtectedKind::SectionBreak));
-            assert_eq!(warnings.iter().filter(|d| d.code == DiagCode::ModUnknownBlock).count(), 1);
-            // 每条规则可单测
-            let f = ParagraphFacts { has_sect_pr: true, visible_text: false, ..Default::default() };
-            assert_eq!(classify_paragraph(&f), ("R10", ParaClass::Protected(ProtectedKind::SectionBreak)));
-            let f = ParagraphFacts { has_sect_pr: true, visible_text: true, ..Default::default() };
-            assert_eq!(classify_paragraph(&f), ("R19", ParaClass::Text));
-            let (rule, class) = classify_body_child(&d, blocks[1].node());
-            assert_eq!((rule, class), ("R02", BodyClass::Table));
-        }
+        let d = doc(body);
+        let (blocks, warnings) = Document::build_main(&d, Some(&s), &Rels::default());
+        let kinds: Vec<String> = blocks
+            .iter()
+            .map(|b| match b {
+                Block::Text(t) => format!("Text:{}", t.text()),
+                Block::Table(_) => "Table".into(),
+                Block::Image(_) => "Image".into(),
+                Block::Protected(p) => format!("Protected:{}", p.kind.key()),
+            })
+            .collect();
+        assert_eq!(
+            kinds,
+            [
+                "Text:text",
+                "Table",
+                "Text:s1",
+                "Text:s2",
+                "Protected:protected.invisible",
+                "Protected:protected.body_break",
+                "Text:inserted",
+                "Protected:protected.unknown",
+                "Protected:protected.invisible",
+                "Text:shown",
+                "Protected:protected.section_break",
+                "Text:with text",
+                "Protected:protected.equation",
+                "Image",
+                "Protected:protected.chart",
+                "Protected:protected.rule",
+                "Protected:protected.ole",
+                &format!("Text:text{OBJECT_REPLACEMENT}"),
+                "Protected:protected.section_props",
+            ]
+        );
+        // sdt 信息、修订包裹、预览、诊断
+        assert!(
+            blocks[2].sdt().is_some() && blocks[3].sdt().is_some() && blocks[0].sdt().is_none()
+        );
+        assert!(
+            matches!(blocks[6].revisions(), [Revision::Insert(m)] if m.author.as_deref() == Some("A"))
+        );
+        let Block::Protected(unknown) = &blocks[7] else { panic!() };
+        assert!(
+            matches!(&unknown.kind, ProtectedKind::Unknown(q) if q.local == LocalName::AltChunk)
+        );
+        let Block::Protected(hidden) = &blocks[8] else { panic!() };
+        assert_eq!(hidden.preview, "hidden");
+        assert!(
+            matches!(&blocks[10], Block::Protected(p) if p.kind == ProtectedKind::SectionBreak)
+        );
+        assert_eq!(warnings.iter().filter(|d| d.code == DiagCode::ModUnknownBlock).count(), 1);
+        // 每条规则可单测
+        let f = ParagraphFacts { has_sect_pr: true, visible_text: false, ..Default::default() };
+        assert_eq!(
+            classify_paragraph(&f),
+            ("R10", ParaClass::Protected(ProtectedKind::SectionBreak))
+        );
+        let f = ParagraphFacts { has_sect_pr: true, visible_text: true, ..Default::default() };
+        assert_eq!(classify_paragraph(&f), ("R19", ParaClass::Text));
+        let (rule, class) = classify_body_child(&d, blocks[1].node());
+        assert_eq!((rule, class), ("R02", BodyClass::Table));
+    }
 
-        #[test]
-        fn mod_04_paragraph_facts() {
-            let s = styles(
-                r#"<w:style w:type="paragraph" w:styleId="TOC 2"><w:name w:val="toc 2"/></w:style>"#,
-            );
-            let d = doc(
-                r#"<w:p><w:pPr><w:pStyle w:val="TOC 2"/><w:rPr><w:del w:id="1" w:author="a" w:date="2024-01-01T00:00:00Z"/></w:rPr>
+    #[test]
+    fn mod_04_paragraph_facts() {
+        let s = styles(
+            r#"<w:style w:type="paragraph" w:styleId="TOC 2"><w:name w:val="toc 2"/></w:style>"#,
+        );
+        let d = doc(
+            r#"<w:p><w:pPr><w:pStyle w:val="TOC 2"/><w:rPr><w:del w:id="1" w:author="a" w:date="2024-01-01T00:00:00Z"/></w:rPr>
                      <w:pPrChange w:id="2" w:author="a" w:date="2024-01-01T00:00:00Z"><w:pPr/></w:pPrChange></w:pPr>
                    <w:r><w:t> </w:t></w:r>
                    <w:r><w:pict><v:shape><v:textbox><w:txbxContent><w:p><w:r><w:t>boxed</w:t></w:r></w:p></w:txbxContent></v:textbox></v:shape></w:pict></w:r>
                    <w:del w:id="3" w:author="a" w:date="2024-01-01T00:00:00Z"><w:r><w:delText>gone</w:delText></w:r></w:del>
                    <m:oMath/></w:p>"#,
-            );
-            let blocks = Document::build_main(&d, Some(&s), &Rels::default()).0;
-            let tb = blocks[0].as_text().unwrap();
-            let f = &tb.facts;
-            assert!(f.visible_text, "delText 也算可见文本");
-            assert!(f.visible_text_outside_boxes);
-            assert_eq!(f.toc_style_level, Some(2));
-            assert_eq!(f.picts.len(), 1);
-            assert_eq!(f.picts[0].kind, PictKind::TextBox);
-            assert_eq!(f.math.count, 1);
-            assert!(f.revision.run_del && f.revision.para_mark_del && f.revision.ppr_change);
-            assert!(!f.revision.run_ins);
-            assert!(matches!(
-                tb.revisions.as_slice(),
-                [Revision::ParaMarkDelete(_), Revision::ParaPropsChange { .. }]
-            ));
-            // 只有文本框里有字：visible_text 为假
-            let d2 = doc(
-                r#"<w:p><w:r><w:pict><v:shape><v:textbox><w:txbxContent><w:p><w:r><w:t>boxed</w:t></w:r></w:p></w:txbxContent></v:textbox></v:shape></w:pict></w:r></w:p>"#,
-            );
-            let blocks = Document::build_main(&d2, None, &Rels::default()).0;
-            let f = &blocks[0].as_text().unwrap().facts;
-            assert!(!f.visible_text && !f.visible_text_outside_boxes);
-        }
+        );
+        let blocks = Document::build_main(&d, Some(&s), &Rels::default()).0;
+        let tb = blocks[0].as_text().unwrap();
+        let f = &tb.facts;
+        assert!(f.visible_text, "delText 也算可见文本");
+        assert!(f.visible_text_outside_boxes);
+        assert_eq!(f.toc_style_level, Some(2));
+        assert_eq!(f.picts.len(), 1);
+        assert_eq!(f.picts[0].kind, PictKind::TextBox);
+        assert_eq!(f.math.count, 1);
+        assert!(f.revision.run_del && f.revision.para_mark_del && f.revision.ppr_change);
+        assert!(!f.revision.run_ins);
+        assert!(matches!(
+            tb.revisions.as_slice(),
+            [Revision::ParaMarkDelete(_), Revision::ParaPropsChange { .. }]
+        ));
+        // 只有文本框里有字：visible_text 为假
+        let d2 = doc(
+            r#"<w:p><w:r><w:pict><v:shape><v:textbox><w:txbxContent><w:p><w:r><w:t>boxed</w:t></w:r></w:p></w:txbxContent></v:textbox></v:shape></w:pict></w:r></w:p>"#,
+        );
+        let blocks = Document::build_main(&d2, None, &Rels::default()).0;
+        let f = &blocks[0].as_text().unwrap().facts;
+        assert!(!f.visible_text && !f.visible_text_outside_boxes);
+    }
 
-        #[test]
-        fn mod_01_document_without_body_warns() {
-            let xml = format!(r#"<w:document xmlns:w="{W}"/>"#);
-            let d = Dom::parse(PartId(0), xml.as_bytes()).unwrap();
-            let (blocks, warnings) = Document::build_main(&d, None, &Rels::default());
-            assert!(blocks.is_empty());
-            assert_eq!(warnings.len(), 1);
-            assert_eq!(warnings[0].code, DiagCode::ModUnparseable);
-            let _ = QName::w(LocalName::Body);
-        }
+    #[test]
+    fn mod_01_document_without_body_warns() {
+        let xml = format!(r#"<w:document xmlns:w="{W}"/>"#);
+        let d = Dom::parse(PartId(0), xml.as_bytes()).unwrap();
+        let (blocks, warnings) = Document::build_main(&d, None, &Rels::default());
+        assert!(blocks.is_empty());
+        assert_eq!(warnings.len(), 1);
+        assert_eq!(warnings[0].code, DiagCode::ModUnparseable);
+        let _ = QName::w(LocalName::Body);
+    }
 }

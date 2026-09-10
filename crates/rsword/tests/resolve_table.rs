@@ -136,7 +136,9 @@ fn res_08_conditional_formats_follow_tbl_look() {
         let based: Vec<&str> = styles
             .styles
             .iter()
-            .filter(|s| s.kind() == Some(rsword::semantic::props::StyleType::Table) && s.based_on.is_some())
+            .filter(|s| {
+                s.kind() == Some(rsword::semantic::props::StyleType::Table) && s.based_on.is_some()
+            })
             .filter_map(|s| s.id())
             .collect();
         let child = based.first().unwrap_or_else(|| panic!("{name}: 应有 basedOn 的表格样式"));

@@ -347,10 +347,9 @@ impl Compiler<'_> {
             s.document().styles.as_ref().and_then(|styles| styles.get(id)).cloned()
         })?;
         let mut ops = vec![];
-        if existing
-            .as_ref()
-            .is_some_and(|style| style.kind() != Some(rsword::semantic::props::StyleType::Paragraph))
-        {
+        if existing.as_ref().is_some_and(|style| {
+            style.kind() != Some(rsword::semantic::props::StyleType::Paragraph)
+        }) {
             return Err(error("AGENT_STYLE_CONFLICT", "setBlockStyle 只接受段落样式"));
         }
         if let Some(create) = create {

@@ -131,7 +131,9 @@ fn compat_07_comment_ids_follow_the_ts_rules() {
         .inlines
         .iter()
         .filter_map(|i| match i {
-            rsword::model::Inline::Run(r) if !r.text.is_empty() => Some((r.text.clone(), r.comments.len())),
+            rsword::model::Inline::Run(r) if !r.text.is_empty() => {
+                Some((r.text.clone(), r.comments.len()))
+            }
             _ => None,
         })
         .collect();

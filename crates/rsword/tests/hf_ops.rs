@@ -671,7 +671,11 @@ fn random_hf_op(s: &EditSession, rng: &mut common::Rng) -> Option<EditOp> {
             },
         }),
         4 => {
-            let kind = if rng.below(2) == 0 { rsword::model::HfKind::Header } else { rsword::model::HfKind::Footer };
+            let kind = if rng.below(2) == 0 {
+                rsword::model::HfKind::Header
+            } else {
+                rsword::model::HfKind::Footer
+            };
             let variant = match rng.below(3) {
                 0 => rsword::model::HfVariant::Default,
                 1 => rsword::model::HfVariant::First,
@@ -696,8 +700,17 @@ fn random_hf_op(s: &EditSession, rng: &mut common::Rng) -> Option<EditOp> {
         }
         _ => {
             let part = *doc.hf_parts.keys().nth(rng.below(doc.hf_parts.len().max(1)))?;
-            let kind = if rng.below(2) == 0 { rsword::model::HfKind::Header } else { rsword::model::HfKind::Footer };
-            Some(EditOp::LinkHeaderFooter { sect, kind, variant: rsword::model::HfVariant::Default, part })
+            let kind = if rng.below(2) == 0 {
+                rsword::model::HfKind::Header
+            } else {
+                rsword::model::HfKind::Footer
+            };
+            Some(EditOp::LinkHeaderFooter {
+                sect,
+                kind,
+                variant: rsword::model::HfVariant::Default,
+                part,
+            })
         }
     }
 }

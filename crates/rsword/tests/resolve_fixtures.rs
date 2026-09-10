@@ -136,12 +136,13 @@ fn answers(dir: &Path) -> Answers {
     };
     for i in 0..doc.sections.len() {
         let view = r.section(&doc.sections, i).expect("section view");
-        let (text, from) = match view.slot(rsword::model::HfKind::Header, rsword::model::HfVariant::Default) {
-            HfSlot::Declared(rid) => (text_of(rid), -1),
-            HfSlot::Inherited { from, id } => (text_of(id), *from as i64),
-            // `-2` = 这个槽在这一节完全没有（既没声明也继承不到）
-            HfSlot::Absent => (String::new(), -2),
-        };
+        let (text, from) =
+            match view.slot(rsword::model::HfKind::Header, rsword::model::HfVariant::Default) {
+                HfSlot::Declared(rid) => (text_of(rid), -1),
+                HfSlot::Inherited { from, id } => (text_of(id), *from as i64),
+                // `-2` = 这个槽在这一节完全没有（既没声明也继承不到）
+                HfSlot::Absent => (String::new(), -2),
+            };
         sections.push((text, from));
     }
     Answers { runs, sections }

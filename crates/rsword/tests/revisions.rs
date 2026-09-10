@@ -249,7 +249,11 @@ fn mod_09_nested_wrappers_depth() {
     assert_eq!(nested.len(), 500, "500 层各一条");
     for (i, e) in nested.iter().enumerate() {
         assert_eq!(e.depth as usize, i, "第 {i} 层的 depth");
-        let want = if i % 2 == 0 { rsword::model::RevKind::RunInsert } else { rsword::model::RevKind::RunDelete };
+        let want = if i % 2 == 0 {
+            rsword::model::RevKind::RunInsert
+        } else {
+            rsword::model::RevKind::RunDelete
+        };
         assert_eq!(e.kind, want, "第 {i} 层 ins / del 交替");
     }
     let inner_first = idx.iter_inner_first();
@@ -435,8 +439,12 @@ fn gate_2_accept_reject_all_corpus() {
             continue;
         }
         // `w:cellMerge` 的拒绝方向不支持（`spec/18`「不在 M7」）
-        let has_cell_merge =
-            probe.document().revisions.entries().iter().any(|e| e.kind == rsword::model::RevKind::CellMerge);
+        let has_cell_merge = probe
+            .document()
+            .revisions
+            .entries()
+            .iter()
+            .any(|e| e.kind == rsword::model::RevKind::CellMerge);
         checked += 1;
         for accept in [true, false] {
             if !accept && has_cell_merge {
@@ -775,7 +783,12 @@ fn mod_09_para_marks_accept_reject() {
             rsword::model::RevKind::ParaMarkInsert,
             false,
         ),
-        ("pPr/rPr/w:del", two(&format!(r#"<w:del w:id="1" {D}/>"#)), rsword::model::RevKind::ParaMarkDelete, true),
+        (
+            "pPr/rPr/w:del",
+            two(&format!(r#"<w:del w:id="1" {D}/>"#)),
+            rsword::model::RevKind::ParaMarkDelete,
+            true,
+        ),
         (
             "pPr/rPr/w:moveFrom",
             two(&format!(r#"<w:moveFrom w:id="1" {D}/>"#)),
@@ -1020,8 +1033,18 @@ fn mod_09_table_revisions_accept_reject() {
     );
     // cellIns / cellDel：接受 / 拒绝的方向相反，整列都带标记 → 网格也少一列
     for (label, mark, kind, cell_gone_on_accept) in [
-        ("cellIns", format!(r#"<w:cellIns w:id="1" {D}/>"#), rsword::model::RevKind::CellInsert, false),
-        ("cellDel", format!(r#"<w:cellDel w:id="1" {D}/>"#), rsword::model::RevKind::CellDelete, true),
+        (
+            "cellIns",
+            format!(r#"<w:cellIns w:id="1" {D}/>"#),
+            rsword::model::RevKind::CellInsert,
+            false,
+        ),
+        (
+            "cellDel",
+            format!(r#"<w:cellDel w:id="1" {D}/>"#),
+            rsword::model::RevKind::CellDelete,
+            true,
+        ),
     ] {
         let body = table("", "", "", "", &mark);
         // 只有一行 → 带标记的那个格就是"整列"，格没了网格也少一列

@@ -77,11 +77,14 @@ impl Details {
                                 .iter()
                                 .filter_map(|s| s.display.as_ref())
                                 .collect::<Vec<_>>(),
-                            rsword::model::Inline::Atom(_) | rsword::model::Inline::Field { id: _, result: _ } => vec![],
+                            rsword::model::Inline::Atom(_)
+                            | rsword::model::Inline::Field { id: _, result: _ } => vec![],
                         })
                         .collect(),
                     rsword::model::Block::Image(i) => i.display.iter().collect(),
-                    rsword::model::Block::Protected(b) => b.display.iter().chain(b.siblings.iter()).collect(),
+                    rsword::model::Block::Protected(b) => {
+                        b.display.iter().chain(b.siblings.iter()).collect()
+                    }
                     rsword::model::Block::Table(_) => vec![],
                 };
                 for display in displays {
@@ -157,7 +160,7 @@ impl Details {
                         .collect()
                 } else if doc.hf_parts.contains_key(&PartId(o.object.part)) {
                     use rsword::model::HfKind;
-use rsword::model::HfVariant;
+                    use rsword::model::HfVariant;
                     let resolver = rsword::resolve::Resolver::new(doc);
                     (0..doc.sections.len())
                         .filter(|&i| {

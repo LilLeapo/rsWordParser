@@ -370,14 +370,22 @@ fn section_op(doc: &Document, rng: &mut Rng) -> Option<EditOp> {
             EditOp::DeleteSectionBreak { sect: *rng.pick(&sects)? }
         }
         2 => EditOp::SetSectionProps {
-            sect: doc.sections.last().filter(|s| s.owner == rsword::model::SectionOwner::Body)?.node?,
+            sect: doc
+                .sections
+                .last()
+                .filter(|s| s.owner == rsword::model::SectionOwner::Body)?
+                .node?,
             patch: rsword::semantic::props::SectionPropsPatch {
                 title_pg: Change::Set(rng.chance(2)),
                 ..Default::default()
             },
         },
         _ => EditOp::SetWatermark {
-            sect: doc.sections.last().filter(|s| s.owner == rsword::model::SectionOwner::Body)?.node?,
+            sect: doc
+                .sections
+                .last()
+                .filter(|s| s.owner == rsword::model::SectionOwner::Body)?
+                .node?,
             text: rng.chance(2).then(|| "机密".to_string()),
         },
     })
@@ -401,8 +409,8 @@ fn package_op(rng: &mut Rng) -> Option<EditOp> {
 fn refresh_matches_rebuild(s: &EditSession) -> Result<(), String> {
     let refreshed = s.document().clone();
     // 独立 oracle 的惰性解析等副作用不得进入活会话。
-    let rebuilt =
-        rsword::model::Document::rebuild(&mut s.package().clone()).map_err(|e| format!("rebuild 失败: {e}"))?;
+    let rebuilt = rsword::model::Document::rebuild(&mut s.package().clone())
+        .map_err(|e| format!("rebuild 失败: {e}"))?;
     let n = refreshed.main.len().max(rebuilt.main.len());
     for i in 0..n {
         let (a, b) = (refreshed.main.get(i), rebuilt.main.get(i));
