@@ -86,7 +86,12 @@ fn main() {
         .and_then(|fd| File::from(fd).write_all(text.as_bytes()));
     // Windows 使用标准输出的控制台编码处理，同时保留管道/文件写入失败回滚。
     #[cfg(windows)]
-    let written = std::io::stdout().lock().write_all(text.as_bytes());
+    let written = {
+        let mut stdout = std::io::stdout().lock();
+        // 响应没有末尾换行；必须在提交文件前刷新行缓冲，才能捕获真实写入错误。
+        // process::exit 不会替我们刷新标准输出。
+        stdout.write_all(text.as_bytes()).and_then(|()| stdout.flush())
+    };
     if written.is_err() {
         if let Some(publication) = publication
             && let Err(e) = publication.rollback()
