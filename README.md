@@ -179,17 +179,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 发布工作流见 [release.yml](.github/workflows/release.yml)：推送任意 tag 或在 Actions 页面手动运行。
 在 tag 上运行会创建正式 GitHub Release；在分支上手动运行会创建 `draft-<run_id>` 草稿，指向本次构建提交。
-WASM、JS binding、CLI、lib 四类独立并行构建，CLI 平台矩阵也并行；全部成功后将 artifacts 附加到 Release。
+WASM 与 JS binding 在同一个 job 内共用一次构建，分别上传 artifact；与 CLI、Rust binding 并行，CLI 平台矩阵也并行。
+全部成功后将四类 artifacts 附加到 Release。
 
 | Artifact | 内容 |
 | --- | --- |
 | `rsword-wasm` | 原始 `rsword_js.wasm`，需经 wasm-bindgen 生成配套绑定后使用 |
 | `rsword-jsbinding` | 可直接集成的 web target JS、TypeScript 声明及配套 WASM |
 | `rsword-cli-<target>` | Windows amd64、Linux x86_64/aarch64、macOS Intel/Apple Silicon 的原生 CLI，打包为 `.tar.gz` |
-| `rsword-lib` | 已构建并经 `cargo package` 独立验证的 Rust 源码 `.crate` 包，可解包后用 path dependency 引入 |
+| `rsword-rustbinding` | Rust 库源码及原生 binding、独立 Cargo 示例项目和接入文档；经仓库外部项目验证读取、编辑、保存与重开 |
 
 CLI 在各目标系统上构建并运行进程测试；Linux 产物使用 GNU libc（Ubuntu 24.04 构建）。
 发布工作流不向 crates.io 或 npm 发布包。
+
+Rust binding 使用现有 `rsword::bind::native::SessionTable` 接口；下载包解压后，其他 Rust 项目可通过
+`rsword = { path = "../rsword-rustbinding/rsword" }` 引用。包内示例与说明见
+[Rust binding 接入文档](tools/rust-binding/README.md)。本地打包：`bash tools/package-rust-binding.sh`。
 
 ```sh
 cargo fmt --all --check

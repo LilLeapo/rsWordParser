@@ -21,31 +21,9 @@ env:
   CARGO_TERM_COLOR: always
   RSWORD_COMMIT: ${{ github.sha }}
 
-# 四类产物独立构建；CLI 的各平台也并行，全部成功才发布。
+# WASM 与 JS binding 共用一次构建；与 CLI、Rust binding 并行，全部成功才发布。
 jobs:
-  wasm:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: release-wasm
-      - name: Build raw WASM
-        run: cargo build --locked -p rsword-js --target wasm32-unknown-unknown --profile wasm-release
-      - name: Package WASM
-        run: |
-          mkdir -p dist
-          tar -czf dist/rsword-wasm.tar.gz -C target/wasm32-unknown-unknown/wasm-release rsword_js.wasm
-      - uses: actions/upload-artifact@v4
-        with:
-          name: rsword-wasm
-          path: dist/rsword-wasm.tar.gz
-          if-no-files-found: error
-
-  jsbinding:
+  wasm-jsbinding:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -57,19 +35,25 @@ jobs:
           node-version: '22'
       - uses: Swatinem/rust-cache@v2
         with:
-          key: release-jsbinding
+          key: release-wasm-jsbinding
       - name: Install matching wasm-bindgen
         run: |
           version=$(python3 -c 'import tomllib; d = tomllib.load(open("Cargo.lock", "rb")); print(next(p["version"] for p in d["package"] if p["name"] == "wasm-bindgen"))')
           cargo install wasm-bindgen-cli --version "$version" --locked
-      - name: Build and verify JS binding
+      - name: Build WASM and verify JS binding
         run: |
           tools/build-js.sh --locked
           node tools/js-parity/native_parity.mjs --pkg crates/rsword-js/pkg
-      - name: Package JS, declarations and companion WASM
+      - name: Package WASM and JS binding separately
         run: |
           mkdir -p dist
+          tar -czf dist/rsword-wasm.tar.gz -C target/wasm32-unknown-unknown/wasm-release rsword_js.wasm
           tar -czf dist/rsword-jsbinding.tar.gz -C crates/rsword-js/pkg .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rsword-wasm
+          path: dist/rsword-wasm.tar.gz
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
           name: rsword-jsbinding
@@ -128,26 +112,24 @@ jobs:
           path: dist/rsword-cli-${{ matrix.target }}.tar.gz
           if-no-files-found: error
 
-  lib:
+  rust-binding:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          key: release-lib
-      - name: Build library and verify standalone crate
-        run: |
-          cargo build --locked --release -p rsword --lib
-          cargo package --locked -p rsword
+          key: release-rust-binding
+      - name: Package Rust binding and verify external consumer
+        run: bash tools/package-rust-binding.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: rsword-lib
-          path: target/package/rsword-*.crate
+          name: rsword-rustbinding
+          path: target/release-artifacts/rsword-rustbinding.tar.gz
           if-no-files-found: error
 
   release:
-    needs: [wasm, jsbinding, cli, lib]
+    needs: [wasm-jsbinding, cli, rust-binding]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
