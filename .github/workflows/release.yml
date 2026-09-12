@@ -1,0 +1,182 @@
+name: release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - '**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CARGO_TERM_COLOR: always
+  RSWORD_COMMIT: ${{ github.sha }}
+
+# 四类产物独立构建；CLI 的各平台也并行，全部成功才发布。
+jobs:
+  wasm:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-wasm
+      - name: Build raw WASM
+        run: cargo build --locked -p rsword-js --target wasm32-unknown-unknown --profile wasm-release
+      - name: Package WASM
+        run: |
+          mkdir -p dist
+          tar -czf dist/rsword-wasm.tar.gz -C target/wasm32-unknown-unknown/wasm-release rsword_js.wasm
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rsword-wasm
+          path: dist/rsword-wasm.tar.gz
+          if-no-files-found: error
+
+  jsbinding:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-jsbinding
+      - name: Install matching wasm-bindgen
+        run: |
+          version=$(python3 -c 'import tomllib; d = tomllib.load(open("Cargo.lock", "rb")); print(next(p["version"] for p in d["package"] if p["name"] == "wasm-bindgen"))')
+          cargo install wasm-bindgen-cli --version "$version" --locked
+      - name: Build and verify JS binding
+        run: |
+          tools/build-js.sh --locked
+          node tools/js-parity/native_parity.mjs --pkg crates/rsword-js/pkg
+      - name: Package JS, declarations and companion WASM
+        run: |
+          mkdir -p dist
+          tar -czf dist/rsword-jsbinding.tar.gz -C crates/rsword-js/pkg .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rsword-jsbinding
+          path: dist/rsword-jsbinding.tar.gz
+          if-no-files-found: error
+
+  cli:
+    name: cli (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            binary: rsword
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            binary: rsword
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            binary: rsword
+          - os: macos-15
+            target: aarch64-apple-darwin
+            binary: rsword
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            binary: rsword.exe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-cli-${{ matrix.target }}
+      - name: Build and test CLI on target platform
+        env:
+          CLI_TARGET: ${{ matrix.target }}
+        run: |
+          cargo build --locked --release -p rsword-cli --target "$CLI_TARGET"
+          cargo test --locked --release -p rsword-cli --target "$CLI_TARGET"
+      - name: Package CLI
+        env:
+          CLI_TARGET: ${{ matrix.target }}
+          CLI_BINARY: ${{ matrix.binary }}
+        run: |
+          mkdir -p dist
+          tar -czf "dist/rsword-cli-$CLI_TARGET.tar.gz" -C "target/$CLI_TARGET/release" "$CLI_BINARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rsword-cli-${{ matrix.target }}
+          path: dist/rsword-cli-${{ matrix.target }}.tar.gz
+          if-no-files-found: error
+
+  lib:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-lib
+      - name: Build library and verify standalone crate
+        run: |
+          cargo build --locked --release -p rsword --lib
+          cargo package --locked -p rsword
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rsword-lib
+          path: target/package/rsword-*.crate
+          if-no-files-found: error
+
+  release:
+    needs: [wasm, jsbinding, cli, lib]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: rsword-*
+          merge-multiple: true
+          path: dist
+      - name: Create Release or draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [[ "$REF_TYPE" == tag ]]; then
+            tag="$REF_NAME"
+            options=(--verify-tag)
+          else
+            # 草稿也需要候选 tag；固定到本次构建的提交，不使用默认分支最新提交。
+            tag="draft-${GITHUB_RUN_ID}"
+            options=(--draft --target "$GITHUB_SHA")
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/* --clobber
+            if [[ "$REF_TYPE" == tag ]]; then
+              gh release edit "$tag" --draft=false --verify-tag
+            fi
+          else
+            gh release create "$tag" dist/* "${options[@]}" --title "$tag" --generate-notes
+          fi

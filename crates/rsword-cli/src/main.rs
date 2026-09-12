@@ -4,10 +4,11 @@ mod command;
 mod output;
 use rsword_agent_query::{Result, error};
 use serde_json::Value;
+#[cfg(unix)]
+use std::os::fd::AsFd;
 use std::{
     fs::File,
     io::{Read, Write},
-    os::fd::AsFd,
     path::Path,
 };
 const JSON_LIMIT: usize = 4 * 1024 * 1024;
@@ -78,10 +79,14 @@ fn main() {
         value.to_string()
     };
     // Stdout 对 EBADF 特殊返回成功；直接写复制的描述符，才能如实报告回执丢失。
+    #[cfg(unix)]
     let written = std::io::stdout()
         .as_fd()
         .try_clone_to_owned()
         .and_then(|fd| File::from(fd).write_all(text.as_bytes()));
+    // Windows 使用标准输出的控制台编码处理，同时保留管道/文件写入失败回滚。
+    #[cfg(windows)]
+    let written = std::io::stdout().lock().write_all(text.as_bytes());
     if written.is_err() {
         if let Some(publication) = publication
             && let Err(e) = publication.rollback()

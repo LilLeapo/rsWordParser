@@ -183,6 +183,20 @@ BIND_BAD_ARGUMENT  Additional properties are not allowed ('limit' was unexpected
 
 ## 开发与验收
 
+发布工作流见 [release.yml](.github/workflows/release.yml)：推送任意 tag 或在 Actions 页面手动运行。
+在 tag 上运行会创建正式 GitHub Release；在分支上手动运行会创建 `draft-<run_id>` 草稿，指向本次构建提交。
+WASM、JS binding、CLI、lib 四类独立并行构建，CLI 平台矩阵也并行；全部成功后将 artifacts 附加到 Release。
+
+| Artifact | 内容 |
+| --- | --- |
+| `rsword-wasm` | 原始 `rsword_js.wasm`，需经 wasm-bindgen 生成配套绑定后使用 |
+| `rsword-jsbinding` | 可直接集成的 web target JS、TypeScript 声明及配套 WASM |
+| `rsword-cli-<target>` | Windows amd64、Linux x86_64/aarch64、macOS Intel/Apple Silicon 的原生 CLI，打包为 `.tar.gz` |
+| `rsword-lib` | 已构建并经 `cargo package` 独立验证的 Rust 源码 `.crate` 包，可解包后用 path dependency 引入 |
+
+CLI 在各目标系统上构建并运行进程测试；Linux 产物使用 GNU libc（Ubuntu 24.04 构建）。
+发布工作流不向 crates.io 或 npm 发布包。
+
 ```sh
 cargo fmt --all --check
 cargo clippy --workspace --all-targets                        # 必须零告警
