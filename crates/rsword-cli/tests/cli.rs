@@ -169,7 +169,7 @@ fn exercise(tool: Tool) {
 }
 #[test]
 fn agent_10_tools_match_spec_and_cli_test_rows() {
-    let spec = include_str!("../../../spec/22-agent.md");
+    let spec = include_str!("../../../spec/22-agent.md").replace("\r\n", "\n");
     let start = spec.find("| 逻辑工具 | CLI").unwrap();
     let table = spec[start..].split("\n\n").next().unwrap();
     let expected: std::collections::BTreeSet<_> = table
@@ -638,7 +638,7 @@ fn agent_04_find_page_counts_are_explicit_and_complete() {
 #[test]
 fn agent_07_every_documented_request_runs_in_cli() {
     use std::collections::BTreeSet;
-    let docs = include_str!("../../../docs/17-agent-edit.md");
+    let docs = include_str!("../../../docs/17-agent-edit.md").replace("\r\n", "\n");
     let names: Vec<_> = docs
         .lines()
         .filter_map(|line| {
@@ -677,7 +677,7 @@ fn agent_07_documented_find_anchor_scope_pipeline_runs() {
     // 文档同时含 shell 与 JS 路径；用仓库相对路径避开 Windows 反斜杠转义。
     let dir = c.dir.strip_prefix(common::repo_root()).unwrap().to_string_lossy().replace('\\', "/");
     let binary = env!("CARGO_BIN_EXE_rsword").replace('\\', "/").replace('\'', "'\\''");
-    let docs = include_str!("../../../docs/17-agent-edit.md");
+    let docs = include_str!("../../../docs/17-agent-edit.md").replace("\r\n", "\n");
     let section = docs.split("## 7. 从 find 锚点").nth(1).unwrap();
     let script = section
         .split("```sh\n")

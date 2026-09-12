@@ -5,7 +5,8 @@ import {resolve, join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const [action, binary = join(root, 'target/debug/rsword')] = process.argv.slice(2);
-const docs = readFileSync(join(root, 'docs/17-agent-edit.md'), 'utf8');
+// Windows checkout 可使用 CRLF；统一换行后再提取 Markdown 代码块。
+const docs = readFileSync(join(root, 'docs/17-agent-edit.md'), 'utf8').replaceAll('\r\n', '\n');
 const examples = [...docs.matchAll(/<!-- agent-example (\w+) ([\w/.-]+) (\w+) -->\n```json\n([\s\S]*?)\n```/g)];
 const example = examples.find(m => m[1] === action);
 if (!example) throw new Error(`选择 action：${examples.map(m => m[1]).join(', ')}`);

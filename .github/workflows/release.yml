@@ -98,7 +98,8 @@ jobs:
           CLI_TARGET: ${{ matrix.target }}
         run: |
           cargo build --locked --release -p rsword-cli --target "$CLI_TARGET"
-          cargo test --locked --release -p rsword-cli --target "$CLI_TARGET"
+          # 每个测试都会启动 CLI/worker；串行执行，避免共享 runner 上相互争抢查询时限。
+          cargo test --locked --release -p rsword-cli --target "$CLI_TARGET" -- --test-threads=1
       - name: Package CLI
         env:
           CLI_TARGET: ${{ matrix.target }}
