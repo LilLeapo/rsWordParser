@@ -526,14 +526,18 @@ fn agent_10_stdout_failure_rolls_back_published_files() {
     let c = Case::new();
     fs::write(&c.output, b"old output").unwrap();
     fs::write(&c.report, b"old report").unwrap();
-    let (stdout, peer) = std::os::unix::net::UnixStream::pair().unwrap();
-    drop(peer);
     let read_only = c.dir.join("read-only-stdout");
     fs::write(&read_only, b"untouched").unwrap();
-    for stdout in [
-        std::process::Stdio::from(std::os::fd::OwnedFd::from(stdout)),
-        std::process::Stdio::from(fs::File::open(&read_only).unwrap()),
-    ] {
+    let outputs = vec![std::process::Stdio::from(fs::File::open(&read_only).unwrap())];
+    #[cfg(unix)]
+    let outputs = {
+        let mut outputs = outputs;
+        let (stdout, peer) = std::os::unix::net::UnixStream::pair().unwrap();
+        drop(peer);
+        outputs.push(std::process::Stdio::from(std::os::fd::OwnedFd::from(stdout)));
+        outputs
+    };
+    for stdout in outputs {
         let status = Command::new(env!("CARGO_BIN_EXE_rsword"))
             .args([
                 "ops",
@@ -670,6 +674,9 @@ fn agent_07_every_documented_request_runs_in_cli() {
 #[test]
 fn agent_07_documented_find_anchor_scope_pipeline_runs() {
     let c = Case::new();
+    // 文档同时含 shell 与 JS 路径；用仓库相对路径避开 Windows 反斜杠转义。
+    let dir = c.dir.strip_prefix(common::repo_root()).unwrap().to_string_lossy().replace('\\', "/");
+    let binary = env!("CARGO_BIN_EXE_rsword").replace('\\', "/").replace('\'', "'\\''");
     let docs = include_str!("../../../docs/17-agent-edit.md");
     let section = docs.split("## 7. 从 find 锚点").nth(1).unwrap();
     let script = section
@@ -679,8 +686,8 @@ fn agent_07_documented_find_anchor_scope_pipeline_runs() {
         .split("\n```")
         .next()
         .unwrap()
-        .replace("./target/debug/rsword", env!("CARGO_BIN_EXE_rsword"))
-        .replace("target/agent-find-scope", s(&c.dir));
+        .replace("./target/debug/rsword", &format!("'{binary}'"))
+        .replace("target/agent-find-scope", &dir);
     let out = Command::new("bash")
         .current_dir(common::repo_root())
         .args(["-eu", "-c", &script])
