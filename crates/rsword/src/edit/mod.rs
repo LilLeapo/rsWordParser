@@ -397,6 +397,15 @@ pub enum EditOp {
         /// 新属性或属性补丁，继承及清空规则见本变体说明。
         props: Option<RunPropsPatch>,
     },
+    /// `EDIT-03 ReplaceText`：同段替换，继承首个被替换字符所属 run 的完整格式。
+    ReplaceText {
+        /// 被替换范围的起点（含）。
+        from: InlinePos,
+        /// 被替换范围的终点（不含）；必须与起点在同一 part、同一段落。
+        to: InlinePos,
+        /// 替换文本；空字符串表示删除，空范围表示普通插入。
+        text: String,
+    },
     /// `EDIT-03 DeleteRange`（同段）。
     DeleteRange {
         /// 来源或范围起点，语义见本变体说明。
@@ -1084,6 +1093,7 @@ impl EditSession {
             | EditOp::InsertAtom { at, .. }
             | EditOp::InsertField { at, .. } => [Some(pos(at)), None],
             EditOp::DeleteRange { from, to }
+            | EditOp::ReplaceText { from, to, .. }
             | EditOp::SetRunProps { from, to, .. }
             | EditOp::AddComment { from, to, .. }
             | EditOp::AddBookmark { from, to, .. } => [Some(pos(from)), Some(pos(to))],
@@ -2020,6 +2030,13 @@ impl From<ImageExtentEmu> for i64 {
 enum Side {
     Left,
     Right,
+}
+
+/// 替换在修改前确定的源 run 与插入位置；只在本次操作内使用。
+#[derive(Clone, Copy)]
+struct InsertTextSource {
+    run: NodeId,
+    loc: Loc,
 }
 
 // ---- DeleteRange ------------------------------------------------------------------------------
@@ -9419,6 +9436,9 @@ impl EditSession {
             EditOp::InsertText { at, text, props } => {
                 EditSession::insert_text(s, at, &text, props, ctx)
             }
+            EditOp::ReplaceText { from, to, text } => {
+                EditSession::replace_text(s, from, to, &text, ctx)
+            }
             EditOp::DeleteRange { from, to } => EditSession::delete_range(s, from, to, ctx),
             EditOp::SetRunProps { from, to, patch } => {
                 EditSession::set_run_props(s, from, to, &patch, ctx)
@@ -10085,6 +10105,17 @@ impl EditSession {
         props: Option<RunPropsPatch>,
         ctx: &EditContext,
     ) -> Result<MutationResult> {
+        self.insert_text_from(at, text, props, ctx, None)
+    }
+
+    fn insert_text_from(
+        &mut self,
+        at: InlinePos,
+        text: &str,
+        props: Option<RunPropsPatch>,
+        ctx: &EditContext,
+        source: Option<InsertTextSource>,
+    ) -> Result<MutationResult> {
         let s = self;
         let part = s.part_or_main(at.part);
         s.spans_of(part)?;
@@ -10095,14 +10126,14 @@ impl EditSession {
         }
         let delta = utf16_len(&text) as i32;
         let tb = EditSession::require_text_block(s, at.part, at.para)?;
-        let loc = at.offset.locate(tb)?;
+        let loc = source.map(|s| s.loc).unwrap_or(at.offset.locate(tb)?);
 
         // 追踪时先看位置落在什么修订包裹里（`spec/18` 7.2 的同作者规则）
         let mut tracker = Tracker::new(s.document(), ctx);
         let dom0 = s.dom_in(at.part)?;
         if let Some(t) = &tracker {
             let probe = match loc {
-                Loc::Boundary { .. } => at.para,
+                Loc::Boundary { .. } => source.map_or(at.para, |s| s.run),
                 Loc::InRun { inline, .. } | Loc::InText { inline, .. } => {
                     tb.inlines[inline].node().unwrap_or(at.para)
                 }
@@ -10126,6 +10157,7 @@ impl EditSession {
         if props.is_none()
             && !Emitter::has_control_chars(&text)
             && let Some((seg_node, seg_text, byte)) = InlinePos::direct_text_target(tb, &loc)
+            && source.is_none_or(|s| dom0.is_ancestor_or_self(s.run, seg_node))
             && own_ins(seg_node)
             && !s.spans_built(part).is_some_and(|index| {
                 index.live().any(|span| {
@@ -10156,6 +10188,10 @@ impl EditSession {
                 Some(right),
                 Some(left),
             ),
+            None if source.is_some() => {
+                let run = source.expect("checked").run;
+                (s.dom_in(at.part)?.parent(run).expect("run has a parent"), Some(run), Some(run))
+            }
             None => {
                 let Loc::Boundary { index } = loc else {
                     unreachable!("split_at handles the rest")
@@ -10191,7 +10227,9 @@ impl EditSession {
                 source: rpr,
             }),
             None => {
-                if let Some(d) = &ctx.default_run_props {
+                if source.is_none()
+                    && let Some(d) = &ctx.default_run_props
+                {
                     plan.node_edits.push(NodeEdit::Insert {
                         parent: Target::New(k),
                         before: None,
@@ -10319,6 +10357,142 @@ impl InlinePos {
 
 #[cfg_attr(rsword_api_docs, deny(missing_docs))]
 impl EditSession {
+    /// 结构段不能与待替换文字共用一个 run，否则追踪删除会保留整个结构 run。
+    /// 只拆本次范围涉及的混合 run；从右向左拆，不改变原文本坐标。
+    fn split_replacement_runs(&mut self, from: InlinePos, to: InlinePos) -> Result<MutationResult> {
+        let tb = self.require_text_block(from.part, from.para)?;
+        let mut cuts = Vec::new();
+        for (inline, span) in tb.inlines.iter().zip(InlinePos::inline_spans(tb)) {
+            if span.end <= from.offset.0 || span.start >= to.offset.0 {
+                continue;
+            }
+            let Inline::Run(run) = inline else { continue };
+            let mut offset = span.start;
+            for seg in &run.segments {
+                let end = offset + seg.utf16_len;
+                if seg.utf16_len > 0
+                    && offset < to.offset.0
+                    && end > from.offset.0
+                    && Tracker::is_structural(&seg.kind)
+                {
+                    return Err(Error::edit(
+                        DiagCode::EditUnsupported,
+                        "替换范围覆盖必须保留的结构段",
+                    ));
+                }
+                offset = end;
+            }
+            let boundaries: Vec<_> = run
+                .segments
+                .windows(2)
+                .enumerate()
+                .filter_map(|(i, pair)| {
+                    (Tracker::is_structural(&pair[0].kind) != Tracker::is_structural(&pair[1].kind))
+                        .then_some(i + 1)
+                })
+                .collect();
+            if !boundaries.is_empty() {
+                cuts.push((run.node, boundaries));
+            }
+        }
+        let mut result = MutationResult::default();
+        if cuts.is_empty() {
+            return Ok(result);
+        }
+        let before_text = tb.text();
+        for (node, cuts) in cuts.into_iter().rev() {
+            for cut in cuts.into_iter().rev() {
+                let tb = self.require_text_block(from.part, from.para)?;
+                let run = tb
+                    .inlines
+                    .iter()
+                    .find_map(|inline| match inline {
+                        Inline::Run(run) if run.node == node && cut < run.segments.len() => {
+                            Some(run)
+                        }
+                        _ => None,
+                    })
+                    .ok_or_else(|| {
+                        Error::edit(DiagCode::EditUnsupported, "拆分结构 run 改变了字段投影")
+                    })?;
+                let plan = self.split_run(from.part, from.para, run, cut, 0);
+                result.absorb(self.commit_plan(plan)?);
+            }
+        }
+        if self.require_text_block(from.part, from.para)?.text() != before_text {
+            return Err(Error::edit(DiagCode::EditUnsupported, "拆分结构 run 改变了原文本坐标"));
+        }
+        Ok(result)
+    }
+
+    #[inline]
+    fn replace_text(
+        &mut self,
+        from: InlinePos,
+        to: InlinePos,
+        text: &str,
+        ctx: &EditContext,
+    ) -> Result<MutationResult> {
+        if from.part != to.part {
+            return Err(Error::edit(DiagCode::EditBadPosition, "ReplaceText 两端不在同一个 part"));
+        }
+        if from.para != to.para {
+            return Err(Error::edit(DiagCode::EditCrossParagraph, "ReplaceText 只支持同段范围"));
+        }
+        if from.offset > to.offset {
+            return Err(Error::edit(DiagCode::EditBadPosition, "from 在 to 之后"));
+        }
+        let tb = self.require_text_block(from.part, from.para)?;
+        from.offset.locate(tb)?;
+        to.offset.locate(tb)?;
+        if from.offset == to.offset {
+            return if text.is_empty() {
+                self.delete_range(from, to, ctx)
+            } else {
+                self.insert_text(from, text, None, ctx)
+            };
+        }
+        let mut result = self.split_replacement_runs(from, to)?;
+        if text.is_empty() {
+            result.absorb(self.delete_range(from, to, ctx)?);
+            return Ok(result);
+        }
+
+        let tb = self.require_text_block(from.part, from.para)?;
+        let loc = from.offset.locate(tb)?;
+        let before_len = tb.utf16_len();
+        let (index, (inline, span)) = tb
+            .inlines
+            .iter()
+            .zip(InlinePos::inline_spans(tb))
+            .enumerate()
+            .find(|(_, (_, span))| span.start <= from.offset.0 && from.offset.0 < span.end)
+            .expect("validated nonempty range");
+        let Inline::Run(run) = inline else {
+            return Err(Error::edit(DiagCode::EditUnsupported, "ReplaceText 起点必须在 run 中"));
+        };
+        if Tracker::in_deleted_run(run) {
+            return Err(Error::edit(DiagCode::EditInDeleted, "不能替换已删除的文本"));
+        }
+        let source = InsertTextSource {
+            run: run.node,
+            // 同一坐标可能有零宽字段结构；插入点属于被替换的 run，不属于前面的结构 run。
+            loc: if span.start == from.offset.0 { Loc::Boundary { index } } else { loc },
+        };
+        // 格式来源仍存活时插入；apply 的事务同时包住插入和删除，后一步失败会整体回滚。
+        result.absorb(self.insert_text_from(from, text, None, ctx, Some(source))?);
+        // InsertText 会过滤非法字符，删除坐标必须按实际插入的 UTF-16 长度计算。
+        let inserted = self.require_text_block(from.part, from.para)?.utf16_len() - before_len;
+        let shift = |at: InlinePos| -> Result<InlinePos> {
+            let offset = at.offset.0.checked_add(inserted).ok_or_else(|| {
+                Error::edit(DiagCode::EditBadPosition, "替换后的偏移超出 u32 范围")
+            })?;
+            Ok(at.with_offset(offset))
+        };
+        result.absorb(self.delete_range(shift(from)?, shift(to)?, ctx)?);
+        Ok(result)
+    }
+
     #[inline]
     fn delete_range(
         &mut self,
@@ -10351,7 +10525,10 @@ impl EditSession {
             return EditSession::delete_range_tracked(s, from, to, ctx);
         }
         let dom = s.dom_in(from.part)?;
-        let fields = &s.document().fields;
+        let fields = s
+            .document()
+            .fields_in(part)
+            .ok_or_else(|| Error::edit(DiagCode::EditUnsupported, "这个 part 没有字段索引"))?;
         let spans = InlinePos::inline_spans(tb);
         let mut kept_structure = 0usize;
         for (inline, span) in tb.inlines.iter().zip(spans) {
@@ -10509,12 +10686,12 @@ impl EditSession {
     /// 追踪时的 `DeleteRange`（`spec/18` 7.2）：**内容不删**，覆盖到的每个内容项原地包进
     /// `w:del`，`w:t → w:delText`、`w:instrText → w:delInstrText`。
     ///
-    /// 三条与不追踪相反的性质：坐标流长度不变（`w:delText` 照样占位）、`offset_delta` 为 0、
+    /// 标删时坐标流长度不变（`w:delText` 照样占位）、`offset_delta` 为 0、
     /// 范围标记一个都不动（`SPAN-06` 的删除规则**不**调用，见 `SpanPolicy::rewraps`）。
     ///
     /// 同作者规则：本作者自己插的（`w:ins` 在本作者名下）真删；别人插的 → `w:del` 嵌在那个
     /// `w:ins` 里（包裹插在 run 原来的位置，父节点就是 `w:ins`，天然嵌进去）；已经在 `w:del`
-    /// 里的不动。
+    /// 里的不动。真删的 run 按逆文档序报告负 `offset_delta`，供调用方修正后续位置。
     fn delete_range_tracked(
         &mut self,
         from: InlinePos,
@@ -10584,6 +10761,13 @@ impl EditSession {
                         track_site_of(dom, run.node, from.para, &t.author),
                         TrackSite::OwnIns(_)
                     );
+                    if own {
+                        plan.offset_delta.push((
+                            from.para,
+                            Utf16Offset(span.start),
+                            -((span.end - span.start) as i32),
+                        ));
+                    }
                     items.push((run.node, own));
                 }
             }
@@ -10624,7 +10808,8 @@ impl EditSession {
                 format!("删除范围内有 {kept_structure} 个未闭合 / 畸形字段的结构 run 原地保留"),
             ));
         }
-        // `offset_delta` 不写：追踪时内容还在坐标流里
+        // 真删按逆序给出偏移变化；标删内容仍在坐标流里，不产生长度变化。
+        plan.offset_delta.reverse();
         result.absorb(s.commit_plan(plan)?);
         Ok(result)
     }

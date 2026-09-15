@@ -139,7 +139,50 @@ fn agent_07_ambiguity_all_order_and_untouched_bytes() {
     assert!(!xml.contains("甲方"));
     assert_eq!(xml.matches("乙").count(), 2);
     assert!(xml.contains("<w:p><w:r><w:t>UNTOUCHED</w:t></w:r></w:p>"));
-    assert_eq!(receipt["counts"]["nativeOperations"], 4);
+    assert_eq!(receipt["counts"]["nativeOperations"], 2);
+}
+
+#[test]
+fn agent_07_replace_text_keeps_source_format_and_supports_deletion() {
+    let source_props = r#"<w:rPr><w:rFonts w:eastAsia="Source"/><w:sz w:val="32"/></w:rPr>"#;
+    let neighbor =
+        r#"<w:r><w:rPr><w:sz w:val="24"/><w:u w:val="single"/></w:rPr><w:t>B</w:t></w:r>"#;
+    // 分页标记在 Agent 视图中是呈现占位符，跨标记的 AB 不属于连续源文本。
+    for (tail, find, replacement) in [
+        ("", "A", "XYZ"),
+        ("", "AB", "XYZ"),
+        ("", "A", ""),
+        ("<w:lastRenderedPageBreak/>", "A", "XYZ"),
+        ("<w:lastRenderedPageBreak/>", "A", ""),
+    ] {
+        let bytes = common::docx_with_body(&format!(
+            "<w:p><w:r>{source_props}<w:t>A</w:t>{tail}</w:r>{neighbor}</w:p><w:p><w:r><w:t>UNTOUCHED</w:t></w:r></w:p>"
+        ));
+        let mut s = Sessions::default();
+        let id = s.open(&bytes).unwrap();
+        let receipt = s
+            .edit(
+                &id,
+                0,
+                &request(selector(&bytes, find, false), replacement),
+                None,
+                Some(&worker()),
+            )
+            .unwrap_or_else(|e| panic!("{tail:?} / {find} / {replacement:?}: {e:?}"));
+        let saved = s.save(&id, None).unwrap();
+        let xml = String::from_utf8(common::part_bytes(&saved, "word/document.xml")).unwrap();
+        if !replacement.is_empty() {
+            assert!(xml.contains(source_props), "{tail:?} / {find}: {xml}");
+            assert!(!xml.contains("XYZB"), "替换文本不能并入邻居：{xml}");
+        }
+        let edited = rsword::EditSession::open(&saved).unwrap();
+        assert_eq!(
+            edited.nth_text_block(0).unwrap().text(),
+            if find == "AB" { replacement.to_owned() } else { format!("{replacement}B") }
+        );
+        assert!(xml.contains("<w:p><w:r><w:t>UNTOUCHED</w:t></w:r></w:p>"));
+        assert_eq!(receipt["counts"]["nativeOperations"], 1);
+    }
 }
 #[test]
 fn agent_07_presentation_and_normalized_original_guard() {
@@ -260,7 +303,7 @@ fn agent_07_compiled_all_uses_distinct_descending_positions() {
     assert_eq!(
         values
             .iter()
-            .filter(|v| v["op"] == "deleteRange")
+            .filter(|v| v["op"] == "replaceText")
             .map(|v| (v["from"]["offset"].clone(), v["to"]["offset"].clone()))
             .collect::<Vec<_>>(),
         vec![(json!(6), json!(8)), (json!(0), json!(2))],

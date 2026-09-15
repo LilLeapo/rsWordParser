@@ -96,6 +96,7 @@ const BIND_03_OPS: &[&str] = &[
     "setThemeColors",
     "upsertStyle",
     "insertText",
+    "replaceText",
     "deleteRange",
     "setRunProps",
     "insertAtom",
@@ -165,7 +166,7 @@ fn bind_03_variants_match_independent_spec_list() {
         .map(|s| format!("{}{}", s[..1].to_ascii_lowercase(), &s[1..]))
         .collect();
     let expected: BTreeSet<_> = BIND_03_OPS.iter().map(|s| (*s).to_owned()).collect();
-    assert_eq!(BIND_03_OPS.len(), 66);
+    assert_eq!(BIND_03_OPS.len(), 67);
     assert_eq!(actual, expected);
 }
 

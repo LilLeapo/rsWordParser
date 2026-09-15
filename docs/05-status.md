@@ -1,9 +1,18 @@
-# 05 · 现状快照（2026-09-09）
+# 05 · 现状快照（2026-09-10）
 
 这份文档回答"现在能做什么、不能做什么、数字是多少"。任务清单在 `docs/04-dev-plan.md`，规范在 `spec/`。
 数字都可以用文末的命令复现；改动代码后请一并更新这里。
 
 ## 结论
+
+**2026-09-10：范围替换保留源格式。** 新增原生 `ReplaceText { from, to, text }`，
+Agent `replaceText` 每处命中编译为一条原生事务。格式取首个被替换字符所属 run 的完整 `rPr`，
+覆盖整 run、零宽标记、跨 run 时不再丢格式或串用邻居；空替换执行删除，普通 InsertText 语义不变。
+原生清单现为 **67 项：58 无损往返 + 9 具名拒绝**；下方各里程碑的 66 项为历史计数。
+新增 13 条测试；默认 debug/release 各 **1013 / 0 / 13**，compat 各 **1132 / 0 / 13**（通过/失败/ignored）。
+两套 clippy、公共 API 文档检查、文档构建、fmt 与 CLI/MCP 一致性通过；全域差分 **242 + 547 已知 / 0 未知**。
+定向回归入口为 `tests/replace_text.rs`、Agent 编辑测试及 BIND-03；完整验证记录见 docs/04 §8.0.1。
+桌面 Word 回环按要求后补，本次不补记 W1/W11 的 Word 验收通过。
 
 **Linux CI 的 pattern 错误优先级修复（AGENT-04）**：run 34343470617 暴露 regex 编译尚未碰到 size_limit 时，
 搜索 deadline 已先杀掉 worker，把非法 pattern 报成 TIMEOUT。新增 1 ms 回归在修复前实跑为

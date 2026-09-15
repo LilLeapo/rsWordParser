@@ -94,7 +94,7 @@ rsword ops     文档.docx --ops ops.json --output 新.docx --report r.json
 ```
 
 加 `--native-ops` 则直接吃引擎层的 `EditOp`（`{"op":"insertText","at":{"para":N,"offset":0},"text":"…"}`），
-共 66 个变体，绕过选择器直接给 node id。完整命令、退出码与预算语义见 [docs/18](docs/18-cli.md)。
+共 67 个变体，绕过选择器直接给 node id。完整命令、退出码与预算语义见 [docs/18](docs/18-cli.md)。
 
 ### MCP
 

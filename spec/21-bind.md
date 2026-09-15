@@ -161,7 +161,7 @@ close(id: SessionId)                                            // 幂等；不�
   `bind/native/edit/` 的模块头，防后人当成保证）。
   **验收口径**：每个变体必须落到「无损往返通过」或「按清单具名拒绝」之一，两类**分别报计数**并
   断言拒绝集与预期完全相等（照 8.2 `UNOPENABLE` 的双向锁死写法）；**禁止**把样例收窄到可表示的
-  结构再声称「全部往返通过」。66 变体各一条（`edit_op_json!` 同一张表展开
+  结构再声称「全部往返通过」。67 变体各一条（`edit_op_json!` 同一张表展开
   线型、转换、测试与下文的变体清单）。同一 `Interner` 内同名同柄，故同一 scratch Dom 内
   相等成立；**跨 Dom 的句柄相等不做要求**（调用方禁止跨会话搬运操作 JSON 里的句柄——
   句柄根本不在线型里出现）。
@@ -244,15 +244,15 @@ close(id: SessionId)                                            // 幂等；不�
   defaultRunProps?, keepOrphanComments?, markUpdatedFieldsDirty? }`（`EDIT-01`）。
 - **必须**：`MutationResult` JSON 为 `{ created, affectedBlocks, structureChanged,
   diagnostics, offsetDelta }`（`EDIT-05`；`created` 的元素为 `nodeId | null`）。
-- **必须**：变体清单 = 下表 **66** 个（v3：原 60 个 + 5.7 族 6 个，形态与幂等规则经项目负责人
-  2026-09-09 批准，见下表「声明 part（5.7 族）」行）；往返测试
+- **必须**：变体清单 = 下表 **67** 个（v3：原 60 个 + 5.7 族 6 个，形态与幂等规则经项目负责人
+  2026-09-09 批准；2026-09-10 批准范围替换修复，新增 `replaceText`，语义见 `EDIT-03`）；往返测试
   按本条上面的定义逐变体一条；同一条操作经协议 `apply`（线型进、`edit_op_from_json`
   转换）与原生 `EditSession::apply` 的保存结果**逐字节相同**（门 2）。
 
-  **66 变体清单**（`edit/mod.rs`，与引擎侧逐一对表；线型按上面三类去处分流）。
-  与 `docs/03` §8.2 冻结清单的差异共 **34 项，分两类**
+  **67 变体清单**（`edit/mod.rs`，与引擎侧逐一对表；线型按上面三类去处分流）。
+  与 `docs/03` §8.2 冻结清单的差异共 **35 项，分两类**
   （`spec/18` 待决 5 在此收编，偏差登记 `docs/04` §8）：
-  **★ = §8.2 没有的新增操作（20 个）**——分节符增删、墨迹增删、`linkHeaderFooter`、
+  **★ = §8.2 没有的新增操作（21 个）**——`replaceText`、分节符增删、墨迹增删、`linkHeaderFooter`、
   `regenerateBlockField`、`removeNote` / `removeSdtShell` / `setNoteContent`、part 整体替换与
   换图、绘图几何 / z 序 / 绕排 / 形状样式 / 文本框、数学 token、水印、页面底色；
   **▲ = 同名操作的形态变化（14 个）**——位置带 `part`（`replaceInlines` / `setParaProps` /
@@ -263,7 +263,7 @@ close(id: SessionId)                                            // 幂等；不�
 
   | 组 | 变体（`op` 字串） |
   | --- | --- |
-  | 内联 | `insertText`、`deleteRange`、`setRunProps`、`insertAtom`、`insertField`、`replaceInlines`（▲ 带 `part`） |
+  | 内联 | `insertText`、`replaceText`（★ `from` / `to` / `text`，同段范围替换）、`deleteRange`、`setRunProps`、`insertAtom`、`insertField`、`replaceInlines`（▲ 带 `part`） |
   | 段落 | `splitParagraph`、`mergeWithNext`（▲ 带 `part`）、`setParaProps`（▲ 带 `part`）、`replaceParaProps`（▲ `EDIT-04` rawPPr 语义） |
   | 块 | `insertBlock`、`deleteBlock`（▲ 带 `part`）、`moveBlock`（▲ `from`/`to` 带 part，跨 part 走 `XML-12` E′） |
   | 表格 | `setTableProps`、`setRowProps`、`setCellProps`、`insertRow`、`deleteRow`、`insertColumn`（▲ 带 `width`）、`deleteColumn`、`mergeCells` |

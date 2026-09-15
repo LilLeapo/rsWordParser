@@ -289,8 +289,7 @@ impl Compiler<'_> {
     fn replace(&mut self, s: &Selector, text: &str) -> Result<Vec<EditOpJson>> {
         let mut ops = vec![];
         for (from, to) in self.matches(s)? {
-            ops.push(wire(json!({"op":"deleteRange","from":from,"to":to}))?);
-            ops.push(wire(json!({"op":"insertText","at":from,"text":text}))?);
+            ops.push(wire(json!({"op":"replaceText","from":from,"to":to,"text":text}))?);
         }
         Ok(ops)
     }

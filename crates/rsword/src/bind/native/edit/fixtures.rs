@@ -62,8 +62,8 @@ fn bind_03_exact_variant_outcomes() {
         assert!(set.insert(name), "duplicate variant {name}");
     }
     assert_eq!(refused, REFUSED.into_iter().collect());
-    assert_eq!(accepted.len(), 57);
-    assert_eq!(accepted.len() + refused.len(), 66);
+    assert_eq!(accepted.len(), 58);
+    assert_eq!(accepted.len() + refused.len(), 67);
     eprintln!(
         "BIND-03: {} variants lossless, {} variants explicitly refused; total {}. BIND-03 v3 classification.",
         accepted.len(),

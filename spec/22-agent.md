@@ -282,7 +282,7 @@ occurrence 从 1 起；批量 all 必须显式选择并锁定原 scope 内的匹
 
 | Agent 操作 | 结构化载荷与原生编译 | 授权边界/任务 |
 | --- | --- | --- |
-| replaceText | selector + find/replace + occurrence/all；同段 DeleteRange + InsertText，保留未涉及属性 | W1/W11；tracking 走 EditContext.track_changes，不能用不追踪的替换捷径 |
+| replaceText | selector + find/replace + occurrence/all；每处命中编译为一个同段原生 ReplaceText。继承首个被替换字符所属 run 的完整 rPr；跨 run 统一采用首个源 run 格式，空替换表示删除。all 仍按逆文档序执行，保留未涉及内容与属性 | W1/W11；tracking 走 EditContext.track_changes，不能用不追踪的替换捷径；范围标记遵循 EDIT-03 / SPAN-06/07 |
 | insertParagraphAfter | anchor + text + 可选 style；InsertBlock(NewBlock::Paragraph) | W2；属性为 patch 线型，不造 XML；不能覆盖后一个段落 |
 | setBlockStyle | paragraph selector + styleId + 可选 createStyle 声明；缺失时 UpsertStyle，再 SetParaProps 的 style patch | W6；createStyle 必须完整点名类型/基样式/属性；已存在且冲突返回 AGENT_STYLE_CONFLICT，不擅自 upsert 覆盖；其余 pPr 原样 |
 | deleteBlock / moveBlocks | block selector 或 chapter selector + destination；DeleteBlock / 有序 MoveBlock | W10；整章至下个同级/更高级标题前；目的地在自身区间拒绝；分节结构不隐式移动 |

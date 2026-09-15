@@ -306,11 +306,11 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 | corpus 内并列 *.model.json 的位置 | 项目负责人追认 | 按建议执行，快照与 TS 期望并存、各自修改纪律不变 | 不阻挡快照回归；位置决定未获最终追认 |
 | MCP 原生 Rust 形态 | 项目负责人追认 | 按建议执行、待追认；工具声明与传输层分离 | 不阻挡连接及真实会话试验；不宣称形态已最终裁定 |
 | MCP 缺省 result shape | 评审者在真实 Agent 门 5 实测两形态后确认 | 缺省 text、structured 可选，共同分页、实际计费 | 缺省最终确认及门 5 实证待办；传输冒烟不能代替真实 Agent |
-| **`InsertText` 边界插入不继承格式（引擎缺陷，2026-09-10 实测）** | 项目负责人定修法 | `replaceText` 在 `find` 覆盖整个 run 时静默丢弃该 run 的 `w:rPr` | **静默改版式**，不报错不回滚；`spec/22-agent.md:285` 的「保留未涉及属性」与 `edit/mod.rs` `InsertText` 的「边界插入继承格式的新 run」在此路径上均不成立 |
+| **`replaceText` 整 run 替换丢格式（2026-09-10 修复）** | 代码修复已获批准；桌面 Word 后补 | 新增原生 `ReplaceText`，明确继承首个源 run 的完整 `rPr`；Agent 每处命中编译为一个原生事务 | 自动化回归见 §8.0.1；桌面 Word 回环仍待补，不据此宣告 W1/W11 的 Word 验收完成 |
 
-#### 8.0.1 `InsertText` 边界插入丢 `w:rPr`（2026-09-10 独立复现）
+#### 8.0.1 `replaceText` 整 run 替换丢 `w:rPr`（2026-09-10 复现与修复）
 
-`tools/agent-query/src/edit.rs` 的 `replace()` 只发两条原生操作，没有第三条补属性：
+修复前，`tools/agent-query/src/edit.rs` 的 `replace()` 发两条原生操作：
 
 ```rust
 ops.push(wire(json!({"op":"deleteRange","from":from,"to":to}))?);
@@ -337,8 +337,30 @@ ops.push(wire(json!({"op":"insertText","at":from,"text":text}))?);
 危险在于**调用方无法预知哪个 `find` 恰好等于某个 run 的全文**——取决于模板作者怎么切 run。
 同一个 `find` 在一份文档里安全、在另一份里毁版式，且不报错、不回滚。
 
-两条修法：① 让 `InsertText` 的边界分支从被删 run 继承 `rPr`，兑现现有文档契约（首选，所有调用方受益）；
-② 在 `replace()` 补一条 `setRunProps`（改动小，但只是把绕过挪进引擎）。
+**修复方案**：原生 `ReplaceText { from, to, text }` 在修改前绑定首个被替换字符所属 run。
+在起点按该源 run 插入，再按实际插入的 UTF-16 长度平移并删除原范围；整体受 `apply` 事务保护。
+跨 run 的新文本统一继承首个源 run 的完整 `rPr`，源无直接格式时不采用邻居或上下文默认格式。
+零宽标记不能改变格式来源；单 run 快路径保留原字节，慢路径克隆源 `rPr`，不从投影重建格式。
+混有文字与字段 / 批注结构的 run 在事务内先拆分，避免插到字段 separator 之前或追踪时漏删旧文字；
+拆分若改变坐标流则拒绝并回滚。同作者插入内容被真删时，追踪删除补报逆序负偏移。
+页眉等非正文范围覆盖原子字段时，删除改查对应 part 的字段索引，避免留下旧字段。
+空替换直接删除，修订及范围标记沿用既有规则。Agent 每处命中改发一条 `replaceText`，all 仍逆序。
+
+根因是两条通用操作的组合没有携带替换意图；普通 `InsertText` 的邻居继承语义及 XML-10 保持不变。
+不读取 `Deleted` 节点，不增加“上次删除”的隐藏状态。仅改为末尾先插后删仍会在
+`w:lastRenderedPageBreak` 之后选中右邻 run，且把跨 run 的格式固定为最后一个 run，故未采用。
+
+回归入口：`crates/rsword/tests/replace_text.rs`、`tools/agent-query/tests/edit.rs`、
+`BIND-03` 独立清单与往返测试。原生清单增加到 67 项（58 无损 + 9 具名拒绝）。
+测试覆盖源格式、表外属性、零宽标记、跨 run、空替换、UTF-16 / 非法字符、书签批注、
+修订接受 / 拒绝、失败回滚、页眉与其他 ZIP 条目不变。桌面 Word 回环按项目负责人要求后补。
+
+本轮最终验证（2026-09-10）：默认 debug/release 各 **1013 通过 / 0 失败 / 13 ignored**，
+compat debug/release 各 **1132 / 0 / 13**；新增 13 条测试（11 条引擎回归、1 条 Agent 回归、
+1 条原生线型往返）。两套 `clippy --workspace --all-targets -- -D warnings`、公共 API 严格文档检查、
+文档构建、fmt 与 CLI/MCP 跨传输一致性全部通过。
+全域差分：synthetic 799 份 **242 已知 / 0 未知**，real 266 份 **547 已知 / 0 未知**；语料未改。
+日志位于 `/tmp/rsword-replace-final-*.log`；没有运行桌面 Word，也未把这些自动化结果计为 Word 验收。
 
 另：`docs/18-cli.md:30`「MCP 服务器本轮未交付，留给 9.7」已过时，`crates/rsword-mcp` 的 16 个工具实测连通。
 

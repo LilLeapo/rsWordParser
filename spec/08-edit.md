@@ -35,10 +35,20 @@ session.save(opts) -> Result<Vec<u8>>
 - 修订：新 run 包在 `New` `w:ins` 中（author/date/id）；若插入点位于同作者的 `w:ins` 内则直接插入该 `w:ins`。
 - 若 `at` 在 `Link` 透明字段的结果内 → 插入结果 run（保持 `field`）。
 
+**ReplaceText { from, to, text }**（2026-09-10，范围替换）
+- 前置：两端在同一 part、同一段落，`from ≤ to`，均为合法 UTF-16 边界；非空范围且替换文本非空时，起点必须属于未删除的 run（原子字段起点拒绝）。范围覆盖必须保留的非零宽结构段（如注释分隔符）时拒绝。
+- 非空范围：格式来源是**首个被替换字符所属 run**，包括完整 `w:rPr` 的原字节与未建模内容；源 run 没有 `rPr` 时保持无直接格式，不采用邻居或 `default_run_props`。跨 run 替换的新文本统一采用该源 run 的格式。
+- 在原范围起点插入，插入位置绑定源 run，保留其超链接等所属容器；只有快路径的目标仍属于源 run 时才原地扩写，否则拆分 / 创建 run 并克隆源 `rPr`。随后按**实际插入的 UTF-16 长度**平移原范围并删除。多个内部阶段整体处于 `EditSession::apply` 的事务边界内。
+- 若范围内某个 run 混有文字与字段 / 批注结构段，先沿结构边界拆成独立 run，再重新定位；拆分改变原坐标流时拒绝并整体回滚，不能将替换内容移到字段 separator 之前，也不能因结构保留而漏删旧文字。
+- `text == ""` → `DeleteRange`；空范围且文本非空 → 普通 `InsertText`；两者均空 → 无编辑保存字节相同。非法字符沿用 `InsertText` 的过滤与诊断；非空文本过滤后全空则拒绝并回滚。
+- Anchor：依次应用起点插入与原范围删除的 `SPAN-06/07` 规则。完整覆盖的书签折叠、批注删除，替换不额外扩展这些范围。
+- 修订：沿用 `InsertText` / `DeleteRange` 的生成、同作者与接受 / 拒绝规则；不能以不追踪的改写代替。桌面 Word 回环验证单列待补。
+
 **DeleteRange { from, to }**（同段）
 - 覆盖的 `Text` 段部分 → 文本 `Owned` 截断；整段/整 run 被覆盖 → `Deleted`；覆盖原子形态字段 → 该字段 begin..end 全部 `Deleted` 并注销 `FieldSpan`；覆盖 `Drawing/Pict/Object` 段 → 所在 run 中该子节点 `Deleted`（run 若空则 `Deleted`）；覆盖 `FootnoteRef` → 同时删除 notes part 中的条目（`SetNoteContent` 语义）。
 - Anchor：按删除规则；整体删除策略 `SPAN-07`。
 - 修订：被删 run 包在 `w:del` 中，`w:t` 改名 `w:delText`（元素 `SelfDirty`）；位于同作者 `w:ins` 内的内容直接删除；已在 `w:del` 内的内容不重复包裹。
+- 标删不改变坐标长度；同作者插入内容被真删时，按逆文档序报告负 `offset_delta`，以便正确修正后续位置。
 - 跨段：拆成 `DeleteRange`（首段尾部）+ `DeleteBlock`（中间段）+ `DeleteRange`（末段头部）+ `MergeWithNext`。
 
 **SetRunProps { from, to, patch }**

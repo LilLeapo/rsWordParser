@@ -77,6 +77,11 @@ edit_op_json! { (dom)
         #[serde(default, skip_serializing_if = "Option::is_none")]
         props: Shared<Option<RunPropsPatch>> = None,
     } context (at.part) test bind_03_insert_text_roundtrip lossless;
+    ReplaceText {
+        from: Shared<InlinePos> = InlinePos::new(NodeId(2), 0),
+        to: Shared<InlinePos> = InlinePos::new(NodeId(2), 1),
+        text: Shared<String> = "replacement".to_owned(),
+    } context (from.part) test bind_03_replace_text_roundtrip lossless;
     DeleteRange {
         from: Shared<InlinePos> = InlinePos::new(NodeId(2), 0),
         to: Shared<InlinePos> = InlinePos::new(NodeId(2), 0),
