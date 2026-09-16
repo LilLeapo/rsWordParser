@@ -2313,7 +2313,12 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   `budget::Size { content_utf16, common_bytes }` 取代每次 `fits` 的整包序列化；paging/find 的候选构造
   拆成共享 `build`，输出路径不动。实测 large-report `text`（release）563.5 / 652.6 ms → **13.767 / 14.557 ms**；
   debug 7.8 s → 0.23 s。守门 `agent_06_prefix_selection_matches_linear_oracle_{over_corpus,large}`
-  在语料 × 预算网格比较二分与本地线性 oracle，并直接断言非末页尺寸单调；另有一条纯 `Size` 的合成边界用例。
+  在**抽样**语料 × 预算网格比较二分与本地线性 oracle，并直接断言非末页尺寸单调；另有一条纯 `Size` 的合成边界用例。
+  抽样口径（不是全语料）：`over_corpus` 对 synthetic/real/hostile 三域拼起来的路径列表每 12 份取 1 份，
+  只投影 `Scope::Main`，跳过 0 单位或 > 64 单位的文档，每份取 `start ∈ {0, len/2}` 两个起点、
+  6 × 8 的预算网格；`large` 单独跑 large-report 并把单位裁到 128。线性 oracle 的代价随单位数线性增长，
+  全语料 × 全网格跑不动——这正是 WP1-A 尺寸账本要解决的问题。
+  二分**只用于 `paging::page()`**；`find` 的游标不满足单调前提，仍走 `budget::longest_prefix_linear`。
   **未做 WP1-A 的完整片段账本与 WP1-2（D 输出路径 1–5 项）**：B 已把两个构建都压到目标以内
   （目标 ≤20 ms / ≤0.3 s），A/D 的收益只占 13.8 ms 里的很小一截，而其逐字节账本风险显著；
   如实登记为未做，不做"多扫邻居"式掩盖。WP1-C（投影缓存）按文档标准亦未触发（B 后重新剖析未发现投影占 >30%）。

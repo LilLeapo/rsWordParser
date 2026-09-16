@@ -5,7 +5,8 @@
 
 ## 结论
 
-**2026-09-16：性能轮（docs/21）。** 读侧前缀选择从线性扫描改为二分：`budget::longest_prefix` 不再对每个候选页尾整包序列化，
+**2026-09-16：性能轮（docs/21）。** 单位分页 `paging::page()` 的前缀选择从线性扫描改为二分：`budget::longest_prefix` 不再对每个候选页尾整包序列化
+（`find` 的游标不满足单调前提，仍走 `budget::longest_prefix_linear`）；
 `text` 首屏 large-report 563.5 / 652.6 ms → **13.8 / 14.6 ms**（release，同机同口径，见 §9.8）；
 debug `rsword text large-report --json` 7.8 s → 0.23 s。dev/test profile 改 `opt-level = 1`，
 `cargo test --workspace` debug 254 s → **33 s**（release 68 s → **24 s**），增量重编（touch `edit/mod.rs` 后 `--no-run`）14.9 s → 15.1 s。

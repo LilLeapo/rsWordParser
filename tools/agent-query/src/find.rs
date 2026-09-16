@@ -101,10 +101,12 @@ impl Finder {
             budget::measure(&mut value);
             (value, (next, token))
         };
-        let (value, (next, token)) = budget::longest_prefix(
+        // find 的游标是 `search::Position`：`at` 跨流会重置、`last_end` 会从数字变
+        // null，token 可能反而变短，所以字节不单调，必须线性选。行数受 maxHits
+        // （≤ 1000）封顶，代价可忽略。
+        let (value, (next, token)) = budget::longest_prefix_linear(
             usize::from(!rows.is_empty()),
             last,
-            batch.next.is_none(),
             budget,
             Value::Null,
             |end| budget::Size::from(&build(end).0),

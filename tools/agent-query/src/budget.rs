@@ -76,17 +76,24 @@ impl From<&Value> for Size {
         }
     }
 }
-/// 所有读取的最长完整前缀选择；末页省去游标，字节预算不是单调的。
+/// 最长完整前缀选择的二分版本。**只有 `paging::page()` 能用它**，
+/// 因为单调性是那条路径的结构性质，不是所有读取的通性；`find` 用
+/// [`longest_prefix_linear`]。
 ///
-/// 单调性前提（docs/16「分页」）：非末页候选的 `contentUtf16` 与信封字节都随
-/// `end` 单调不减，所以 `fits` 在 `[first, mono_hi]` 上是前缀型谓词。
+/// `page()` 的候选字节随 `end` 单调不减，来自三条结构事实：
+/// 1. 页级元数据（`diagnostics`、`unrequestedFlows`、`caret` 等）只挂在首个单位上
+///    （`paging::text_units` 末尾的 `units.first_mut()`），多收一个单位不会新增元数据键；
+/// 2. 单位的 UTF-16 区间首尾相接、互不重叠，所以多收一个单位只会往
+///    `content` / `anchors` / `omitted.page` 里追加，不会替换已有内容；
+/// 3. 游标 position 只含 `unit` / `offset` 两个单调递增的整数与一个对象名，
+///    十进制位数不减，因而 `nextCursor` 的长度不减。
 ///
-/// 唯一的例外是末页：`last_is_cursorless` 为真时 `candidate(last)` 不带
-/// `nextCursor`，字节可能不升反降，所以把它排除在单调区间外单独评估。
+/// 唯一的例外是末页：`last_is_cursorless` 为真时 `build(last)` 不带 `nextCursor`，
+/// 字节可能不升反降，所以把它排除在单调区间外单独评估。
 ///
 /// 选择算法：先求 `first` 的 `Size`（决定 `too_small` 的 `minLimit`/`minBytes`），
 /// 再在单调区间上二分找最后一个 fit，最后补评末页。评估次数从 O(n) 降到
-/// O(log n)，且结果与旧的线性扫描逐字节相同（`agent_06_prefix_selection_*` 守门）。
+/// O(log n)，且结果与线性扫描逐字节相同（`agent_06_prefix_selection_*` 守门）。
 /// `size_of` 允许重复调用（同一 `end` 结果必须一致）；`build` 只为最终选中页调用。
 pub fn longest_prefix<T>(
     first: usize,
@@ -124,6 +131,42 @@ pub fn longest_prefix<T>(
         best_end = last;
     }
     Ok(build(best_end))
+}
+/// 最长完整前缀选择的线性版本：逐个候选评估，取最后一个 fit。
+///
+/// `find` 用这一版。它的游标 position 是 `search::Position { flow, at, last_end }`：
+/// `at` 跨流会重置回小值、`last_end` 会从数字变成 `null`，所以文件模式下多收一条
+/// 命中反而可能让 `nextCursor` 变短——[`longest_prefix`] 的第 3 条结构事实在这里
+/// 不成立，不能二分。行数由 `maxHits`（≤ 1000，默认 20）封顶，线性代价可忽略。
+///
+/// 语义与二分版一致：`too_small` 取第一个不 fit 的候选（即 `first`，因为它是最小
+/// 候选）；`contentUtf16` 一旦超过 `limit` 就提前停（它在任何路径上都单调不减）。
+pub fn longest_prefix_linear<T>(
+    first: usize,
+    last: usize,
+    b: Budget,
+    object: Value,
+    mut size_of: impl FnMut(usize) -> Size,
+    mut build: impl FnMut(usize) -> (Value, T),
+) -> Result<(Value, T)> {
+    let mut best = None;
+    let mut failure = None;
+    for end in first..=last {
+        let size = size_of(end);
+        if size.fits(b) {
+            best = Some(end);
+        } else {
+            if failure.is_none() {
+                failure = Some(too_small_size(size, object.clone()));
+            }
+            if size.content_utf16 > b.limit {
+                break;
+            }
+        }
+    }
+    let end =
+        best.ok_or_else(|| failure.unwrap_or_else(|| error("AGENT_BAD_CURSOR", "没有可返回单位")))?;
+    Ok(build(end))
 }
 pub fn too_small(v: &Value, object: Value) -> crate::QueryError {
     too_small_size(Size::from(v), object)
