@@ -74,13 +74,17 @@ function run(bin, argv) {
   });
 }
 
-const SESSION = /"sessionId":\s*"([^"]*)"/g;
-/** 掩掉 sessionId，返回 [掩码后的文本, 出现过的各 sessionId 长度]。 */
+/// 会话标识的字面形状：`a{pid}-{nonce}-s{n}`。按**值**匹配而不是按 `"sessionId":`
+/// 键匹配：MCP 的 Text 形态会把整个内层再转义一遍，键在响应里长成 `\"sessionId\":`，
+/// 甚至两层（锚点里的 snapshot），按键匹配会漏掉。nonce 是纳秒时间戳，语料正文里
+/// 不可能出现这种形状。
+const SESSION = /a\d{1,7}-\d{15,22}-s\d{1,6}/g;
+/** 掩掉会话标识，返回 [掩码后的文本, 出现过的各标识长度]。 */
 function mask(text) {
   const lengths = [];
-  const masked = text.replace(SESSION, (_m, id) => {
+  const masked = text.replace(SESSION, (id) => {
     lengths.push(id.length);
-    return '"sessionId":"<id>"';
+    return "<session>";
   });
   return [masked, lengths];
 }

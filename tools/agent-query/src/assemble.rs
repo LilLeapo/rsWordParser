@@ -45,7 +45,8 @@ const ESCAPE_EXTRA: [u8; 256] = {
 };
 
 /// 这段字节被 serde_json 嵌进 JSON 字符串时会多出多少字节（Text 形态的二次转义）。
-fn escape_extra(bytes: &[u8]) -> usize {
+/// 只数不写；真正的转义一律交给 serde_json。
+pub(crate) fn escape_extra(bytes: &[u8]) -> usize {
     bytes.iter().map(|&b| ESCAPE_EXTRA[b as usize] as usize).sum()
 }
 
@@ -107,7 +108,7 @@ impl Buf {
     }
 }
 
-fn digits(n: usize) -> usize {
+pub(crate) fn digits(n: usize) -> usize {
     if n == 0 { 1 } else { n.ilog10() as usize + 1 }
 }
 
@@ -115,7 +116,7 @@ fn digits(n: usize) -> usize {
 ///
 /// 复现真实循环的顺序：先按当前 `(rb, et)` 算长度，命中即停，否则写回再算。起点不同
 /// 可能落到不同的不动点（数字位数是阶跃的），所以三段必须按真实顺序串起来跑。
-fn fixpoint(k: usize, start: (usize, usize)) -> Option<(usize, usize)> {
+pub(crate) fn fixpoint(k: usize, start: (usize, usize)) -> Option<(usize, usize)> {
     let (mut rb, mut et) = start;
     for _ in 0..FIXPOINT_CAP {
         let size = k + digits(rb) + digits(et);
@@ -131,7 +132,7 @@ fn fixpoint(k: usize, start: (usize, usize)) -> Option<(usize, usize)> {
 
 /// Text / Structured 外壳的常量长度：用一个不含可转义字符的占位内层 wrap 一次再减去
 /// 占位长度得到，不手写。`json!(0)` 序列化为 `0`：长度 1、无引号、无转义。
-fn shells() -> (usize, usize) {
+pub(crate) fn shells() -> (usize, usize) {
     static SHELLS: OnceLock<(usize, usize)> = OnceLock::new();
     *SHELLS.get_or_init(|| {
         let probe = json!(0);
