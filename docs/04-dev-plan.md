@@ -2319,9 +2319,22 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   6 × 8 的预算网格；`large` 单独跑 large-report 并把单位裁到 128。线性 oracle 的代价随单位数线性增长，
   全语料 × 全网格跑不动——这正是 WP1-A 尺寸账本要解决的问题。
   二分**只用于 `paging::page()`**；`find` 的游标不满足单调前提，仍走 `budget::longest_prefix_linear`。
-  **未做 WP1-A 的完整片段账本与 WP1-2（D 输出路径 1–5 项）**：B 已把两个构建都压到目标以内
-  （目标 ≤20 ms / ≤0.3 s），A/D 的收益只占 13.8 ms 里的很小一截，而其逐字节账本风险显著；
-  如实登记为未做，不做"多扫邻居"式掩盖。WP1-C（投影缓存）按文档标准亦未触发（B 后重新剖析未发现投影占 >30%）。
+  WP1-C（投影缓存）按文档标准未触发（B 后重新剖析未发现投影占 >30%）。
+- [x] **WP1-A u8 片段账本（`tools/agent-query/src/assemble.rs`）**
+  二分把探针数压到约 12 个，但每个探针仍整包序列化约 20 次（`envelope` / `response` 两段
+  `measure`，加 `common_bytes` 里两形态各自的定点）。账本把它拆成两层：每次 `page()` 调用
+  用 serde_json 把与 `end` 无关的部分序列化一次（`Skeleton`：snapshot、range、每单位的正文 /
+  锚点 / 省略项 / metadata 片段），探针只做 memcpy 拼装与整数运算；`usage` 的两个数字按
+  `envelope → response → Shape::result` 三段定点用算术复现，设 16 轮上限，超限回退整包序列化。
+  拼出来的是**精确字节**：调试构建每个探针都 `debug_assert_eq!` 拼装字节 == `to_vec(response(..))`
+  且账本 `Size` == `Size::from(response(..))`；另加 `agent_06_ledger_bytes_equal_response_over_corpus`
+  在全语料 1103 份 × text / 纯记录 / context 三种单位形态 × 起点 0 与中点上逐字节比较（debug 与
+  release 都跑）。片段建在 `page()` 里而不是 `Unit` 构造时：context 读取会在 `text_units` 之后
+  整体替换 `unit.content`（`session.rs` 的 `ReadTool::Context` 分支），构造时算好的片段会失效，
+  而每批 `units` 只服务一次 `page()`，两种时机的总代价相同。
+  实测（release，同机三次取中位数；同日 ced475f 基线两次）：
+  large-report `text` **14.426 / 14.287 → 1.626 / 1.761 ms**，`outline` 1.971 / 2.006 → 0.881 / 0.927；
+  三份输入的 UTF-16 / 信封字节 / truncated 与基线完全相同。九行全表见 docs/05 §9.8。
 - [x] **WP2-2a dev/test profile `opt-level = 1`**
   `cargo test --workspace` debug **254 s → 33 s**、release **68 s → 24 s**；增量重编
   （touch `edit/mod.rs` 后 `--no-run`）14.93 s → 15.06 s（+0.9%）。只调 opt-level，

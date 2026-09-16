@@ -1,4 +1,5 @@
 //! AGENT-03/04/05：工具侧共享查询；依赖与可终止工作进程不进入 DOCX 内核。
+pub mod assemble;
 pub mod audit;
 pub mod edit;
 mod edit_schema;

@@ -1102,3 +1102,98 @@ fn agent_06_prefix_selection_binary_matches_linear_on_synthetic_sizes() {
     }
     assert!(checked > 100);
 }
+/// WP1-A 守门：u8 片段账本拼出的字节必须与 `paging::response` 逐字节相同。
+///
+/// 全语料 1103 份 × 三种单位形态（text 页、纯记录页、context 那样"记录内容 + 锚点"
+/// 的页）× 两个起点（0 与中点）× 一组候选 `end`。账本是 `size_of` 的唯一来源，
+/// 逐字节相等是它能替掉整包序列化的前提；`budget::Size` 同时比较。
+#[test]
+fn agent_06_ledger_bytes_equal_response_over_corpus() {
+    let token_len = Registry::default().candidate("s", "text", "c", &json!({})).len();
+    let token = "x".repeat(token_len);
+    let range = json!("corpus");
+    let paths: Vec<_> =
+        ["synthetic", "real", "hostile"].into_iter().flat_map(common::docx_paths).collect();
+    assert_eq!(paths.len(), 1103);
+    let mut checked = 0usize;
+    let mut with_anchors = 0usize;
+    for path in paths {
+        let bytes = std::fs::read(&path).unwrap();
+        let name = path.file_name().unwrap().to_string_lossy().into_owned();
+        let Ok(mut pkg) = Package::open(&bytes) else { continue };
+        let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
+        let Ok(p) = project(&pkg, &doc, Scope::All, "corpus:1") else { continue };
+        let Ok(text_units) = paging::text_units(&p, 0..p.anchors.len()) else { continue };
+        // 纯记录页：无锚点、无 projectionKey，走 anchorCounts 的默认分支。
+        let records: Vec<Unit> = text_units
+            .iter()
+            .enumerate()
+            .map(|(i, u)| Unit::record(json!({"object":u.object,"text":u.content}), i))
+            .collect();
+        // context 形态：记录内容 + 保留锚点与 projectionKey，走 `text=false` 但有 anchors 的分支。
+        let mixed: Vec<Unit> = text_units
+            .iter()
+            .map(|u| {
+                let mut c = u.clone();
+                c.content = json!({"text":u.content,"object":u.object,"actualRange":u.range});
+                c
+            })
+            .collect();
+        for (label, units, text) in
+            [("text", &text_units, true), ("record", &records, false), ("context", &mixed, false)]
+        {
+            for start in [0usize, units.len() / 2] {
+                let last = units.len();
+                if start > last {
+                    continue;
+                }
+                let sk = rsword_agent_query::assemble::Skeleton::new(
+                    "corpus:1", units, start, last, text, &range,
+                );
+                // 候选 end：少的全查，多的取首/次/中/末三个邻域。
+                let mut ends: Vec<usize> = if last - start <= 16 {
+                    (start..=last).collect()
+                } else {
+                    [start, start + 1, start + 2, (start + last) / 2, last - 2, last - 1, last]
+                        .into_iter()
+                        .collect()
+                };
+                ends.sort_unstable();
+                ends.dedup();
+                for end in ends {
+                    for cursor in [None, Some(token.as_str())] {
+                        let more = cursor.is_some();
+                        let a = sk
+                            .assemble(end, more, cursor)
+                            .unwrap_or_else(|| panic!("{name}/{label}: usage 定点未收敛"));
+                        let oracle = paging::response(
+                            "corpus:1",
+                            &units[start..end],
+                            text,
+                            range.clone(),
+                            more,
+                            cursor,
+                        );
+                        let expected = serde_json::to_vec(&oracle).unwrap();
+                        assert_eq!(
+                            String::from_utf8_lossy(&a.bytes),
+                            String::from_utf8_lossy(&expected),
+                            "{name}/{label}: 拼装字节不一致 (start={start}, end={end}, more={more})"
+                        );
+                        assert_eq!(
+                            a.size,
+                            budget::Size::from(&oracle),
+                            "{name}/{label}: 账本尺寸不一致 (start={start}, end={end})"
+                        );
+                        if oracle.get("anchors").is_some() {
+                            with_anchors += 1;
+                        }
+                        checked += 1;
+                    }
+                }
+            }
+        }
+    }
+    assert!(checked > 10000, "覆盖过少: {checked}");
+    assert!(with_anchors > 1000, "带锚点的页覆盖过少: {with_anchors}");
+}
