@@ -5,6 +5,15 @@
 
 ## 结论
 
+**2026-09-16：性能轮（docs/21）。** 读侧前缀选择从线性扫描改为二分：`budget::longest_prefix` 不再对每个候选页尾整包序列化，
+`text` 首屏 large-report 563.5 / 652.6 ms → **13.8 / 14.6 ms**（release，同机同口径，见 §9.8）；
+debug `rsword text large-report --json` 7.8 s → 0.23 s。dev/test profile 改 `opt-level = 1`，
+`cargo test --workspace` debug 254 s → **33 s**（release 68 s → **24 s**），增量重编（touch `edit/mod.rs` 后 `--no-run`）14.9 s → 15.1 s。
+三处 dev-deps 的 `jsonschema` 关默认特性，依赖树去掉 reqwest / tokio / rustls / aws-lc-sys。
+新增 2 条 `agent_06_prefix_selection_*` 守门测试（二分 vs 本地线性 oracle + 非末页单调性断言），
+故默认计数 **1015 / 0 / 13**、compat **1134 / 0 / 13**（debug 与 release 同）。
+输出语义未变：large-report / table-styled / fields-toc 的 `text` 信封与改动前逐字节相同。逐条与未做项见 docs/04 §19。
+
 **2026-09-10：范围替换保留源格式。** 新增原生 `ReplaceText { from, to, text }`，
 Agent `replaceText` 每处命中编译为一条原生事务。格式取首个被替换字符所属 run 的完整 `rPr`，
 覆盖整 run、零宽标记、跨 run 时不再丢格式或串用邻居；空替换执行删除，普通 InsertText 语义不变。
@@ -82,7 +91,7 @@ text/outline 缺省 main；三者均为**缺省预算首屏**，不能据此声�
 
 | 输入 | 接口 | median / p95 ms | UTF-16 | 共享 JSON B | MCP text / structured B | truncated |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
-| A | text | 563.501 / 652.603 | 1140 | 19559 | 22914 / 19658 | true |
+| A | text | 13.767 / 14.557 | 1140 | 19559 | 22914 / 19658 | true |
 | A | outline | 3.559 / 4.372 | 3870 | 4408 | 5195 / 4507 | true |
 | A | find | 9.579 / 13.640 | 3561 | 4874 | 5677 / 4973 | true |
 | B | text | 0.566 / 0.690 | 118 | 2913 | 3433 / 3012 | false |
@@ -93,8 +102,10 @@ text/outline 缺省 main；三者均为**缺省预算首屏**，不能据此声�
 | C | find | 4.607 / 6.882 | 1751 | 2562 | 3007 / 2661 | false |
 
 预算未修改：text 8000 UTF-16 / 24000 B、outline 4000 / 16000、find 4000 / 24000。
-A 的 text 首屏 p95 **652.603 ms**，是本次发现的明显读侧成本，未做优化，不能拿 outline/find 的数字代替它。
-首屏虽仅 1140 UTF-16，锚点等元数据及完整投影/分页工作仍有成本；本轮未完成性能剖析，不断言唯一瓶颈。
+A 的 text 首屏首次基准（2026-09-09）为 **563.501 / 652.603 ms**，保留为历史：根因是 `budget::longest_prefix`
+对每个候选页尾重建并整包序列化约 20 次、候选数随单位数线性增长（docs/21 §3.1）；2026-09-16 改为
+`budget::Size` + 二分后重测为 **13.767 / 14.557 ms**（上表已替换）。
+首屏虽仅 1140 UTF-16，锚点等元数据及完整投影/分页工作仍有成本；WP1 的 A/D（片段账本与输出路径）未做，见 docs/04 §19。
 outline 的 UTF-16 包含记录 JSON，不是标题净文字数；原 26 标题整份记录的 5052 UTF-16 历史口径见下。
 估算 token 为 `ceil(实际信封 B / 4)`，例如 A 的 MCP text 首屏为 5729，非模型 tokenizer 实测。
 

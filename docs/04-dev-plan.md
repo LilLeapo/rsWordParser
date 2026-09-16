@@ -2297,3 +2297,38 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   新增三条进程测试；故意把 pageHits 加一时断言红，恢复后默认 debug/release 各 **955 / 0 / 13**、compat 各 **1074 / 0 / 13**。
   fmt 干净，两套 clippy/audit/doc 零告警；八道差分 **242 + 547 / 0 未知**，save_blocks **204/208、0 跳过**，体积 **−67.5%**。
   1099 快照未改、无流段落门精确 0；未改核心引擎与冻结规范，不扩大 scope 契约，不提前关闭 MCP 形态与结果形态待办。
+
+## 19. 性能（docs/21 交接，2026-09-16）
+
+基线 `main` = d9fc127，实施分支 `perf/read-path`。只做性能，不改输出语义：
+`usage` 定义、分页边界、游标格式、错误码、`*.model.json` 与 `corpus/**` 未动，
+`text` 信封与改动前逐字节相同（large-report / table-styled / fields-toc 三项 diff）。
+本机 Apple M5 10 核 / 25 GB / macOS 26.5 / rustc 1.98.0。
+
+- [x] **WP3 去掉 dev-deps 里的网络栈**
+  三处 `jsonschema` 关默认特性；`cargo tree` 里 aws-lc-sys / reqwest / tokio / rustls 全部消失，
+  `Cargo.lock` 收缩。`Cargo.toml` 注释说明只用内联 schema。
+- [x] **WP1-1 前缀选择：二分 + `budget::Size`（docs/21 WP1-A 的必要前身）**
+  候选数从 O(n) 降到 O(log n)：先求 `first` 的尺寸，再在单调区间二分找最后一个 fit，单独补评末页。
+  `budget::Size { content_utf16, common_bytes }` 取代每次 `fits` 的整包序列化；paging/find 的候选构造
+  拆成共享 `build`，输出路径不动。实测 large-report `text`（release）563.5 / 652.6 ms → **13.767 / 14.557 ms**；
+  debug 7.8 s → 0.23 s。守门 `agent_06_prefix_selection_matches_linear_oracle_{over_corpus,large}`
+  在语料 × 预算网格比较二分与本地线性 oracle，并直接断言非末页尺寸单调。
+  **未做 WP1-A 的完整片段账本与 WP1-2（D 输出路径 1–5 项）**：B 已把两个构建都压到目标以内
+  （目标 ≤20 ms / ≤0.3 s），A/D 的收益只占 13.8 ms 里的很小一截，而其逐字节账本风险显著；
+  如实登记为未做，不做"多扫邻居"式掩盖。WP1-C（投影缓存）按文档标准亦未触发（B 后重新剖析未发现投影占 >30%）。
+- [x] **WP2-2a dev/test profile `opt-level = 1`**
+  `cargo test --workspace` debug **254 s → 33 s**、release **68 s → 24 s**；增量重编
+  （touch `edit/mod.rs` 后 `--no-run`）14.93 s → 15.06 s（+0.9%）。只调 opt-level，
+  `debug-assertions` / `overflow-checks` 保持默认 true，自检未被绕过。
+  方案 2（仅依赖 opt-level=2）未试：方案 1 增量代价已可忽略且收益覆盖全局。
+  **WP2-2b（全语料单函数分片）与 2c（memory 轮数）未做**：墙钟已远低于 90 s 目标，
+  分片会改动 `random.yml` 的断言与 `--exact` 用法，收益/风险不划算，登记为未做。
+- [x] **WP4-4b 命令统一**
+  CLAUDE.md 与 docs/19 的日常命令统一到 `cargo test --workspace`，并注明
+  `--features compat-ts` / `--release` / `build` vs `test` 各会另编一份 rsword。
+- [ ] **WP4-4a / 4c 需人执行**：用户级 `~/.cargo/config.toml` 设共享 `target-dir`；
+  已并入 `main` 的旧 worktree 与主库/m8j 的 `target/` 清理（约 190 GB）。只给命令，不代执行。
+- [ ] **WP5 备忘**：find worker 预热、合并 64 个集成测试二进制、`anchors.segments` 体积，均不在本轮。
+- 本轮计数：默认 **1015 / 0 / 13**、compat **1134 / 0 / 13**（debug 与 release 同），
+  新增 2 条 prefix oracle。`agent_06_*` 断言未改即通过；跨传输等价门与 CLI stdout 失败用例通过。

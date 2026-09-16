@@ -22,9 +22,14 @@ find 保留完整授权流上的搜索状态与独立 worker；返回记录仍�
 省略项按对象第一次出现的单位登记，页级字符计数与省略分类可累加；glossary 的不可投影身份、诊断等元数据亦纳入字节预算。
 context 把完整窗口拆成同一套段落单位，每条携带 requestedRange / actualRange 及本单位授权对象的详情。
 
-分页取两项预算都容纳的最长完整前缀。末页省掉游标，字节数可能下降，因此不能在前一候选页字节超限时提前停止。
+分页取两项预算都容纳的最长完整前缀。选择算法是二分而非线性扫描：非末页候选的 `contentUtf16` 与信封字节都随 `end` 单调不减，
+所以 `fits` 在 `[first, last-1]` 上是前缀型谓词；实现先在单调区间二分找最后一个 fit，再单独补评末页。
+末页省掉游标、字节可能不升反降，是唯一的非单调点，因此不能在前一候选页字节超限时提前停止。
+尺寸由 `budget::Size`（`contentUtf16` + 两形态共同上界 `common_bytes`）承载，`fits`/`too_small` 都走它，不再为每个候选整包序列化。
 首个单位装不下时返回 `AGENT_BUDGET_TOO_SMALL` 与 object/minLimit/minBytes；单位超过允许硬上限则 `AGENT_UNIT_TOO_LARGE`。
 超预算不拆长段、不返回成功空页、不消费游标；错误说明可以收短，错误码与最低重试字段保留。
+守门测试 `agent_06_prefix_selection_matches_linear_oracle_{over_corpus,large}` 在语料 × 预算网格上比较二分与
+本地线性 oracle 的选中 `end`，并直接断言非末页尺寸单调；任何不一致即报红（docs/21 WP1）。
 
 ## 唯一游标与写入边界
 

@@ -76,6 +76,8 @@ check 包含会话和 package 诊断、保存校验、Dirty 等内核可检查�
 structured 为 structuredContent，content 仅一行 `Read structuredContent.`。这行说明也计费。
 由于请求可切回 text，tools/list 不声明会强制所有结果带 structuredContent 的 outputSchema；
 业务响应 schema 仍来自共享 Tool::response_schema，并在测试中校验。
+建议代理优先用 structured 形态：structuredContent 原样嵌入，text 形态会把整份业务 JSON 当字符串再转义一遍
+（实测 large-report 首屏 19559 B → 22914 B，docs/21 §3.1），既多传字节又多一轮转义；两形态共用分页边界与游标，可随时切回。
 
 每个候选页按 **两形态成本较大值** 判断 maxBytes，minBytes 同样是两者均可容纳的最低预算。
 `usage.responseBytes` 则报告实际形态的 CallToolResult 紧凑 JSON 大小（含 usage 自身求稳定值、转义、说明与 isError），
