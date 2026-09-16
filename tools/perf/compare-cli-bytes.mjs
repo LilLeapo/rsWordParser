@@ -133,6 +133,11 @@ function configs(doc, pattern) {
   out.push(["outline", doc, "--json", ...all]);
   out.push(["find", doc, "--json", "--pattern", pattern, ...all]);
   out.push(["context", doc, "--json", "--offset", "0", "--before", "40", "--after", "40", ...all]);
+  // model / check / media 走 native 的 document / diagnostics 出口（WP1-2 D-1 改的就是它们）。
+  out.push(["model", doc, "--json", "--options", '{"blockRange":{"from":0,"to":400}}']);
+  out.push(["model", doc, "--json", "--options", '{"fields":["main","fields","spans","media"]}']);
+  out.push(["check", doc, "--json"]);
+  out.push(["media", doc, "--json", "--list"]);
   return out;
 }
 
