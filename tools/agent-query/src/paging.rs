@@ -206,25 +206,31 @@ pub fn page(
     if start > units.len() || max_rows == 0 {
         return Err(error("AGENT_BAD_CURSOR", "单位位置非法"));
     }
+    let last = units.len().min(start.saturating_add(max_rows));
+    // size_of 与 build 共享同一构造；候选页尺寸只取决于游标长度，`candidate`
+    // 只借用 registry，最终 commit 才需要可变借用。
+    let build = |end: usize| {
+        let more = end < units.len();
+        let next = json!({"unit":end,"object":units.get(end).map(|u|&u.object),"offset":units.get(end).map(|u|u.range.start)});
+        let token = registry.candidate(snapshot, tool, config, &next);
+        let out = response(
+            snapshot,
+            &units[start..end],
+            text,
+            range.clone(),
+            more,
+            more.then_some(token.as_str()),
+        );
+        (out, (more, token, next))
+    };
     let (out, (more, token, next)) = budget::longest_prefix(
         start + usize::from(start < units.len()),
-        units.len().min(start.saturating_add(max_rows)),
+        last,
+        last == units.len(),
         b,
         units.get(start).map(|u| u.object.clone()).unwrap_or(Value::Null),
-        |end| {
-            let more = end < units.len();
-            let next = json!({"unit":end,"object":units.get(end).map(|u|&u.object),"offset":units.get(end).map(|u|u.range.start)});
-            let token = registry.candidate(snapshot, tool, config, &next);
-            let out = response(
-                snapshot,
-                &units[start..end],
-                text,
-                range.clone(),
-                more,
-                more.then_some(token.as_str()),
-            );
-            (out, (more, token, next))
-        },
+        |end| budget::Size::from(&build(end).0),
+        &build,
     )?;
     if more {
         registry.commit(token, snapshot, tool, config, next);

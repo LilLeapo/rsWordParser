@@ -75,36 +75,40 @@ impl Finder {
                 record(p, h, &scope.1)
             })
             .collect::<Result<Vec<_>>>()?;
+        let last = rows.len();
+        let build = |end: usize| {
+            let next = if end < rows.len() {
+                Some(batch.hits[end - 1].next.clone())
+            } else {
+                batch.next.clone()
+            };
+            let token = self.registry.candidate(
+                &p.anchors.snapshot,
+                "find",
+                &config,
+                &serde_json::to_value(&next).unwrap(),
+            );
+            let mut value = budget::envelope(
+                &p.anchors.snapshot,
+                json!(&rows[..end]),
+                json!(ranges),
+                next.is_some(),
+                next.as_ref().map(|_| token.as_str()),
+            );
+            // 明示本页计数；必须在预算选前缀之前计入信封，不能事后追加超预算。
+            value["pageHits"] = json!(end);
+            value["hasMore"] = json!(next.is_some());
+            budget::measure(&mut value);
+            (value, (next, token))
+        };
         let (value, (next, token)) = budget::longest_prefix(
             usize::from(!rows.is_empty()),
-            rows.len(),
+            last,
+            batch.next.is_none(),
             budget,
             Value::Null,
-            |end| {
-                let next = if end < rows.len() {
-                    Some(batch.hits[end - 1].next.clone())
-                } else {
-                    batch.next.clone()
-                };
-                let token = self.registry.candidate(
-                    &p.anchors.snapshot,
-                    "find",
-                    &config,
-                    &serde_json::to_value(&next).unwrap(),
-                );
-                let mut value = budget::envelope(
-                    &p.anchors.snapshot,
-                    json!(&rows[..end]),
-                    json!(ranges),
-                    next.is_some(),
-                    next.as_ref().map(|_| token.as_str()),
-                );
-                // 明示本页计数；必须在预算选前缀之前计入信封，不能事后追加超预算。
-                value["pageHits"] = json!(end);
-                value["hasMore"] = json!(next.is_some());
-                budget::measure(&mut value);
-                (value, (next, token))
-            },
+            |end| budget::Size::from(&build(end).0),
+            &build,
         )?;
         if let Some(position) = next {
             self.registry.commit(
