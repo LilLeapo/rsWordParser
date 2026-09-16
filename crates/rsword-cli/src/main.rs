@@ -66,31 +66,35 @@ fn main() {
             (serde_json::to_value(e).unwrap(), None, code)
         }
     };
-    let text = if json {
-        value.to_string()
-    } else if let Some(content) = value.get("content") {
-        let mut s = content.as_str().map(str::to_owned).unwrap_or_else(|| content.to_string());
-        if let Some(c) = value["nextCursor"].as_str() {
-            s.push_str("\nnextCursor: ");
-            s.push_str(c);
+    // 只序列化一次，直接落在字节缓冲上（docs/21 WP1-2 D-2）：`to_string` 会在
+    // `to_vec` 之后再做一趟 UTF-8 校验，而下游只需要字节。整块缓冲不能省——
+    // 下面对 stdout 的写入要么整体成功要么整体失败，才能如实回滚已发布的文件。
+    let mut text: Vec<u8> = Vec::new();
+    if !json && let Some(content) = value.get("content") {
+        match content.as_str() {
+            Some(s) => text.extend_from_slice(s.as_bytes()),
+            None => serde_json::to_writer(&mut text, content).unwrap(),
         }
-        s
+        if let Some(c) = value["nextCursor"].as_str() {
+            text.extend_from_slice(b"\nnextCursor: ");
+            text.extend_from_slice(c.as_bytes());
+        }
     } else {
-        value.to_string()
-    };
+        serde_json::to_writer(&mut text, &value).unwrap();
+    }
     // Stdout 对 EBADF 特殊返回成功；直接写复制的描述符，才能如实报告回执丢失。
     #[cfg(unix)]
     let written = std::io::stdout()
         .as_fd()
         .try_clone_to_owned()
-        .and_then(|fd| File::from(fd).write_all(text.as_bytes()));
+        .and_then(|fd| File::from(fd).write_all(&text));
     // Windows 使用标准输出的控制台编码处理，同时保留管道/文件写入失败回滚。
     #[cfg(windows)]
     let written = {
         let mut stdout = std::io::stdout().lock();
         // 响应没有末尾换行；必须在提交文件前刷新行缓冲，才能捕获真实写入错误。
         // process::exit 不会替我们刷新标准输出。
-        stdout.write_all(text.as_bytes()).and_then(|()| stdout.flush())
+        stdout.write_all(&text).and_then(|()| stdout.flush())
     };
     if written.is_err() {
         if let Some(publication) = publication
