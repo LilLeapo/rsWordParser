@@ -87,6 +87,8 @@ cargo build -p rsword-cli -p rsword-mcp
 node tools/ci/check-agent-transports.mjs target/debug/rsword target/debug/rsword-mcp # 跨传输业务等价及游标双向拒绝
 cargo clippy --workspace --all-targets
 cargo clippy --workspace --all-targets --features compat-ts      # 必须零告警
+cargo doc --no-deps                          # CI 带 -D warnings：链到私有项的 intra-doc 链接会直接失败
+cargo doc --no-deps --features compat-ts
 cargo run -p diff-parse --features compat-ts -- --scope text     # M1 门：文本用例未知差异必须为 0
 cargo run -p diff-parse --features compat-ts -- --scope fields   # M2 门：再加字段 / 范围 / 批注，仍须为 0
 cargo run -p diff-parse --features compat-ts -- --scope tables   # M3 门：再加含表格的文档（按文档筛），仍须为 0

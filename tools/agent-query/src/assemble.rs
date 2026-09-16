@@ -13,7 +13,7 @@
 //!
 //! 硬规则：**本模块不自己实现 JSON 转义**。所有片段都由 serde_json 产出，这里只做
 //! 拼接、计数与 `usage` 定点的算术复现。唯一"读"转义规则的地方是
-//! [`escape_extra`]，它只数字节、不写字节，且只在构造片段时跑一次。
+//! `escape_extra`，它只数字节、不写字节，且只在构造片段时跑一次。
 use crate::{budget::Size, paging::Unit, transport::Shape};
 use serde_json::{Value, json};
 use std::sync::OnceLock;
@@ -282,7 +282,7 @@ impl Skeleton {
     /// 拼出与 `paging::response(snapshot, &units[start..end], text, range, more, cursor)`
     /// 逐字节相同的 compact JSON，并给出它的 `budget::Size`。
     ///
-    /// `None` 表示 `usage` 定点在 [`FIXPOINT_CAP`] 轮内没收敛，调用方应回退到整包序列化。
+    /// `None` 表示 `usage` 定点在 `FIXPOINT_CAP` 轮内没收敛，调用方应回退到整包序列化。
     pub fn assemble(&self, end: usize, more: bool, cursor: Option<&str>) -> Option<Assembled> {
         let rows = &self.rows[..end - self.start];
         let anchors_key = self.text || rows.iter().any(|r| r.projected);
