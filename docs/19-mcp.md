@@ -91,8 +91,8 @@ CLI 报实际业务 JSON 大小；跨传输断言明确排除两个 usage 传输
 `--max-sessions` 与 `--idle-timeout-ms` 只允许收紧这些上限，便于受限部署和确定性生命周期测试。
 
 ```sh
-cargo test -p rsword-mcp
-cargo test -p rsword-mcp --test memory -- --nocapture
+cargo test --workspace                       # CLI/MCP 真实进程 E2E 都在里面
+cargo test -p rsword-mcp --test memory -- --nocapture  # 只跑堆回落专项
 cargo build -p rsword-cli -p rsword-mcp
 node tools/ci/check-agent-transports.mjs target/debug/rsword target/debug/rsword-mcp
 ```
