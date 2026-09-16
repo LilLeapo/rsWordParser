@@ -347,9 +347,8 @@ impl Skeleton {
 
         // ---- content ----
         b.lit(",\"content\":");
-        let content_utf16;
-        let empty;
-        if self.text {
+        let (content_utf16, empty) = if self.text {
+            // text 页：`content` 是一个字符串，UTF-16 数取原串（不是转义后的片段）。
             b.lit("\"");
             let mut utf16 = 0usize;
             let mut bytes = 0usize;
@@ -359,9 +358,9 @@ impl Skeleton {
                 bytes += r.body.bytes.len();
             }
             b.lit("\"");
-            content_utf16 = utf16;
-            empty = bytes == 0;
+            (utf16, bytes == 0)
         } else {
+            // 记录页：`content` 是数组，UTF-16 数含方括号与逗号。
             b.lit("[");
             let mut utf16 = 2usize;
             for (i, r) in rows.iter().enumerate() {
@@ -373,9 +372,8 @@ impl Skeleton {
                 utf16 += r.body_utf16;
             }
             b.lit("]");
-            content_utf16 = utf16;
-            empty = rows.is_empty();
-        }
+            (utf16, rows.is_empty())
+        };
 
         // ---- diagnostics ----
         if let Some(f) = self.meta("diagnostics", end) {
