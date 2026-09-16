@@ -22,9 +22,21 @@ find 保留完整授权流上的搜索状态与独立 worker；返回记录仍�
 省略项按对象第一次出现的单位登记，页级字符计数与省略分类可累加；glossary 的不可投影身份、诊断等元数据亦纳入字节预算。
 context 把完整窗口拆成同一套段落单位，每条携带 requestedRange / actualRange 及本单位授权对象的详情。
 
-分页取两项预算都容纳的最长完整前缀。末页省掉游标，字节数可能下降，因此不能在前一候选页字节超限时提前停止。
+分页取两项预算都容纳的最长完整前缀。**二分只用于单位分页 `paging::page()`**（text / outline / context / document）；
+`find` 仍是线性扫描（`budget::longest_prefix_linear`），两者选出的 `end` 定义相同。
+`page()` 上字节随 `end` 单调不减不是巧合，而是三条结构事实的推论：页级元数据（`diagnostics`、`unrequestedFlows`、
+`caret`）只挂在首个单位上，多收单位不新增元数据键；单位的 UTF-16 区间首尾相接且互不重叠，多收单位只往
+`content` / `anchors` / `omitted.page` 追加；游标 position 只含 `unit` / `offset` 两个单调递增的整数与一个对象名，
+十进制位数不减，`nextCursor` 因而不会变短。于是 `fits` 在 `[first, last-1]` 上是前缀型谓词，先二分找最后一个 fit，
+再单独补评末页。末页省掉游标、字节可能不升反降，是唯一的非单调点，因此不能在前一候选页字节超限时提前停止。
+`find` 不满足第三条：它的游标 position 是 `search::Position { flow, at, last_end }`，`at` 跨流会重置回小值、
+`last_end` 会从数字变成 `null`，多收一条命中反而可能让游标变短，所以那条路径不二分。
+尺寸由 `budget::Size`（`contentUtf16` + 两形态共同上界 `common_bytes`）承载，`fits`/`too_small` 都走它，不再为每个候选整包序列化。
 首个单位装不下时返回 `AGENT_BUDGET_TOO_SMALL` 与 object/minLimit/minBytes；单位超过允许硬上限则 `AGENT_UNIT_TOO_LARGE`。
 超预算不拆长段、不返回成功空页、不消费游标；错误说明可以收短，错误码与最低重试字段保留。
+守门测试 `agent_06_prefix_selection_matches_linear_oracle_{over_corpus,large}` 在抽样语料（每 12 份取 1 份、`Scope::Main`、
+≤ 64 单位；large-report 裁到 128 单位）× 预算网格上比较二分与本地线性 oracle 的选中 `end`，并直接断言非末页尺寸单调；
+任何不一致即报红（docs/21 WP1）。
 
 ## 唯一游标与写入边界
 

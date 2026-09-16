@@ -79,16 +79,16 @@ genoffice 的 TS 引擎是**测试基准**（2026-09-08 起也只是测试基准
 
 ```sh
 cargo fmt --all
-cargo test -p rsword-cli                    # CLI 真实进程 E2E，CI 同跑 macOS/Linux
-cargo test -p rsword-mcp                    # MCP 真实进程、生命周期与独立堆泄漏检查
+cargo test --workspace                      # 默认：原生协议/引擎测试（含 CLI/MCP 真实进程 E2E）
+cargo test --workspace --features compat-ts  # 另加兼容差分测试
+cargo test --workspace --release
+cargo test --workspace --release --features compat-ts # 必须也跑：enforce 只在调试构建报错，发布构建行为不同
 cargo build -p rsword-cli -p rsword-mcp
 node tools/ci/check-agent-transports.mjs target/debug/rsword target/debug/rsword-mcp # 跨传输业务等价及游标双向拒绝
 cargo clippy --workspace --all-targets
 cargo clippy --workspace --all-targets --features compat-ts      # 必须零告警
-cargo test --workspace                      # 默认：原生协议/引擎测试
-cargo test --workspace --features compat-ts  # 另加兼容差分测试
-cargo test --workspace --release
-cargo test --workspace --release --features compat-ts # 必须也跑：enforce 只在调试构建报错，发布构建行为不同
+cargo doc --no-deps                          # CI 带 -D warnings：链到私有项的 intra-doc 链接会直接失败
+cargo doc --no-deps --features compat-ts
 cargo run -p diff-parse --features compat-ts -- --scope text     # M1 门：文本用例未知差异必须为 0
 cargo run -p diff-parse --features compat-ts -- --scope fields   # M2 门：再加字段 / 范围 / 批注，仍须为 0
 cargo run -p diff-parse --features compat-ts -- --scope tables   # M3 门：再加含表格的文档（按文档筛），仍须为 0
@@ -101,6 +101,10 @@ cd fuzz && cargo +nightly fuzz run fuzz_xml -- -max_total_time=600      # 另有
 GENOFFICE_DIR=~/code/genoffice tools/export-golden/run.sh   # 重导语料（改期望值的唯一合法途径；重导后按 tools/export-golden/README「重导的稳定性与噪音」还原噪音）
 tools/export-golden/try.sh <name>.export.test.ts             # 开发新的导出用例文件：只跑它，产物进临时目录，不碰 corpus/
 ```
+
+编译变体：`--features compat-ts`、`--release`、`cargo build` 与 `cargo test` 各会另编一份
+`rsword`，单独 `-p rsword-cli` / `-p rsword-mcp` 也会。日常统一跑 `cargo test --workspace`，
+把上述变体成批跑，别与之交替跑（docs/21 WP4）。
 
 ## 工作约定
 

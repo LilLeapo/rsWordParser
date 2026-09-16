@@ -2297,3 +2297,99 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   新增三条进程测试；故意把 pageHits 加一时断言红，恢复后默认 debug/release 各 **955 / 0 / 13**、compat 各 **1074 / 0 / 13**。
   fmt 干净，两套 clippy/audit/doc 零告警；八道差分 **242 + 547 / 0 未知**，save_blocks **204/208、0 跳过**，体积 **−67.5%**。
   1099 快照未改、无流段落门精确 0；未改核心引擎与冻结规范，不扩大 scope 契约，不提前关闭 MCP 形态与结果形态待办。
+
+## 19. 性能（docs/21 交接，2026-09-16）
+
+基线 `main` = d9fc127，实施分支 `perf/read-path`。只做性能，不改输出语义：
+`usage` 定义、分页边界、游标格式、错误码、`*.model.json` 与 `corpus/**` 未动，
+`text` 信封与改动前逐字节相同（large-report / table-styled / fields-toc 三项 diff）。
+本机 Apple M5 10 核 / 25 GB / macOS 26.5 / rustc 1.98.0。
+
+- [x] **WP3 去掉 dev-deps 里的网络栈**
+  三处 `jsonschema` 关默认特性；`cargo tree` 里 aws-lc-sys / reqwest / tokio / rustls 全部消失，
+  `Cargo.lock` 收缩。`Cargo.toml` 注释说明只用内联 schema。
+- [x] **WP1-1 前缀选择：二分 + `budget::Size`（docs/21 WP1-A 的必要前身）**
+  候选数从 O(n) 降到 O(log n)：先求 `first` 的尺寸，再在单调区间二分找最后一个 fit，单独补评末页。
+  `budget::Size { content_utf16, common_bytes }` 取代每次 `fits` 的整包序列化；paging/find 的候选构造
+  拆成共享 `build`，输出路径不动。实测 large-report `text`（release）563.5 / 652.6 ms → **13.767 / 14.557 ms**；
+  debug 7.8 s → 0.23 s。守门 `agent_06_prefix_selection_matches_linear_oracle_{over_corpus,large}`
+  在**抽样**语料 × 预算网格比较二分与本地线性 oracle，并直接断言非末页尺寸单调；另有一条纯 `Size` 的合成边界用例。
+  抽样口径（不是全语料）：`over_corpus` 对 synthetic/real/hostile 三域拼起来的路径列表每 12 份取 1 份，
+  只投影 `Scope::Main`，跳过 0 单位或 > 64 单位的文档，每份取 `start ∈ {0, len/2}` 两个起点、
+  6 × 8 的预算网格；`large` 单独跑 large-report 并把单位裁到 128。线性 oracle 的代价随单位数线性增长，
+  全语料 × 全网格跑不动——这正是 WP1-A 尺寸账本要解决的问题。
+  二分**只用于 `paging::page()`**；`find` 的游标不满足单调前提，仍走 `budget::longest_prefix_linear`。
+  WP1-C（投影缓存）按文档标准未触发（B 后重新剖析未发现投影占 >30%）。
+- [x] **WP1-A u8 片段账本（`tools/agent-query/src/assemble.rs`）**
+  二分把探针数压到约 12 个，但每个探针仍整包序列化约 20 次（`envelope` / `response` 两段
+  `measure`，加 `common_bytes` 里两形态各自的定点）。账本把它拆成两层：每次 `page()` 调用
+  用 serde_json 把与 `end` 无关的部分序列化一次（`Skeleton`：snapshot、range、每单位的正文 /
+  锚点 / 省略项 / metadata 片段），探针只做 memcpy 拼装与整数运算；`usage` 的两个数字按
+  `envelope → response → Shape::result` 三段定点用算术复现，设 16 轮上限，超限回退整包序列化。
+  拼出来的是**精确字节**：调试构建每个探针都 `debug_assert_eq!` 拼装字节 == `to_vec(response(..))`
+  且账本 `Size` == `Size::from(response(..))`；另加 `agent_06_ledger_bytes_equal_response_over_corpus`
+  在全语料 1103 份 × text / 纯记录 / context 三种单位形态 × 起点 0 与中点上逐字节比较（debug 与
+  release 都跑）。片段建在 `page()` 里而不是 `Unit` 构造时：context 读取会在 `text_units` 之后
+  整体替换 `unit.content`（`session.rs` 的 `ReadTool::Context` 分支），构造时算好的片段会失效，
+  而每批 `units` 只服务一次 `page()`，两种时机的总代价相同。
+  实测（release，同机三次取中位数；同日 ced475f 基线两次）：
+  large-report `text` **14.426 / 14.287 → 1.626 / 1.761 ms**，`outline` 1.971 / 2.006 → 0.881 / 0.927；
+  三份输入的 UTF-16 / 信封字节 / truncated 与基线完全相同。九行全表见 docs/05 §9.8。
+- [x] **WP1-2 D-1 去掉 `read_inner` 的 `String` 往返**
+  model / diagnostics / media 三条分支都是 `Value → to_string() → from_str() → Value`：
+  native 出口按协议返回 `String`，Agent 层立刻再解析回来。large-report 的模型 JSON
+  128 KB，光反解析 0.593 ms。`SessionTable` 加 `#[doc(hidden)] document_model` /
+  `diagnostics_model` 返回 `Value`，协议出口改成在它们之上 `to_string()`（`spec/21-bind.md`
+  的对外签名一字未改）；media / diagnostics 的行数组用 `Value::take` 搬走不再克隆。
+  实测 `rsword model` 9.54 → **8.89 ms**、`media --list` 7.66 → 7.56 ms、`check` 噪音内。
+- [x] **WP1-2 D-3 MCP `usage` 定点改算术**
+  `Shape::result` 每轮 `wrap(..).to_string()`：Text 形态把内层序列化并**二次转义**三四遍。
+  新增 `Shape::settle`：内层只序列化一次求 `base` 与转义增量，再走 `assemble::fixpoint`；
+  失败信封的 `"isError":true` 少一字节单独扣掉；没收敛就回退老循环。
+  守门 `agent_10_shape_result_matches_serialize_loop_oracle` 把**老循环**原样抄成本地 oracle
+  （不能拿账本自证，两边现在共用同一套算术），在抽样语料 × 两形态 × failed 真假上比对。
+  实测 `Shape::Text.result + to_vec` 0.232 → **0.123 ms**、Structured 0.273 → **0.133 ms**；
+  MCP 热会话端到端 text 形态 1.928 → 1.815 ms、structured 形态 2.082 → 1.840 ms。
+- [x] **WP1-2 D-2 CLI 单次序列化**
+  实质部分**本来就成立**：CLI 只 `value.to_string()` 一次，MCP 只 `to_vec` 一次，没有重复
+  序列化可删（large-report 的 `text` 信封整包序列化只要 0.017 ms，占 CLI 进程的 0.2%）。
+  实际改动只是把 `to_string` 换成直接 `to_writer` 进 `Vec<u8>`，省掉 `to_string` 多做的那趟
+  UTF-8 校验；整块缓冲**保留**，否则 stdout 失败时会留下半截输出、`publication.rollback()`
+  的"要么全有要么全无"就不成立了。实测 10.35 → 10.21 ms，**在噪音里，如实记为无可测量收益**。
+- [ ] **WP1-2 D-5 最终页直接输出拼装字节：未做**
+  上限已量清楚：large-report `text` 的最终 `paging::response()` 是 **0.108 ms**，
+  占整个 `page()` 的 0.432 ms、bench 读取的 1.69 ms、CLI 进程 ~10 ms 的 1.1%。
+  代价是把 `page()` / `Sessions::read` 的返回从 `Value` 改成"字节 + Value"，牵动 9 个
+  `page()` 调用点、两个写出端、`transport::Shape`（Structured 形态要把字节当 JSON 值嵌进
+  外壳，没有 `serde_json` 的 `raw_value` 就得手工拼 MCP 外壳）以及几百处按字段索引返回值的
+  测试。收益/风险不划算，登记为未做。账本拼出的字节已由 `debug_assert` 与全语料守门测试
+  逐字节证明，D-5 的安全论证不构成额外理由。
+- [x] **全语料双传输逐字节对照件（`tools/perf/`）**
+  `compare-cli-bytes.mjs`：两个 CLI 二进制在**同一批绝对路径**上跑 text / outline / find /
+  context × （缺省 + 两档小预算 + scope=all）+ model / check / media，跟随 nextCursor 到 6 页。
+  `compare-mcp-bytes.mjs`：两个常驻 rsword-mcp 逐字节比 JSON-RPC 响应行，两形态都比——
+  CLI 那条跑不到 `transport::Shape`。三处环境噪音已归一并写进脚本注释：
+  会话标识按值形状掩码（Text 形态把键转义成 `\"sessionId\":`，按键匹配会漏）、
+  会话游标只归一那个不透明自增 handle（其余载荷照比；`docs/16` 明确它是不透明凭据，
+  `check-agent-transports.mjs` 也把 `/nextCursor` 列为允许差异）、
+  差异报出前**复核三次**（`AGENT_BUDGET_TOO_SMALL` 的 `minBytes` 随 pid 位数变几个字节，
+  而错误载荷里没有 sessionId，长度校验看不见；每五万次调用撞 0–2 次）。
+  两个脚本都有负对照：把对照侧换成改掉一位数字的包装，立刻报出差异。
+  本轮结果（ced475f 的 release 二进制 vs 轮末二进制，各跑两遍）：
+  CLI 1103 份 / 50034 次调用、MCP 1103 份 / 16768 次比较，**0 差异**。
+- [x] **WP2-2a dev/test profile `opt-level = 1`**
+  `cargo test --workspace` debug **254 s → 33 s**、release **68 s → 24 s**；增量重编
+  （touch `edit/mod.rs` 后 `--no-run`）14.93 s → 15.06 s（+0.9%）。只调 opt-level，
+  `debug-assertions` / `overflow-checks` 保持默认 true，自检未被绕过。
+  方案 2（仅依赖 opt-level=2）未试：方案 1 增量代价已可忽略且收益覆盖全局。
+  **WP2-2b（全语料单函数分片）与 2c（memory 轮数）未做**：墙钟已远低于 90 s 目标，
+  分片会改动 `random.yml` 的断言与 `--exact` 用法，收益/风险不划算，登记为未做。
+- [x] **WP4-4b 命令统一**
+  CLAUDE.md 与 docs/19 的日常命令统一到 `cargo test --workspace`，并注明
+  `--features compat-ts` / `--release` / `build` vs `test` 各会另编一份 rsword。
+- [ ] **WP4-4a / 4c 需人执行**：用户级 `~/.cargo/config.toml` 设共享 `target-dir`；
+  已并入 `main` 的旧 worktree 与主库/m8j 的 `target/` 清理（约 190 GB）。只给命令，不代执行。
+- [ ] **WP5 备忘**：find worker 预热、合并 64 个集成测试二进制、`anchors.segments` 体积，均不在本轮。
+- 本轮计数：默认 **1018 / 0 / 13**、compat **1137 / 0 / 13**（debug 与 release 同），
+  新增 3 条 prefix oracle、1 条账本全语料逐字节守门、1 条 `Shape::result` 老循环 oracle。
+  `agent_06_*` 断言未改即通过；跨传输等价门与 CLI stdout 失败用例通过。

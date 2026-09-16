@@ -442,8 +442,8 @@ impl Sessions {
                             .ok_or_else(|| error("AGENT_NOT_PROJECTED", "流块缺少模型"))
                     })
                     .collect::<Result<Vec<_>>>()?;
-                let mut value =
-                    parse(&self.sessions.get_mut(id).unwrap().native.document(&native_id, None)?)?;
+                // D-1：同进程直接取 `Value`，不经 `String` 往返（docs/21 WP1-2）。
+                let mut value = self.get(id)?.native.document_model(&native_id, None)?;
                 value["main"] = json!(blocks);
                 self.get(id)?.native.inspect(&native_id, |s, _| {
                     use rsword::bind::native::json::{ProjCx, ToJson};
@@ -476,14 +476,7 @@ impl Sessions {
                 (value, flow.object.part)
             } else {
                 (
-                    parse(
-                        &self
-                            .sessions
-                            .get_mut(id)
-                            .unwrap()
-                            .native
-                            .document(&native_id, Some(&selected.to_string()))?,
-                    )?,
+                    self.get(id)?.native.document_model(&native_id, Some(&selected.to_string()))?,
                     main_part,
                 )
             };
@@ -505,17 +498,19 @@ impl Sessions {
             );
         }
         if matches!(request.tool, ReadTool::Diagnostics | ReadTool::Media) {
-            let native = &mut self.sessions.get_mut(id).unwrap().native;
+            // D-1：同进程直接取 `Value`，不经 `String` 往返；行数组用 `take` 搬走，不再整份克隆。
+            let native = &self.get(id)?.native;
             let mut range = json!({"tool":request.tool.name()});
-            let rows = if request.tool == ReadTool::Diagnostics {
-                let diagnostics = parse(&native.diagnostics(&native_id)?)?;
-                range["xmlEscapeCount"] = diagnostics["xmlEscapeCount"].clone();
-                diagnostics["diagnostics"].as_array().cloned().unwrap_or_default()
+            let mut rows = if request.tool == ReadTool::Diagnostics {
+                let mut diagnostics = native.diagnostics_model(&native_id)?;
+                range["xmlEscapeCount"] = diagnostics["xmlEscapeCount"].take();
+                diagnostics["diagnostics"].take()
             } else {
-                parse(&native.document(&native_id, Some(r#"{"fields":["media"]}"#))?)?["media"]
-                    .as_array()
-                    .cloned()
-                    .unwrap_or_default()
+                native.document_model(&native_id, Some(r#"{"fields":["media"]}"#))?["media"].take()
+            };
+            let rows = match rows.take() {
+                Value::Array(rows) => rows,
+                _ => vec![],
             };
             let rows: Vec<_> =
                 rows.into_iter().enumerate().map(|(i, v)| Unit::record(v, i)).collect();

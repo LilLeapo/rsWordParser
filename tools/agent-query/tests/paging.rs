@@ -844,3 +844,356 @@ fn agent_06_mcp_cursor_rejected_by_cli() {
     assert_eq!(e.code, "AGENT_BAD_CURSOR");
     assert_eq!(e.message, "CLI 需要自包含文件游标，不能接收 MCP 会话句柄");
 }
+/// 旧线性前缀选择的本地 oracle（AGENT-06）。生产路径已改为二分，但它必须与
+/// 旧算法选中同一个 `end`。尺寸由缓存的 `Size` 提供，所以不必为每个预算重复
+/// 序列化整包——这正是 WP1-A 尺寸账本思路的测试侧体现。
+#[allow(clippy::needless_range_loop)]
+fn linear_prefix(
+    first: usize,
+    last: usize,
+    b: Budget,
+    size_of: &[budget::Size],
+) -> std::result::Result<usize, String> {
+    let mut best = None;
+    let mut failure = None;
+    for end in first..=last {
+        let size = size_of[end];
+        if size.fits(b) {
+            best = Some(end);
+        } else {
+            if failure.is_none() {
+                failure = Some(budget::too_small_size(size, Value::Null).code);
+            }
+            if size.content_utf16 > b.limit {
+                break;
+            }
+        }
+    }
+    best.ok_or_else(|| failure.unwrap_or_else(|| "AGENT_BAD_CURSOR".into()))
+}
+/// 用同长占位游标构造候选页；尺寸只取决于游标长度，所以会话模式下它与真实
+/// 句柄的字节账完全一致。
+fn oracle_candidate(
+    snapshot: &str,
+    units: &[Unit],
+    start: usize,
+    range: &Value,
+    token_len: usize,
+    end: usize,
+) -> Value {
+    let more = end < units.len();
+    let token = "x".repeat(token_len);
+    paging::response(
+        snapshot,
+        &units[start..end],
+        true,
+        range.clone(),
+        more,
+        more.then_some(token.as_str()),
+    )
+}
+/// 每个 `end` 只求一次 `Size`；选择算法与预算网格都不再触发序列化。
+/// 同时直接断言二分所依赖的单调性前提：非末页的 `contentUtf16` 与 `common_bytes`
+/// 都随 `end` 不减（末页允许因省游标而回落）。
+fn precompute_sizes(
+    snapshot: &str,
+    units: &[Unit],
+    start: usize,
+    range: &Value,
+    token_len: usize,
+    name: &str,
+) -> Vec<budget::Size> {
+    let n = units.len();
+    let mut out = vec![budget::Size { content_utf16: 0, common_bytes: 0 }; n + 1];
+    for (end, slot) in out.iter_mut().enumerate().skip(start + 1) {
+        *slot =
+            budget::Size::from(&oracle_candidate(snapshot, units, start, range, token_len, end));
+    }
+    for end in (start + 2)..n {
+        let prev = out[end - 1];
+        let cur = out[end];
+        assert!(
+            cur.content_utf16 >= prev.content_utf16 && cur.common_bytes >= prev.common_bytes,
+            "{name}: 非末页尺寸不单调 @ {end} (start={start})"
+        );
+    }
+    out
+}
+#[allow(clippy::too_many_arguments)]
+fn compare_prefix(
+    snapshot: &str,
+    units: &[Unit],
+    start: usize,
+    range: &Value,
+    b: Budget,
+    token_len: usize,
+    sizes: &[budget::Size],
+) {
+    let first = start + usize::from(start < units.len());
+    let last = units.len();
+    let is_cursorless = last == units.len();
+    let new = budget::longest_prefix(
+        first,
+        last,
+        is_cursorless,
+        b,
+        Value::Null,
+        |end| sizes[end],
+        |end| (oracle_candidate(snapshot, units, start, range, token_len, end), end),
+    );
+    let old = linear_prefix(first, last, b, sizes);
+    match (new, old) {
+        (Ok((nv, ne)), Ok(oe)) => {
+            assert_eq!(ne, oe, "选中 end 不一致");
+            assert_eq!(
+                nv,
+                oracle_candidate(snapshot, units, start, range, token_len, oe),
+                "选中页字节不一致"
+            );
+        }
+        (Err(n), Err(o)) => assert_eq!(n.code, o, "错误码不一致"),
+        (n, o) => panic!("二分与线性一个成功一个失败: {n:?} vs {o:?}"),
+    }
+}
+const ORACLE_LIMITS: [usize; 6] = [8, 64, 512, 4000, 8000, 1048576];
+const ORACLE_BYTES: [usize; 8] = [512, 1000, 2000, 4000, 8000, 16000, 24000, 65536];
+/// WP1 守门：语料 × 预算网格上，二分选择必须与旧线性扫描选中同一个 `end`。
+/// 长文档另由 `agent_06_prefix_selection_matches_linear_oracle_large` 覆盖。
+#[test]
+fn agent_06_prefix_selection_matches_linear_oracle_over_corpus() {
+    // 会话句柄定长；占位游标取同长即可复现真实字节账。
+    let token_len = Registry::default().candidate("s", "text", "c", &json!({})).len();
+    let paths: Vec<_> =
+        ["synthetic", "real", "hostile"].into_iter().flat_map(common::docx_paths).collect();
+    let mut checked = 0usize;
+    // 全语料逐份 precompute 太贵（尺寸账本即 WP1-A 的收益），抽样覆盖三域即可。
+    for (index, path) in paths.into_iter().enumerate() {
+        if index % 12 != 0 {
+            continue;
+        }
+        let bytes = std::fs::read(&path).unwrap();
+        let mut pkg = match Package::open(&bytes) {
+            Ok(p) => p,
+            Err(_) => continue,
+        };
+        let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
+        let Ok(p) = project(&pkg, &doc, Scope::Main, "corpus:1") else { continue };
+        let Ok(units) = paging::text_units(&p, 0..p.anchors.len()) else { continue };
+        if units.is_empty() || units.len() > 64 {
+            continue;
+        }
+        let name = path.file_name().unwrap().to_string_lossy().into_owned();
+        let range = json!("corpus");
+        for start in [0usize, units.len() / 2] {
+            let sizes = precompute_sizes("corpus:1", &units, start, &range, token_len, &name);
+            for &limit in &ORACLE_LIMITS {
+                for &max_bytes in &ORACLE_BYTES {
+                    compare_prefix(
+                        "corpus:1",
+                        &units,
+                        start,
+                        &range,
+                        Budget { limit, max_bytes },
+                        token_len,
+                        &sizes,
+                    );
+                    checked += 1;
+                }
+            }
+        }
+    }
+    assert!(checked > 200, "采样过少: {checked}");
+}
+/// 长文档单独覆盖：首屏、末页、两种形态的最小/最大预算都要与线性一致。
+#[test]
+fn agent_06_prefix_selection_matches_linear_oracle_large() {
+    let bytes =
+        std::fs::read(common::repo_root().join("corpus/real/misc/large-report.docx")).unwrap();
+    let mut pkg = Package::open(&bytes).unwrap();
+    let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
+    let p = project(&pkg, &doc, Scope::Main, "corpus:1").unwrap();
+    let mut units = paging::text_units(&p, 0..p.anchors.len()).unwrap();
+    assert!(units.len() > 200, "large-report 单位过少: {}", units.len());
+    // 只为守门裁到 128 个单位：尺寸账本落地前，线性 oracle 的代价随单位数线性增长。
+    units.truncate(128);
+    let token_len = Registry::default().candidate("s", "text", "c", &json!({})).len();
+    let range = json!("corpus");
+    let sizes = precompute_sizes("corpus:1", &units, 0, &range, token_len, "large-report");
+    for &(limit, max_bytes) in &[
+        (8usize, 512usize),
+        (64, 1000),
+        (512, 2000),
+        (8000, 24000),
+        (1048576, 4194304),
+        (8000, 512),
+    ] {
+        compare_prefix(
+            "corpus:1",
+            &units,
+            0,
+            &range,
+            Budget { limit, max_bytes },
+            token_len,
+            &sizes,
+        );
+    }
+}
+/// 合成尺寸序列上的选择边界：末页回落、首个不 fit 而末页 fit、全 fit / 全不 fit。
+/// 用纯 `Size` 驱动，不依赖语料，覆盖真实语料不必然命中的分支。
+#[test]
+fn agent_06_prefix_selection_binary_matches_linear_on_synthetic_sizes() {
+    fn sizes(content: &[usize], bytes: &[usize]) -> Vec<budget::Size> {
+        assert_eq!(content.len(), bytes.len());
+        let mut out = vec![budget::Size { content_utf16: 0, common_bytes: 0 }; content.len() + 1];
+        for (end, (&c, &b)) in content.iter().zip(bytes).enumerate() {
+            out[end + 1] = budget::Size { content_utf16: c, common_bytes: b };
+        }
+        out
+    }
+    // 前提与生产一致：contentUtf16 全程不减；common_bytes 非末页不减，末页允许回落。
+    let cases: Vec<(Vec<budget::Size>, bool)> = vec![
+        (sizes(&[1, 2, 3, 4, 5], &[10, 20, 30, 40, 5]), true),
+        (sizes(&[1, 2, 3, 4, 5], &[50, 60, 70, 80, 5]), true),
+        (sizes(&[1, 2, 3, 4, 5], &[50, 60, 70, 80, 55]), true),
+        (sizes(&[1, 2, 3, 4, 5], &[10, 20, 30, 40, 50]), false),
+        (sizes(&[5], &[10]), true),
+        (sizes(&[5], &[10]), false),
+        (sizes(&[1, 2], &[1000, 4]), true),
+    ];
+    for (sizes, _) in &cases {
+        let n = sizes.len() - 1;
+        for end in 2..=n {
+            assert!(
+                sizes[end].content_utf16 >= sizes[end - 1].content_utf16,
+                "合成用例违反 content 单调前提 @ {end}"
+            );
+        }
+        for end in 2..n {
+            assert!(
+                sizes[end].common_bytes >= sizes[end - 1].common_bytes,
+                "合成用例违反非末页 bytes 单调前提 @ {end}"
+            );
+        }
+    }
+    let mut checked = 0usize;
+    for (sizes, cursorless) in &cases {
+        let last = sizes.len() - 1;
+        for limit in [1usize, 3, 5, 1000, 1048576] {
+            for max_bytes in [0usize, 5, 25, 35, 45, 200, 4194304] {
+                let b = Budget { limit, max_bytes };
+                let new = budget::longest_prefix(
+                    1,
+                    last,
+                    *cursorless,
+                    b,
+                    Value::Null,
+                    |end| sizes[end],
+                    |end| (json!(end), end),
+                );
+                let old = linear_prefix(1, last, b, sizes);
+                match (new, old) {
+                    (Ok((_, ne)), Ok(oe)) => assert_eq!(ne, oe, "选中 end 不一致"),
+                    (Err(n), Err(o)) => assert_eq!(n.code, o, "错误码不一致"),
+                    (n, o) => panic!("一个成功一个失败: {n:?} vs {o:?}"),
+                }
+                checked += 1;
+            }
+        }
+    }
+    assert!(checked > 100);
+}
+/// WP1-A 守门：u8 片段账本拼出的字节必须与 `paging::response` 逐字节相同。
+///
+/// 全语料 1103 份 × 三种单位形态（text 页、纯记录页、context 那样"记录内容 + 锚点"
+/// 的页）× 两个起点（0 与中点）× 一组候选 `end`。账本是 `size_of` 的唯一来源，
+/// 逐字节相等是它能替掉整包序列化的前提；`budget::Size` 同时比较。
+#[test]
+fn agent_06_ledger_bytes_equal_response_over_corpus() {
+    let token_len = Registry::default().candidate("s", "text", "c", &json!({})).len();
+    let token = "x".repeat(token_len);
+    let range = json!("corpus");
+    let paths: Vec<_> =
+        ["synthetic", "real", "hostile"].into_iter().flat_map(common::docx_paths).collect();
+    assert_eq!(paths.len(), 1103);
+    let mut checked = 0usize;
+    let mut with_anchors = 0usize;
+    for path in paths {
+        let bytes = std::fs::read(&path).unwrap();
+        let name = path.file_name().unwrap().to_string_lossy().into_owned();
+        let Ok(mut pkg) = Package::open(&bytes) else { continue };
+        let doc = rsword::model::Document::rebuild(&mut pkg).unwrap();
+        let Ok(p) = project(&pkg, &doc, Scope::All, "corpus:1") else { continue };
+        let Ok(text_units) = paging::text_units(&p, 0..p.anchors.len()) else { continue };
+        // 纯记录页：无锚点、无 projectionKey，走 anchorCounts 的默认分支。
+        let records: Vec<Unit> = text_units
+            .iter()
+            .enumerate()
+            .map(|(i, u)| Unit::record(json!({"object":u.object,"text":u.content}), i))
+            .collect();
+        // context 形态：记录内容 + 保留锚点与 projectionKey，走 `text=false` 但有 anchors 的分支。
+        let mixed: Vec<Unit> = text_units
+            .iter()
+            .map(|u| {
+                let mut c = u.clone();
+                c.content = json!({"text":u.content,"object":u.object,"actualRange":u.range});
+                c
+            })
+            .collect();
+        for (label, units, text) in
+            [("text", &text_units, true), ("record", &records, false), ("context", &mixed, false)]
+        {
+            for start in [0usize, units.len() / 2] {
+                let last = units.len();
+                if start > last {
+                    continue;
+                }
+                let sk = rsword_agent_query::assemble::Skeleton::new(
+                    "corpus:1", units, start, last, text, &range,
+                );
+                // 候选 end：少的全查，多的取首/次/中/末三个邻域。
+                let mut ends: Vec<usize> = if last - start <= 16 {
+                    (start..=last).collect()
+                } else {
+                    [start, start + 1, start + 2, (start + last) / 2, last - 2, last - 1, last]
+                        .into_iter()
+                        .collect()
+                };
+                ends.sort_unstable();
+                ends.dedup();
+                for end in ends {
+                    for cursor in [None, Some(token.as_str())] {
+                        let more = cursor.is_some();
+                        let a = sk
+                            .assemble(end, more, cursor)
+                            .unwrap_or_else(|| panic!("{name}/{label}: usage 定点未收敛"));
+                        let oracle = paging::response(
+                            "corpus:1",
+                            &units[start..end],
+                            text,
+                            range.clone(),
+                            more,
+                            cursor,
+                        );
+                        let expected = serde_json::to_vec(&oracle).unwrap();
+                        assert_eq!(
+                            String::from_utf8_lossy(&a.bytes),
+                            String::from_utf8_lossy(&expected),
+                            "{name}/{label}: 拼装字节不一致 (start={start}, end={end}, more={more})"
+                        );
+                        assert_eq!(
+                            a.size,
+                            budget::Size::from(&oracle),
+                            "{name}/{label}: 账本尺寸不一致 (start={start}, end={end})"
+                        );
+                        if oracle.get("anchors").is_some() {
+                            with_anchors += 1;
+                        }
+                        checked += 1;
+                    }
+                }
+            }
+        }
+    }
+    assert!(checked > 10000, "覆盖过少: {checked}");
+    assert!(with_anchors > 1000, "带锚点的页覆盖过少: {with_anchors}");
+}

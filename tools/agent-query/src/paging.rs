@@ -1,6 +1,6 @@
 //! AGENT-06：完整单位最长前缀；文本和记录使用同一预算与游标注册表。
 use crate::{
-    Result,
+    Result, assemble,
     budget::{self, Budget},
     cursor::Registry,
     error,
@@ -206,25 +206,67 @@ pub fn page(
     if start > units.len() || max_rows == 0 {
         return Err(error("AGENT_BAD_CURSOR", "单位位置非法"));
     }
+    let last = units.len().min(start.saturating_add(max_rows));
+    // size_of 与 build 共享同一构造；候选页尺寸只取决于游标长度，`candidate`
+    // 只借用 registry，最终 commit 才需要可变借用。
+    let build = |end: usize| {
+        let more = end < units.len();
+        let next = json!({"unit":end,"object":units.get(end).map(|u|&u.object),"offset":units.get(end).map(|u|u.range.start)});
+        let token = registry.candidate(snapshot, tool, config, &next);
+        let out = response(
+            snapshot,
+            &units[start..end],
+            text,
+            range.clone(),
+            more,
+            more.then_some(token.as_str()),
+        );
+        (out, (more, token, next))
+    };
+    // WP1-A：候选尺寸走 u8 片段账本，探针不再构造 `Value`、不再整包序列化。
+    // 账本在这里建而不是在 `Unit` 构造时建：context 读取会在 `text_units` 之后整体
+    // 替换 `unit.content`（`session.rs` 的 `ReadTool::Context` 分支）。
+    let skeleton = assemble::Skeleton::new(snapshot, units, start, last, text, &range);
+    let size_of = |end: usize| {
+        let more = end < units.len();
+        let next = json!({"unit":end,"object":units.get(end).map(|u|&u.object),"offset":units.get(end).map(|u|u.range.start)});
+        // 会话模式每次 `candidate` 都发一个新句柄（定长），所以账本与 oracle 必须
+        // 共用同一个 token，否则逐字节断言会因句柄不同而假报。
+        let token = registry.candidate(snapshot, tool, config, &next);
+        let cursor = more.then_some(token.as_str());
+        match skeleton.assemble(end, more, cursor) {
+            Some(a) => {
+                #[cfg(debug_assertions)]
+                {
+                    let oracle =
+                        response(snapshot, &units[start..end], text, range.clone(), more, cursor);
+                    debug_assert_eq!(
+                        String::from_utf8_lossy(&a.bytes),
+                        String::from_utf8_lossy(&serde_json::to_vec(&oracle).unwrap()),
+                        "账本拼装字节与 response 不一致 @ end={end}"
+                    );
+                    debug_assert_eq!(
+                        a.size,
+                        budget::Size::from(&oracle),
+                        "账本尺寸与 response 不一致 @ end={end}"
+                    );
+                }
+                a.size
+            }
+            // usage 定点没收敛：回退到整包序列化，宁可慢也不能算错。
+            None => budget::Size::from(
+                &response(snapshot, &units[start..end], text, range.clone(), more, cursor).clone(),
+            ),
+        }
+    };
     let (out, (more, token, next)) = budget::longest_prefix(
         start + usize::from(start < units.len()),
-        units.len().min(start.saturating_add(max_rows)),
+        last,
+        last == units.len(),
         b,
         units.get(start).map(|u| u.object.clone()).unwrap_or(Value::Null),
-        |end| {
-            let more = end < units.len();
-            let next = json!({"unit":end,"object":units.get(end).map(|u|&u.object),"offset":units.get(end).map(|u|u.range.start)});
-            let token = registry.candidate(snapshot, tool, config, &next);
-            let out = response(
-                snapshot,
-                &units[start..end],
-                text,
-                range.clone(),
-                more,
-                more.then_some(token.as_str()),
-            );
-            (out, (more, token, next))
-        },
+        size_of,
+        &build,
     )?;
     if more {
         registry.commit(token, snapshot, tool, config, next);

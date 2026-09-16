@@ -103,6 +103,15 @@ impl SessionTable {
     }
 
     fn document_inner(&self, id: &str, options: Option<&str>) -> Result<String, ApiError> {
+        Ok(self.document_model(id, options)?.to_string())
+    }
+
+    /// Agent 内部只读访问器：与 `document()` 结果相同，但不经 `String` 往返
+    /// （docs/21 WP1-2 D-1）。协议出口仍是 `document()`，这里只是给同进程的
+    /// Agent 层省掉一次 `to_string` + 一次 `from_str`。
+    #[doc(hidden)]
+    pub fn document_model(&self, id: &str, options: Option<&str>) -> Result<Value, ApiError> {
+        self.require_session(id)?;
         let opts: super::selection::Selection = decode(options)?;
         let s = &self.sessions[id];
         let mut value =
@@ -114,7 +123,7 @@ impl SessionTable {
                 Value::from(self.media[id].id_for_part(part).expect("registered media").0);
         }
         opts.select(&mut value)?;
-        Ok(value.to_string())
+        Ok(value)
     }
 
     fn apply_inner(
@@ -190,7 +199,14 @@ impl SessionTable {
     }
 
     fn diagnostics_inner(&self, id: &str) -> Result<String, ApiError> {
-        Ok(super::edit::edit_diagnostics_json(&self.sessions[id]).to_string())
+        Ok(self.diagnostics_model(id)?.to_string())
+    }
+
+    /// Agent 内部只读访问器：`diagnostics()` 的 `Value` 版（docs/21 WP1-2 D-1）。
+    #[doc(hidden)]
+    pub fn diagnostics_model(&self, id: &str) -> Result<Value, ApiError> {
+        self.require_session(id)?;
+        Ok(super::edit::edit_diagnostics_json(&self.sessions[id]))
     }
 }
 
