@@ -2313,7 +2313,7 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
   `budget::Size { content_utf16, common_bytes }` 取代每次 `fits` 的整包序列化；paging/find 的候选构造
   拆成共享 `build`，输出路径不动。实测 large-report `text`（release）563.5 / 652.6 ms → **13.767 / 14.557 ms**；
   debug 7.8 s → 0.23 s。守门 `agent_06_prefix_selection_matches_linear_oracle_{over_corpus,large}`
-  在语料 × 预算网格比较二分与本地线性 oracle，并直接断言非末页尺寸单调。
+  在语料 × 预算网格比较二分与本地线性 oracle，并直接断言非末页尺寸单调；另有一条纯 `Size` 的合成边界用例。
   **未做 WP1-A 的完整片段账本与 WP1-2（D 输出路径 1–5 项）**：B 已把两个构建都压到目标以内
   （目标 ≤20 ms / ≤0.3 s），A/D 的收益只占 13.8 ms 里的很小一截，而其逐字节账本风险显著；
   如实登记为未做，不做"多扫邻居"式掩盖。WP1-C（投影缓存）按文档标准亦未触发（B 后重新剖析未发现投影占 >30%）。
@@ -2330,5 +2330,5 @@ genoffice 退为测试基准之后判断反过来——它是 1,065 份文档差
 - [ ] **WP4-4a / 4c 需人执行**：用户级 `~/.cargo/config.toml` 设共享 `target-dir`；
   已并入 `main` 的旧 worktree 与主库/m8j 的 `target/` 清理（约 190 GB）。只给命令，不代执行。
 - [ ] **WP5 备忘**：find worker 预热、合并 64 个集成测试二进制、`anchors.segments` 体积，均不在本轮。
-- 本轮计数：默认 **1015 / 0 / 13**、compat **1134 / 0 / 13**（debug 与 release 同），
-  新增 2 条 prefix oracle。`agent_06_*` 断言未改即通过；跨传输等价门与 CLI stdout 失败用例通过。
+- 本轮计数：默认 **1016 / 0 / 13**、compat **1135 / 0 / 13**（debug 与 release 同），
+  新增 3 条 prefix oracle。`agent_06_*` 断言未改即通过；跨传输等价门与 CLI stdout 失败用例通过。

@@ -10,8 +10,8 @@
 debug `rsword text large-report --json` 7.8 s → 0.23 s。dev/test profile 改 `opt-level = 1`，
 `cargo test --workspace` debug 254 s → **33 s**（release 68 s → **24 s**），增量重编（touch `edit/mod.rs` 后 `--no-run`）14.9 s → 15.1 s。
 三处 dev-deps 的 `jsonschema` 关默认特性，依赖树去掉 reqwest / tokio / rustls / aws-lc-sys。
-新增 2 条 `agent_06_prefix_selection_*` 守门测试（二分 vs 本地线性 oracle + 非末页单调性断言），
-故默认计数 **1015 / 0 / 13**、compat **1134 / 0 / 13**（debug 与 release 同）。
+新增 3 条 `agent_06_prefix_selection_*` 守门测试（二分 vs 本地线性 oracle + 非末页单调性断言），
+故默认计数 **1016 / 0 / 13**、compat **1135 / 0 / 13**（debug 与 release 同）。
 输出语义未变：large-report / table-styled / fields-toc 的 `text` 信封与改动前逐字节相同。逐条与未做项见 docs/04 §19。
 
 **2026-09-10：范围替换保留源格式。** 新增原生 `ReplaceText { from, to, text }`，
