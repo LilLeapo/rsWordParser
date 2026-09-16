@@ -71,13 +71,31 @@ function server(bin) {
 /// 甚至两层（锚点里的 snapshot），按键匹配会漏掉。nonce 是纳秒时间戳，语料正文里
 /// 不可能出现这种形状。
 const SESSION = /a\d{1,7}-\d{15,22}-s\d{1,6}/g;
-/** 掩掉会话标识，返回 [掩码后的文本, 出现过的各标识长度]。 */
+/// `a1.` 游标。会话模式的载荷只有一个自增句柄（`{:016x}`，定长），它取自全局计数器，
+/// 消耗多少个取决于前缀选择评估了多少个候选——换算法就会变，且 `docs/16` 明确它是
+/// **不透明凭据**，`tools/ci/check-agent-transports.mjs` 也把 `/nextCursor` 列为允许
+/// 差异。所以这里把 handle 归一掉，但把**其余载荷**留着比：文件模式的游标带
+/// binding / position，一个字节都不许变，归一不会碰它。
+const CURSOR = /a1\.(?:[0-9a-f]{2})+/g;
+function normalizeCursor(token) {
+  try {
+    const wire = JSON.parse(Buffer.from(token.slice(3), "hex").toString("utf8"));
+    if (wire.kind !== "session") return token;
+    delete wire.handle;
+    return `<cursor:session:${token.length}:${JSON.stringify(wire)}>`;
+  } catch {
+    return token;
+  }
+}
+/** 掩掉会话标识与会话句柄，返回 [归一后的文本, 出现过的各标识长度]。 */
 function mask(text) {
   const lengths = [];
-  const masked = text.replace(SESSION, (id) => {
-    lengths.push(id.length);
-    return "<session>";
-  });
+  const masked = text
+    .replace(SESSION, (id) => {
+      lengths.push(id.length);
+      return "<session>";
+    })
+    .replace(CURSOR, normalizeCursor);
   return [masked, lengths];
 }
 /** 响应行里唯一允许不同的就是 sessionId 本身；id 序号两侧同步递增，不必掩。 */

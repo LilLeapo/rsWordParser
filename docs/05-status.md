@@ -8,15 +8,21 @@
 **2026-09-16：性能轮（docs/21）。** 单位分页 `paging::page()` 的前缀选择从线性扫描改为二分：`budget::longest_prefix` 不再对每个候选页尾整包序列化
 （`find` 的游标不满足单调前提，仍走 `budget::longest_prefix_linear`）；随后 WP1-A 把候选尺寸改成
 **u8 片段账本**（`assemble::Skeleton`）：探针不再构造 `Value`、不再序列化，只做 memcpy 拼装与整数运算。
-`text` 首屏 large-report 563.5 / 652.6 ms → 13.8 / 14.6 ms → **1.63 / 1.76 ms**（release，同机同口径，见 §9.8）；
-debug `rsword text large-report --json` 7.8 s → 0.23 s。dev/test profile 改 `opt-level = 1`，
+`text` 首屏 large-report 563.5 / 652.6 ms → 13.8 / 14.6 ms → **1.69 / 1.98 ms**（release，同机同口径，见 §9.8）；
+debug `rsword text large-report --json` 7.8 s → 0.23 s。输出路径另去掉三处浪费（WP1-2）：
+native `document`/`diagnostics` 的 `String` 往返（`rsword model` 9.54 → 8.89 ms）、
+MCP 两形态 `usage` 定点的重复序列化与二次转义（MCP 热会话 text 1.93 → 1.82 ms、structured 2.08 → 1.84 ms）、
+CLI 的 `to_string` 多一趟 UTF-8 校验（噪音内）。dev/test profile 改 `opt-level = 1`，
 `cargo test --workspace` debug 254 s → **33 s**（release 68 s → **24 s**），增量重编（touch `edit/mod.rs` 后 `--no-run`）14.9 s → 15.1 s。
 三处 dev-deps 的 `jsonschema` 关默认特性，依赖树去掉 reqwest / tokio / rustls / aws-lc-sys。
 新增 3 条 `agent_06_prefix_selection_*` 守门测试（二分 vs 本地线性 oracle + 非末页单调性断言）
 与 1 条 `agent_06_ledger_bytes_equal_response_over_corpus`（全语料 1103 份 × text / 记录 / context
 三种单位形态 × 两个起点，拼装字节与 `response()` 逐字节相等），
-故默认计数 **1017 / 0 / 13**、compat **1136 / 0 / 13**（debug 与 release 同）。
-输出语义未变：large-report / table-styled / fields-toc 的 `text` 信封与改动前逐字节相同。逐条与未做项见 docs/04 §19。
+与 1 条 `agent_10_shape_result_matches_serialize_loop_oracle`（`Shape::result` 的算术定点 vs 老的逐轮序列化循环），
+故默认计数 **1018 / 0 / 13**、compat **1137 / 0 / 13**（debug 与 release 同）。
+输出语义未变，而且这次是**全语料**核对的：`tools/perf/` 下两个对照件拿 ced475f 的 release 二进制
+与本轮末尾的二进制在同一批绝对路径上跑——CLI 1103 份 / 50034 次调用、MCP 1103 份 / 16768 次比较，
+各跑两遍，**0 差异**。逐条与未做项见 docs/04 §19。
 
 **2026-09-10：范围替换保留源格式。** 新增原生 `ReplaceText { from, to, text }`，
 Agent `replaceText` 每处命中编译为一条原生事务。格式取首个被替换字符所属 run 的完整 `rPr`，
@@ -93,21 +99,25 @@ text/outline 缺省 main；三者均为**缺省预算首屏**，不能据此声�
 共享 JSON 与 MCP 两形态分开计量；同一会话首屏体积、字符数与截断标志重复断言相同。
 跨运行的会话标识不同可改变几个字节，不应误称投影不确定。
 
-下表是 2026-09-16 WP1-A（u8 片段账本）之后同机重测的全部九行，每格取**三次
-`cargo bench` 的中位数**；同日同机的 ced475f 基线（两次）并列给出，便于逐行比对。
-三份输入的 UTF-16 / 字节 / truncated 与基线**完全相同**——本轮只改速度，不改输出。
+下表是 2026-09-16 本轮全部改动之后同机重测的九行，每格取**三次 `cargo bench`
+的中位数**；同日同机的 ced475f 基线（两次）并列给出，便于逐行比对。三份输入的
+UTF-16 / 字节 / truncated 与基线**完全相同**——本轮只改速度，不改输出。
 
 | 输入 | 接口 | median / p95 ms | 同日 ced475f 基线 median | UTF-16 | 共享 JSON B | MCP text / structured B | truncated |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| A | text | **1.626 / 1.761** | 14.426 / 14.287 | 1140 | 19559 | 22914 / 19658 | true |
-| A | outline | 0.881 / 0.927 | 1.971 / 2.006 | 3870 | 4408 | 5195 / 4507 | true |
-| A | find | 7.473 / 8.531 | 7.930 / 5.080 | 3561 | 4902 | 5709 / 5001 | true |
-| B | text | 0.061 / 0.065 | 0.391 / 0.380 | 118 | 2913 | 3433 / 3012 | false |
-| B | outline | 0.022 / 0.027 | 0.045 / 0.043 | 173 | 589 | 726 / 688 | false |
-| B | find | 4.450 / 5.787 | 4.275 / 4.342 | 1736 | 2253 | 2645 / 2352 | false |
-| C | text | 0.111 / 0.129 | 0.789 / 0.744 | 290 | 4619 | 5418 / 4718 | false |
-| C | outline | 0.033 / 0.034 | 0.052 / 0.053 | 173 | 590 | 727 / 689 | false |
-| C | find | 4.742 / 5.862 | 4.399 / 4.445 | 1751 | 2591 | 3040 / 2690 | false |
+| A | text | **1.691 / 1.976** | 14.426 / 14.287 | 1140 | 19559 | 22914 / 19658 | true |
+| A | outline | 0.891 / 0.969 | 1.971 / 2.006 | 3870 | 4408 | 5195 / 4507 | true |
+| A | find | 7.152 / 8.027 | 7.930 / 5.080 | 3561 | 4902 | 5709 / 5001 | true |
+| B | text | 0.066 / 0.073 | 0.391 / 0.380 | 118 | 2913 | 3433 / 3012 | false |
+| B | outline | 0.023 / 0.026 | 0.045 / 0.043 | 173 | 589 | 726 / 688 | false |
+| B | find | 4.431 / 5.747 | 4.275 / 4.342 | 1736 | 2253 | 2645 / 2352 | false |
+| C | text | 0.110 / 0.136 | 0.789 / 0.744 | 290 | 4619 | 5418 / 4718 | false |
+| C | outline | 0.035 / 0.037 | 0.052 / 0.053 | 173 | 590 | 727 / 689 | false |
+| C | find | 4.568 / 5.785 | 4.399 / 4.445 | 1751 | 2591 | 3040 / 2690 | false |
+
+这张表只量"已打开会话的缺省首屏"，量不到 WP1-2 的 D-1 / D-3。它们各自的隔离
+测量：`rsword model`（large-report）9.54 → 8.89 ms；MCP 热会话 `text` 调用
+text 形态 1.928 → 1.815 ms、structured 形态 2.082 → 1.840 ms。
 
 预算未修改：text 8000 UTF-16 / 24000 B、outline 4000 / 16000、find 4000 / 24000。
 find 的共享 JSON 字节比 2026-09-09 的旧表各多 28 B，是当时新增 `pageHits` / `hasMore`
@@ -117,8 +127,16 @@ find 的共享 JSON 字节比 2026-09-09 的旧表各多 28 B，是当时新增 
 A 的 text 首屏三代基准：2026-09-09 首测 **563.501 / 652.603 ms**（`budget::longest_prefix`
 对每个候选页尾重建并整包序列化约 20 次，候选数随单位数线性增长，docs/21 §3.1）→
 2026-09-16 二分 + `budget::Size` 后 **13.767 / 14.557 ms**（同日 ced475f 复测 14.426 / 14.287）→
-同日 u8 片段账本后 **1.626 / 1.761 ms**。账本落地后 text 已低于同文档的 outline，
-说明剩下的是投影与分页本身的成本，前缀选择不再是热点。
+同日 u8 片段账本后 **1.691 / 1.976 ms**。账本落地后 text 已低于同文档的 outline，
+说明剩下的是投影与分页本身的成本，前缀选择不再是热点：large-report 的 `text`
+里 project 0.642 ms、text_units 0.937 ms、整个 `page()` 0.432 ms，其中最终页的
+`response()` 只占 0.108 ms。
+
+一处与性能无关但值得记下的不确定性：`AGENT_BUDGET_TOO_SMALL` 的
+`details.minBytes` 会随进程 pid 的位数变几个字节——它量的是首个候选页信封，
+而那个信封里嵌着 `snapshot.sessionId`（text 页嵌两次），sessionId 含 pid。
+`usage.responseBytes` 本来就有同样的性质，两者一致，不是缺陷；跨进程比字节的
+工具要知道这件事（`tools/perf/compare-cli-bytes.mjs` 的复核机制就是为它设的）。
 outline 的 UTF-16 包含记录 JSON，不是标题净文字数；原 26 标题整份记录的 5052 UTF-16 历史口径见下。
 估算 token 为 `ceil(实际信封 B / 4)`，例如 A 的 MCP text 首屏为 5729，非模型 tokenizer 实测。
 
