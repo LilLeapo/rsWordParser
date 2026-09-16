@@ -1038,3 +1038,67 @@ fn agent_06_prefix_selection_matches_linear_oracle_large() {
         );
     }
 }
+/// 合成尺寸序列上的选择边界：末页回落、首个不 fit 而末页 fit、全 fit / 全不 fit。
+/// 用纯 `Size` 驱动，不依赖语料，覆盖真实语料不必然命中的分支。
+#[test]
+fn agent_06_prefix_selection_binary_matches_linear_on_synthetic_sizes() {
+    fn sizes(content: &[usize], bytes: &[usize]) -> Vec<budget::Size> {
+        assert_eq!(content.len(), bytes.len());
+        let mut out = vec![budget::Size { content_utf16: 0, common_bytes: 0 }; content.len() + 1];
+        for (end, (&c, &b)) in content.iter().zip(bytes).enumerate() {
+            out[end + 1] = budget::Size { content_utf16: c, common_bytes: b };
+        }
+        out
+    }
+    // 前提与生产一致：contentUtf16 全程不减；common_bytes 非末页不减，末页允许回落。
+    let cases: Vec<(Vec<budget::Size>, bool)> = vec![
+        (sizes(&[1, 2, 3, 4, 5], &[10, 20, 30, 40, 5]), true),
+        (sizes(&[1, 2, 3, 4, 5], &[50, 60, 70, 80, 5]), true),
+        (sizes(&[1, 2, 3, 4, 5], &[50, 60, 70, 80, 55]), true),
+        (sizes(&[1, 2, 3, 4, 5], &[10, 20, 30, 40, 50]), false),
+        (sizes(&[5], &[10]), true),
+        (sizes(&[5], &[10]), false),
+        (sizes(&[1, 2], &[1000, 4]), true),
+    ];
+    for (sizes, _) in &cases {
+        let n = sizes.len() - 1;
+        for end in 2..=n {
+            assert!(
+                sizes[end].content_utf16 >= sizes[end - 1].content_utf16,
+                "合成用例违反 content 单调前提 @ {end}"
+            );
+        }
+        for end in 2..n {
+            assert!(
+                sizes[end].common_bytes >= sizes[end - 1].common_bytes,
+                "合成用例违反非末页 bytes 单调前提 @ {end}"
+            );
+        }
+    }
+    let mut checked = 0usize;
+    for (sizes, cursorless) in &cases {
+        let last = sizes.len() - 1;
+        for limit in [1usize, 3, 5, 1000, 1048576] {
+            for max_bytes in [0usize, 5, 25, 35, 45, 200, 4194304] {
+                let b = Budget { limit, max_bytes };
+                let new = budget::longest_prefix(
+                    1,
+                    last,
+                    *cursorless,
+                    b,
+                    Value::Null,
+                    |end| sizes[end],
+                    |end| (json!(end), end),
+                );
+                let old = linear_prefix(1, last, b, sizes);
+                match (new, old) {
+                    (Ok((_, ne)), Ok(oe)) => assert_eq!(ne, oe, "选中 end 不一致"),
+                    (Err(n), Err(o)) => assert_eq!(n.code, o, "错误码不一致"),
+                    (n, o) => panic!("一个成功一个失败: {n:?} vs {o:?}"),
+                }
+                checked += 1;
+            }
+        }
+    }
+    assert!(checked > 100);
+}
