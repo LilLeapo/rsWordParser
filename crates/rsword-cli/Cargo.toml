@@ -19,6 +19,6 @@ compat-ts = ["rsword-agent-query/compat-ts"]
 [dev-dependencies]
 rsword = { path = "../rsword" }
 zip.workspace = true
-jsonschema = "0.55.0"
+jsonschema = { version = "0.55.0", default-features = false }
 [lints]
 workspace = true

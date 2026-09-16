@@ -31,7 +31,9 @@ serde = { version = "1", features = ["derive"] }
 [dev-dependencies]
 proc-macro2 = "1"
 serde_json = { version = "1", features = ["unbounded_depth"] }
-jsonschema = "0.55.0"
+# AGENT-06/测试专用：只校验内联 schema（`$ref` 仅指 `#/$defs/...`），
+# 关掉默认特性可去掉 resolve-http / tls-aws-lc-rs / idna 拉进来的网络栈。
+jsonschema = { version = "0.55.0", default-features = false }
 # `RES-12` fixture 的 `expected.toml`（任务 5.8）；只在测试里用
 toml = "1.1"
 
