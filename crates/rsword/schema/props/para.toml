@@ -71,6 +71,12 @@ element = "w:suppressAutoHyphens"
 codec = "OnOff"
 
 [[table.field]]
+name = "overflow_punct"
+element = "w:overflowPunct"
+codec = "OnOff"
+doc = "允许行末标点超出正文边界；未声明时保留 None，默认行为由布局消费者解释。"
+
+[[table.field]]
 name = "auto_space_de"
 element = "w:autoSpaceDE"
 codec = "OnOff"

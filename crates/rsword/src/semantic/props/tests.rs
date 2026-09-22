@@ -452,6 +452,7 @@ fn para_sample() -> ParaProps {
             ],
             ..Default::default()
         }),
+        overflow_punct: Some(false),
         auto_space_de: Some(false),
         auto_space_dn: Some(false),
         bidi: Some(true),
@@ -869,6 +870,7 @@ fn para_sample_alt() -> ParaProps {
             }],
             ..Default::default()
         }),
+        overflow_punct: Some(true),
         auto_space_de: Some(true),
         auto_space_dn: Some(true),
         bidi: Some(false),
