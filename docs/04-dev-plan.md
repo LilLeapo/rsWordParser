@@ -290,6 +290,13 @@ fmt、clippy、test 之后跑 `cargo run -p diff-parse -- --scope text`：`synth
 
 ## 8. 实现偏差记录（相对 `docs/03` / `spec` 的措辞，语义等价或补充）
 
+**2026-09-22：`w:overflowPunct` 从未建模元素提升为三态属性（PROP-04/07、BIND-02）。**
+此前它仅列在 `ParaProps` 的 schema 顺序中，native JSON 不暴露其关闭值，布局消费者无法
+区分未声明与显式关闭。现在仅在 `schema/props/para.toml` 补 `overflow_punct` / `OnOff`，
+由原有生成器统一产出读取、合并、写回、修订快照及 JSON/schema，不另设 XML 旁路。
+未声明保持 `None`，默认排版行为仍由布局消费者决定；`false` 必须保留在 JSON 中。
+回归入口：`cargo test -p rsword --test overflow_punct`，以及原有 `PROP-07` 逐字段全覆盖测试。
+
 ### 8.0 待裁定、待订正与待追认总表（9.8 收尾）
 
 9.9 补充：评审者已提供 W1/W5/W6 的真实 **CLI** 会话结果，原话记入 docs/12 §11；不是本轮真实 MCP stdio 会话，

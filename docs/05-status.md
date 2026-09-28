@@ -5,6 +5,16 @@
 
 ## 结论
 
+**2026-09-22：补齐 `w:overflowPunct` 的属性与原生投影。** `ParaProps.overflow_punct`
+由 `schema/props/para.toml` 的 `OnOff` 声明生成，native JSON 字段为 `overflowPunct`。
+未声明仍为 `None`（JSON 省略），显式关闭为 `Some(false)`；不在 parser 中填入布局默认值。
+同一声明覆盖属性读取、样式继承、修订快照、补丁写回、serde 与 JSON schema。
+新增 `tests/overflow_punct.rs` 四项回归，覆盖开关写法、无编辑保存、两种 OOXML 命名空间的
+属性顺序与设置/删除、旧修订值和默认值/样式/直接声明的继承；原有逐字段测试样本同步覆盖新字段。
+本轮默认 debug/release 各 **1022 / 0 / 13**、compat debug/release 各 **1141 / 0 / 13**
+（通过/失败/ignored）；fmt、两套 clippy `-D warnings` 通过。全域差分 799 份合成文档与
+266 份真实文档分别为 **242 / 547 处已知、0 处未知差异**，语料及模型快照未修改。
+
 **2026-09-16：性能轮（docs/21）。** 单位分页 `paging::page()` 的前缀选择从线性扫描改为二分：`budget::longest_prefix` 不再对每个候选页尾整包序列化
 （`find` 的游标不满足单调前提，仍走 `budget::longest_prefix_linear`）；随后 WP1-A 把候选尺寸改成
 **u8 片段账本**（`assemble::Skeleton`）：探针不再构造 `Value`、不再序列化，只做 memcpy 拼装与整数运算。
