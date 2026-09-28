@@ -7,8 +7,7 @@ name: npm
 # 用 workflow 自带的 GITHUB_TOKEN 发布，不需要额外 secret。
 on:
   push:
-    # npm-publish：首发用的发布分支，合进 main 后可从这里删掉
-    branches: [main, npm-publish]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
