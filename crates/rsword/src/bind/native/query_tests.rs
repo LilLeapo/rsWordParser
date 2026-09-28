@@ -17,7 +17,7 @@ pub(super) fn corpus(compare: Compare) {
     ];
     let paths: Vec<_> =
         ["synthetic", "real", "hostile"].into_iter().flat_map(common::docx_paths).collect();
-    assert_eq!(paths.len(), 1103);
+    assert_eq!(paths.len(), 1520);
     let mut refused = BTreeSet::new();
     let mut opened = 0;
     let mut count = 0;
@@ -85,7 +85,7 @@ pub(super) fn corpus(compare: Compare) {
         }
         table.close(&id);
     }
-    assert_eq!(opened, 1099);
+    assert_eq!(opened, 1516);
     assert_eq!(refused, REFUSED.into_iter().map(String::from).collect());
     assert!(count > 0);
     eprintln!("BIND-06: {opened} documents, {count} resolved items");

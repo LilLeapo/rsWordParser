@@ -141,7 +141,7 @@ fn bind_05_09_read_only_full_corpus() {
     ];
     let paths: Vec<_> =
         ["synthetic", "real", "hostile"].into_iter().flat_map(common::docx_paths).collect();
-    assert_eq!(paths.len(), 1103);
+    assert_eq!(paths.len(), 1520);
     let mut refused = BTreeSet::new();
     let mut opened = 0;
     let mut parts = 0;
@@ -207,7 +207,7 @@ fn bind_05_09_read_only_full_corpus() {
         assert_eq!((t.document(&id, None).unwrap(), t.diagnostics(&id).unwrap()), before);
         t.close(&id);
     }
-    assert_eq!(opened, 1099);
+    assert_eq!(opened, 1516);
     assert_eq!(refused, REFUSED.into_iter().map(String::from).collect());
     eprintln!("BIND-05/09: {opened} documents, {parts} parts, {media} media, {nodes} XML subtrees");
 }

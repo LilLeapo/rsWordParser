@@ -96,8 +96,8 @@ fn res_08_conditional_formats_follow_tbl_look() {
             assert!(!v.conditions(1, 0).iter().any(|c| matches!(c, T::Band1Horz | T::Band2Horz)));
         }
     });
-    // table-style__003：显式底纹胜过样式
-    with_table("table-style__003", 0, |_, v| {
+    // table-style__005：显式底纹胜过样式
+    with_table("table-style__005", 0, |_, v| {
         let mut explicit = None;
         for (r, row) in v.table().rows.iter().enumerate() {
             for (c, cell) in row.cells.iter().enumerate() {
@@ -118,8 +118,8 @@ fn res_08_conditional_formats_follow_tbl_look() {
             rsword::resolve::Provenance::Direct
         ));
     });
-    // table-style__004 / 005 没有顶层表格，直接校样式链：子样式继承父样式的条件层与整表层
-    for name in ["table-style__004", "table-style__005"] {
+    // table-style__006 / 005 没有顶层表格，直接校样式链：子样式继承父样式的条件层与整表层
+    for name in ["table-style__006", "table-style__007"] {
         let bytes =
             std::fs::read(common::corpus_dir("synthetic").join(format!("{name}.docx"))).unwrap();
         let mut pkg = Package::open(&bytes).unwrap();
@@ -175,7 +175,7 @@ fn res_08_borders_and_margins_fall_back_to_the_style() {
 
 #[test]
 fn res_08_row_height_is_clamped() {
-    // 语料里有 EMU 污染的 trHeight（table-display__012 一类）；模型保原值，视图截断
+    // 语料里有 EMU 污染的 trHeight（table-display__017 一类）；模型保原值，视图截断
     let mut checked = 0;
     for path in common::docx_paths("synthetic") {
         let bytes = std::fs::read(&path).unwrap();

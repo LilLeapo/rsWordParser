@@ -30,7 +30,7 @@ fn save_01_no_edit_returns_original_bytes_for_all_corpus() {
     let root = common::repo_root().join("corpus");
     let paths: Vec<_> =
         ["synthetic", "hostile", "real"].into_iter().flat_map(common::docx_paths).collect();
-    assert_eq!(paths.len(), 1103);
+    assert_eq!(paths.len(), 1520);
     for path in paths {
         let name = path.strip_prefix(&root).unwrap().to_str().unwrap();
         let bytes = std::fs::read(&path).unwrap();
@@ -49,7 +49,7 @@ fn save_01_no_edit_returns_original_bytes_for_all_corpus() {
         assert_eq!(pkg.save().unwrap(), bytes, "{}", path.display());
         n += 1;
     }
-    assert_eq!(n, 1099);
+    assert_eq!(n, 1516);
     assert_eq!(refused, common::UNOPENABLE.into_iter().map(str::to_owned).collect());
 }
 
@@ -136,10 +136,11 @@ fn test_04_single_node_edit_roundtrips_on_every_synthetic_doc() {
         let main = pkg.main_part();
         let dom = pkg.dom(main).unwrap().unwrap();
         let t = QName::w(LocalName::T);
+        // `w:t` 里可能先有注释等非文本子节点（`scan-multiple-body__*`），取真正的文本节点
         let target = dom
             .descendants(dom.root())
-            .find(|&id| dom.is(id, t))
-            .and_then(|id| dom.children(id).first().copied());
+            .filter(|&id| dom.is(id, t))
+            .find_map(|id| dom.children(id).iter().copied().find(|&c| dom.text(c).is_some()));
         let Some(text) = target else { continue };
         let dom = pkg.dom_mut(main).unwrap().unwrap();
         dom.set_text(text, "Ж");

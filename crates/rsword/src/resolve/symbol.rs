@@ -8,7 +8,7 @@
 //! 表的来源与完整度：`RES-05` 写的是"按 TS `symbol-fonts.ts` 的映射表"，但那份源码不在本仓库。
 //! [`SYMBOL`] 是 Adobe Symbol 的标准映射（Unicode 的 `SYMBOL.TXT`），可以照抄；
 //! [`WINGDINGS`] 只收了把握得住的常用字形。表外码位解码失败，调用方按 `RES-05` 保留原字符
-//! （TS 也是这样，语料 `symbol-fonts__002` 的 `Wingdings 2 F045` 原样留着）。
+//! （TS 也是这样，语料 `symbol-fonts__003` 的 `Wingdings 2 F0FF` 原样留着）。
 //! 补表需要证据（语料或 `symbol-fonts.ts`），
 //! **不要**凭印象加条目：猜错了比不解码更糟。
 
@@ -27,8 +27,8 @@ pub fn decode(font: &str, code: u32) -> Option<char> {
     let table = match font.trim().to_ascii_lowercase().as_str() {
         "symbol" => SYMBOL,
         "wingdings" => WINGDINGS,
-        // Wingdings 2 / 3 与 Webdings：还没有可靠的表（语料 `symbol-fonts__002` 里 TS 也没解码
-        // `Wingdings 2` 的 `F045`），先按解码失败处理
+        // Wingdings 2 / 3 与 Webdings：还没有可靠的表（语料 `symbol-fonts__003` 里 TS 也没解码
+        // `Wingdings 2` 的 `F0FF`），先按解码失败处理
         "wingdings 2" | "wingdings 3" | "webdings" => &[],
         _ => return None,
     };
@@ -39,7 +39,7 @@ pub fn decode(font: &str, code: u32) -> Option<char> {
 
 /// 一个字符若落在符号字体的 PUA 区间（`U+F000`–`U+F0FF`）就解码。
 ///
-/// 只解码 PUA 区间：符号字体 run 里的普通 ASCII 字母（语料 `symbol-fonts__004` 的 `le`）TS 也不动，
+/// 只解码 PUA 区间：符号字体 run 里的普通 ASCII 字母（语料 `symbol-fonts__007` 的 `l–`）TS 也不动，
 /// 那种文本在没有该字体时本来就按字母显示。
 pub fn decode_pua(font: &str, ch: char) -> Option<char> {
     let code = ch as u32;
@@ -221,12 +221,13 @@ mod tests {
     /// 表外码位与非符号字体解码失败（调用方按 `RES-05` 保留原字符）。
     #[test]
     fn res_05_unknown_code_points_stay_undecoded() {
-        assert_eq!(decode("Wingdings 2", 0xF045), None, "语料 symbol-fonts__002：TS 也没解码");
+        assert_eq!(decode("Wingdings 2", 0xF045), None, "Wingdings 2 没有表：TS 也没解码");
+        assert_eq!(decode("Wingdings 2", 0xF0FF), None, "语料 symbol-fonts__003：TS 也没解码");
         assert_eq!(decode("Wingdings", 0x01), None);
         assert_eq!(decode("Times New Roman", 0x41), None);
     }
 
-    /// 符号字体 run 里只解码 PUA 区间：普通 ASCII 字母不动（语料 `symbol-fonts__004`）。
+    /// 符号字体 run 里只解码 PUA 区间：普通 ASCII 字母不动（语料 `symbol-fonts__007`）。
     #[test]
     fn res_05_only_pua_text_is_decoded() {
         assert_eq!(decode_pua("Wingdings", '\u{F0FC}'), Some('✓'));

@@ -255,7 +255,7 @@ fn edit_03_delete_range_truncates_runs_and_keeps_markers() {
     assert!(xml.contains(r#"<w:t xml:space="preserve">h</w:t>"#));
 
     // REF 字段是原子（`FLD-14`：坐标流里恒为 1 个 U+FFFC，与结果文字长度无关）
-    let mut s2 = EditSession::open(&corpus("bookmarks-crossref__006.docx")).unwrap();
+    let mut s2 = EditSession::open(&corpus("bookmarks-crossref__008.docx")).unwrap();
     let p2 = para(&s2, 1);
     let text = para_text(&s2, 1);
     assert!(text.starts_with("详见\u{FFFC}"), "REF 结果折成一个原子: {text}");

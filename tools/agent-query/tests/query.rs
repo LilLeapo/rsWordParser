@@ -56,7 +56,7 @@ fn agent_03_real_outline_and_budget_measurement() {
     assert_eq!(Budget::OUTLINE.limit, 4000, "不能调大规范缺省预算绕过分页");
     assert_eq!(Budget::OUTLINE.max_bytes, 16000);
     let paths = common::docx_paths("real");
-    assert_eq!(paths.len(), 266);
+    assert_eq!(paths.len(), 302);
     let largest = paths.iter().max_by_key(|p| std::fs::metadata(p).unwrap().len()).unwrap();
     assert!(largest.ends_with("misc/large-report.docx"));
     for path in paths.iter() {
@@ -355,7 +355,7 @@ fn agent_04_find_preconditions_budget_and_authorized_context() {
 fn agent_04_corpus_literal_and_regex_independent_oracles() {
     let paths: Vec<_> =
         ["synthetic", "real", "hostile"].into_iter().flat_map(common::docx_paths).collect();
-    assert_eq!(paths.len(), 1103);
+    assert_eq!(paths.len(), 1520);
     let mut refused = BTreeSet::new();
     let mut count = 0;
     for path in paths {
@@ -416,7 +416,7 @@ fn agent_04_corpus_literal_and_regex_independent_oracles() {
         }
         count += 1;
     }
-    assert_eq!(count, 1099);
+    assert_eq!(count, 1516);
     assert_eq!(refused, common::UNOPENABLE.into_iter().map(str::to_owned).collect());
 }
 #[test]

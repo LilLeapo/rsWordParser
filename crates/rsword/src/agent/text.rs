@@ -48,7 +48,7 @@ macro_rules! categories {
 }
 categories! {
     Formatting => ("formatting","文字保留，样式细节按需读取",agent_01_formatting,"synthetic/anchored-textbox__001.docx");
-    TableGeometry => ("tableGeometry","管道表不表达网格、合并与嵌套几何",agent_01_table,"synthetic/balance-dbcs-spacing__002.docx");
+    TableGeometry => ("tableGeometry","管道表不表达网格、合并与嵌套几何",agent_01_table,"synthetic/balance-dbcs-spacing__004.docx");
     FieldResult => ("fieldResult","字段指令及缓存结果仅在显式详情中只读展示",agent_01_field,"synthetic/bookmarks-crossref__004.docx");
     Image => ("image","图片二进制及显示属性按需读取",agent_01_image,"synthetic/bugfix-regressions__006.docx");
     Chart => ("chart","图表数据及显示属性按需读取",agent_01_chart,"synthetic/chart-edit__001.docx");

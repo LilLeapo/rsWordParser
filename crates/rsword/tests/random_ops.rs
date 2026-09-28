@@ -1000,7 +1000,7 @@ fn test_07_valid_comment_preserves_boundary_whitespace() {
 
 #[test]
 fn test_07_rejected_edit_does_not_consume_revision_ids() {
-    let bytes = include_bytes!("../../../corpus/synthetic/smartart-ole__017.docx");
+    let bytes = include_bytes!("../../../corpus/synthetic/smartart-ole__019.docx");
     let tracked = |author: &str| {
         EditContext::default().with_track_changes(Some(RevisionAuthor {
             author: author.into(),

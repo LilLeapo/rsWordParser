@@ -335,7 +335,7 @@ fn fld_02_every_field_in_the_corpus_is_accounted_for() {
     const KNOWN_DAMAGED: &[(&str, usize, usize)] = &[
         // (文档, 未闭合 begin 数, 孤立 separate/end 数)
         ("field-display__001", 1, 0), // TOC 只留了第一条目录项，缺 end
-        ("field-display__002", 0, 1), // 只有一个 fldChar end
+        ("field-display__014", 0, 1), // 只有一个 fldChar end
         ("protected-text-edit__001", 1, 0), // 同 field-display__001
     ];
     let mut docs = 0usize;

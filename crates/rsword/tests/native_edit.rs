@@ -193,7 +193,7 @@ fn first(dom: &Dom, name: LocalName) -> NodeId {
 fn bind_03_protocol_native_bytes_full_synthetic_real() {
     let paths: Vec<_> =
         common::docx_paths("synthetic").into_iter().chain(common::docx_paths("real")).collect();
-    assert_eq!(paths.len(), 1065);
+    assert_eq!(paths.len(), 1482);
     for path in &paths {
         let bytes = std::fs::read(path).unwrap();
         let mut native = EditSession::open(&bytes).unwrap();

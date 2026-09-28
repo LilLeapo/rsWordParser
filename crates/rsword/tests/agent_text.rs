@@ -113,7 +113,7 @@ fn agent_01_02_corpus_determinism_and_complete_anchors() {
     let root = common::repo_root().join("corpus");
     let paths: Vec<_> =
         ["synthetic", "real", "hostile"].into_iter().flat_map(common::docx_paths).collect();
-    assert_eq!(paths.len(), 1103);
+    assert_eq!(paths.len(), 1520);
     let mut refused = BTreeSet::new();
     let mut count = 0;
     let mut no_flow = Vec::new();
@@ -205,7 +205,7 @@ fn agent_01_02_corpus_determinism_and_complete_anchors() {
         }
         count += 1;
     }
-    assert_eq!(count, 1099);
+    assert_eq!(count, 1516);
     assert_eq!(no_flow.len(), 0, "全语料无流段落必须为 0: {no_flow:?}");
     assert_eq!(refused, common::UNOPENABLE.into_iter().map(str::to_owned).collect());
     assert_eq!(

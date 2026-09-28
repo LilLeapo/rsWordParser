@@ -47,7 +47,7 @@ fn main() {
             }
         }
     }
-    assert_eq!(paths.len(), 266);
+    assert_eq!(paths.len(), 302);
     paths.sort();
     for (size, path) in paths.into_iter().rev().take(3) {
         let bytes = std::fs::read(&path).unwrap();

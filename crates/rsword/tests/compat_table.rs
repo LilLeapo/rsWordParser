@@ -70,7 +70,7 @@ fn compat_10_raw_tc_pr_is_dropped_when_folding_changed_the_cell_count() {
 /// `gridBefore` / `gridAfter` 的显示占位：不是 `w:tc`，没有 `rawTcPr`，跨度按声明值。
 #[test]
 fn compat_10_grid_gap_placeholders() {
-    let d = doc("table-grid-reconcile__004");
+    let d = doc("table-grid-reconcile__014");
     let t = tables(&d)[0];
     let mut gaps = 0;
     for row in t["rows"].as_array().unwrap() {
@@ -92,8 +92,8 @@ fn compat_10_table_display_from_the_style_chain() {
     let td = &d["styles"]["GridBlue"]["tableDisplay"];
     assert!(td.is_object(), "GridBlue 应有 tableDisplay：{}", d["styles"]["GridBlue"]);
     assert!(td.get("firstRow").is_some() || td.get("band1Fill").is_some(), "{td}");
-    // 基样式的层通过 basedOn 继承（table-style__004 是链的用例）
-    let d = doc("table-style__004");
+    // 基样式的层通过 basedOn 继承（table-style__006 是链的用例）
+    let d = doc("table-style__006");
     let styles = d["styles"].as_object().unwrap();
     let child = styles
         .values()

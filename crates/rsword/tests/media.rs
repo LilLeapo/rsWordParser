@@ -19,7 +19,7 @@ const KNOWN_BROKEN: &[(&str, usize)] = &[
     // 页眉里的坏引用；TS 的 `headerImages` 为 null
     ("resource-cleanup__004.docx", 1),
     // OLE 预览图的坏引用；TS 给 `label: "Embedded object"` 但没有 imageDataUrl
-    ("smartart-ole__010.docx", 1),
+    ("smartart-ole__012.docx", 1),
     // VML `v:imagedata r:id="rId999"`；TS 当作普通段落
     ("wordart-vml__011.docx", 1),
     // hostile：`..` 越过包根 / 目标 part 不存在（`TEST-09`）
@@ -58,7 +58,7 @@ fn rel_refs(pkg: &mut Package, part: PartId) -> Vec<String> {
     let Ok(Some(dom)) = pkg.dom(part) else { return Vec::new() };
     let mut out = Vec::new();
     // 必须走语义遍历：语料里有把坏 `r:embed` 写在未生效的 `mc:Choice` 里、真图在 Fallback 的文档
-    // （`hf-images__010`）。用 `descendants` 会读到未生效的分支。
+    // （`hf-images__011`）。用 `descendants` 会读到未生效的分支。
     for n in dom.semantic_descendants(dom.root()) {
         let Some(name) = dom.name(n) else { continue };
         let attrs: &[QName] = match (name.ns, name.local) {

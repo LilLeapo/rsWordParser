@@ -118,7 +118,7 @@ pub(super) fn image_meta(
 pub(super) fn run_image(ctx: &Ctx<'_>, seg: &Segment) -> Option<Map<String, Value>> {
     match seg.kind {
         SegmentKind::Drawing { .. } => drawing_run_image(ctx, seg.display.as_ref()?),
-        // `w:pict` / `w:object` 的预览图也是一个原子 run（`smartart-ole__016`：OLE 预览与
+        // `w:pict` / `w:object` 的预览图也是一个原子 run（`smartart-ole__018`：OLE 预览与
         // 随后的图片各占一个 run）。
         SegmentKind::Pict | SegmentKind::Object => vml_run_image(ctx, seg.display.as_ref()?),
         _ => None,

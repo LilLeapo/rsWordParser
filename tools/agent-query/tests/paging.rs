@@ -167,7 +167,7 @@ fn agent_06_version_changes_only_on_successful_writes() {
 fn agent_06_text_pages_equal_full_projection_and_counts() {
     let paths: Vec<_> =
         ["synthetic", "real", "hostile"].into_iter().flat_map(common::docx_paths).collect();
-    assert_eq!(paths.len(), 1103);
+    assert_eq!(paths.len(), 1520);
     let mut opened = 0;
     let mut refused = std::collections::BTreeSet::new();
     for path in paths {
@@ -301,7 +301,7 @@ fn agent_06_text_pages_equal_full_projection_and_counts() {
         }
         opened += 1;
     }
-    assert_eq!(opened, 1099);
+    assert_eq!(opened, 1516);
     assert_eq!(refused, common::UNOPENABLE.into_iter().map(str::to_owned).collect());
 }
 #[test]
@@ -1104,7 +1104,7 @@ fn agent_06_prefix_selection_binary_matches_linear_on_synthetic_sizes() {
 }
 /// WP1-A 守门：u8 片段账本拼出的字节必须与 `paging::response` 逐字节相同。
 ///
-/// 全语料 1103 份 × 三种单位形态（text 页、纯记录页、context 那样"记录内容 + 锚点"
+/// 全语料 1520 份 × 三种单位形态（text 页、纯记录页、context 那样"记录内容 + 锚点"
 /// 的页）× 两个起点（0 与中点）× 一组候选 `end`。账本是 `size_of` 的唯一来源，
 /// 逐字节相等是它能替掉整包序列化的前提；`budget::Size` 同时比较。
 #[test]
@@ -1114,7 +1114,7 @@ fn agent_06_ledger_bytes_equal_response_over_corpus() {
     let range = json!("corpus");
     let paths: Vec<_> =
         ["synthetic", "real", "hostile"].into_iter().flat_map(common::docx_paths).collect();
-    assert_eq!(paths.len(), 1103);
+    assert_eq!(paths.len(), 1520);
     let mut checked = 0usize;
     let mut with_anchors = 0usize;
     for path in paths {

@@ -764,7 +764,7 @@ impl Document {
                     },
                 ));
             }
-            // SmartArt 的 `@r:dm` 悬空同理（`smartart-ole__006`）：块仍是 `SmartArt` 芯片，没有文字与形状
+            // SmartArt 的 `@r:dm` 悬空同理（`smartart-ole__008`）：块仍是 `SmartArt` 芯片，没有文字与形状
             if let Some(dg) = d.diagram.as_ref()
                 && dg.rel_id.as_ref().is_none_or(|rid| !diagram_by_rel.contains_key(rid))
             {
@@ -4582,7 +4582,7 @@ impl Iterator for Walk<'_> {
 /// 节点的**有效**命名空间：前缀绑不上时按字面量认。
 ///
 /// 语料里有一批合成文档只在根上声明了 `w` / `wp` / `a` / `pic`，`wps` 与 `wpg` 一个都没声明
-/// （`field-display__015`）。TS 用字符串匹配 `<wps:wsp`，压根不看声明；我们走 DOM，就得在
+/// （`field-display__036`）。TS 用字符串匹配 `<wps:wsp`，压根不看声明；我们走 DOM，就得在
 /// 这里补一条：绑不上的前缀按字面量认，其余照旧按 URI。
 fn eff_ns(dom: &Dom, node: NodeId) -> NsId {
     let Some(name) = dom.name(node) else { return NsId::None };
@@ -4990,7 +4990,7 @@ pub fn heading_level_of_chain(chain: &[&Style], style_id: Option<&str>) -> Optio
 /// `MOD-04` 的 `toc_style_level`：`TOC1` / `TOC 1` → 级别；图表目录 / 引文目录样式 → 1。
 ///
 /// 后一类（`TableofFigures` / `TableofAuthorities`，Word 的"图表目录""引文目录"）也是目录行，
-/// TS 同样给它们 `TOC entry` + `tocLine`（语料 `field-display__010`）。
+/// TS 同样给它们 `TOC entry` + `tocLine`（语料 `field-display__027`）。
 pub fn toc_level_of_id(id: &str) -> Option<u8> {
     let squashed: String = id.chars().filter(|c| !c.is_whitespace()).collect();
     if squashed.eq_ignore_ascii_case("TableofFigures")
@@ -5095,7 +5095,7 @@ fn graphic_child_kind(dom: &Dom, child: NodeId) -> DrawingKind {
         return kind;
     }
     // 前缀未绑定（已记 `XML_UNBOUND_PREFIX`）时按前缀字面量兜底。语料里有既不写 `@uri`
-    // 也不声明 `c` / `dgm` / `wps` 前缀的文档（`resource-cleanup__008`、`field-display__015`），
+    // 也不声明 `c` / `dgm` / `wps` 前缀的文档（`resource-cleanup__008`、`field-display__036`），
     // 这时字面量是唯一还剩的信息；宁可按它分类，也好过整段降级成"认不出的绘图"。
     if !matches!(name.ns, NsId::Unbound(_)) {
         return DrawingKind::Unknown;
@@ -10185,7 +10185,7 @@ mod test_model {
 
     #[test]
     fn mod_11_vml_horizontal_rule() {
-        // 语料 smartart-ole__005：HTML <hr> 导入的细横线
+        // 语料 smartart-ole__006：HTML <hr> 导入的细横线
         let (_, v) = parse_vml(
             r##"<v:rect id="_x0000_i1026" style="width:0;height:1.5pt" o:hralign="center" o:hr="t" fillcolor="#aca899" stroked="f"/>"##,
         );

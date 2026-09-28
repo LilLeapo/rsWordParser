@@ -259,7 +259,7 @@ fn check_corpus(display: bool) {
     let mut max_depth = 0;
     let mut deepest = String::new();
     let paths = corpus();
-    assert_eq!(paths.len(), 1103, "语料总数变化");
+    assert_eq!(paths.len(), 1520, "语料总数变化");
     for path in paths {
         let bytes = std::fs::read(&path).unwrap();
         let name = path.file_name().unwrap().to_str().unwrap();
@@ -317,7 +317,7 @@ fn check_corpus(display: bool) {
         keys.check(&json).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
         docs += 1;
     }
-    assert_eq!(docs, 1099, "成功投影语料数变化");
+    assert_eq!(docs, 1516, "成功投影语料数变化");
     assert_eq!(rejected, UNOPENABLE.into_iter().map(String::from).collect());
     eprintln!(
         "bind_02 display={display}: {docs} docs, {} named open failures, max JSON depth {max_depth} ({deepest})",

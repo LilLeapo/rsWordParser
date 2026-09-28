@@ -16,7 +16,7 @@
 
 ```agent-categories
 formatting synthetic/anchored-textbox__001.docx
-tableGeometry synthetic/balance-dbcs-spacing__002.docx
+tableGeometry synthetic/balance-dbcs-spacing__004.docx
 fieldResult synthetic/bookmarks-crossref__004.docx
 image synthetic/bugfix-regressions__006.docx
 chart synthetic/chart-edit__001.docx

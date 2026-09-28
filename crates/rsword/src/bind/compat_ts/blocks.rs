@@ -703,7 +703,7 @@ fn body_block(
 /// 嵌入对象的显示信息该不该输出（TS `onlyOleFields`，`docs/01` §6.2.2）。
 ///
 /// TS 的决策树里字段分支在 `w:object` 之前：段落里只要还有别的字段，这一段就归字段管
-/// （`smartart-ole__013` 的 `EMBED` 后面跟了个 `TOC`，标签是 `Field (EMBED)`）。只有当段落
+/// （`smartart-ole__015` 的 `EMBED` 后面跟了个 `TOC`，标签是 `Field (EMBED)`）。只有当段落
 /// 没有字段、或者所有指令都是 `EMBED` / `LINK` 时，才走嵌入对象这条路。
 fn ole_display_applies(ctx: &Ctx<'_>, p: NodeId) -> bool {
     let dom = ctx.dom;
@@ -778,7 +778,7 @@ fn paragraph_block(
         // TS `buildBlock` 规则 2 / 3：字段段落与 TOC 行是只读的 passthrough，不出 runs / format。
         // 顺序照 TS 的决策树：**字段在绘图之前**——文本框里的字段不算数（`para_fields` /
         // `has_stray_field_chars` 都只看宿主段落自己的 inline），所以带字段的文本框段落照样
-        // 走得到下面的绘图分支（`vml-textbox__007`）。
+        // 走得到下面的绘图分支（`vml-textbox__008`）。
         Some(Block::Text(tb)) => match ts_field_passthrough(ctx, tb) {
             // TS：`{ EMBED … }` / `{ LINK … }` 包着 `w:object`、段落里没有别的字段 → 走嵌入对象那条路，
             // 预览图与声明尺寸留住，而不是一个光秃秃的 `Field (EMBED)` 芯片（任务 6.4，`m6-ole__007`）。
@@ -901,7 +901,7 @@ fn paragraph_block(
                     _ => "Paragraph",
                 };
                 let mut o = passthrough(o, label);
-                // TS 的 `w:pict` 细横线分支只出 `decorative` / `rule*`，没有 `previewText`（`smartart-ole__005`）
+                // TS 的 `w:pict` 细横线分支只出 `decorative` / `rule*`，没有 `previewText`（`smartart-ole__006`）
                 if !matches!(kind, ProtectedKind::Rule) {
                     set(&mut o, "previewText", ctx.plain_text(p));
                 }
@@ -1028,7 +1028,7 @@ fn first_instr_keyword(ctx: &Ctx<'_>, p: NodeId) -> Option<Keyword> {
             LocalName::FldChar | LocalName::T if !pending.trim().is_empty() => {
                 return Some(instr_keyword(&pending));
             }
-            // `w:fldSimple/@w:instr`（TS `fieldLabel` 的第二个来源，`vml-textbox__008`）
+            // `w:fldSimple/@w:instr`（TS `fieldLabel` 的第二个来源，`vml-textbox__009`）
             LocalName::FldSimple if pending.trim().is_empty() => {
                 if let Some(instr) = ctx.attr(n, NsId::W, LocalName::Instr)
                     && !instr.trim().is_empty()
@@ -2196,7 +2196,7 @@ fn inlines_text(inlines: &[Inline]) -> String {
 /// `RES-05`：符号字体 run 的显示文本。
 ///
 /// `w:sym` 按字体表解码，表外的保留原字符（`U+F000 + 码位`，与 TS 一致，语料
-/// `symbol-fonts__002`）；符号字体 run 的
+/// `symbol-fonts__003`）；符号字体 run 的
 /// `w:t` 只解码 PUA 区间的字符。返回值第二项表示"文本段被解码过"——TS 那边这种 run 的 `w:rFonts`
 /// 会被摘掉（字形已经变成真正的 Unicode，再带符号字体反而显示不出来）。
 fn symbol_text(ctx: &Ctx<'_>, run: &Run, segs: &[crate::model::Segment]) -> (String, bool) {
@@ -2243,7 +2243,7 @@ fn symbol_text(ctx: &Ctx<'_>, run: &Run, segs: &[crate::model::Segment]) -> (Str
 ///
 /// TS `splitImageRun`：一个 run 里有不止一个图形子元素（`w:drawing` / `w:pict` / `w:object`）时按图形拆开——
 /// `Run.image` 只有一个位置，不拆的话第一张之后的图全丢、一编辑就从文件里消失。每一段收到它**前面**的文字，
-/// 最后剩下的文字单独成段（`smartart-ole__017`：`w:object` + 文字 + 空 `w:pict` → 图片 run + 文字 run；
+/// 最后剩下的文字单独成段（`smartart-ole__019`：`w:object` + 文字 + 空 `w:pict` → 图片 run + 文字 run；
 /// 任务 6.4）。只有一个图形的 run 不拆，图片与文字同在一个 run 上。
 fn run_jsons(ctx: &Ctx<'_>, run: &Run, para: StyleDisp) -> Vec<Map<String, Value>> {
     let is_graphic = |seg: &crate::model::Segment| {
