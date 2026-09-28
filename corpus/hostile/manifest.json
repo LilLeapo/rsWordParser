@@ -150,16 +150,6 @@
     "expectation": "parses; inks[0].dataUrl null; payload decoded; offsets 0"
   },
   {
-    "name": "table-grid-mismatch.docx",
-    "bytes": 1043,
-    "expectation": "parses; MOD_TABLE_SHAPE + SAVE_TABLE_GRID是PreExisting; column ops Err(EDIT_TABLE_GRID_INCONSISTENT); unedited save byte-identical"
-  },
-  {
-    "name": "table-cell-no-paragraph.docx",
-    "bytes": 987,
-    "expectation": "parses; MOD_TABLE_SHAPE; unedited save byte-identical; InsertBlock in the cell appends a w:p"
-  },
-  {
     "name": "rev-nested-wrappers.docx",
     "bytes": 3762,
     "expectation": "parses; 500 nesting levels get the right depth; iterative walk, no stack overflow; unedited save byte-identical"
@@ -188,5 +178,15 @@
     "name": "drawing-anchor-no-extent.docx",
     "bytes": 2511,
     "expectation": "parses; missing extent and empty positionH degrade to 0; relativeHeight beyond u32 does not overflow; unedited save byte-identical"
+  },
+  {
+    "name": "table-grid-mismatch.docx",
+    "bytes": 1043,
+    "expectation": "parses; MOD_TABLE_SHAPE + SAVE_TABLE_GRID是PreExisting; column ops Err(EDIT_TABLE_GRID_INCONSISTENT); unedited save byte-identical"
+  },
+  {
+    "name": "table-cell-no-paragraph.docx",
+    "bytes": 987,
+    "expectation": "parses; MOD_TABLE_SHAPE; unedited save byte-identical; InsertBlock in the cell appends a w:p"
   }
 ]

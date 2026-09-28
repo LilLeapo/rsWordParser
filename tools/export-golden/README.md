@@ -12,8 +12,9 @@
 > 期望值会随之变，那时按 `KNOWN_DIFFS.md` 与 `save_blocks.rs` 的 `INTENTIONAL` 表重新登记差异，
 > **不要**手改 `*.expected.json` / `*.save.*.json`。
 >
-> 最近一次重导：`genoffice_commit = f105f36`、`exported_at = 2026-09-08T03:14:56Z`
-> （见 `corpus/synthetic/manifest.jsonl` 首行；M7 7.9c 带 `changedParts` 的那次）。
+> 最近一次重导：`genoffice_commit = 248d9c91`、`exported_at = 2026-09-28T07:19:22Z`
+> （见 `corpus/synthetic/manifest.jsonl` 首行；genoffice `wjkj` 分支，docx-engine 与上游 genspark-ai/genoffice
+> main `c1f71f90` 相同；同时新增 `corpus/real/genoffice/`，见那里的 README）。
 
 ## 原理
 
