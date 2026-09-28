@@ -1197,3 +1197,20 @@ fn agent_06_ledger_bytes_equal_response_over_corpus() {
     assert!(checked > 10000, "覆盖过少: {checked}");
     assert!(with_anchors > 1000, "带锚点的页覆盖过少: {with_anchors}");
 }
+/// issue #9：sessionId 定宽，`minBytes` 不随会话序号 / pid 位数变，可跨会话携带。
+#[test]
+fn agent_06_min_bytes_is_independent_of_session_identity() {
+    let bytes = fixture();
+    let mut s = Sessions::default();
+    let b = Budget { limit: 8, max_bytes: 600 };
+    let mins: Vec<_> = (0..12)
+        .map(|_| {
+            let id = s.open(&bytes).unwrap();
+            assert_eq!(id.len(), "a".len() + 8 + 1 + 16 + 1 + 16);
+            let e = s.read(&id, &req(ReadTool::Text), Some(b), None, None).unwrap_err();
+            assert_eq!(e.code, "AGENT_BUDGET_TOO_SMALL");
+            e.details["minBytes"].clone()
+        })
+        .collect();
+    assert!(mins.windows(2).all(|w| w[0] == w[1]), "{mins:?}");
+}

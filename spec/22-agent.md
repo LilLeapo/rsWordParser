@@ -234,6 +234,7 @@ estimatedTokens=ceil(responseBytes/4)，两个计数字段一起求序列化大�
 取满足 limit 且按两形态较大成本装入 maxBytes 的最长单位前缀。若尚无一个单位能装入，返回
 `AGENT_BUDGET_TOO_SMALL {object,minLimit,minBytes}`，content 不返回，游标不消费；超过允许最大值则 AGENT_UNIT_TOO_LARGE。
 minBytes 是两种形态均可容纳该单位所需的最低预算，不能只报告实际选用形态的较小成本。
+会话标识定宽（`a{pid:08x}-{nonce:016x}-{seq:016x}`），minBytes 不依赖会话身份，可跨会话携带（issue #9）。
 不得拆长段、超预算返回、丢掉对象，或成功返回空页且 nextCursor 不前进。find 全范围无匹配可返回空页，truncated=false；不能把有待返回命中的超预算错误伪装成空页。
 
 分页拼接定义：字符串按原样拼接、数组按记录拼接；不拼接重复的信封元数据。结果等于同 snapshot/config/scope 的一次性规范投影；

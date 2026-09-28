@@ -132,11 +132,10 @@ A 的 text 首屏三代基准：2026-09-09 首测 **563.501 / 652.603 ms**（`bu
 里 project 0.642 ms、text_units 0.937 ms、整个 `page()` 0.432 ms，其中最终页的
 `response()` 只占 0.108 ms。
 
-一处与性能无关但值得记下的不确定性：`AGENT_BUDGET_TOO_SMALL` 的
-`details.minBytes` 会随进程 pid 的位数变几个字节——它量的是首个候选页信封，
-而那个信封里嵌着 `snapshot.sessionId`（text 页嵌两次），sessionId 含 pid。
-`usage.responseBytes` 本来就有同样的性质，两者一致，不是缺陷；跨进程比字节的
-工具要知道这件事（`tools/perf/compare-cli-bytes.mjs` 的复核机制就是为它设的）。
+`AGENT_BUDGET_TOO_SMALL` 的 `details.minBytes` 量的是首个候选页信封，那个信封里嵌着
+`snapshot.sessionId`（text 页嵌两次）。2026-09-28 起（issue #9）Agent sessionId 定宽
+（`a{pid:08x}-{nonce:016x}-{seq:016x}`，43 字符），`minBytes` 不再随 pid 位数或会话序号
+（`s9→s10`）变，可跨会话 / 跨进程携带；`agent_06_min_bytes_is_independent_of_session_identity` 守门。
 outline 的 UTF-16 包含记录 JSON，不是标题净文字数；原 26 标题整份记录的 5052 UTF-16 历史口径见下。
 估算 token 为 `ceil(实际信封 B / 4)`，例如 A 的 MCP text 首屏为 5729，非模型 tokenizer 实测。
 

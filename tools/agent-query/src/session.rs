@@ -165,9 +165,12 @@ impl Sessions {
     pub fn open(&mut self, bytes: &[u8]) -> Result<String> {
         let mut native = SessionTable::default();
         let native_id = native.open(bytes, None)?;
-        let nonce =
-            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
-        let id = format!("a{}-{nonce}-{native_id}", std::process::id());
+        // 定宽十六进制（AGENT-06）：信封里嵌着 sessionId，minBytes 按候选信封计量；
+        // 标识长度若随 pid 位数或会话序号（s9→s10）变，minBytes 就无法跨会话携带。
+        let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap();
+        let nonce = u64::try_from(nonce.as_nanos()).unwrap_or(u64::MAX);
+        let seq: u64 = native_id[1..].parse().expect("原生会话标识形如 s{n}");
+        let id = format!("a{:08x}-{nonce:016x}-{seq:016x}", std::process::id());
         self.sessions.insert(
             id.clone(),
             Session { native, native_id, version: 0, reports: Default::default() },

@@ -50,6 +50,7 @@ const RETRIES = 12;
 /// minBytes 就差几个字节。偏偏错误载荷本身**不含** sessionId，长度校验无从下手。
 /// 实测每跑满五万次调用会撞上 0–2 次（base 尾号 9 vs new 尾号 5，差 4 字节 = 2 位
 /// pid 差 × 2 处 snapshot）。真差异是确定的、重放必现；这类瞬时差异重放即消失。
+/// issue #9 之后 sessionId 定宽，这类差异只在对照旧二进制时出现；复核保留以兼容旧 base。
 const CONFIRM = 3;
 
 /** 预算档：默认 + 两档小预算。小预算专门逼出 AGENT_BUDGET_TOO_SMALL 与多页路径。 */
