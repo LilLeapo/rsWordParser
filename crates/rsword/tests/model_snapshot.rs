@@ -9,7 +9,7 @@ use common::UNOPENABLE;
 fn corpus() -> Vec<std::path::PathBuf> {
     let paths: Vec<_> =
         ["synthetic", "real", "hostile"].into_iter().flat_map(common::docx_paths).collect();
-    assert_eq!(paths.len(), 1103, "全语料数量漂移");
+    assert_eq!(paths.len(), 1520, "全语料数量漂移");
     paths
 }
 
@@ -59,7 +59,7 @@ fn test_10_full_corpus_model_snapshots_and_no_edit_save_identity() {
         projected += 1;
     }
     assert_eq!(refused, UNOPENABLE.into_iter().map(str::to_owned).collect());
-    assert_eq!(projected, 1099);
+    assert_eq!(projected, 1516);
     let mut found = BTreeSet::new();
     let mut pending = vec![root];
     while let Some(dir) = pending.pop() {
