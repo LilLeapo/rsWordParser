@@ -45,12 +45,13 @@ use crate::semantic::props::{
     Border, BorderStyle, Color, DropCap, FontHint, Fonts, FrameAnchor, FramePr, FrameWrap,
     HeightRule, HexColorOrAuto, HighlightColor, Indent, Jc, LineSpacingRule, NumPr, ParaBorders,
     ParaProps, RunProps, Shading, ShadingPattern, Spacing, Tab, TabJc, TabLeader, Tabs, Underline,
-    UnderlineKind, Val, VerticalAlignRun, emit_para_props, emit_run_props, order_index_run_props,
-    read_run_props,
+    UnderlineKind, Val, VerticalAlignRun, XAlign, YAlign, emit_para_props, emit_run_props,
+    order_index_para_props, order_index_run_props, read_run_props,
 };
 use crate::semantic::props::{DocProtect, NumberFormat, SectType};
 use crate::xml::{
-    Dirty, Dom, LocalName, NewElement, NodeId, NsId, QName, parse_fragment, parse_fragment_dom,
+    Dirty, Dom, LocalName, NewElement, NewNode, NodeId, NsId, QName, parse_fragment,
+    parse_fragment_dom,
 };
 
 /// `apply_save_blocks` 的结果。
@@ -582,7 +583,9 @@ pub fn apply_save_blocks(
     };
     let (ops, replace_images) = ops;
     let n = ops.len();
-    let results = session.apply_all(ops, &EditContext::default())?;
+    // TS 保存前整份 `balanceFieldChars`：删掉跨段字段的一端时配平，不拒绝
+    let results =
+        session.apply_all(ops, &EditContext::default().with_balance_split_fields(true))?;
     // `replaceImage`：块插好了，找到它第一个带 `a:blip` 的新块换媒体（TS 在插入前改字符串；我们改 DOM）
     let mut extra_ops = Vec::new();
     for (op_indices, (bytes, mime)) in replace_images {
@@ -945,9 +948,15 @@ impl Planner<'_> {
         p.style = match ty {
             "heading" => {
                 let level = num(blk, "level").map_or(1, |l| l as i64).clamp(1, 9) as u32;
-                s_of(blk, "styleId")
-                    .map(str::to_string)
-                    .or_else(|| self.heading_ids.get(&level).cloned())
+                if truthy(blk, "outlineOnly") {
+                    // 只进大纲、不改样式：`w:outlineLvl`，样式只用块自己的
+                    p.outline_lvl = Some(Val::Value(level as i32 - 1));
+                    s_of(blk, "styleId").map(str::to_string)
+                } else {
+                    s_of(blk, "styleId")
+                        .map(str::to_string)
+                        .or_else(|| self.heading_ids.get(&level).cloned())
+                }
             }
             "listItem" => s_of(blk, "styleId")
                 .map(str::to_string)
@@ -972,10 +981,12 @@ impl Planner<'_> {
                 ..Default::default()
             });
         }
-        if let Some(f) = blk.get("format").filter(|f| f.is_object()) {
-            format_into(f, &mut p);
-        }
-        (p != ParaProps::default()).then(|| emit_para_props(&p, self.flavor))
+        let extra = blk
+            .get("format")
+            .filter(|f| f.is_object())
+            .map(|f| format_into(f, &mut p))
+            .unwrap_or_default();
+        para_props_element(&p, extra, self.flavor)
     }
 
     /// TS `runsXml`：批注范围、超链接分组、修订分组。
@@ -1079,8 +1090,13 @@ impl Planner<'_> {
                         .is_some_and(|l| s_of(l, "href") == Some(href.as_str()))
                 {
                     let l = &runs[i]["link"];
+                    // 各自带 rId 的相邻 w:hyperlink 不合并，免得孤立一条关系
+                    let next = s_of(l, "rId");
+                    if i > start && next.is_some() && rid.is_some() && next != rid.as_deref() {
+                        break;
+                    }
                     if rid.is_none() {
-                        rid = s_of(l, "rId").map(str::to_string);
+                        rid = next.map(str::to_string);
                     }
                     if i == start {
                         tooltip = s_of(l, "tooltip").filter(|t| !t.is_empty()).map(str::to_string);
@@ -1153,12 +1169,28 @@ impl Planner<'_> {
                     props,
                 }));
             }
+            // TS `<w:r>${run.rawRPr ?? ''}${image.xml}</w:r>`：rPr 逐字照抄
             let mut r = NewElement::new(w(LocalName::R));
-            for e in parse_fragment(self.dom, xml)
-                .map_err(|e| unsupported(format!("image.xml 解析失败: {e}")))?
-            {
-                r.push_child(e);
+            for src in [s_of(run, "rawRPr").unwrap_or_default(), xml] {
+                for e in parse_fragment(self.dom, src)
+                    .map_err(|e| unsupported(format!("image.xml 解析失败: {e}")))?
+                {
+                    r.push_child(e);
+                }
             }
+            out.push(NewInline::Xml(r));
+            return Ok(());
+        }
+        if let Some(sym) = run.get("sym").filter(|v| v.is_object()) {
+            let mut r = NewElement::new(w(LocalName::R));
+            if let Some(props) = self.run_props(run, inside_link)? {
+                r.push_child(props);
+            }
+            r.push_child(
+                NewElement::new(w(LocalName::Sym))
+                    .with_attr(w(LocalName::Font), s_of(sym, "font").unwrap_or_default())
+                    .with_attr(w(LocalName::Char), s_of(sym, "char").unwrap_or_default()),
+            );
             out.push(NewInline::Xml(r));
             return Ok(());
         }
@@ -1179,82 +1211,169 @@ impl Planner<'_> {
             out.push(NewInline::Xml(r));
             return Ok(());
         }
-        // `FLD-12`：字段类 run 重新发成 begin / instrText / [separate] / 结果 / end
-        if let Some(term) = s_of(run, "xeTerm") {
-            // XE 是 `Marker` 策略：没有 separate 也没有结果
-            out.push(NewInline::marker_field(format!(r#"XE "{term}""#)));
-            return Ok(());
-        }
-        if run.get("refField").is_some_and(|v| !v.is_null()) {
+        let dirty = truthy(run, "fldDirty");
+        // `FLD-12`：字段类 run 重新发成 begin / instrText / separate / 结果 / end
+        if let Some(name) = s_of(run, "refField") {
             // 指令原文照发（`\r` `\h` 等开关必须逐字保留，`docs/03` §13）
             let instr = s_of(run, "refInstr")
-                .map(str::to_string)
-                .unwrap_or_else(|| format!("REF {}", s_of(run, "refField").unwrap_or_default()));
-            let text = s_of(run, "text").unwrap_or_default();
-            let props = self.run_props(run, inside_link)?;
-            let result = if text.is_empty() {
-                Vec::new()
-            } else {
-                vec![NewInline::Run(NewRun { text: text.to_string(), props })]
-            };
-            out.push(NewInline::field(instr, result));
+                .map_or_else(|| format!(r" REF {} \h ", name.replace('"', "")), str::to_string);
+            let mut result = Vec::new();
+            self.plain_run(
+                &strip(run, &["refField", "refInstr", "fldDirty"]),
+                inside_link,
+                &mut result,
+            )?;
+            out.push(NewInline::Field { instr, result, separate: true, dirty, props: None });
             return Ok(());
         }
-        for k in ["instrField", "fldBeginXml"] {
-            if run.get(k).is_some_and(|v| !v.is_null()) {
-                return Err(unsupported(format!(
-                    "run.{k}：表单域 / 简单内联字段的重发要 begin run 原字节（M7）"
-                )));
+        if let Some(sdt_pr) = s_of(run, "sdtCheckboxXml") {
+            // 每个框形字符是一个共用 `w:sdtPr` 的控件，`w14:checked` 按字符定；其余字符是旁边的普通 run
+            let (checked, unchecked) = sdt_checkbox_glyphs(sdt_pr);
+            let inner = strip(run, &["sdtCheckboxXml"]);
+            for (glyph, text) in split_glyphs(s_of(run, "text").unwrap_or_default(), |c| {
+                c == checked || c == unchecked
+            }) {
+                let piece = with_text(&inner, &text);
+                if !glyph {
+                    self.plain_run(&piece, inside_link, out)?;
+                    continue;
+                }
+                let on = text.starts_with(checked)
+                    || (!text.starts_with(unchecked)
+                        && text.starts_with(['☑', '☒', '✓', '✔', '✅']));
+                let mut pr = self.single(sdt_pr, "sdtCheckboxXml")?;
+                set_checked(&mut pr, QName::new(NsId::W14, LocalName::Checkbox), NsId::W14, on);
+                // 框形字符里没有控制字符，直接拼 `w:r`
+                let mut r = NewElement::new(w(LocalName::R));
+                if let Some(props) = self.run_props(&piece, inside_link)? {
+                    r.push_child(props);
+                }
+                r.push_child(
+                    NewElement::new(w(LocalName::T))
+                        .with_attr(QName::new(NsId::Xml, LocalName::Space), "preserve")
+                        .with_text(text),
+                );
+                out.push(NewInline::Xml(
+                    NewElement::new(w(LocalName::Sdt))
+                        .with_child(pr)
+                        .with_child(NewElement::new(w(LocalName::SdtContent)).with_child(r)),
+                ));
             }
-        }
-        let text = s_of(run, "text").unwrap_or_default();
-        if text.is_empty() {
             return Ok(());
         }
-        let props = self.run_props(run, inside_link)?;
-        out.push(NewInline::Run(NewRun { text: text.to_string(), props }));
+        if let Some(instr) = s_of(run, "instrField") {
+            let begin = || field_char("begin", dirty);
+            let instr_runs = [instr_text_run(&format!(" {instr} ")), field_char("separate", false)];
+            let cached =
+                strip(run, &["instrField", "zoteroFieldId", "zoteroFieldPart", "fldDirty"]);
+            match s_of(run, "zoteroFieldPart").filter(|p| *p != "single") {
+                // 跨段 Zotero 字段：begin 段发 begin + 指令，end 段发 end，中间只有缓存结果
+                Some(part) => {
+                    if part == "begin" {
+                        out.push(NewInline::Xml(field_char("begin", false)));
+                        out.extend(instr_runs.map(NewInline::Xml));
+                    }
+                    self.plain_run(&cached, inside_link, out)?;
+                    if part == "end" {
+                        out.push(NewInline::Xml(field_char("end", false)));
+                    }
+                }
+                None => match s_of(run, "fldBeginXml") {
+                    // 表单域：begin run 原字节（带 `w:ffData`）照发，run 文字是合成的框形字符
+                    Some(begin_xml) => {
+                        let plain = strip(run, &["instrField", "fldBeginXml"]);
+                        for (glyph, text) in
+                            split_glyphs(s_of(run, "text").unwrap_or_default(), |c| {
+                                c == '☐' || c == '☒'
+                            })
+                        {
+                            if !glyph {
+                                self.plain_run(&with_text(&plain, &text), inside_link, out)?;
+                                continue;
+                            }
+                            let mut b = self.single(begin_xml, "fldBeginXml")?;
+                            set_checked(&mut b, w(LocalName::CheckBox), NsId::W, text == "☒");
+                            out.push(NewInline::Xml(b));
+                            out.extend(instr_runs.clone().map(NewInline::Xml));
+                            out.push(NewInline::Xml(field_char("end", false)));
+                        }
+                    }
+                    None => {
+                        out.push(NewInline::Xml(begin()));
+                        out.extend(instr_runs.map(NewInline::Xml));
+                        self.plain_run(&cached, inside_link, out)?;
+                        out.push(NewInline::Xml(field_char("end", false)));
+                    }
+                },
+            }
+            return Ok(());
+        }
+        self.plain_run(run, inside_link, out)?;
+        if let Some(term) = s_of(run, "xeTerm") {
+            // XE 是 `Marker` 策略：没有 separate 也没有结果；引号会破坏指令语法，去掉
+            out.push(NewInline::marker_field(format!(r#"XE "{}""#, term.replace('"', ""))));
+        }
         Ok(())
     }
 
-    /// TS `generateRunXml` 的 `rPr`：`rawRPr` → `mergeRPrModel`；否则 `modelRPrChildren`。
+    /// TS `generateRunXml`：文字为空时不发 run。
+    fn plain_run(
+        &mut self,
+        run: &Value,
+        inside_link: bool,
+        out: &mut Vec<NewInline>,
+    ) -> Result<()> {
+        let text = s_of(run, "text").unwrap_or_default();
+        if !text.is_empty() {
+            let props = self.run_props(run, inside_link)?;
+            out.push(NewInline::Run(NewRun { text: text.to_string(), props }));
+        }
+        Ok(())
+    }
+
+    /// 单个顶层元素的 XML 片段（`fldBeginXml` / `sdtCheckboxXml`）。
+    fn single(&mut self, xml: &str, what: &str) -> Result<NewElement> {
+        let mut frags = parse_fragment(self.dom, xml)
+            .map_err(|e| unsupported(format!("{what} 解析失败: {e}")))?;
+        if frags.len() != 1 {
+            return Err(unsupported(format!("{what} 不是单个元素")));
+        }
+        Ok(frags.remove(0))
+    }
+
+    /// TS `runRPrXml`：`rawRPr` → `mergeRPrModel`；否则 `modelRPrChildren`。
     fn run_props(&mut self, run: &Value, inside_link: bool) -> Result<Option<NewElement>> {
         let flavor = self.flavor;
-        let Some(raw) = s_of(run, "rawRPr") else {
+        let fresh = || {
             let mut p = RunProps::default();
-            model_into(run, inside_link, &mut p, false);
+            model_into(run, inside_link, &mut p);
             let change = rpr_change_element(run);
             if p == RunProps::default() && change.is_none() {
-                return Ok(None);
+                return None;
             }
             let mut out = emit_run_props(&p, flavor);
-            if let Some(c) = change {
-                out.push_child(c);
-            }
-            return Ok(Some(out));
+            out.children.extend(change.map(NewNode::Element));
+            Some(out)
         };
+        let Some(raw) = s_of(run, "rawRPr") else { return Ok(fresh()) };
         let (tmp, tops) = parse_fragment_dom(self.dom, raw)
             .map_err(|e| unsupported(format!("rawRPr 解析失败: {e}")))?;
-        let rpr = tops.first().copied().filter(|&n| tmp.is(n, w(LocalName::RPr)));
-        let Some(rpr) = rpr else {
-            // '<w:rPr/>' 或无法识别：按模型重建
-            let mut p = RunProps::default();
-            model_into(run, inside_link, &mut p, false);
-            let change = rpr_change_element(run);
-            if p == RunProps::default() && change.is_none() {
-                return Ok(None);
-            }
-            let mut out = emit_run_props(&p, flavor);
-            if let Some(c) = change {
-                out.push_child(c);
-            }
-            return Ok(Some(out));
+        // '<w:rPr/>' 或无法识别：按模型重建
+        let Some(rpr) = tops
+            .first()
+            .copied()
+            .filter(|&n| tmp.is(n, w(LocalName::RPr)) && !tmp.children(n).is_empty())
+        else {
+            return Ok(fresh());
         };
         let mut diags = Vec::new();
         let mut p = read_run_props(&tmp, Some(rpr), &mut diags);
         let cs = truthy(run, "cs") || p.rtl == Some(true);
         merge_model(run, inside_link, cs, &mut p);
-        // 未建模子元素：`w:rPrChange` 由模型接管（JSON 无 rPrChange → 丢弃），其余原位保留
+        // `w:rPrChange` 一组：两边都有 → 原字节；只有模型有 → 按模型发；只有原字节有 → 丢
+        let model_change = run.get("rPrChange").is_some_and(Value::is_object);
         let raw_kids: Vec<NodeId> = tmp.children(rpr).to_vec();
+        let raw_change = raw_kids.iter().any(|&c| tmp.is(c, w(LocalName::RPrChange)));
         let mut extra: Vec<(u16, u8, NewElement)> = Vec::new();
         let mut last_idx = 0u16;
         for &c in &raw_kids {
@@ -1263,7 +1382,7 @@ impl Planner<'_> {
                 last_idx = idx;
             }
             if p.raw_unmodeled.contains(&c)
-                && !tmp.is(c, w(LocalName::RPrChange))
+                && (!tmp.is(c, w(LocalName::RPrChange)) || model_change)
                 && let Some(e) = NewElement::from_dom(&tmp, c, self.dom.interner_mut())
             {
                 extra.push((order_index_run_props(name).unwrap_or(last_idx), 1, e));
@@ -1276,7 +1395,7 @@ impl Planner<'_> {
             .map(|e| (order_index_run_props(e.name).unwrap_or(u16::MAX), 0, e.clone()))
             .collect();
         all.extend(extra);
-        if let Some(change) = rpr_change_element(run) {
+        if let Some(change) = rpr_change_element(run).filter(|_| !raw_change) {
             all.push((order_index_run_props(change.name).unwrap_or(u16::MAX), 2, change));
         }
         all.sort_by_key(|(idx, sub, _)| (*idx, *sub));
@@ -1289,6 +1408,103 @@ impl Planner<'_> {
         }
         Ok(Some(out))
     }
+}
+
+/// `run` 去掉若干键（TS `{ ...run, k: undefined }`）。
+fn strip(run: &Value, keys: &[&str]) -> Value {
+    let mut v = run.clone();
+    if let Some(m) = v.as_object_mut() {
+        for k in keys {
+            m.remove(*k);
+        }
+    }
+    v
+}
+
+/// `run` 换一段文字（TS `{ ...run, text }`）。
+fn with_text(run: &Value, text: &str) -> Value {
+    let mut v = run.clone();
+    v["text"] = Value::String(text.to_string());
+    v
+}
+
+/// TS `splitGlyphRuns`：每个框形字符单独一段（`true`），其余字符按连续段合并（`false`）。
+fn split_glyphs(text: &str, is_glyph: impl Fn(char) -> bool) -> Vec<(bool, String)> {
+    let mut out = Vec::new();
+    let mut plain = String::new();
+    for c in text.chars() {
+        if is_glyph(c) {
+            if !plain.is_empty() {
+                out.push((false, std::mem::take(&mut plain)));
+            }
+            out.push((true, c.to_string()));
+        } else {
+            plain.push(c);
+        }
+    }
+    if !plain.is_empty() {
+        out.push((false, plain));
+    }
+    out
+}
+
+/// TS `sdtCheckboxGlyphs`：`w14:checkedState` / `w14:uncheckedState` 的十六进制码位，缺省 ☒ / ☐。
+fn sdt_checkbox_glyphs(sdt_pr: &str) -> (char, char) {
+    let state = |name: &str, fallback: char| {
+        let at = sdt_pr.find(&format!("<w14:{name}"))?;
+        let tag = &sdt_pr[at..at + sdt_pr[at..].find('>')?];
+        let val = &tag[tag.find("w14:val=")? + "w14:val=".len()..];
+        let quote = val.chars().next().filter(|q| matches!(q, '"' | '\''))?;
+        let hex = &val[1..1 + val[1..].find(quote)?];
+        u32::from_str_radix(hex, 16)
+            .ok()
+            .filter(|&c| c > 0)
+            .and_then(char::from_u32)
+            .or(Some(fallback))
+    };
+    (state("checkedState", '☒').unwrap_or('☒'), state("uncheckedState", '☐').unwrap_or('☐'))
+}
+
+/// 把 `container`（`w:checkBox` / `w14:checkbox`）里的 `checked` 换成 `on`：删掉所有旧的
+/// `checked`，在容器末尾补一个（TS `syncedField` / `syncSdtCheckbox`）。
+fn set_checked(root: &mut NewElement, container: QName, ns: NsId, on: bool) {
+    let checked = QName::new(ns, LocalName::Checked);
+    let mut stack = vec![root];
+    let mut done = false;
+    while let Some(e) = stack.pop() {
+        e.children.retain(|c| !matches!(c, NewNode::Element(x) if x.name == checked));
+        if e.name == container && !done {
+            done = true;
+            e.push_child(
+                NewElement::new(checked)
+                    .with_attr(QName::new(ns, LocalName::Val), if on { "1" } else { "0" }),
+            );
+            continue;
+        }
+        for c in &mut e.children {
+            if let NewNode::Element(x) = c {
+                stack.push(x);
+            }
+        }
+    }
+}
+
+/// `<w:r><w:fldChar w:fldCharType=kind [w:dirty="true"]/></w:r>`。
+fn field_char(kind: &str, dirty: bool) -> NewElement {
+    let mut fld = NewElement::new(w(LocalName::FldChar)).with_attr(w(LocalName::FldCharType), kind);
+    if dirty {
+        fld.push_attr(w(LocalName::Dirty), "true");
+    }
+    NewElement::new(w(LocalName::R)).with_child(fld)
+}
+
+/// `<w:r><w:instrText xml:space="preserve">…</w:instrText></w:r>`（指令逐字，不 trim）。
+fn instr_text_run(instr: &str) -> NewElement {
+    NewElement::new(w(LocalName::R)).with_child(
+        NewElement::new(w(LocalName::InstrText))
+            .with_attr(QName::new(NsId::Xml, LocalName::Space), "preserve")
+            .with_text(instr),
+    )
 }
 
 /// `runs[].rPrChange` → `w:rPrChange`（TS `revisionRPrChangeXml`，任务 7.2b）。
@@ -1313,16 +1529,10 @@ fn rpr_change_element(run: &Value) -> Option<NewElement> {
         val(&mut inner, LocalName::RStyle, style);
     }
     let (font, ascii) = (s_old("font"), s_old("fontAscii"));
-    if font.is_some() || ascii.is_some() {
-        let a = ascii.or(font).unwrap_or_default().to_string();
-        let mut f = NewElement::new(w(LocalName::RFonts));
-        f.push_attr(QName::w(LocalName::Ascii), a.clone());
-        if let Some(ea) = font {
-            f.push_attr(QName::w(LocalName::EastAsia), ea.to_string());
-        }
-        f.push_attr(QName::w(LocalName::HAnsi), a.clone());
-        f.push_attr(QName::w(LocalName::Cs), a);
-        inner.push_child(f);
+    if font.is_some_and(|f| !f.is_empty()) || ascii.is_some_and(|f| !f.is_empty()) {
+        let p =
+            RunProps { fonts: Some(fresh_fonts(font, ascii, None, None)), ..Default::default() };
+        inner.children.extend(emit_run_props(&p, PartFlavor::Transitional).children);
     }
     for (k, local) in
         [("bold", LocalName::B), ("italic", LocalName::I), ("strike", LocalName::Strike)]
@@ -1513,30 +1723,55 @@ fn hex_upper(c: &HexColorOrAuto) -> Option<String> {
     c.rgb().map(|[r, g, b]| format!("{r:02X}{g:02X}{b:02X}"))
 }
 
-/// TS `freshRFontsXml`。
-fn fresh_fonts(font: Option<&str>, ascii: Option<&str>, cs: Option<&str>) -> Fonts {
-    let a = ascii.or(font).or(cs).unwrap_or("").to_string();
+/// TS `freshRFontsXml`：只写模型持有的槽位；单独一个 `font`（旧调用方）才填满四个槽。
+fn fresh_fonts(
+    font: Option<&str>,
+    ascii: Option<&str>,
+    cs: Option<&str>,
+    east_asia: Option<&str>,
+) -> Fonts {
+    let some = |v: Option<&str>| v.filter(|s| !s.is_empty()).map(str::to_string);
+    let legacy = font.filter(|_| ascii.is_none() && east_asia.is_none());
+    let a = some(ascii.or(legacy));
+    // 纯西文 run 两个槽同名：写成 eastAsia 会把中日韩文字钉到西文字体上
+    let ea = east_asia.or(if ascii.is_some() && font == ascii { None } else { font });
     Fonts {
-        ascii: Some(a.clone()),
-        h_ansi: Some(a.clone()),
-        east_asia: font.map(str::to_string),
-        cs: Some(cs.map_or(a, str::to_string)),
+        ascii: a.clone(),
+        h_ansi: a,
+        east_asia: some(ea),
+        cs: some(cs.or(legacy)),
         ..Default::default()
     }
 }
 
-/// TS `modelRPrChildren`：把 JSON run 的建模字段写进 `p`（`fresh_fonts` 由 `with_fonts` 控制）。
-fn model_into(run: &Value, inside_link: bool, p: &mut RunProps, keep_fonts: bool) {
-    p.style = if inside_link {
-        Some("Hyperlink".to_string())
-    } else {
-        s_of(run, "styleId").map(str::to_string)
-    };
-    if !keep_fonts {
-        let (font, ascii, cs) = (s_of(run, "font"), s_of(run, "fontAscii"), s_of(run, "fontCs"));
-        p.fonts = (font.is_some() || ascii.is_some() || cs.is_some())
-            .then(|| fresh_fonts(font, ascii, cs));
+/// TS `run.color`：六位十六进制或 `auto`；别的写法原样保留。
+fn color_of(c: &str) -> Color {
+    Color {
+        val: Some(hex(c).map_or_else(|| Val::Raw(c.to_string()), Val::Value)),
+        ..Default::default()
     }
+}
+
+fn on_off(run: &Value, k: &str) -> Option<bool> {
+    run.get(k).and_then(Value::as_bool)
+}
+
+fn int_of(run: &Value, k: &str) -> Option<i64> {
+    run.get(k).and_then(Value::as_f64).map(|x| x as i64)
+}
+
+/// TS `modelRPrChildren`：JSON run 的建模字段 → `p`（一个字段对应解析侧 `buildRun` 读的一个元素）。
+fn model_into(run: &Value, inside_link: bool, p: &mut RunProps) {
+    let plain = run.get("link").is_some_and(|l| truthy(l, "plain"));
+    p.style = s_of(run, "styleId")
+        .or((inside_link && !plain).then_some("Hyperlink"))
+        .filter(|s| !s.is_empty())
+        .map(str::to_string);
+    let (font, ascii, cs) = (s_of(run, "font"), s_of(run, "fontAscii"), s_of(run, "fontCs"));
+    p.fonts = [font, ascii, cs]
+        .iter()
+        .any(|f| f.is_some_and(|f| !f.is_empty()))
+        .then(|| fresh_fonts(font, ascii, cs, s_of(run, "eastAsiaFont")));
     let b = truthy(run, "bold");
     p.bold = b.then_some(true);
     p.bold_cs = b.then_some(true);
@@ -1544,13 +1779,25 @@ fn model_into(run: &Value, inside_link: bool, p: &mut RunProps, keep_fonts: bool
     p.italic = i.then_some(true);
     p.italic_cs = i.then_some(true);
     p.strike = truthy(run, "strike").then_some(true);
-    p.color = s_of(run, "color")
-        .and_then(hex)
-        .map(|c| Color { val: Some(Val::Value(c)), ..Default::default() });
+    (p.caps, p.small_caps) = match s_of(run, "caps") {
+        Some("all") => (Some(true), None),
+        Some("small") => (None, Some(true)),
+        Some("none") => (Some(false), Some(false)),
+        _ => (None, None),
+    };
+    p.dstrike = on_off(run, "dstrike");
+    p.vanish = on_off(run, "vanishOwn");
+    p.color = s_of(run, "color").filter(|c| !c.is_empty()).map(color_of);
+    p.spacing = int_of(run, "charSpacingTwips").map(|n| Val::Value(n as i32));
+    p.scale = int_of(run, "charScalePct").filter(|&n| n != 0).map(|n| Val::Value(n as u32));
+    p.kern = int_of(run, "kernHalfPoints").map(|n| Val::Value(n as u32));
+    p.position =
+        int_of(run, "positionHalfPoints").filter(|&n| n != 0).map(|n| Val::Value(n as i32));
     let sz = num(run, "sizeHalfPoints").map(|x| x as u32).filter(|&x| x != 0);
     p.size = sz.map(Val::Value);
     p.size_cs = sz.map(Val::Value);
     p.highlight = s_of(run, "highlight")
+        .filter(|h| !h.is_empty())
         .map(|h| HighlightColor::parse(h).map_or_else(|| Val::Raw(h.to_string()), Val::Value));
     p.underline = truthy(run, "underline")
         .then(|| Underline { val: Some(Val::Value(UnderlineKind::Single)), ..Default::default() });
@@ -1568,102 +1815,137 @@ fn model_into(run: &Value, inside_link: bool, p: &mut RunProps, keep_fonts: bool
     p.rtl = truthy(run, "rtl").then_some(true);
 }
 
-/// TS `mergeRPrModel` 的分组比较：相等的组保留 `p` 里的原值，不等的组按模型重写。
-fn merge_model(run: &Value, inside_link: bool, cs: bool, p: &mut RunProps) {
-    let raw_bool = |v: Option<bool>| v == Some(true);
-    // rStyle
-    let modeled = if inside_link { Some("Hyperlink") } else { s_of(run, "styleId") };
-    let raw_style = p.style.as_deref();
-    if !(raw_style == modeled || (raw_style == Some("Hyperlink") && modeled.is_none())) {
-        p.style = modeled.map(str::to_string);
+/// 原 `w:color` / `w:shd` 的写法（`Val` 回到属性原文，大写十六进制）。
+fn color_text(v: &Val<HexColorOrAuto>) -> Option<String> {
+    match v {
+        Val::Value(HexColorOrAuto::Auto) => Some("auto".to_string()),
+        Val::Value(c) => hex_upper(c),
+        Val::Raw(s) => Some(s.clone()),
     }
-    // rFonts
-    {
-        let (font, ascii_m, cs_m) =
-            (s_of(run, "font"), s_of(run, "fontAscii"), s_of(run, "fontCs"));
-        let theme = run.get("themeRFonts").filter(|t| t.is_object());
-        let t_font = theme.and_then(|t| s_of(t, "font"));
-        let t_ascii = theme.and_then(|t| s_of(t, "fontAscii"));
-        let f = p.fonts.clone();
-        let raw_ascii: Option<String> =
-            f.as_ref().and_then(|f| f.ascii.clone().or(f.h_ansi.clone()));
-        let raw_primary: Option<String> =
-            f.as_ref().and_then(|f| f.east_asia.clone()).or(raw_ascii.clone());
-        let raw_cs: Option<String> = f.as_ref().and_then(|f| f.cs.clone());
-        let equal = (raw_primary.as_deref() == font || (font.is_some() && font == t_font))
-            && (raw_ascii.as_deref() == ascii_m || (ascii_m.is_some() && ascii_m == t_ascii))
-            && (cs_m.is_none() || raw_cs.as_deref() == cs_m);
-        if !equal {
-            if let Some(mut rf) = f.filter(|_| font.is_some() || ascii_m.is_some()) {
-                // mergeRFontsXml：只改模型持有的槽，去掉对应 theme 属性
+}
+
+/// TS `mergeRPrModel` 的分组比较：模型值与原编码相等的组保留 `p` 里的原值，不等的组按模型重建
+/// （`w:rFonts` 例外：原元素在就只改模型持有的槽，见 `mergeRFontsXml`）。
+fn merge_model(run: &Value, inside_link: bool, cs: bool, p: &mut RunProps) {
+    let mut fresh = RunProps::default();
+    model_into(run, inside_link, &mut fresh);
+    macro_rules! rebuild {
+        ($($f:ident),+) => { $(p.$f = fresh.$f.take();)+ };
+    }
+    let on = |v: Option<bool>| v == Some(true);
+    let link = run.get("link").filter(|l| l.is_object());
+    // rStyle
+    let style_equal = match (s_of(run, "styleId"), p.style.as_deref()) {
+        (Some(m), raw) => raw == Some(m),
+        (None, None) => {
+            !inside_link || link.is_some_and(|l| s_of(l, "rId").is_some() || truthy(l, "plain"))
+        }
+        (None, Some(raw)) => raw == "Hyperlink",
+    };
+    if !style_equal {
+        rebuild!(style);
+    }
+    // rFonts：主槽 = eastAsia ?? ascii ?? hAnsi，西文槽 = ascii ?? hAnsi，复杂文种槽 = 字面 w:cs
+    let (font, ascii_m, cs_m, ea_m) =
+        (s_of(run, "font"), s_of(run, "fontAscii"), s_of(run, "fontCs"), s_of(run, "eastAsiaFont"));
+    let theme = run.get("themeRFonts").filter(|t| t.is_object());
+    let (t_font, t_ascii) =
+        (theme.and_then(|t| s_of(t, "font")), theme.and_then(|t| s_of(t, "fontAscii")));
+    let f = p.fonts.as_ref();
+    let raw_ea = f.and_then(|f| f.east_asia.as_deref());
+    let raw_ascii = f.and_then(|f| f.ascii.as_deref().or(f.h_ansi.as_deref()));
+    let fonts_equal = (raw_ea.or(raw_ascii) == font || (font.is_some() && font == t_font))
+        && (raw_ascii == ascii_m || (ascii_m.is_some() && ascii_m == t_ascii))
+        && (ea_m.is_none() || raw_ea == ea_m || ea_m == t_font)
+        && (cs_m.is_none() || f.and_then(|f| f.cs.as_deref()) == cs_m);
+    if !fonts_equal {
+        match p.fonts.take() {
+            Some(mut rf) if font.is_some() || ascii_m.is_some() => {
+                let raw_primary = rf.east_asia.clone().or(rf.ascii.clone()).or(rf.h_ansi.clone());
                 let had_ea = rf.east_asia.is_some() || rf.east_asia_theme.is_some();
-                let raw_primary_owned = raw_primary.clone();
-                if let Some(a) = ascii_m
-                    && Some(a) != t_ascii
-                {
+                if let Some(a) = ascii_m.filter(|a| !a.is_empty() && Some(*a) != t_ascii) {
                     rf.ascii = Some(a.to_string());
                     rf.h_ansi = Some(a.to_string());
                     rf.ascii_theme = None;
                     rf.h_ansi_theme = None;
                 }
-                if let Some(fo) = font
-                    && Some(fo) != t_font
-                    && (had_ea || Some(fo) != raw_primary_owned.as_deref())
+                if let Some(fo) = font.filter(|fo| !fo.is_empty() && Some(*fo) != t_font)
+                    && (had_ea || Some(fo) != raw_primary.as_deref() || ea_m.is_some())
                 {
                     rf.east_asia = Some(fo.to_string());
                     rf.east_asia_theme = None;
                 }
-                if let Some(c) = cs_m {
+                if let Some(c) = cs_m.filter(|c| !c.is_empty()) {
                     rf.cs = Some(c.to_string());
                     rf.cs_theme = None;
                 }
                 p.fonts = Some(rf);
-            } else {
-                p.fonts = (font.is_some() || ascii_m.is_some() || cs_m.is_some())
-                    .then(|| fresh_fonts(font, ascii_m, cs_m));
+            }
+            _ => {
+                rebuild!(fonts);
             }
         }
     }
     // bold / italic（rtl 时比较 Cs 孪生）
-    let b = truthy(run, "bold");
-    if raw_bool(if cs { p.bold_cs } else { p.bold }) != b {
-        p.bold = b.then_some(true);
-        p.bold_cs = b.then_some(true);
+    if on(if cs { p.bold_cs } else { p.bold }) != truthy(run, "bold") {
+        rebuild!(bold, bold_cs);
     }
-    let it = truthy(run, "italic");
-    if raw_bool(if cs { p.italic_cs } else { p.italic }) != it {
-        p.italic = it.then_some(true);
-        p.italic_cs = it.then_some(true);
+    if on(if cs { p.italic_cs } else { p.italic }) != truthy(run, "italic") {
+        rebuild!(italic, italic_cs);
     }
-    let st = truthy(run, "strike");
-    if raw_bool(p.strike) != st {
-        p.strike = st.then_some(true);
+    if on(p.strike) != truthy(run, "strike") {
+        rebuild!(strike);
     }
-    // color
-    let raw_color = p.color.as_ref().and_then(|c| c.val.as_ref()).and_then(|v| match v {
-        Val::Value(c) => hex_upper(c),
-        Val::Raw(s) => Some(s.clone()),
-    });
-    let model_color = s_of(run, "color");
-    if !raw_color
-        .as_deref()
-        .map(str::to_ascii_uppercase)
-        .as_deref()
-        .eq(&model_color.map(str::to_ascii_uppercase).as_deref())
+    // caps：w:caps 压过 w:smallCaps；任一显式关闭读作 none
+    let raw_caps = match (p.caps, p.small_caps) {
+        (Some(true), _) => Some("all"),
+        (_, Some(true)) => Some("small"),
+        (Some(false), _) | (_, Some(false)) => Some("none"),
+        _ => None,
+    };
+    if raw_caps != s_of(run, "caps") {
+        rebuild!(caps, small_caps);
+    }
+    if on(p.dstrike) != truthy(run, "dstrike") {
+        rebuild!(dstrike);
+    }
+    // vanish 可能来自样式链；只比 run 自己的值
+    if let Some(own) = on_off(run, "vanishOwn")
+        && p.vanish != Some(own)
     {
-        p.color = model_color
-            .and_then(hex)
-            .map(|c| Color { val: Some(Val::Value(c)), ..Default::default() });
+        rebuild!(vanish);
+    }
+    let raw_int = |v: &Option<Val<i32>>| v.as_ref().and_then(Val::value).map(|&n| i64::from(n));
+    let raw_uint = |v: &Option<Val<u32>>| v.as_ref().and_then(Val::value).map(|&n| i64::from(n));
+    if raw_int(&p.spacing) != int_of(run, "charSpacingTwips") {
+        rebuild!(spacing);
+    }
+    if raw_uint(&p.scale).filter(|&n| n != 0 && n != 100) != int_of(run, "charScalePct") {
+        rebuild!(scale);
+    }
+    let raw_kern = p.kern.as_ref().map(|v| v.value().map_or(0, |&n| i64::from(n)));
+    if raw_kern != int_of(run, "kernHalfPoints") {
+        rebuild!(kern);
+    }
+    if raw_int(&p.position).filter(|&n| n != 0) != int_of(run, "positionHalfPoints") {
+        rebuild!(position);
+    }
+    // color：主题色解析出的模型值永远不等于缓存的字面值；重建会把主题引用物化掉
+    let raw_color = p.color.as_ref().and_then(|c| c.val.as_ref()).and_then(color_text);
+    let model_color = s_of(run, "color");
+    let color_equal = raw_color.as_deref().map(str::to_ascii_uppercase)
+        == model_color.map(str::to_ascii_uppercase)
+        || (model_color.is_some() && model_color == s_of(run, "themeColor"));
+    if !color_equal {
+        rebuild!(color);
     }
     // size
     let raw_size = (if cs { &p.size_cs } else { &p.size })
         .as_ref()
         .and_then(|v| v.value().copied())
         .filter(|&x| x != 0);
-    let model_size = num(run, "sizeHalfPoints").map(|x| x as u32).filter(|&x| x != 0);
-    if raw_size != model_size {
-        p.size = model_size.map(Val::Value);
-        p.size_cs = model_size.map(Val::Value);
+    if raw_size != num(run, "sizeHalfPoints").map(|x| x as u32).filter(|&x| x != 0) {
+        rebuild!(size, size_cs);
     }
     // highlight
     let raw_hl = p.highlight.as_ref().and_then(|v| match v {
@@ -1672,23 +1954,19 @@ fn merge_model(run: &Value, inside_link: bool, cs: bool, p: &mut RunProps) {
         Val::Raw(s) => Some(s.clone()),
     });
     if raw_hl.as_deref() != s_of(run, "highlight") {
-        p.highlight = s_of(run, "highlight")
-            .map(|h| HighlightColor::parse(h).map_or_else(|| Val::Raw(h.to_string()), Val::Value));
+        rebuild!(highlight);
     }
     // shading
-    let raw_shd = p.shading.as_ref().and_then(|s| s.fill.as_ref()).and_then(|v| match v {
-        Val::Value(c) => hex_upper(c),
-        Val::Raw(s) => Some(s.clone()),
-    });
+    let raw_shd = p
+        .shading
+        .as_ref()
+        .and_then(|s| s.fill.as_ref())
+        .and_then(color_text)
+        .filter(|s| s != "auto");
     if raw_shd.as_deref().map(str::to_ascii_uppercase)
         != s_of(run, "shading").map(str::to_ascii_uppercase)
     {
-        p.shading = s_of(run, "shading").and_then(hex).map(|fill| Shading {
-            val: Some(Val::Value(ShadingPattern::Clear)),
-            color: Some(Val::Value(HexColorOrAuto::Auto)),
-            fill: Some(Val::Value(fill)),
-            ..Default::default()
-        });
+        rebuild!(shading);
     }
     // underline：有 w:val 且不是 none
     let raw_u = p
@@ -1697,10 +1975,7 @@ fn merge_model(run: &Value, inside_link: bool, cs: bool, p: &mut RunProps) {
         .and_then(|u| u.val.as_ref())
         .is_some_and(|v| *v != Val::Value(UnderlineKind::None));
     if raw_u != truthy(run, "underline") {
-        p.underline = truthy(run, "underline").then(|| Underline {
-            val: Some(Val::Value(UnderlineKind::Single)),
-            ..Default::default()
-        });
+        rebuild!(underline);
     }
     // vertAlign
     let raw_va = match p.vert_align.as_ref() {
@@ -1709,30 +1984,44 @@ fn merge_model(run: &Value, inside_link: bool, cs: bool, p: &mut RunProps) {
         _ => None,
     };
     if raw_va != s_of(run, "vertAlign") {
-        p.vert_align = match s_of(run, "vertAlign") {
-            Some("superscript") => Some(Val::Value(VerticalAlignRun::Superscript)),
-            Some("subscript") => Some(Val::Value(VerticalAlignRun::Subscript)),
-            _ => None,
-        };
+        rebuild!(vert_align);
     }
-    // rtl
-    let r = truthy(run, "rtl");
-    if raw_bool(p.rtl) != r {
-        p.rtl = r.then_some(true);
+    if on(p.rtl) != truthy(run, "rtl") {
+        rebuild!(rtl);
     }
 }
 
 /// TS `formatPPrChildren`（`ParaFormat` → `ParaProps` 字段）。
-fn format_into(f: &Value, p: &mut ParaProps) {
+///
+/// 返回 `ParaProps` 没有建模的两项（`w:suppressLineNumbers` / `w:textDirection`），交给
+/// [`para_props_element`] 按 `PROP-05` 顺序插回。
+fn format_into(f: &Value, p: &mut ParaProps) -> Vec<NewElement> {
+    let mut extra = Vec::new();
     if truthy(f, "pageBreakBefore") {
         p.page_break_before = Some(true);
+    }
+    // 三态标志：缺省 = 没改（原字节保留），false = 显式 w:val="0" 盖过样式
+    p.keep_next = on_off(f, "keepNext");
+    p.keep_lines = on_off(f, "keepLines");
+    p.widow_control = on_off(f, "widowControl");
+    p.contextual_spacing = on_off(f, "contextualSpacing");
+    if let Some(on) = on_off(f, "suppressLineNumbers") {
+        let mut e = NewElement::new(w(LocalName::SuppressLineNumbers));
+        if !on {
+            e.push_attr(w(LocalName::Val), "0");
+        }
+        extra.push(e);
+    }
+    if let Some(dir) = s_of(f, "textDirection") {
+        extra.push(NewElement::new(w(LocalName::TextDirection)).with_attr(w(LocalName::Val), dir));
     }
     if let Some(sides) = s_of(f, "borders") {
         let style = f.get("borderStyle").filter(|s| s.is_object());
         let default_sz =
             style.and_then(|s| num(s, "szEighths")).map_or(4, |x| round(x).max(2)) as u32;
+        // ECMA-376 17.3.4：省略的 w:space 就是 0
         let space =
-            style.and_then(|s| num(s, "spacePt")).map_or(1, |x| round(x).clamp(0, 31)) as u32;
+            style.and_then(|s| num(s, "spacePt")).map_or(0, |x| round(x).clamp(0, 31)) as u32;
         let default_color =
             style.and_then(|s| s_of(s, "color")).and_then(hex).unwrap_or(HexColorOrAuto::Auto);
         let lines = f.get("borderLines").filter(|l| l.is_object());
@@ -1744,6 +2033,9 @@ fn format_into(f: &Value, p: &mut ParaProps) {
                 .map_or(default_sz, |x| round(x * 8.0).max(1) as u32);
             let color =
                 declared.and_then(|d| s_of(d, "color")).and_then(hex).unwrap_or(default_color);
+            let space = declared
+                .and_then(|d| num(d, "spacePt"))
+                .map_or(space, |x| round(x).clamp(0, 31) as u32);
             Border {
                 val: Some(Val::Value(BorderStyle::Single)),
                 sz: Some(Val::Value(sz)),
@@ -1820,11 +2112,11 @@ fn format_into(f: &Value, p: &mut ParaProps) {
         if let Some(l) = num(f, "indentLeft") {
             ind.start = Some(Val::Value(round(l)));
         }
-        if let Some(r) = num(f, "indentRight").filter(|&x| x != 0.0) {
+        if let Some(r) = num(f, "indentRight") {
             ind.end = Some(Val::Value(round(r)));
         }
-        if let Some(fl) = num(f, "indentFirstLine").filter(|&x| x != 0.0) {
-            if fl > 0.0 {
+        if let Some(fl) = num(f, "indentFirstLine") {
+            if fl >= 0.0 {
                 ind.first_line = Some(Val::Value(round(fl)));
             } else {
                 ind.hanging = Some(Val::Value(round(-fl)));
@@ -1844,7 +2136,7 @@ fn format_into(f: &Value, p: &mut ParaProps) {
     if let Some(stops) = f.get("tabStops").and_then(Value::as_array) {
         let tabs: Vec<Tab> = stops
             .iter()
-            .filter(|ts| !truthy(ts, "rel"))
+            .filter(|ts| !truthy(ts, "rel") && !truthy(ts, "inherited"))
             .map(|ts| Tab {
                 val: s_of(ts, "val")
                     .map(|v| TabJc::parse(v).map_or_else(|| Val::Raw(v.to_string()), Val::Value)),
@@ -1873,6 +2165,13 @@ fn format_into(f: &Value, p: &mut ParaProps) {
             h_anchor: anchor("hAnchor"),
             x: num(fr, "xTwips").map(|x| Val::Value(round(x))),
             y: num(fr, "yTwips").map(|x| Val::Value(round(x))),
+            v_space: num(fr, "vSpaceTwips").filter(|&x| x != 0.0).map(|x| Val::Value(round(x))),
+            h_space: num(fr, "hSpaceTwips").filter(|&x| x != 0.0).map(|x| Val::Value(round(x))),
+            x_align: s_of(fr, "xAlign")
+                .map(|a| XAlign::parse(a).map_or_else(|| Val::Raw(a.to_string()), Val::Value)),
+            y_align: s_of(fr, "yAlign")
+                .map(|a| YAlign::parse(a).map_or_else(|| Val::Raw(a.to_string()), Val::Value)),
+            anchor_lock: truthy(fr, "anchorLock").then_some(true),
             ..Default::default()
         };
         if let Some(h) = num(fr, "hTwips") {
@@ -1901,6 +2200,32 @@ fn format_into(f: &Value, p: &mut ParaProps) {
             ..Default::default()
         });
     }
+    extra
+}
+
+/// `ParaProps` + [`format_into`] 的额外子元素 → `w:pPr`（全空则 `None`）。
+fn para_props_element(
+    p: &ParaProps,
+    extra: Vec<NewElement>,
+    flavor: PartFlavor,
+) -> Option<NewElement> {
+    if *p == ParaProps::default() && extra.is_empty() {
+        return None;
+    }
+    let mut out = emit_para_props(p, flavor);
+    for e in extra {
+        let rank = order_index_para_props(e.name);
+        let at = out
+            .children
+            .iter()
+            .position(|c| match c {
+                NewNode::Element(x) => order_index_para_props(x.name) > rank,
+                NewNode::Text(_) => false,
+            })
+            .unwrap_or(out.children.len());
+        out.children.insert(at, NewNode::Element(e));
+    }
+    Some(out)
 }
 
 // 让未使用的导入在功能面变化时报错而不是静默
@@ -1999,8 +2324,8 @@ impl Planner<'_> {
         let mut out = Vec::new();
         for para in paras.iter().filter(|p| p.get("cells").is_none_or(Value::is_null)) {
             let mut p = ParaProps::default();
-            format_into(para, &mut p);
-            let props = (p != ParaProps::default()).then(|| emit_para_props(&p, self.flavor));
+            let extra = format_into(para, &mut p);
+            let props = para_props_element(&p, extra, self.flavor);
             let mut inlines = Vec::new();
             for run in para.get("runs").and_then(Value::as_array).into_iter().flatten() {
                 let t = s_of(run, "text").unwrap_or_default();
@@ -2069,7 +2394,7 @@ impl Planner<'_> {
     ///
     /// 变体固定是 default——TS 找引用时也只认 `default` / 非 schema 的 `odd` / 无 `w:type`
     /// （`sectionHf` 表达不了 first / even）。
-    fn section_hf_of(&mut self, e: &Value) -> Result<(usize, HfKind, Vec<NewBlock>)> {
+    fn section_hf_of(&mut self, e: &Value) -> Result<PendingSectionHf> {
         let idx = e
             .get("lastBlockIndex")
             .and_then(Value::as_u64)
@@ -2080,14 +2405,27 @@ impl Planner<'_> {
             _ => HfKind::Header,
         };
         let hf = e.get("hf").ok_or_else(|| unsupported("sectionHf 条目缺 hf"))?;
-        Ok((idx, kind, self.hf_blocks(hf)?))
+        Ok((idx, kind, hf_variant_of(e)?, self.hf_blocks(hf)?))
+    }
+}
+
+/// `sectionHf` 条目：`(lastBlockIndex, kind, variant, 内容)`，块操作之后才解析成节点。
+type PendingSectionHf = (usize, HfKind, HfVariant, Vec<NewBlock>);
+
+/// TS `variant?: 'default' | 'first' | 'even'`，缺省 default。
+fn hf_variant_of(e: &Value) -> Result<HfVariant> {
+    match s_of(e, "variant") {
+        None | Some("default") => Ok(HfVariant::Default),
+        Some("first") => Ok(HfVariant::First),
+        Some("even") => Ok(HfVariant::Even),
+        Some(other) => Err(unsupported(format!("sectionHf.variant {other:?} 不是合法值"))),
     }
 }
 
 /// 块操作之后把 `lastBlockIndex` 解析成 `w:sectPr` 节点。
 fn resolve_section_hf(
     session: &EditSession,
-    pending: Vec<(usize, HfKind, Vec<NewBlock>)>,
+    pending: Vec<PendingSectionHf>,
 ) -> Result<Vec<SectionHfSave>> {
     if pending.is_empty() {
         return Ok(Vec::new());
@@ -2099,13 +2437,13 @@ fn resolve_section_hf(
     let nodes = blocks::element_nodes(session.dom(), body);
     pending
         .into_iter()
-        .map(|(idx, kind, blocks)| {
+        .map(|(idx, kind, variant, blocks)| {
             let node = *nodes
                 .get(idx)
                 .ok_or_else(|| unsupported(format!("sectionHf.lastBlockIndex {idx} 越界")))?;
             let sect = sect_pr_in(session.dom(), node)
                 .ok_or_else(|| unsupported(format!("第 {idx} 块里没有 w:sectPr")))?;
-            Ok(SectionHfSave { sect, kind, variant: HfVariant::Default, blocks })
+            Ok(SectionHfSave { sect, kind, variant, blocks })
         })
         .collect()
 }

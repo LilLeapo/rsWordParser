@@ -240,6 +240,10 @@ pub struct EditContext {
     pub keep_orphan_comments: bool,
     /// 更新字段结果后设置重算标志。
     pub mark_updated_fields_dirty: bool,
+    /// `DeleteBlock` 劈开块字段时配平而不是拒绝（`FLD-13` 的 compat 退路，TS `balanceFieldChars`）：
+    /// 留下的 begin 在它自己那段末尾补 end，留下的 separate / end 成了孤儿就删掉。不进原生协议。
+    #[serde(skip)]
+    pub balance_split_fields: bool,
 }
 
 #[cfg_attr(rsword_api_docs, deny(missing_docs))]
@@ -253,6 +257,8 @@ impl EditContext {
         with_mark_updated_fields_dirty(mark_updated_fields_dirty: bool);
         /// 设置是否保留没有引用的批注正文。
         with_keep_orphan_comments(keep_orphan_comments: bool);
+        /// 设置 `DeleteBlock` 劈开块字段时是否配平（而不是 `EDIT_SPLIT_FIELD`）。
+        with_balance_split_fields(balance_split_fields: bool);
     }
 }
 /// `EDIT-02`：块位置在容器里的落点。`End(body)` 落在尾部 `w:sectPr` 之前。
@@ -5986,7 +5992,9 @@ impl Emitter {
     #[inline]
     /// 文本是否含需要折回元素的控制字符（不能直接写进现有 `w:t`）。
     fn has_control_chars(text: &str) -> bool {
-        text.chars().any(|c| matches!(c, '\t' | '\n' | '\r' | '\u{0B}' | '\u{0C}'))
+        text.chars().any(|c| {
+            matches!(c, '\t' | '\n' | '\r' | '\u{0B}' | '\u{0C}' | '\u{1E}' | '\u{2011}' | '\u{AD}')
+        })
     }
     #[inline]
     fn text_element(deleted: bool, text: &str) -> NewElement {
@@ -6032,6 +6040,23 @@ impl Emitter {
                 '\r' => {
                     flush(&mut buf, &mut out);
                     out.push(NewElement::new(QName::w(LocalName::Cr)));
+                }
+                // 读侧（`model`）的对称折回：`w:br textWrapping clear=all` / 不间断连字符 / 可选连字符
+                '\u{1E}' => {
+                    flush(&mut buf, &mut out);
+                    out.push(
+                        NewElement::new(QName::w(LocalName::Br))
+                            .with_attr(QName::w(LocalName::Type), "textWrapping")
+                            .with_attr(QName::w(LocalName::Clear), "all"),
+                    );
+                }
+                '\u{2011}' => {
+                    flush(&mut buf, &mut out);
+                    out.push(NewElement::new(QName::w(LocalName::NoBreakHyphen)));
+                }
+                '\u{AD}' => {
+                    flush(&mut buf, &mut out);
+                    out.push(NewElement::new(QName::w(LocalName::SoftHyphen)));
                 }
                 _ => buf.push(c),
             }
@@ -11569,18 +11594,45 @@ impl EditSession {
         // 最常见）。删掉它会把另一端留成孤儿，`FLD_STRAY_END` 是引擎自己造成的缺陷，于是**每次**保存都失败、
         // 整个会话再也存不下去。在这里拒绝，`EDIT-05` 保证状态一点没动；要删整个字段请走 `UpdateBlockField`。
         // （真实 Word 语料 `fields-toc-stale` 撞到的，`docs/09` 第三轮。）
+        let mut balance = Vec::new();
         if let Some(idx) = s.document().fields_in(s.part_or_main(part)) {
             let inside = |n: NodeId| n == node || dom.ancestors(n).any(|a| a == node);
-            if let Some(f) =
-                idx.fields().iter().find(|f| inside(f.form.head()) != inside(f.form.tail()))
+            for f in idx.fields().iter().filter(|f| inside(f.form.head()) != inside(f.form.tail()))
             {
-                return Err(Error::edit(
-                    DiagCode::EditSplitField,
-                    format!(
-                        "这个块只含 {:?} 字段的一端，删掉它会让另一端变成孤儿；要删整个字段请用 UpdateBlockField",
-                        f.keyword()
-                    ),
-                ));
+                if !ctx.balance_split_fields {
+                    return Err(Error::edit(
+                        DiagCode::EditSplitField,
+                        format!(
+                            "这个块只含 {:?} 字段的一端，删掉它会让另一端变成孤儿；要删整个字段请用 UpdateBlockField",
+                            f.keyword()
+                        ),
+                    ));
+                }
+                if inside(f.form.tail()) {
+                    // begin 留下：在它自己那段末尾闭合，字段保住指令与第一行结果
+                    let para = dom
+                        .ancestors(f.form.head())
+                        .find(|&a| dom.is(a, QName::w(LocalName::P)))
+                        .ok_or_else(|| {
+                            Error::edit(DiagCode::EditPlanInvalid, "字段 begin 不在段落里")
+                        })?;
+                    let end = NewElement::new(QName::w(LocalName::FldChar))
+                        .with_attr(QName::w(LocalName::FldCharType), "end");
+                    balance.push(NodeEdit::Insert {
+                        parent: Target::Node(para),
+                        before: None,
+                        node: NewElement::new(QName::w(LocalName::R)).with_child(end),
+                    });
+                } else {
+                    // begin 随块删掉：块外剩下的 separate / end 是孤儿
+                    balance.extend(
+                        f.form
+                            .structure_nodes()
+                            .into_iter()
+                            .filter(|&n| !inside(n))
+                            .map(NodeEdit::Delete),
+                    );
+                }
             }
         }
         // 追踪：**块留着**（`spec/18` 7.3）
@@ -11591,6 +11643,7 @@ impl EditSession {
         }
         let mut plan = MutationPlan::new(s.part_or_main(part));
         plan.structure_changed = true;
+        plan.node_edits.extend(balance);
         plan.node_edits.push(NodeEdit::Delete(node));
         if let Some(parent) = dom.parent(node) {
             MutationPlan::keep_cell_paragraph(dom, parent, Some(node), &mut plan);

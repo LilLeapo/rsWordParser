@@ -126,11 +126,18 @@ fn compat_08_save_blocks_match_ts_save_docx_output() {
                 skipped.entry(reason).or_default().push(file);
                 continue;
             }
-            Err(e) => panic!("{file}: {e}"),
+            Err(e) => {
+                failed.push((file, format!("apply: {e}")));
+                continue;
+            }
         };
-        let saved = session
-            .save_with_compat(&outcome.save_options)
-            .unwrap_or_else(|e| panic!("{file}: save: {e}"));
+        let saved = match session.save_with_compat(&outcome.save_options) {
+            Ok(saved) => saved,
+            Err(e) => {
+                failed.push((file, format!("save: {e}")));
+                continue;
+            }
+        };
         if case["outputIdenticalToSource"] == Value::Bool(true) {
             // TS 自己记录的"输出与源文件逐字节相同"：我们也必须走不变式 1 的短路
             assert_eq!(saved, bytes, "{file}: 无变更保存应返回原字节");
