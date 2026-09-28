@@ -1,5 +1,5 @@
 {
-  "name": "rs-word-parser",
+  "name": "@lilleapo/rs-word-parser",
   "description": "rsWordParser: lossless DOCX reader, editor and writer compiled to WebAssembly, with wasm-bindgen JS bindings",
   "license": "MIT OR Apache-2.0",
   "repository": {
@@ -34,5 +34,8 @@
     "LICENSE-MIT",
     "LICENSE-APACHE"
   ],
-  "sideEffects": false
+  "sideEffects": false,
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
 }

@@ -1,11 +1,11 @@
-# `rsword-js` · JS 绑定（wasm-bindgen）/ npm `rs-word-parser`
+# `rsword-js` · JS 绑定（wasm-bindgen）/ npm `@lilleapo/rs-word-parser`
 
-`rsword` 的 wasm 入口，也是 npm 包 [`rs-word-parser`](https://www.npmjs.com/package/rs-word-parser)
+`rsword` 的 wasm 入口，也是 GitHub Packages 上 npm 包 `@lilleapo/rs-word-parser`
 的全部来源：wasm + wasm-bindgen 胶水（`--target web`）+ 类型声明，不含 CLI 与原生产物。
 高保真 DOCX 读写：未编辑的内容保留原字节，编辑只补丁被改动的 XML；不做布局与渲染。
 
 ```js
-import init, { SessionTable } from 'rs-word-parser'
+import init, { SessionTable } from '@lilleapo/rs-word-parser'
 
 await init() // 浏览器 / 打包器：按 import.meta.url 取同目录的 rsword_js_bg.wasm
 // Node：import { initSync } …; initSync({ module: fs.readFileSync(wasm 路径) })
@@ -55,13 +55,22 @@ tools/build-js.sh --features compat-ts     # npm 发布件：再带兼容面
 在 wasm 里是几十 MB。`wasm-bindgen-cli` 必须与 Cargo.lock 里的 `wasm-bindgen` 精确同版本
 （见仓库根的 `TOOLS.md`）。
 
-## npm 发布
+## 安装与发布
+
+包在 GitHub Packages（`npm.pkg.github.com`），安装需要带 `read:packages` 的 GitHub token：
+
+```ini
+# .npmrc
+@lilleapo:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
 
 包的元数据在本目录 `package.json`（不写 `version`）；**版本号就是本 crate `Cargo.toml` 的
-`version`**。`.github/workflows/npm.yml` 在 `main` 每次推送时检查 `rs-word-parser@<版本>`：
-npm 上已有则跳过，没有则按 release 的门验默认构建（`tools/js-parity/native_parity.mjs`），
+`version`**。`.github/workflows/npm.yml` 在 `main` 每次推送时检查 `@lilleapo/rs-word-parser@<版本>`：
+注册表上已有则跳过，没有则按 release 的门验默认构建（`tools/js-parity/native_parity.mjs`），
 再带 `compat-ts` 重建、组装、冒烟并发布。改版本号即发版；带 `-` 的预发布版本发到 dist-tag
-`next`。需要仓库 secret `NPM_TOKEN`。
+`next`。用 workflow 自带的 `GITHUB_TOKEN` 发布，不需要额外 secret。
 
 本地组装与冒烟（不发布）：
 
