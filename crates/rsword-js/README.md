@@ -65,6 +65,11 @@ tools/build-js.sh --features compat-ts     # npm 发布件：再带兼容面
 //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
 ```
 
+```sh
+export GITHUB_TOKEN=$(gh auth token)   # 先 gh auth refresh -h github.com -s read:packages
+npm install @lilleapo/rs-word-parser
+```
+
 
 包的元数据在本目录 `package.json`（不写 `version`）；**版本号就是本 crate `Cargo.toml` 的
 `version`**。`.github/workflows/npm.yml` 在 `main` 每次推送时检查 `@lilleapo/rs-word-parser@<版本>`：

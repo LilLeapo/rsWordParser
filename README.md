@@ -37,7 +37,7 @@ rsword check input.docx --json --limit 100000 --maxBytes 400000
 | **Rust crate** | 嵌进自己的程序 | `rsword::bind::native::SessionTable` |
 | **CLI** | 脚本、一次性批处理 | `rsword` |
 | **MCP server** | 接给 Agent（Claude Code / Cursor 等） | `rsword-mcp`（stdio） |
-| **wasm** | 浏览器 / Node | `crates/rsword-js/pkg` |
+| **wasm** | 浏览器 / Node | npm 包 `@lilleapo/rs-word-parser`（GitHub Packages） |
 
 四者走**同一套原生协议**（`native/0`），所以四条不变式在哪个形态下都成立。
 
@@ -59,7 +59,49 @@ cargo install --locked --path crates/rsword-mcp    # → rsword-mcp
 rsword = { path = "../rsWordParser/crates/rsword" }
 ```
 
-wasm 产物（需要 `wasm32-unknown-unknown` target 与**版本对得上 `Cargo.lock`** 的 `wasm-bindgen-cli`）：
+### JS（npm 包）
+
+wasm + JS 绑定发布在 GitHub Packages：`@lilleapo/rs-word-parser`。GitHub Packages 装包也要认证，
+需要一个带 `read:packages` 的 GitHub token：
+
+```sh
+gh auth refresh -h github.com -s read:packages   # 或新建勾选 read:packages 的 PAT
+export GITHUB_TOKEN=$(gh auth token)
+```
+
+项目根目录的 `.npmrc`（token 从环境变量读，别把 token 写进文件）：
+
+```ini
+@lilleapo:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+```sh
+npm install @lilleapo/rs-word-parser
+```
+
+```js
+import init, { SessionTable } from '@lilleapo/rs-word-parser'
+
+await init()
+const t = new SessionTable()
+const id = t.open(docxBytes, JSON.stringify({ expectProtocol: 'native/0' }))
+const doc = JSON.parse(t.document(id))
+const saved = t.save(id) // Uint8Array，写盘由调用方负责
+t.close(id)
+```
+
+- 浏览器 / 打包器：`init()` 不带参数，胶水按 `import.meta.url` 取同目录的 `rsword_js_bg.wasm`。
+  Vite 要把包排除在依赖预构建之外，否则开发模式下找不到 wasm：
+  `optimizeDeps: { exclude: ['@lilleapo/rs-word-parser'] }`。
+- Node：`initSync({ module: readFileSync(createRequire(import.meta.url).resolve('@lilleapo/rs-word-parser/rsword_js_bg.wasm')) })`。
+- 包里另带 `compat/1` 兼容面（`parse` / `save` / `blank`，对应 GenOffice 的 TS `ParsedDoc` 契约），
+  随版本变化，不承诺稳定；稳定面是 `SessionTable`。详见 [crates/rsword-js](crates/rsword-js/README.md)。
+- 版本号跟 `crates/rsword-js/Cargo.toml`，由 [npm.yml](.github/workflows/npm.yml) 自动发布。
+
+### 从源码构建 wasm
+
+需要 `wasm32-unknown-unknown` target 与**版本对得上 `Cargo.lock`** 的 `wasm-bindgen-cli`：
 
 ```sh
 tools/build-js.sh            # → crates/rsword-js/pkg/
@@ -196,7 +238,7 @@ WASM 与 JS binding 在同一个 job 内共用一次构建，分别上传 artifa
 | `rsword-rustbinding` | Rust 库源码及原生 binding、独立 Cargo 示例项目和接入文档；经仓库外部项目验证读取、编辑、保存与重开 |
 
 CLI 在各目标系统上构建并运行进程测试；Linux 产物使用 GNU libc（Ubuntu 24.04 构建）。
-发布工作流不向 crates.io 或 npm 发布包。
+release 工作流不向 crates.io 或 npm 发布包；JS 包由 [npm.yml](.github/workflows/npm.yml) 发布到 GitHub Packages（见「安装 / JS」）。
 
 Rust binding 使用现有 `rsword::bind::native::SessionTable` 接口；下载包解压后，其他 Rust 项目可通过
 `rsword = { path = "../rsword-rustbinding/rsword" }` 引用。包内示例与说明见
