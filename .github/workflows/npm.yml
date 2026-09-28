@@ -1,0 +1,85 @@
+name: npm
+
+# rs-word-parser：wasm + wasm-bindgen JS 绑定，全部来自 crates/rsword-js（见其 README）。
+# 版本号取 crates/rsword-js/Cargo.toml；
+# 该版本在 npm 上还不存在时才构建并发布，已存在则整个作业跳过。改版本号 = 发版。
+# 带 `-` 的预发布版本（0.1.0-rc.1）发到 dist-tag `next`，其余发到 `latest`。
+#
+# 需要仓库 secret `NPM_TOKEN`（npm 自动化 / 细粒度 token，对 rs-word-parser 有发布权）。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # npm provenance
+
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Version gate
+        id: gate
+        run: |
+          name=$(node -p "require('./crates/rsword-js/package.json').name")
+          version=$(node crates/rsword-js/pack.mjs version)
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$(npm view "$name@$version" version 2>/dev/null)" == "$version" ]]; then
+            echo "::notice::$name@$version 已在 npm 上，跳过"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.gate.outputs.publish == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - if: steps.gate.outputs.publish == 'true'
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: npm-wasm
+      - name: Install matching wasm-bindgen
+        if: steps.gate.outputs.publish == 'true'
+        run: |
+          version=$(python3 -c 'import tomllib; d = tomllib.load(open("Cargo.lock", "rb")); print(next(p["version"] for p in d["package"] if p["name"] == "wasm-bindgen"))')
+          cargo install wasm-bindgen-cli --version "$version" --locked
+      # 先按 release 的门验默认构建（它断言默认面不带 compat 入口），
+      # 再带 compat-ts 重建发布件：GenOffice 走 parse / save / blank 这组兼容入口。
+      - name: Verify default JS binding
+        if: steps.gate.outputs.publish == 'true'
+        run: |
+          tools/build-js.sh --locked
+          node tools/js-parity/native_parity.mjs --pkg crates/rsword-js/pkg
+      - name: Build published WASM (with compat-ts)
+        if: steps.gate.outputs.publish == 'true'
+        run: tools/build-js.sh --locked --features compat-ts
+      - name: Pack
+        if: steps.gate.outputs.publish == 'true'
+        run: node crates/rsword-js/pack.mjs pack
+      - name: Publish
+        if: steps.gate.outputs.publish == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ steps.gate.outputs.version }}
+        run: |
+          tag=latest
+          [[ "$VERSION" == *-* ]] && tag=next
+          npm publish crates/rsword-js/pkg --provenance --access public --tag "$tag"

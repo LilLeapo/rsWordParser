@@ -1,0 +1,38 @@
+{
+  "name": "rs-word-parser",
+  "description": "rsWordParser: lossless DOCX reader, editor and writer compiled to WebAssembly, with wasm-bindgen JS bindings",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LilLeapo/rsWordParser.git",
+    "directory": "crates/rsword-js"
+  },
+  "keywords": [
+    "docx",
+    "word",
+    "ooxml",
+    "wasm",
+    "webassembly"
+  ],
+  "type": "module",
+  "main": "rsword_js.js",
+  "types": "rsword_js.d.ts",
+  "exports": {
+    ".": {
+      "types": "./rsword_js.d.ts",
+      "default": "./rsword_js.js"
+    },
+    "./rsword_js_bg.wasm": "./rsword_js_bg.wasm",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "rsword_js.js",
+    "rsword_js.d.ts",
+    "rsword_js_bg.wasm",
+    "rsword_js_bg.wasm.d.ts",
+    "README.md",
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
+  ],
+  "sideEffects": false
+}
